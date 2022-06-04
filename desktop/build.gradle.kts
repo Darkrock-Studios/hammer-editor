@@ -1,6 +1,5 @@
 import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
@@ -22,6 +21,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(project(":common"))
+                implementation(project(":composeUi"))
                 implementation(compose.desktop.currentOs)
             }
         }

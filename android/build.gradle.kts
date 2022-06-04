@@ -1,18 +1,18 @@
 plugins {
-    id("org.jetbrains.compose")
-    id("com.android.application")
     kotlin("android")
+    id("com.android.application")
+    id("org.jetbrains.compose")
 }
 
 group "com.darkrockstudios.apps.hammer"
 version "1.0-SNAPSHOT"
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    implementation(project(":common"))
+    api(project(":composeUi"))
     implementation("androidx.activity:activity-compose:1.4.0")
     implementation("androidx.compose.ui:ui:1.1.1")
     implementation("androidx.compose.ui:ui-tooling:1.1.1")
@@ -23,11 +23,11 @@ dependencies {
 }
 
 android {
-    compileSdkVersion(31)
+    compileSdk = 31
     defaultConfig {
         applicationId = "com.darkrockstudios.apps.hammer.android"
-        minSdkVersion(24)
-        targetSdkVersion(31)
+        minSdk = 24
+        targetSdk = 32
         versionCode = 1
         versionName = "1.0-SNAPSHOT"
     }

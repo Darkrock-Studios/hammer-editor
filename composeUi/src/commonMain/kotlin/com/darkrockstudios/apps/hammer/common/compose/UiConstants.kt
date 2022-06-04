@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common
+package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp

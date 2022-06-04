@@ -18,4 +18,4 @@ pluginManagement {
 
 rootProject.name = "hammer"
 
-include(":android", ":desktop", ":common")
+include(":android", ":desktop", ":composeUi", ":common")

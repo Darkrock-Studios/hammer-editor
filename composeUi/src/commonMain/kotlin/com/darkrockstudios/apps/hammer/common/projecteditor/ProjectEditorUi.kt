@@ -14,10 +14,10 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.animation.child.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.RouterState
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.Ui
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import io.github.aakira.napier.Napier
 
 private val MULTI_PANE_WIDTH_THRESHOLD = 800.dp

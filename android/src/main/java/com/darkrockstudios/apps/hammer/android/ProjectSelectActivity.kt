@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
-import com.darkrockstudios.apps.hammer.common.Ui
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.Project
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi

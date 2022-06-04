@@ -2,7 +2,6 @@ import org.jetbrains.compose.compose
 
 plugins {
     kotlin("multiplatform")
-    id("org.jetbrains.compose")
     id("com.android.library")
     id("kotlin-parcelize")
 }
@@ -17,15 +16,20 @@ kotlin {
             kotlinOptions.jvmTarget = "11"
         }
     }
+    ios {
+        binaries {
+            framework {
+                baseName = "common"
+            }
+        }
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(compose.runtime)
-                api(compose.foundation)
-                api(compose.material)
                 api("com.arkivanov.decompose:decompose:0.6.0")
-                implementation("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
                 api("io.github.aakira:napier:2.6.1")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
             }
         }
         val commonTest by getting {
@@ -35,11 +39,16 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
+                api(compose.runtime)
+                api(compose.foundation)
+                api(compose.material)
                 api("androidx.appcompat:appcompat:1.4.2")
                 api("androidx.core:core-ktx:1.8.0")
-                api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
             }
         }
+        val iosMain by getting
+        val iosTest by getting
         val androidTest by getting {
             dependencies {
                 implementation("junit:junit:4.13.2")
@@ -48,7 +57,6 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 api(compose.preview)
-                api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
             }
         }
         val desktopTest by getting
@@ -56,11 +64,11 @@ kotlin {
 }
 
 android {
-    compileSdkVersion(31)
+    compileSdk = 31
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     defaultConfig {
-        minSdkVersion(24)
-        targetSdkVersion(31)
+        minSdk = 24
+        targetSdk = 31
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
