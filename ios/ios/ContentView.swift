@@ -1,5 +1,5 @@
 import SwiftUI
-import common
+import Hammer
 
 func greet() -> String {
     return PlatformKt.getPlatformName()

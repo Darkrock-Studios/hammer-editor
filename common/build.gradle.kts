@@ -19,7 +19,9 @@ kotlin {
     ios {
         binaries {
             framework {
-                baseName = "common"
+                baseName = "Hammer"
+                transitiveExport = true
+                export("com.arkivanov.decompose:decompose:0.6.0")
             }
         }
     }

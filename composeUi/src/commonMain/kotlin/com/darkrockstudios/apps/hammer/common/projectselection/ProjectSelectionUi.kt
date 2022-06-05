@@ -29,7 +29,7 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
                 projectDirText = it
                 component.setProjectsDir(it)
             },
-            label = { Text("Label") }
+            label = { Text("Projects Directory") }
         )
 
         Button(onClick = { component.loadProjectList() }) {

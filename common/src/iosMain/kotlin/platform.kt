@@ -7,5 +7,9 @@ actual fun getPlatformName(): String {
 }
 
 actual fun getProjectsForDirectory(path: String): List<Project> {
-    return emptyList()
+    return listOf(
+        Project(name = "Proj 1", path="/a/b/c"),
+        Project(name = "Proj 2", path="/a/b/c"),
+        Project(name = "Proj 3", path="/a/b/c")
+    )
 }
