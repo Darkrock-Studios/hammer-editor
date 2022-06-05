@@ -11,12 +11,17 @@ import Hammer
 
 struct ProjectSelectionUi: View {
     
-    public init(component: ComponentHolder<ProjectSelectionComponent>) {
-        holder = component
+    public init(componentHolder: ComponentHolder<ProjectSelectionComponent>) {
+        holder = componentHolder
+        state = ObservableValue(componentHolder.component.state)
+        
     }
     
     @State
     private var holder: ComponentHolder<ProjectSelectionComponent>
+    
+    @ObservedObject
+    private var state: ObservableValue<ProjectSelectionComponent.State>
     
     @State
     private var directory: String = ""
@@ -42,11 +47,12 @@ struct ProjectSelectionUi: View {
             ScrollView {
                 LazyVStack() {
                     // This isn't working yet, need to subscribe to it some how
-                    ForEach(holder.component.state.value.projects,
+                    ForEach(state.value.projects,
                             id: \.self) { value in
-                                        Text("Row \(value)")
-                                    }
+                        ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
+                    }
                 }
+                
             }
         }
     }
@@ -55,12 +61,31 @@ struct ProjectSelectionUi: View {
 struct ProjectSelectionUi_Previews: PreviewProvider {
     static var previews: some View {
         ProjectSelectionUi(
-            component: ComponentHolder { context in
+            componentHolder: ComponentHolder { context in
                 ProjectSelectionComponent(
                     componentContext: context) { Project in
                         print("Project selected: " + Project.name)
                     }
             }
         )
+    }
+}
+
+struct ProjectItemUi: View {
+    
+    private var project: Project
+    
+    private var onProjectSelected: (Project) -> Void
+    
+    init(project: Project, onProjectSelected: @escaping (Project) -> Void) {
+        self.project = project
+        self.onProjectSelected = onProjectSelected
+    }
+    
+    var body: some View {
+        Text("Row \(project)")
+            .onTapGesture {
+                onProjectSelected(project)
+            }
     }
 }

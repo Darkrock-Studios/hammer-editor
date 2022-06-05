@@ -20,8 +20,10 @@ kotlin {
         binaries {
             framework {
                 baseName = "Hammer"
+                transitiveExport = true
                 export("com.arkivanov.decompose:decompose:0.6.0")
-                export("com.arkivanov.essenty:lifecycle:0.3.1")
+                // This isn't working for some reason, once it is remove transitiveExport
+                //export("com.arkivanov.essenty:lifecycle:0.3.1")
             }
         }
     }
