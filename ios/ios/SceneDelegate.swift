@@ -12,14 +12,27 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
 
-        let holder = ComponentHolder { context in
+        
+        let projectSelectionHolder = ComponentHolder { context in
             ProjectSelectionComponent(
-                componentContext: context) { Project in
-                    print("Project selected: " + Project.name)
+                componentContext: context) { project in
+                    print("Project selected: " + project.name)
+                    let component = ComponentHolder { context in
+                        ProjectEditorComponent(
+                            componentContext: context,
+                            project: project) { menu in
+                                NSLog("Add menu item")
+                            } removeMenu: { menuItemId in
+                                NSLog("Remove menu item")
+                            }
+                    }
+                    
+                    self.window?.rootViewController = UIHostingController(rootView: ProjectEditorUi(componentHolder: component))
                 }
         }
+        
         // Create the SwiftUI view that provides the window contents.
-        let contentView = ProjectSelectionUi(componentHolder: holder)
+        let contentView = ProjectSelectionUi(componentHolder: projectSelectionHolder)
 
         // Use a UIHostingController as window root view controller.
         if let windowScene = scene as? UIWindowScene {
