@@ -17,8 +17,8 @@ class SceneEditorComponent(
     private val closeSceneEditor: () -> Unit
 ): SceneEditor, ComponentContext by componentContext {
 
-    private val _value = MutableValue(State(scene = scene))
-    override val state: Value<State> = _value
+    private val _value = MutableValue(SceneEditor.State(scene = scene))
+    override val state: Value<SceneEditor.State> = _value
 
     override fun addEditorMenu() {
         Napier.d("addEditorMenu")
@@ -33,8 +33,4 @@ class SceneEditorComponent(
     override fun removeEditorMenu() {
         removeMenu("scene-editor")
     }
-
-    data class State(
-        val scene: Scene
-    )
 }

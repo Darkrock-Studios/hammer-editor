@@ -24,6 +24,7 @@ kotlin {
                 export("com.arkivanov.decompose:decompose:0.6.0")
                 // This isn't working for some reason, once it is remove transitiveExport
                 //export("com.arkivanov.essenty:lifecycle:0.3.1")
+                export("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
             }
         }
     }

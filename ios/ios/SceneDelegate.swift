@@ -13,18 +13,21 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
 
         
-        let projectSelectionHolder = ComponentHolder { context in
+        let projectSelectionHolder = ComponentHolder<ProjectSelectionComponent> { context in
             ProjectSelectionComponent(
                 componentContext: context) { project in
                     print("Project selected: " + project.name)
-                    let component = ComponentHolder { context in
+                    let component = ComponentHolder<ProjectEditorComponent> { context in
                         ProjectEditorComponent(
                             componentContext: context,
-                            project: project) { menu in
+                            project: project,
+                            addMenu: { menu in
                                 NSLog("Add menu item")
-                            } removeMenu: { menuItemId in
+                            },
+                            removeMenu: { menuItemId in
                                 NSLog("Remove menu item")
                             }
+                        )
                     }
                     
                     self.window?.rootViewController = UIHostingController(rootView: ProjectEditorUi(componentHolder: component))

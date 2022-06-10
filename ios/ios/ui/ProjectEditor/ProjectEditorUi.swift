@@ -9,21 +9,40 @@
 import SwiftUI
 import Hammer
 
+
+private let listPaneWeight = CGFloat(0.4)
+private let detailsPaneWeight = CGFloat(0.6)
+
 struct ProjectEditorUi: View {
     
     init(componentHolder: ComponentHolder<ProjectEditorComponent>) {
         self.holder = componentHolder
-        self.state = ObservableValue(componentHolder.component.state)
+        self.observedState = ObservableValue(componentHolder.component.state)
+        self.listRouterState = ObservableValue(componentHolder.component.listRouterState)
+        self.detailsRouterState = ObservableValue(componentHolder.component.detailsRouterState)
     }
     
     @State
     private var holder: ComponentHolder<ProjectEditorComponent>
     
     @ObservedObject
-    private var state: ObservableValue<ProjectEditorRootState>
+    private var observedState: ObservableValue<ProjectEditorRootState>
+    
+    @ObservedObject
+    private var listRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorRootChild.List>>
+    
+    @ObservedObject
+    private var detailsRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorRootChild.Detail>>
+    
+    private var state: ProjectEditorRootState { observedState.value }
+    private var activeListChild: ProjectEditorRootChild.List { listRouterState.value.activeChild.instance }
+    private var activeDetailsChild: ProjectEditorRootChild.Detail { detailsRouterState.value.activeChild.instance }
     
     var body: some View {
-        Text("Project Editor: " + state.value.project.name)
+        ZStack(alignment: .top) {
+            ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
+            DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane)
+        }.onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
     }
 }
 
@@ -42,3 +61,67 @@ struct ProjectEditorUi_Previews: PreviewProvider {
         )
     }
 }
+
+struct ListPane: View {
+    let listChild: ProjectEditorRootChild.List
+    let isMultiPane: Bool
+    
+    var body: some View {
+        switch listChild {
+        case let list as ProjectEditorRootChild.ListScenes:
+            GeometryReader { metrics in
+                HStack {
+                    SceneListUi(component: list.component)
+                        .frame(width: isMultiPane ? metrics.size.width * listPaneWeight : metrics.size.width)
+                    
+                    if isMultiPane {
+                        Spacer().frame(width: metrics.size.width * detailsPaneWeight)
+                    }
+                }
+            }
+            
+        default: EmptyView()
+        }
+    }
+}
+
+struct DetailsPane: View {
+    let detailsChild: ProjectEditorRootChild.Detail
+    let isMultiPane: Bool
+    
+    var body: some View {
+        switch detailsChild {
+        case let details as ProjectEditorRootChild.DetailEditor:
+            GeometryReader { metrics in
+                HStack {
+                    if isMultiPane {
+                        Spacer().frame(width: metrics.size.width * listPaneWeight)
+                    }
+                    
+                    SceneEditorUi(component: details.component)
+                        .frame(width: isMultiPane ? metrics.size.width * detailsPaneWeight : metrics.size.width)
+                }
+            }
+            
+        default: EmptyView()
+        }
+    }
+}
+
+private func deviceRequiresMultiPane() -> Bool {
+    return UIDevice.current.userInterfaceIdiom == .pad
+}
+
+/*
+class MultiPanePreview: MultiPane {
+    var listRouterState: Value<RouterState<AnyObject, MultiPaneListChild>> =
+        simpleRouterState(.List(component: SceneListUi_Previews()))
+
+    var detailsRouterState: Value<RouterState<AnyObject, MultiPaneDetailsChild>> =
+        simpleRouterState(.Details(component: SceneEditorUi_Previews()))
+
+    var models: Value<MultiPaneModel> = mutableValue(MultiPaneModel(isMultiPane: true))
+
+    func setMultiPane(isMultiPane: Bool) {}
+}
+*/
