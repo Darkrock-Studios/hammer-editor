@@ -45,12 +45,14 @@ struct ProjectEditorUi: View {
     
     var body: some View {
         NavigationView {
-            ZStack(alignment: .top) {
-                ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
-                DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane)
-            }.onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+            ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
                 .padding()
                 .navigationTitle(state.project.name)
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarBackButtonHidden(true)
+            DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane).onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+                .padding()
+                .navigationTitle("Scene")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(true)
                 .toolbar(content: {

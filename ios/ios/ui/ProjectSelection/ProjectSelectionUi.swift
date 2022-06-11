@@ -29,36 +29,34 @@ struct ProjectSelectionUi: View {
     private var directory: String = ""
     
     var body: some View {
-        NavigationView {
-            VStack() {
-                TextField(
-                    "Projects Directory",
-                    text: $directory
-                )
-                .onChange(of: directory) { newValue in holder.component.setProjectsDir(path:newValue)
-                }
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .border(.secondary)
-                
-                Button("Load") {
-                    holder.component.loadProjectList()
-                }
-                
-                ScrollView {
-                    LazyVStack() {
-                        // This isn't working yet, need to subscribe to it some how
-                        ForEach(state.projects,
-                                id: \.self) { value in
-                            ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
-                        }
+        VStack() {
+            TextField(
+                "Projects Directory",
+                text: $directory
+            )
+            .onChange(of: directory) { newValue in holder.component.setProjectsDir(path:newValue)
+            }
+            .textInputAutocapitalization(.never)
+            .disableAutocorrection(true)
+            .border(.secondary)
+            
+            Button("Load") {
+                holder.component.loadProjectList()
+            }
+            
+            ScrollView {
+                LazyVStack() {
+                    // This isn't working yet, need to subscribe to it some how
+                    ForEach(state.projects,
+                            id: \.self) { value in
+                        ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
                     }
-                    
                 }
-            }.navigationTitle("Hammer Projects")
-                .navigationBarTitleDisplayMode(.inline)
-                .padding()
+                
+            }
         }
+        .frame(maxWidth: 300, alignment: Alignment.center)
+        .padding()
     }
 }
 
