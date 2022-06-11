@@ -57,6 +57,7 @@ struct ProjectSelectionUi: View {
                 }
             }.navigationTitle("Hammer Projects")
                 .navigationBarTitleDisplayMode(.inline)
+                .padding()
         }
     }
 }

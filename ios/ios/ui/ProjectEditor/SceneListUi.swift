@@ -25,9 +25,6 @@ struct SceneListUi: View {
     var body: some View {
         VStack {
             Text("Scene List")
-            Button("test scene") {
-                component.onSceneSelected(scene: Scene(project: state.project, scene: "some text"))
-            }
             ScrollView {
                 LazyVStack() {
                     ForEach(state.scenes,

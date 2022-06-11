@@ -49,6 +49,7 @@ struct ProjectEditorUi: View {
                 ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
                 DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane)
             }.onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+                .padding()
                 .navigationTitle(state.project.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(true)

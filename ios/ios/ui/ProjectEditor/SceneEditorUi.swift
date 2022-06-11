@@ -24,7 +24,7 @@ struct SceneEditorUi: View {
     }
     
     var body: some View {
-        Text("SceneEditorUi")
+        Text("SceneEditor: " + state.scene.scene)
     }
 }
 
