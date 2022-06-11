@@ -17,7 +17,7 @@ class ProjectEditorComponent(
     project: Project,
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
-) : ProjectEditorRoot, ComponentContext by componentContext {
+) : ProjectEditor, ComponentContext by componentContext {
 
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
     private val selectedSceneFlow = MutableSharedFlow<Scene?>(
@@ -33,7 +33,7 @@ class ProjectEditorComponent(
             onSceneSelected = ::onSceneSelected
         )
 
-    override val listRouterState: Value<RouterState<*, ProjectEditorRoot.Child.List>> =
+    override val listRouterState: Value<RouterState<*, ProjectEditor.Child.List>> =
         listRouter.state
 
     private val detailsRouter =
@@ -45,11 +45,11 @@ class ProjectEditorComponent(
             removeMenu = removeMenu
         )
 
-    override val detailsRouterState: Value<RouterState<*, ProjectEditorRoot.Child.Detail>> =
+    override val detailsRouterState: Value<RouterState<*, ProjectEditor.Child.Detail>> =
         detailsRouter.state
 
-    private val _state = MutableValue(ProjectEditorRoot.State(project))
-    override val state: Value<ProjectEditorRoot.State> = _state
+    private val _state = MutableValue(ProjectEditor.State(project))
+    override val state: Value<ProjectEditor.State> = _state
 
     init {
         backPressedHandler.register {
@@ -63,7 +63,7 @@ class ProjectEditorComponent(
         }
     }
 
-    private fun closeDetails(): Boolean {
+    override fun closeDetails(): Boolean {
         return if (isMultiPaneMode() && detailsRouter.isShown()) {
             closeDetailsInMultipane()
             true

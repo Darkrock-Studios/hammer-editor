@@ -22,21 +22,21 @@ internal class DetailsRouter(
 ) {
 
     private val router =
-        componentContext.router<Config, ProjectEditorRoot.Child.Detail>(
+        componentContext.router<Config, ProjectEditor.Child.Detail>(
             initialConfiguration = Config.None,
             key = "DetailsRouter",
             childFactory = ::createChild
         )
 
-    val state: Value<RouterState<Config, ProjectEditorRoot.Child.Detail>> = router.state
+    val state: Value<RouterState<Config, ProjectEditor.Child.Detail>> = router.state
 
     private fun createChild(
         config: Config,
         componentContext: ComponentContext
-    ): ProjectEditorRoot.Child.Detail =
+    ): ProjectEditor.Child.Detail =
         when (config) {
-            is Config.None -> ProjectEditorRoot.Child.Detail.None
-            is Config.SceneEditor -> ProjectEditorRoot.Child.Detail.Editor(
+            is Config.None -> ProjectEditor.Child.Detail.None
+            is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
                 sceneEditor(componentContext = componentContext, scene = config.scene)
             )
         }

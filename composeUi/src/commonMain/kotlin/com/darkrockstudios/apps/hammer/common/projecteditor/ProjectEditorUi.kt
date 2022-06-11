@@ -95,19 +95,19 @@ fun ProjectEditorUi(
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
-private fun ListPane(routerState: Value<RouterState<*, ProjectEditorRoot.Child.List>>, modifier: Modifier) {
+private fun ListPane(routerState: Value<RouterState<*, ProjectEditor.Child.List>>, modifier: Modifier) {
     Children(
         routerState = routerState,
         modifier = modifier,
         animation = childAnimation(fade()),
     ) {
         when (val child = it.instance) {
-            is ProjectEditorRoot.Child.List.Scenes ->
+            is ProjectEditor.Child.List.Scenes ->
                 SceneListUi(
                     component = child.component,
                     modifier = Modifier.fillMaxSize()
                 )
-            is ProjectEditorRoot.Child.List.None -> Box {}
+            is ProjectEditor.Child.List.None -> Box {}
         }
     }
 }
@@ -115,7 +115,7 @@ private fun ListPane(routerState: Value<RouterState<*, ProjectEditorRoot.Child.L
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun DetailsPane(
-    routerState: Value<RouterState<*, ProjectEditorRoot.Child.Detail>>,
+    routerState: Value<RouterState<*, ProjectEditor.Child.Detail>>,
     modifier: Modifier
 ) {
     Children(
@@ -124,8 +124,8 @@ private fun DetailsPane(
         animation = childAnimation(fade()),
     ) {
         when (val child = it.instance) {
-            is ProjectEditorRoot.Child.Detail.None -> Box {}
-            is ProjectEditorRoot.Child.Detail.Editor -> {
+            is ProjectEditor.Child.Detail.None -> Box {}
+            is ProjectEditor.Child.Detail.Editor -> {
                 SceneEditorUi(
                     component = child.component,
                     modifier = Modifier.fillMaxSize(),

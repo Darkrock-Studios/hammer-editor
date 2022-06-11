@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.Project
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
 
-interface ProjectEditorRoot {
+interface ProjectEditor {
     val listRouterState: Value<RouterState<*, Child.List>>
     val detailsRouterState: Value<RouterState<*, Child.Detail>>
 
@@ -17,6 +17,8 @@ interface ProjectEditorRoot {
     val state: Value<State>
 
     fun setMultiPane(isMultiPane: Boolean)
+
+    fun closeDetails(): Boolean
 
     sealed class Child {
         sealed class List: Child() {

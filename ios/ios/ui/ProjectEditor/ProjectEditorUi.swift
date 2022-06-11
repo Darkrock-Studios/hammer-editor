@@ -28,20 +28,20 @@ struct ProjectEditorUi: View {
     @State
     private var holder: ComponentHolder<ProjectEditorComponent>
     
-    private var component: ProjectEditorRoot { holder.component }
+    private var component: ProjectEditor { holder.component }
     
     @ObservedObject
-    private var observedState: ObservableValue<ProjectEditorRootState>
+    private var observedState: ObservableValue<ProjectEditorState>
     
     @ObservedObject
-    private var listRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorRootChild.List>>
+    private var listRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorChild.List>>
     
     @ObservedObject
-    private var detailsRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorRootChild.Detail>>
+    private var detailsRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorChild.Detail>>
     
-    private var state: ProjectEditorRootState { observedState.value }
-    private var activeListChild: ProjectEditorRootChild.List { listRouterState.value.activeChild.instance }
-    private var activeDetailsChild: ProjectEditorRootChild.Detail { detailsRouterState.value.activeChild.instance }
+    private var state: ProjectEditorState { observedState.value }
+    private var activeListChild: ProjectEditorChild.List { listRouterState.value.activeChild.instance }
+    private var activeDetailsChild: ProjectEditorChild.Detail { detailsRouterState.value.activeChild.instance }
     
     var body: some View {
         NavigationView {
@@ -57,7 +57,9 @@ struct ProjectEditorUi: View {
                         Image(systemName: "arrow.left")
                             .foregroundColor(.white)
                             .onTapGesture {
-                                self.onBackPressed()
+                                if(!component.closeDetails()) {
+                                    self.onBackPressed()
+                                }
                             }
                     }
                 })
@@ -88,12 +90,12 @@ struct ProjectEditorUi_Previews: PreviewProvider {
 }
 
 struct ListPane: View {
-    let listChild: ProjectEditorRootChild.List
+    let listChild: ProjectEditorChild.List
     let isMultiPane: Bool
     
     var body: some View {
         switch listChild {
-        case let list as ProjectEditorRootChild.ListScenes:
+        case let list as ProjectEditorChild.ListScenes:
             GeometryReader { metrics in
                 HStack {
                     SceneListUi(component: list.component)
@@ -111,12 +113,12 @@ struct ListPane: View {
 }
 
 struct DetailsPane: View {
-    let detailsChild: ProjectEditorRootChild.Detail
+    let detailsChild: ProjectEditorChild.Detail
     let isMultiPane: Bool
     
     var body: some View {
         switch detailsChild {
-        case let details as ProjectEditorRootChild.DetailEditor:
+        case let details as ProjectEditorChild.DetailEditor:
             GeometryReader { metrics in
                 HStack {
                     if isMultiPane {

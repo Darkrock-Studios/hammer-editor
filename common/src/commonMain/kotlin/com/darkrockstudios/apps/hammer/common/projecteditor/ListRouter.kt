@@ -17,18 +17,18 @@ internal class ListRouter(
     private val onSceneSelected: (scene: Scene) -> Unit
 ) {
     private val router =
-        componentContext.router<Config, ProjectEditorRoot.Child.List>(
+        componentContext.router<Config, ProjectEditor.Child.List>(
             initialConfiguration = Config.List,
             key = "MainRouter",
             childFactory = ::createChild
         )
 
-    val state: Value<RouterState<Config, ProjectEditorRoot.Child.List>> = router.state
+    val state: Value<RouterState<Config, ProjectEditor.Child.List>> = router.state
 
-    private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditorRoot.Child.List =
+    private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.Child.List =
         when (config) {
-            is Config.List -> ProjectEditorRoot.Child.List.Scenes(sceneList(componentContext))
-            is Config.None -> ProjectEditorRoot.Child.List.None
+            is Config.List -> ProjectEditor.Child.List.Scenes(sceneList(componentContext))
+            is Config.None -> ProjectEditor.Child.List.None
         }
 
     private fun sceneList(componentContext: ComponentContext): SceneListComponent =
