@@ -11,7 +11,7 @@ interface SceneList {
     data class State(
         val project: Project,
         val selectedScene: Scene? = null,
-        val scenes: MutableList<Scene> = mutableListOf(
+        val scenes: List<Scene> = mutableListOf(
             Scene(project, "scene 1"),
             Scene(project, "scene 2"),
             Scene(project, "scene 3")

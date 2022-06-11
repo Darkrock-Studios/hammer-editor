@@ -28,6 +28,14 @@ struct SceneListUi: View {
             Button("test scene") {
                 component.onSceneSelected(scene: Scene(project: state.project, scene: "some text"))
             }
+            ScrollView {
+                LazyVStack() {
+                    ForEach(state.scenes,
+                            id: \.self) { value in
+                        SceneItemUi(scene: value, onSceneSelected: component.onSceneSelected)
+                    }
+                }
+            }
         }
     }
 }
@@ -48,5 +56,33 @@ struct SceneListUi_Previews: PreviewProvider {
                     sceneSelected: { scene in }
                 )
         )
+    }
+}
+
+struct SceneItemUi_Previews: PreviewProvider {
+    static var previews: some View {
+        SceneItemUi(
+            scene: Hammer.Scene(project: Project(name: "test prog", path: "/a/b"), scene: "test"),
+            onSceneSelected: { scene in }
+            )
+    }
+}
+
+struct SceneItemUi: View {
+    
+    private var scene: Hammer.Scene
+    
+    private var onSceneSelected: (Hammer.Scene) -> Void
+    
+    init(scene: Hammer.Scene, onSceneSelected: @escaping (Hammer.Scene) -> Void) {
+        self.scene = scene
+        self.onSceneSelected = onSceneSelected
+    }
+    
+    var body: some View {
+        Text("Row \(scene.scene)")
+            .onTapGesture {
+                onSceneSelected(scene)
+            }
     }
 }

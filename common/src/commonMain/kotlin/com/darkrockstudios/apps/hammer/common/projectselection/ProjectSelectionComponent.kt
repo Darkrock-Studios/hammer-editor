@@ -10,28 +10,23 @@ import com.darkrockstudios.apps.hammer.common.getProjectsForDirectory
 class ProjectSelectionComponent(
     componentContext: ComponentContext,
     private val onProjectSelected: (project: Project) -> Unit
-): ComponentContext by componentContext {
+): ProjectSelection, ComponentContext by componentContext {
 
-    private val _value = MutableValue(State(projectsDir = ""))
-    val state: Value<State> = _value
+    private val _value = MutableValue(ProjectSelection.State(projectsDir = ""))
+    override val state: Value<ProjectSelection.State> = _value
 
-    fun loadProjectList() {
+    override fun loadProjectList() {
         _value.reduce {
             val projects = getProjectsForDirectory(state.value.projectsDir)
             _value.value.copy(projects = projects)
         }
     }
 
-    fun setProjectsDir(path: String) {
+    override fun setProjectsDir(path: String) {
         _value.reduce {
             _value.value.copy(projectsDir = path)
         }
     }
 
-    fun selectProject(project: Project) = onProjectSelected(project)
-
-    data class State(
-        val projectsDir: String = "",
-        val projects: List<Project> = mutableListOf()
-    )
+    override fun selectProject(project: Project) = onProjectSelected(project)
 }

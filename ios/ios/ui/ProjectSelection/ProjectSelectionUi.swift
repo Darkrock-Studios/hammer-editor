@@ -13,7 +13,7 @@ struct ProjectSelectionUi: View {
     
     public init(componentHolder: ComponentHolder<ProjectSelectionComponent>) {
         holder = componentHolder
-        state = ObservableValue(componentHolder.component.state)
+        observableState = ObservableValue(componentHolder.component.state)
         
     }
     
@@ -21,7 +21,9 @@ struct ProjectSelectionUi: View {
     private var holder: ComponentHolder<ProjectSelectionComponent>
     
     @ObservedObject
-    private var state: ObservableValue<ProjectSelectionComponent.State>
+    private var observableState: ObservableValue<ProjectSelectionState>
+    
+    private var state: ProjectSelectionState { observableState.value }
     
     @State
     private var directory: String = ""
@@ -46,7 +48,7 @@ struct ProjectSelectionUi: View {
                 ScrollView {
                     LazyVStack() {
                         // This isn't working yet, need to subscribe to it some how
-                        ForEach(state.value.projects,
+                        ForEach(state.projects,
                                 id: \.self) { value in
                             ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
                         }
