@@ -27,33 +27,34 @@ struct ProjectSelectionUi: View {
     private var directory: String = ""
     
     var body: some View {
-        VStack() {
-            Text("Projects Directory")
-            
-            TextField(
-                "Projects Directory",
-                text: $directory
-            )
-            .onChange(of: directory) { newValue in holder.component.setProjectsDir(path:newValue)
-            }
-            .textInputAutocapitalization(.never)
-            .disableAutocorrection(true)
-            .border(.secondary)
-            
-            Button("Load") {
-                holder.component.loadProjectList()
-            }
-            
-            ScrollView {
-                LazyVStack() {
-                    // This isn't working yet, need to subscribe to it some how
-                    ForEach(state.value.projects,
-                            id: \.self) { value in
-                        ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
-                    }
+        NavigationView {
+            VStack() {
+                TextField(
+                    "Projects Directory",
+                    text: $directory
+                )
+                .onChange(of: directory) { newValue in holder.component.setProjectsDir(path:newValue)
+                }
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .border(.secondary)
+                
+                Button("Load") {
+                    holder.component.loadProjectList()
                 }
                 
-            }
+                ScrollView {
+                    LazyVStack() {
+                        // This isn't working yet, need to subscribe to it some how
+                        ForEach(state.value.projects,
+                                id: \.self) { value in
+                            ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
+                        }
+                    }
+                    
+                }
+            }.navigationTitle("Hammer Projects")
+                .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

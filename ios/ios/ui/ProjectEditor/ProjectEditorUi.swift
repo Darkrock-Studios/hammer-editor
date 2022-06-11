@@ -15,15 +15,20 @@ private let detailsPaneWeight = CGFloat(0.6)
 
 struct ProjectEditorUi: View {
     
-    init(componentHolder: ComponentHolder<ProjectEditorComponent>) {
+    init(componentHolder: ComponentHolder<ProjectEditorComponent>, onBackPressed: @escaping () -> Void) {
         self.holder = componentHolder
         self.observedState = ObservableValue(componentHolder.component.state)
         self.listRouterState = ObservableValue(componentHolder.component.listRouterState)
         self.detailsRouterState = ObservableValue(componentHolder.component.detailsRouterState)
+        self.onBackPressed = onBackPressed
     }
+    
+    private var onBackPressed: () -> Void
     
     @State
     private var holder: ComponentHolder<ProjectEditorComponent>
+    
+    private var component: ProjectEditorRoot { holder.component }
     
     @ObservedObject
     private var observedState: ObservableValue<ProjectEditorRootState>
@@ -39,10 +44,24 @@ struct ProjectEditorUi: View {
     private var activeDetailsChild: ProjectEditorRootChild.Detail { detailsRouterState.value.activeChild.instance }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
-            DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane)
-        }.onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+        NavigationView {
+            ZStack(alignment: .top) {
+                ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
+                DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane)
+            }.onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+                .navigationTitle(state.project.name)
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarBackButtonHidden(true)
+                .toolbar(content: {
+                    ToolbarItem (placement: .navigation)  {
+                        Image(systemName: "arrow.left")
+                            .foregroundColor(.white)
+                            .onTapGesture {
+                                self.onBackPressed()
+                            }
+                    }
+                })
+        }
     }
 }
 
@@ -52,11 +71,17 @@ struct ProjectEditorUi_Previews: PreviewProvider {
             componentHolder: ComponentHolder { context in
                 ProjectEditorComponent(
                     componentContext: context,
-                    project: Project(name:"Test Proj", path: "/a/b")) { menu in
+                    project: Project(name:"Test Proj", path: "/a/b"),
+                    addMenu: { menu in
                         NSLog("Add menu item")
-                    } removeMenu: { menuItemId in
+                    },
+                    removeMenu: { menuItemId in
                         NSLog("Remove menu item")
                     }
+                )
+            },
+            onBackPressed: {
+                
             }
         )
     }
@@ -113,15 +138,16 @@ private func deviceRequiresMultiPane() -> Bool {
 }
 
 /*
-class MultiPanePreview: MultiPane {
-    var listRouterState: Value<RouterState<AnyObject, MultiPaneListChild>> =
-        simpleRouterState(.List(component: SceneListUi_Previews()))
-
-    var detailsRouterState: Value<RouterState<AnyObject, MultiPaneDetailsChild>> =
-        simpleRouterState(.Details(component: SceneEditorUi_Previews()))
-
-    var models: Value<MultiPaneModel> = mutableValue(MultiPaneModel(isMultiPane: true))
-
-    func setMultiPane(isMultiPane: Bool) {}
-}
-*/
+ // Need to get these previews setup and working again
+ class MultiPanePreview: MultiPane {
+ var listRouterState: Value<RouterState<AnyObject, MultiPaneListChild>> =
+ simpleRouterState(.List(component: SceneListUi_Previews()))
+ 
+ var detailsRouterState: Value<RouterState<AnyObject, MultiPaneDetailsChild>> =
+ simpleRouterState(.Details(component: SceneEditorUi_Previews()))
+ 
+ var models: Value<MultiPaneModel> = mutableValue(MultiPaneModel(isMultiPane: true))
+ 
+ func setMultiPane(isMultiPane: Bool) {}
+ }
+ */

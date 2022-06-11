@@ -11,31 +11,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
-
         
-        let projectSelectionHolder = ComponentHolder<ProjectSelectionComponent> { context in
-            ProjectSelectionComponent(
-                componentContext: context) { project in
-                    print("Project selected: " + project.name)
-                    let component = ComponentHolder<ProjectEditorComponent> { context in
-                        ProjectEditorComponent(
-                            componentContext: context,
-                            project: project,
-                            addMenu: { menu in
-                                NSLog("Add menu item")
-                            },
-                            removeMenu: { menuItemId in
-                                NSLog("Remove menu item")
-                            }
-                        )
-                    }
-                    
-                    self.window?.rootViewController = UIHostingController(rootView: ProjectEditorUi(componentHolder: component))
-                }
-        }
+        Theme.navigationBarColors(background: .purple, titleColor: .white)
         
         // Create the SwiftUI view that provides the window contents.
-        let contentView = ProjectSelectionUi(componentHolder: projectSelectionHolder)
+        let contentView = createProjectSelect()
 
         // Use a UIHostingController as window root view controller.
         if let windowScene = scene as? UIWindowScene {
@@ -44,6 +24,43 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             self.window = window
             window.makeKeyAndVisible()
         }
+    }
+    
+    private func createProjectSelect() -> ProjectSelectionUi {
+        let projectSelectionHolder = ComponentHolder<ProjectSelectionComponent> { context in
+            ProjectSelectionComponent(
+                componentContext: context) { project in
+                    print("Project selected: " + project.name)
+                    
+                    let projectEditorView = self.createProjectEditor(project: project)
+                    self.window?.rootViewController = UIHostingController(rootView: projectEditorView)
+                }
+        }
+        
+        // Create the SwiftUI view that provides the window contents.
+        return ProjectSelectionUi(componentHolder: projectSelectionHolder)
+    }
+    
+    private func createProjectEditor(project: Project) -> ProjectEditorUi {
+        let component = ComponentHolder<ProjectEditorComponent> { context in
+            ProjectEditorComponent(
+                componentContext: context,
+                project: project,
+                addMenu: { menu in
+                    NSLog("Add menu item")
+                },
+                removeMenu: { menuItemId in
+                    NSLog("Remove menu item")
+                }
+            )
+        }
+        
+        let projectEditorView = ProjectEditorUi(componentHolder: component) {
+            let projectSelect = self.createProjectSelect()
+            self.window?.rootViewController = UIHostingController(rootView: projectSelect)
+        }
+        
+        return projectEditorView
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
