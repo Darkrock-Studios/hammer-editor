@@ -15,25 +15,22 @@ import com.darkrockstudios.apps.hammer.common.data.Project
 @Composable
 fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier = Modifier) {
     val state by component.state.subscribeAsState()
-    var projectDirText by remember { mutableStateOf(state.projectsDir) }
+    var newProjectNameText by remember { mutableStateOf("") }
 
     Column(modifier = modifier.padding(Ui.PADDING)) {
         Text(
-            text = "Projects Directory",
+            text = "Create a new project:",
             style = MaterialTheme.typography.h4
         )
 
         TextField(
-            value = projectDirText,
-            onValueChange = {
-                projectDirText = it
-                component.setProjectsDir(it)
-            },
-            label = { Text("Projects Directory") }
+            value = newProjectNameText,
+            onValueChange = { newProjectNameText = it },
+            label = { Text("New Project Name") }
         )
 
-        Button(onClick = { component.loadProjectList() }) {
-            Text("Load")
+        Button(onClick = { component.createProject(newProjectNameText) }) {
+            Text("Create Project")
         }
 
         LazyColumn(

@@ -10,15 +10,23 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.di.NapierLogger
+import com.darkrockstudios.apps.hammer.common.di.mainModule
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import org.koin.core.context.GlobalContext
 
 fun main() {
     Napier.base(DebugAntilog())
+
+    GlobalContext.startKoin {
+        logger(NapierLogger())
+        modules(mainModule)
+    }
 
     application {
         val applicationState = remember { ApplicationState() }

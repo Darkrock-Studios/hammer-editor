@@ -3,8 +3,9 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.Project
 import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 
-interface SceneList {
+interface SceneList : HammerComponent {
     val state: Value<State>
     fun onSceneSelected(scene: Scene)
 

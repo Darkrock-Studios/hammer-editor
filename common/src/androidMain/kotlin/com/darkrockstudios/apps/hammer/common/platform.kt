@@ -1,11 +1,18 @@
 package com.darkrockstudios.apps.hammer.common
 
-import com.darkrockstudios.apps.hammer.common.data.Project
+import android.content.Context
+import okio.FileSystem
+import java.io.File
 
 actual fun getPlatformName(): String {
     return "Android"
 }
 
-actual fun getProjectsForDirectory(path: String): List<Project> {
-    return listOf(Project("proj 1 android", "/"), Project("proj 1 android", "/"))
+private lateinit var rootDocumentDirectory: File
+fun setRootDocumentDirectory(context: Context) {
+    rootDocumentDirectory = context.filesDir
 }
+
+actual fun getRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
+
+actual fun getPlatformFilesystem() = FileSystem.SYSTEM

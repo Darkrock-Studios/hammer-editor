@@ -14,10 +14,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 
 class ProjectEditorComponent(
     componentContext: ComponentContext,
-    project: Project,
+    private val project: Project,
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
 ) : ProjectEditor, ComponentContext by componentContext {
+
+    //private val projectScope = getKoin().createScope<Project>(project.hashCode().toString())
 
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
     private val selectedSceneFlow = MutableSharedFlow<Scene?>(

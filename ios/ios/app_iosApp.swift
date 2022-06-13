@@ -17,6 +17,8 @@ struct app_iosApp: App {
     
     init() {
         Theme.navigationBarColors(background: .purple, titleColor: .white)
+
+        PlatformKt.initializeKoin()
     }
         
     var body: some SwiftUI.Scene {

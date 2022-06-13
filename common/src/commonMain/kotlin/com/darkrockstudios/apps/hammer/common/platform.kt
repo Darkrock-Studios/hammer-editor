@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common
 
-import com.darkrockstudios.apps.hammer.common.data.Project
+import okio.FileSystem
 
 expect fun getPlatformName(): String
 
-expect fun getProjectsForDirectory(path: String): List<Project>
+expect fun getRootDocumentDirectory(): String
+
+expect fun getPlatformFilesystem(): FileSystem
