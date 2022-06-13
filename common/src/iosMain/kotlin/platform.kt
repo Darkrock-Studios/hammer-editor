@@ -2,8 +2,10 @@ package com.darkrockstudios.apps.hammer.common
 
 import com.darkrockstudios.apps.hammer.common.di.NapierLogger
 import com.darkrockstudios.apps.hammer.common.di.mainModule
+import kotlinx.coroutines.Dispatchers
 import okio.FileSystem
 import org.koin.core.context.startKoin
+import kotlin.coroutines.CoroutineContext
 
 actual fun getPlatformName(): String {
     return "iOS"
@@ -22,3 +24,6 @@ fun initializeKoin() {
 }
 
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
+
+actual val defaultDispatcher: CoroutineContext = Dispatchers.Default
+actual val uiDispatcher: CoroutineContext = Dispatchers.Main

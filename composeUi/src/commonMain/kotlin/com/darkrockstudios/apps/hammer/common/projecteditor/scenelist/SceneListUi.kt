@@ -78,7 +78,7 @@ fun SceneItem(scene: Scene, isSelected: Boolean, onSceneSelected: (Scene) -> Uni
     ) {
         Column(modifier = Modifier.padding(Ui.PADDING)) {
             Text(
-                "Scene: ${scene.scene}",
+                "Scene: ${scene.name}",
                 style = MaterialTheme.typography.body1
             )
         }

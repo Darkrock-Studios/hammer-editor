@@ -9,8 +9,12 @@ interface SceneEditor : HammerComponent {
 
     fun addEditorMenu()
     fun removeEditorMenu()
+    fun loadSceneContent()
+    fun storeSceneContent(content: String): Boolean
+    fun onContentChanged(content: String)
 
     data class State(
-        val scene: Scene
+        val scene: Scene,
+        val sceneContent: String? = null
     )
 }

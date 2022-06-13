@@ -5,6 +5,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
@@ -70,11 +72,11 @@ private fun ApplicationScope.ProjectEditorWindow(
     app: ApplicationState,
     project: Project
 ) {
-    val windowState = rememberWindowState()
+    val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
     Window(
         title = "Hammer",
         state = windowState,
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = ::exitApplication
     ) {
         Column {
             val menu by remember { app.menu }

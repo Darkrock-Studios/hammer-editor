@@ -1,12 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.fileio.okio
 
-import com.darkrockstudios.apps.hammer.common.data.Project
-import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
 import okio.FileSystem
+import okio.IOException
 
 class ProjectEditorRepositoryOkio(
     project: Project,
@@ -33,12 +31,12 @@ class ProjectEditorRepositoryOkio(
         return if (fileSystem.exists(scenePath)) {
             Napier.d("scene already existed")
             null
-        } else if (projectsRepository.validateFileName(sceneName)) {
+        } else if (!projectsRepository.validateFileName(sceneName)) {
             Napier.d("Invalid scene name")
             null
         } else {
             fileSystem.write(scenePath, true) {
-                writeUtf8("\n")
+                writeUtf8("")
             }
 
             Scene(project, sceneName)
@@ -50,5 +48,31 @@ class ProjectEditorRepositoryOkio(
         return fileSystem.list(sceneDirectory)
             .filter { fileSystem.metadata(it).isRegularFile }
             .map { path -> Scene(project, getSceneNameFromFileName(path.name)) }
+    }
+
+    override fun loadSceneContent(scene: Scene): String? {
+        val scenePath = getScenePath(scene.name).toOkioPath()
+        return try {
+            val content = fileSystem.read(scenePath) {
+                readUtf8()
+            }
+            content
+        } catch (e: IOException) {
+            Napier.e("Failed to load Scene (${scene.name})")
+            null
+        }
+    }
+
+    override fun storeSceneContent(newContent: SceneContent): Boolean {
+        val scenePath = getScenePath(newContent.scene.name).toOkioPath()
+        return try {
+            fileSystem.write(scenePath) {
+                writeUtf8(newContent.content)
+            }
+            true
+        } catch (e: IOException) {
+            Napier.e("Failed to load Scene (${newContent.scene.name})")
+            false
+        }
     }
 }

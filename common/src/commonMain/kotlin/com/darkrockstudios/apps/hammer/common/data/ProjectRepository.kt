@@ -17,7 +17,10 @@ abstract class ProjectRepository(
         }
     }
 
-    fun clearEditorCache() = projectEditors.clear()
+    fun closeEditors() {
+        projectEditors.values.forEach { it.close() }
+        projectEditors.clear()
+    }
 
     protected abstract fun createEditor(project: Project): ProjectEditorRepository
 }
