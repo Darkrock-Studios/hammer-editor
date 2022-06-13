@@ -7,6 +7,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -69,8 +70,14 @@ fun ProjectCard(project: Project, onProjectClick: (project: Project) -> Unit) {
     ) {
         Column(modifier = Modifier.padding(Ui.PADDING)) {
             Text(
-                "Project: $project",
-                style = MaterialTheme.typography.body1
+                project.name,
+                modifier = Modifier.padding(bottom = Ui.PADDING),
+                style = MaterialTheme.typography.h5,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Path: ${project.path}",
+                style = MaterialTheme.typography.caption
             )
         }
     }

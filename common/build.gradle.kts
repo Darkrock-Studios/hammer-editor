@@ -41,7 +41,6 @@ kotlin {
                 api("io.github.aakira:napier:2.6.1")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
                 api("io.insert-koin:koin-core:3.2.0")
-                //api("com.soywiz.korlibs.korio:korio:2.2.0")
                 api("com.squareup.okio:okio:3.1.0")
 
                 //implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.3.3")
@@ -76,6 +75,7 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 api(compose.preview)
+                api(compose.desktop.currentOs)
             }
         }
         val desktopTest by getting
