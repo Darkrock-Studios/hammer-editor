@@ -26,7 +26,8 @@ kotlin {
                 api(compose.runtime)
                 api(compose.foundation)
                 api(compose.material)
-                api(compose.ui)
+                api(compose.materialIconsExtended)
+                api("androidx.compose.material:material-icons-core:1.1.1")
                 api("org.jetbrains.compose.ui:ui-text:1.1.0")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
             }

@@ -8,14 +8,12 @@ import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 interface SceneList : HammerComponent {
     val state: Value<State>
     fun onSceneSelected(scene: Scene)
+    fun loadScenes()
+    fun createScene(sceneName: String)
 
     data class State(
         val project: Project,
         val selectedScene: Scene? = null,
-        val scenes: List<Scene> = mutableListOf(
-            Scene(project, "scene 1"),
-            Scene(project, "scene 2"),
-            Scene(project, "scene 3")
-        )
+        val scenes: List<Scene> = emptyList()
     )
 }

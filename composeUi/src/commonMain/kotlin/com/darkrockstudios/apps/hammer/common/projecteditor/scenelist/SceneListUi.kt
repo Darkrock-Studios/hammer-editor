@@ -4,12 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Card
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,9 +22,23 @@ fun SceneListUi(
     modifier: Modifier = Modifier
 ) {
     val state by component.state.subscribeAsState()
+    var newSceneNameText by remember { mutableStateOf("") }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("Scene list", style = MaterialTheme.typography.h4)
+        TextField(
+            value = newSceneNameText,
+            onValueChange = { newSceneNameText = it },
+            label = { Text("New Scene Name") }
+        )
+        ExtendedFloatingActionButton(
+            onClick = {
+                component.createScene(newSceneNameText)
+                newSceneNameText = ""
+            },
+            text = { Text("Create Scene") },
+            icon = { Icon(Icons.Filled.Add, "") },
+            modifier = Modifier.align(alignment = Alignment.End).padding(top = Ui.PADDING)
+        )
         LazyColumn(
             modifier = Modifier.fillMaxHeight().fillMaxWidth(),
             contentPadding = PaddingValues(Ui.PADDING)
@@ -36,12 +48,12 @@ fun SceneListUi(
                     modifier = Modifier.fillMaxWidth()
                         .wrapContentHeight()
                         .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         "\uD83D\uDCDD Scenes:",
-                        style = MaterialTheme.typography.h5
+                        style = MaterialTheme.typography.h5,
                     )
                 }
             }

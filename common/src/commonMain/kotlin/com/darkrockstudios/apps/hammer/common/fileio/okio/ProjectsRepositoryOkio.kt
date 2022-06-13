@@ -7,7 +7,9 @@ import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import okio.FileSystem
 import okio.Path.Companion.toPath
 
-class ProjectsRepositoryOkio(private val fileSystem: FileSystem) : ProjectsRepository() {
+class ProjectsRepositoryOkio(
+    private val fileSystem: FileSystem
+) : ProjectsRepository() {
 
     init {
         val projectsDir = getProjectsDirectory().toOkioPath()
@@ -30,7 +32,7 @@ class ProjectsRepositoryOkio(private val fileSystem: FileSystem) : ProjectsRepos
         val projPath = projectsDir.toOkioPath()
         return fileSystem.list(projPath)
             .filter { fileSystem.metadata(it).isDirectory }
-            .map { path -> Project(path.name, path.toString()) }
+            .map { path -> Project(path.name, path.toHPath()) }
     }
 
     override fun createProject(projectName: String): Boolean {

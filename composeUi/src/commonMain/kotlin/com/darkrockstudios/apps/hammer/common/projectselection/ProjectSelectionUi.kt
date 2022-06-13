@@ -19,18 +19,16 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
     var newProjectNameText by remember { mutableStateOf("") }
 
     Column(modifier = modifier.padding(Ui.PADDING)) {
-        Text(
-            text = "Create a new project:",
-            style = MaterialTheme.typography.h4
-        )
-
         TextField(
             value = newProjectNameText,
             onValueChange = { newProjectNameText = it },
             label = { Text("New Project Name") }
         )
 
-        Button(onClick = { component.createProject(newProjectNameText) }) {
+        Button(onClick = {
+            component.createProject(newProjectNameText)
+            newProjectNameText = ""
+        }) {
             Text("Create Project")
         }
 
