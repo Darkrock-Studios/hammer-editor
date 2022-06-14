@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.data
 abstract class ProjectRepository(
     protected val projectsRepository: ProjectsRepository
 ) {
-
     private val projectEditors = mutableMapOf<Project, ProjectEditorRepository>()
 
     fun getProjectEditor(project: Project): ProjectEditorRepository {
@@ -15,6 +14,10 @@ abstract class ProjectRepository(
             projectEditors[project] = newEditor
             newEditor
         }
+    }
+
+    fun closeEditor(project: Project) {
+        projectEditors.remove(project)?.close()
     }
 
     fun closeEditors() {

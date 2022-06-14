@@ -12,6 +12,7 @@ interface ProjectSelection : HammerComponent {
     fun setProjectsDir(path: HPath)
     fun selectProject(project: Project)
     fun createProject(projectName: String)
+    fun deleteProject(project: Project)
 
     data class State(
         val projectsDir: HPath,

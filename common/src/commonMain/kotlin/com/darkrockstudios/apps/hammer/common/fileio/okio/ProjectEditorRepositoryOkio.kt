@@ -27,7 +27,7 @@ class ProjectEditorRepositoryOkio(
 
     override fun createScene(sceneName: String): Scene? {
         Napier.d("createScene: $sceneName")
-        return if (!projectsRepository.validateSceneName(sceneName)) {
+        return if (!validateSceneName(sceneName)) {
             Napier.d("Invalid scene name")
             null
         } else {
@@ -39,6 +39,17 @@ class ProjectEditorRepositoryOkio(
             }
 
             newScene
+        }
+    }
+
+    override fun deleteScene(scene: Scene): Boolean {
+        val scenePath = getScenePath(scene).toOkioPath()
+        return if(fileSystem.exists(scenePath)) {
+            fileSystem.delete(scenePath)
+            true
+        }
+        else {
+            false
         }
     }
 

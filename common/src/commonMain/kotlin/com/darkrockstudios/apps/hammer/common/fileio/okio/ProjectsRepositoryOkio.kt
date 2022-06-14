@@ -35,8 +35,14 @@ class ProjectsRepositoryOkio(
             .map { path -> Project(path.name, path.toHPath()) }
     }
 
+    override fun getProjectDirectory(projectName: String): HPath {
+        val projectsDir = getProjectsDirectory().toOkioPath()
+        val projectDir = projectsDir.div(projectName)
+        return projectDir.toHPath()
+    }
+
     override fun createProject(projectName: String): Boolean {
-        return if (validateSceneName(projectName)) {
+        return if (validateFileName(projectName)) {
             val projectsDir = getProjectsDirectory().toOkioPath()
             val newProjectDir = projectsDir.div(projectName)
             if (fileSystem.exists(newProjectDir)) {
@@ -45,6 +51,16 @@ class ProjectsRepositoryOkio(
                 fileSystem.createDirectory(newProjectDir)
                 true
             }
+        } else {
+            false
+        }
+    }
+
+    override fun deleteProject(project: Project): Boolean {
+        val projectDir = getProjectDirectory(project.name).toOkioPath()
+        return if (fileSystem.exists(projectDir)) {
+            fileSystem.deleteRecursively(projectDir)
+            true
         } else {
             false
         }

@@ -56,9 +56,6 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                api(compose.runtime)
-                api(compose.foundation)
-                api(compose.material)
                 api("androidx.appcompat:appcompat:1.4.2")
                 api("androidx.core:core-ktx:1.8.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
@@ -69,7 +66,6 @@ kotlin {
         val iosTest by getting
         val androidTest by getting {
             dependencies {
-                implementation("junit:junit:4.13.2")
             }
         }
         val desktopMain by getting {

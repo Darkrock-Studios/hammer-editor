@@ -10,6 +10,7 @@ interface SceneList : HammerComponent {
     fun onSceneSelected(scene: Scene)
     fun loadScenes()
     fun createScene(sceneName: String)
+    fun deleteScene(scene: Scene)
 
     data class State(
         val project: Project,

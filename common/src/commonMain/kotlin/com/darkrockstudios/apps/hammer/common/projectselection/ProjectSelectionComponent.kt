@@ -57,6 +57,13 @@ class ProjectSelectionComponent(
         }
     }
 
+    override fun deleteProject(project: Project) {
+        projectRepository.closeEditor(project)
+        if (projectsRepository.deleteProject(project)) {
+            loadProjectList()
+        }
+    }
+
     override fun onStart() {
         projectRepository.closeEditors()
     }

@@ -43,6 +43,12 @@ class SceneListComponent(
         }
     }
 
+    override fun deleteScene(scene: Scene) {
+        if(projectEditor.deleteScene(scene)) {
+            loadScenes()
+        }
+    }
+
     init {
         Napier.d { "Project editor: " + projectEditor.project.name }
 
