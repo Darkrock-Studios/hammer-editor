@@ -19,27 +19,26 @@ class ProjectEditorRepositoryOkio(
         return sceneDirPath.toHPath()
     }
 
-    override fun getScenePath(sceneName: String): HPath {
+    override fun getScenePath(scene: Scene): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
-        val fileName = getSceneFileName(sceneName)
+        val fileName = getSceneFileName(scene)
         return scenePathSegment.div(fileName).toHPath()
     }
 
     override fun createScene(sceneName: String): Scene? {
-        val scenePath = getScenePath(sceneName).toOkioPath()
-        Napier.d("createScene: $scenePath")
-        return if (fileSystem.exists(scenePath)) {
-            Napier.d("scene already existed")
-            null
-        } else if (!projectsRepository.validateFileName(sceneName)) {
+        Napier.d("createScene: $sceneName")
+        return if (!projectsRepository.validateFileName(sceneName)) {
             Napier.d("Invalid scene name")
             null
         } else {
+            val order = getNextOrderNumber()
+            val newScene = Scene(project, order, sceneName)
+            val scenePath = getScenePath(newScene).toOkioPath()
             fileSystem.write(scenePath, true) {
                 writeUtf8("")
             }
 
-            Scene(project, sceneName)
+            newScene
         }
     }
 
@@ -47,11 +46,15 @@ class ProjectEditorRepositoryOkio(
         val sceneDirectory = getSceneDirectory().toOkioPath()
         return fileSystem.list(sceneDirectory)
             .filter { fileSystem.metadata(it).isRegularFile }
-            .map { path -> Scene(project, getSceneNameFromFileName(path.name)) }
+            .map { path ->
+                val order = getSceneOrderNumber(path.name)
+                val fileName = getSceneNameFromFileName(path.name)
+                Scene(project, order, fileName)
+            }
     }
 
     override fun loadSceneContent(scene: Scene): String? {
-        val scenePath = getScenePath(scene.name).toOkioPath()
+        val scenePath = getScenePath(scene).toOkioPath()
         return try {
             val content = fileSystem.read(scenePath) {
                 readUtf8()
@@ -64,7 +67,7 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun storeSceneContent(newContent: SceneContent): Boolean {
-        val scenePath = getScenePath(newContent.scene.name).toOkioPath()
+        val scenePath = getScenePath(newContent.scene).toOkioPath()
         return try {
             fileSystem.write(scenePath) {
                 writeUtf8(newContent.content)
@@ -74,5 +77,19 @@ class ProjectEditorRepositoryOkio(
             Napier.e("Failed to load Scene (${newContent.scene.name})")
             false
         }
+    }
+
+    override fun getNextOrderNumber(): Int {
+        val scenePath = getSceneDirectory().toOkioPath()
+        val lastScene = fileSystem.list(scenePath).filter {
+            fileSystem.metadataOrNull(it)?.isRegularFile == true
+        }.sorted().lastOrNull()
+
+        val lastOrder = if (lastScene == null) {
+            0
+        } else {
+            getSceneOrderNumber(lastScene.name)
+        }
+        return lastOrder + 1
     }
 }

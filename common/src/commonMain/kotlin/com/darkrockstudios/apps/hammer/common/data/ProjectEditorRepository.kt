@@ -14,7 +14,7 @@ abstract class ProjectEditorRepository(
     val project: Project,
     protected val projectsRepository: ProjectsRepository
 ) {
-    val editorScope = CoroutineScope(defaultDispatcher)
+    private val editorScope = CoroutineScope(defaultDispatcher)
     private val contentChannel = Channel<SceneContent>(
         capacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -37,11 +37,12 @@ abstract class ProjectEditorRepository(
     }
 
     abstract fun getSceneDirectory(): HPath
-    abstract fun getScenePath(sceneName: String): HPath
+    abstract fun getScenePath(scene: Scene): HPath
     abstract fun createScene(sceneName: String): Scene?
     abstract fun getScenes(): List<Scene>
     abstract fun loadSceneContent(scene: Scene): String?
     abstract fun storeSceneContent(newContent: SceneContent): Boolean
+    abstract fun getNextOrderNumber(): Int
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -49,12 +50,26 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    fun getSceneFileName(sceneName: String): String {
-        return "$sceneName.txt"
+    fun getSceneFileName(scene: Scene): String {
+        val order = scene.order.toString().padStart(4, '0')
+        return "$order-${scene.name}.txt"
     }
 
+    @Throws(IllegalStateException::class)
     fun getSceneNameFromFileName(fileName: String): String {
-        return fileName.substringBefore(".")
+        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+            ?: throw IllegalStateException("Scene filename was bad, what do?")
+        val sceneName = captures.groupValues[2]
+        return sceneName
+    }
+
+    @Throws(NumberFormatException::class, IllegalStateException::class)
+    fun getSceneOrderNumber(fileName: String): Int {
+        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+            ?: throw IllegalStateException("Scene filename was bad, what do?")
+        val sceneOrder = captures.groupValues[1]
+        val orderNumber = sceneOrder.toInt()
+        return orderNumber
     }
 
     fun close() {
@@ -63,6 +78,7 @@ abstract class ProjectEditorRepository(
     }
 
     companion object {
+        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([a-zA-Z _-]+)\.txt""")
         const val SCENE_DIRECTORY = "scenes"
     }
 }
