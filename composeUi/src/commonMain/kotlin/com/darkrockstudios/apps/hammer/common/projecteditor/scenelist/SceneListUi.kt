@@ -63,8 +63,8 @@ fun SceneListUi(
             items(state.scenes.size) { index ->
                 val scene = state.scenes[index]
                 val isSelected = scene == state.selectedScene
-                SceneItem(scene, isSelected, component::onSceneSelected) { scene ->
-                    sceneDeleteTarget = scene
+                SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
+                    sceneDeleteTarget = selectedScene
                 }
             }
         }

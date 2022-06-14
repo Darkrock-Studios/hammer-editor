@@ -25,7 +25,12 @@ class SceneListComponent(
     private val _state = MutableValue(SceneList.State(project = project))
     override val state: Value<SceneList.State> = _state
 
-    override fun onSceneSelected(scene: Scene) = sceneSelected(scene)
+    override fun onSceneSelected(scene: Scene) {
+        sceneSelected(scene)
+        _state.reduce {
+            it.copy(selectedScene = scene)
+        }
+    }
 
     override fun loadScenes() {
         _state.reduce {
@@ -44,7 +49,7 @@ class SceneListComponent(
     }
 
     override fun deleteScene(scene: Scene) {
-        if(projectEditor.deleteScene(scene)) {
+        if (projectEditor.deleteScene(scene)) {
             loadScenes()
         }
     }

@@ -29,7 +29,7 @@ abstract class ProjectsRepository {
 
     private val fileNameValidations = listOf(
         Validator("Was Blank") { it.isNotBlank() },
-        Validator("Invalid Characters") { !it.contains("""[\/\<>:"|?*]""") },
+        Validator("Invalid Characters") { !it.contains("""[\/\<>:"|?*.]""") },
     )
 
     private data class Validator(

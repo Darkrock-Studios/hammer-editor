@@ -73,7 +73,7 @@ abstract class ProjectEditorRepository(
         return orderNumber
     }
 
-    fun validateSceneName(sceneName: String) = SCENE_FILENAME_PATTERN.matches(sceneName)
+    fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
 
     fun close() {
         contentChannel.close()

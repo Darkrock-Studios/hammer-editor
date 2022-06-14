@@ -14,11 +14,9 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.animation.child.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.RouterState
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import io.github.aakira.napier.Napier
 
 private val MULTI_PANE_WIDTH_THRESHOLD = 800.dp
 private const val LIST_PANE_WEIGHT = 0.4F
@@ -56,40 +54,9 @@ fun ProjectEditorUi(
         }
 
         val isMultiPaneRequired = this@BoxWithConstraints.maxWidth >= MULTI_PANE_WIDTH_THRESHOLD
-        DisposableEffect(isMultiPaneRequired) {
+        LaunchedEffect(isMultiPaneRequired) {
             component.setMultiPane(isMultiPaneRequired)
-            onDispose {}
         }
-
-        LaunchedEffect(component.detailsRouterState) {
-            Napier.d { "State change effect: ${component.detailsRouterState.value.activeChild.instance}" }
-            val detailScreen =
-                component.detailsRouterState.value.activeChild.instance as? SceneEditor
-            if (detailScreen is SceneEditor) {
-                Napier.d { "scene editor is active" }
-                detailScreen.addEditorMenu()
-            } else {
-                //detailScreen.addEditorMenu()
-            }
-        }
-        /*
-        DisposableEffect(component.detailsRouterState) {
-            Napier.d { "State change effect: ${component.detailsRouterState.value.activeChild.instance}" }
-            val detailScreen = component.detailsRouterState.value.activeChild.instance as? SceneEditor
-            if(detailScreen is SceneEditor) {
-                Napier.d { "scene editor is active" }
-                detailScreen.addEditorMenu()
-            }
-
-            onDispose {
-
-                if(component.detailsRouterState.value.activeChild.configuration is DetailsRouter.Config.None) {
-                    Napier.d { "scene editor is removed" }
-                    //detailScreen.removeEditorMenu()
-                }
-            }
-        }
-        */
     }
 }
 
