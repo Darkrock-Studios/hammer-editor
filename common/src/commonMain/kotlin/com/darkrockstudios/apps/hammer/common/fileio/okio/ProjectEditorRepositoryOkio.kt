@@ -27,7 +27,7 @@ class ProjectEditorRepositoryOkio(
 
     override fun createScene(sceneName: String): Scene? {
         Napier.d("createScene: $sceneName")
-        return if (!projectsRepository.validateFileName(sceneName)) {
+        return if (!projectsRepository.validateSceneName(sceneName)) {
             Napier.d("Invalid scene name")
             null
         } else {

@@ -9,7 +9,7 @@ abstract class ProjectsRepository {
     abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<Project>
     abstract fun createProject(projectName: String): Boolean
 
-    fun validateFileName(fileName: String?): Boolean {
+    fun validateSceneName(fileName: String?): Boolean {
         return if (fileName != null) {
             val wasValid = fileNameValidations.map {
                 it.condition(fileName).also { isValid ->

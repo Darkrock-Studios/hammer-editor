@@ -36,7 +36,7 @@ class ProjectsRepositoryOkio(
     }
 
     override fun createProject(projectName: String): Boolean {
-        return if (validateFileName(projectName)) {
+        return if (validateSceneName(projectName)) {
             val projectsDir = getProjectsDirectory().toOkioPath()
             val newProjectDir = projectsDir.div(projectName)
             if (fileSystem.exists(newProjectDir)) {
