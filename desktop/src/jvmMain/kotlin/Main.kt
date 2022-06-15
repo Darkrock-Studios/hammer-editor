@@ -11,6 +11,9 @@ import androidx.compose.ui.window.*
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleController
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.Project
@@ -37,11 +40,9 @@ fun main() {
 
     application {
         val applicationState = remember { ApplicationState() }
-
         when (val windowState = applicationState.windows.value) {
-
             is WindowState.ProjectSectionWindow -> {
-                ProjectSelectionWindow() { project ->
+                ProjectSelectionWindow { project ->
                     applicationState.openProject(project)
                 }
             }
@@ -93,8 +94,9 @@ private fun ApplicationScope.ProjectEditorWindow(
         state = windowState,
         onCloseRequest = ::exitApplication
     ) {
+        val menu by app.menu.subscribeAsState()
+
         Column {
-            val menu by remember { app.menu }
             MenuBar {
                 Menu("File") {
                     Item("Close Project", onClick = app::closeProject)
@@ -131,10 +133,11 @@ private fun ApplicationScope.ProjectEditorWindow(
 }
 
 private class ApplicationState {
-    val windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
+    private val _windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
+    val windows: State<WindowState> = _windows
 
-    private val _menu = mutableStateOf<Set<MenuDescriptor>>(emptySet())
-    val menu: State<Set<MenuDescriptor>> = _menu
+    private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
+    val menu: Value<Set<MenuDescriptor>> = _menu
 
     fun addMenu(menuDescriptor: MenuDescriptor) {
         _menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
@@ -145,11 +148,11 @@ private class ApplicationState {
     }
 
     fun openProject(project: Project) {
-        windows.value = WindowState.ProjectWindow(project)
+        _windows.value = WindowState.ProjectWindow(project)
     }
 
     fun closeProject() {
-        windows.value = WindowState.ProjectSectionWindow()
+        _windows.value = WindowState.ProjectSectionWindow()
     }
 }
 
