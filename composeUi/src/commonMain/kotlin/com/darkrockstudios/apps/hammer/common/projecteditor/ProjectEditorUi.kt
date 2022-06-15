@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -97,11 +96,6 @@ private fun DetailsPane(
                     component = child.component,
                     modifier = Modifier.fillMaxSize(),
                 )
-
-                DisposableEffect(it.instance) {
-                    child.component.addEditorMenu()
-                    onDispose { child.component.removeEditorMenu() }
-                }
             }
         }
     }

@@ -10,6 +10,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.Project
@@ -23,6 +25,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.core.context.GlobalContext
 
+@ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main() {
@@ -35,16 +38,22 @@ fun main() {
 
     application {
         val applicationState = remember { ApplicationState() }
-        val compContext = DefaultComponentContext(LifecycleRegistry())
 
         when (val windowState = applicationState.windows.value) {
+
             is WindowState.ProjectSectionWindow -> {
-                ProjectSelectionWindow(compContext) { project ->
+                val lifecycle = LifecycleRegistry()
+                val compContext = DefaultComponentContext(lifecycle)
+
+                ProjectSelectionWindow(compContext, lifecycle) { project ->
                     applicationState.openProject(project)
                 }
             }
             is WindowState.ProjectWindow -> {
-                ProjectEditorWindow(compContext, applicationState, windowState.project)
+                val lifecycle = LifecycleRegistry()
+                val compContext = DefaultComponentContext(lifecycle)
+
+                ProjectEditorWindow(compContext, applicationState, lifecycle, windowState.project)
             }
         }
     }
@@ -52,12 +61,16 @@ fun main() {
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
+@ExperimentalDecomposeApi
 @Composable
 private fun ApplicationScope.ProjectSelectionWindow(
     compContext: DefaultComponentContext,
+    lifecycle: LifecycleRegistry,
     onProjectSelected: (project: Project) -> Unit
 ) {
     val windowState = rememberWindowState()
+    LifecycleController(lifecycle, windowState)
+
     Window(
         title = "Project Selection",
         state = windowState,
@@ -71,13 +84,17 @@ private fun ApplicationScope.ProjectSelectionWindow(
     }
 }
 
+@ExperimentalDecomposeApi
 @Composable
 private fun ApplicationScope.ProjectEditorWindow(
     compContext: DefaultComponentContext,
     app: ApplicationState,
+    lifecycle: LifecycleRegistry,
     project: Project
 ) {
     val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
+    LifecycleController(lifecycle, windowState)
+
     Window(
         title = "Hammer",
         state = windowState,
@@ -119,7 +136,6 @@ private fun ApplicationScope.ProjectEditorWindow(
         }
     }
 }
-
 
 private class ApplicationState {
     val windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())

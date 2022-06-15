@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.common.data.*
 import io.github.aakira.napier.Napier
 import org.koin.core.component.inject
@@ -15,7 +16,7 @@ class SceneEditorComponent(
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val closeSceneEditor: () -> Unit
-): SceneEditor, ComponentContext by componentContext {
+) : SceneEditor, ComponentContext by componentContext, Lifecycle.Callbacks {
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(scene.project)
@@ -25,6 +26,8 @@ class SceneEditorComponent(
 
     init {
         loadSceneContent()
+
+        lifecycle.subscribe(this)
     }
 
     override fun loadSceneContent() {
@@ -52,5 +55,13 @@ class SceneEditorComponent(
 
     override fun removeEditorMenu() {
         removeMenu("scene-editor")
+    }
+
+    override fun onStart() {
+        addEditorMenu()
+    }
+
+    override fun onStop() {
+        removeEditorMenu()
     }
 }
