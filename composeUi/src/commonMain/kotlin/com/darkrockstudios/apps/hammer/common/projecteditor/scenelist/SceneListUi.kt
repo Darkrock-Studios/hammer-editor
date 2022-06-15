@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -11,11 +12,16 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.Scene
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -26,6 +32,13 @@ fun SceneListUi(
     val state by component.state.subscribeAsState()
     var newSceneNameText by remember { mutableStateOf("") }
     var sceneDeleteTarget by remember { mutableStateOf<Scene?>(null) }
+
+    val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
+        val newOrder = state.scenes.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+        component.updateSceneOrder(newOrder)
+    })
 
     Column(modifier = modifier.fillMaxWidth()) {
         TextField(
@@ -42,29 +55,40 @@ fun SceneListUi(
             icon = { Icon(Icons.Filled.Add, "") },
             modifier = Modifier.align(alignment = Alignment.End).padding(top = Ui.PADDING)
         )
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .wrapContentHeight()
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "\uD83D\uDCDD Scenes:",
+                style = MaterialTheme.typography.h5,
+            )
+        }
+
         LazyColumn(
-            modifier = Modifier.fillMaxHeight().fillMaxWidth(),
+            state = reorderState.listState,
+            modifier = Modifier.fillMaxHeight().fillMaxWidth().reorderable(reorderState)
+                .detectReorderAfterLongPress(reorderState),
             contentPadding = PaddingValues(Ui.PADDING)
         ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "\uD83D\uDCDD Scenes:",
-                        style = MaterialTheme.typography.h5,
-                    )
-                }
-            }
-            items(state.scenes.size) { index ->
-                val scene = state.scenes[index]
-                val isSelected = scene == state.selectedScene
-                SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
-                    sceneDeleteTarget = selectedScene
+            items(state.scenes.size, { state.scenes[it].hashCode() }) { item ->
+                val scene = state.scenes[item]
+
+                ReorderableItem(reorderState, key = scene.hashCode()) { isDragging ->
+                    val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+                    Column(
+                        modifier = Modifier
+                            .shadow(elevation.value)
+                            .background(MaterialTheme.colors.surface)
+                    ) {
+                        val isSelected = scene == state.selectedScene
+                        SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
+                            sceneDeleteTarget = selectedScene
+                        }
+                    }
                 }
             }
         }
@@ -95,7 +119,7 @@ fun SceneItem(
             .run { if (isSelected) background(color = selectionColor()) else this }
             .combinedClickable(
                 onClick = { onSceneSelected(scene) },
-                onLongClick = { onSceneAltClick(scene) }
+                //onLongClick = { onSceneAltClick(scene) }
             ),
         elevation = Ui.ELEVATION
     ) {

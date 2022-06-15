@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 interface SceneList : HammerComponent {
     val state: Value<State>
     fun onSceneSelected(scene: Scene)
+    fun updateSceneOrder(scenes: List<Scene>)
     fun loadScenes()
     fun createScene(sceneName: String)
     fun deleteScene(scene: Scene)

@@ -32,6 +32,10 @@ class SceneListComponent(
         }
     }
 
+    override fun updateSceneOrder(scenes: List<Scene>) {
+        _state.value = state.value.copy(scenes = scenes)
+    }
+
     override fun loadScenes() {
         _state.reduce {
             val scenes = projectEditor.getScenes()

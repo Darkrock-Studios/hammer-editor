@@ -1,4 +1,4 @@
-val compose_version: String by extra
+val androidx_compose_version: String by extra
 
 plugins {
     kotlin("android")
@@ -16,12 +16,12 @@ repositories {
 dependencies {
     api(project(":composeUi"))
     implementation("androidx.activity:activity-compose:1.4.0")
-    implementation("androidx.compose.ui:ui:$compose_version")
-    implementation("androidx.compose.ui:ui-tooling:$compose_version")
-    implementation("androidx.compose.foundation:foundation:$compose_version")
-    implementation("androidx.compose.material:material:$compose_version")
-    implementation("androidx.compose.material:material-icons-core:$compose_version")
-    implementation("androidx.compose.material:material-icons-extended:$compose_version")
+    implementation("androidx.compose.ui:ui:$androidx_compose_version")
+    implementation("androidx.compose.ui:ui-tooling:$androidx_compose_version")
+    implementation("androidx.compose.foundation:foundation:$androidx_compose_version")
+    implementation("androidx.compose.material:material:$androidx_compose_version")
+    implementation("androidx.compose.material:material-icons-core:$androidx_compose_version")
+    implementation("androidx.compose.material:material-icons-extended:$androidx_compose_version")
 }
 
 android {
