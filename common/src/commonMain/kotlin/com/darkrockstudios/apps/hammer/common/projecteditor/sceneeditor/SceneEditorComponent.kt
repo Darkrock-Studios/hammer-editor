@@ -48,12 +48,16 @@ class SceneEditorComponent(
             Napier.d("Scene close selected")
             closeSceneEditor()
         }
-        val menu = MenuDescriptor("scene-editor", "Scene", listOf(item))
+        val menu = MenuDescriptor(getMenuId(), "Scene", listOf(item))
         addMenu(menu)
     }
 
     override fun removeEditorMenu() {
-        removeMenu("scene-editor")
+        removeMenu(getMenuId())
+    }
+
+    private fun getMenuId(): String {
+        return "scene-editor-${scene.order}-${scene.name}"
     }
 
     override fun onStart() {
