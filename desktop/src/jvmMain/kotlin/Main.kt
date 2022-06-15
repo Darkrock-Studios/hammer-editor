@@ -89,13 +89,13 @@ private fun ApplicationScope.ProjectEditorWindow(
     val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
     LifecycleController(lifecycle, windowState)
 
+    val menu by app.menu.subscribeAsState()
+
     Window(
         title = "Hammer",
         state = windowState,
         onCloseRequest = ::exitApplication
     ) {
-        val menu by app.menu.subscribeAsState()
-
         Column {
             MenuBar {
                 Menu("File") {
@@ -140,7 +140,10 @@ private class ApplicationState {
     val menu: Value<Set<MenuDescriptor>> = _menu
 
     fun addMenu(menuDescriptor: MenuDescriptor) {
-        _menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
+        _menu.value = mutableSetOf<MenuDescriptor>().apply {
+            addAll(_menu.value)
+            add(menuDescriptor)
+        }
     }
 
     fun removeMenu(menuId: String) {

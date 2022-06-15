@@ -21,8 +21,8 @@ class SceneEditorComponent(
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(scene.project)
 
-    private val _value = MutableValue(SceneEditor.State(scene = scene))
-    override val state: Value<SceneEditor.State> = _value
+    private val _state = MutableValue(SceneEditor.State(scene = scene))
+    override val state: Value<SceneEditor.State> = _state
 
     init {
         loadSceneContent()
@@ -31,7 +31,7 @@ class SceneEditorComponent(
     }
 
     override fun loadSceneContent() {
-        _value.reduce {
+        _state.reduce {
             val newContent = projectEditor.loadSceneContent(scene)
             it.copy(sceneContent = newContent)
         }
@@ -44,7 +44,6 @@ class SceneEditorComponent(
         projectEditor.onContentChanged(SceneContent(scene, content))
 
     override fun addEditorMenu() {
-        Napier.d("addEditorMenu")
         val item = MenuItemDescriptor("scene-editor-close", "Close", "") {
             Napier.d("Scene close selected")
             closeSceneEditor()
