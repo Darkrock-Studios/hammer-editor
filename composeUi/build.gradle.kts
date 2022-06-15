@@ -2,6 +2,8 @@ import org.jetbrains.compose.compose
 
 val kotlin_version: String by extra
 val compose_version: String by extra
+val decompose_version: String by extra
+
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
@@ -32,9 +34,9 @@ kotlin {
                 //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 //api(compose.material3)
                 api(compose.materialIconsExtended)
-                api("androidx.compose.material:material-icons-core:1.1.1")
-                api("androidx.compose.ui:ui-text:1.1.1")
-                api("com.arkivanov.decompose:extensions-compose-jetbrains:0.6.0")
+                api("androidx.compose.material:material-icons-core:$compose_version")
+                api("androidx.compose.ui:ui-text:$compose_version")
+                api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
             }
         }
         val androidMain by getting

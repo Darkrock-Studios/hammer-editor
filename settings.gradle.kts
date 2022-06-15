@@ -8,11 +8,11 @@ pluginManagement {
     }
 
     plugins {
-        kotlin("multiplatform").version(extra["kotlin.version"] as String)
-        kotlin("android").version(extra["kotlin.version"] as String)
-        id("com.android.application").version(extra["agp.version"] as String)
-        id("com.android.library").version(extra["agp.version"] as String)
-        id("org.jetbrains.compose").version(extra["compose.version"] as String)
+        kotlin("multiplatform").version(extra["kotlin_version"] as String)
+        kotlin("android").version(extra["kotlin_version"] as String)
+        id("com.android.application").version(extra["agp_version"] as String)
+        id("com.android.library").version(extra["agp_version"] as String)
+        id("org.jetbrains.compose").version(extra["compose_version"] as String)
     }
 }
 
