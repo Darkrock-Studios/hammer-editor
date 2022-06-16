@@ -47,11 +47,13 @@ struct SceneListUi_Previews: PreviewProvider {
         
         return SceneListUi(
             component: SceneListComponent(
-                    componentContext: context,
-                    project: Project(name: "Test Proj", path: "/a/b"),
-                    selectedScene: fakeFlow,
-                    sceneSelected: { scene in }
-                )
+                componentContext: context,
+                project: Project(
+                    name: "Test Proj",
+                    path: HPath(path: "/a/b", isAbsolute: true)),
+                selectedScene: fakeFlow,
+                sceneSelected: { scene in }
+            )
         )
     }
 }
@@ -59,9 +61,19 @@ struct SceneListUi_Previews: PreviewProvider {
 struct SceneItemUi_Previews: PreviewProvider {
     static var previews: some View {
         SceneItemUi(
-            scene: Hammer.Scene(project: Project(name: "test prog", path: "/a/b"), scene: "test"),
+            scene: Hammer.Scene(
+                project: Project(
+                    name: "test prog",
+                    path: HPath(
+                        path: "/a/b",
+                        isAbsolute: false
+                    )
+                ),
+                order: 0,
+                name: "test"
+            ),
             onSceneSelected: { scene in }
-            )
+        )
     }
 }
 
@@ -77,7 +89,7 @@ struct SceneItemUi: View {
     }
     
     var body: some View {
-        Text("Row \(scene.scene)")
+        Text("Row \(scene.name)")
             .onTapGesture {
                 onSceneSelected(scene)
             }

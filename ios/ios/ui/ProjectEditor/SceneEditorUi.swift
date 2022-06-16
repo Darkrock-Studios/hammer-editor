@@ -24,7 +24,7 @@ struct SceneEditorUi: View {
     }
     
     var body: some View {
-        Text("SceneEditor: " + state.scene.scene)
+        Text("SceneEditor: " + state.scene.name)
     }
 }
 
@@ -34,12 +34,14 @@ struct SceneEditorUi_Previews: PreviewProvider {
         let context = DefaultComponentContext(lifecycle: lifecycle)
         
         SceneEditorUi(component: SceneEditorComponent(
-                componentContext: context,
-                scene: Scene(project: Project(name: "Test Proj", path: "/a/b"), scene: "some text"),
-                addMenu: { MenuDescriptor in },
-                removeMenu: { menuId in },
-                closeSceneEditor: {}
-            )
+            componentContext: context,
+            scene: Scene(project: Project(name: "Test Proj", path: HPath(path: "/a/b", isAbsolute: true)),
+                         order: 0,
+                         name: "some text"),
+            addMenu: { MenuDescriptor in },
+            removeMenu: { menuId in },
+            closeSceneEditor: {}
+        )
         )
     }
 }

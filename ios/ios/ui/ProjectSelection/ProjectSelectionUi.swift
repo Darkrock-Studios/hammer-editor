@@ -34,7 +34,7 @@ struct ProjectSelectionUi: View {
                 "Projects Directory",
                 text: $directory
             )
-            .onChange(of: directory) { newValue in holder.component.setProjectsDir(path:newValue)
+            .onChange(of: directory) { newValue in //holder.component.setProjectsDir(path:newValue)
             }
             .textInputAutocapitalization(.never)
             .disableAutocorrection(true)

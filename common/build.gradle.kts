@@ -63,7 +63,12 @@ kotlin {
                 api("io.insert-koin:koin-android:$koin_version")
             }
         }
-        val iosMain by getting
+        val iosMain by getting {
+            dependencies {
+                api("com.arkivanov.decompose:decompose:$decompose_version")
+                api("com.arkivanov.essenty:lifecycle:0.3.1")
+            }
+        }
         val iosTest by getting
         val androidTest by getting {
             dependencies {
