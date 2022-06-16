@@ -76,7 +76,7 @@ struct ProjectEditorUi_Previews: PreviewProvider {
             componentHolder: ComponentHolder { context in
                 ProjectEditorComponent(
                     componentContext: context,
-                    project: Project(name:"Test Proj", path: "/a/b"),
+                    project: Project(name:"Test Proj", path: HPath(path: "/a/b", isAbsolute: true)),
                     addMenu: { menu in
                         NSLog("Add menu item")
                     },
