@@ -5,6 +5,7 @@ val coroutines_version: String by extra
 val compose_version: String by extra
 val decompose_version: String by extra
 val koin_version: String by extra
+val essenty_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -26,10 +27,10 @@ kotlin {
         binaries {
             framework {
                 baseName = "Hammer"
-                transitiveExport = true
+                //transitiveExport = true
                 export("com.arkivanov.decompose:decompose:$decompose_version")
                 // This isn't working for some reason, once it is remove transitiveExport
-                export("com.arkivanov.essenty:lifecycle:0.3.1")
+                export("com.arkivanov.essenty:lifecycle:$essenty_version")
                 export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
             }
         }
@@ -66,7 +67,7 @@ kotlin {
         val iosMain by getting {
             dependencies {
                 api("com.arkivanov.decompose:decompose:$decompose_version")
-                api("com.arkivanov.essenty:lifecycle:0.3.1")
+                api("com.arkivanov.essenty:lifecycle:$essenty_version")
             }
         }
         val iosTest by getting
