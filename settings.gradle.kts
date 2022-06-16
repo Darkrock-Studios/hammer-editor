@@ -9,6 +9,7 @@ pluginManagement {
 
     plugins {
         kotlin("multiplatform").version(extra["kotlin_version"] as String)
+        kotlin("plugin.serialization").version(extra["kotlin_version"] as String)
         kotlin("android").version(extra["kotlin_version"] as String)
         id("com.android.application").version(extra["agp_version"] as String)
         id("com.android.library").version(extra["agp_version"] as String)

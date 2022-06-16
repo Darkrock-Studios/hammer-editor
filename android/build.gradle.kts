@@ -2,6 +2,7 @@ val androidx_compose_version: String by extra
 
 plugins {
     kotlin("android")
+    kotlin("plugin.serialization")
     id("com.android.application")
     id("org.jetbrains.compose")
 }
@@ -40,6 +41,12 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            isShrinkResources = false
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                File("proguard-rules.pro")
+            )
         }
     }
 }
