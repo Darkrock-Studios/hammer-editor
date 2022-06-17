@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.fileio.okio
 
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.IOException
@@ -19,10 +20,29 @@ class ProjectEditorRepositoryOkio(
         return sceneDirPath.toHPath()
     }
 
-    override fun getScenePath(scene: Scene): HPath {
+    override fun getScenePath(scene: Scene, isNewScene: Boolean): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
-        val fileName = getSceneFileName(scene)
+        val fileName = getSceneFileName(scene, isNewScene)
         return scenePathSegment.div(fileName).toHPath()
+    }
+
+    override fun getSceneFromPath(path: HPath): Scene {
+        val okPath = path.toOkioPath()
+        val name = getSceneNameFromFileName(okPath.name)
+        val order = getSceneOrderNumber(okPath.name)
+
+        return Scene(project = project, order = order, name = name)
+    }
+
+    override fun updateSceneOrder() {
+        val sceneDirPath = getSceneDirectory().toOkioPath()
+        val scenePaths = fileSystem.list(sceneDirPath).sortedBy { it.name }
+        scenePaths.forEachIndexed { index, path ->
+            val scene = getSceneFromPath(path.toHPath())
+            val newOrderScene = scene.copy(order = index + 1)
+            val newPath = getScenePath(newOrderScene).toOkioPath()
+            fileSystem.atomicMove(path, newPath)
+        }
     }
 
     override fun createScene(sceneName: String): Scene? {
@@ -31,11 +51,17 @@ class ProjectEditorRepositoryOkio(
             Napier.d("Invalid scene name")
             null
         } else {
-            val order = getNextOrderNumber()
-            val newScene = Scene(project, order, sceneName)
-            val scenePath = getScenePath(newScene).toOkioPath()
+            val lastOrder = getLastOrderNumber()
+            val nextOrder = lastOrder + 1
+
+            val newScene = Scene(project, nextOrder, sceneName)
+            val scenePath = getScenePath(newScene, true).toOkioPath()
             fileSystem.write(scenePath, true) {
                 writeUtf8("")
+            }
+
+            if (lastOrder.numDigits() < nextOrder.numDigits()) {
+                updateSceneOrder()
             }
 
             newScene
@@ -44,11 +70,12 @@ class ProjectEditorRepositoryOkio(
 
     override fun deleteScene(scene: Scene): Boolean {
         val scenePath = getScenePath(scene).toOkioPath()
-        return if(fileSystem.exists(scenePath)) {
+        return if (fileSystem.exists(scenePath)) {
             fileSystem.delete(scenePath)
+            updateSceneOrder()
+
             true
-        }
-        else {
+        } else {
             false
         }
     }
@@ -90,17 +117,11 @@ class ProjectEditorRepositoryOkio(
         }
     }
 
-    override fun getNextOrderNumber(): Int {
+    override fun getLastOrderNumber(): Int {
         val scenePath = getSceneDirectory().toOkioPath()
-        val lastScene = fileSystem.list(scenePath).filter {
+        val numScenes = fileSystem.list(scenePath).filter {
             fileSystem.metadataOrNull(it)?.isRegularFile == true
-        }.sorted().lastOrNull()
-
-        val lastOrder = if (lastScene == null) {
-            0
-        } else {
-            getSceneOrderNumber(lastScene.name)
-        }
-        return lastOrder + 1
+        }.count()
+        return numScenes
     }
 }

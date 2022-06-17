@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -37,13 +38,15 @@ abstract class ProjectEditorRepository(
     }
 
     abstract fun getSceneDirectory(): HPath
-    abstract fun getScenePath(scene: Scene): HPath
+    abstract fun getScenePath(scene: Scene, isNewScene: Boolean = false): HPath
     abstract fun createScene(sceneName: String): Scene?
     abstract fun deleteScene(scene: Scene): Boolean
     abstract fun getScenes(): List<Scene>
+    abstract fun getSceneFromPath(path: HPath): Scene
     abstract fun loadSceneContent(scene: Scene): String?
     abstract fun storeSceneContent(newContent: SceneContent): Boolean
-    abstract fun getNextOrderNumber(): Int
+    abstract fun getLastOrderNumber(): Int
+    abstract fun updateSceneOrder()
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -51,8 +54,21 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    fun getSceneFileName(scene: Scene): String {
-        val order = scene.order.toString().padStart(4, '0')
+    private fun willNextSceneIncreaseMagnitude(): Boolean {
+        return getLastOrderNumber().numDigits() < (getLastOrderNumber() + 1).numDigits()
+    }
+
+    fun getSceneFileName(
+        scene: Scene,
+        isNewScene: Boolean = false
+    ): String {
+        val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude()) {
+            getLastOrderNumber().numDigits() + 1
+        } else {
+            getLastOrderNumber().numDigits()
+        }
+
+        val order = scene.order.toString().padStart(orderDigits, '0')
         return "$order-${scene.name}.txt"
     }
 

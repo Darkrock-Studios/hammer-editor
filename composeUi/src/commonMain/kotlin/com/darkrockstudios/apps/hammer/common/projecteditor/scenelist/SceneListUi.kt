@@ -96,7 +96,7 @@ fun SceneListUi(
 
     sceneDeleteTarget?.let { scene ->
         sceneDeleteDialog(scene) { deleteScene ->
-            if(deleteScene) {
+            if (deleteScene) {
                 component.deleteScene(scene)
             }
             sceneDeleteTarget = null
@@ -123,11 +123,17 @@ fun SceneItem(
             ),
         elevation = Ui.ELEVATION
     ) {
-        Column(modifier = Modifier.padding(Ui.PADDING)) {
+        Row(
+            modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
                 "Scene: ${scene.name}",
                 style = MaterialTheme.typography.body1
             )
+            Button({ onSceneAltClick(scene) }) {
+                Text("X")
+            }
         }
     }
 }
