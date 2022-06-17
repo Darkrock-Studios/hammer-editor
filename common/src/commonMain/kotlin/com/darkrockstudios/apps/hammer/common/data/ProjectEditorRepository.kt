@@ -42,11 +42,13 @@ abstract class ProjectEditorRepository(
     abstract fun createScene(sceneName: String): Scene?
     abstract fun deleteScene(scene: Scene): Boolean
     abstract fun getScenes(): List<Scene>
+    abstract fun getSceneAtIndex(index: Int): Scene
     abstract fun getSceneFromPath(path: HPath): Scene
     abstract fun loadSceneContent(scene: Scene): String?
     abstract fun storeSceneContent(newContent: SceneContent): Boolean
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
+    abstract fun moveScene(from: Int, to: Int)
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -99,5 +101,6 @@ abstract class ProjectEditorRepository(
     companion object {
         val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _-]+)\.txt""")
         const val SCENE_DIRECTORY = "scenes"
+        const val tempSuffix = ".temp"
     }
 }

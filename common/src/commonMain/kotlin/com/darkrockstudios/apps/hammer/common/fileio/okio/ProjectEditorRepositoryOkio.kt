@@ -45,6 +45,32 @@ class ProjectEditorRepositoryOkio(
         }
     }
 
+    override fun moveScene(from: Int, to: Int) {
+        val sceneDirPath = getSceneDirectory().toOkioPath()
+        val scenePaths = fileSystem.list(sceneDirPath).sortedBy { it.name }.toMutableList()
+
+        val target = scenePaths.removeAt(from)
+        scenePaths.add(to, target)
+
+        val tempPaths = scenePaths.map { path ->
+            val tempName = path.name + tempSuffix
+            val tempPath = path.parent!!.div(tempName)
+
+            fileSystem.atomicMove(source = path, target = tempPath)
+
+            tempPath
+        }
+
+        scenePaths.forEachIndexed { index, path ->
+            val sceneName = getSceneNameFromFileName(path.name)
+            val scene = Scene(project, index + 1, sceneName)
+            val tempPath = tempPaths[index]
+            val targetPath = getScenePath(scene).toOkioPath()
+
+            fileSystem.atomicMove(source = tempPath, target = targetPath)
+        }
+    }
+
     override fun createScene(sceneName: String): Scene? {
         Napier.d("createScene: $sceneName")
         return if (!validateSceneName(sceneName)) {
@@ -89,6 +115,14 @@ class ProjectEditorRepositoryOkio(
                 val fileName = getSceneNameFromFileName(path.name)
                 Scene(project, order, fileName)
             }
+    }
+
+    override fun getSceneAtIndex(index: Int): Scene {
+        val sceneDirectory = getSceneDirectory().toOkioPath()
+        val scenePaths = fileSystem.list(sceneDirectory)
+        if (index >= scenePaths.size) throw IllegalArgumentException("Invalid scene index requested: $index")
+        val scenePath = fileSystem.list(sceneDirectory)[index]
+        return getSceneFromPath(scenePath.toHPath())
     }
 
     override fun loadSceneContent(scene: Scene): String? {

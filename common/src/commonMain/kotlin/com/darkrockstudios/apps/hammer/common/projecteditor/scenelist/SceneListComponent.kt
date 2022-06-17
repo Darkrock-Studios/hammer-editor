@@ -36,6 +36,11 @@ class SceneListComponent(
         _state.value = state.value.copy(scenes = scenes)
     }
 
+    override fun moveScene(from: Int, to: Int) {
+        projectEditor.moveScene(from, to)
+        loadScenes()
+    }
+
     override fun loadScenes() {
         _state.reduce {
             val scenes = projectEditor.getScenes()

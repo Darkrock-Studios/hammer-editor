@@ -33,12 +33,17 @@ fun SceneListUi(
     var newSceneNameText by remember { mutableStateOf("") }
     var sceneDeleteTarget by remember { mutableStateOf<Scene?>(null) }
 
-    val reorderState = rememberReorderableLazyListState(onMove = { from, to ->
-        val newOrder = state.scenes.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+    val reorderState = rememberReorderableLazyListState(
+        onMove = { from, to ->
+            val newOrder = state.scenes.toMutableList().apply {
+                add(to.index, removeAt(from.index))
+            }
+            component.updateSceneOrder(newOrder)
+        },
+        onDragEnd = { from, to ->
+            component.moveScene(from = from, to = to)
         }
-        component.updateSceneOrder(newOrder)
-    })
+    )
 
     Column(modifier = modifier.fillMaxWidth()) {
         TextField(
