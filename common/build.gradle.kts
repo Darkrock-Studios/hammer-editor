@@ -56,7 +56,7 @@ kotlin {
         }
         val commonTest by getting {
             dependencies {
-                //implementation(kotlin("test"))
+                implementation(kotlin("test"))
                 //implementation("io.insert-koin:koin-test:3.2.0")
             }
         }

@@ -19,8 +19,6 @@ class ProjectEditorComponent(
     removeMenu: (id: String) -> Unit,
 ) : ProjectEditor, ComponentContext by componentContext {
 
-    //private val projectScope = getKoin().createScope<Project>(project.hashCode().toString())
-
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
     private val selectedSceneFlow = MutableSharedFlow<Scene?>(
         replay = 1,

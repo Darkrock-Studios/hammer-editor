@@ -35,8 +35,14 @@ kotlin {
                 //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 //api(compose.material3)
                 api(compose.materialIconsExtended)
+                api("org.jetbrains.compose.ui:ui-text:$compose_version")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
                 api("org.burnoutcrew.composereorderable:reorderable:0.9.1")
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
         val androidMain by getting
