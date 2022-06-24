@@ -11,10 +11,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.Project
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 
 class ProjectEditorActivity : AppCompatActivity() {
@@ -61,6 +61,7 @@ class ProjectEditorActivity : AppCompatActivity() {
                                     }
                                 ),
                                 Modifier.padding(padding),
+                                R.drawable::class
                             )
                         }
                     )

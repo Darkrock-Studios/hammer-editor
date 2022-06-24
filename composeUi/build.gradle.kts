@@ -21,7 +21,7 @@ version = app_version
 
 kotlin {
     android()
-    jvm {
+    jvm("desktop") {
         compilations.all {
             kotlinOptions.jvmTarget = "11"
         }
@@ -51,11 +51,13 @@ kotlin {
             }
         }
         val androidMain by getting
+        val desktopMain by getting
     }
 }
 android {
     compileSdk = android_compile_sdk.toInt()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
     defaultConfig {
         minSdk = android_min_sdk.toInt()
         targetSdk = android_target_sdk.toInt()

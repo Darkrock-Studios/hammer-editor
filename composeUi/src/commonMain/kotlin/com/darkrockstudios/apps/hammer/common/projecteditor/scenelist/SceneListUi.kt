@@ -45,7 +45,7 @@ fun SceneListUi(
         }
     )
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
         TextField(
             value = newSceneNameText,
             onValueChange = { newSceneNameText = it },

@@ -97,6 +97,7 @@ kotlin {
 android {
     compileSdk = android_compile_sdk.toInt()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
     defaultConfig {
         minSdk = android_min_sdk.toInt()
         targetSdk = android_target_sdk.toInt()

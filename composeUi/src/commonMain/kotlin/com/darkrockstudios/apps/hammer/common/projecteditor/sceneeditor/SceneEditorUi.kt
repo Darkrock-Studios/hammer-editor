@@ -1,16 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.painterResource
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToSnapshot
 import com.darkrockstudios.apps.hammer.common.data.text.toMarkdown
 import com.darkrockstudios.richtexteditor.model.RichTextValue
@@ -29,6 +31,7 @@ private fun getInitialContent(snapshot: RichTextValueSnapshot?): RichTextValue {
 fun SceneEditorUi(
     component: SceneEditor,
     modifier: Modifier = Modifier,
+    drawableKlass: Any? = null
 ) {
     val state by component.state.subscribeAsState()
     var sceneText by remember {
@@ -37,19 +40,20 @@ fun SceneEditorUi(
         )
     }
 
-    Column(modifier = modifier.padding(Ui.PADDING)) {
-        Text("Scene: ${state.scene.name}")
-        Row {
+    Column(modifier = modifier) {
+        Text("Scene: ${state.scene.name}", modifier = Modifier.padding(Ui.PADDING))
+        Row(modifier = Modifier.fillMaxWidth().background(Color.Gray)) {
             EditorAction(
-                //iconRes = R.drawable.icon_bold,
-                active = sceneText.currentStyles.contains(Style.Bold)
+                iconRes = "drawable/icon_bold.xml",
+                drawableKlass = drawableKlass,
+                active = sceneText.currentStyles.contains(Style.Bold),
             ) {
                 sceneText = sceneText.insertStyle(Style.Bold)
             }
         }
 
         RichTextEditor(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(Ui.PADDING),
             value = sceneText,
             onValueChange = { rtv ->
                 sceneText = rtv
@@ -66,17 +70,17 @@ fun SceneEditorUi(
 
 @Composable
 private fun EditorAction(
-    //@DrawableRes iconRes: Int,
+    iconRes: String,
+    drawableKlass: Any? = null,
     active: Boolean,
     onClick: () -> Unit,
 ) {
     IconButton(onClick = onClick) {
-        Text("B")
-        /*Icon(
+        Icon(
             modifier = Modifier.size(24.dp),
-            painter = painterResource(id = iconRes),
+            painter = painterResource(res = iconRes, drawableKlass = drawableKlass),
             tint = if (active) Color.White else Color.Black,
             contentDescription = null
-        )*/
+        )
     }
 }

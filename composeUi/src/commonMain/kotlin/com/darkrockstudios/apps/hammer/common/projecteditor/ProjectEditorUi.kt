@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,7 +16,6 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.animation.child.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.RouterState
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
@@ -25,8 +27,9 @@ private const val DETAILS_PANE_WEIGHT = 0.6F
 fun ProjectEditorUi(
     component: ProjectEditorComponent,
     modifier: Modifier = Modifier,
+    drawableKlass: Any? = null
 ) {
-    BoxWithConstraints(modifier = modifier.padding(Ui.PADDING)) {
+    BoxWithConstraints(modifier = modifier) {
         val state by component.state.subscribeAsState()
         val isMultiPane = state.isMultiPane
 
@@ -49,6 +52,7 @@ fun ProjectEditorUi(
             DetailsPane(
                 routerState = component.detailsRouterState,
                 modifier = Modifier.weight(if (isMultiPane) DETAILS_PANE_WEIGHT else 1F),
+                drawableKlass = drawableKlass
             )
         }
 
@@ -61,7 +65,10 @@ fun ProjectEditorUi(
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
-private fun ListPane(routerState: Value<RouterState<*, ProjectEditor.Child.List>>, modifier: Modifier) {
+private fun ListPane(
+    routerState: Value<RouterState<*, ProjectEditor.Child.List>>,
+    modifier: Modifier
+) {
     Children(
         routerState = routerState,
         modifier = modifier,
@@ -82,7 +89,8 @@ private fun ListPane(routerState: Value<RouterState<*, ProjectEditor.Child.List>
 @Composable
 private fun DetailsPane(
     routerState: Value<RouterState<*, ProjectEditor.Child.Detail>>,
-    modifier: Modifier
+    modifier: Modifier,
+    drawableKlass: Any? = null
 ) {
     Children(
         routerState = routerState,
@@ -95,6 +103,7 @@ private fun DetailsPane(
                 SceneEditorUi(
                     component = child.component,
                     modifier = Modifier.fillMaxSize(),
+                    drawableKlass = drawableKlass
                 )
             }
         }
