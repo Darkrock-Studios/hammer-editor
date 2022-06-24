@@ -5,19 +5,79 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import com.darkrockstudios.richtexteditor.model.Style
+import com.darkrockstudios.richtexteditor.utils.RichTextValueSnapshot
 import io.github.aakira.napier.Napier
 
+private fun doOverlap(
+    a: AnnotatedString.Range<SpanStyle>,
+    b: AnnotatedString.Range<SpanStyle>
+): Boolean {
+    return if (a.start <= b.start) {
+        b.start <= a.end
+    } else {
+        a.start <= b.end
+    }
+}
+
+private fun AnnotatedString.Range<SpanStyle>.overlaps(
+    that: AnnotatedString.Range<SpanStyle>
+): Boolean {
+    return doOverlap(this, that)
+}
+
+private fun doOverlap(
+    a: RichTextValueSnapshot.RichTextValueSpanSnapshot,
+    b: RichTextValueSnapshot.RichTextValueSpanSnapshot
+): Boolean {
+    return if (a.start <= b.start) {
+        b.start <= a.end
+    } else {
+        a.start <= b.end
+    }
+}
+
+private fun RichTextValueSnapshot.RichTextValueSpanSnapshot.overlaps(
+    that: RichTextValueSnapshot.RichTextValueSpanSnapshot
+): Boolean {
+    return doOverlap(this, that)
+}
+
 fun AnnotatedString.toMarkdown(): String {
-    var markdownText: String = text
-    spanStyles.forEach { range ->
+    val finalStyles = mutableListOf<AnnotatedString.Range<SpanStyle>>()
+    val styles = spanStyles.toMutableList()
+    val it = spanStyles.iterator()
+    // Remove overlapping styles
+    while (it.hasNext()) {
+        val outer = it.next()
+        for (inner in spanStyles) {
+            if (outer != inner && outer.overlaps(inner)) {
+                styles.remove(inner)
+            }
+        }
+
+        finalStyles.add(outer)
+    }
+    finalStyles.sortBy { it.start }
+
+    val removed = styles.size - finalStyles.size
+    Napier.d("Styles removed: $removed")
+
+    var stringBuilder = ""
+    var mark = 0
+    finalStyles.forEach { range ->
+        stringBuilder += text.subSequence(mark, range.start - 1)
+        mark = range.end + 1
+
         when {
             isBoldStyle(range.item) -> {
                 val affectedText = text.subSequence(range.start, range.end)
+                Napier.d("Range: ${range.start}-${range.end}: $affectedText")
 
                 val annotation = styleAnnotations[TextStyle.Bold]
                 val annotatedText = "$annotation$affectedText$annotation"
 
-                markdownText = markdownText.replaceRange(range.start, range.end, annotatedText)
+                stringBuilder += annotatedText
             }
             isItalicStyle(range.item) -> {
 
@@ -28,14 +88,71 @@ fun AnnotatedString.toMarkdown(): String {
         }
     }
 
-    return markdownText
+    return stringBuilder
+}
+
+fun RichTextValueSnapshot.toMarkdown(): String {
+    val finalStyles = mutableListOf<RichTextValueSnapshot.RichTextValueSpanSnapshot>()
+    val styles = spanStyles.toMutableList()
+    val it = spanStyles.iterator()
+    // Remove overlapping styles
+    while (it.hasNext()) {
+        val outer = it.next()
+        for (inner in spanStyles) {
+            if (outer != inner && outer.overlaps(inner)) {
+                styles.remove(inner)
+            }
+        }
+
+        finalStyles.add(outer)
+    }
+    finalStyles.sortBy { it.start }
+
+    val removed = styles.size - finalStyles.size
+    Napier.d("Styles removed: $removed")
+
+    var stringBuilder = ""
+    var mark = 0
+    finalStyles.forEach { range ->
+        stringBuilder += text.subSequence(mark, range.start)
+        mark = range.end
+
+        when {
+            isBoldTag(range.tag) -> {
+                val affectedText = text.subSequence(range.start, range.end)
+                Napier.d("Range: ${range.start}-${range.end}: $affectedText")
+
+                val annotation = styleAnnotations[TextStyle.Bold]
+                val annotatedText = "$annotation$affectedText$annotation"
+
+                stringBuilder += annotatedText
+            }
+            isItalicTag(range.tag) -> {
+
+            }
+            else -> {
+                Napier.w { "Unhandled Span Style @ ${range.start}-${range.end}" }
+            }
+        }
+    }
+
+    if (mark < text.length) {
+        stringBuilder += text.subSequence(mark, text.length)
+    }
+
+    return stringBuilder
 }
 
 private fun isBoldStyle(style: SpanStyle): Boolean = style.fontWeight == FontWeight.Bold
 private fun isItalicStyle(style: SpanStyle): Boolean = style.fontStyle == FontStyle.Italic
 
-fun String.markdownToAnnotatedString(): AnnotatedString {
+private fun isBoldTag(tag: String): Boolean =
+    tag.startsWith("${Style.Bold::class.simpleName}/")
 
+private fun isItalicTag(tag: String): Boolean =
+    tag.startsWith("${Style.Italic::class.simpleName}/")
+
+fun String.markdownToAnnotatedString(): AnnotatedString {
     val result = parseMarkdown(this)
     val builder = AnnotatedString.Builder(result.copy)
 
@@ -92,3 +209,38 @@ private val styleAnnotations = mapOf(
     TextStyle.Underline to "__",
     TextStyle.StrikeThrough to "~~"
 )
+
+fun String.markdownToSnapshot(): RichTextValueSnapshot {
+    val annotatedString = markdownToAnnotatedString()
+    return fromAnnotatedString(annotatedString)
+}
+
+private fun fromAnnotatedString(
+    annotatedString: AnnotatedString
+) = RichTextValueSnapshot(
+    text = annotatedString.text,
+    spanStyles = annotatedString.spanStyles.map {
+        it.toRichTextValueSpanSnapshot()
+    },
+    paragraphStyles = annotatedString.paragraphStyles.map {
+        it.toRichTextValueSpanSnapshot()
+    },
+    selectionPosition = 0
+)
+
+private fun tagFromStyle(style: SpanStyle?): String {
+    return if (style == null) {
+        ""
+    } else if (isBoldStyle(style)) {
+        "Bold/"
+    } else if (isItalicStyle(style)) {
+        "Italic/"
+    } else {
+        ""
+    }
+}
+
+private fun <T> AnnotatedString.Range<T>.toRichTextValueSpanSnapshot(): RichTextValueSnapshot.RichTextValueSpanSnapshot {
+    val rtvTag = tagFromStyle(item as? SpanStyle)
+    return RichTextValueSnapshot.RichTextValueSpanSnapshot(start = start, end = end, tag = rtvTag)
+}

@@ -1,4 +1,8 @@
+val app_version: String by extra
 val androidx_compose_version: String by extra
+val android_compile_sdk: String by extra
+val android_target_sdk: String by extra
+val android_min_sdk: String by extra
 
 plugins {
     kotlin("android")
@@ -7,8 +11,8 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-group "com.darkrockstudios.apps.hammer"
-version "1.0-SNAPSHOT"
+group = "com.darkrockstudios.apps.hammer"
+version = app_version
 
 repositories {
     mavenCentral()
@@ -26,11 +30,11 @@ dependencies {
 }
 
 android {
-    compileSdk = 31
+    compileSdk = android_compile_sdk.toInt()
     defaultConfig {
         applicationId = "com.darkrockstudios.apps.hammer.android"
-        minSdk = 24
-        targetSdk = 32
+        minSdk = android_min_sdk.toInt()
+        targetSdk = android_target_sdk.toInt()
         versionCode = 1
         versionName = "1.0-SNAPSHOT"
     }

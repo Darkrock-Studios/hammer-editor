@@ -1,5 +1,9 @@
 import org.jetbrains.compose.compose
 
+val app_version: String by extra
+val android_compile_sdk: String by extra
+val android_target_sdk: String by extra
+val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
@@ -17,7 +21,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = "1.0-SNAPSHOT"
+version = app_version
 
 kotlin {
     android()
@@ -91,11 +95,11 @@ kotlin {
 }
 
 android {
-    compileSdk = 31
+    compileSdk = android_compile_sdk.toInt()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     defaultConfig {
-        minSdk = 24
-        targetSdk = 31
+        minSdk = android_min_sdk.toInt()
+        targetSdk = android_target_sdk.toInt()
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

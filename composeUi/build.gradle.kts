@@ -1,5 +1,9 @@
 import org.jetbrains.compose.compose
 
+val app_version: String by extra
+val android_compile_sdk: String by extra
+val android_target_sdk: String by extra
+val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val compose_version: String by extra
 val decompose_version: String by extra
@@ -13,7 +17,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
-version = "1.0-SNAPSHOT"
+version = app_version
 
 kotlin {
     android()
@@ -38,6 +42,7 @@ kotlin {
                 api("org.jetbrains.compose.ui:ui-text:$compose_version")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
                 api("org.burnoutcrew.composereorderable:reorderable:0.9.1")
+                api("com.darkrockstudios:richtexteditor:1.3.0")
             }
         }
         val commonTest by getting {
@@ -49,11 +54,11 @@ kotlin {
     }
 }
 android {
-    compileSdk = 31
+    compileSdk = android_compile_sdk.toInt()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     defaultConfig {
-        minSdk = 24
-        targetSdk = 31
+        minSdk = android_min_sdk.toInt()
+        targetSdk = android_target_sdk.toInt()
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

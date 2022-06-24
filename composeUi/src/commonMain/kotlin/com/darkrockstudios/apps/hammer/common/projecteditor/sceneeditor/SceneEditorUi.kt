@@ -3,21 +3,27 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.Button
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.data.text.markdownToSnapshot
 import com.darkrockstudios.apps.hammer.common.data.text.toMarkdown
+import com.darkrockstudios.richtexteditor.model.RichTextValue
+import com.darkrockstudios.richtexteditor.model.Style
+import com.darkrockstudios.richtexteditor.ui.RichTextEditor
+import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
+import com.darkrockstudios.richtexteditor.utils.RichTextValueSnapshot
+
+private fun getInitialContent(snapshot: RichTextValueSnapshot?): RichTextValue {
+    return snapshot?.let {
+        RichTextValue.fromSnapshot(snapshot)
+    } ?: RichTextValue.get()
+}
 
 @Composable
 fun SceneEditorUi(
@@ -25,50 +31,52 @@ fun SceneEditorUi(
     modifier: Modifier = Modifier,
 ) {
     val state by component.state.subscribeAsState()
-
-    val textFieldValueState = remember {
+    var sceneText by remember {
         mutableStateOf(
-            TextFieldValue(
-                annotatedString = state.sceneContent?.markdownToAnnotatedString()
-                    ?: AnnotatedString("")
-            )
+            getInitialContent(state.sceneContent?.markdownToSnapshot())
         )
     }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(Ui.PADDING)) {
         Text("Scene: ${state.scene.name}")
         Row {
-            Button({
-                textFieldValueState.value = TextFieldValue(bold(textFieldValueState.value))
-            }) {
-                Text("B")
+            EditorAction(
+                //iconRes = R.drawable.icon_bold,
+                active = sceneText.currentStyles.contains(Style.Bold)
+            ) {
+                sceneText = sceneText.insertStyle(Style.Bold)
             }
         }
-        BasicTextField(
+
+        RichTextEditor(
             modifier = Modifier.fillMaxSize(),
-            value = textFieldValueState.value,
-            enabled = state.sceneContent != null,
-            onValueChange = { tfv ->
-                textFieldValueState.value = tfv
-                component.onContentChanged(tfv.annotatedString.toMarkdown())
+            value = sceneText,
+            onValueChange = { rtv ->
+                sceneText = rtv
+                component.onContentChanged(rtv.getLastSnapshot().toMarkdown())
             },
+            textFieldStyle = defaultRichTextFieldStyle().copy(
+                placeholder = "My rich text editor in action",
+                textColor = MaterialTheme.colors.onBackground,
+                placeholderColor = MaterialTheme.colors.secondaryVariant,
+            )
         )
     }
 }
 
-private fun bold(value: TextFieldValue): AnnotatedString {
-    return if (!value.selection.collapsed) {
-        val start = value.selection.start
-        val end = value.selection.end
-
-        val builder = AnnotatedString.Builder(value.annotatedString)
-        builder.addStyle(
-            style = SpanStyle(fontWeight = FontWeight.Bold),
-            start = start,
-            end = end
-        )
-        builder.toAnnotatedString()
-    } else {
-        value.annotatedString
+@Composable
+private fun EditorAction(
+    //@DrawableRes iconRes: Int,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Text("B")
+        /*Icon(
+            modifier = Modifier.size(24.dp),
+            painter = painterResource(id = iconRes),
+            tint = if (active) Color.White else Color.Black,
+            contentDescription = null
+        )*/
     }
 }

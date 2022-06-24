@@ -1,5 +1,7 @@
-group "com.darkrockstudios.apps.hammer"
-version "1.0-SNAPSHOT"
+val app_version: String by extra
+
+group = "com.darkrockstudios.apps.hammer"
+version = app_version
 
 allprojects {
     repositories {

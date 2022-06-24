@@ -1,6 +1,8 @@
 import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
+val app_version: String by extra
+
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
@@ -8,7 +10,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = "1.0-SNAPSHOT"
+version = app_version
 
 
 kotlin {
@@ -36,7 +38,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "hammer"
-            packageVersion = "1.0.0"
+            packageVersion = app_version
         }
     }
 }
