@@ -50,6 +50,25 @@ fun SceneEditorUi(
             ) {
                 sceneText = sceneText.insertStyle(Style.Bold)
             }
+            EditorAction(
+                iconRes = "drawable/icon_italic.xml",
+                drawableKlass = drawableKlass,
+                active = sceneText.currentStyles.contains(Style.Italic),
+            ) {
+                sceneText = sceneText.insertStyle(Style.Italic)
+            }
+            EditorAction(
+                iconRes = "drawable/icon_undo.xml",
+                active = sceneText.isUndoAvailable
+            ) {
+                sceneText = sceneText.undo()
+            }
+            EditorAction(
+                iconRes = "drawable/icon_redo.xml",
+                active = sceneText.isRedoAvailable
+            ) {
+                sceneText = sceneText.redo()
+            }
         }
 
         RichTextEditor(

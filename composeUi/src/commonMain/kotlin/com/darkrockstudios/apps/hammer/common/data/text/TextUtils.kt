@@ -43,54 +43,6 @@ private fun RichTextValueSnapshot.RichTextValueSpanSnapshot.overlaps(
     return doOverlap(this, that)
 }
 
-fun AnnotatedString.toMarkdown(): String {
-    val finalStyles = mutableListOf<AnnotatedString.Range<SpanStyle>>()
-    val styles = spanStyles.toMutableList()
-    val it = spanStyles.iterator()
-    // Remove overlapping styles
-    while (it.hasNext()) {
-        val outer = it.next()
-        for (inner in spanStyles) {
-            if (outer != inner && outer.overlaps(inner)) {
-                styles.remove(inner)
-            }
-        }
-
-        finalStyles.add(outer)
-    }
-    finalStyles.sortBy { it.start }
-
-    val removed = styles.size - finalStyles.size
-    Napier.d("Styles removed: $removed")
-
-    var stringBuilder = ""
-    var mark = 0
-    finalStyles.forEach { range ->
-        stringBuilder += text.subSequence(mark, range.start - 1)
-        mark = range.end + 1
-
-        when {
-            isBoldStyle(range.item) -> {
-                val affectedText = text.subSequence(range.start, range.end)
-                Napier.d("Range: ${range.start}-${range.end}: $affectedText")
-
-                val annotation = styleAnnotations[TextStyle.Bold]
-                val annotatedText = "$annotation$affectedText$annotation"
-
-                stringBuilder += annotatedText
-            }
-            isItalicStyle(range.item) -> {
-
-            }
-            else -> {
-                Napier.w { "Unhandled Span Style @ ${range.start}-${range.end}" }
-            }
-        }
-    }
-
-    return stringBuilder
-}
-
 fun RichTextValueSnapshot.toMarkdown(): String {
     val finalStyles = mutableListOf<RichTextValueSnapshot.RichTextValueSpanSnapshot>()
     val styles = spanStyles.toMutableList()
@@ -108,9 +60,6 @@ fun RichTextValueSnapshot.toMarkdown(): String {
     }
     finalStyles.sortBy { it.start }
 
-    val removed = styles.size - finalStyles.size
-    Napier.d("Styles removed: $removed")
-
     var stringBuilder = ""
     var mark = 0
     finalStyles.forEach { range ->
@@ -119,16 +68,10 @@ fun RichTextValueSnapshot.toMarkdown(): String {
 
         when {
             isBoldTag(range.tag) -> {
-                val affectedText = text.subSequence(range.start, range.end)
-                Napier.d("Range: ${range.start}-${range.end}: $affectedText")
-
-                val annotation = styleAnnotations[TextStyle.Bold]
-                val annotatedText = "$annotation$affectedText$annotation"
-
-                stringBuilder += annotatedText
+                stringBuilder += stylizeText(text, range, TextStyle.Bold)
             }
             isItalicTag(range.tag) -> {
-
+                stringBuilder += stylizeText(text, range, TextStyle.Italics)
             }
             else -> {
                 Napier.w { "Unhandled Span Style @ ${range.start}-${range.end}" }
@@ -141,6 +84,16 @@ fun RichTextValueSnapshot.toMarkdown(): String {
     }
 
     return stringBuilder
+}
+
+private fun stylizeText(
+    text: String,
+    range: RichTextValueSnapshot.RichTextValueSpanSnapshot,
+    style: TextStyle
+): String {
+    val affectedText = text.subSequence(range.start, range.end)
+    val annotation = styleAnnotations[style]
+    return "$annotation$affectedText$annotation"
 }
 
 private fun isBoldStyle(style: SpanStyle): Boolean = style.fontWeight == FontWeight.Bold
@@ -230,12 +183,14 @@ private fun fromAnnotatedString(
 
 private fun tagFromStyle(style: SpanStyle?): String {
     return if (style == null) {
+        Napier.w("tagFromStyle: Null style")
         ""
     } else if (isBoldStyle(style)) {
-        "Bold/"
+        "${Style.Bold::class.simpleName}/"
     } else if (isItalicStyle(style)) {
-        "Italic/"
+        "${Style.Italic::class.simpleName}/"
     } else {
+        Napier.w("tagFromStyle: Unhandled Style: ${style::class.simpleName}")
         ""
     }
 }

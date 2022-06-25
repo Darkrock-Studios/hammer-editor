@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MarkdownTest {
+    /*
     @Test
     fun `AnnotatedString to Markdown`() {
         val test = testString()
@@ -16,6 +17,7 @@ class MarkdownTest {
             "Markdown did not match"
         )
     }
+    */
 
     @Test
     fun `Markdown to AnnotatedString`() {
