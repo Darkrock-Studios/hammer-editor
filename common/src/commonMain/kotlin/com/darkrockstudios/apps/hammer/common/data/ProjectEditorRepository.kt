@@ -128,24 +128,6 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    @Throws(NumberFormatException::class, IllegalStateException::class)
-    fun getSceneIdNumber(fileName: String): Int {
-        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
-            ?: throw IllegalStateException("Scene filename was bad, what do?")
-        val sceneOrder = captures.groupValues[3]
-        val sceneId = sceneOrder.toInt()
-        return sceneId
-    }
-
-    @Throws(NumberFormatException::class, IllegalStateException::class)
-    fun getSceneOrderNumber(fileName: String): Int {
-        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
-            ?: throw IllegalStateException("Scene filename was bad, what do?")
-        val sceneOrder = captures.groupValues[3]
-        val orderNumber = sceneOrder.toInt()
-        return orderNumber
-    }
-
     fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
 
     fun close() {
