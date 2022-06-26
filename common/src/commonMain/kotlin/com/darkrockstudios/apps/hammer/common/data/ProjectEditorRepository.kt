@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -23,7 +25,36 @@ abstract class ProjectEditorRepository(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    init {
+    private val _bufferUpdateChannel = MutableSharedFlow<SceneBuffer>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    private val bufferUpdateChannel: SharedFlow<SceneBuffer> = _bufferUpdateChannel
+
+    suspend fun subscribeToBufferUpdates(
+        sceneDef: SceneDef?,
+        onBufferUpdate: (SceneBuffer) -> Unit
+    ) {
+        bufferUpdateChannel.collect { newBuffer ->
+            if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef?.id) {
+                onBufferUpdate(newBuffer)
+            }
+        }
+    }
+
+    private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
+
+    /**
+     * This needs to be called after instantiation
+     */
+    fun initializeProjectEditor() {
+        val lastSceneId = findLastSceneId()
+        if (lastSceneId != null) {
+            setLastSceneId(lastSceneId)
+        } else {
+            setLastSceneId(0)
+        }
+
         editorScope.launch {
             while (isActive) {
                 val result = contentChannel.receiveCatching()
@@ -32,22 +63,10 @@ abstract class ProjectEditorRepository(
                     if (content == null) {
                         Napier.w { "ProjectEditorRepository failed to get content from contentChannel" }
                     } else {
-                        storeSceneContent(content)
+                        updateSceneBufferContent(content)
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * This needs to be called during init from implementing classes
-     */
-    fun initializeProjectEditor() {
-        val lastSceneId = findLastSceneId()
-        if (lastSceneId != null) {
-            setLastSceneId(lastSceneId)
-        } else {
-            setLastSceneId(0)
         }
     }
 
@@ -71,10 +90,11 @@ abstract class ProjectEditorRepository(
     abstract fun createScene(sceneName: String): SceneDef?
     abstract fun deleteScene(sceneDef: SceneDef): Boolean
     abstract fun getScenes(): List<SceneDef>
+    abstract fun getSceneSummaries(): List<SceneSummary>
     abstract fun getSceneAtIndex(index: Int): SceneDef
     abstract fun getSceneFromPath(path: HPath): SceneDef
-    abstract fun loadSceneContent(sceneDef: SceneDef): String?
-    abstract fun storeSceneContent(newContent: SceneContent): Boolean
+    abstract fun loadSceneBuffer(sceneDef: SceneDef): SceneBuffer
+    abstract fun storeSceneBuffer(sceneDef: SceneDef): Boolean
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
     abstract fun moveScene(from: Int, to: Int)
@@ -84,6 +104,28 @@ abstract class ProjectEditorRepository(
             contentChannel.send(content)
         }
     }
+
+    private fun updateSceneBufferContent(content: SceneContent) {
+        val oldBuffer = sceneBuffers[content.sceneDef.id]
+        // Skip update if nothing is different
+        if (content.isContentDifferent(oldBuffer?.content)) {
+            val newBuffer = SceneBuffer(content, true)
+            sceneBuffers[content.sceneDef.id] = newBuffer
+            val didEmit = _bufferUpdateChannel.tryEmit(newBuffer)
+        }
+    }
+
+    protected fun updateSceneBuffer(newBuffer: SceneBuffer) {
+        sceneBuffers[newBuffer.content.sceneDef.id] = newBuffer
+        _bufferUpdateChannel.tryEmit(newBuffer)
+    }
+
+    protected fun getSceneBuffer(sceneDef: SceneDef): SceneBuffer? = sceneBuffers[sceneDef.id]
+    protected fun hasSceneBuffer(sceneDef: SceneDef): Boolean =
+        sceneBuffers.containsKey(sceneDef.id)
+
+    protected fun hasDirtyBuffer(sceneDef: SceneDef): Boolean =
+        getSceneBuffer(sceneDef)?.dirty == true
 
     private fun willNextSceneIncreaseMagnitude(): Boolean {
         return getLastOrderNumber().numDigits() < (getLastOrderNumber() + 1).numDigits()

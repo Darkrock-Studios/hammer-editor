@@ -6,7 +6,11 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 
@@ -24,24 +28,39 @@ class SceneEditorComponent(
     private val _state = MutableValue(SceneEditor.State(sceneDef = sceneDef))
     override val state: Value<SceneEditor.State> = _state
 
+    private val sceneScope = CoroutineScope(defaultDispatcher)
+
     init {
         loadSceneContent()
 
         lifecycle.subscribe(this)
+
+        sceneScope.launch {
+            Napier.d { "SceneEditorComponent start collecting buffer updates" }
+            projectEditor.subscribeToBufferUpdates(sceneDef, ::onBufferUpdate)
+        }
+    }
+
+    private fun onBufferUpdate(sceneBuffer: SceneBuffer) {
+        Napier.d { "SceneEditorComponent scene buffer updated" }
+        _state.reduce {
+            it.copy(sceneBuffer = sceneBuffer)
+        }
     }
 
     override fun loadSceneContent() {
         _state.reduce {
-            val newContent = projectEditor.loadSceneContent(sceneDef)
-            it.copy(sceneContent = newContent)
+            val buffer = projectEditor.loadSceneBuffer(sceneDef)
+            it.copy(sceneBuffer = buffer)
         }
     }
 
-    override fun storeSceneContent(content: String) =
-        projectEditor.storeSceneContent(SceneContent(sceneDef, content))
+    override fun storeSceneContent() =
+        projectEditor.storeSceneBuffer(sceneDef)
 
-    override fun onContentChanged(content: String) =
+    override fun onContentChanged(content: String) {
         projectEditor.onContentChanged(SceneContent(sceneDef, content))
+    }
 
     override fun addEditorMenu() {
         val item = MenuItemDescriptor("scene-editor-close", "Close", "") {
@@ -66,5 +85,6 @@ class SceneEditorComponent(
 
     override fun onStop() {
         removeEditorMenu()
+        sceneScope.cancel("Scene closed")
     }
 }

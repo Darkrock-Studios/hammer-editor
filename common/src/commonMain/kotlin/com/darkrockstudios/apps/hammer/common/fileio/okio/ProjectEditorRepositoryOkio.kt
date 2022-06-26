@@ -121,6 +121,10 @@ class ProjectEditorRepositoryOkio(
             }
     }
 
+    override fun getSceneSummaries(): List<SceneSummary> {
+        return getScenes().map { SceneSummary(it, hasDirtyBuffer(it)) }
+    }
+
     override fun getSceneAtIndex(index: Int): SceneDef {
         val sceneDirectory = getSceneDirectory().toOkioPath()
         val scenePaths = fileSystem.list(sceneDirectory)
@@ -129,28 +133,51 @@ class ProjectEditorRepositoryOkio(
         return getSceneFromPath(scenePath.toHPath())
     }
 
-    override fun loadSceneContent(sceneDef: SceneDef): String? {
+    override fun loadSceneBuffer(sceneDef: SceneDef): SceneBuffer {
         val scenePath = getScenePath(sceneDef).toOkioPath()
-        return try {
-            val content = fileSystem.read(scenePath) {
-                readUtf8()
+
+        return if (hasSceneBuffer(sceneDef)) {
+            getSceneBuffer(sceneDef)
+                ?: throw IllegalStateException("sceneBuffers did not contain buffer for scene: ${sceneDef.id} - ${sceneDef.name}")
+        } else {
+            val content = try {
+                fileSystem.read(scenePath) {
+                    readUtf8()
+                }
+            } catch (e: IOException) {
+                Napier.e("Failed to load Scene (${sceneDef.name})")
+                ""
             }
-            content
-        } catch (e: IOException) {
-            Napier.e("Failed to load Scene (${sceneDef.name})")
-            null
+
+            val newBuffer = SceneBuffer(
+                SceneContent(sceneDef, content)
+            )
+
+            updateSceneBuffer(newBuffer)
+
+            newBuffer
         }
     }
 
-    override fun storeSceneContent(newContent: SceneContent): Boolean {
-        val scenePath = getScenePath(newContent.sceneDef).toOkioPath()
+    override fun storeSceneBuffer(sceneDef: SceneDef): Boolean {
+        val buffer = getSceneBuffer(sceneDef)
+        if (buffer == null) {
+            Napier.e { "Failed to store scene: ${sceneDef.id} - ${sceneDef.name}, no buffer present" }
+            return false
+        }
+
+        val scenePath = getScenePath(sceneDef).toOkioPath()
         return try {
             fileSystem.write(scenePath) {
-                writeUtf8(newContent.content)
+                writeUtf8(buffer.content.text)
             }
+
+            val cleanBuffer = buffer.copy(dirty = false)
+            updateSceneBuffer(cleanBuffer)
+
             true
         } catch (e: IOException) {
-            Napier.e("Failed to load Scene (${newContent.sceneDef.name})")
+            Napier.e("Failed to store scene: (${sceneDef.name}) with error: ${e.message}")
             false
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorderAfterLongPress
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
@@ -35,7 +36,7 @@ fun SceneListUi(
 
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            val newOrder = state.sceneDefs.toMutableList().apply {
+            val newOrder = state.scenes.toMutableList().apply {
                 add(to.index, removeAt(from.index))
             }
             component.updateSceneOrder(newOrder)
@@ -79,17 +80,17 @@ fun SceneListUi(
                 .detectReorderAfterLongPress(reorderState),
             contentPadding = PaddingValues(Ui.PADDING)
         ) {
-            items(state.sceneDefs.size, { state.sceneDefs[it].hashCode() }) { item ->
-                val scene = state.sceneDefs[item]
+            items(state.scenes.size, { state.scenes[it].sceneDef.id }) { item ->
+                val scene = state.scenes[item]
 
-                ReorderableItem(reorderState, key = scene.hashCode()) { isDragging ->
+                ReorderableItem(reorderState, key = scene.sceneDef.id) { isDragging ->
                     val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
                     Column(
                         modifier = Modifier
                             .shadow(elevation.value)
                             .background(MaterialTheme.colors.surface)
                     ) {
-                        val isSelected = scene == state.selectedSceneDef
+                        val isSelected = scene.sceneDef == state.selectedSceneDef
                         SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
                             sceneDefDeleteTarget = selectedScene
                         }
@@ -112,7 +113,7 @@ fun SceneListUi(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneItem(
-    sceneDef: SceneDef,
+    scene: SceneSummary,
     isSelected: Boolean,
     onSceneSelected: (SceneDef) -> Unit,
     onSceneAltClick: (SceneDef) -> Unit
@@ -123,7 +124,7 @@ fun SceneItem(
             .padding(Ui.PADDING)
             .run { if (isSelected) background(color = selectionColor()) else this }
             .combinedClickable(
-                onClick = { onSceneSelected(sceneDef) },
+                onClick = { onSceneSelected(scene.sceneDef) },
                 //onLongClick = { onSceneAltClick(scene) }
             ),
         elevation = Ui.ELEVATION
@@ -133,10 +134,16 @@ fun SceneItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "Scene: ${sceneDef.name}",
+                "Scene: ${scene.sceneDef.name}",
                 style = MaterialTheme.typography.body1
             )
-            Button({ onSceneAltClick(sceneDef) }) {
+            if (scene.hasDirtyBuffer) {
+                Text(
+                    "Unsaved",
+                    style = MaterialTheme.typography.subtitle1
+                )
+            }
+            Button({ onSceneAltClick(scene.sceneDef) }) {
                 Text("X")
             }
         }

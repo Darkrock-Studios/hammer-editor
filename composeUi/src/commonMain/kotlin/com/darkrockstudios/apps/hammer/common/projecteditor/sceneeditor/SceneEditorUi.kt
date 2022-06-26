@@ -2,10 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,14 +31,23 @@ fun SceneEditorUi(
     drawableKlass: Any? = null
 ) {
     val state by component.state.subscribeAsState()
+
     var sceneText by remember {
         mutableStateOf(
-            getInitialContent(state.sceneContent?.markdownToSnapshot())
+            getInitialContent(state.sceneBuffer?.content?.text?.markdownToSnapshot())
         )
     }
 
     Column(modifier = modifier) {
-        Text("Scene: ${state.sceneDef.name}", modifier = Modifier.padding(Ui.PADDING))
+        Row {
+            Text("Scene: ${state.sceneDef.name}", modifier = Modifier.padding(Ui.PADDING))
+            if (state.sceneBuffer?.dirty == true) {
+                Text("Unsaved", modifier = Modifier.padding(Ui.PADDING))
+                Button({ component.storeSceneContent() }) {
+                    Text("Save")
+                }
+            }
+        }
         Row(modifier = Modifier.fillMaxWidth().background(Color.Gray)) {
             EditorAction(
                 iconRes = "drawable/icon_bold.xml",
