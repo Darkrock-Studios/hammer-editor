@@ -4,9 +4,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.onEach
@@ -14,26 +14,26 @@ import org.koin.core.component.inject
 
 class SceneListComponent(
     componentContext: ComponentContext,
-    project: Project,
-    selectedScene: SharedFlow<Scene?>,
-    private val sceneSelected: (scene: Scene) -> Unit
+    projectDef: ProjectDef,
+    selectedSceneDef: SharedFlow<SceneDef?>,
+    private val sceneSelected: (sceneDef: SceneDef) -> Unit
 ) : SceneList, ComponentContext by componentContext {
 
     private val projectRepository: ProjectRepository by inject()
-    private val projectEditor = projectRepository.getProjectEditor(project)
+    private val projectEditor = projectRepository.getProjectEditor(projectDef)
 
-    private val _state = MutableValue(SceneList.State(project = project))
+    private val _state = MutableValue(SceneList.State(projectDef = projectDef))
     override val state: Value<SceneList.State> = _state
 
-    override fun onSceneSelected(scene: Scene) {
-        sceneSelected(scene)
+    override fun onSceneSelected(sceneDef: SceneDef) {
+        sceneSelected(sceneDef)
         _state.reduce {
-            it.copy(selectedScene = scene)
+            it.copy(selectedSceneDef = sceneDef)
         }
     }
 
-    override fun updateSceneOrder(scenes: List<Scene>) {
-        _state.value = state.value.copy(scenes = scenes)
+    override fun updateSceneOrder(sceneDefs: List<SceneDef>) {
+        _state.value = state.value.copy(sceneDefs = sceneDefs)
     }
 
     override fun moveScene(from: Int, to: Int) {
@@ -44,7 +44,7 @@ class SceneListComponent(
     override fun loadScenes() {
         _state.reduce {
             val scenes = projectEditor.getScenes()
-            it.copy(scenes = scenes)
+            it.copy(sceneDefs = scenes)
         }
     }
 
@@ -57,19 +57,19 @@ class SceneListComponent(
         }
     }
 
-    override fun deleteScene(scene: Scene) {
-        if (projectEditor.deleteScene(scene)) {
+    override fun deleteScene(sceneDef: SceneDef) {
+        if (projectEditor.deleteScene(sceneDef)) {
             loadScenes()
         }
     }
 
     init {
-        Napier.d { "Project editor: " + projectEditor.project.name }
+        Napier.d { "Project editor: " + projectEditor.projectDef.name }
 
         loadScenes()
 
-        selectedScene.onEach { scene ->
-            _state.reduce { it.copy(selectedScene = scene) }
+        selectedSceneDef.onEach { scene ->
+            _state.reduce { it.copy(selectedSceneDef = scene) }
         }
     }
 }

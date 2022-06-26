@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorderAfterLongPress
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
@@ -31,11 +31,11 @@ fun SceneListUi(
 ) {
     val state by component.state.subscribeAsState()
     var newSceneNameText by remember { mutableStateOf("") }
-    var sceneDeleteTarget by remember { mutableStateOf<Scene?>(null) }
+    var sceneDefDeleteTarget by remember { mutableStateOf<SceneDef?>(null) }
 
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            val newOrder = state.scenes.toMutableList().apply {
+            val newOrder = state.sceneDefs.toMutableList().apply {
                 add(to.index, removeAt(from.index))
             }
             component.updateSceneOrder(newOrder)
@@ -79,8 +79,8 @@ fun SceneListUi(
                 .detectReorderAfterLongPress(reorderState),
             contentPadding = PaddingValues(Ui.PADDING)
         ) {
-            items(state.scenes.size, { state.scenes[it].hashCode() }) { item ->
-                val scene = state.scenes[item]
+            items(state.sceneDefs.size, { state.sceneDefs[it].hashCode() }) { item ->
+                val scene = state.sceneDefs[item]
 
                 ReorderableItem(reorderState, key = scene.hashCode()) { isDragging ->
                     val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
@@ -89,9 +89,9 @@ fun SceneListUi(
                             .shadow(elevation.value)
                             .background(MaterialTheme.colors.surface)
                     ) {
-                        val isSelected = scene == state.selectedScene
+                        val isSelected = scene == state.selectedSceneDef
                         SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
-                            sceneDeleteTarget = selectedScene
+                            sceneDefDeleteTarget = selectedScene
                         }
                     }
                 }
@@ -99,12 +99,12 @@ fun SceneListUi(
         }
     }
 
-    sceneDeleteTarget?.let { scene ->
+    sceneDefDeleteTarget?.let { scene ->
         sceneDeleteDialog(scene) { deleteScene ->
             if (deleteScene) {
                 component.deleteScene(scene)
             }
-            sceneDeleteTarget = null
+            sceneDefDeleteTarget = null
         }
     }
 }
@@ -112,10 +112,10 @@ fun SceneListUi(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneItem(
-    scene: Scene,
+    sceneDef: SceneDef,
     isSelected: Boolean,
-    onSceneSelected: (Scene) -> Unit,
-    onSceneAltClick: (Scene) -> Unit
+    onSceneSelected: (SceneDef) -> Unit,
+    onSceneAltClick: (SceneDef) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -123,7 +123,7 @@ fun SceneItem(
             .padding(Ui.PADDING)
             .run { if (isSelected) background(color = selectionColor()) else this }
             .combinedClickable(
-                onClick = { onSceneSelected(scene) },
+                onClick = { onSceneSelected(sceneDef) },
                 //onLongClick = { onSceneAltClick(scene) }
             ),
         elevation = Ui.ELEVATION
@@ -133,10 +133,10 @@ fun SceneItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "Scene: ${scene.name}",
+                "Scene: ${sceneDef.name}",
                 style = MaterialTheme.typography.body1
             )
-            Button({ onSceneAltClick(scene) }) {
+            Button({ onSceneAltClick(sceneDef) }) {
                 Text("X")
             }
         }
@@ -150,10 +150,10 @@ private fun selectionColor(): Color =
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-fun sceneDeleteDialog(scene: Scene, dismissDialog: (Boolean) -> Unit) {
+fun sceneDeleteDialog(sceneDef: SceneDef, dismissDialog: (Boolean) -> Unit) {
     AlertDialog(
         title = { Text("Delete Scene") },
-        text = { Text("Are you sure you want to delete this scene: ${scene.name}") },
+        text = { Text("Are you sure you want to delete this scene: ${sceneDef.name}") },
         onDismissRequest = { dismissDialog(false) },
         buttons = {
             Row(

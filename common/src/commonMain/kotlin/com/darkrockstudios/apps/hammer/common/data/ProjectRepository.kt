@@ -3,27 +3,28 @@ package com.darkrockstudios.apps.hammer.common.data
 abstract class ProjectRepository(
     protected val projectsRepository: ProjectsRepository
 ) {
-    private val projectEditors = mutableMapOf<Project, ProjectEditorRepository>()
+    private val projectDefEditors = mutableMapOf<ProjectDef, ProjectEditorRepository>()
 
-    fun getProjectEditor(project: Project): ProjectEditorRepository {
-        val existingEditor = projectEditors[project]
+    fun getProjectEditor(projectDef: ProjectDef): ProjectEditorRepository {
+        val existingEditor = projectDefEditors[projectDef]
         return if (existingEditor != null) {
             existingEditor
         } else {
-            val newEditor = createEditor(project)
-            projectEditors[project] = newEditor
+            val newEditor = createEditor(projectDef)
+            newEditor.initializeProjectEditor()
+            projectDefEditors[projectDef] = newEditor
             newEditor
         }
     }
 
-    fun closeEditor(project: Project) {
-        projectEditors.remove(project)?.close()
+    fun closeEditor(projectDef: ProjectDef) {
+        projectDefEditors.remove(projectDef)?.close()
     }
 
     fun closeEditors() {
-        projectEditors.values.forEach { it.close() }
-        projectEditors.clear()
+        projectDefEditors.values.forEach { it.close() }
+        projectDefEditors.clear()
     }
 
-    protected abstract fun createEditor(project: Project): ProjectEditorRepository
+    protected abstract fun createEditor(projectDef: ProjectDef): ProjectEditorRepository
 }

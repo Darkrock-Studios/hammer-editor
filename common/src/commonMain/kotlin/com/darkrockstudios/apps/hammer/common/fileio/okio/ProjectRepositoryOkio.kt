@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.fileio.okio
 
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
@@ -11,7 +11,7 @@ class ProjectRepositoryOkio(
     projectsRepository: ProjectsRepository
 ) : ProjectRepository(projectsRepository) {
 
-    override fun createEditor(project: Project): ProjectEditorRepository {
-        return ProjectEditorRepositoryOkio(project, projectsRepository, fileSystem)
+    override fun createEditor(projectDef: ProjectDef): ProjectEditorRepository {
+        return ProjectEditorRepositoryOkio(projectDef, projectsRepository, fileSystem)
     }
 }

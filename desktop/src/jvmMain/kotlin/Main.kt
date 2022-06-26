@@ -16,7 +16,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.NapierLogger
 import com.darkrockstudios.apps.hammer.common.di.mainModule
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
@@ -47,7 +47,7 @@ fun main() {
                 }
             }
             is WindowState.ProjectWindow -> {
-                ProjectEditorWindow(applicationState, windowState.project)
+                ProjectEditorWindow(applicationState, windowState.projectDef)
             }
         }
     }
@@ -58,7 +58,7 @@ fun main() {
 @ExperimentalDecomposeApi
 @Composable
 private fun ApplicationScope.ProjectSelectionWindow(
-    onProjectSelected: (project: Project) -> Unit
+    onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
     val lifecycle = remember { LifecycleRegistry() }
     val compContext = remember { DefaultComponentContext(lifecycle) }
@@ -82,7 +82,7 @@ private fun ApplicationScope.ProjectSelectionWindow(
 @Composable
 private fun ApplicationScope.ProjectEditorWindow(
     app: ApplicationState,
-    project: Project
+    projectDef: ProjectDef
 ) {
     val lifecycle = remember { LifecycleRegistry() }
     val compContext = remember { DefaultComponentContext(lifecycle) }
@@ -118,7 +118,7 @@ private fun ApplicationScope.ProjectEditorWindow(
                 MaterialTheme {
                     ProjectEditorUi(ProjectEditorComponent(
                         componentContext = compContext,
-                        project = project,
+                        projectDef = projectDef,
                         addMenu = { menu ->
                             app.addMenu(menu)
                         },
@@ -150,8 +150,8 @@ private class ApplicationState {
         _menu.value = _menu.value.filter { it.id != menuId }.toSet()
     }
 
-    fun openProject(project: Project) {
-        _windows.value = WindowState.ProjectWindow(project)
+    fun openProject(projectDef: ProjectDef) {
+        _windows.value = WindowState.ProjectWindow(projectDef)
     }
 
     fun closeProject() {
@@ -162,5 +162,5 @@ private class ApplicationState {
 private sealed class WindowState {
     data class ProjectSectionWindow(private val _data: Boolean = true) : WindowState()
 
-    data class ProjectWindow(val project: Project) : WindowState()
+    data class ProjectWindow(val projectDef: ProjectDef) : WindowState()
 }

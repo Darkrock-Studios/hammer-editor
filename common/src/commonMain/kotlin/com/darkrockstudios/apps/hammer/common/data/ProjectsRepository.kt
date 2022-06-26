@@ -6,10 +6,10 @@ import io.github.aakira.napier.Napier
 abstract class ProjectsRepository {
 
     abstract fun getProjectsDirectory(): HPath
-    abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<Project>
+    abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef>
     abstract fun getProjectDirectory(projectName: String): HPath
     abstract fun createProject(projectName: String): Boolean
-    abstract fun deleteProject(project: Project): Boolean
+    abstract fun deleteProject(projectDef: ProjectDef): Boolean
 
     fun validateFileName(fileName: String?): Boolean {
         return if (fileName != null) {

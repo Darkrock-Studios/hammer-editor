@@ -41,7 +41,7 @@ fun SceneEditorUi(
     }
 
     Column(modifier = modifier) {
-        Text("Scene: ${state.scene.name}", modifier = Modifier.padding(Ui.PADDING))
+        Text("Scene: ${state.sceneDef.name}", modifier = Modifier.padding(Ui.PADDING))
         Row(modifier = Modifier.fillMaxWidth().background(Color.Gray)) {
             EditorAction(
                 iconRes = "drawable/icon_bold.xml",

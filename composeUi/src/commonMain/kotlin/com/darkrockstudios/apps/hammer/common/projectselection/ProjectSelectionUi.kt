@@ -12,7 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.Project
 fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier = Modifier) {
     val state by component.state.subscribeAsState()
     var newProjectNameText by remember { mutableStateOf("") }
-    var projectDeleteTarget by remember { mutableStateOf<Project?>(null) }
+    var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 
     Column(modifier = modifier.padding(Ui.PADDING)) {
         TextField(
@@ -54,21 +54,21 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
                     )
                 }
             }
-            items(state.projects.size) { index ->
-                ProjectCard(state.projects[index], component::selectProject) { project ->
-                    projectDeleteTarget = project
+            items(state.projectDefs.size) { index ->
+                ProjectCard(state.projectDefs[index], component::selectProject) { project ->
+                    projectDefDeleteTarget = project
                 }
             }
         }
     }
 
-    projectDeleteTarget?.let { project ->
+    projectDefDeleteTarget?.let { project ->
         projectDeleteDialog(project) { deleteProject ->
             if (deleteProject) {
                 component.deleteProject(project)
             }
 
-            projectDeleteTarget = null
+            projectDefDeleteTarget = null
         }
     }
 }
@@ -76,29 +76,29 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProjectCard(
-    project: Project,
-    onProjectClick: (project: Project) -> Unit,
-    onProjectAltClick: (project: Project) -> Unit
+    projectDef: ProjectDef,
+    onProjectClick: (projectDef: ProjectDef) -> Unit,
+    onProjectAltClick: (projectDef: ProjectDef) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(Ui.PADDING)
             .combinedClickable(
-                onClick = { onProjectClick(project) },
-                onLongClick = { onProjectAltClick(project) }
+                onClick = { onProjectClick(projectDef) },
+                onLongClick = { onProjectAltClick(projectDef) }
             ),
         elevation = Ui.ELEVATION
     ) {
         Column(modifier = Modifier.padding(Ui.PADDING)) {
             Text(
-                project.name,
+                projectDef.name,
                 modifier = Modifier.padding(bottom = Ui.PADDING),
                 style = MaterialTheme.typography.h5,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "Path: ${project.path}",
+                "Path: ${projectDef.path}",
                 style = MaterialTheme.typography.caption
             )
         }
@@ -108,10 +108,10 @@ fun ProjectCard(
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-fun projectDeleteDialog(project: Project, dismissDialog: (Boolean) -> Unit) {
+fun projectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean) -> Unit) {
     AlertDialog(
         title = { Text("Delete Project") },
-        text = { Text("Are you sure you want to delete this project: ${project.name}") },
+        text = { Text("Are you sure you want to delete this project: ${projectDef.name}") },
         onDismissRequest = { dismissDialog(false) },
         buttons = {
             Row(

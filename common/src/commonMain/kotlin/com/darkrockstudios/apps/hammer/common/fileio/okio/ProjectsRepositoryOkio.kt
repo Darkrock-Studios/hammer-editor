@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.fileio.okio
 
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
@@ -28,11 +28,11 @@ class ProjectsRepositoryOkio(
         return projectsDir.toHPath()
     }
 
-    override fun getProjects(projectsDir: HPath): List<Project> {
+    override fun getProjects(projectsDir: HPath): List<ProjectDef> {
         val projPath = projectsDir.toOkioPath()
         return fileSystem.list(projPath)
             .filter { fileSystem.metadata(it).isDirectory }
-            .map { path -> Project(path.name, path.toHPath()) }
+            .map { path -> ProjectDef(path.name, path.toHPath()) }
     }
 
     override fun getProjectDirectory(projectName: String): HPath {
@@ -56,8 +56,8 @@ class ProjectsRepositoryOkio(
         }
     }
 
-    override fun deleteProject(project: Project): Boolean {
-        val projectDir = getProjectDirectory(project.name).toOkioPath()
+    override fun deleteProject(projectDef: ProjectDef): Boolean {
+        val projectDir = getProjectDirectory(projectDef.name).toOkioPath()
         return if (fileSystem.exists(projectDir)) {
             fileSystem.deleteRecursively(projectDir)
             true

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 
 interface SceneEditor : HammerComponent {
@@ -14,7 +14,7 @@ interface SceneEditor : HammerComponent {
     fun onContentChanged(content: String)
 
     data class State(
-        val scene: Scene,
+        val sceneDef: SceneDef,
         val sceneContent: String? = null
     )
 }

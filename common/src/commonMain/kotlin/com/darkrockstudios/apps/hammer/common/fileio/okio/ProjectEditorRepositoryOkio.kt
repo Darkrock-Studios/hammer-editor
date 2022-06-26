@@ -8,30 +8,28 @@ import okio.FileSystem
 import okio.IOException
 
 class ProjectEditorRepositoryOkio(
-    project: Project,
+    projectDef: ProjectDef,
     projectsRepository: ProjectsRepository,
     private val fileSystem: FileSystem
-) : ProjectEditorRepository(project, projectsRepository) {
+) : ProjectEditorRepository(projectDef, projectsRepository) {
 
     override fun getSceneDirectory(): HPath {
-        val projOkPath = project.path.toOkioPath()
+        val projOkPath = projectDef.path.toOkioPath()
         val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
         fileSystem.createDirectory(sceneDirPath)
         return sceneDirPath.toHPath()
     }
 
-    override fun getScenePath(scene: Scene, isNewScene: Boolean): HPath {
+    override fun getScenePath(sceneDef: SceneDef, isNewScene: Boolean): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
-        val fileName = getSceneFileName(scene, isNewScene)
+        val fileName = getSceneFileName(sceneDef, isNewScene)
         return scenePathSegment.div(fileName).toHPath()
     }
 
-    override fun getSceneFromPath(path: HPath): Scene {
+    override fun getSceneFromPath(path: HPath): SceneDef {
         val okPath = path.toOkioPath()
-        val name = getSceneNameFromFileName(okPath.name)
-        val order = getSceneOrderNumber(okPath.name)
-
-        return Scene(project = project, order = order, name = name)
+        val sceneDef = getSceneDefFromFilename(okPath.name)
+        return sceneDef
     }
 
     override fun updateSceneOrder() {
@@ -62,16 +60,17 @@ class ProjectEditorRepositoryOkio(
         }
 
         scenePaths.forEachIndexed { index, path ->
-            val sceneName = getSceneNameFromFileName(path.name)
-            val scene = Scene(project, index + 1, sceneName)
+            val originalScene = getSceneDefFromFilename(path.name)
+            val newScene = originalScene.copy(order = index + 1)
+
             val tempPath = tempPaths[index]
-            val targetPath = getScenePath(scene).toOkioPath()
+            val targetPath = getScenePath(newScene).toOkioPath()
 
             fileSystem.atomicMove(source = tempPath, target = targetPath)
         }
     }
 
-    override fun createScene(sceneName: String): Scene? {
+    override fun createScene(sceneName: String): SceneDef? {
         Napier.d("createScene: $sceneName")
         return if (!validateSceneName(sceneName)) {
             Napier.d("Invalid scene name")
@@ -79,9 +78,16 @@ class ProjectEditorRepositoryOkio(
         } else {
             val lastOrder = getLastOrderNumber()
             val nextOrder = lastOrder + 1
+            val sceneId = claimNextSceneId()
 
-            val newScene = Scene(project, nextOrder, sceneName)
-            val scenePath = getScenePath(newScene, true).toOkioPath()
+            val newSceneDef = SceneDef(
+                projectDef = projectDef,
+                id = sceneId,
+                name = sceneName,
+                order = nextOrder,
+            )
+
+            val scenePath = getScenePath(newSceneDef, true).toOkioPath()
             fileSystem.write(scenePath, true) {
                 writeUtf8("")
             }
@@ -90,12 +96,12 @@ class ProjectEditorRepositoryOkio(
                 updateSceneOrder()
             }
 
-            newScene
+            newSceneDef
         }
     }
 
-    override fun deleteScene(scene: Scene): Boolean {
-        val scenePath = getScenePath(scene).toOkioPath()
+    override fun deleteScene(sceneDef: SceneDef): Boolean {
+        val scenePath = getScenePath(sceneDef).toOkioPath()
         return if (fileSystem.exists(scenePath)) {
             fileSystem.delete(scenePath)
             updateSceneOrder()
@@ -106,18 +112,16 @@ class ProjectEditorRepositoryOkio(
         }
     }
 
-    override fun getScenes(): List<Scene> {
+    override fun getScenes(): List<SceneDef> {
         val sceneDirectory = getSceneDirectory().toOkioPath()
         return fileSystem.list(sceneDirectory)
             .filter { fileSystem.metadata(it).isRegularFile }
             .map { path ->
-                val order = getSceneOrderNumber(path.name)
-                val fileName = getSceneNameFromFileName(path.name)
-                Scene(project, order, fileName)
+                getSceneDefFromFilename(path.name)
             }
     }
 
-    override fun getSceneAtIndex(index: Int): Scene {
+    override fun getSceneAtIndex(index: Int): SceneDef {
         val sceneDirectory = getSceneDirectory().toOkioPath()
         val scenePaths = fileSystem.list(sceneDirectory)
         if (index >= scenePaths.size) throw IllegalArgumentException("Invalid scene index requested: $index")
@@ -125,28 +129,28 @@ class ProjectEditorRepositoryOkio(
         return getSceneFromPath(scenePath.toHPath())
     }
 
-    override fun loadSceneContent(scene: Scene): String? {
-        val scenePath = getScenePath(scene).toOkioPath()
+    override fun loadSceneContent(sceneDef: SceneDef): String? {
+        val scenePath = getScenePath(sceneDef).toOkioPath()
         return try {
             val content = fileSystem.read(scenePath) {
                 readUtf8()
             }
             content
         } catch (e: IOException) {
-            Napier.e("Failed to load Scene (${scene.name})")
+            Napier.e("Failed to load Scene (${sceneDef.name})")
             null
         }
     }
 
     override fun storeSceneContent(newContent: SceneContent): Boolean {
-        val scenePath = getScenePath(newContent.scene).toOkioPath()
+        val scenePath = getScenePath(newContent.sceneDef).toOkioPath()
         return try {
             fileSystem.write(scenePath) {
                 writeUtf8(newContent.content)
             }
             true
         } catch (e: IOException) {
-            Napier.e("Failed to load Scene (${newContent.scene.name})")
+            Napier.e("Failed to load Scene (${newContent.sceneDef.name})")
             false
         }
     }

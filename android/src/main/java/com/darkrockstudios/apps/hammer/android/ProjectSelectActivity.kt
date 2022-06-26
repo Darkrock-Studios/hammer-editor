@@ -10,7 +10,7 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 
@@ -44,9 +44,9 @@ class ProjectSelectActivity : AppCompatActivity() {
         }
     }
 
-    private fun onProjectSelected(project: Project) {
+    private fun onProjectSelected(projectDef: ProjectDef) {
         val intent = Intent(this, ProjectEditorActivity::class.java).apply {
-            putExtra(ProjectEditorActivity.EXTRA_PROJECT, project)
+            putExtra(ProjectEditorActivity.EXTRA_PROJECT, projectDef)
         }
         startActivity(intent)
     }

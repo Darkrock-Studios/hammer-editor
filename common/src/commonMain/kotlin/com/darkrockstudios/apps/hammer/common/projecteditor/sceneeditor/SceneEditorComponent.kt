@@ -12,16 +12,16 @@ import org.koin.core.component.inject
 
 class SceneEditorComponent(
     componentContext: ComponentContext,
-    private val scene: Scene,
+    private val sceneDef: SceneDef,
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val closeSceneEditor: () -> Unit
 ) : SceneEditor, ComponentContext by componentContext, Lifecycle.Callbacks {
 
     private val projectRepository: ProjectRepository by inject()
-    private val projectEditor = projectRepository.getProjectEditor(scene.project)
+    private val projectEditor = projectRepository.getProjectEditor(sceneDef.projectDef)
 
-    private val _state = MutableValue(SceneEditor.State(scene = scene))
+    private val _state = MutableValue(SceneEditor.State(sceneDef = sceneDef))
     override val state: Value<SceneEditor.State> = _state
 
     init {
@@ -32,16 +32,16 @@ class SceneEditorComponent(
 
     override fun loadSceneContent() {
         _state.reduce {
-            val newContent = projectEditor.loadSceneContent(scene)
+            val newContent = projectEditor.loadSceneContent(sceneDef)
             it.copy(sceneContent = newContent)
         }
     }
 
     override fun storeSceneContent(content: String) =
-        projectEditor.storeSceneContent(SceneContent(scene, content))
+        projectEditor.storeSceneContent(SceneContent(sceneDef, content))
 
     override fun onContentChanged(content: String) =
-        projectEditor.onContentChanged(SceneContent(scene, content))
+        projectEditor.onContentChanged(SceneContent(sceneDef, content))
 
     override fun addEditorMenu() {
         val item = MenuItemDescriptor("scene-editor-close", "Close", "") {
@@ -57,7 +57,7 @@ class SceneEditorComponent(
     }
 
     private fun getMenuId(): String {
-        return "scene-editor-${scene.order}-${scene.name}"
+        return "scene-editor-${sceneDef.order}-${sceneDef.name}"
     }
 
     override fun onStart() {

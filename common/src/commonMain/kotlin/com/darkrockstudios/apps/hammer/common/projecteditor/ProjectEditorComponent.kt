@@ -7,20 +7,20 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.Project
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 class ProjectEditorComponent(
     componentContext: ComponentContext,
-    private val project: Project,
+    private val projectDef: ProjectDef,
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
 ) : ProjectEditor, ComponentContext by componentContext {
 
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
-    private val selectedSceneFlow = MutableSharedFlow<Scene?>(
+    private val selectedSceneDefFlow = MutableSharedFlow<SceneDef?>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
@@ -28,8 +28,8 @@ class ProjectEditorComponent(
     private val listRouter =
         ListRouter(
             componentContext = this,
-            project = project,
-            selectedScene = selectedSceneFlow,
+            projectDef = projectDef,
+            selectedSceneDef = selectedSceneDefFlow,
             onSceneSelected = ::onSceneSelected
         )
 
@@ -48,7 +48,7 @@ class ProjectEditorComponent(
     override val detailsRouterState: Value<RouterState<*, ProjectEditor.Child.Detail>> =
         detailsRouter.state
 
-    private val _state = MutableValue(ProjectEditor.State(project))
+    private val _state = MutableValue(ProjectEditor.State(projectDef))
     override val state: Value<ProjectEditor.State> = _state
 
     init {
@@ -58,7 +58,7 @@ class ProjectEditorComponent(
 
         detailsRouter.state.observe(lifecycle) {
             (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
-                selectedSceneFlow.tryEmit(sceneEditor.scene)
+                selectedSceneDefFlow.tryEmit(sceneEditor.sceneDef)
             }
         }
     }
@@ -84,8 +84,8 @@ class ProjectEditorComponent(
         detailsRouter.closeScene()
     }
 
-    private fun onSceneSelected(scene: Scene) {
-        detailsRouter.showScene(scene)
+    private fun onSceneSelected(sceneDef: SceneDef) {
+        detailsRouter.showScene(sceneDef)
 
         if (isMultiPaneMode()) {
             listRouter.show()

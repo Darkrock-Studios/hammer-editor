@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 
@@ -21,8 +21,8 @@ class ProjectEditorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val project = intent.getParcelableExtra<Project>(EXTRA_PROJECT)
-        if (project == null) {
+        val projectDef = intent.getParcelableExtra<ProjectDef>(EXTRA_PROJECT)
+        if (projectDef == null) {
             finish()
         } else {
             setContent {
@@ -51,7 +51,7 @@ class ProjectEditorActivity : AppCompatActivity() {
                             ProjectEditorUi(
                                 ProjectEditorComponent(
                                     componentContext = defaultComponentContext(),
-                                    project = project,
+                                    projectDef = projectDef,
                                     addMenu = { menuDescriptor ->
                                         menu.value =
                                             mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }

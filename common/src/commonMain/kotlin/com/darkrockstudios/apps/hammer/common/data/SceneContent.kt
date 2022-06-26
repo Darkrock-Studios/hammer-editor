@@ -1,3 +1,3 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-data class SceneContent(val scene: Scene, val content: String)
+data class SceneContent(val sceneDef: SceneDef, val content: String)

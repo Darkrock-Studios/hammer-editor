@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
@@ -10,12 +10,12 @@ interface ProjectSelection : HammerComponent {
 
     fun loadProjectList()
     fun setProjectsDir(path: HPath)
-    fun selectProject(project: Project)
+    fun selectProject(projectDef: ProjectDef)
     fun createProject(projectName: String)
-    fun deleteProject(project: Project)
+    fun deleteProject(projectDef: ProjectDef)
 
     data class State(
         val projectsDir: HPath,
-        val projects: List<Project> = mutableListOf()
+        val projectDefs: List<ProjectDef> = mutableListOf()
     )
 }

@@ -12,9 +12,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 abstract class ProjectEditorRepository(
-    val project: Project,
-    protected val projectsRepository: ProjectsRepository
+    val projectDef: ProjectDef,
+    private val projectsRepository: ProjectsRepository
 ) {
+    private var nextSceneId: Int = 0
+
     private val editorScope = CoroutineScope(defaultDispatcher)
     private val contentChannel = Channel<SceneContent>(
         capacity = 1,
@@ -37,14 +39,41 @@ abstract class ProjectEditorRepository(
         }
     }
 
+    /**
+     * This needs to be called during init from implementing classes
+     */
+    fun initializeProjectEditor() {
+        val lastSceneId = findLastSceneId()
+        if (lastSceneId != null) {
+            setLastSceneId(lastSceneId)
+        } else {
+            setLastSceneId(0)
+        }
+    }
+
+    /**
+     * Returns null if there are no scenes yet
+     */
+    private fun findLastSceneId(): Int? = getScenes().maxByOrNull { it.id }?.id
+
+    private fun setLastSceneId(lastSceneId: Int) {
+        nextSceneId = lastSceneId + 1
+    }
+
+    protected fun claimNextSceneId(): Int {
+        val newSceneId = nextSceneId
+        nextSceneId += 1
+        return newSceneId
+    }
+
     abstract fun getSceneDirectory(): HPath
-    abstract fun getScenePath(scene: Scene, isNewScene: Boolean = false): HPath
-    abstract fun createScene(sceneName: String): Scene?
-    abstract fun deleteScene(scene: Scene): Boolean
-    abstract fun getScenes(): List<Scene>
-    abstract fun getSceneAtIndex(index: Int): Scene
-    abstract fun getSceneFromPath(path: HPath): Scene
-    abstract fun loadSceneContent(scene: Scene): String?
+    abstract fun getScenePath(sceneDef: SceneDef, isNewScene: Boolean = false): HPath
+    abstract fun createScene(sceneName: String): SceneDef?
+    abstract fun deleteScene(sceneDef: SceneDef): Boolean
+    abstract fun getScenes(): List<SceneDef>
+    abstract fun getSceneAtIndex(index: Int): SceneDef
+    abstract fun getSceneFromPath(path: HPath): SceneDef
+    abstract fun loadSceneContent(sceneDef: SceneDef): String?
     abstract fun storeSceneContent(newContent: SceneContent): Boolean
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
@@ -61,7 +90,7 @@ abstract class ProjectEditorRepository(
     }
 
     fun getSceneFileName(
-        scene: Scene,
+        sceneDef: SceneDef,
         isNewScene: Boolean = false
     ): String {
         val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude()) {
@@ -70,23 +99,49 @@ abstract class ProjectEditorRepository(
             getLastOrderNumber().numDigits()
         }
 
-        val order = scene.order.toString().padStart(orderDigits, '0')
-        return "$order-${scene.name}.txt"
+        val order = sceneDef.order.toString().padStart(orderDigits, '0')
+        return "$order-${sceneDef.name}-${sceneDef.id}.md"
     }
 
-    @Throws(IllegalStateException::class)
-    fun getSceneNameFromFileName(fileName: String): String {
+    @Throws(InvalidSceneFilename::class)
+    fun getSceneDefFromFilename(fileName: String): SceneDef {
+        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+            ?: throw IllegalStateException("Scene filename was bad: $fileName")
+
+        try {
+            val sceneOrder = captures.groupValues[1].toInt()
+            val sceneName = captures.groupValues[2]
+            val sceneId = captures.groupValues[3].toInt()
+
+            val sceneDef = SceneDef(
+                projectDef = projectDef,
+                id = sceneId,
+                name = sceneName,
+                order = sceneOrder
+            )
+
+            return sceneDef
+        } catch (e: NumberFormatException) {
+            throw InvalidSceneFilename("Number format exception", fileName)
+        } catch (e: IllegalStateException) {
+            throw InvalidSceneFilename("Invalid filename", fileName)
+        }
+    }
+
+    @Throws(NumberFormatException::class, IllegalStateException::class)
+    fun getSceneIdNumber(fileName: String): Int {
         val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
             ?: throw IllegalStateException("Scene filename was bad, what do?")
-        val sceneName = captures.groupValues[2]
-        return sceneName
+        val sceneOrder = captures.groupValues[3]
+        val sceneId = sceneOrder.toInt()
+        return sceneId
     }
 
     @Throws(NumberFormatException::class, IllegalStateException::class)
     fun getSceneOrderNumber(fileName: String): Int {
         val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
             ?: throw IllegalStateException("Scene filename was bad, what do?")
-        val sceneOrder = captures.groupValues[1]
+        val sceneOrder = captures.groupValues[3]
         val orderNumber = sceneOrder.toInt()
         return orderNumber
     }
@@ -99,8 +154,11 @@ abstract class ProjectEditorRepository(
     }
 
     companion object {
-        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _-]+)\.txt""")
+        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)\.md""")
         const val SCENE_DIRECTORY = "scenes"
         const val tempSuffix = ".temp"
     }
 }
+
+class InvalidSceneFilename(message: String, fileName: String) :
+    IllegalStateException("$fileName failed to parse because: $message")

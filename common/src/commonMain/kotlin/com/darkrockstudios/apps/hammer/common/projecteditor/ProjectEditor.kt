@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.router.RouterState
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.data.Project
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
@@ -12,7 +12,7 @@ interface ProjectEditor : HammerComponent {
     val detailsRouterState: Value<RouterState<*, Child.Detail>>
 
     data class State(
-        val project: Project,
+        val projectDef: ProjectDef,
         val isMultiPane: Boolean = false
     )
 

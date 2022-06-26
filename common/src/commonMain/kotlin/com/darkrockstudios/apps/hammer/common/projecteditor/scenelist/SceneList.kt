@@ -1,22 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.data.Project
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 
 interface SceneList : HammerComponent {
     val state: Value<State>
-    fun onSceneSelected(scene: Scene)
-    fun updateSceneOrder(scenes: List<Scene>)
+    fun onSceneSelected(sceneDef: SceneDef)
+    fun updateSceneOrder(sceneDefs: List<SceneDef>)
     fun moveScene(from: Int, to: Int)
     fun loadScenes()
     fun createScene(sceneName: String)
-    fun deleteScene(scene: Scene)
+    fun deleteScene(sceneDef: SceneDef)
 
     data class State(
-        val project: Project,
-        val selectedScene: Scene? = null,
-        val scenes: List<Scene> = emptyList()
+        val projectDef: ProjectDef,
+        val selectedSceneDef: SceneDef? = null,
+        val sceneDefs: List<SceneDef> = emptyList()
     )
 }

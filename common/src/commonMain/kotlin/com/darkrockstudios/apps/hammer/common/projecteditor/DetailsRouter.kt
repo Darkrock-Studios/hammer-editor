@@ -9,7 +9,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.Scene
+import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
 
@@ -37,24 +37,24 @@ internal class DetailsRouter(
         when (config) {
             is Config.None -> ProjectEditor.Child.Detail.None
             is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
-                sceneEditor(componentContext = componentContext, scene = config.scene)
+                sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
             )
         }
 
-    private fun sceneEditor(componentContext: ComponentContext, scene: Scene): SceneEditor =
+    private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneDef): SceneEditor =
         SceneEditorComponent(
             componentContext = componentContext,
-            scene = scene,
+            sceneDef = sceneDef,
             addMenu = addMenu,
             removeMenu = removeMenu,
             closeSceneEditor = closeDetails
         )
 
-    fun showScene(scene: Scene) {
+    fun showScene(sceneDef: SceneDef) {
         router.navigate(
             transformer = { stack ->
                 stack.dropLastWhile { it is Config.SceneEditor }
-                    .plus(Config.SceneEditor(scene = scene))
+                    .plus(Config.SceneEditor(sceneDef = sceneDef))
             },
             onComplete = { _, _ -> }
         )
@@ -75,6 +75,6 @@ internal class DetailsRouter(
         object None : Config()
 
         @Parcelize
-        data class SceneEditor(val scene: Scene) : Config()
+        data class SceneEditor(val sceneDef: SceneDef) : Config()
     }
 }
