@@ -36,7 +36,7 @@ abstract class ProjectEditorRepository(
         onBufferUpdate: (SceneBuffer) -> Unit
     ) {
         bufferUpdateChannel.collect { newBuffer ->
-            if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef?.id) {
+            if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
                 onBufferUpdate(newBuffer)
             }
         }
@@ -126,6 +126,15 @@ abstract class ProjectEditorRepository(
 
     protected fun hasDirtyBuffer(sceneDef: SceneDef): Boolean =
         getSceneBuffer(sceneDef)?.dirty == true
+
+    fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
+
+    fun storeAllBuffers() {
+        val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.sceneDef }
+        dirtyScenes.forEach { scene ->
+            storeSceneBuffer(scene)
+        }
+    }
 
     private fun willNextSceneIncreaseMagnitude(): Boolean {
         return getLastOrderNumber().numDigits() < (getLastOrderNumber() + 1).numDigits()

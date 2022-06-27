@@ -9,7 +9,7 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-group = "com.darkrockstudios.apps.hammer"
+group = "com.darkrockstudios.apps.hammer.desktop"
 version = app_version
 
 
@@ -34,7 +34,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "hammer"

@@ -19,19 +19,22 @@ interface ProjectEditor : HammerComponent {
     val state: Value<State>
 
     fun setMultiPane(isMultiPane: Boolean)
-
     fun closeDetails(): Boolean
 
+    fun hasUnsavedBuffers(): Boolean
+    fun storeDirtyBuffers()
+
     sealed class Child {
-        sealed class List: Child() {
-            class Scenes(val component: SceneList): List()
+        sealed class List : Child() {
+            class Scenes(val component: SceneList) : List()
 
-            object None: List()
+            object None : List()
         }
-        sealed class Detail : Child() {
-            class Editor(val component: SceneEditor): Detail()
 
-            object None: Detail()
+        sealed class Detail : Child() {
+            class Editor(val component: SceneEditor) : Detail()
+
+            object None : Detail()
         }
     }
 }

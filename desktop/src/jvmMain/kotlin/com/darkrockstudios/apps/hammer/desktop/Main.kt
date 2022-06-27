@@ -1,9 +1,11 @@
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.runtime.*
+package com.darkrockstudios.apps.hammer.desktop
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -12,10 +14,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.NapierLogger
 import com.darkrockstudios.apps.hammer.common.di.mainModule
@@ -78,7 +78,9 @@ private fun ApplicationScope.ProjectSelectionWindow(
     }
 }
 
+@ExperimentalComposeApi
 @ExperimentalDecomposeApi
+@ExperimentalMaterialApi
 @Composable
 private fun ApplicationScope.ProjectEditorWindow(
     app: ApplicationState,
@@ -89,18 +91,37 @@ private fun ApplicationScope.ProjectEditorWindow(
     val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
     LifecycleController(lifecycle, windowState)
 
+    val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
+
+    val component = remember {
+        ProjectEditorComponent(
+            componentContext = compContext,
+            projectDef = projectDef,
+            addMenu = { menu ->
+                app.addMenu(menu)
+            },
+            removeMenu = { menuId ->
+                app.removeMenu(menuId)
+            }
+        )
+    }
+
     val menu by app.menu.subscribeAsState()
 
     Window(
         title = "Hammer",
         state = windowState,
-        onCloseRequest = ::exitApplication
+        onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
     ) {
         Column {
             MenuBar {
                 Menu("File") {
-                    Item("Close Project", onClick = app::closeProject)
-                    Item("Exit", onClick = ::exitApplication)
+                    Item("Close Project", onClick = {
+                        onRequestClose(component, app, ApplicationState.CloseType.Project)
+                    })
+                    Item("Exit", onClick = {
+                        onRequestClose(component, app, ApplicationState.CloseType.Application)
+                    })
                 }
 
                 menu.forEach { menuDescriptor ->
@@ -116,51 +137,87 @@ private fun ApplicationScope.ProjectEditorWindow(
             }
             Surface(modifier = Modifier.fillMaxSize()) {
                 MaterialTheme {
-                    ProjectEditorUi(ProjectEditorComponent(
-                        componentContext = compContext,
-                        projectDef = projectDef,
-                        addMenu = { menu ->
-                            app.addMenu(menu)
-                        },
-                        removeMenu = { menuId ->
-                            app.removeMenu(menuId)
-                        }
-                    ))
+                    ProjectEditorUi(component)
                 }
+            }
+        }
+
+        if (closeDialog.value != ApplicationState.CloseType.None) {
+            confirmCloseDialog(closeDialog.value) { result, closeType ->
+                if (result == ConfirmCloseResult.SaveAll) {
+                    component.storeDirtyBuffers()
+                }
+
+                app.dismissConfirmProjectClose()
+
+                performClose(app, closeType)
             }
         }
     }
 }
 
-private class ApplicationState {
-    private val _windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
-    val windows: State<WindowState> = _windows
+@ExperimentalMaterialApi
+@ExperimentalComposeApi
+@Composable
+private fun confirmCloseDialog(
+    closeType: ApplicationState.CloseType,
+    dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
+) {
+    AlertDialog(
+        title = { Text("Unsaved Scenes") },
+        text = { Text("Save unsaved scenes?") },
+        onDismissRequest = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
+        buttons = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
+                    Text("Save and close")
+                }
+                Button(onClick = {
+                    dismissDialog(
+                        ConfirmCloseResult.Cancel,
+                        ApplicationState.CloseType.None
+                    )
+                }) {
+                    Text("Cancel")
+                }
+                Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
+                    Text("Discard and close")
+                }
+            }
+        },
+        modifier = Modifier.width(300.dp).padding(Ui.PADDING)
+    )
+}
 
-    private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
-    val menu: Value<Set<MenuDescriptor>> = _menu
+private enum class ConfirmCloseResult {
+    SaveAll,
+    Discard,
+    Cancel
+}
 
-    fun addMenu(menuDescriptor: MenuDescriptor) {
-        _menu.value = mutableSetOf<MenuDescriptor>().apply {
-            addAll(_menu.value)
-            add(menuDescriptor)
+private fun ApplicationScope.performClose(
+    app: ApplicationState,
+    closeType: ApplicationState.CloseType
+) {
+    when (closeType) {
+        ApplicationState.CloseType.Application -> exitApplication()
+        ApplicationState.CloseType.Project -> app.closeProject()
+        ApplicationState.CloseType.None -> {
+            /* noop */
         }
-    }
-
-    fun removeMenu(menuId: String) {
-        _menu.value = _menu.value.filter { it.id != menuId }.toSet()
-    }
-
-    fun openProject(projectDef: ProjectDef) {
-        _windows.value = WindowState.ProjectWindow(projectDef)
-    }
-
-    fun closeProject() {
-        _windows.value = WindowState.ProjectSectionWindow()
     }
 }
 
-private sealed class WindowState {
-    data class ProjectSectionWindow(private val _data: Boolean = true) : WindowState()
-
-    data class ProjectWindow(val projectDef: ProjectDef) : WindowState()
+private fun ApplicationScope.onRequestClose(
+    component: ProjectEditorComponent,
+    app: ApplicationState,
+    closeType: ApplicationState.CloseType
+) {
+    if (component.hasUnsavedBuffers()) {
+        app.showConfirmProjectClose(closeType)
+    } else {
+        performClose(app, closeType)
+    }
 }

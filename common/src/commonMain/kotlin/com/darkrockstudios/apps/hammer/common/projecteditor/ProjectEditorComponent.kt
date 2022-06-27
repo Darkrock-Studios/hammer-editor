@@ -8,9 +8,11 @@ import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.koin.core.component.inject
 
 class ProjectEditorComponent(
     componentContext: ComponentContext,
@@ -18,6 +20,9 @@ class ProjectEditorComponent(
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
 ) : ProjectEditor, ComponentContext by componentContext {
+
+    private val projectRepository: ProjectRepository by inject()
+    private val projectEditor = projectRepository.getProjectEditor(projectDef)
 
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
     private val selectedSceneDefFlow = MutableSharedFlow<SceneDef?>(
@@ -118,4 +123,12 @@ class ProjectEditorComponent(
     }
 
     private fun isMultiPaneMode(): Boolean = _state.value.isMultiPane
+
+    override fun hasUnsavedBuffers(): Boolean {
+        return projectEditor.hasDirtyBuffers()
+    }
+
+    override fun storeDirtyBuffers() {
+        projectEditor.storeAllBuffers()
+    }
 }
