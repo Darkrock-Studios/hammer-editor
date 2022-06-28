@@ -7,7 +7,6 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 
@@ -28,10 +27,8 @@ class SceneEditorComponent(
     init {
         loadSceneContent()
 
-        scope.launch {
-            Napier.d { "SceneEditorComponent start collecting buffer updates" }
-            projectEditor.subscribeToBufferUpdates(sceneDef, ::onBufferUpdate)
-        }
+        Napier.d { "SceneEditorComponent start collecting buffer updates" }
+        projectEditor.subscribeToBufferUpdates(sceneDef, scope, ::onBufferUpdate)
     }
 
     private fun onBufferUpdate(sceneBuffer: SceneBuffer) {

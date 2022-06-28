@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 class SceneListComponent(
@@ -91,8 +90,6 @@ class SceneListComponent(
             _state.reduce { it.copy(selectedSceneDef = scene) }
         }
 
-        scope.launch {
-            projectEditor.subscribeToBufferUpdates(null, ::onSceneBufferUpdate)
-        }
+        projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
     }
 }

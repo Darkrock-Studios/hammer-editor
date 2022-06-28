@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 class ProjectEditorComponent(
@@ -63,25 +62,6 @@ class ProjectEditorComponent(
 
     private val _state = MutableValue(ProjectEditor.State(projectDef))
     override val state: Value<ProjectEditor.State> = _state
-
-    init {
-        backPressedHandler.register {
-            closeDetails()
-        }
-
-        detailsRouter.state.observe(lifecycle) {
-            (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
-                selectedSceneDefFlow.tryEmit(sceneEditor.sceneDef)
-            }
-            updateCloseConfirmRequirement()
-        }
-
-        scope.launch {
-            projectEditor.subscribeToBufferUpdates(null) {
-                updateCloseConfirmRequirement()
-            }
-        }
-    }
 
     private fun updateCloseConfirmRequirement() {
         _shouldConfirmClose.value = !isDetailShown() && hasUnsavedBuffers()
@@ -149,5 +129,22 @@ class ProjectEditorComponent(
 
     override fun storeDirtyBuffers() {
         projectEditor.storeAllBuffers()
+    }
+
+    init {
+        backPressedHandler.register {
+            closeDetails()
+        }
+
+        detailsRouter.state.observe(lifecycle) {
+            (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
+                selectedSceneDefFlow.tryEmit(sceneEditor.sceneDef)
+            }
+            updateCloseConfirmRequirement()
+        }
+
+        projectEditor.subscribeToBufferUpdates(null, scope) {
+            updateCloseConfirmRequirement()
+        }
     }
 }

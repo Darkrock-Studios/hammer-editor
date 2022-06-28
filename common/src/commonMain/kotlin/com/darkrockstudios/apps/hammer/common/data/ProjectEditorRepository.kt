@@ -31,13 +31,16 @@ abstract class ProjectEditorRepository(
     )
     private val bufferUpdateChannel: SharedFlow<SceneBuffer> = _bufferUpdateChannel
 
-    suspend fun subscribeToBufferUpdates(
+    fun subscribeToBufferUpdates(
         sceneDef: SceneDef?,
+        scope: CoroutineScope,
         onBufferUpdate: (SceneBuffer) -> Unit
     ) {
-        bufferUpdateChannel.collect { newBuffer ->
-            if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
-                onBufferUpdate(newBuffer)
+        scope.launch {
+            bufferUpdateChannel.collect { newBuffer ->
+                if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
+                    onBufferUpdate(newBuffer)
+                }
             }
         }
     }
