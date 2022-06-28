@@ -6,14 +6,11 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneDef
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -24,9 +21,7 @@ class ProjectEditorComponent(
     private val projectDef: ProjectDef,
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
-) : ProjectEditor, ComponentContext by componentContext, Lifecycle.Callbacks {
-
-    private val scope = CoroutineScope(defaultDispatcher)
+) : ComponentBase(componentContext), ProjectEditor {
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(projectDef)
@@ -70,8 +65,6 @@ class ProjectEditorComponent(
     override val state: Value<ProjectEditor.State> = _state
 
     init {
-        lifecycle.subscribe(this)
-
         backPressedHandler.register {
             closeDetails()
         }
@@ -156,9 +149,5 @@ class ProjectEditorComponent(
 
     override fun storeDirtyBuffers() {
         projectEditor.storeAllBuffers()
-    }
-
-    override fun onDestroy() {
-        scope.cancel("ProjectEditor destroyed")
     }
 }

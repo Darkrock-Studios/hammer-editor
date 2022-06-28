@@ -4,12 +4,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -20,15 +17,13 @@ class SceneListComponent(
     projectDef: ProjectDef,
     selectedSceneDef: SharedFlow<SceneDef?>,
     private val sceneSelected: (sceneDef: SceneDef) -> Unit
-) : SceneList, ComponentContext by componentContext, Lifecycle.Callbacks {
+) : ComponentBase(componentContext), SceneList {
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(projectDef)
 
     private val _state = MutableValue(SceneList.State(projectDef = projectDef))
     override val state: Value<SceneList.State> = _state
-
-    private val sceneListScope = CoroutineScope(defaultDispatcher)
 
     override fun onSceneSelected(sceneDef: SceneDef) {
         sceneSelected(sceneDef)
@@ -68,10 +63,6 @@ class SceneListComponent(
         }
     }
 
-    override fun onDestroy() {
-        sceneListScope.cancel("SceneList destroyed")
-    }
-
     private fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
         val currentSummary =
             _state.value.scenes.find { it.sceneDef.id == sceneBuffer.content.sceneDef.id }
@@ -94,15 +85,13 @@ class SceneListComponent(
     init {
         Napier.d { "Project editor: " + projectEditor.projectDef.name }
 
-        lifecycle.subscribe(this)
-
         loadScenes()
 
         selectedSceneDef.onEach { scene ->
             _state.reduce { it.copy(selectedSceneDef = scene) }
         }
 
-        sceneListScope.launch {
+        scope.launch {
             projectEditor.subscribeToBufferUpdates(null, ::onSceneBufferUpdate)
         }
     }

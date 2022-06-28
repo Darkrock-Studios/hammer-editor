@@ -4,12 +4,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -20,7 +17,7 @@ class SceneEditorComponent(
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val closeSceneEditor: () -> Unit
-) : SceneEditor, ComponentContext by componentContext, Lifecycle.Callbacks {
+) : ComponentBase(componentContext), SceneEditor {
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(sceneDef.projectDef)
@@ -28,14 +25,10 @@ class SceneEditorComponent(
     private val _state = MutableValue(SceneEditor.State(sceneDef = sceneDef))
     override val state: Value<SceneEditor.State> = _state
 
-    private val sceneScope = CoroutineScope(defaultDispatcher)
-
     init {
         loadSceneContent()
 
-        lifecycle.subscribe(this)
-
-        sceneScope.launch {
+        scope.launch {
             Napier.d { "SceneEditorComponent start collecting buffer updates" }
             projectEditor.subscribeToBufferUpdates(sceneDef, ::onBufferUpdate)
         }
@@ -85,6 +78,5 @@ class SceneEditorComponent(
 
     override fun onStop() {
         removeEditorMenu()
-        sceneScope.cancel("Scene closed")
     }
 }
