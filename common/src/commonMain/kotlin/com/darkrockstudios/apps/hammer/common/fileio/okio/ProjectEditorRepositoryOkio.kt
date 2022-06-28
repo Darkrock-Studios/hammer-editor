@@ -168,8 +168,10 @@ class ProjectEditorRepositoryOkio(
 
         val scenePath = getScenePath(sceneDef).toOkioPath()
         return try {
+            val markdown = buffer.content.coerceMarkdown()
+
             fileSystem.write(scenePath) {
-                writeUtf8(buffer.content.text)
+                writeUtf8(markdown)
             }
 
             val cleanBuffer = buffer.copy(dirty = false)

@@ -48,8 +48,13 @@ class SceneEditorComponent(
     override fun storeSceneContent() =
         projectEditor.storeSceneBuffer(sceneDef)
 
-    override fun onContentChanged(content: String) {
-        projectEditor.onContentChanged(SceneContent(sceneDef, content))
+    override fun onContentChanged(content: PlatformRichText) {
+        projectEditor.onContentChanged(
+            SceneContent(
+                sceneDef = sceneDef,
+                platformRepresentation = content
+            )
+        )
     }
 
     override fun addEditorMenu() {

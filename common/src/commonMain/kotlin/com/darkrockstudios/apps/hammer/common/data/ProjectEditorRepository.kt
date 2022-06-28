@@ -111,7 +111,7 @@ abstract class ProjectEditorRepository(
     private fun updateSceneBufferContent(content: SceneContent) {
         val oldBuffer = sceneBuffers[content.sceneDef.id]
         // Skip update if nothing is different
-        if (content.isContentDifferent(oldBuffer?.content)) {
+        if (content != oldBuffer?.content) {
             val newBuffer = SceneBuffer(content, true)
             sceneBuffers[content.sceneDef.id] = newBuffer
             val didEmit = _bufferUpdateChannel.tryEmit(newBuffer)
