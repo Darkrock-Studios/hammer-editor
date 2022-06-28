@@ -186,9 +186,9 @@ class ProjectEditorRepositoryOkio(
 
     override fun getLastOrderNumber(): Int {
         val scenePath = getSceneDirectory().toOkioPath()
-        val numScenes = fileSystem.list(scenePath).filter {
+        val numScenes = fileSystem.list(scenePath).count {
             fileSystem.metadataOrNull(it)?.isRegularFile == true
-        }.count()
+        }
         return numScenes
     }
 }
