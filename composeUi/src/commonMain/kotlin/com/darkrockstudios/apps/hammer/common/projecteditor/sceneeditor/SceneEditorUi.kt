@@ -65,12 +65,14 @@ fun SceneEditorUi(
             }
             EditorAction(
                 iconRes = "drawable/icon_undo.xml",
+                drawableKlass = drawableKlass,
                 active = sceneText.isUndoAvailable
             ) {
                 sceneText = sceneText.undo()
             }
             EditorAction(
                 iconRes = "drawable/icon_redo.xml",
+                drawableKlass = drawableKlass,
                 active = sceneText.isRedoAvailable
             ) {
                 sceneText = sceneText.redo()
