@@ -16,7 +16,11 @@ interface ProjectEditor : HammerComponent {
         val isMultiPane: Boolean = false
     )
 
+    fun isDetailShown(): Boolean
+
     val state: Value<State>
+
+    val shouldConfirmClose: Value<Boolean>
 
     fun setMultiPane(isMultiPane: Boolean)
     fun closeDetails(): Boolean

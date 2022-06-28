@@ -18,7 +18,6 @@ internal class DetailsRouter(
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val closeDetails: () -> Unit,
-    private val onFinished: () -> Unit
 ) {
 
     private val router =

@@ -6,12 +6,17 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.defaultDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 class ProjectEditorComponent(
@@ -19,7 +24,9 @@ class ProjectEditorComponent(
     private val projectDef: ProjectDef,
     addMenu: (menu: MenuDescriptor) -> Unit,
     removeMenu: (id: String) -> Unit,
-) : ProjectEditor, ComponentContext by componentContext {
+) : ProjectEditor, ComponentContext by componentContext, Lifecycle.Callbacks {
+
+    private val scope = CoroutineScope(defaultDispatcher)
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(projectDef)
@@ -44,19 +51,27 @@ class ProjectEditorComponent(
     private val detailsRouter =
         DetailsRouter(
             componentContext = this,
-            onFinished = {},
             addMenu = addMenu,
             closeDetails = ::closeDetails,
             removeMenu = removeMenu
         )
 
+    private val _shouldConfirmClose = MutableValue(false)
+    override val shouldConfirmClose = _shouldConfirmClose
+
     override val detailsRouterState: Value<RouterState<*, ProjectEditor.Child.Detail>> =
         detailsRouter.state
+
+    override fun isDetailShown(): Boolean {
+        return detailsRouterState.value.activeChild.instance !is ProjectEditor.Child.Detail.None
+    }
 
     private val _state = MutableValue(ProjectEditor.State(projectDef))
     override val state: Value<ProjectEditor.State> = _state
 
     init {
+        lifecycle.subscribe(this)
+
         backPressedHandler.register {
             closeDetails()
         }
@@ -65,7 +80,18 @@ class ProjectEditorComponent(
             (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
                 selectedSceneDefFlow.tryEmit(sceneEditor.sceneDef)
             }
+            updateCloseConfirmRequirement()
         }
+
+        scope.launch {
+            projectEditor.subscribeToBufferUpdates(null) {
+                updateCloseConfirmRequirement()
+            }
+        }
+    }
+
+    private fun updateCloseConfirmRequirement() {
+        _shouldConfirmClose.value = !isDetailShown() && hasUnsavedBuffers()
     }
 
     override fun closeDetails(): Boolean {
@@ -130,5 +156,9 @@ class ProjectEditorComponent(
 
     override fun storeDirtyBuffers() {
         projectEditor.storeAllBuffers()
+    }
+
+    override fun onDestroy() {
+        scope.cancel("ProjectEditor destroyed")
     }
 }

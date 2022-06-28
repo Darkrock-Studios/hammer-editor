@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
@@ -11,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -28,6 +31,20 @@ class ProjectEditorActivity : AppCompatActivity() {
             setContent {
                 MaterialTheme {
                     val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
+                    val component = remember {
+                        ProjectEditorComponent(
+                            componentContext = defaultComponentContext(),
+                            projectDef = projectDef,
+                            addMenu = { menuDescriptor ->
+                                menu.value =
+                                    mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
+                            },
+                            removeMenu = { menuId ->
+                                menu.value = menu.value.filter { it.id != menuId }.toSet()
+                            }
+                        )
+                    }
+
                     val scaffoldState = rememberScaffoldState()
                     Scaffold(
                         scaffoldState = scaffoldState,
@@ -49,25 +66,34 @@ class ProjectEditorActivity : AppCompatActivity() {
                         },
                         content = { padding ->
                             ProjectEditorUi(
-                                ProjectEditorComponent(
-                                    componentContext = defaultComponentContext(),
-                                    projectDef = projectDef,
-                                    addMenu = { menuDescriptor ->
-                                        menu.value =
-                                            mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-                                    },
-                                    removeMenu = { menuId ->
-                                        menu.value = menu.value.filter { it.id != menuId }.toSet()
-                                    }
-                                ),
+                                component,
                                 Modifier.padding(padding),
                                 R.drawable::class
                             )
+
+                            val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()
+                            BackHandler(enabled = shouldConfirmClose.value) {
+                                confirmCloseDialog(component)
+                            }
                         }
                     )
                 }
             }
         }
+    }
+
+    private fun confirmCloseDialog(component: ProjectEditorComponent) {
+        AlertDialog.Builder(this)
+            .setTitle("Unsaved Scenes")
+            .setMessage("Save unsaved scenes?")
+            .setNegativeButton("Discard and close") { _, _ -> finish() }
+            .setNeutralButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("Save and close") { _, _ ->
+                component.storeDirtyBuffers()
+                finish()
+            }
+            .create()
+            .show()
     }
 
     companion object {
