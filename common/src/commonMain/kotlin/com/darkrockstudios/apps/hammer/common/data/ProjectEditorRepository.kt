@@ -139,6 +139,13 @@ abstract class ProjectEditorRepository(
         }
     }
 
+    fun discardSceneBuffer(sceneDef: SceneDef) {
+        if (hasSceneBuffer(sceneDef)) {
+            sceneBuffers.remove(sceneDef.id)
+            loadSceneBuffer(sceneDef)
+        }
+    }
+
     private fun willNextSceneIncreaseMagnitude(): Boolean {
         return getLastOrderNumber().numDigits() < (getLastOrderNumber() + 1).numDigits()
     }

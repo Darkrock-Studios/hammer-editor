@@ -129,7 +129,8 @@ private fun ApplicationScope.ProjectEditorWindow(
                         menuDescriptor.items.forEach { itemDescriptor ->
                             Item(
                                 itemDescriptor.label,
-                                onClick = { itemDescriptor.action(itemDescriptor.id) }
+                                onClick = { itemDescriptor.action(itemDescriptor.id) },
+                                shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
                             )
                         }
                     }

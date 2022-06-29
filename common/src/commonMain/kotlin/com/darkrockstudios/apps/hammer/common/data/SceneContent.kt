@@ -26,6 +26,24 @@ data class SceneContent(
             throw IllegalStateException("SceneContent had no content")
         }
     }
+
+    override fun equals(other: Any?): Boolean {
+        return if (other is SceneContent) {
+            if (markdown != null && other.markdown != null) {
+                markdown == other.markdown
+            } else if (platformRepresentation != null && other.platformRepresentation != null) {
+                platformRepresentation == other.platformRepresentation
+            } else if (markdown != null && other.markdown == null) {
+                markdown == other.platformRepresentation!!.convertToMarkdown()
+            } else if (markdown == null && other.markdown != null) {
+                platformRepresentation!!.convertToMarkdown() == other.markdown
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 }
 
 interface PlatformRichText {

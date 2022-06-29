@@ -41,11 +41,16 @@ fun SceneEditorUi(
     drawableKlass: Any? = null
 ) {
     val state by component.state.subscribeAsState()
+    val lastDiscarded by component.lastDiscarded.subscribeAsState()
 
     var sceneText by remember {
         mutableStateOf(
             getInitialContent(state.sceneBuffer?.content)
         )
+    }
+
+    LaunchedEffect(lastDiscarded) {
+        sceneText = getInitialContent(state.sceneBuffer?.content)
     }
 
     Column(modifier = modifier) {

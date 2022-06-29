@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 
 
@@ -24,6 +25,8 @@ class SceneEditorComponent(
     private val _state = MutableValue(SceneEditor.State(sceneDef = sceneDef))
     override val state: Value<SceneEditor.State> = _state
 
+    override var lastDiscarded = MutableValue<Long>(0)
+
     init {
         loadSceneContent()
 
@@ -32,7 +35,6 @@ class SceneEditorComponent(
     }
 
     private fun onBufferUpdate(sceneBuffer: SceneBuffer) {
-        Napier.d { "SceneEditorComponent scene buffer updated" }
         _state.reduce {
             it.copy(sceneBuffer = sceneBuffer)
         }
@@ -58,11 +60,45 @@ class SceneEditorComponent(
     }
 
     override fun addEditorMenu() {
-        val item = MenuItemDescriptor("scene-editor-close", "Close", "") {
+        val closeItem = MenuItemDescriptor("scene-editor-close", "Close", "") {
             Napier.d("Scene close selected")
             closeSceneEditor()
         }
-        val menu = MenuDescriptor(getMenuId(), "Scene", listOf(item))
+
+        val saveItem = MenuItemDescriptor(
+            "scene-editor-save",
+            "Save",
+            "",
+            KeyShortcut(83L, ctrl = true)
+        ) {
+            Napier.d("Scene save selected")
+            storeSceneContent()
+        }
+
+        val discardItem = MenuItemDescriptor(
+            "scene-editor-discard",
+            "Discard",
+            ""
+        ) {
+            Napier.d("Scene buffer discard selected")
+            projectEditor.discardSceneBuffer(sceneDef)
+            lastDiscarded.value = Clock.System.now().epochSeconds
+        }
+
+        val renameItem = MenuItemDescriptor(
+            "scene-editor-rename",
+            "Rename",
+            ""
+        ) {
+            Napier.d("Scene rename selected")
+
+        }
+
+        val menu = MenuDescriptor(
+            getMenuId(),
+            "Scene",
+            listOf(renameItem, saveItem, discardItem, closeItem)
+        )
         addMenu(menu)
     }
 
