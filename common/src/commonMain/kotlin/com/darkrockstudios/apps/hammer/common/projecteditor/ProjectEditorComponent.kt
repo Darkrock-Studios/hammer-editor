@@ -131,6 +131,11 @@ class ProjectEditorComponent(
         projectEditor.storeAllBuffers()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        projectRepository.closeEditor(projectDef)
+    }
+
     init {
         backPressedHandler.register {
             closeDetails()

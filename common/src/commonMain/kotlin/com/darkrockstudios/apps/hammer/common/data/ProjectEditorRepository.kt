@@ -4,14 +4,13 @@ import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
@@ -47,6 +46,21 @@ abstract class ProjectEditorRepository(
 
     private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
 
+    private val storeTempJobs = mutableMapOf<Int, Job>()
+    private fun launchSaveJob(sceneDef: SceneDef) {
+        val job = storeTempJobs[sceneDef.id]
+        job?.cancel("Starting a new one")
+        storeTempJobs[sceneDef.id] = editorScope.launch {
+            delay(2.toDuration(DurationUnit.SECONDS))
+            storeTempSceneBuffer(sceneDef)
+            storeTempJobs.remove(sceneDef.id)
+        }
+    }
+
+    protected fun cancelTempStoreJob(sceneDef: SceneDef) {
+        storeTempJobs.remove(sceneDef.id)?.cancel("cancelTempStoreJob")
+    }
+
     /**
      * This needs to be called after instantiation
      */
@@ -67,6 +81,7 @@ abstract class ProjectEditorRepository(
                         Napier.w { "ProjectEditorRepository failed to get content from contentChannel" }
                     } else {
                         updateSceneBufferContent(content)
+                        launchSaveJob(content.sceneDef)
                     }
                 }
             }
@@ -90,6 +105,7 @@ abstract class ProjectEditorRepository(
 
     abstract fun getSceneDirectory(): HPath
     abstract fun getScenePath(sceneDef: SceneDef, isNewScene: Boolean = false): HPath
+    abstract fun getSceneTempPath(sceneDef: SceneDef): HPath
     abstract fun createScene(sceneName: String): SceneDef?
     abstract fun deleteScene(sceneDef: SceneDef): Boolean
     abstract fun getScenes(): List<SceneDef>
@@ -98,6 +114,8 @@ abstract class ProjectEditorRepository(
     abstract fun getSceneFromPath(path: HPath): SceneDef
     abstract fun loadSceneBuffer(sceneDef: SceneDef): SceneBuffer
     abstract fun storeSceneBuffer(sceneDef: SceneDef): Boolean
+    abstract fun storeTempSceneBuffer(sceneDef: SceneDef): Boolean
+    abstract fun clearTempScene(sceneDef: SceneDef)
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
     abstract fun moveScene(from: Int, to: Int)
@@ -113,8 +131,7 @@ abstract class ProjectEditorRepository(
         // Skip update if nothing is different
         if (content != oldBuffer?.content) {
             val newBuffer = SceneBuffer(content, true)
-            sceneBuffers[content.sceneDef.id] = newBuffer
-            val didEmit = _bufferUpdateChannel.tryEmit(newBuffer)
+            updateSceneBuffer(newBuffer)
         }
     }
 
@@ -142,6 +159,7 @@ abstract class ProjectEditorRepository(
     fun discardSceneBuffer(sceneDef: SceneDef) {
         if (hasSceneBuffer(sceneDef)) {
             sceneBuffers.remove(sceneDef.id)
+            clearTempScene(sceneDef)
             loadSceneBuffer(sceneDef)
         }
     }
@@ -162,6 +180,10 @@ abstract class ProjectEditorRepository(
 
         val order = sceneDef.order.toString().padStart(orderDigits, '0')
         return "$order-${sceneDef.name}-${sceneDef.id}.md"
+    }
+
+    fun getSceneTempFileName(sceneDef: SceneDef): String {
+        return getSceneFileName(sceneDef, false) + ".temp"
     }
 
     @Throws(InvalidSceneFilename::class)
@@ -193,6 +215,10 @@ abstract class ProjectEditorRepository(
 
     fun close() {
         contentChannel.close()
+        runBlocking {
+            storeTempJobs
+            storeTempJobs.forEach { it.value.join() }
+        }
         editorScope.cancel("Editor Closed")
     }
 

@@ -26,6 +26,12 @@ class ProjectEditorRepositoryOkio(
         return scenePathSegment.div(fileName).toHPath()
     }
 
+    override fun getSceneTempPath(sceneDef: SceneDef): HPath {
+        val scenePathSegment = getSceneDirectory().toOkioPath()
+        val fileName = getSceneTempFileName(sceneDef)
+        return scenePathSegment.div(fileName).toHPath()
+    }
+
     override fun getSceneFromPath(path: HPath): SceneDef {
         val okPath = path.toOkioPath()
         val sceneDef = getSceneDefFromFilename(okPath.name)
@@ -167,6 +173,7 @@ class ProjectEditorRepositoryOkio(
         }
 
         val scenePath = getScenePath(sceneDef).toOkioPath()
+
         return try {
             val markdown = buffer.content.coerceMarkdown()
 
@@ -177,11 +184,44 @@ class ProjectEditorRepositoryOkio(
             val cleanBuffer = buffer.copy(dirty = false)
             updateSceneBuffer(cleanBuffer)
 
+            cancelTempStoreJob(sceneDef)
+            clearTempScene(sceneDef)
+
             true
         } catch (e: IOException) {
             Napier.e("Failed to store scene: (${sceneDef.name}) with error: ${e.message}")
             false
         }
+    }
+
+    override fun storeTempSceneBuffer(sceneDef: SceneDef): Boolean {
+        val buffer = getSceneBuffer(sceneDef)
+        if (buffer == null) {
+            Napier.e { "Failed to store scene: ${sceneDef.id} - ${sceneDef.name}, no buffer present" }
+            return false
+        }
+
+        val scenePath = getSceneTempPath(sceneDef).toOkioPath()
+
+        return try {
+            val markdown = buffer.content.coerceMarkdown()
+
+            fileSystem.write(scenePath) {
+                writeUtf8(markdown)
+            }
+
+            Napier.e("Stored temp scene: (${sceneDef.name})")
+
+            true
+        } catch (e: IOException) {
+            Napier.e("Failed to store temp scene: (${sceneDef.name}) with error: ${e.message}")
+            false
+        }
+    }
+
+    override fun clearTempScene(sceneDef: SceneDef) {
+        val path = getSceneTempPath(sceneDef).toOkioPath()
+        fileSystem.delete(path)
     }
 
     override fun getLastOrderNumber(): Int {
