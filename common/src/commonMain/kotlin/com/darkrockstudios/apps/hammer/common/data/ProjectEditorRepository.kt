@@ -72,6 +72,13 @@ abstract class ProjectEditorRepository(
             setLastSceneId(0)
         }
 
+        // Load any existing temp scenes into buffers
+        val tempContent = getTempSceneContents()
+        for (content in tempContent) {
+            val buffer = SceneBuffer(content, true)
+            updateSceneBuffer(buffer)
+        }
+
         editorScope.launch {
             while (isActive) {
                 val result = contentChannel.receiveCatching()
@@ -109,6 +116,7 @@ abstract class ProjectEditorRepository(
     abstract fun createScene(sceneName: String): SceneDef?
     abstract fun deleteScene(sceneDef: SceneDef): Boolean
     abstract fun getScenes(): List<SceneDef>
+    abstract fun getTempSceneContents(): List<SceneContent>
     abstract fun getSceneSummaries(): List<SceneSummary>
     abstract fun getSceneAtIndex(index: Int): SceneDef
     abstract fun getSceneFromPath(path: HPath): SceneDef
@@ -183,7 +191,7 @@ abstract class ProjectEditorRepository(
     }
 
     fun getSceneTempFileName(sceneDef: SceneDef): String {
-        return getSceneFileName(sceneDef, false) + ".temp"
+        return getSceneFileName(sceneDef, false) + tempSuffix
     }
 
     @Throws(InvalidSceneFilename::class)
@@ -216,14 +224,17 @@ abstract class ProjectEditorRepository(
     fun close() {
         contentChannel.close()
         runBlocking {
-            storeTempJobs
             storeTempJobs.forEach { it.value.join() }
         }
         editorScope.cancel("Editor Closed")
+        // During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
+        getTempSceneContents().forEach {
+            clearTempScene(it.sceneDef)
+        }
     }
 
     companion object {
-        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)\.md""")
+        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)\.md(?:\.temp)?""")
         const val SCENE_DIRECTORY = "scenes"
         const val tempSuffix = ".temp"
     }

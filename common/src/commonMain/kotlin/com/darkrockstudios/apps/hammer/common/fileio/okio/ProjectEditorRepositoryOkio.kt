@@ -122,8 +122,31 @@ class ProjectEditorRepositoryOkio(
         val sceneDirectory = getSceneDirectory().toOkioPath()
         return fileSystem.list(sceneDirectory)
             .filter { fileSystem.metadata(it).isRegularFile }
+            .filter { !it.name.endsWith(tempSuffix) }
             .map { path ->
                 getSceneDefFromFilename(path.name)
+            }
+    }
+
+    override fun getTempSceneContents(): List<SceneContent> {
+        val sceneDirectory = getSceneDirectory().toOkioPath()
+        return fileSystem.list(sceneDirectory)
+            .filter { fileSystem.metadata(it).isRegularFile }
+            .filter { it.name.endsWith(tempSuffix) }
+            .map { path ->
+                getSceneDefFromFilename(path.name)
+            }
+            .map { sceneDef ->
+                val tempPath = getSceneTempPath(sceneDef).toOkioPath()
+                val content = try {
+                    fileSystem.read(tempPath) {
+                        readUtf8()
+                    }
+                } catch (e: IOException) {
+                    Napier.e("Failed to load Scene (${sceneDef.name})")
+                    ""
+                }
+                SceneContent(sceneDef, content)
             }
     }
 
