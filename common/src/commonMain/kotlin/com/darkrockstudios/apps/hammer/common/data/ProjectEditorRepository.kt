@@ -73,7 +73,7 @@ abstract class ProjectEditorRepository(
         }
 
         // Load any existing temp scenes into buffers
-        val tempContent = getTempSceneContents()
+        val tempContent = getSceneTempBufferContents()
         for (content in tempContent) {
             val buffer = SceneBuffer(content, true)
             updateSceneBuffer(buffer)
@@ -111,12 +111,13 @@ abstract class ProjectEditorRepository(
     }
 
     abstract fun getSceneDirectory(): HPath
+    abstract fun getSceneBufferDirectory(): HPath
     abstract fun getScenePath(sceneDef: SceneDef, isNewScene: Boolean = false): HPath
-    abstract fun getSceneTempPath(sceneDef: SceneDef): HPath
+    abstract fun getSceneBufferTempPath(sceneDef: SceneDef): HPath
     abstract fun createScene(sceneName: String): SceneDef?
     abstract fun deleteScene(sceneDef: SceneDef): Boolean
     abstract fun getScenes(): List<SceneDef>
-    abstract fun getTempSceneContents(): List<SceneContent>
+    abstract fun getSceneTempBufferContents(): List<SceneContent>
     abstract fun getSceneSummaries(): List<SceneSummary>
     abstract fun getSceneAtIndex(index: Int): SceneDef
     abstract fun getSceneFromPath(path: HPath): SceneDef
@@ -127,6 +128,7 @@ abstract class ProjectEditorRepository(
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
     abstract fun moveScene(from: Int, to: Int)
+    abstract fun getSceneDefFromId(id: Int): SceneDef?
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -191,7 +193,21 @@ abstract class ProjectEditorRepository(
     }
 
     fun getSceneTempFileName(sceneDef: SceneDef): String {
-        return getSceneFileName(sceneDef, false) + tempSuffix
+        return "${sceneDef.id}.md"
+    }
+
+    fun getSceneIdFromBufferFilename(fileName: String): Int {
+        val captures = SCENE_BUFFER_FILENAME_PATTERN.matchEntire(fileName)
+            ?: throw IllegalStateException("Scene filename was bad: $fileName")
+
+        try {
+            val sceneId = captures.groupValues[1].toInt()
+            return sceneId
+        } catch (e: NumberFormatException) {
+            throw InvalidSceneBufferFilename("Number format exception", fileName)
+        } catch (e: IllegalStateException) {
+            throw InvalidSceneBufferFilename("Invalid filename", fileName)
+        }
     }
 
     @Throws(InvalidSceneFilename::class)
@@ -228,17 +244,22 @@ abstract class ProjectEditorRepository(
         }
         editorScope.cancel("Editor Closed")
         // During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-        getTempSceneContents().forEach {
+        getSceneTempBufferContents().forEach {
             clearTempScene(it.sceneDef)
         }
     }
 
     companion object {
         val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)\.md(?:\.temp)?""")
+        val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
         const val SCENE_DIRECTORY = "scenes"
+        const val BUFFER_DIRECTORY = ".buffers"
         const val tempSuffix = ".temp"
     }
 }
 
-class InvalidSceneFilename(message: String, fileName: String) :
+open class InvalidSceneFilename(message: String, fileName: String) :
     IllegalStateException("$fileName failed to parse because: $message")
+
+class InvalidSceneBufferFilename(message: String, fileName: String) :
+    InvalidSceneFilename(message, fileName)
