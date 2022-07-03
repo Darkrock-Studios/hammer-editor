@@ -112,7 +112,7 @@ fun projectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean) -> Unit
     AlertDialog(
         title = { Text("Delete Project") },
         text = { Text("Are you sure you want to delete this project: ${projectDef.name}") },
-        onDismissRequest = { dismissDialog(false) },
+        onDismissRequest = { /* noop */ },
         buttons = {
             Row(
                 modifier = Modifier.fillMaxWidth(),

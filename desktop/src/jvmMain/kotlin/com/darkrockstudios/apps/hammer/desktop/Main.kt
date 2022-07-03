@@ -151,7 +151,9 @@ private fun ApplicationScope.ProjectEditorWindow(
 
                 app.dismissConfirmProjectClose()
 
-                performClose(app, closeType)
+                if (result != ConfirmCloseResult.Cancel) {
+                    performClose(app, closeType)
+                }
             }
         }
     }
@@ -167,7 +169,7 @@ private fun confirmCloseDialog(
     AlertDialog(
         title = { Text("Unsaved Scenes") },
         text = { Text("Save unsaved scenes?") },
-        onDismissRequest = { dismissDialog(ConfirmCloseResult.Cancel, closeType) },
+        onDismissRequest = { /* Noop */ },
         buttons = {
             Column(
                 modifier = Modifier.fillMaxWidth(),

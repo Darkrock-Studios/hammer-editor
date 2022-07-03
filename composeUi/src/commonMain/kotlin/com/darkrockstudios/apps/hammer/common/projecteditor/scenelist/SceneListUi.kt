@@ -161,7 +161,7 @@ fun sceneDeleteDialog(sceneDef: SceneDef, dismissDialog: (Boolean) -> Unit) {
     AlertDialog(
         title = { Text("Delete Scene") },
         text = { Text("Are you sure you want to delete this scene: ${sceneDef.name}") },
-        onDismissRequest = { dismissDialog(false) },
+        onDismissRequest = { /* noop */ },
         buttons = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
