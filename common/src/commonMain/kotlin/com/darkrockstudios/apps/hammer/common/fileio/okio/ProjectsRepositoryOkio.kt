@@ -42,9 +42,10 @@ class ProjectsRepositoryOkio(
     }
 
     override fun createProject(projectName: String): Boolean {
-        return if (validateFileName(projectName)) {
+        val strippedName = projectName.trim()
+        return if (validateFileName(strippedName)) {
             val projectsDir = getProjectsDirectory().toOkioPath()
-            val newProjectDir = projectsDir.div(projectName)
+            val newProjectDir = projectsDir.div(strippedName)
             if (fileSystem.exists(newProjectDir)) {
                 false
             } else {
