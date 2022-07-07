@@ -53,7 +53,7 @@ kotlin {
                 api("com.squareup.okio:okio:$okio_version")
 
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-                api("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
                 //api("com.akuleshov7:ktoml-core:0.2.12")
                 //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
                 //implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
