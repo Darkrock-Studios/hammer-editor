@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.NapierLogger
 import com.darkrockstudios.apps.hammer.common.di.mainModule
+import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
@@ -93,7 +94,7 @@ private fun ApplicationScope.ProjectEditorWindow(
 
     val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
 
-    val component = remember {
+    val component = remember<ProjectEditor> {
         ProjectEditorComponent(
             componentContext = compContext,
             projectDef = projectDef,
@@ -214,7 +215,7 @@ private fun ApplicationScope.performClose(
 }
 
 private fun ApplicationScope.onRequestClose(
-    component: ProjectEditorComponent,
+    component: ProjectEditor,
     app: ApplicationState,
     closeType: ApplicationState.CloseType
 ) {

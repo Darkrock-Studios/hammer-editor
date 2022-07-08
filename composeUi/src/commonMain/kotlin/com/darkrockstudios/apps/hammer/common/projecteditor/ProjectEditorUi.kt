@@ -25,7 +25,7 @@ private const val DETAILS_PANE_WEIGHT = 0.6F
 
 @Composable
 fun ProjectEditorUi(
-    component: ProjectEditorComponent,
+    component: ProjectEditor,
     modifier: Modifier = Modifier,
     drawableKlass: Any? = null
 ) {
