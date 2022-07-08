@@ -47,7 +47,7 @@ struct ProjectEditorUi: View {
         NavigationView {
             ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
                 .padding()
-                .navigationTitle(state.project.name)
+                .navigationTitle(state.projectDef.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(true)
             DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane).onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
@@ -76,7 +76,7 @@ struct ProjectEditorUi_Previews: PreviewProvider {
             componentHolder: ComponentHolder { context in
                 ProjectEditorComponent(
                     componentContext: context,
-                    project: Project(name:"Test Proj", path: HPath(path: "/a/b", isAbsolute: true)),
+                    projectDef: ProjectDefinition(name:"Test Proj", path: HPath(path: "/a/b", isAbsolute: true)),
                     addMenu: { menu in
                         NSLog("Add menu item")
                     },

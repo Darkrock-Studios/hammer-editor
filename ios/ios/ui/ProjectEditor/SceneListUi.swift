@@ -48,10 +48,10 @@ struct SceneListUi_Previews: PreviewProvider {
         return SceneListUi(
             component: SceneListComponent(
                 componentContext: context,
-                project: Project(
+                projectDef: ProjectDefinition(
                     name: "Test Proj",
                     path: HPath(path: "/a/b", isAbsolute: true)),
-                selectedScene: fakeFlow,
+                selectedSceneDef: fakeFlow,
                 sceneSelected: { scene in }
             )
         )
@@ -61,16 +61,20 @@ struct SceneListUi_Previews: PreviewProvider {
 struct SceneItemUi_Previews: PreviewProvider {
     static var previews: some View {
         SceneItemUi(
-            scene: Hammer.Scene(
-                project: Project(
-                    name: "test prog",
-                    path: HPath(
-                        path: "/a/b",
-                        isAbsolute: false
-                    )
+            scene: SceneSummary(
+                sceneDef: SceneDefinition(
+                    projectDef: ProjectDefinition(
+                        name: "test prog",
+                        path: HPath(
+                            path: "/a/b",
+                            isAbsolute: false
+                        )
+                    ),
+                    id: 0,
+                    name: "test",
+                    order: 0
                 ),
-                order: 0,
-                name: "test"
+                hasDirtyBuffer: false
             ),
             onSceneSelected: { scene in }
         )
@@ -79,19 +83,19 @@ struct SceneItemUi_Previews: PreviewProvider {
 
 struct SceneItemUi: View {
     
-    private var scene: Hammer.Scene
+    private var sceneSummary: SceneSummary
     
-    private var onSceneSelected: (Hammer.Scene) -> Void
+    private var onSceneSelected: (SceneDefinition) -> Void
     
-    init(scene: Hammer.Scene, onSceneSelected: @escaping (Hammer.Scene) -> Void) {
-        self.scene = scene
+    init(scene: SceneSummary, onSceneSelected: @escaping (SceneDefinition) -> Void) {
+        self.sceneSummary = scene
         self.onSceneSelected = onSceneSelected
     }
     
     var body: some View {
-        Text("Row \(scene.name)")
+        Text("Row \(sceneSummary.sceneDef.name)")
             .onTapGesture {
-                onSceneSelected(scene)
+                onSceneSelected(sceneSummary.sceneDef)
             }
     }
 }

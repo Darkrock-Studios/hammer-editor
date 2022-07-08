@@ -45,11 +45,11 @@ private func createProjectSelect(root: RootHolder) -> ProjectSelectionUi {
     return ProjectSelectionUi(componentHolder: projectSelectionHolder)
 }
 
-private func createProjectEditor(project: Project, root: RootHolder) -> ProjectEditorUi {
+private func createProjectEditor(project: ProjectDefinition, root: RootHolder) -> ProjectEditorUi {
     let component = ComponentHolder<ProjectEditorComponent> { context in
         ProjectEditorComponent(
             componentContext: context,
-            project: project,
+            projectDef: project,
             addMenu: { menu in
                 NSLog("Add menu item")
             },

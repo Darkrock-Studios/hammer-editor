@@ -31,9 +31,9 @@ struct app_iosApp: App {
 }
 
 class RootState {
-    var projectSelected: Project? = nil
+    var projectSelected: ProjectDefinition? = nil
     
-    init(_ project: Project?) {
+    init(_ project: ProjectDefinition?) {
         self.projectSelected = project
     }
 }
@@ -49,7 +49,7 @@ class RootHolder : ObservableObject {
         lifecycle.onCreate()
     }
     
-    func selectProject(project: Project) {
+    func selectProject(project: ProjectDefinition) {
         state.reduce { reducer in
             RootState(project)
         }

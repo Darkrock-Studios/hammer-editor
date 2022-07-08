@@ -47,7 +47,7 @@ struct ProjectSelectionUi: View {
             ScrollView {
                 LazyVStack() {
                     // This isn't working yet, need to subscribe to it some how
-                    ForEach(state.projects,
+                    ForEach(state.projectDefs,
                             id: \.self) { value in
                         ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
                     }
@@ -75,11 +75,11 @@ struct ProjectSelectionUi_Previews: PreviewProvider {
 
 struct ProjectItemUi: View {
     
-    private var project: Project
+    private var project: ProjectDefinition
     
-    private var onProjectSelected: (Project) -> Void
+    private var onProjectSelected: (ProjectDefinition) -> Void
     
-    init(project: Project, onProjectSelected: @escaping (Project) -> Void) {
+    init(project: ProjectDefinition, onProjectSelected: @escaping (ProjectDefinition) -> Void) {
         self.project = project
         self.onProjectSelected = onProjectSelected
     }
