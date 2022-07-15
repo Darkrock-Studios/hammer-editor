@@ -53,6 +53,7 @@ kotlin {
                 api("com.squareup.okio:okio:$okio_version")
 
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
+                // This is being held back to 0.3.2 due to ios support not working in later versions
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
                 //api("com.akuleshov7:ktoml-core:0.2.12")
                 //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
