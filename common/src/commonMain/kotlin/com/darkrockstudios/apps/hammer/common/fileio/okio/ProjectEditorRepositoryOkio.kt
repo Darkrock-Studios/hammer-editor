@@ -97,8 +97,10 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun createScene(sceneName: String): SceneDef? {
-        Napier.d("createScene: $sceneName")
-        return if (!validateSceneName(sceneName)) {
+        val cleanedNamed = sceneName.trim()
+
+        Napier.d("createScene: $cleanedNamed")
+        return if (!validateSceneName(cleanedNamed)) {
             Napier.d("Invalid scene name")
             null
         } else {
@@ -109,7 +111,7 @@ class ProjectEditorRepositoryOkio(
             val newSceneDef = SceneDef(
                 projectDef = projectDef,
                 id = sceneId,
-                name = sceneName,
+                name = cleanedNamed,
                 order = nextOrder,
             )
 
@@ -281,8 +283,10 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun renameScene(sceneDef: SceneDef, newName: String) {
+        val cleanedNamed = newName.trim()
+
         val oldPath = getScenePath(sceneDef).toOkioPath()
-        val newDef = sceneDef.copy(name = newName)
+        val newDef = sceneDef.copy(name = cleanedNamed)
         val newPath = getScenePath(newDef).toOkioPath()
 
         fileSystem.atomicMove(oldPath, newPath)
