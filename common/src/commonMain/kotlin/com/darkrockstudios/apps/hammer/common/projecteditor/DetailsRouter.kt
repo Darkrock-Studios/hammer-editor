@@ -43,7 +43,7 @@ internal class DetailsRouter(
     private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneDef): SceneEditor =
         SceneEditorComponent(
             componentContext = componentContext,
-            sceneDef = sceneDef,
+            originalSceneDef = sceneDef,
             addMenu = addMenu,
             removeMenu = removeMenu,
             closeSceneEditor = closeDetails

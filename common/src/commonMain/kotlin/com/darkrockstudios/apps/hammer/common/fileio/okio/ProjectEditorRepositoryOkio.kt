@@ -273,4 +273,12 @@ class ProjectEditorRepositoryOkio(
     override fun getSceneDefFromId(id: Int): SceneDef? {
         return getScenes().find { it.id == id }
     }
+
+    override fun renameScene(sceneDef: SceneDef, newName: String) {
+        val oldPath = getScenePath(sceneDef).toOkioPath()
+        val newDef = sceneDef.copy(name = newName)
+        val newPath = getScenePath(newDef).toOkioPath()
+
+        fileSystem.atomicMove(oldPath, newPath)
+    }
 }

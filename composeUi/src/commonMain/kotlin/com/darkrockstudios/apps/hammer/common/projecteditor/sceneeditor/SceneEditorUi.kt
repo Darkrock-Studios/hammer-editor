@@ -2,10 +2,12 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
@@ -55,10 +57,31 @@ fun SceneEditorUi(
 
     Column(modifier = modifier) {
         Row {
-            Text("Scene: ${state.sceneDef.name}", modifier = Modifier.padding(Ui.PADDING))
+            if (state.isEditingName) {
+                var editSceneNameValue by remember { mutableStateOf(state.sceneDef.name) }
+
+                TextField(
+                    value = editSceneNameValue,
+                    onValueChange = { editSceneNameValue = it },
+                    modifier = Modifier.padding(Ui.PADDING),
+                    label = { Text("Scene Name") }
+                )
+                Button(onClick = { component.changeSceneName(editSceneNameValue) }) {
+                    Text("Save")
+                }
+                Button(onClick = component::endSceneNameEdit) {
+                    Text("Cancel")
+                }
+            } else {
+                ClickableText(
+                    AnnotatedString("Scene: ${state.sceneDef.name}"),
+                    modifier = Modifier.padding(Ui.PADDING),
+                    onClick = { component.beginSceneNameEdit() }
+                )
+            }
             if (state.sceneBuffer?.dirty == true) {
                 Text("Unsaved", modifier = Modifier.padding(Ui.PADDING))
-                Button({ component.storeSceneContent() }) {
+                Button(onClick = { component.storeSceneContent() }) {
                     Text("Save")
                 }
             }

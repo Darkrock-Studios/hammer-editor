@@ -34,8 +34,8 @@ abstract class ProjectEditorRepository(
         sceneDef: SceneDef?,
         scope: CoroutineScope,
         onBufferUpdate: (SceneBuffer) -> Unit
-    ) {
-        scope.launch {
+    ): Job {
+        return scope.launch {
             bufferUpdateChannel.collect { newBuffer ->
                 if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
                     onBufferUpdate(newBuffer)
@@ -129,6 +129,7 @@ abstract class ProjectEditorRepository(
     abstract fun updateSceneOrder()
     abstract fun moveScene(from: Int, to: Int)
     abstract fun getSceneDefFromId(id: Int): SceneDef?
+    abstract fun renameScene(sceneDef: SceneDef, newName: String)
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -236,6 +237,15 @@ abstract class ProjectEditorRepository(
     }
 
     fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
+
+    fun changeSceneName(newSceneName: String): Boolean {
+        return if (validateSceneName(newSceneName)) {
+
+            true
+        } else {
+            false
+        }
+    }
 
     fun close() {
         contentChannel.close()

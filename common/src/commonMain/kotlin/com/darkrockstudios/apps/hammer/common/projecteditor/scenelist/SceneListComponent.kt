@@ -19,7 +19,8 @@ class SceneListComponent(
 ) : ComponentBase(componentContext), SceneList {
 
     private val projectRepository: ProjectRepository by inject()
-    private val projectEditor = projectRepository.getProjectEditor(projectDef)
+    private val projectEditor: ProjectEditorRepository =
+        projectRepository.getProjectEditor(projectDef)
 
     private val _state = MutableValue(SceneList.State(projectDef = projectDef))
     override val state: Value<SceneList.State> = _state

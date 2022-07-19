@@ -16,9 +16,13 @@ interface SceneEditor : HammerComponent {
     fun loadSceneContent()
     fun storeSceneContent(): Boolean
     fun onContentChanged(content: PlatformRichText)
+    fun beginSceneNameEdit()
+    fun endSceneNameEdit()
+    fun changeSceneName(newName: String)
 
     data class State(
         val sceneDef: SceneDef,
-        val sceneBuffer: SceneBuffer? = null
+        val sceneBuffer: SceneBuffer? = null,
+        val isEditingName: Boolean = false
     )
 }
