@@ -54,11 +54,13 @@ abstract class ProjectEditorRepository(
         scope: CoroutineScope,
         onSceneListUpdate: (List<SceneSummary>) -> Unit
     ): Job {
-        return scope.launch {
+        val job = scope.launch {
             sceneListChannel.collect { scenes ->
                 onSceneListUpdate(scenes)
             }
         }
+        reloadSceneSummaries()
+        return job
     }
 
     private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()

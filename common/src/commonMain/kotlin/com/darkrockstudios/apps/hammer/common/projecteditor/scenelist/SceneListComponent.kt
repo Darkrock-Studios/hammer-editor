@@ -28,13 +28,14 @@ class SceneListComponent(
     override val state: Value<SceneList.State> = _state
 
     init {
-        projectEditor.subscribeToSceneUpdates(scope) { scenes ->
-            _state.reduce {
-                it.copy(
-                    scenes = scenes
-                )
-            }
+        Napier.d { "Project editor: " + projectEditor.projectDef.name }
+
+        selectedSceneDef.onEach { scene ->
+            _state.reduce { it.copy(selectedSceneDef = scene) }
         }
+
+        projectEditor.subscribeToSceneUpdates(scope, ::onSceneListUpdate)
+        projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
     }
 
     override fun onSceneSelected(sceneDef: SceneDef) {
@@ -75,7 +76,15 @@ class SceneListComponent(
         }
     }
 
-    private fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
+    override fun onSceneListUpdate(scenes: List<SceneSummary>) {
+        _state.reduce {
+            it.copy(
+                scenes = scenes
+            )
+        }
+    }
+
+    override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
         val currentSummary =
             _state.value.scenes.find { it.sceneDef.id == sceneBuffer.content.sceneDef.id }
 
@@ -92,17 +101,5 @@ class SceneListComponent(
                 it.copy(scenes = newList)
             }
         }
-    }
-
-    init {
-        Napier.d { "Project editor: " + projectEditor.projectDef.name }
-
-        loadScenes()
-
-        selectedSceneDef.onEach { scene ->
-            _state.reduce { it.copy(selectedSceneDef = scene) }
-        }
-
-        projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
     }
 }
