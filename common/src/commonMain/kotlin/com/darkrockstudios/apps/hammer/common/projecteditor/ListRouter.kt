@@ -14,8 +14,7 @@ internal class ListRouter(
     componentContext: ComponentContext,
     private val projectDef: ProjectDef,
     private val selectedSceneDef: SharedFlow<SceneDef?>,
-    private val onSceneSelected: (sceneDef: SceneDef) -> Unit,
-    private val detailsRouter: DetailsRouter
+    private val onSceneSelected: (sceneDef: SceneDef) -> Unit
 ) {
     private val router =
         componentContext.router<Config, ProjectEditor.Child.List>(
@@ -35,7 +34,6 @@ internal class ListRouter(
     private fun sceneList(componentContext: ComponentContext): SceneListComponent =
         SceneListComponent(
             componentContext = componentContext,
-            detailsRouter = detailsRouter,
             projectDef = projectDef,
             selectedSceneDef = selectedSceneDef,
             sceneSelected = onSceneSelected

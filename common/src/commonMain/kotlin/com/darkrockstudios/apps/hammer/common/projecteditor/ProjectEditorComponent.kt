@@ -42,7 +42,6 @@ class ProjectEditorComponent(
     private val listRouter =
         ListRouter(
             componentContext = this,
-            detailsRouter = detailsRouter,
             projectDef = projectDef,
             selectedSceneDef = selectedSceneDefFlow,
             onSceneSelected = ::onSceneSelected
