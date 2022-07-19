@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
 
-internal class DetailsRouter(
+class DetailsRouter(
     componentContext: ComponentContext,
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,

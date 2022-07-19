@@ -31,17 +31,6 @@ class ProjectEditorComponent(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    private val listRouter =
-        ListRouter(
-            componentContext = this,
-            projectDef = projectDef,
-            selectedSceneDef = selectedSceneDefFlow,
-            onSceneSelected = ::onSceneSelected
-        )
-
-    override val listRouterState: Value<RouterState<*, ProjectEditor.Child.List>> =
-        listRouter.state
-
     private val detailsRouter =
         DetailsRouter(
             componentContext = this,
@@ -49,6 +38,18 @@ class ProjectEditorComponent(
             closeDetails = ::closeDetails,
             removeMenu = removeMenu
         )
+
+    private val listRouter =
+        ListRouter(
+            componentContext = this,
+            detailsRouter = detailsRouter,
+            projectDef = projectDef,
+            selectedSceneDef = selectedSceneDefFlow,
+            onSceneSelected = ::onSceneSelected
+        )
+
+    override val listRouterState: Value<RouterState<*, ProjectEditor.Child.List>> =
+        listRouter.state
 
     private val _shouldConfirmClose = MutableValue(false)
     override val shouldConfirmClose = _shouldConfirmClose

@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.projecteditor.DetailsRouter
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.onEach
@@ -15,7 +16,8 @@ class SceneListComponent(
     componentContext: ComponentContext,
     projectDef: ProjectDef,
     selectedSceneDef: SharedFlow<SceneDef?>,
-    private val sceneSelected: (sceneDef: SceneDef) -> Unit
+    private val sceneSelected: (sceneDef: SceneDef) -> Unit,
+    private val detailsRouter: DetailsRouter
 ) : ComponentBase(componentContext), SceneList {
 
     private val projectRepository: ProjectRepository by inject()
@@ -58,8 +60,10 @@ class SceneListComponent(
     }
 
     override fun createScene(sceneName: String) {
-        if (projectEditor.createScene(sceneName) != null) {
+        val newSceneDef = projectEditor.createScene(sceneName)
+        if (newSceneDef != null) {
             Napier.i("Scene created: $sceneName")
+            detailsRouter.showScene(newSceneDef)
         } else {
             Napier.w("Failed to create Scene: $sceneName")
         }
