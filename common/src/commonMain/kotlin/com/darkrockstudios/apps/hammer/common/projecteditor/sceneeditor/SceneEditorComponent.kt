@@ -140,7 +140,7 @@ class SceneEditorComponent(
     }
 
     private fun getMenuId(): String {
-        return "scene-editor-${sceneDef.order}-${sceneDef.name}"
+        return "scene-editor-${sceneDef.id}-${sceneDef.name}"
     }
 
     override fun onStart() {

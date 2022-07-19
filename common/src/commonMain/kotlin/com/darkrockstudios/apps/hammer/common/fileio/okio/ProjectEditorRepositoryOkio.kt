@@ -64,6 +64,8 @@ class ProjectEditorRepositoryOkio(
             val newPath = getScenePath(newOrderScene).toOkioPath()
             fileSystem.atomicMove(path, newPath)
         }
+
+        reloadSceneSummaries()
     }
 
     override fun moveScene(from: Int, to: Int) {
@@ -90,6 +92,8 @@ class ProjectEditorRepositoryOkio(
 
             fileSystem.atomicMove(source = tempPath, target = targetPath)
         }
+
+        reloadSceneSummaries()
     }
 
     override fun createScene(sceneName: String): SceneDef? {
@@ -116,6 +120,8 @@ class ProjectEditorRepositoryOkio(
 
             if (lastOrder.numDigits() < nextOrder.numDigits()) {
                 updateSceneOrder()
+            } else {
+                reloadSceneSummaries()
             }
 
             newSceneDef
@@ -280,5 +286,7 @@ class ProjectEditorRepositoryOkio(
         val newPath = getScenePath(newDef).toOkioPath()
 
         fileSystem.atomicMove(oldPath, newPath)
+
+        reloadSceneSummaries()
     }
 }

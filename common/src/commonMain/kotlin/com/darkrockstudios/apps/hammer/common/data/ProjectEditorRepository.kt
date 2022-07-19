@@ -30,6 +30,12 @@ abstract class ProjectEditorRepository(
     )
     private val bufferUpdateChannel: SharedFlow<SceneBuffer> = _bufferUpdateChannel
 
+    private val _sceneListChannel = MutableSharedFlow<List<SceneSummary>>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    private val sceneListChannel: SharedFlow<List<SceneSummary>> = _sceneListChannel
+
     fun subscribeToBufferUpdates(
         sceneDef: SceneDef?,
         scope: CoroutineScope,
@@ -40,6 +46,17 @@ abstract class ProjectEditorRepository(
                 if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
                     onBufferUpdate(newBuffer)
                 }
+            }
+        }
+    }
+
+    fun subscribeToSceneUpdates(
+        scope: CoroutineScope,
+        onSceneListUpdate: (List<SceneSummary>) -> Unit
+    ): Job {
+        return scope.launch {
+            sceneListChannel.collect { scenes ->
+                onSceneListUpdate(scenes)
             }
         }
     }
@@ -130,6 +147,11 @@ abstract class ProjectEditorRepository(
     abstract fun moveScene(from: Int, to: Int)
     abstract fun getSceneDefFromId(id: Int): SceneDef?
     abstract fun renameScene(sceneDef: SceneDef, newName: String)
+
+    protected fun reloadSceneSummaries() {
+        val scenes = getSceneSummaries()
+        _sceneListChannel.tryEmit(scenes)
+    }
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
@@ -237,15 +259,6 @@ abstract class ProjectEditorRepository(
     }
 
     fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
-
-    fun changeSceneName(newSceneName: String): Boolean {
-        return if (validateSceneName(newSceneName)) {
-
-            true
-        } else {
-            false
-        }
-    }
 
     fun close() {
         contentChannel.close()

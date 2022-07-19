@@ -25,6 +25,16 @@ class SceneListComponent(
     private val _state = MutableValue(SceneList.State(projectDef = projectDef))
     override val state: Value<SceneList.State> = _state
 
+    init {
+        projectEditor.subscribeToSceneUpdates(scope) { scenes ->
+            _state.reduce {
+                it.copy(
+                    scenes = scenes
+                )
+            }
+        }
+    }
+
     override fun onSceneSelected(sceneDef: SceneDef) {
         sceneSelected(sceneDef)
         _state.reduce {
@@ -38,7 +48,6 @@ class SceneListComponent(
 
     override fun moveScene(from: Int, to: Int) {
         projectEditor.moveScene(from, to)
-        loadScenes()
     }
 
     override fun loadScenes() {
@@ -51,15 +60,14 @@ class SceneListComponent(
     override fun createScene(sceneName: String) {
         if (projectEditor.createScene(sceneName) != null) {
             Napier.i("Scene created: $sceneName")
-            loadScenes()
         } else {
             Napier.w("Failed to create Scene: $sceneName")
         }
     }
 
     override fun deleteScene(sceneDef: SceneDef) {
-        if (projectEditor.deleteScene(sceneDef)) {
-            loadScenes()
+        if (!projectEditor.deleteScene(sceneDef)) {
+            Napier.e("Failed to delete Scene: ${sceneDef.id} - ${sceneDef.name}")
         }
     }
 
