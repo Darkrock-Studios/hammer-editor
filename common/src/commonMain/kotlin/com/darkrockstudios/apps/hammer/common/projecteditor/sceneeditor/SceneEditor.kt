@@ -4,7 +4,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 
 interface SceneEditor : HammerComponent {
@@ -21,7 +21,7 @@ interface SceneEditor : HammerComponent {
     fun changeSceneName(newName: String)
 
     data class State(
-        val sceneDef: SceneDef,
+        val sceneItem: SceneItem,
         val sceneBuffer: SceneBuffer? = null,
         val isEditingName: Boolean = false
     )

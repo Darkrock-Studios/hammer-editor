@@ -17,12 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.SceneDef
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import org.burnoutcrew.reorderable.ReorderableItem
-import org.burnoutcrew.reorderable.detectReorderAfterLongPress
-import org.burnoutcrew.reorderable.rememberReorderableLazyListState
-import org.burnoutcrew.reorderable.reorderable
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import org.burnoutcrew.reorderable.*
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -32,14 +28,15 @@ fun SceneListUi(
 ) {
     val state by component.state.subscribeAsState()
     var newSceneNameText by remember { mutableStateOf("") }
-    var sceneDefDeleteTarget by remember { mutableStateOf<SceneDef?>(null) }
+    var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            val newOrder = state.scenes.toMutableList().apply {
+            val newOrder = state.scenes.sceneItems.toMutableList().apply {
                 add(to.index, removeAt(from.index))
             }
-            component.updateSceneOrder(newOrder)
+            // TODO scene ID
+            //component.updateSceneOrder(newOrder)
         },
         onDragEnd = { from, to ->
             component.moveScene(from = from, to = to)
@@ -80,21 +77,10 @@ fun SceneListUi(
                 .detectReorderAfterLongPress(reorderState),
             contentPadding = PaddingValues(Ui.PADDING)
         ) {
-            items(state.scenes.size, { state.scenes[it].sceneDef.id }) { item ->
-                val scene = state.scenes[item]
-
-                ReorderableItem(reorderState, key = scene.sceneDef.id) { isDragging ->
-                    val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
-                    Column(
-                        modifier = Modifier
-                            .shadow(elevation.value)
-                            .background(MaterialTheme.colors.surface)
-                    ) {
-                        val isSelected = scene.sceneDef == state.selectedSceneDef
-                        SceneItem(scene, isSelected, component::onSceneSelected) { selectedScene ->
-                            sceneDefDeleteTarget = selectedScene
-                        }
-                    }
+            items(state.scenes.sceneItems.size, { state.scenes.sceneItems[it].id }) { item ->
+                val scene = state.scenes.sceneItems[item]
+                ReorderableScene(scene, reorderState, state, component) { deleteTarget ->
+                    sceneDefDeleteTarget = deleteTarget
                 }
             }
         }
@@ -110,57 +96,157 @@ fun SceneListUi(
     }
 }
 
+@Composable
+fun ReorderableScene(
+    scene: SceneItem,
+    reorderState: ReorderableLazyListState,
+    state: SceneList.State,
+    component: SceneList,
+    sceneDefDeleteTarget: (SceneItem) -> Unit
+) {
+    ReorderableItem(reorderState, key = scene.id) { isDragging ->
+        val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
+        Column(
+            modifier = Modifier
+                .shadow(elevation.value)
+                .background(MaterialTheme.colors.surface)
+        ) {
+            val isSelected = scene == state.selectedSceneItem
+            if (scene.type == SceneItem.Type.Scene) {
+                SceneItem(
+                    scene,
+                    state.scenes.hasDirtyBuffer.contains(scene.id),
+                    isSelected,
+                    component::onSceneSelected
+                ) { selectedScene ->
+                    sceneDefDeleteTarget(selectedScene)
+                }
+            } else {
+                SceneGroupItem(
+                    scene,
+                    state.scenes.hasDirtyBuffer,
+                    component::onSceneSelected
+                )
+            }
+        }
+    }
+
+    scene.children?.forEach { childScene ->
+        ReorderableScene(childScene, reorderState, state, component, sceneDefDeleteTarget)
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneItem(
-    scene: SceneSummary,
+    scene: SceneItem,
+    hasDirtyBuffer: Boolean,
     isSelected: Boolean,
-    onSceneSelected: (SceneDef) -> Unit,
-    onSceneAltClick: (SceneDef) -> Unit
+    onSceneSelected: (SceneItem) -> Unit,
+    onSceneAltClick: (SceneItem) -> Unit
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(Ui.PADDING)
-            .run { if (isSelected) background(color = selectionColor()) else this }
-            .combinedClickable(
-                onClick = { onSceneSelected(scene.sceneDef) },
-                //onLongClick = { onSceneAltClick(scene) }
-            ),
-        elevation = Ui.ELEVATION
-    ) {
-        Row(
-            modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "Scene: ${scene.sceneDef.name}",
-                style = MaterialTheme.typography.body1
+            .padding(
+                start = Ui.PADDING * (scene.parentPath.depth + 1)
             )
-            if (scene.hasDirtyBuffer) {
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Ui.PADDING)
+                .combinedClickable(
+                    onClick = { onSceneSelected(scene) },
+                    //onLongClick = { onSceneAltClick(scene) }
+                ),
+            elevation = Ui.ELEVATION,
+            backgroundColor = if (isSelected) selectionColor() else MaterialTheme.colors.surface
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(Ui.PADDING)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
-                    "Unsaved",
-                    style = MaterialTheme.typography.subtitle1
+                    "Scene: ${scene.name}",
+                    style = MaterialTheme.typography.body1
                 )
+                if (hasDirtyBuffer) {
+                    Text(
+                        "Unsaved",
+                        style = MaterialTheme.typography.subtitle1
+                    )
+                }
+                Button({ onSceneAltClick(scene) }) {
+                    Text("X")
+                }
             }
-            Button({ onSceneAltClick(scene.sceneDef) }) {
-                Text("X")
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SceneGroupItem(
+    scene: SceneItem,
+    hasDirtyBuffer: Set<Int>,
+    onSceneAltClick: (SceneItem) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = Ui.PADDING * (scene.parentPath.depth + 1)
+            )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Ui.PADDING)
+                .combinedClickable(
+                    onClick = { },
+                    //onLongClick = { onSceneAltClick(scene) }
+                ),
+            elevation = Ui.ELEVATION,
+            backgroundColor = MaterialTheme.colors.secondary
+        ) {
+            Row(
+                modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Group: ${scene.name}",
+                    style = MaterialTheme.typography.body1
+                )
+
+                if (scene.children?.any { hasDirtyBuffer.contains(it.id) } == true) {
+                    Text(
+                        "Unsaved",
+                        style = MaterialTheme.typography.subtitle1
+                    )
+                }
+                if (scene.children.isNullOrEmpty()) {
+                    Button({ onSceneAltClick(scene) }) {
+                        Text("X")
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun selectionColor(): Color =
-    MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+private fun selectionColor(): Color = MaterialTheme.colors.secondary
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-fun sceneDeleteDialog(sceneDef: SceneDef, dismissDialog: (Boolean) -> Unit) {
+fun sceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
     AlertDialog(
         title = { Text("Delete Scene") },
-        text = { Text("Are you sure you want to delete this scene: ${sceneDef.name}") },
+        text = { Text("Are you sure you want to delete this scene: ${scene.name}") },
         onDismissRequest = { /* noop */ },
         buttons = {
             Row(

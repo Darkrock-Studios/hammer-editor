@@ -30,20 +30,20 @@ abstract class ProjectEditorRepository(
     )
     private val bufferUpdateChannel: SharedFlow<SceneBuffer> = _bufferUpdateChannel
 
-    private val _sceneListChannel = MutableSharedFlow<List<SceneSummary>>(
+    private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-    private val sceneListChannel: SharedFlow<List<SceneSummary>> = _sceneListChannel
+    private val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
 
     fun subscribeToBufferUpdates(
-        sceneDef: SceneDef?,
+        sceneDef: SceneItem?,
         scope: CoroutineScope,
         onBufferUpdate: (SceneBuffer) -> Unit
     ): Job {
         return scope.launch {
             bufferUpdateChannel.collect { newBuffer ->
-                if (sceneDef == null || newBuffer.content.sceneDef.id == sceneDef.id) {
+                if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
                     onBufferUpdate(newBuffer)
                 }
             }
@@ -52,21 +52,21 @@ abstract class ProjectEditorRepository(
 
     fun subscribeToSceneUpdates(
         scope: CoroutineScope,
-        onSceneListUpdate: (List<SceneSummary>) -> Unit
+        onSceneListUpdate: (SceneSummary) -> Unit
     ): Job {
         val job = scope.launch {
             sceneListChannel.collect { scenes ->
                 onSceneListUpdate(scenes)
             }
         }
-        reloadSceneSummaries()
+        reloadScenes()
         return job
     }
 
     private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
 
     private val storeTempJobs = mutableMapOf<Int, Job>()
-    private fun launchSaveJob(sceneDef: SceneDef) {
+    private fun launchSaveJob(sceneDef: SceneItem) {
         val job = storeTempJobs[sceneDef.id]
         job?.cancel("Starting a new one")
         storeTempJobs[sceneDef.id] = editorScope.launch {
@@ -76,7 +76,9 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    protected fun cancelTempStoreJob(sceneDef: SceneDef) {
+    protected fun getDirtyBufferIds(): Set<Int> = sceneBuffers.map { it.key }.toSet()
+
+    protected fun cancelTempStoreJob(sceneDef: SceneItem) {
         storeTempJobs.remove(sceneDef.id)?.cancel("cancelTempStoreJob")
     }
 
@@ -107,7 +109,7 @@ abstract class ProjectEditorRepository(
                         Napier.w { "ProjectEditorRepository failed to get content from contentChannel" }
                     } else {
                         updateSceneBufferContent(content)
-                        launchSaveJob(content.sceneDef)
+                        launchSaveJob(content.scene)
                     }
                 }
             }
@@ -129,28 +131,40 @@ abstract class ProjectEditorRepository(
         return newSceneId
     }
 
+    abstract fun getSceneFilename(path: HPath): String
+    abstract fun getSceneParentPath(path: HPath): ScenePath
+    abstract fun getScenePath(path: HPath): ScenePath
+
     abstract fun getSceneDirectory(): HPath
     abstract fun getSceneBufferDirectory(): HPath
-    abstract fun getScenePath(sceneDef: SceneDef, isNewScene: Boolean = false): HPath
-    abstract fun getSceneBufferTempPath(sceneDef: SceneDef): HPath
-    abstract fun createScene(sceneName: String): SceneDef?
-    abstract fun deleteScene(sceneDef: SceneDef): Boolean
-    abstract fun getScenes(): List<SceneDef>
+    abstract fun getScenePath(sceneDef: SceneItem, isNewScene: Boolean = false): HPath
+    abstract fun getSceneBufferTempPath(sceneDef: SceneItem): HPath
+    abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
+    abstract fun deleteScene(sceneDef: SceneItem): Boolean
+    abstract fun getScenes(): List<SceneItem>
+    abstract fun getRootScenes(): List<SceneItem>
+    abstract fun getScenes(root: HPath): List<SceneItem>
     abstract fun getSceneTempBufferContents(): List<SceneContent>
-    abstract fun getSceneSummaries(): List<SceneSummary>
-    abstract fun getSceneAtIndex(index: Int): SceneDef
-    abstract fun getSceneFromPath(path: HPath): SceneDef
-    abstract fun loadSceneBuffer(sceneDef: SceneDef): SceneBuffer
-    abstract fun storeSceneBuffer(sceneDef: SceneDef): Boolean
-    abstract fun storeTempSceneBuffer(sceneDef: SceneDef): Boolean
-    abstract fun clearTempScene(sceneDef: SceneDef)
+    abstract fun getSceneAtIndex(index: Int): SceneItem
+    abstract fun getSceneFromPath(path: HPath): SceneItem
+    abstract fun loadSceneBuffer(sceneDef: SceneItem): SceneBuffer
+    abstract fun storeSceneBuffer(sceneDef: SceneItem): Boolean
+    abstract fun storeTempSceneBuffer(sceneDef: SceneItem): Boolean
+    abstract fun clearTempScene(sceneDef: SceneItem)
     abstract fun getLastOrderNumber(): Int
     abstract fun updateSceneOrder()
     abstract fun moveScene(from: Int, to: Int)
-    abstract fun getSceneDefFromId(id: Int): SceneDef?
-    abstract fun renameScene(sceneDef: SceneDef, newName: String)
+    abstract fun getSceneItemFromId(id: Int): SceneItem?
+    abstract fun renameScene(sceneDef: SceneItem, newName: String)
 
-    protected fun reloadSceneSummaries() {
+    fun getSceneSummaries(): SceneSummary {
+        return SceneSummary(
+            getRootScenes(),
+            getDirtyBufferIds()
+        )
+    }
+
+    protected fun reloadScenes() {
         val scenes = getSceneSummaries()
         _sceneListChannel.tryEmit(scenes)
     }
@@ -162,7 +176,7 @@ abstract class ProjectEditorRepository(
     }
 
     private fun updateSceneBufferContent(content: SceneContent) {
-        val oldBuffer = sceneBuffers[content.sceneDef.id]
+        val oldBuffer = sceneBuffers[content.scene.id]
         // Skip update if nothing is different
         if (content != oldBuffer?.content) {
             val newBuffer = SceneBuffer(content, true)
@@ -171,27 +185,27 @@ abstract class ProjectEditorRepository(
     }
 
     protected fun updateSceneBuffer(newBuffer: SceneBuffer) {
-        sceneBuffers[newBuffer.content.sceneDef.id] = newBuffer
+        sceneBuffers[newBuffer.content.scene.id] = newBuffer
         _bufferUpdateChannel.tryEmit(newBuffer)
     }
 
-    protected fun getSceneBuffer(sceneDef: SceneDef): SceneBuffer? = sceneBuffers[sceneDef.id]
-    protected fun hasSceneBuffer(sceneDef: SceneDef): Boolean =
+    protected fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
+    protected fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
         sceneBuffers.containsKey(sceneDef.id)
 
-    protected fun hasDirtyBuffer(sceneDef: SceneDef): Boolean =
+    protected fun hasDirtyBuffer(sceneDef: SceneItem): Boolean =
         getSceneBuffer(sceneDef)?.dirty == true
 
     fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
 
     fun storeAllBuffers() {
-        val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.sceneDef }
+        val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
         dirtyScenes.forEach { scene ->
             storeSceneBuffer(scene)
         }
     }
 
-    fun discardSceneBuffer(sceneDef: SceneDef) {
+    fun discardSceneBuffer(sceneDef: SceneItem) {
         if (hasSceneBuffer(sceneDef)) {
             sceneBuffers.remove(sceneDef.id)
             clearTempScene(sceneDef)
@@ -204,7 +218,7 @@ abstract class ProjectEditorRepository(
     }
 
     fun getSceneFileName(
-        sceneDef: SceneDef,
+        sceneDef: SceneItem,
         isNewScene: Boolean = false
     ): String {
         val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude()) {
@@ -214,10 +228,17 @@ abstract class ProjectEditorRepository(
         }
 
         val order = sceneDef.order.toString().padStart(orderDigits, '0')
-        return "$order-${sceneDef.name}-${sceneDef.id}.md"
+        val bareName = "$order-${sceneDef.name}-${sceneDef.id}"
+
+        val filename = if (sceneDef.type == SceneItem.Type.Scene) {
+            "$bareName.md"
+        } else {
+            bareName
+        }
+        return filename
     }
 
-    fun getSceneTempFileName(sceneDef: SceneDef): String {
+    fun getSceneTempFileName(sceneDef: SceneItem): String {
         return "${sceneDef.id}.md"
     }
 
@@ -236,7 +257,10 @@ abstract class ProjectEditorRepository(
     }
 
     @Throws(InvalidSceneFilename::class)
-    fun getSceneDefFromFilename(fileName: String): SceneDef {
+    fun getSceneFromFilename(path: HPath, populateChildren: Boolean = true): SceneItem {
+        val fileName = getSceneFilename(path)
+        val parentPath = getSceneParentPath(path)
+
         val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
             ?: throw IllegalStateException("Scene filename was bad: $fileName")
 
@@ -244,15 +268,26 @@ abstract class ProjectEditorRepository(
             val sceneOrder = captures.groupValues[1].toInt()
             val sceneName = captures.groupValues[2]
             val sceneId = captures.groupValues[3].toInt()
+            val isSceneGroup = !(captures.groupValues.size >= 5
+                    && captures.groupValues[4] == SCENE_FILENAME_EXTENSION)
 
-            val sceneDef = SceneDef(
+            val sceneItem = SceneItem(
                 projectDef = projectDef,
+                type = if (isSceneGroup) SceneItem.Type.Group else SceneItem.Type.Scene,
                 id = sceneId,
                 name = sceneName,
-                order = sceneOrder
+                order = sceneOrder,
+                parentPath = parentPath
             )
 
-            return sceneDef
+            return if (isSceneGroup && populateChildren) {
+                val children = getScenes(path)
+                sceneItem.copy(children = children)
+            } else {
+                sceneItem
+            }
+
+            return sceneItem
         } catch (e: NumberFormatException) {
             throw InvalidSceneFilename("Number format exception", fileName)
         } catch (e: IllegalStateException) {
@@ -270,17 +305,20 @@ abstract class ProjectEditorRepository(
         editorScope.cancel("Editor Closed")
         // During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
         getSceneTempBufferContents().forEach {
-            clearTempScene(it.sceneDef)
+            clearTempScene(it.scene)
         }
     }
 
     companion object {
-        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)\.md(?:\.temp)?""")
+        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)(\.md)?(?:\.temp)?""")
         val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
+        const val SCENE_FILENAME_EXTENSION = ".md"
         const val SCENE_DIRECTORY = "scenes"
         const val BUFFER_DIRECTORY = ".buffers"
         const val tempSuffix = ".temp"
     }
+
+    abstract fun getHpath(sceneItem: SceneItem): HPath
 }
 
 open class InvalidSceneFilename(message: String, fileName: String) :

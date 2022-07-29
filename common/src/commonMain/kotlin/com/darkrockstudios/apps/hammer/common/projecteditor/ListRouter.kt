@@ -6,15 +6,15 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListComponent
 import kotlinx.coroutines.flow.SharedFlow
 
 internal class ListRouter(
     componentContext: ComponentContext,
     private val projectDef: ProjectDef,
-    private val selectedSceneDef: SharedFlow<SceneDef?>,
-    private val onSceneSelected: (sceneDef: SceneDef) -> Unit
+    private val selectedSceneItem: SharedFlow<SceneItem?>,
+    private val onSceneSelected: (sceneDef: SceneItem) -> Unit
 ) {
     private val router =
         componentContext.router<Config, ProjectEditor.Child.List>(
@@ -35,7 +35,7 @@ internal class ListRouter(
         SceneListComponent(
             componentContext = componentContext,
             projectDef = projectDef,
-            selectedSceneDef = selectedSceneDef,
+            selectedSceneItem = selectedSceneItem,
             sceneSelected = onSceneSelected
         )
 

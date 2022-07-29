@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
-import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.core.component.inject
@@ -26,7 +26,7 @@ class ProjectEditorComponent(
     private val projectEditor = projectRepository.getProjectEditor(projectDef)
 
     //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
-    private val selectedSceneDefFlow = MutableSharedFlow<SceneDef?>(
+    private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
@@ -43,7 +43,7 @@ class ProjectEditorComponent(
         ListRouter(
             componentContext = this,
             projectDef = projectDef,
-            selectedSceneDef = selectedSceneDefFlow,
+            selectedSceneItem = selectedSceneItemFlow,
             onSceneSelected = ::onSceneSelected
         )
 
@@ -88,8 +88,8 @@ class ProjectEditorComponent(
         detailsRouter.closeScene()
     }
 
-    private fun onSceneSelected(sceneDef: SceneDef) {
-        detailsRouter.showScene(sceneDef)
+    private fun onSceneSelected(sceneItem: SceneItem) {
+        detailsRouter.showScene(sceneItem)
 
         if (isMultiPaneMode()) {
             listRouter.show()
@@ -143,7 +143,7 @@ class ProjectEditorComponent(
 
         detailsRouter.state.observe(lifecycle) {
             (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
-                selectedSceneDefFlow.tryEmit(sceneEditor.sceneDef)
+                selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
             }
             updateCloseConfirmRequirement()
         }
