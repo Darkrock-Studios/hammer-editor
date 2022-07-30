@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.tree.Tree
+import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -16,6 +19,14 @@ abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
     private val projectsRepository: ProjectsRepository
 ) {
+    val rootScene = SceneItem(
+        projectDef = projectDef,
+        type = SceneItem.Type.Root,
+        id = 0,
+        name = "",
+        order = 0
+    )
+
     private var nextSceneId: Int = 0
 
     private val editorScope = CoroutineScope(defaultDispatcher)
@@ -35,6 +46,10 @@ abstract class ProjectEditorRepository(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     private val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
+
+    protected val sceneTree = Tree<SceneItem>()
+
+    protected abstract fun loadSceneTree(): TreeNode<SceneItem>
 
     fun subscribeToBufferUpdates(
         sceneDef: SceneItem?,
@@ -86,6 +101,9 @@ abstract class ProjectEditorRepository(
      * This needs to be called after instantiation
      */
     fun initializeProjectEditor() {
+        val root = loadSceneTree()
+        sceneTree.setRoot(root)
+
         val lastSceneId = findLastSceneId()
         if (lastSceneId != null) {
             setLastSceneId(lastSceneId)
@@ -119,7 +137,7 @@ abstract class ProjectEditorRepository(
     /**
      * Returns null if there are no scenes yet
      */
-    private fun findLastSceneId(): Int? = getScenes().maxByOrNull { it.id }?.id
+    private fun findLastSceneId(): Int? = sceneTree.toList().maxByOrNull { it.id }?.id
 
     private fun setLastSceneId(lastSceneId: Int) {
         nextSceneId = lastSceneId + 1
@@ -132,17 +150,17 @@ abstract class ProjectEditorRepository(
     }
 
     abstract fun getSceneFilename(path: HPath): String
-    abstract fun getSceneParentPath(path: HPath): ScenePath
-    abstract fun getScenePath(path: HPath): ScenePath
-
+    abstract fun getSceneParentPath(path: HPath): ScenePathSegments
+    abstract fun getScenePathSegments(path: HPath): ScenePathSegments
+    abstract fun getSceneFilePath(sceneId: Int): HPath
     abstract fun getSceneDirectory(): HPath
     abstract fun getSceneBufferDirectory(): HPath
-    abstract fun getScenePath(sceneDef: SceneItem, isNewScene: Boolean = false): HPath
+    abstract fun getSceneFilePath(sceneDef: SceneItem, isNewScene: Boolean = false): HPath
     abstract fun getSceneBufferTempPath(sceneDef: SceneItem): HPath
     abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
     abstract fun deleteScene(sceneDef: SceneItem): Boolean
     abstract fun getScenes(): List<SceneItem>
-    abstract fun getRootScenes(): List<SceneItem>
+    abstract fun getSceneTree(): ImmutableTree<SceneItem>
     abstract fun getScenes(root: HPath): List<SceneItem>
     abstract fun getSceneTempBufferContents(): List<SceneContent>
     abstract fun getSceneAtIndex(index: Int): SceneItem
@@ -159,7 +177,7 @@ abstract class ProjectEditorRepository(
 
     fun getSceneSummaries(): SceneSummary {
         return SceneSummary(
-            getRootScenes(),
+            getSceneTree(),
             getDirtyBufferIds()
         )
     }
@@ -256,10 +274,23 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    @Throws(InvalidSceneFilename::class)
-    fun getSceneFromFilename(path: HPath, populateChildren: Boolean = true): SceneItem {
+    fun getSceneIdFromFilename(path: HPath): Int {
         val fileName = getSceneFilename(path)
-        val parentPath = getSceneParentPath(path)
+        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+            ?: throw IllegalStateException("Scene filename was bad: $fileName")
+        try {
+            val sceneId = captures.groupValues[3].toInt()
+            return sceneId
+        } catch (e: NumberFormatException) {
+            throw InvalidSceneFilename("Number format exception", fileName)
+        } catch (e: IllegalStateException) {
+            throw InvalidSceneFilename("Invalid filename", fileName)
+        }
+    }
+
+    @Throws(InvalidSceneFilename::class)
+    fun getSceneFromFilename(path: HPath): SceneItem {
+        val fileName = getSceneFilename(path)
 
         val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
             ?: throw IllegalStateException("Scene filename was bad: $fileName")
@@ -277,15 +308,7 @@ abstract class ProjectEditorRepository(
                 id = sceneId,
                 name = sceneName,
                 order = sceneOrder,
-                parentPath = parentPath
             )
-
-            return if (isSceneGroup && populateChildren) {
-                val children = getScenes(path)
-                sceneItem.copy(children = children)
-            } else {
-                sceneItem
-            }
 
             return sceneItem
         } catch (e: NumberFormatException) {

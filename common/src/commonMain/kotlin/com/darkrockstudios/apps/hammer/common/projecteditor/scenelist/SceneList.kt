@@ -22,6 +22,6 @@ interface SceneList : HammerComponent {
     data class State(
         val projectDef: ProjectDef,
         val selectedSceneItem: SceneItem? = null,
-        val scenes: SceneSummary = SceneSummary(emptyList(), emptySet())
+        val scenes: SceneSummary? = null
     )
 }

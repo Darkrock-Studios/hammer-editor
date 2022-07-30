@@ -83,10 +83,11 @@ class SceneListComponent(
     }
 
     override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
-        val currentSummary =
-            _state.value.scenes.sceneItems.find { it.id == sceneBuffer.content.scene.id }
-        val hasDirty = _state.value.scenes.hasDirtyBuffer.contains(sceneBuffer.content.scene.id)
         /*
+        val currentSummary =
+            _state.value.scenes.sceneTree.find { it.id == sceneBuffer.content.scene.id }
+        val hasDirty = _state.value.scenes.hasDirtyBuffer.contains(sceneBuffer.content.scene.id)
+
         if (currentSummary != null && hasDirty != sceneBuffer.dirty) {
             _state.reduce {
                 val index = it.scenes.indexOfFirst { summary ->

@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.data
 
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
-import kotlinx.serialization.Transient
 
 @Parcelize
 data class SceneItem(
@@ -11,17 +10,17 @@ data class SceneItem(
     val id: Int,
     val name: String,
     val order: Int,
-    @Transient
-    val parentPath: ScenePath,
-    @Transient
-    val children: List<SceneItem>? = null
+    //val scenePathSegments: ScenePathSegments
 ) : Parcelable {
-    enum class Type { Scene, Group }
+    enum class Type { Scene, Group, Root }
+
+    val isRootScene: Boolean
+        get() = type == Type.Root
 }
 
 @Parcelize
-data class ScenePath(
-    val pathSegments: List<SceneItem>
+data class ScenePathSegments(
+    val pathSegments: List<Int>
 ) : Parcelable {
     val depth: Int
         get() = pathSegments.size

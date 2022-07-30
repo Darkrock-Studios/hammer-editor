@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 import org.burnoutcrew.reorderable.*
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
@@ -30,13 +31,17 @@ fun SceneListUi(
     var newSceneNameText by remember { mutableStateOf("") }
     var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
+    val summary = state.scenes
+
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            val newOrder = state.scenes.sceneItems.toMutableList().apply {
-                add(to.index, removeAt(from.index))
+            if (summary != null) {
+                val newOrder = summary.sceneTree.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+                // TODO scene ID
+                //component.updateSceneOrder(newOrder)
             }
-            // TODO scene ID
-            //component.updateSceneOrder(newOrder)
         },
         onDragEnd = { from, to ->
             component.moveScene(from = from, to = to)
@@ -77,10 +82,21 @@ fun SceneListUi(
                 .detectReorderAfterLongPress(reorderState),
             contentPadding = PaddingValues(Ui.PADDING)
         ) {
-            items(state.scenes.sceneItems.size, { state.scenes.sceneItems[it].id }) { item ->
-                val scene = state.scenes.sceneItems[item]
-                ReorderableScene(scene, reorderState, state, component) { deleteTarget ->
-                    sceneDefDeleteTarget = deleteTarget
+            if (summary != null) {
+                items(
+                    summary.sceneTree.totalChildren,
+                    { summary.sceneTree[it].value.id }) { item ->
+                    val sceneNode = summary.sceneTree[item]
+                    if (!sceneNode.value.isRootScene) {
+                        ReorderableScene(
+                            sceneNode,
+                            reorderState,
+                            state,
+                            component
+                        ) { deleteTarget ->
+                            sceneDefDeleteTarget = deleteTarget
+                        }
+                    }
                 }
             }
         }
@@ -98,12 +114,15 @@ fun SceneListUi(
 
 @Composable
 fun ReorderableScene(
-    scene: SceneItem,
+    sceneNode: TreeValue<SceneItem>,
     reorderState: ReorderableLazyListState,
     state: SceneList.State,
     component: SceneList,
     sceneDefDeleteTarget: (SceneItem) -> Unit
 ) {
+    val summary = state.scenes ?: return
+    val (scene: SceneItem, children: Set<TreeValue<SceneItem>>) = sceneNode
+
     ReorderableItem(reorderState, key = scene.id) { isDragging ->
         val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
         Column(
@@ -115,7 +134,8 @@ fun ReorderableScene(
             if (scene.type == SceneItem.Type.Scene) {
                 SceneItem(
                     scene,
-                    state.scenes.hasDirtyBuffer.contains(scene.id),
+                    sceneNode.depth,
+                    summary.hasDirtyBuffer.contains(scene.id),
                     isSelected,
                     component::onSceneSelected
                 ) { selectedScene ->
@@ -123,16 +143,12 @@ fun ReorderableScene(
                 }
             } else {
                 SceneGroupItem(
-                    scene,
-                    state.scenes.hasDirtyBuffer,
+                    sceneNode,
+                    summary.hasDirtyBuffer,
                     component::onSceneSelected
                 )
             }
         }
-    }
-
-    scene.children?.forEach { childScene ->
-        ReorderableScene(childScene, reorderState, state, component, sceneDefDeleteTarget)
     }
 }
 
@@ -140,6 +156,7 @@ fun ReorderableScene(
 @Composable
 fun SceneItem(
     scene: SceneItem,
+    depth: Int,
     hasDirtyBuffer: Boolean,
     isSelected: Boolean,
     onSceneSelected: (SceneItem) -> Unit,
@@ -149,7 +166,7 @@ fun SceneItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                start = Ui.PADDING * (scene.parentPath.depth + 1)
+                start = Ui.PADDING * (depth + 1)
             )
     ) {
         Card(
@@ -190,15 +207,17 @@ fun SceneItem(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneGroupItem(
-    scene: SceneItem,
+    sceneNode: TreeValue<SceneItem>,
     hasDirtyBuffer: Set<Int>,
     onSceneAltClick: (SceneItem) -> Unit
 ) {
+    val (scene, children) = sceneNode
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                start = Ui.PADDING * (scene.parentPath.depth + 1)
+                start = Ui.PADDING * (sceneNode.depth + 1)
             )
     ) {
         Card(
@@ -210,7 +229,7 @@ fun SceneGroupItem(
                     //onLongClick = { onSceneAltClick(scene) }
                 ),
             elevation = Ui.ELEVATION,
-            backgroundColor = MaterialTheme.colors.secondary
+            backgroundColor = MaterialTheme.colors.secondaryVariant
         ) {
             Row(
                 modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
@@ -221,13 +240,13 @@ fun SceneGroupItem(
                     style = MaterialTheme.typography.body1
                 )
 
-                if (scene.children?.any { hasDirtyBuffer.contains(it.id) } == true) {
+                if (children.any { hasDirtyBuffer.contains(it.value.id) }) {
                     Text(
                         "Unsaved",
                         style = MaterialTheme.typography.subtitle1
                     )
                 }
-                if (scene.children.isNullOrEmpty()) {
+                if (children.isNullOrEmpty()) {
                     Button({ onSceneAltClick(scene) }) {
                         Text("X")
                     }
