@@ -1,6 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.tree
 
-interface TreeData<T> : Iterable<T> {
+/**
+ * A depth first tree, indexable as such:
+ *           1
+ *          / \
+ *         2   6
+ *        /|\   \
+ *       3 4 5   7
+ */
+interface TreeData<T> : Iterable<TreeNode<T>> {
     fun findOrNull(predicate: (T) -> Boolean): TreeNode<T>?
 
     @Throws(NodeNotFound::class)
@@ -18,8 +26,7 @@ interface TreeData<T> : Iterable<T> {
     fun hasChildRecursive(target: TreeNode<T>): Boolean
     fun numChildrenRecursive(): Int
 
-    fun toTreeValue(depth: Int): TreeValue<T>
-    fun toImmutableTree(): ImmutableTree<T>
+    fun toTreeValue(depth: Int, parentIndex: Int, yourIndex: Int): Pair<TreeValue<T>, Int>
     fun numChildrenImmedate(): Int
     fun print(depth: Int)
 }
@@ -118,54 +125,70 @@ data class TreeNode<T>(
         return hasChild
     }
 
-    override fun iterator(): Iterator<T> = NodeIterator(this)
+    override fun iterator(): Iterator<TreeNode<T>> = NodeIterator(this)
 
-    private class NodeIterator<T>(node: TreeNode<T>) : Iterator<T> {
+    private class NodeIterator<T>(private val node: TreeNode<T>) : Iterator<TreeNode<T>> {
 
-        private var internalIterator: MutableIterator<TreeNode<T>> = node.children.iterator()
-        private var currentChild: TreeNode<T>? = null
-        private var currentChildIterator: Iterator<T>? = null
+        private var hasServedSelf: Boolean = false
+
+        private var myChildrenIterator: Iterator<TreeNode<T>> = node.children.iterator()
+        private var currentChildIterator: Iterator<TreeNode<T>>? = null
 
         override fun hasNext(): Boolean {
-            return internalIterator.hasNext() || currentChildIterator?.hasNext() == true
+            return !hasServedSelf || myChildrenIterator.hasNext() || currentChildIterator?.hasNext() == true
         }
 
-        private fun advanceChild(): T {
-            val child = internalIterator.next()
-            currentChildIterator = child.iterator()
-            currentChild = child
-            return child.value
+        private fun advanceChildAndGetFirst(): TreeNode<T> {
+            val child: TreeNode<T> = myChildrenIterator.next()
+            val newIterator = child.iterator()
+            currentChildIterator = newIterator
+            return newIterator.next()
         }
 
-        override fun next(): T {
-            val childIterator = currentChildIterator
+        override fun next(): TreeNode<T> {
+            val currentIterator = currentChildIterator
 
-            // Boot strep
-            return if (currentChild == null && internalIterator.hasNext()) {
-                return advanceChild()
+            // Serve self
+            return if (!hasServedSelf) {
+                hasServedSelf = true
+                return node
             }
-            // Normal case
-            else if (childIterator != null) {
-                if (childIterator.hasNext()) {
-                    childIterator.next()
-                } else {
-                    advanceChild()
-                }
+            // Serve children Depth first
+            else if (currentIterator != null && currentIterator.hasNext()) {
+                return currentIterator.next()
+            }
+            // Now go breadth across your children
+            else if (myChildrenIterator.hasNext()) {
+                advanceChildAndGetFirst()
             } else {
                 throw IllegalStateException("No children left")
             }
         }
     }
 
-    override fun toTreeValue(depth: Int): TreeValue<T> {
+    override fun toTreeValue(
+        depth: Int,
+        parentIndex: Int,
+        yourIndex: Int
+    ): Pair<TreeValue<T>, Int> {
         val numChildren = numChildrenRecursive()
-        val childValues = children.map { it.toTreeValue(depth + 1) }.toSet()
-        return TreeValue(value, childValues, depth, numChildren)
-    }
 
-    override fun toImmutableTree(): ImmutableTree<T> {
-        val root = toTreeValue(0)
-        return ImmutableTree(root, root.totalChildren)
+        val childValues = mutableSetOf<TreeValue<T>>()
+        var nextIndex = yourIndex + 1
+        for (child in children) {
+            val (childValue, lastIndex) = child.toTreeValue(
+                depth = depth + 1,
+                parentIndex = yourIndex,
+                yourIndex = nextIndex
+            )
+            childValues.add(childValue)
+            nextIndex = lastIndex
+        }
+
+        return Pair(
+            TreeValue(value, yourIndex, parentIndex, childValues, depth, numChildren),
+            nextIndex
+        )
     }
 
     override fun numChildrenImmedate(): Int = children.size
@@ -253,11 +276,19 @@ class Tree<T> : TreeData<T> {
     override fun removeChild(child: TreeNode<T>) = treeRoot.removeChild(child)
     override fun hasImmediateChild(target: TreeNode<T>) = treeRoot.hasImmediateChild(target)
     override fun hasChildRecursive(target: TreeNode<T>) = treeRoot.hasChildRecursive(target)
-    override fun toTreeValue(depth: Int) = treeRoot.toTreeValue(depth)
-    override fun toImmutableTree() = treeRoot.toImmutableTree()
+    override fun toTreeValue(depth: Int, parentIndex: Int, yourIndex: Int) =
+        treeRoot.toTreeValue(depth, parentIndex, yourIndex)
+
     override fun numChildrenRecursive() = treeRoot.numChildrenRecursive()
     override fun numChildrenImmedate() = treeRoot.numChildrenImmedate()
     override fun print(depth: Int) = treeRoot.print(depth)
+
+    fun toImmutableTree(): ImmutableTree<T> {
+        val totalChildren = numChildrenRecursive()
+        val root = toTreeValue(0, -1, 0)
+
+        return ImmutableTree(root.first, totalChildren)
+    }
 
     fun print() = treeRoot.print(0)
 
@@ -271,6 +302,27 @@ class Tree<T> : TreeData<T> {
 
     override fun hashCode(): Int {
         return treeRoot.hashCode()
+    }
+
+    operator fun get(index: Int): TreeNode<T> {
+        val totalChildren = treeRoot.numChildrenRecursive() + 1
+        if (index >= totalChildren) {
+            throw IndexOutOfBoundsException()
+        } else {
+            var foundNode: TreeNode<T>? = null
+            for ((ii, node) in treeRoot.iterator().withIndex()) {
+                if (index == ii) {
+                    foundNode = node
+                    break
+                }
+            }
+
+            if (foundNode != null) {
+                return foundNode
+            } else {
+                throw IndexOutOfBoundsException()
+            }
+        }
     }
 }
 

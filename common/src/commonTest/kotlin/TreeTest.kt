@@ -52,18 +52,31 @@ class TreeTest {
     @Test
     fun `Tree Iterate`() {
         val tree = testTree()
-        val it = tree.iterator()
+        val it: Iterator<TreeNode<String>> = tree.iterator()
 
         assertTrue(it.hasNext())
-        assertEquals("1a", it.next())
+        assertEquals("0", it.next().value)
 
         assertTrue(it.hasNext())
-        assertEquals("2a", it.next())
+        assertEquals("1a", it.next().value)
 
         assertTrue(it.hasNext())
-        assertEquals("1b", it.next())
+        assertEquals("2a", it.next().value)
+
+        assertTrue(it.hasNext())
+        assertEquals("1b", it.next().value)
 
         assertFalse(it.hasNext())
+    }
+
+    @Test
+    fun `Tree By Index`() {
+        val tree = testTree()
+
+        assertEquals("0", tree[0].value)
+        assertEquals("1a", tree[1].value)
+        assertEquals("2a", tree[2].value)
+        assertEquals("1b", tree[3].value)
     }
 
     @Test
@@ -107,7 +120,22 @@ class TreeTest {
         while (treeIt.hasNext()) {
             val a = treeIt.next()
             val b = imTreeIt.next()
-            assertEquals(a, b.value)
+            assertEquals(a.value, b.value)
+        }
+    }
+
+    @Test
+    fun `Immutable Tree index validation`() {
+        val tree = testTree()
+        val imTree = tree.toImmutableTree()
+
+        imTree.print()
+
+        var curIndex = 0
+        for ((ii, node) in imTree.withIndex()) {
+            println("$ii -- " + node.value)
+            assertEquals(ii, node.index, "${node.value}")
+            ++curIndex
         }
     }
 }

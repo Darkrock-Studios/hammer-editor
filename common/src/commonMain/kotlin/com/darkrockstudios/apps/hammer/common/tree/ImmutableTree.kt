@@ -5,43 +5,47 @@ package com.darkrockstudios.apps.hammer.common.tree
  */
 data class TreeValue<T>(
     val value: T,
+    val index: Int,
+    val parent: Int,
     val children: Set<TreeValue<T>>,
     val depth: Int,
     val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
     override fun iterator(): Iterator<TreeValue<T>> = NodeIterator(this)
 
-    private class NodeIterator<T>(node: TreeValue<T>) : Iterator<TreeValue<T>> {
+    private class NodeIterator<T>(private val node: TreeValue<T>) : Iterator<TreeValue<T>> {
 
-        private var internalIterator: Iterator<TreeValue<T>> = node.children.iterator()
-        private var currentChild: TreeValue<T>? = null
+        private var hasServedSelf: Boolean = false
+
+        private var myChildrenIterator: Iterator<TreeValue<T>> = node.children.iterator()
         private var currentChildIterator: Iterator<TreeValue<T>>? = null
 
         override fun hasNext(): Boolean {
-            return internalIterator.hasNext() || currentChildIterator?.hasNext() == true
+            return !hasServedSelf || myChildrenIterator.hasNext() || currentChildIterator?.hasNext() == true
         }
 
-        private fun advanceChild(): TreeValue<T> {
-            val child: TreeValue<T> = internalIterator.next()
-            currentChildIterator = child.iterator()
-            currentChild = child
-            return child
+        private fun advanceChildAndGetFirst(): TreeValue<T> {
+            val child: TreeValue<T> = myChildrenIterator.next()
+            val newIterator = child.iterator()
+            currentChildIterator = newIterator
+            return newIterator.next()
         }
 
         override fun next(): TreeValue<T> {
-            val childIterator = currentChildIterator
+            val currentIterator = currentChildIterator
 
-            // Boot strep
-            return if (currentChild == null && internalIterator.hasNext()) {
-                return advanceChild()
+            // Serve self
+            return if (!hasServedSelf) {
+                hasServedSelf = true
+                return node
             }
-            // Normal case
-            else if (childIterator != null) {
-                if (childIterator.hasNext()) {
-                    childIterator.next()
-                } else {
-                    advanceChild()
-                }
+            // Serve children Depth first
+            else if (currentIterator != null && currentIterator.hasNext()) {
+                return currentIterator.next()
+            }
+            // Now go breadth across your children
+            else if (myChildrenIterator.hasNext()) {
+                advanceChildAndGetFirst()
             } else {
                 throw IllegalStateException("No children left")
             }
@@ -65,7 +69,7 @@ data class TreeValue<T>(
         repeat(depth) {
             str += " "
         }
-        str += "- " + value.toString()
+        str += "- [${index}]" + value.toString()
         println(str)
 
         children.forEach { it.print(depth + 1) }
