@@ -36,15 +36,12 @@ fun SceneListUi(
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
             if (summary != null) {
-                val newOrder = summary.sceneTree.toMutableList().apply {
-                    add(to.index, removeAt(from.index))
-                }
-                // TODO scene ID
-                //component.updateSceneOrder(newOrder)
+                component.updateSceneOrder(from = from.index, to = to.index)
             }
         },
         onDragEnd = { from, to ->
-            component.moveScene(from = from, to = to)
+            // TODO movescene
+            //component.moveScene(from = from, to = to)
         }
     )
 
@@ -66,7 +63,7 @@ fun SceneListUi(
         Row(
             modifier = Modifier.fillMaxWidth()
                 .wrapContentHeight()
-                .padding(vertical = 12.dp),
+                .padding(vertical = Ui.PADDING),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -75,6 +72,13 @@ fun SceneListUi(
                 style = MaterialTheme.typography.h5,
             )
         }
+
+        /*
+        SceneTree(
+            summary = summary,
+            modifier = Modifier.fillMaxHeight().fillMaxWidth()
+        )
+        */
 
         LazyColumn(
             state = reorderState.listState,
@@ -100,6 +104,7 @@ fun SceneListUi(
                 }
             }
         }
+
     }
 
     sceneDefDeleteTarget?.let { scene ->
@@ -121,7 +126,7 @@ fun ReorderableScene(
     sceneDefDeleteTarget: (SceneItem) -> Unit
 ) {
     val summary = state.scenes ?: return
-    val (scene: SceneItem, children: Set<TreeValue<SceneItem>>) = sceneNode
+    val scene: SceneItem = sceneNode.value
 
     ReorderableItem(reorderState, key = scene.id) { isDragging ->
         val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
@@ -211,7 +216,7 @@ fun SceneGroupItem(
     hasDirtyBuffer: Set<Int>,
     onSceneAltClick: (SceneItem) -> Unit
 ) {
-    val (scene, children) = sceneNode
+    val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 
     Row(
         modifier = Modifier
@@ -246,7 +251,7 @@ fun SceneGroupItem(
                         style = MaterialTheme.typography.subtitle1
                     )
                 }
-                if (children.isNullOrEmpty()) {
+                if (children.isEmpty()) {
                     Button({ onSceneAltClick(scene) }) {
                         Text("X")
                     }

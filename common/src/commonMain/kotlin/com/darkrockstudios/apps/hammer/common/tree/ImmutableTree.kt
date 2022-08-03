@@ -7,7 +7,7 @@ data class TreeValue<T>(
     val value: T,
     val index: Int,
     val parent: Int,
-    val children: Set<TreeValue<T>>,
+    val children: List<TreeValue<T>>,
     val depth: Int,
     val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
@@ -80,25 +80,18 @@ data class ImmutableTree<T>(
     val root: TreeValue<T>,
     val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
-    operator fun get(index: Int): TreeValue<T> {
-        if (index >= root.totalChildren) {
-            throw IndexOutOfBoundsException()
-        } else {
-            var foundNode: TreeValue<T>? = null
-            for ((ii, node) in root.iterator().withIndex()) {
-                if (index == ii) {
-                    foundNode = node
-                    break
-                }
-            }
+    private val nodeIndex: HashMap<Int, TreeValue<T>>
 
-            if (foundNode != null) {
-                return foundNode
-            } else {
-                throw IndexOutOfBoundsException()
-            }
+    init {
+        val newIndex = HashMap<Int, TreeValue<T>>()
+        for (treeValue in root) {
+            newIndex[treeValue.index] = treeValue
         }
+        nodeIndex = newIndex
     }
+
+    operator fun get(index: Int): TreeValue<T> =
+        nodeIndex[index] ?: throw IndexOutOfBoundsException()
 
     override fun iterator(): Iterator<TreeValue<T>> = root.iterator()
 

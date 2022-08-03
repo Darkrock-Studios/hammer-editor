@@ -175,16 +175,66 @@ class ProjectEditorRepositoryOkio(
         return scenePaths
     }
 
-    override fun updateSceneOrder() {
-        val scenePaths = getAllScenePathsOkio()
-        scenePaths.forEachIndexed { index, path ->
-            val scene = getSceneFromPath(path.toHPath())
-            val newOrderScene = scene.copy(order = index + 1)
-            val newPath = getSceneFilePath(newOrderScene).toOkioPath()
-            fileSystem.atomicMove(path, newPath)
+    fun getIndex(node: TreeNode<SceneItem>): Int {
+        return sceneTree.indexOf(node)
+    }
+
+    override fun updateSceneOrder(from: Int, to: Int) {
+        val targetNode = sceneTree[from]
+        targetNode.parent ?: throw IllegalStateException("Cannot move Root")
+
+        val toNode = sceneTree[to]
+        val newParent = if (toNode.value.type == SceneItem.Type.Group) {
+            toNode
+        } else {
+            toNode.parent ?: throw IllegalStateException("Parent cannot be null")
         }
 
-        reloadScenes()
+        if (newParent == targetNode) {
+            println("Can't add to self, skip")
+            return
+        }
+
+        val localIndexOfToNode = newParent.indexOfChild(toNode)
+        val subIndex = if (localIndexOfToNode > 0) {
+            localIndexOfToNode
+        } else {
+            0
+        }
+
+        /*
+        val previousNode = newParent.indexOf(toNode) - 1
+        previousNode.numChildrenRecursive()
+
+        val parentIndex = getIndex(newParent)
+        val subIndex = if(parentIndex == to) {
+            0
+        } else {
+            (to - parentIndex) - 1
+        }
+        */
+
+        println("Move: from $from to $to")
+
+        println("localIndexOfToNode: $localIndexOfToNode")
+        //println("parentIndex $parentIndex")
+        println("subIndex $subIndex")
+
+        println("Before Move:")
+        sceneTree.print()
+
+        newParent.insertChild(subIndex, targetNode)
+
+        println("After Move:")
+        sceneTree.print()
+
+        val imTree = sceneTree.toImmutableTree()
+
+        val newSummary = SceneSummary(
+            imTree,
+            getDirtyBufferIds()
+        )
+        reloadScenes(newSummary)
     }
 
     override fun moveScene(from: Int, to: Int) {
@@ -235,15 +285,25 @@ class ProjectEditorRepositoryOkio(
                 order = nextOrder,
             )
 
+            val newTreeNode = TreeNode(newSceneItem)
+            if (parent != null) {
+                val parentNode = sceneTree.find { it.id == parent.id }
+                parentNode.addChild(newTreeNode)
+            } else {
+                sceneTree.addChild(newTreeNode)
+            }
+
             val scenePath = getSceneFilePath(newSceneItem, true).toOkioPath()
             fileSystem.write(scenePath, true) {
                 writeUtf8("")
             }
 
             if (lastOrder.numDigits() < nextOrder.numDigits()) {
-                updateSceneOrder()
+                // TODO movescene
+                //updateSceneOrder()
             } else {
-                reloadScenes()
+                // TODO movescene
+                //reloadScenes()
             }
 
             newSceneItem
@@ -254,7 +314,8 @@ class ProjectEditorRepositoryOkio(
         val scenePath = getSceneFilePath(sceneDef).toOkioPath()
         return if (fileSystem.exists(scenePath)) {
             fileSystem.delete(scenePath)
-            updateSceneOrder()
+            // TODO movescene
+            //updateSceneOrder()
 
             true
         } else {

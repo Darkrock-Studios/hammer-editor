@@ -138,4 +138,15 @@ class TreeTest {
             ++curIndex
         }
     }
+
+    @Test
+    fun `Immutable Tree get by index`() {
+        val tree = testTree()
+        val imTree = tree.toImmutableTree()
+
+        assertEquals("0", imTree[0].value)
+        assertEquals("1a", imTree[1].value)
+        assertEquals("2a", imTree[2].value)
+        assertEquals("1b", imTree[3].value)
+    }
 }

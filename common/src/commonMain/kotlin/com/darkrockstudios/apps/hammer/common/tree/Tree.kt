@@ -21,6 +21,7 @@ interface TreeData<T> : Iterable<TreeNode<T>> {
     fun getBranch(excludeLeaf: Boolean = false, predicate: (T) -> Boolean): List<TreeNode<T>>
     fun getBranchOrNull(excludeLeaf: Boolean, predicate: (T) -> Boolean): List<TreeNode<T>>?
     fun addChild(child: TreeNode<T>)
+    fun insertChild(at: Int, child: TreeNode<T>)
     fun removeChild(child: TreeNode<T>): Boolean
     fun hasImmediateChild(target: TreeNode<T>): Boolean
     fun hasChildRecursive(target: TreeNode<T>): Boolean
@@ -29,12 +30,13 @@ interface TreeData<T> : Iterable<TreeNode<T>> {
     fun toTreeValue(depth: Int, parentIndex: Int, yourIndex: Int): Pair<TreeValue<T>, Int>
     fun numChildrenImmedate(): Int
     fun print(depth: Int)
+    fun indexOfChild(child: TreeNode<T>): Int
 }
 
 data class TreeNode<T>(
     val value: T,
-    private var parent: TreeNode<T>? = null,
-    private val children: MutableSet<TreeNode<T>> = mutableSetOf()
+    var parent: TreeNode<T>? = null,
+    private val children: MutableList<TreeNode<T>> = mutableListOf()
 ) : TreeData<T> {
 
     override fun findOrNull(predicate: (T) -> Boolean): TreeNode<T>? {
@@ -105,6 +107,14 @@ data class TreeNode<T>(
         children.add(child)
     }
 
+    override fun indexOfChild(child: TreeNode<T>): Int = children.indexOf(child)
+
+    override fun insertChild(at: Int, child: TreeNode<T>) {
+        child.parent?.removeChild(child)
+        child.parent = this
+        children.add(at, child)
+    }
+
     override fun removeChild(child: TreeNode<T>): Boolean {
         child.parent = null
         return children.remove(child)
@@ -173,7 +183,7 @@ data class TreeNode<T>(
     ): Pair<TreeValue<T>, Int> {
         val numChildren = numChildrenRecursive()
 
-        val childValues = mutableSetOf<TreeValue<T>>()
+        val childValues = mutableListOf<TreeValue<T>>()
         var nextIndex = yourIndex + 1
         for (child in children) {
             val (childValue, lastIndex) = child.toTreeValue(
@@ -248,6 +258,8 @@ class Tree<T> : TreeData<T> {
 
     fun root() = treeRoot
 
+    /*
+    // Eh... this does nothing
     fun move(target: TreeNode<T>, from: TreeNode<T>, to: TreeNode<T>): Boolean {
         return if (from.hasImmediateChild(target)) {
             from.removeChild(target)
@@ -257,6 +269,7 @@ class Tree<T> : TreeData<T> {
             false
         }
     }
+    */
 
     override fun iterator() = treeRoot.iterator()
     override fun findOrNull(predicate: (T) -> Boolean) = treeRoot.findOrNull(predicate)
@@ -324,6 +337,10 @@ class Tree<T> : TreeData<T> {
             }
         }
     }
+
+    override fun insertChild(at: Int, child: TreeNode<T>) = treeRoot.insertChild(at, child)
+
+    override fun indexOfChild(child: TreeNode<T>): Int = treeRoot.indexOfChild(child)
 }
 
 class NodeNotFound : IllegalStateException("Tree node not found")

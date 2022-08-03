@@ -137,7 +137,7 @@ abstract class ProjectEditorRepository(
     /**
      * Returns null if there are no scenes yet
      */
-    private fun findLastSceneId(): Int? = sceneTree.toList().maxByOrNull { it.id }?.id
+    private fun findLastSceneId(): Int? = sceneTree.toList().maxByOrNull { it.value.id }?.value?.id
 
     private fun setLastSceneId(lastSceneId: Int) {
         nextSceneId = lastSceneId + 1
@@ -170,7 +170,7 @@ abstract class ProjectEditorRepository(
     abstract fun storeTempSceneBuffer(sceneDef: SceneItem): Boolean
     abstract fun clearTempScene(sceneDef: SceneItem)
     abstract fun getLastOrderNumber(): Int
-    abstract fun updateSceneOrder()
+    abstract fun updateSceneOrder(from: Int, to: Int)
     abstract fun moveScene(from: Int, to: Int)
     abstract fun getSceneItemFromId(id: Int): SceneItem?
     abstract fun renameScene(sceneDef: SceneItem, newName: String)
@@ -182,8 +182,8 @@ abstract class ProjectEditorRepository(
         )
     }
 
-    protected fun reloadScenes() {
-        val scenes = getSceneSummaries()
+    protected fun reloadScenes(summary: SceneSummary? = null) {
+        val scenes = summary ?: getSceneSummaries()
         _sceneListChannel.tryEmit(scenes)
     }
 

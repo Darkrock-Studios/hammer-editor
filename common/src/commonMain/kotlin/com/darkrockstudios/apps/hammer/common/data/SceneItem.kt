@@ -10,12 +10,16 @@ data class SceneItem(
     val id: Int,
     val name: String,
     val order: Int,
-    //val scenePathSegments: ScenePathSegments
 ) : Parcelable {
     enum class Type { Scene, Group, Root }
 
     val isRootScene: Boolean
         get() = type == Type.Root
+
+    override fun toString(): String {
+        val idStr = id.toString().padStart(3, '0')
+        return "$idStr - $type - $order - $name"
+    }
 }
 
 @Parcelize
