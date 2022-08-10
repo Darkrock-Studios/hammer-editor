@@ -95,6 +95,56 @@ data class ImmutableTree<T>(
 
     override fun iterator(): Iterator<TreeValue<T>> = root.iterator()
 
+    fun indexOf(node: TreeValue<T>): Int {
+        var index: Int = -1
+        for ((ii, curNode) in iterator().withIndex()) {
+            if (node == curNode) {
+                index = ii
+                break
+            }
+        }
+        return index
+    }
+
+    fun indexOf(predicate: (T) -> Boolean): Int {
+        var index: Int = -1
+        for ((ii, node) in iterator().withIndex()) {
+            if (predicate(node.value)) {
+                index = ii
+                break
+            }
+        }
+        return index
+    }
+
+    fun findBy(predicate: (T) -> Boolean): TreeValue<T>? {
+        var item: TreeValue<T>? = null
+        for (node in iterator()) {
+            if (predicate(node.value)) {
+                item = node
+                break
+            }
+        }
+        return item
+    }
+
+    fun isAncestorOf(needleIndex: Int, leafIndex: Int): Boolean {
+        val leaf = get(leafIndex)
+
+        var parentIndex = leaf.parent
+        var isAncestor = false
+        while (parentIndex > -1 && !isAncestor) {
+            if (parentIndex == needleIndex) {
+                isAncestor = true
+            } else {
+                val myParent = get(parentIndex)
+                parentIndex = myParent.parent
+            }
+        }
+
+        return isAncestor
+    }
+
     fun print() {
         root.print(0)
     }
