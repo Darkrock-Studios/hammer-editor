@@ -189,6 +189,12 @@ fun SceneGroupItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .padding(
+                start = (Ui.PADDING * sceneNode.depth),
+                top = Ui.PADDING,
+                bottom = Ui.PADDING,
+                end = Ui.PADDING
+            )
             .clickable(onClick = toggleExpand),
         elevation = Ui.ELEVATION,
         backgroundColor = MaterialTheme.colors.secondaryVariant
