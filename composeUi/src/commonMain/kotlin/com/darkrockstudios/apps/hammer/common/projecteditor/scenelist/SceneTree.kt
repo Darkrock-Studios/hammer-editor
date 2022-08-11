@@ -101,8 +101,14 @@ fun SceneTree(
         val selectedIndex = summary.sceneTree.indexOf { it.id == selectedId }
         val insertBelowIndex = summary.sceneTree.indexOf { it.id == insertBelowId }
         if (selectedIndex > 0 && insertBelowIndex > 0 && selectedIndex != insertBelowIndex) {
-            Napier.d("moveItem from: $selectedIndex to: $insertBelowIndex")
-            moveItem(selectedIndex, insertBelowIndex)
+            if (insertBelowIndex < selectedIndex) {
+                val newIndex = insertBelowIndex + 1
+                if (newIndex != selectedIndex) {
+                    moveItem(selectedIndex, newIndex)
+                }
+            } else {
+                moveItem(selectedIndex, insertBelowIndex)
+            }
         }
 
         selectedId = -1
@@ -131,7 +137,7 @@ fun SceneTree(
         { childNode: TreeValue<SceneItem> ->
             dragModifier(
                 childNode = childNode,
-                summary = { summary },
+                summary = summary,
                 nodeLayouts = { nodeLayouts },
                 containerLayoutInfo = { containerLayoutInfo },
                 columnLayoutInfo = { columnLayoutInfo },
@@ -199,7 +205,7 @@ fun SceneTree(
 
 fun dragModifier(
     childNode: TreeValue<SceneItem>,
-    summary: () -> SceneSummary,
+    summary: SceneSummary,
     nodeLayouts: () -> HashMap<Int, LayoutCoordinates>,
     containerLayoutInfo: () -> LayoutCoordinates?,
     columnLayoutInfo: () -> LayoutCoordinates?,
@@ -236,7 +242,7 @@ fun dragModifier(
                     val insertBelowId = findItemId(
                         change.position,
                         nodeLayouts(),
-                        summary().sceneTree,
+                        summary.sceneTree,
                         selectedId(),
                         columnInfo
                     )
@@ -288,7 +294,7 @@ fun SceneTreeNode(
         collapsed = !collapsed
     }
 
-    var dragModifier = draggableFactory?.invoke(node) ?: Modifier
+    val dragModifier = draggableFactory?.invoke(node) ?: Modifier
     itemUi(node, toggleExpanded, dragModifier)
 
     AnimatedVisibility(visible = !collapsed) {
