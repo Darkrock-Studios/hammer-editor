@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,8 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private fun LayoutCoordinates.positionIn(ancestor: LayoutCoordinates): Offset {
@@ -99,24 +103,42 @@ fun SceneTree(
     }
 
     var columnLayoutInfo by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var containerLayoutInfo by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    var scrollJob by remember { mutableStateOf<Job?>(null) }
+    val autoScroll = { containerInfo: LayoutCoordinates, up: Boolean ->
+        if (scrollJob?.isActive != true) {
+            var scrollAmount: Float = containerInfo.size.height * .2f
+            if (up) {
+                scrollAmount *= -1f
+            }
+            scrollJob = coroutineScope.launch {
+                scrollState.animateScrollBy(scrollAmount)
+            }
+        }
+    }
 
     val draggableFactory = { childNode: TreeValue<SceneItem> ->
         dragModifier(
-            childNode,
-            summary,
-            nodeLayouts,
-            { columnLayoutInfo },
-            startDragging,
-            stopDragging,
-            { selectedId },
-            { offsetY },
-            scrollState.value,
-            initialScroll,
-            { offsetY += it }
+            childNode = childNode,
+            summary = summary,
+            nodeLayouts = nodeLayouts,
+            containerLayoutInfo = { containerLayoutInfo },
+            columnLayoutInfo = { columnLayoutInfo },
+            startDragging = startDragging,
+            stopDragging = stopDragging,
+            selectedId = { selectedId },
+            offsetY = { offsetY },
+            scrollState = { scrollState },
+            autoScroll = autoScroll,
+            initialScroll = initialScroll,
+            setOffsetY = { offsetY += it }
         ) { insertBelowId = it }
     }
 
-    Box {
+    Box(modifier = Modifier.onGloballyPositioned { coordinates ->
+        containerLayoutInfo = coordinates
+    }) {
         Column(
             modifier = modifier
                 .verticalScroll(scrollState)
@@ -168,12 +190,14 @@ fun dragModifier(
     childNode: TreeValue<SceneItem>,
     summary: SceneSummary,
     nodeLayouts: HashMap<Int, LayoutCoordinates>,
+    containerLayoutInfo: () -> LayoutCoordinates?,
     columnLayoutInfo: () -> LayoutCoordinates?,
     startDragging: (Int) -> Unit,
     stopDragging: () -> Unit,
     selectedId: () -> Int,
     offsetY: () -> Float,
-    scrollState: Int,
+    scrollState: (() -> ScrollState),
+    autoScroll: (container: LayoutCoordinates, up: Boolean) -> Unit,
     initialScroll: Int,
     setOffsetY: (offset: Float) -> Unit,
     setInsertBelowId: (insertBelowId: Int) -> Unit,
@@ -195,27 +219,33 @@ fun dragModifier(
                     setOffsetY(dragAmount.y)
                 }
 
-                columnLayoutInfo()?.let { rootCoords ->
+                val containerInfo = containerLayoutInfo()
+                val columnInfo = columnLayoutInfo()
+                if (containerInfo != null && columnInfo != null) {
                     val insertBelowId =
                         findItemId(
                             change.position,
                             nodeLayouts,
                             summary.sceneTree,
                             selectedId(),
-                            rootCoords
+                            columnInfo
                         )
                     setInsertBelowId(insertBelowId)
-                }
-                // Auto scroll test
-                /*
-                val bottomTenPercent = heightIs.value * .9f
-                if (change.position.y >= bottomTenPercent) {
-                    val tenPercent: Float = heightIs.value * .1f
-                    coroutineScope.launch {
-                        scrollState.animateScrollBy(tenPercent)
+
+                    // Auto scroll test
+                    nodeLayouts[childNode.value.id]?.let { layout ->
+                        val windowPos = layout.localToWindow(change.position)
+                        val localPos = containerInfo.windowToLocal(windowPos)
+
+                        val bottomTenPercent = containerInfo.size.height * .9f
+                        val topTenPercent = containerInfo.size.height * .1f
+                        if (localPos.y >= bottomTenPercent) {
+                            autoScroll(containerInfo, false)
+                        } else if (localPos.y <= topTenPercent) {
+                            autoScroll(containerInfo, true)
+                        }
                     }
                 }
-                */
             }
         }
 
@@ -223,7 +253,7 @@ fun dragModifier(
         draggable = draggable.offset {
             return@offset IntOffset(
                 x = 0,
-                y = offsetY().roundToInt() + (scrollState - initialScroll)
+                y = offsetY().roundToInt() + (scrollState().value - initialScroll)
             )
         }
     }

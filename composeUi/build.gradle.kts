@@ -41,7 +41,6 @@ kotlin {
                 api(compose.materialIconsExtended)
                 api("org.jetbrains.compose.ui:ui-text:$compose_version")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
-                api("org.burnoutcrew.composereorderable:reorderable:0.9.1")
                 api("com.darkrockstudios:richtexteditor:1.3.0")
             }
         }
