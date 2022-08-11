@@ -36,7 +36,7 @@ private fun LayoutCoordinates.positionIn(ancestor: LayoutCoordinates): Offset {
     return ancestor.windowToLocal(positionInWindow())
 }
 
-fun findItemId(
+private fun findItemId(
     dragOffset: Offset,
     layouts: HashMap<Int, LayoutCoordinates>,
     tree: ImmutableTree<SceneItem>,
@@ -74,18 +74,19 @@ fun findItemId(
 fun SceneTree(
     summary: SceneSummary?,
     modifier: Modifier,
+    moveItem: (from: Int, to: Int) -> Unit,
     itemUi: ItemUi
 ) {
     summary ?: return
 
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val nodeLayouts = remember { HashMap<Int, LayoutCoordinates>() }
-    var insertBelowId by remember { mutableStateOf(-1) }
+    val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
 
     var initialScroll by remember { mutableStateOf(0) }
     var offsetY by remember { mutableStateOf(0f) }
     var selectedId by remember { mutableStateOf(-1) }
+    var insertBelowId by remember { mutableStateOf(-1) }
 
     val startDragging = { id: Int ->
         if (selectedId == -1) {
@@ -96,6 +97,14 @@ fun SceneTree(
     }
     val stopDragging = {
         Napier.d("stopDragging")
+
+        val selectedIndex = summary.sceneTree.indexOf { it.id == selectedId }
+        val insertBelowIndex = summary.sceneTree.indexOf { it.id == insertBelowId }
+        if (selectedIndex > 0 && insertBelowIndex > 0 && selectedIndex != insertBelowIndex) {
+            Napier.d("moveItem from: $selectedIndex to: $insertBelowIndex")
+            moveItem(selectedIndex, insertBelowIndex)
+        }
+
         selectedId = -1
         offsetY = 0f
         initialScroll = 0
@@ -118,22 +127,24 @@ fun SceneTree(
         }
     }
 
-    val draggableFactory = { childNode: TreeValue<SceneItem> ->
-        dragModifier(
-            childNode = childNode,
-            summary = summary,
-            nodeLayouts = nodeLayouts,
-            containerLayoutInfo = { containerLayoutInfo },
-            columnLayoutInfo = { columnLayoutInfo },
-            startDragging = startDragging,
-            stopDragging = stopDragging,
-            selectedId = { selectedId },
-            offsetY = { offsetY },
-            scrollState = { scrollState },
-            autoScroll = autoScroll,
-            initialScroll = initialScroll,
-            setOffsetY = { offsetY += it }
-        ) { insertBelowId = it }
+    val draggableFactory = remember(summary.sceneTree) {
+        { childNode: TreeValue<SceneItem> ->
+            dragModifier(
+                childNode = childNode,
+                summary = { summary },
+                nodeLayouts = { nodeLayouts },
+                containerLayoutInfo = { containerLayoutInfo },
+                columnLayoutInfo = { columnLayoutInfo },
+                startDragging = startDragging,
+                stopDragging = stopDragging,
+                selectedId = { selectedId },
+                offsetY = { offsetY },
+                scrollState = { scrollState },
+                autoScroll = autoScroll,
+                initialScroll = { initialScroll },
+                setOffsetY = { offsetY += it }
+            ) { insertBelowId = it }
+        }
     }
 
     Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -148,7 +159,7 @@ fun SceneTree(
         ) {
             summary.sceneTree.root.children.forEach { childNode ->
                 SceneTreeNode(
-                    tree = childNode,
+                    node = childNode,
                     selectedId = selectedId,
                     draggableFactory = draggableFactory,
                     itemUi = itemUi
@@ -188,8 +199,8 @@ fun SceneTree(
 
 fun dragModifier(
     childNode: TreeValue<SceneItem>,
-    summary: SceneSummary,
-    nodeLayouts: HashMap<Int, LayoutCoordinates>,
+    summary: () -> SceneSummary,
+    nodeLayouts: () -> HashMap<Int, LayoutCoordinates>,
     containerLayoutInfo: () -> LayoutCoordinates?,
     columnLayoutInfo: () -> LayoutCoordinates?,
     startDragging: (Int) -> Unit,
@@ -198,15 +209,15 @@ fun dragModifier(
     offsetY: () -> Float,
     scrollState: (() -> ScrollState),
     autoScroll: (container: LayoutCoordinates, up: Boolean) -> Unit,
-    initialScroll: Int,
+    initialScroll: () -> Int,
     setOffsetY: (offset: Float) -> Unit,
     setInsertBelowId: (insertBelowId: Int) -> Unit,
 ): Modifier {
-    var draggable = Modifier
+    val draggable = Modifier
         .onGloballyPositioned { coordinates ->
-            nodeLayouts[childNode.value.id] = coordinates
+            nodeLayouts()[childNode.value.id] = coordinates
         }
-        .pointerInput(Unit) {
+        .pointerInput(childNode.value.id) {
             detectDragGestures(
                 onDragStart = {
                     startDragging(childNode.value.id)
@@ -215,25 +226,25 @@ fun dragModifier(
                     stopDragging()
                 }
             ) { change, dragAmount ->
-                if (selectedId() == childNode.value.id) {
+                if (childNode.value.id == selectedId()) {
                     setOffsetY(dragAmount.y)
                 }
 
                 val containerInfo = containerLayoutInfo()
                 val columnInfo = columnLayoutInfo()
                 if (containerInfo != null && columnInfo != null) {
-                    val insertBelowId =
-                        findItemId(
-                            change.position,
-                            nodeLayouts,
-                            summary.sceneTree,
-                            selectedId(),
-                            columnInfo
-                        )
+                    val insertBelowId = findItemId(
+                        change.position,
+                        nodeLayouts(),
+                        summary().sceneTree,
+                        selectedId(),
+                        columnInfo
+                    )
+
                     setInsertBelowId(insertBelowId)
 
                     // Auto scroll test
-                    nodeLayouts[childNode.value.id]?.let { layout ->
+                    nodeLayouts()[childNode.value.id]?.let { layout ->
                         val windowPos = layout.localToWindow(change.position)
                         val localPos = containerInfo.windowToLocal(windowPos)
 
@@ -248,22 +259,25 @@ fun dragModifier(
                 }
             }
         }
-
-    if (selectedId() == childNode.value.id) {
-        draggable = draggable.offset {
-            return@offset IntOffset(
-                x = 0,
-                y = offsetY().roundToInt() + (scrollState().value - initialScroll)
-            )
+        .offset {
+            if ((childNode.value.id == selectedId())) {
+                IntOffset(
+                    x = 0,
+                    y = offsetY().roundToInt() + (scrollState().value - initialScroll())
+                )
+            } else {
+                IntOffset.Zero
+            }
         }
-    }
+        .zIndex(if ((childNode.value.id == selectedId())) 2f else 1f)
+        .alpha(if ((childNode.value.id == selectedId())) 0.5f else 1f)
 
     return draggable
 }
 
 @Composable
 fun SceneTreeNode(
-    tree: TreeValue<SceneItem>,
+    node: TreeValue<SceneItem>,
     selectedId: Int,
     draggableFactory: ((TreeValue<SceneItem>) -> Modifier)?,
     itemUi: ItemUi
@@ -274,16 +288,13 @@ fun SceneTreeNode(
         collapsed = !collapsed
     }
 
-    var dragModifier = draggableFactory?.invoke(tree) ?: Modifier
-    if (tree.value.id == selectedId) {
-        dragModifier = dragModifier.zIndex(2f).alpha(0.5f)
-    }
-    itemUi(tree, toggleExpanded, dragModifier)
+    var dragModifier = draggableFactory?.invoke(node) ?: Modifier
+    itemUi(node, toggleExpanded, dragModifier)
 
     AnimatedVisibility(visible = !collapsed) {
-        tree.children.forEachIndexed { index, child ->
+        node.children.forEach { child ->
             SceneTreeNode(
-                tree = child,
+                node = child,
                 selectedId = selectedId,
                 draggableFactory = if (!collapsed) draggableFactory else null,
                 itemUi = itemUi,

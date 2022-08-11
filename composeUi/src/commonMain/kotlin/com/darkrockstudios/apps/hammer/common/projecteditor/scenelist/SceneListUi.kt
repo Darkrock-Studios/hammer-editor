@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
-import org.burnoutcrew.reorderable.*
+import io.github.aakira.napier.Napier
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -63,9 +63,13 @@ fun SceneListUi(
         }
 
         if (summary != null) {
+            Napier.d("-----=========== New scene tree")
             SceneTree(
                 summary = summary,
-                modifier = Modifier.fillMaxHeight().fillMaxWidth()
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(),
+                moveItem = { from, to ->
+                    component.updateSceneOrder(from = from, to = to)
+                }
             ) { sceneNode, toggleExpand, draggable ->
                 SceneNode(
                     sceneNode = sceneNode,
@@ -119,7 +123,7 @@ fun SceneNode(
     } else {
         SceneGroupItem(
             sceneNode = sceneNode,
-            modifier = draggable,
+            draggable = draggable,
             hasDirtyBuffer = summary.hasDirtyBuffer,
             toggleExpand = toggleExpand,
             onSceneAltClick = component::onSceneSelected,
@@ -160,7 +164,7 @@ fun SceneItem(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "Scene: ${scene.name}",
+                "Scene: ${scene.id} - ${scene.name}",
                 style = MaterialTheme.typography.body1
             )
             if (hasDirtyBuffer) {
@@ -179,7 +183,7 @@ fun SceneItem(
 @Composable
 fun SceneGroupItem(
     sceneNode: TreeValue<SceneItem>,
-    modifier: Modifier,
+    draggable: Modifier,
     hasDirtyBuffer: Set<Int>,
     toggleExpand: () -> Unit,
     onSceneAltClick: (SceneItem) -> Unit,
@@ -187,7 +191,7 @@ fun SceneGroupItem(
     val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 
     Card(
-        modifier = modifier
+        modifier = draggable
             .fillMaxWidth()
             .padding(
                 start = (Ui.PADDING * sceneNode.depth),
