@@ -146,7 +146,7 @@ fun SceneItem(
         modifier = draggable
             .fillMaxWidth()
             .padding(
-                start = (Ui.PADDING * depth),
+                start = (Ui.PADDING + (Ui.PADDING * (depth - 1) * 2)),
                 top = Ui.PADDING,
                 bottom = Ui.PADDING,
                 end = Ui.PADDING
@@ -194,7 +194,7 @@ fun SceneGroupItem(
         modifier = draggable
             .fillMaxWidth()
             .padding(
-                start = (Ui.PADDING * sceneNode.depth),
+                start = (Ui.PADDING + (Ui.PADDING * (sceneNode.depth - 1) * 2)),
                 top = Ui.PADDING,
                 bottom = Ui.PADDING,
                 end = Ui.PADDING

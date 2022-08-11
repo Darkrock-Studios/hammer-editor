@@ -82,6 +82,7 @@ fun SceneTree(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
+    val collapsedNodes by remember { mutableStateOf(HashMap<Int, Boolean>()) }
 
     var initialScroll by remember { mutableStateOf(0) }
     var offsetY by remember { mutableStateOf(0f) }
@@ -168,6 +169,7 @@ fun SceneTree(
                     node = childNode,
                     selectedId = selectedId,
                     draggableFactory = draggableFactory,
+                    collapsedNodes = collapsedNodes,
                     itemUi = itemUi
                 )
             }
@@ -286,24 +288,32 @@ fun SceneTreeNode(
     node: TreeValue<SceneItem>,
     selectedId: Int,
     draggableFactory: ((TreeValue<SceneItem>) -> Modifier)?,
-    itemUi: ItemUi
+    itemUi: ItemUi,
+    collapsedNodes: HashMap<Int, Boolean>
 ) {
-    var collapsed by remember { mutableStateOf(false) }
+    var collapsed by remember(node.value.id) {
+        mutableStateOf(
+            collapsedNodes[node.value.id] ?: false
+        )
+    }
 
     val toggleExpanded = {
-        collapsed = !collapsed
+        val collapse = !(collapsedNodes[node.value.id] ?: false)
+        collapsedNodes[node.value.id] = collapse
+        collapsed = collapse
     }
 
     val dragModifier = draggableFactory?.invoke(node) ?: Modifier
     itemUi(node, toggleExpanded, dragModifier)
 
-    AnimatedVisibility(visible = !collapsed) {
-        node.children.forEach { child ->
+    node.children.forEach { child ->
+        AnimatedVisibility(visible = !collapsed) {
             SceneTreeNode(
                 node = child,
                 selectedId = selectedId,
                 draggableFactory = if (!collapsed) draggableFactory else null,
                 itemUi = itemUi,
+                collapsedNodes = collapsedNodes,
             )
         }
     }
