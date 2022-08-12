@@ -23,6 +23,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
+import com.darkrockstudios.apps.hammer.common.data.InsertPosition
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
@@ -70,11 +72,74 @@ private fun findItemId(
     return foundItemId
 }
 
+private fun findInsertPosition(
+    dragOffset: Offset,
+    layouts: HashMap<Int, LayoutCoordinates>,
+    tree: ImmutableTree<SceneItem>,
+    selectedId: Int,
+    columnLayoutInfo: LayoutCoordinates
+): InsertPosition? {
+    val selectedItem = layouts[selectedId] ?: return null
+    val selectedLocalPos = selectedItem.positionIn(columnLayoutInfo)
+
+    val dragY = dragOffset.y + selectedLocalPos.y
+
+    val selectedItemIndex = tree.indexOf { it.id == selectedId }
+
+    var foundItemId: InsertPosition? = null
+    for ((id, layout) in layouts.entries) {
+        if (!layout.isAttached) continue
+
+        val size = layout.size
+        val itemPos = layout.positionIn(columnLayoutInfo)
+
+        if (id != selectedId && dragY >= itemPos.y && dragY <= (itemPos.y + size.height)) {
+            val leafGlobalIndex = tree.indexOf { it.id == id }
+            val isAncestorOf =
+                tree.isAncestorOf(needleIndex = selectedItemIndex, leafIndex = leafGlobalIndex)
+            if (!isAncestorOf) {
+                // Decide above or below
+                val halfHeight = size.height / 2f
+                val localY = dragY - itemPos.y
+                val before = localY < halfHeight
+
+                //Napier.d("$localY < $halfHeight = before: $before")
+
+                val leaf = tree[leafGlobalIndex]
+                // Leaf is a group
+                foundItemId = if (leaf.children.isNotEmpty()) {
+                    // Insert above group
+                    if (before) {
+                        val coords = tree.getCoordinatesFor(leaf)
+                        InsertPosition(coords, true)
+                    }
+                    // Insert as first item in group
+                    else {
+                        val coords = tree.getCoordinatesFor(leaf.children[0])
+                        InsertPosition(coords, true)
+                    }
+
+                }
+                // Leaf is just a leaf
+                else {
+                    val coords = tree.getCoordinatesFor(leaf)
+                    InsertPosition(coords, before)
+                }
+
+                //foundItemId = InsertPosition(coords, before)
+
+                break
+            }
+        }
+    }
+    return foundItemId
+}
+
 @Composable
 fun SceneTree(
     summary: SceneSummary?,
     modifier: Modifier,
-    moveItem: (from: Int, to: Int) -> Unit,
+    moveItem: (moveRequest: MoveRequest) -> Unit,
     itemUi: ItemUi
 ) {
     summary ?: return
@@ -87,7 +152,8 @@ fun SceneTree(
     var initialScroll by remember { mutableStateOf(0) }
     var offsetY by remember { mutableStateOf(0f) }
     var selectedId by remember { mutableStateOf(-1) }
-    var insertBelowId by remember { mutableStateOf(-1) }
+    var insertAt by remember { mutableStateOf<InsertPosition?>(null) }
+    var count by remember { mutableStateOf(0) }
 
     val startDragging = { id: Int ->
         if (selectedId == -1) {
@@ -99,23 +165,21 @@ fun SceneTree(
     val stopDragging = {
         Napier.d("stopDragging")
 
+        val insertPosition = insertAt
         val selectedIndex = summary.sceneTree.indexOf { it.id == selectedId }
-        val insertBelowIndex = summary.sceneTree.indexOf { it.id == insertBelowId }
-        if (selectedIndex > 0 && insertBelowIndex > 0 && selectedIndex != insertBelowIndex) {
-            if (insertBelowIndex < selectedIndex) {
-                val newIndex = insertBelowIndex + 1
-                if (newIndex != selectedIndex) {
-                    moveItem(selectedIndex, newIndex)
-                }
-            } else {
-                moveItem(selectedIndex, insertBelowIndex)
-            }
+        if (selectedIndex > 0 && insertPosition != null) {
+            val request = MoveRequest(
+                selectedId,
+                insertPosition
+            )
+            moveItem(request)
         }
 
         selectedId = -1
         offsetY = 0f
         initialScroll = 0
-        insertBelowId = -1
+        insertAt = null
+        count += 1
     }
 
     var columnLayoutInfo by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -134,24 +198,23 @@ fun SceneTree(
         }
     }
 
-    val draggableFactory = remember(summary.sceneTree) {
-        { childNode: TreeValue<SceneItem> ->
-            dragModifier(
-                childNode = childNode,
-                summary = summary,
-                nodeLayouts = { nodeLayouts },
-                containerLayoutInfo = { containerLayoutInfo },
-                columnLayoutInfo = { columnLayoutInfo },
-                startDragging = startDragging,
-                stopDragging = stopDragging,
-                selectedId = { selectedId },
-                offsetY = { offsetY },
-                scrollState = { scrollState },
-                autoScroll = autoScroll,
-                initialScroll = { initialScroll },
-                setOffsetY = { offsetY += it }
-            ) { insertBelowId = it }
-        }
+    val draggableFactory = { childNode: TreeValue<SceneItem> ->
+        dragModifier(
+            childNode = childNode,
+            summary = { summary },
+            nodeLayouts = { nodeLayouts },
+            containerLayoutInfo = { containerLayoutInfo },
+            columnLayoutInfo = { columnLayoutInfo },
+            startDragging = startDragging,
+            stopDragging = stopDragging,
+            selectedId = { selectedId },
+            offsetY = { offsetY },
+            scrollState = { scrollState },
+            autoScroll = autoScroll,
+            initialScroll = { initialScroll },
+            setOffsetY = { offsetY += it },
+            count = count,
+        ) { insertAt = it }
     }
 
     Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -176,14 +239,24 @@ fun SceneTree(
         }
 
         // Draw insert line
-        if (insertBelowId > -1) {
-            nodeLayouts[insertBelowId]?.let { insertBelowLayout ->
+        insertAt?.let { insertPos ->
+            val node = summary.sceneTree[insertPos.coords.globalIndex]
+            nodeLayouts[node.value.id]?.let { insertBelowLayout ->
 
-                val node = summary.sceneTree.findBy { it.id == insertBelowId }
-                val localOffset = columnLayoutInfo?.let { insertBelowLayout.positionIn(it) }
+                val localOffset = columnLayoutInfo?.let { columnInfo ->
+                    if (columnInfo.isAttached && insertBelowLayout.isAttached) {
+                        insertBelowLayout.positionIn(columnInfo)
+                    } else {
+                        null
+                    }
+                }
 
-                if (node != null && localOffset != null) {
-                    val lineY = localOffset.y + insertBelowLayout.size.height - scrollState.value
+                if (localOffset != null) {
+                    val lineY = if (insertPos.before) {
+                        localOffset.y - scrollState.value
+                    } else {
+                        localOffset.y + insertBelowLayout.size.height - scrollState.value
+                    }
 
                     val isGroup = node.totalChildren > 0
                     val nestingDept = if (isGroup) node.depth + 1 else node.depth
@@ -207,7 +280,7 @@ fun SceneTree(
 
 fun dragModifier(
     childNode: TreeValue<SceneItem>,
-    summary: SceneSummary,
+    summary: () -> SceneSummary,
     nodeLayouts: () -> HashMap<Int, LayoutCoordinates>,
     containerLayoutInfo: () -> LayoutCoordinates?,
     columnLayoutInfo: () -> LayoutCoordinates?,
@@ -215,17 +288,18 @@ fun dragModifier(
     stopDragging: () -> Unit,
     selectedId: () -> Int,
     offsetY: () -> Float,
-    scrollState: (() -> ScrollState),
+    scrollState: () -> ScrollState,
     autoScroll: (container: LayoutCoordinates, up: Boolean) -> Unit,
     initialScroll: () -> Int,
     setOffsetY: (offset: Float) -> Unit,
-    setInsertBelowId: (insertBelowId: Int) -> Unit,
+    count: Int,
+    setInsertAt: (insertAt: InsertPosition?) -> Unit,
 ): Modifier {
     val draggable = Modifier
         .onGloballyPositioned { coordinates ->
             nodeLayouts()[childNode.value.id] = coordinates
         }
-        .pointerInput(childNode.value.id) {
+        .pointerInput(count) {
             detectDragGestures(
                 onDragStart = {
                     startDragging(childNode.value.id)
@@ -241,15 +315,15 @@ fun dragModifier(
                 val containerInfo = containerLayoutInfo()
                 val columnInfo = columnLayoutInfo()
                 if (containerInfo != null && columnInfo != null) {
-                    val insertBelowId = findItemId(
+                    val insertPosition = findInsertPosition(
                         change.position,
                         nodeLayouts(),
-                        summary.sceneTree,
+                        summary().sceneTree,
                         selectedId(),
                         columnInfo
                     )
 
-                    setInsertBelowId(insertBelowId)
+                    setInsertAt(insertPosition)
 
                     // Auto scroll test
                     nodeLayouts()[childNode.value.id]?.let { layout ->

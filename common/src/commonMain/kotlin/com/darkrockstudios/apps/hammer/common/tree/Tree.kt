@@ -39,6 +39,12 @@ data class TreeNode<T>(
     private val children: MutableList<TreeNode<T>> = mutableListOf()
 ) : TreeData<T> {
 
+    operator fun get(index: Int): TreeNode<T> {
+        return children[index]
+    }
+
+    fun localIndexOf(child: TreeNode<T>): Int = children.indexOf(child)
+
     override fun findOrNull(predicate: (T) -> Boolean): TreeNode<T>? {
         var foundNode: TreeNode<T>? = null
         if (predicate(value)) {

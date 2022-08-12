@@ -43,21 +43,8 @@ class SceneListComponent(
         }
     }
 
-    override fun updateSceneOrder(from: Int, to: Int) {
-        projectEditor.updateSceneOrder(from, to)
-        /*
-        val tree = projectEditor.getSceneTree()
-        val from = tree[from]
-        val to = tree[to]
-
-        val group = if(to.value.type == SceneItem.Type.Group) {
-            to
-        } else {
-            //state.value.scenes?.sceneTree?.
-            //to.par
-        }
-*/
-        //_state.value = state.value.copy(scenes = scenes)
+    override fun updateSceneOrder(moveRequest: MoveRequest) {
+        projectEditor.updateSceneOrder(moveRequest)
     }
 
     override fun moveScene(from: Int, to: Int) {

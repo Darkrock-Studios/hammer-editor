@@ -179,54 +179,44 @@ class ProjectEditorRepositoryOkio(
         return sceneTree.indexOf(node)
     }
 
-    override fun updateSceneOrder(from: Int, to: Int) {
-        val targetNode = sceneTree[from]
-        targetNode.parent ?: throw IllegalStateException("Cannot move Root")
+    fun getIndex(sceneId: Int): Int {
+        return sceneTree.indexOfFirst { it.value.id == sceneId }
+    }
 
-        val toNode = sceneTree[to]
-        val newParent = if (toNode.value.type == SceneItem.Type.Group) {
-            toNode
+    override fun updateSceneOrder(moveRequest: MoveRequest) {
+        val fromNode = sceneTree.find { it.id == moveRequest.id }
+        val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
+        val insertIndex = moveRequest.position.coords.childLocalIndex
+
+        println(" Move $moveRequest")
+
+        val fromParent = fromNode.parent
+        val fromIndex = fromParent?.localIndexOf(fromNode) ?: -1
+
+        val finalIndex = if (fromIndex <= insertIndex) {
+            if (moveRequest.position.before) {
+                insertIndex - 1
+            } else {
+                insertIndex
+            }
         } else {
-            toNode.parent ?: throw IllegalStateException("Parent cannot be null")
+            if (moveRequest.position.before) {
+                insertIndex
+            } else {
+                insertIndex + 1
+            }
         }
 
-        if (newParent == targetNode) {
-            println("Can't add to self, skip")
-            return
-        }
-
-        val localIndexOfToNode = newParent.indexOfChild(toNode)
-        val subIndex = if (localIndexOfToNode > 0) {
-            localIndexOfToNode
-        } else {
-            0
-        }
+        toParentNode.insertChild(finalIndex, fromNode)
 
         /*
-        val previousNode = newParent.indexOf(toNode) - 1
-        previousNode.numChildrenRecursive()
-
-        val parentIndex = getIndex(newParent)
-        val subIndex = if(parentIndex == to) {
-            0
-        } else {
-            (to - parentIndex) - 1
-        }
-        */
-
-        println("Move: from $from to $to")
-
-        println("localIndexOfToNode: $localIndexOfToNode")
-        //println("parentIndex $parentIndex")
-        println("subIndex $subIndex")
-
+        // Move debugging
         println("Before Move:")
         sceneTree.print()
 
-        newParent.insertChild(subIndex, targetNode)
-
         println("After Move:")
         sceneTree.print()
+        */
 
         val imTree = sceneTree.toImmutableTree()
 

@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
-import io.github.aakira.napier.Napier
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -30,9 +29,6 @@ fun SceneListUi(
     var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
     val summary = state.scenes
-
-    //component.updateSceneOrder(from = from.index, to = to.index)
-    //component.moveScene(from = from, to = to)
 
     Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
         TextField(
@@ -63,13 +59,10 @@ fun SceneListUi(
         }
 
         if (summary != null) {
-            Napier.d("-----=========== New scene tree")
             SceneTree(
                 summary = summary,
-                modifier = Modifier.fillMaxHeight().fillMaxWidth(),
-                moveItem = { from, to ->
-                    component.updateSceneOrder(from = from, to = to)
-                }
+                modifier = Modifier.fillMaxSize(),
+                moveItem = component::updateSceneOrder
             ) { sceneNode, toggleExpand, draggable ->
                 SceneNode(
                     sceneNode = sceneNode,

@@ -57,10 +57,16 @@ data class TreeValue<T>(
     }
 
     override fun equals(other: Any?): Boolean {
-        return if (other is TreeNode<*>?) {
-            other?.value == value
-        } else {
-            false
+        return when {
+            this === other -> true
+            other is TreeValue<*> -> {
+                other.parent == parent &&
+                        other.index == index &&
+                        other.depth == depth &&
+                        other.value == value &&
+                        other.children == children
+            }
+            else -> false
         }
     }
 
@@ -145,7 +151,39 @@ data class ImmutableTree<T>(
         return isAncestor
     }
 
+    fun getCoordinatesFor(node: TreeValue<T>): NodeCoordinates {
+        return if (node == root) {
+            NodeCoordinates.Root
+        } else {
+            val parent = this[node.parent]
+            val childIndex = parent.children.indexOf(node)
+
+            NodeCoordinates(
+                globalIndex = node.index,
+                parentIndex = parent.index,
+                childLocalIndex = childIndex
+            )
+        }
+    }
+
+    fun getByCoordinates(coords: NodeCoordinates): TreeValue<T> {
+        return if (coords.isTreeRoot()) {
+            root
+        } else {
+            val parent = this[coords.parentIndex]
+            parent.children[coords.childLocalIndex]
+        }
+    }
+
     fun print() {
         root.print(0)
+    }
+}
+
+data class NodeCoordinates(val globalIndex: Int, val parentIndex: Int, val childLocalIndex: Int) {
+    fun isTreeRoot() = (parentIndex == -1) && (childLocalIndex == -1)
+
+    companion object {
+        val Root = NodeCoordinates(0, -1, -1)
     }
 }
