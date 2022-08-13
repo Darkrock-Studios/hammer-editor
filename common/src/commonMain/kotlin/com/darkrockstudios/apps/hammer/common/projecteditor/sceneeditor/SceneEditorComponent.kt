@@ -14,24 +14,24 @@ import org.koin.core.component.inject
 
 class SceneEditorComponent(
     componentContext: ComponentContext,
-    originalSceneDef: SceneDef,
+    originalSceneItem: SceneItem,
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val closeSceneEditor: () -> Unit
 ) : ComponentBase(componentContext), SceneEditor {
 
     private val projectRepository: ProjectRepository by inject()
-    private val projectEditor = projectRepository.getProjectEditor(originalSceneDef.projectDef)
+    private val projectEditor = projectRepository.getProjectEditor(originalSceneItem.projectDef)
 
-    private val _state = MutableValue(SceneEditor.State(sceneDef = originalSceneDef))
+    private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
     override val state: Value<SceneEditor.State> = _state
 
     override var lastDiscarded = MutableValue<Long>(0)
 
     private var bufferUpdateSubscription: Job? = null
 
-    private val sceneDef: SceneDef
-        get() = state.value.sceneDef
+    private val sceneDef: SceneItem
+        get() = state.value.sceneItem
 
     init {
         loadSceneContent()
@@ -67,7 +67,7 @@ class SceneEditorComponent(
     override fun onContentChanged(content: PlatformRichText) {
         projectEditor.onContentChanged(
             SceneContent(
-                sceneDef = sceneDef,
+                scene = sceneDef,
                 platformRepresentation = content
             )
         )
@@ -134,7 +134,7 @@ class SceneEditorComponent(
 
         _state.reduce {
             it.copy(
-                sceneDef = it.sceneDef.copy(name = newName)
+                sceneItem = it.sceneItem.copy(name = newName)
             )
         }
     }

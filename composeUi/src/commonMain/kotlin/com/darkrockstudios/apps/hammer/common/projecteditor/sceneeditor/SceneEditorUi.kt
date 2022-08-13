@@ -58,7 +58,7 @@ fun SceneEditorUi(
     Column(modifier = modifier) {
         Row {
             if (state.isEditingName) {
-                var editSceneNameValue by remember { mutableStateOf(state.sceneDef.name) }
+                var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
 
                 TextField(
                     value = editSceneNameValue,
@@ -74,7 +74,7 @@ fun SceneEditorUi(
                 }
             } else {
                 ClickableText(
-                    AnnotatedString("Scene: ${state.sceneDef.name}"),
+                    AnnotatedString("Scene: ${state.sceneItem.name}"),
                     modifier = Modifier.padding(Ui.PADDING),
                     onClick = { component.beginSceneNameEdit() }
                 )

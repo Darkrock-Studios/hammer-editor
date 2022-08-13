@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 data class SceneContent(
-    val sceneDef: SceneDef,
+    val scene: SceneItem,
     val markdown: String? = null,
     val platformRepresentation: PlatformRichText? = null
 ) {
@@ -43,6 +43,13 @@ data class SceneContent(
         } else {
             false
         }
+    }
+
+    override fun hashCode(): Int {
+        var result = scene.hashCode()
+        result = 31 * result + (markdown?.hashCode() ?: 0)
+        result = 31 * result + (platformRepresentation?.hashCode() ?: 0)
+        return result
     }
 }
 

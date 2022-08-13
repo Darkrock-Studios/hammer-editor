@@ -14,8 +14,8 @@ import org.koin.core.component.inject
 class SceneListComponent(
     componentContext: ComponentContext,
     projectDef: ProjectDef,
-    selectedSceneDef: SharedFlow<SceneDef?>,
-    private val sceneSelected: (sceneDef: SceneDef) -> Unit
+    selectedSceneItem: SharedFlow<SceneItem?>,
+    private val sceneSelected: (sceneDef: SceneItem) -> Unit
 ) : ComponentBase(componentContext), SceneList {
 
     private val projectRepository: ProjectRepository by inject()
@@ -28,27 +28,23 @@ class SceneListComponent(
     init {
         Napier.d { "Project editor: " + projectEditor.projectDef.name }
 
-        selectedSceneDef.onEach { scene ->
-            _state.reduce { it.copy(selectedSceneDef = scene) }
+        selectedSceneItem.onEach { scene ->
+            _state.reduce { it.copy(selectedSceneItem = scene) }
         }
 
         projectEditor.subscribeToSceneUpdates(scope, ::onSceneListUpdate)
         projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
     }
 
-    override fun onSceneSelected(sceneDef: SceneDef) {
+    override fun onSceneSelected(sceneDef: SceneItem) {
         sceneSelected(sceneDef)
         _state.reduce {
-            it.copy(selectedSceneDef = sceneDef)
+            it.copy(selectedSceneItem = sceneDef)
         }
     }
 
-    override fun updateSceneOrder(scenes: List<SceneSummary>) {
-        _state.value = state.value.copy(scenes = scenes)
-    }
-
-    override fun moveScene(from: Int, to: Int) {
-        projectEditor.moveScene(from, to)
+    override fun moveScene(moveRequest: MoveRequest) {
+        projectEditor.moveScene(moveRequest)
     }
 
     override fun loadScenes() {
@@ -59,22 +55,31 @@ class SceneListComponent(
     }
 
     override fun createScene(sceneName: String) {
-        val newSceneDef = projectEditor.createScene(sceneName)
-        if (newSceneDef != null) {
+        val newSceneItem = projectEditor.createScene(null, sceneName)
+        if (newSceneItem != null) {
             Napier.i("Scene created: $sceneName")
-            sceneSelected(newSceneDef)
+            sceneSelected(newSceneItem)
         } else {
             Napier.w("Failed to create Scene: $sceneName")
         }
     }
 
-    override fun deleteScene(sceneDef: SceneDef) {
+    override fun createGroup(groupName: String) {
+        val newSceneItem = projectEditor.createGroup(null, groupName)
+        if (newSceneItem != null) {
+            Napier.i("Group created: $groupName")
+        } else {
+            Napier.w("Failed to create Group: $groupName")
+        }
+    }
+
+    override fun deleteScene(sceneDef: SceneItem) {
         if (!projectEditor.deleteScene(sceneDef)) {
             Napier.e("Failed to delete Scene: ${sceneDef.id} - ${sceneDef.name}")
         }
     }
 
-    override fun onSceneListUpdate(scenes: List<SceneSummary>) {
+    override fun onSceneListUpdate(scenes: SceneSummary) {
         _state.reduce {
             it.copy(
                 scenes = scenes
@@ -83,13 +88,15 @@ class SceneListComponent(
     }
 
     override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
+        /*
         val currentSummary =
-            _state.value.scenes.find { it.sceneDef.id == sceneBuffer.content.sceneDef.id }
+            _state.value.scenes.sceneTree.find { it.id == sceneBuffer.content.scene.id }
+        val hasDirty = _state.value.scenes.hasDirtyBuffer.contains(sceneBuffer.content.scene.id)
 
-        if (currentSummary != null && currentSummary.hasDirtyBuffer != sceneBuffer.dirty) {
+        if (currentSummary != null && hasDirty != sceneBuffer.dirty) {
             _state.reduce {
                 val index = it.scenes.indexOfFirst { summary ->
-                    summary.sceneDef.id == sceneBuffer.content.sceneDef.id
+                    summary.sceneDef.id == sceneBuffer.content.scene.id
                 }
                 val oldSummary = it.scenes[index]
                 val newSummary = oldSummary.copy(hasDirtyBuffer = sceneBuffer.dirty)
@@ -99,5 +106,6 @@ class SceneListComponent(
                 it.copy(scenes = newList)
             }
         }
+        */
     }
 }

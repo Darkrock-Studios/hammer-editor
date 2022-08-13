@@ -9,7 +9,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.SceneDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
 
@@ -40,16 +40,16 @@ internal class DetailsRouter(
             )
         }
 
-    private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneDef): SceneEditor =
+    private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
         SceneEditorComponent(
             componentContext = componentContext,
-            originalSceneDef = sceneDef,
+            originalSceneItem = sceneDef,
             addMenu = addMenu,
             removeMenu = removeMenu,
             closeSceneEditor = closeDetails
         )
 
-    fun showScene(sceneDef: SceneDef) {
+    fun showScene(sceneDef: SceneItem) {
         router.navigate(
             transformer = { stack ->
                 stack.dropLastWhile { it is Config.SceneEditor }
@@ -74,6 +74,6 @@ internal class DetailsRouter(
         object None : Config()
 
         @Parcelize
-        data class SceneEditor(val sceneDef: SceneDef) : Config()
+        data class SceneEditor(val sceneDef: SceneItem) : Config()
     }
 }
