@@ -16,6 +16,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
