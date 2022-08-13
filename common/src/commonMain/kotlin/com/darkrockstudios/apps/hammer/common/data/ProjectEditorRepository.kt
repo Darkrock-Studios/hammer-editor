@@ -170,8 +170,8 @@ abstract class ProjectEditorRepository(
     abstract fun storeTempSceneBuffer(sceneDef: SceneItem): Boolean
     abstract fun clearTempScene(sceneDef: SceneItem)
     abstract fun getLastOrderNumber(): Int
-    abstract fun updateSceneOrder(moveRequest: MoveRequest)
-    abstract fun moveScene(from: Int, to: Int)
+    abstract fun updateSceneOrder(parentId: Int)
+    abstract fun moveScene(moveRequest: MoveRequest)
     abstract fun getSceneItemFromId(id: Int): SceneItem?
     abstract fun renameScene(sceneDef: SceneItem, newName: String)
 

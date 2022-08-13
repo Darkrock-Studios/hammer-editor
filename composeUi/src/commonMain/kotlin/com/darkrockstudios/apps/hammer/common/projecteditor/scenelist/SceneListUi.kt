@@ -62,7 +62,7 @@ fun SceneListUi(
             SceneTree(
                 summary = summary,
                 modifier = Modifier.fillMaxSize(),
-                moveItem = component::updateSceneOrder
+                moveItem = component::moveScene
             ) { sceneNode, toggleExpand, draggable ->
                 SceneNode(
                     sceneNode = sceneNode,

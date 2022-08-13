@@ -97,7 +97,8 @@ class ProjectEditorRepositoryOkio(
     override fun getSceneFilePath(sceneId: Int): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
 
-        val pathSegments = sceneTree.getBranch { it.id == sceneId }
+        val branch = sceneTree.getBranch { it.id == sceneId }
+        val pathSegments = branch
             .map { node -> node.value }
             .filter { sceneItem -> !sceneItem.isRootScene }
             .map { sceneItem -> getSceneFileName(sceneItem) }
@@ -175,6 +176,14 @@ class ProjectEditorRepositoryOkio(
         return scenePaths
     }
 
+    private fun getGroupChildPathsById(root: Path): Map<Int, Path> {
+        return getScenePathsOkio(root)
+            .map { scenePath ->
+                val sceneId = getSceneIdFromFilename(scenePath.toHPath())
+                Pair(sceneId, scenePath)
+            }.associateBy({ it.first }, { it.second })
+    }
+
     fun getIndex(node: TreeNode<SceneItem>): Int {
         return sceneTree.indexOf(node)
     }
@@ -183,7 +192,7 @@ class ProjectEditorRepositoryOkio(
         return sceneTree.indexOfFirst { it.value.id == sceneId }
     }
 
-    override fun updateSceneOrder(moveRequest: MoveRequest) {
+    private fun updateSceneTreeForMove(moveRequest: MoveRequest) {
         val fromNode = sceneTree.find { it.id == moveRequest.id }
         val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
         val insertIndex = moveRequest.position.coords.childLocalIndex
@@ -217,7 +226,48 @@ class ProjectEditorRepositoryOkio(
         println("After Move:")
         sceneTree.print()
         */
+    }
 
+    override fun moveScene(moveRequest: MoveRequest) {
+        val originalFromPath = getSceneFilePath(moveRequest.id)
+
+        val fromNode = sceneTree.find { it.id == moveRequest.id }
+        val fromParentNode = fromNode.parent
+            ?: throw IllegalStateException("Item had no parent")
+        val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
+
+        val isMovingParents = (fromParentNode != toParentNode)
+
+        // Perform move inside tree
+        updateSceneTreeForMove(moveRequest)
+
+        // Moving from one parent to another
+        if (isMovingParents) {
+            // Move the file to it's new parent
+            val toPath = getSceneFilePath(moveRequest.id)
+
+            val fromParentPath = getSceneFilePath(fromParentNode.value.id)
+            val originalFromParentScenePaths = getGroupChildPathsById(fromParentPath.toOkioPath())
+            val originalFromNodePath = originalFromParentScenePaths[fromNode.value.id]
+                ?: throw IllegalStateException("From node wasn't where it's supposed to be")
+
+            fileSystem.atomicMove(
+                source = originalFromNodePath,
+                target = toPath.toOkioPath()
+            )
+
+            // Update new parents children
+            updateSceneOrder(toParentNode.value.id)
+
+            // Update original parents children
+            updateSceneOrder(fromParentNode.value.id)
+        }
+        // Moving inside same parent
+        else {
+            updateSceneOrder(toParentNode.value.id)
+        }
+
+        // Notify listeners of the new state of the tree
         val imTree = sceneTree.toImmutableTree()
 
         val newSummary = SceneSummary(
@@ -227,29 +277,24 @@ class ProjectEditorRepositoryOkio(
         reloadScenes(newSummary)
     }
 
-    override fun moveScene(from: Int, to: Int) {
-        val scenePaths = getAllScenePathsOkio().toMutableList()
+    override fun updateSceneOrder(parentId: Int) {
+        val parent = sceneTree.find { it.id == parentId }
+        if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
-        val target = scenePaths.removeAt(from)
-        scenePaths.add(to, target)
+        val parentPath = getSceneFilePath(parent.value.id)
+        val existingSceneFiles = getGroupChildPathsById(parentPath.toOkioPath())
 
-        val tempPaths = scenePaths.map { path ->
-            val tempName = path.name + tempSuffix
-            val tempPath = path.parent!!.div(tempName)
+        var index = 0
+        parent.shallowIterator().forEach { childNode ->
+            childNode.value = childNode.value.copy(order = index)
 
-            fileSystem.atomicMove(source = path, target = tempPath)
+            val existingPath = existingSceneFiles[childNode.value.id]
+                ?: throw IllegalStateException("Scene wasn't present in directory")
+            val newPath = getSceneFilePath(childNode.value.id).toOkioPath()
 
-            tempPath
-        }
+            fileSystem.atomicMove(source = existingPath, target = newPath)
 
-        scenePaths.forEachIndexed { index, path ->
-            val originalScene = getSceneFromFilename(path.toHPath())
-            val newScene = originalScene.copy(order = index + 1)
-
-            val tempPath = tempPaths[index]
-            val targetPath = getSceneFilePath(newScene).toOkioPath()
-
-            fileSystem.atomicMove(source = tempPath, target = targetPath)
+            ++index
         }
 
         reloadScenes()

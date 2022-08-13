@@ -43,12 +43,8 @@ class SceneListComponent(
         }
     }
 
-    override fun updateSceneOrder(moveRequest: MoveRequest) {
-        projectEditor.updateSceneOrder(moveRequest)
-    }
-
-    override fun moveScene(from: Int, to: Int) {
-        projectEditor.moveScene(from, to)
+    override fun moveScene(moveRequest: MoveRequest) {
+        projectEditor.moveScene(moveRequest)
     }
 
     override fun loadScenes() {

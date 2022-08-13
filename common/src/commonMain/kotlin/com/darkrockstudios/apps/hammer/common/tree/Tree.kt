@@ -34,7 +34,7 @@ interface TreeData<T> : Iterable<TreeNode<T>> {
 }
 
 data class TreeNode<T>(
-    val value: T,
+    var value: T,
     var parent: TreeNode<T>? = null,
     private val children: MutableList<TreeNode<T>> = mutableListOf()
 ) : TreeData<T> {
@@ -142,6 +142,8 @@ data class TreeNode<T>(
     }
 
     override fun iterator(): Iterator<TreeNode<T>> = NodeIterator(this)
+
+    fun shallowIterator(): Iterator<TreeNode<T>> = children.iterator()
 
     private class NodeIterator<T>(private val node: TreeNode<T>) : Iterator<TreeNode<T>> {
 
@@ -253,6 +255,10 @@ data class TreeNode<T>(
 
         children.forEach { it.print(depth + 1) }
     }
+
+    override fun toString(): String {
+        return "TreeNode:\nValue: $value\nParent: ${parent?.value}\nChildren: ${children.size}"
+    }
 }
 
 class Tree<T> : TreeData<T> {
@@ -293,6 +299,7 @@ class Tree<T> : TreeData<T> {
 
     override fun addChild(child: TreeNode<T>) = treeRoot.addChild(child)
     override fun removeChild(child: TreeNode<T>) = treeRoot.removeChild(child)
+
     override fun hasImmediateChild(target: TreeNode<T>) = treeRoot.hasImmediateChild(target)
     override fun hasChildRecursive(target: TreeNode<T>) = treeRoot.hasChildRecursive(target)
     override fun toTreeValue(depth: Int, parentIndex: Int, yourIndex: Int) =
