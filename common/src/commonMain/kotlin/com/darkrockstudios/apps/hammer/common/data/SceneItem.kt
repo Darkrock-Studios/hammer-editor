@@ -20,6 +20,10 @@ data class SceneItem(
         val idStr = id.toString().padStart(3, '0')
         return "$idStr - $type - $order - $name"
     }
+
+    companion object {
+        const val ROOT_ID = 0
+    }
 }
 
 @Parcelize

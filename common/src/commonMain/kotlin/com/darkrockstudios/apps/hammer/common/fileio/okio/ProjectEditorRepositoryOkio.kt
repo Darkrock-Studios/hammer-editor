@@ -333,13 +333,12 @@ class ProjectEditorRepositoryOkio(
                 writeUtf8("")
             }
 
+            // If we need to increase the padding digits, update the file names
             if (lastOrder.numDigits() < nextOrder.numDigits()) {
-                // TODO movescene
-                //updateSceneOrder()
-            } else {
-                // TODO movescene
-                //reloadScenes()
+                updateSceneOrder(parent?.id ?: SceneItem.ROOT_ID)
             }
+
+            reloadScenes()
 
             newSceneItem
         }
@@ -349,8 +348,15 @@ class ProjectEditorRepositoryOkio(
         val scenePath = getSceneFilePath(sceneDef).toOkioPath()
         return if (fileSystem.exists(scenePath)) {
             fileSystem.delete(scenePath)
-            // TODO movescene
-            //updateSceneOrder()
+
+            val sceneNode = getSceneNodeFromId(sceneDef.id)
+
+            sceneNode?.parent?.apply {
+                val parentId: Int = value.id
+                removeChild(sceneNode)
+
+                updateSceneOrder(parentId)
+            } ?: throw IllegalStateException("Deleted scene must have parent")
 
             true
         } else {
@@ -505,6 +511,10 @@ class ProjectEditorRepositoryOkio(
 
     override fun getSceneItemFromId(id: Int): SceneItem? {
         return sceneTree.findValueOrNull { it.id == id }
+    }
+
+    fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
+        return sceneTree.findOrNull { it.id == id }
     }
 
     override fun renameScene(sceneDef: SceneItem, newName: String) {

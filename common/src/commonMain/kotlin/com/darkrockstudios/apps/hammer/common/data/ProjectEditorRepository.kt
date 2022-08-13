@@ -22,7 +22,7 @@ abstract class ProjectEditorRepository(
     val rootScene = SceneItem(
         projectDef = projectDef,
         type = SceneItem.Type.Root,
-        id = 0,
+        id = SceneItem.ROOT_ID,
         name = "",
         order = 0
     )
