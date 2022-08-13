@@ -296,8 +296,6 @@ class ProjectEditorRepositoryOkio(
 
             ++index
         }
-
-        reloadScenes()
     }
 
     override fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
@@ -357,6 +355,8 @@ class ProjectEditorRepositoryOkio(
 
                 updateSceneOrder(parentId)
             } ?: throw IllegalStateException("Deleted scene must have parent")
+
+            reloadScenes()
 
             true
         } else {

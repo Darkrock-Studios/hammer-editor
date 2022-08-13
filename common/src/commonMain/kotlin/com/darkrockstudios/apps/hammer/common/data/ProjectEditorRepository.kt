@@ -51,6 +51,19 @@ abstract class ProjectEditorRepository(
 
     protected abstract fun loadSceneTree(): TreeNode<SceneItem>
 
+    // Runs through the whole tree and makes the scene order match the tree order
+    // this fixes changes that were made else where or possibly due to crashes
+    private fun cleanupSceneOrder() {
+        val groups = sceneTree.filter {
+            it.value.type == SceneItem.Type.Group ||
+                    it.value.type == SceneItem.Type.Root
+        }
+
+        groups.forEach { node ->
+            updateSceneOrder(node.value.id)
+        }
+    }
+
     fun subscribeToBufferUpdates(
         sceneDef: SceneItem?,
         scope: CoroutineScope,
@@ -103,6 +116,8 @@ abstract class ProjectEditorRepository(
     fun initializeProjectEditor() {
         val root = loadSceneTree()
         sceneTree.setRoot(root)
+
+        cleanupSceneOrder()
 
         val lastSceneId = findLastSceneId()
         if (lastSceneId != null) {
