@@ -64,6 +64,15 @@ class SceneListComponent(
         }
     }
 
+    override fun createGroup(groupName: String) {
+        val newSceneItem = projectEditor.createGroup(null, groupName)
+        if (newSceneItem != null) {
+            Napier.i("Group created: $groupName")
+        } else {
+            Napier.w("Failed to create Group: $groupName")
+        }
+    }
+
     override fun deleteScene(sceneDef: SceneItem) {
         if (!projectEditor.deleteScene(sceneDef)) {
             Napier.e("Failed to delete Scene: ${sceneDef.id} - ${sceneDef.name}")

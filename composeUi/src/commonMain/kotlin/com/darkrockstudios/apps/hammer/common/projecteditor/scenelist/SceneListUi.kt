@@ -25,26 +25,37 @@ fun SceneListUi(
     modifier: Modifier = Modifier
 ) {
     val state by component.state.subscribeAsState()
-    var newSceneNameText by remember { mutableStateOf("") }
+    var newSceneItemNameText by remember { mutableStateOf("") }
     var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
     val summary = state.scenes
 
     Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
         TextField(
-            value = newSceneNameText,
-            onValueChange = { newSceneNameText = it },
+            value = newSceneItemNameText,
+            onValueChange = { newSceneItemNameText = it },
             label = { Text("New Scene Name") }
         )
-        ExtendedFloatingActionButton(
-            onClick = {
-                component.createScene(newSceneNameText)
-                newSceneNameText = ""
-            },
-            text = { Text("Create Scene") },
-            icon = { Icon(Icons.Filled.Add, "") },
-            modifier = Modifier.align(alignment = Alignment.End).padding(top = Ui.PADDING)
-        )
+        Row {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    component.createScene(newSceneItemNameText)
+                    newSceneItemNameText = ""
+                },
+                text = { Text("Create Scene") },
+                icon = { Icon(Icons.Filled.Add, "") },
+                modifier = Modifier.padding(top = Ui.PADDING)
+            )
+            ExtendedFloatingActionButton(
+                onClick = {
+                    component.createGroup(newSceneItemNameText)
+                    newSceneItemNameText = ""
+                },
+                text = { Text("Create Group") },
+                icon = { Icon(Icons.Filled.Add, "") },
+                modifier = Modifier.padding(top = Ui.PADDING)
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth()
                 .wrapContentHeight()

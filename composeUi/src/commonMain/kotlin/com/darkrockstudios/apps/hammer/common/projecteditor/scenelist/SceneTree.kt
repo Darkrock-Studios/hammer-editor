@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
@@ -107,7 +108,7 @@ private fun findInsertPosition(
 
                 val leaf = tree[leafGlobalIndex]
                 // Leaf is a group
-                foundItemId = if (leaf.children.isNotEmpty()) {
+                foundItemId = if (leaf.value.type.isCollection) {
                     // Insert above group
                     if (before) {
                         val coords = tree.getCoordinatesFor(leaf)
@@ -115,18 +116,26 @@ private fun findInsertPosition(
                     }
                     // Insert as first item in group
                     else {
-                        val coords = tree.getCoordinatesFor(leaf.children[0])
-                        InsertPosition(coords, true)
+                        if (leaf.children.isNotEmpty()) {
+                            val coords = tree.getCoordinatesFor(leaf.children[0])
+                            Napier.d(coords.toString())
+                            InsertPosition(coords, true)
+                        } else {
+                            val coords = NodeCoordinates(
+                                globalIndex = leaf.index + 1,
+                                parentIndex = leaf.index,
+                                childLocalIndex = 0
+                            )
+                            Napier.d(coords.toString())
+                            InsertPosition(coords, false)
+                        }
                     }
-
                 }
                 // Leaf is just a leaf
                 else {
                     val coords = tree.getCoordinatesFor(leaf)
                     InsertPosition(coords, before)
                 }
-
-                //foundItemId = InsertPosition(coords, before)
 
                 break
             }
@@ -240,7 +249,11 @@ fun SceneTree(
 
         // Draw insert line
         insertAt?.let { insertPos ->
-            val node = summary.sceneTree[insertPos.coords.globalIndex]
+            val node = if (summary.sceneTree.totalChildren <= insertPos.coords.globalIndex) {
+                summary.sceneTree.last()
+            } else {
+                summary.sceneTree[insertPos.coords.globalIndex]
+            }
             nodeLayouts[node.value.id]?.let { insertBelowLayout ->
 
                 val localOffset = columnLayoutInfo?.let { columnInfo ->
@@ -252,10 +265,17 @@ fun SceneTree(
                 }
 
                 if (localOffset != null) {
-                    val lineY = if (insertPos.before) {
-                        localOffset.y - scrollState.value
-                    } else {
+                    val lineY = if (node.value.type.isCollection
+                        && node.children.isEmpty()
+                        && !insertPos.before
+                    ) {
                         localOffset.y + insertBelowLayout.size.height - scrollState.value
+                    } else {
+                        if (insertPos.before) {
+                            localOffset.y - scrollState.value
+                        } else {
+                            localOffset.y + insertBelowLayout.size.height - scrollState.value
+                        }
                     }
 
                     val isGroup = node.totalChildren > 0

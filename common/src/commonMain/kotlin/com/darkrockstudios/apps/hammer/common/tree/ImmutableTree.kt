@@ -5,7 +5,9 @@ package com.darkrockstudios.apps.hammer.common.tree
  */
 data class TreeValue<T>(
     val value: T,
+    /** Global tree index */
     val index: Int,
+    /** Parent's global tree index */
     val parent: Int,
     val children: List<TreeValue<T>>,
     val depth: Int,

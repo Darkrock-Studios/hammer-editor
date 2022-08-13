@@ -11,7 +11,9 @@ data class SceneItem(
     val name: String,
     val order: Int,
 ) : Parcelable {
-    enum class Type { Scene, Group, Root }
+    enum class Type(val isCollection: Boolean) {
+        Scene(false), Group(true), Root(true)
+    }
 
     val isRootScene: Boolean
         get() = type == Type.Root

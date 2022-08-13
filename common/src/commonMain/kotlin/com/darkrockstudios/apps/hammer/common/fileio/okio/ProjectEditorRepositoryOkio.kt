@@ -202,17 +202,21 @@ class ProjectEditorRepositoryOkio(
         val fromParent = fromNode.parent
         val fromIndex = fromParent?.localIndexOf(fromNode) ?: -1
 
-        val finalIndex = if (fromIndex <= insertIndex) {
-            if (moveRequest.position.before) {
-                insertIndex - 1
-            } else {
-                insertIndex
-            }
+        val finalIndex = if (toParentNode.numChildrenImmedate() == 0) {
+            0
         } else {
-            if (moveRequest.position.before) {
-                insertIndex
+            if (fromIndex <= insertIndex) {
+                if (moveRequest.position.before) {
+                    insertIndex - 1
+                } else {
+                    insertIndex
+                }
             } else {
-                insertIndex + 1
+                if (moveRequest.position.before) {
+                    insertIndex
+                } else {
+                    insertIndex + 1
+                }
             }
         }
 
@@ -299,7 +303,15 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
-        val cleanedNamed = sceneName.trim()
+        return createSceneItem(parent, sceneName, false)
+    }
+
+    override fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
+        return createSceneItem(parent, groupName, true)
+    }
+
+    private fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
+        val cleanedNamed = name.trim()
 
         Napier.d("createScene: $cleanedNamed")
         return if (!validateSceneName(cleanedNamed)) {
@@ -309,10 +321,11 @@ class ProjectEditorRepositoryOkio(
             val lastOrder = getLastOrderNumber()
             val nextOrder = lastOrder + 1
             val sceneId = claimNextSceneId()
+            val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
             val newSceneItem = SceneItem(
                 projectDef = projectDef,
-                type = SceneItem.Type.Scene,
+                type = type,
                 id = sceneId,
                 name = cleanedNamed,
                 order = nextOrder,
@@ -327,8 +340,12 @@ class ProjectEditorRepositoryOkio(
             }
 
             val scenePath = getSceneFilePath(newSceneItem, true).toOkioPath()
-            fileSystem.write(scenePath, true) {
-                writeUtf8("")
+            if (type == SceneItem.Type.Group) {
+                fileSystem.createDirectory(scenePath, true)
+            } else {
+                fileSystem.write(scenePath, true) {
+                    writeUtf8("")
+                }
             }
 
             // If we need to increase the padding digits, update the file names
