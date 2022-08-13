@@ -197,7 +197,7 @@ class ProjectEditorRepositoryOkio(
         val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
         val insertIndex = moveRequest.position.coords.childLocalIndex
 
-        println(" Move $moveRequest")
+        Napier.d("Move Scene Item: $moveRequest")
 
         val fromParent = fromNode.parent
         val fromIndex = fromParent?.localIndexOf(fromNode) ?: -1
@@ -233,8 +233,6 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun moveScene(moveRequest: MoveRequest) {
-        val originalFromPath = getSceneFilePath(moveRequest.id)
-
         val fromNode = sceneTree.find { it.id == moveRequest.id }
         val fromParentNode = fromNode.parent
             ?: throw IllegalStateException("Item had no parent")
@@ -340,12 +338,12 @@ class ProjectEditorRepositoryOkio(
             }
 
             val scenePath = getSceneFilePath(newSceneItem, true).toOkioPath()
-            if (type == SceneItem.Type.Group) {
-                fileSystem.createDirectory(scenePath, true)
-            } else {
-                fileSystem.write(scenePath, true) {
+            when (type) {
+                SceneItem.Type.Scene -> fileSystem.write(scenePath, true) {
                     writeUtf8("")
                 }
+                SceneItem.Type.Group -> fileSystem.createDirectory(scenePath, true)
+                SceneItem.Type.Root -> throw IllegalArgumentException("Cannot create Root")
             }
 
             // If we need to increase the padding digits, update the file names
@@ -530,7 +528,7 @@ class ProjectEditorRepositoryOkio(
         return sceneTree.findValueOrNull { it.id == id }
     }
 
-    fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
+    private fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
         return sceneTree.findOrNull { it.id == id }
     }
 
