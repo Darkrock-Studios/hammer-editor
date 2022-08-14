@@ -7,6 +7,8 @@ val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val compose_version: String by extra
 val decompose_version: String by extra
+val mockk_version: String by extra
+val okio_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -47,6 +49,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
             }
         }
         val androidMain by getting

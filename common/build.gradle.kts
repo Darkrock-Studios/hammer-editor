@@ -12,6 +12,7 @@ val decompose_version: String by extra
 val koin_version: String by extra
 val okio_version: String by extra
 val essenty_version: String by extra
+val mockk_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -63,12 +64,13 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                //implementation("io.insert-koin:koin-test:3.2.0")
+                //implementation("io.insert-koin:koin-test:$koin_version")
+                implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
             }
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.appcompat:appcompat:1.4.2")
+                api("androidx.appcompat:appcompat:1.5.0")
                 api("androidx.core:core-ktx:1.8.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
                 api("io.insert-koin:koin-android:$koin_version")
@@ -92,7 +94,11 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
             }
         }
-        val desktopTest by getting
+        val desktopTest by getting {
+            dependencies {
+                implementation("io.mockk:mockk:$mockk_version")
+            }
+        }
     }
 }
 

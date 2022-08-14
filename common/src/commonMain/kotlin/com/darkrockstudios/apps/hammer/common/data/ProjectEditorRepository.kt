@@ -349,7 +349,7 @@ abstract class ProjectEditorRepository(
     }
 
     companion object {
-        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _]+)-(\d+)(\.md)?(?:\.temp)?""")
+        val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _']+)-(\d+)(\.md)?(?:\.temp)?""")
         val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
         const val SCENE_FILENAME_EXTENSION = ".md"
         const val SCENE_DIRECTORY = "scenes"
