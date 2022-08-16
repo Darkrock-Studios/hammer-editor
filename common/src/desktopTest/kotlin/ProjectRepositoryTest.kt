@@ -1,12 +1,9 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorFactory
+import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectRepositoryOkio
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.spyk
-import io.mockk.verify
+import io.mockk.*
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -17,6 +14,11 @@ import kotlin.test.assertTrue
 
 class ProjectRepositoryTest {
     private lateinit var ffs: FakeFileSystem
+    private lateinit var projectsRepo: ProjectsRepository
+    private lateinit var mockEditor: ProjectEditorRepositoryOkio
+    private lateinit var factory: ProjectEditorFactory
+    private val proj1Def = getProject1Def()
+    private lateinit var repo: ProjectRepositoryOkio
 
     @Before
     fun setup() {
@@ -26,6 +28,30 @@ class ProjectRepositoryTest {
 
         val projectsDir = getProjectsDirectory()
         ffs.createDirectory(projectsDir)
+
+        createProjectOne(ffs)
+
+        projectsRepo = mockk()
+
+        mockEditor = mockk()
+        justRun { mockEditor.initializeProjectEditor() }
+        justRun { mockEditor.close() }
+
+        factory = spyk(
+            object : ProjectEditorFactory {
+                override fun createEditor(
+                    projectDef: ProjectDef,
+                    projectsRepository: ProjectsRepository,
+                    fileSystem: FileSystem
+                ) = mockEditor
+            }
+        )
+
+        repo = ProjectRepositoryOkio(
+            fileSystem = ffs,
+            projectsRepository = projectsRepo,
+            projectEditorFactory = factory
+        )
     }
 
     @After
@@ -43,33 +69,45 @@ class ProjectRepositoryTest {
 
     @Test
     fun `Create Project Editor`() {
-        createProjectOne(ffs)
-
-        val projectsRepo: ProjectsRepository = mockk()
-        val proj1Def = getProject1Def()
-
-        val mockEditor: ProjectEditorRepository = mockk()
-        every { mockEditor.initializeProjectEditor() } returns Unit
-
-        val factory = spyk(
-            object : ProjectEditorFactory {
-                override fun createEditor(
-                    projectDef: ProjectDef,
-                    projectsRepository: ProjectsRepository,
-                    fileSystem: FileSystem
-                ) = mockEditor
-            }
-        )
-
-        val repo = ProjectRepositoryOkio(
-            fileSystem = ffs,
-            projectsRepository = projectsRepo,
-            projectEditorFactory = factory
-        )
-
         val editor = repo.getProjectEditor(proj1Def)
 
         verify { factory.createEditor(proj1Def, projectsRepo, ffs) }
         assertEquals(mockEditor, editor)
+    }
+
+    @Test
+    fun `Create Already Created Editor`() {
+        var editor = repo.getProjectEditor(proj1Def)
+
+        verify { factory.createEditor(proj1Def, projectsRepo, ffs) }
+        assertEquals(mockEditor, editor)
+
+        editor = repo.getProjectEditor(proj1Def)
+        verify { factory.createEditor(proj1Def, projectsRepo, ffs) wasNot Called }
+        assertEquals(mockEditor, editor)
+    }
+
+    @Test
+    fun `Close Editor`() {
+        repo.getProjectEditor(proj1Def)
+
+        assertEquals(1, repo.numActiveEditors())
+
+        repo.closeEditor(proj1Def)
+        verify { mockEditor.close() }
+
+        assertEquals(0, repo.numActiveEditors())
+    }
+
+    @Test
+    fun `Close Editors`() {
+        repo.getProjectEditor(proj1Def)
+
+        assertEquals(1, repo.numActiveEditors())
+
+        repo.closeEditors()
+        verify { mockEditor.close() }
+
+        assertEquals(0, repo.numActiveEditors())
     }
 }

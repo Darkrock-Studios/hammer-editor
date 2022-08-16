@@ -13,5 +13,10 @@ import org.koin.dsl.module
 val mainModule = module {
     single { getPlatformFilesystem() } bind FileSystem::class
     singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
-    singleOf(::ProjectRepositoryOkio) bind ProjectRepository::class
+    single {
+        ProjectRepositoryOkio(
+            fileSystem = get(),
+            projectsRepository = get()
+        )
+    } bind ProjectRepository::class
 }

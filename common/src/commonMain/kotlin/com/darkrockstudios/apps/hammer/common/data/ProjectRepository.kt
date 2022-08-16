@@ -5,6 +5,8 @@ abstract class ProjectRepository(
 ) {
     private val projectDefEditors = mutableMapOf<ProjectDef, ProjectEditorRepository>()
 
+    fun numActiveEditors(): Int = projectDefEditors.size
+
     fun getProjectEditor(projectDef: ProjectDef): ProjectEditorRepository {
         val existingEditor = projectDefEditors[projectDef]
         return if (existingEditor != null) {
