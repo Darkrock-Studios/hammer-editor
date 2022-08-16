@@ -1,14 +1,18 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import io.mockk.every
 import io.mockk.mockk
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
+import org.junit.After
 import org.junit.Before
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,19 +33,17 @@ class ProjectEditorRepositoryOkioTest {
 
     private fun populateProject(fs: FakeFileSystem) {
         fs.createDirectories(projectPath.toOkioPath())
-        val scenes = projectPath.toOkioPath().div("scenes")
-        fs.createDirectory(scenes)
+        scenesPath = projectPath.toOkioPath().div(ProjectEditorRepository.SCENE_DIRECTORY).toHPath()
+
+        fs.createDirectory(scenesPath.toOkioPath())
 
         sceneFiles.entries.forEach { (name, content) ->
-            val path = scenes.div(name)
+            val path = scenesPath.toOkioPath().div(name)
             fs.write(path) {
                 writeUtf8(content)
             }
         }
-
-        scenesPath = projectPath.toOkioPath().div("scenes").toHPath()
-
-        fs.createDirectory(scenesPath.toOkioPath())
+        assertEquals(sceneFiles.size, fs.list(scenesPath.toOkioPath()).size)
     }
 
     private fun scenePath(filename: String): HPath {
@@ -69,6 +71,11 @@ class ProjectEditorRepositoryOkioTest {
         )
     }
 
+    @After
+    fun tearDown() {
+        ffs.checkNoOpenFiles()
+    }
+
     @Test
     fun `Get filename`() {
         val repo = ProjectEditorRepositoryOkio(
@@ -82,6 +89,36 @@ class ProjectEditorRepositoryOkioTest {
         val sceneFilename = repo.getSceneFilename(scenePath)
         assertEquals(expectedFilename, sceneFilename)
     }
+
+    @Test
+    fun `Load Scene Tree`() {
+        val repo = ProjectEditorRepositoryOkio(
+            projectDef = projectDef,
+            projectsRepository = projectsRepo,
+            fileSystem = ffs
+        )
+
+        val sceneTree = callPrivate(repo, "loadSceneTree") as TreeNode<SceneItem>
+
+        assertEquals(3, sceneTree.numChildrenRecursive())
+        assertEquals(1, sceneTree[0].value.id)
+        assertEquals(2, sceneTree[1].value.id)
+        assertEquals(3, sceneTree[2].value.id)
+    }
+
+    @Test
+    fun `Init Editor`() {
+        val repo = ProjectEditorRepositoryOkio(
+            projectDef = projectDef,
+            projectsRepository = projectsRepo,
+            fileSystem = ffs
+        )
+
+        repo.initializeProjectEditor()
+
+        repo.close()
+    }
+
 
     companion object {
         const val PROJ_DIR = "HammerProjects"

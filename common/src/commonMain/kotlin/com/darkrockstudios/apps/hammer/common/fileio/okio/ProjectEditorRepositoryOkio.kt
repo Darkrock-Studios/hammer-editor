@@ -63,7 +63,9 @@ class ProjectEditorRepositoryOkio(
     override fun getSceneDirectory(): HPath {
         val projOkPath = projectDef.path.toOkioPath()
         val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
-        fileSystem.createDirectory(sceneDirPath)
+        if (!fileSystem.exists(sceneDirPath)) {
+            fileSystem.createDirectory(sceneDirPath)
+        }
         return sceneDirPath.toHPath()
     }
 
@@ -71,7 +73,9 @@ class ProjectEditorRepositoryOkio(
         val projOkPath = projectDef.path.toOkioPath()
         val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
         val bufferPathSegment = sceneDirPath.div(BUFFER_DIRECTORY)
-        fileSystem.createDirectory(bufferPathSegment)
+        if (!fileSystem.exists(bufferPathSegment)) {
+            fileSystem.createDirectory(bufferPathSegment)
+        }
         return bufferPathSegment.toHPath()
     }
 
@@ -125,6 +129,8 @@ class ProjectEditorRepositoryOkio(
     override fun loadSceneTree(): TreeNode<SceneItem> {
         val sceneDirPath = getSceneDirectory().toOkioPath()
         val rootNode = TreeNode(rootScene)
+
+        val x = fileSystem.list(sceneDirPath)
 
         val childNodes = fileSystem.list(sceneDirPath)
             .filter { it.name != BUFFER_DIRECTORY }

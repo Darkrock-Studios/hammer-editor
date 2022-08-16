@@ -134,7 +134,7 @@ class TreeTest {
         var curIndex = 0
         for ((ii, node) in imTree.withIndex()) {
             println("$ii -- " + node.value)
-            assertEquals(ii, node.index, "${node.value}")
+            assertEquals(ii, node.index, node.value)
             ++curIndex
         }
     }

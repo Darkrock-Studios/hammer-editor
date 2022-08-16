@@ -66,6 +66,7 @@ kotlin {
                 implementation(kotlin("test"))
                 //implementation("io.insert-koin:koin-test:$koin_version")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+                implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
             }
         }
         val androidMain by getting {
