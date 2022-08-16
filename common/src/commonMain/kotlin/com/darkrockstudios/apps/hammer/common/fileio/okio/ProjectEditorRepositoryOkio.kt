@@ -198,8 +198,8 @@ class ProjectEditorRepositoryOkio(
 
     private fun updateSceneTreeForMove(moveRequest: MoveRequest) {
         val fromNode = sceneTree.find { it.id == moveRequest.id }
-        val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
-        val insertIndex = moveRequest.position.coords.childLocalIndex
+        val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
+        val insertIndex = moveRequest.toPosition.coords.childLocalIndex
 
         Napier.d("Move Scene Item: $moveRequest")
 
@@ -210,13 +210,13 @@ class ProjectEditorRepositoryOkio(
             0
         } else {
             if (fromIndex <= insertIndex) {
-                if (moveRequest.position.before) {
+                if (moveRequest.toPosition.before) {
                     insertIndex - 1
                 } else {
                     insertIndex
                 }
             } else {
-                if (moveRequest.position.before) {
+                if (moveRequest.toPosition.before) {
                     insertIndex
                 } else {
                     insertIndex + 1
@@ -240,7 +240,7 @@ class ProjectEditorRepositoryOkio(
         val fromNode = sceneTree.find { it.id == moveRequest.id }
         val fromParentNode = fromNode.parent
             ?: throw IllegalStateException("Item had no parent")
-        val toParentNode = sceneTree[moveRequest.position.coords.parentIndex]
+        val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 
         val isMovingParents = (fromParentNode != toParentNode)
 

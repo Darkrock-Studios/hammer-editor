@@ -93,54 +93,135 @@ class ProjectEditorRepositoryOkioMoveTest {
         }
     }
 
-    @Test
-    fun `Move Scene Sibling, Higher to Lower`() {
+    private fun moveTest(
+        request: MoveRequest,
+        targetPosId: Int,
+        leafToVerify: Int,
+        print: Boolean,
+        vararg ids: Int
+    ) {
         val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-        val coords = NodeCoordinates(
-            parentIndex = 0,
-            childLocalIndex = 2,
-            globalIndex = 6
-        )
-        verifyCoords(tree, coords, 6)
-
-        val moveRequest = MoveRequest(
-            id = 1,
-            position = InsertPosition(
-                coords = coords,
-                before = false
-            )
-        )
-        repo.moveScene(moveRequest)
+        verifyCoords(tree, request.toPosition.coords, targetPosId)
+        repo.moveScene(request)
 
         val afterTree =
             repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
         // Initial Order: 1 2 6 7
-        verify(afterTree.root(), false, 2, 6, 1, 7)
+        verify(afterTree[leafToVerify], print, *ids)
     }
 
     @Test
-    fun `Move Scene Lower to Higher`() {
-        val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-        val coords = NodeCoordinates(
-            parentIndex = 0,
-            childLocalIndex = 0,
-            globalIndex = 1
-        )
-        verifyCoords(tree, coords, 1)
-
+    fun `Move Scene Sibling, Higher to Lower`() {
         val moveRequest = MoveRequest(
             id = 6,
-            position = InsertPosition(
-                coords = coords,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 0,
+                    childLocalIndex = 0,
+                    globalIndex = 1
+                ),
                 before = false
             )
         )
-        repo.moveScene(moveRequest)
+        moveTest(moveRequest, 1, 0, true, 1, 6, 2, 7)
+    }
 
-        // Initial Order: 1 2 6 7
-        val afterTree =
-            repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-        verify(afterTree.root(), false, 1, 6, 2, 7)
+    @Test
+    fun `Move Scene Lower to Higher, After`() {
+        val moveRequest = MoveRequest(
+            id = 1,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 0,
+                    childLocalIndex = 2,
+                    globalIndex = 6
+                ),
+                before = false
+            )
+        )
+        // Initial Order: 1, 2, 6, 7
+        moveTest(moveRequest, 6, 0, true, 2, 6, 1, 7)
+    }
+
+    @Test
+    fun `Move to Last, After`() {
+        val moveRequest = MoveRequest(
+            id = 1,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 0,
+                    childLocalIndex = 3,
+                    globalIndex = 7
+                ),
+                before = false
+            )
+        )
+        moveTest(moveRequest, 7, 0, false, 2, 6, 7, 1)
+    }
+
+    @Test
+    fun `Move to Last, Before`() {
+        val moveRequest = MoveRequest(
+            id = 1,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 0,
+                    childLocalIndex = 3,
+                    globalIndex = 7
+                ),
+                before = true
+            )
+        )
+        moveTest(moveRequest, 7, 0, false, 2, 6, 1, 7)
+    }
+
+    @Test
+    fun `Move Scene Lower to Higher, Before`() {
+        val moveRequest = MoveRequest(
+            id = 6,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 0,
+                    childLocalIndex = 0,
+                    globalIndex = 1
+                ),
+                before = true
+            )
+        )
+        moveTest(moveRequest, 1, 0, false, 6, 1, 2, 7)
+    }
+
+    @Test
+    fun `Move Scene Outter to Inner, After`() {
+        val moveRequest = MoveRequest(
+            id = 6,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 2,
+                    childLocalIndex = 0,
+                    globalIndex = 3
+                ),
+                before = false
+            )
+        )
+        moveTest(moveRequest, 3, 2, false, 3, 6, 4, 5)
+    }
+
+    @Test
+    fun `Move Scene Outter to Inner, Before`() {
+        val moveRequest = MoveRequest(
+            id = 6,
+            toPosition = InsertPosition(
+                coords = NodeCoordinates(
+                    parentIndex = 2,
+                    childLocalIndex = 0,
+                    globalIndex = 3
+                ),
+                before = true
+            )
+        )
+        // Initial Order: 3, 4, 5
+        moveTest(moveRequest, 3, 2, true, 6, 3, 4, 5)
     }
 
     companion object {
