@@ -143,7 +143,7 @@ data class TreeNode<T>(
 
     override fun iterator(): Iterator<TreeNode<T>> = NodeIterator(this)
 
-    fun shallowIterator(): Iterator<TreeNode<T>> = children.iterator()
+    fun children(): List<TreeNode<T>> = children
 
     private class NodeIterator<T>(private val node: TreeNode<T>) : Iterator<TreeNode<T>> {
 
@@ -250,7 +250,7 @@ data class TreeNode<T>(
         repeat(depth) {
             str += " "
         }
-        str += "- " + value.toString()
+        str += "* " + value.toString()
         println(str)
 
         children.forEach { it.print(depth + 1) }

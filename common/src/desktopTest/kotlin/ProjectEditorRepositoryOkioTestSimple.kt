@@ -14,10 +14,11 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
+import utils.callPrivate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ProjectEditorRepositoryOkioTest {
+class ProjectEditorRepositoryOkioTestSimple {
 
     private lateinit var ffs: FakeFileSystem
     private lateinit var projectPath: HPath
@@ -98,7 +99,7 @@ class ProjectEditorRepositoryOkioTest {
             fileSystem = ffs
         )
 
-        val sceneTree = callPrivate(repo, "loadSceneTree") as TreeNode<SceneItem>
+        val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
 
         assertEquals(3, sceneTree.numChildrenRecursive())
         assertEquals(1, sceneTree[0].value.id)
@@ -118,7 +119,6 @@ class ProjectEditorRepositoryOkioTest {
 
         repo.close()
     }
-
 
     companion object {
         const val PROJ_DIR = "HammerProjects"

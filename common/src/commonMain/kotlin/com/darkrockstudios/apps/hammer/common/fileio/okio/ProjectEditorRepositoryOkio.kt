@@ -130,8 +130,6 @@ class ProjectEditorRepositoryOkio(
         val sceneDirPath = getSceneDirectory().toOkioPath()
         val rootNode = TreeNode(rootScene)
 
-        val x = fileSystem.list(sceneDirPath)
-
         val childNodes = fileSystem.list(sceneDirPath)
             .filter { it.name != BUFFER_DIRECTORY }
             .filter { !it.name.endsWith(tempSuffix) }
@@ -292,17 +290,20 @@ class ProjectEditorRepositoryOkio(
         val parentPath = getSceneFilePath(parent.value.id)
         val existingSceneFiles = getGroupChildPathsById(parentPath.toOkioPath())
 
-        var index = 0
-        parent.shallowIterator().forEach { childNode ->
+        parent.children().forEachIndexed { index, childNode ->
             childNode.value = childNode.value.copy(order = index)
 
             val existingPath = existingSceneFiles[childNode.value.id]
                 ?: throw IllegalStateException("Scene wasn't present in directory")
             val newPath = getSceneFilePath(childNode.value.id).toOkioPath()
 
-            fileSystem.atomicMove(source = existingPath, target = newPath)
-
-            ++index
+            if (existingPath != newPath) {
+                try {
+                    fileSystem.atomicMove(source = existingPath, target = newPath)
+                } catch (e: IOException) {
+                    throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e.message}")
+                }
+            }
         }
     }
 

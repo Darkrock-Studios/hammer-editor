@@ -1,1 +1,0 @@
-Content of scene 4

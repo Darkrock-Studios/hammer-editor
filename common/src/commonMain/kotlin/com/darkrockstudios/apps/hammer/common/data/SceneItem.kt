@@ -19,8 +19,8 @@ data class SceneItem(
         get() = type == Type.Root
 
     override fun toString(): String {
-        val idStr = id.toString().padStart(3, '0')
-        return "$idStr - $type - $order - $name"
+        val orderStr = order.toString().padStart(3, '0')
+        return "$orderStr - $type - $id - $name"
     }
 
     companion object {
