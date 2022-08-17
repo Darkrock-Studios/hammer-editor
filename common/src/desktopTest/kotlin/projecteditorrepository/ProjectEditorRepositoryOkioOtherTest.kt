@@ -145,7 +145,6 @@ class ProjectEditorRepositoryOkioOtherTest {
         repo.initializeProjectEditor()
 
         val sceneName = "New Scene"
-
         val newScene = repo.createScene(null, sceneName)
         assertNull(newScene, "Scene should not have been created")
     }
@@ -161,7 +160,6 @@ class ProjectEditorRepositoryOkioOtherTest {
         verifyTreeAndFilesystem()
 
         val sceneName = "New Scene"
-
         val newScene = repo.createScene(null, sceneName)
         assertNotNull(newScene)
         assertEquals(sceneName, newScene.name, "Name was incorrect")
@@ -188,14 +186,56 @@ class ProjectEditorRepositoryOkioOtherTest {
         assertEquals("Chapter ID 2", group.name)
 
         val newScene = repo.createScene(group, sceneName)
-
-        repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree").print()
-
         assertNotNull(newScene)
         assertEquals(sceneName, newScene.name, "Name was incorrect")
         assertEquals(newScene.type, SceneItem.Type.Scene, "Should be scene")
         assertEquals(8, newScene.id, "ID was incorrect")
         assertEquals(3, newScene.order, "Order was incorrect")
+
+        verifyTreeAndFilesystem()
+    }
+
+    @Test
+    fun `Create Group, In Root`() {
+        configure(PROJECT_1_NAME)
+
+        every { projectsRepo.validateFileName(any()) } returns true
+
+        repo.initializeProjectEditor()
+        verifyTreeAndFilesystem()
+
+        val groupName = "New Group"
+        val newGroup = repo.createGroup(null, groupName)
+        assertNotNull(newGroup)
+        assertEquals(newGroup.type, SceneItem.Type.Group, "Should be group")
+        assertEquals(8, newGroup.id, "ID was incorrect")
+        assertEquals(4, newGroup.order, "Order was incorrect")
+
+        verifyTreeAndFilesystem()
+    }
+
+    @Test
+    fun `Create Group, In Group`() {
+        configure(PROJECT_1_NAME)
+
+        every { projectsRepo.validateFileName(any()) } returns true
+
+        repo.initializeProjectEditor()
+
+        verifyTreeAndFilesystem()
+
+        val groupName = "New Group"
+        val group = repo.getSceneItemFromId(2)
+        assertNotNull(group)
+        assertEquals("Chapter ID 2", group.name)
+
+        val newGroup = repo.createGroup(group, groupName)
+
+        assertNotNull(newGroup)
+        assertEquals(groupName, newGroup.name, "Name was incorrect")
+        assertEquals(newGroup.type, SceneItem.Type.Group, "Should be scene")
+        assertEquals(8, newGroup.id, "ID was incorrect")
+        assertEquals(3, newGroup.order, "Order was incorrect")
 
         verifyTreeAndFilesystem()
     }
