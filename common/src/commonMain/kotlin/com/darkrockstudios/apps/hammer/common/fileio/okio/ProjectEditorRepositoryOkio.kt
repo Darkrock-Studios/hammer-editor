@@ -79,16 +79,16 @@ class ProjectEditorRepositoryOkio(
         return bufferPathSegment.toHPath()
     }
 
-    override fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean): HPath {
+    override fun getSceneFilePath(scene: SceneItem, isNewScene: Boolean): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
 
-        val pathSegments = sceneTree.getBranch(true) { it.id == sceneItem.id }
+        val pathSegments = sceneTree.getBranch(true) { it.id == scene.id }
             .map { node -> node.value }
             .filter { scene -> !scene.isRootScene }
             .map { scene -> getSceneFileName(scene) }
             .toMutableList()
 
-        pathSegments.add(getSceneFileName(sceneItem, isNewScene))
+        pathSegments.add(getSceneFileName(scene, isNewScene))
 
         var fullPath: Path = scenePathSegment
         pathSegments.forEach { segment ->
@@ -364,24 +364,67 @@ class ProjectEditorRepositoryOkio(
         }
     }
 
-    override fun deleteScene(sceneDef: SceneItem): Boolean {
-        val scenePath = getSceneFilePath(sceneDef).toOkioPath()
-        return if (fileSystem.exists(scenePath)) {
-            fileSystem.delete(scenePath)
+    override fun deleteScene(scene: SceneItem): Boolean {
+        val scenePath = getSceneFilePath(scene).toOkioPath()
+        return try {
+            if (!fileSystem.exists(scenePath)) {
+                Napier.e("Tried to delete Scene, but file did not exist")
+                false
+            } else if (!fileSystem.metadata(scenePath).isRegularFile) {
+                Napier.e("Tried to delete Scene, but file was not File")
+                false
+            } else {
+                fileSystem.delete(scenePath)
 
-            val sceneNode = getSceneNodeFromId(sceneDef.id)
+                val sceneNode = getSceneNodeFromId(scene.id)
 
-            sceneNode?.parent?.apply {
-                val parentId: Int = value.id
-                removeChild(sceneNode)
+                sceneNode?.parent?.apply {
+                    val parentId: Int = value.id
+                    removeChild(sceneNode)
 
-                updateSceneOrder(parentId)
-            } ?: throw IllegalStateException("Deleted scene must have parent")
+                    updateSceneOrder(parentId)
+                } ?: throw IllegalStateException("Deleted scene must have parent")
 
-            reloadScenes()
+                reloadScenes()
 
-            true
-        } else {
+                true
+            }
+        } catch (e: IOException) {
+            Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
+            false
+        }
+    }
+
+    override fun deleteGroup(scene: SceneItem): Boolean {
+        val scenePath = getSceneFilePath(scene).toOkioPath()
+        return try {
+            if (!fileSystem.exists(scenePath)) {
+                Napier.e("Tried to delete Group, but file did not exist")
+                false
+            } else if (!fileSystem.metadata(scenePath).isDirectory) {
+                Napier.e("Tried to delete Group, but file was not Directory")
+                false
+            } else if (fileSystem.list(scenePath).isNotEmpty()) {
+                Napier.w("Tried to delete Group, but was not empty")
+                false
+            } else {
+                fileSystem.delete(scenePath)
+
+                val sceneNode = getSceneNodeFromId(scene.id)
+
+                sceneNode?.parent?.apply {
+                    val parentId: Int = value.id
+                    removeChild(sceneNode)
+
+                    updateSceneOrder(parentId)
+                } ?: throw IllegalStateException("Deleted scene must have parent")
+
+                reloadScenes()
+
+                true
+            }
+        } catch (e: IOException) {
+            Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
             false
         }
     }

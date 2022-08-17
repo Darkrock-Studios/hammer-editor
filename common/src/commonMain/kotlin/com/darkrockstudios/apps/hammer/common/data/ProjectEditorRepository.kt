@@ -170,11 +170,12 @@ abstract class ProjectEditorRepository(
     abstract fun getSceneFilePath(sceneId: Int): HPath
     abstract fun getSceneDirectory(): HPath
     abstract fun getSceneBufferDirectory(): HPath
-    abstract fun getSceneFilePath(sceneDef: SceneItem, isNewScene: Boolean = false): HPath
+    abstract fun getSceneFilePath(scene: SceneItem, isNewScene: Boolean = false): HPath
     abstract fun getSceneBufferTempPath(sceneDef: SceneItem): HPath
     abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
     abstract fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
-    abstract fun deleteScene(sceneDef: SceneItem): Boolean
+    abstract fun deleteScene(scene: SceneItem): Boolean
+    abstract fun deleteGroup(scene: SceneItem): Boolean
     abstract fun getScenes(): List<SceneItem>
     abstract fun getSceneTree(): ImmutableTree<SceneItem>
     abstract fun getScenes(root: HPath): List<SceneItem>

@@ -270,19 +270,6 @@ class Tree<T> : TreeData<T> {
 
     fun root() = treeRoot
 
-    /*
-    // Eh... this does nothing
-    fun move(target: TreeNode<T>, from: TreeNode<T>, to: TreeNode<T>): Boolean {
-        return if (from.hasImmediateChild(target)) {
-            from.removeChild(target)
-            to.addChild(target)
-            true
-        } else {
-            false
-        }
-    }
-    */
-
     override fun iterator() = treeRoot.iterator()
     override fun findOrNull(predicate: (T) -> Boolean) = treeRoot.findOrNull(predicate)
     override fun find(predicate: (T) -> Boolean) = treeRoot.find(predicate)

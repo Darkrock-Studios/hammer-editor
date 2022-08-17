@@ -2,6 +2,7 @@ package projecteditorrepository
 
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
+import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
@@ -41,6 +42,19 @@ class ProjectEditorRepositoryOkioOtherTest {
             val path = repo.getSceneFilePath(node.value.id)
             val fsScene = repo.getSceneFromPath(path)
             assertEquals(node.value, fsScene)
+        }
+
+        // Verify that order's match
+        verifyOrder(tree.root())
+    }
+
+    private fun verifyOrder(node: TreeNode<SceneItem>) {
+        if (node.children().isNotEmpty()) {
+            for (ii in 0 until node.numChildrenImmedate()) {
+                val child = node[ii]
+                assertEquals(ii, child.value.order, "Order incorrect for ID: ${child.value.id}")
+                verifyOrder(child)
+            }
         }
     }
 
@@ -238,5 +252,97 @@ class ProjectEditorRepositoryOkioOtherTest {
         assertEquals(3, newGroup.order, "Order was incorrect")
 
         verifyTreeAndFilesystem()
+    }
+
+    @Test
+    fun `Delete Scene, In Root`() {
+        configure(PROJECT_2_NAME)
+
+        repo.initializeProjectEditor()
+
+        val sceneId = 6
+        val scenePreDelete = repo.getSceneItemFromId(sceneId)
+        assertNotNull(scenePreDelete)
+
+        val scenePath = repo.getSceneFilePath(scenePreDelete)
+
+        val deleted = repo.deleteScene(scenePreDelete)
+        assertTrue(deleted)
+
+        assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
+
+        verifyTreeAndFilesystem()
+
+        val scenePostDelete = repo.getSceneItemFromId(sceneId)
+        assertNull(scenePostDelete, "Scene still existed in tree")
+    }
+
+    @Test
+    fun `Delete Scene, In Group`() {
+        configure(PROJECT_2_NAME)
+
+        repo.initializeProjectEditor()
+
+        val sceneId = 3
+        val scenePreDelete = repo.getSceneItemFromId(sceneId)
+        assertNotNull(scenePreDelete)
+
+        val scenePath = repo.getSceneFilePath(scenePreDelete)
+
+        val deleted = repo.deleteScene(scenePreDelete)
+        assertTrue(deleted)
+
+        assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
+
+        verifyTreeAndFilesystem()
+
+        val scenePostDelete = repo.getSceneItemFromId(sceneId)
+        assertNull(scenePostDelete, "Scene still existed in tree")
+    }
+
+    @Test
+    fun `Delete Group, In Root, With Children`() {
+        configure(PROJECT_2_NAME)
+
+        repo.initializeProjectEditor()
+
+        val groupId = 2
+        val groupPreDelete = repo.getSceneItemFromId(groupId)
+        assertNotNull(groupPreDelete)
+
+        val groupPath = repo.getSceneFilePath(groupPreDelete)
+
+        val deleted = repo.deleteGroup(groupPreDelete)
+        assertFalse(deleted)
+
+        assertTrue(ffs.exists(groupPath.toOkioPath()), "Group file was deleted")
+
+        verifyTreeAndFilesystem()
+
+        val groupPostDelete = repo.getSceneItemFromId(groupId)
+        assertNotNull(groupPostDelete, "Group no longer existed in tree")
+    }
+
+    @Test
+    fun `Delete Group, In Root, No Children`() {
+        configure(PROJECT_2_NAME)
+
+        repo.initializeProjectEditor()
+
+        val groupId = 8
+        val groupPreDelete = repo.getSceneItemFromId(groupId)
+        assertNotNull(groupPreDelete, "No group for ID: $groupId")
+
+        val groupPath = repo.getSceneFilePath(groupPreDelete)
+
+        val deleted = repo.deleteGroup(groupPreDelete)
+        assertTrue(deleted)
+
+        assertFalse(ffs.exists(groupPath.toOkioPath()), "Group file was not deleted")
+
+        verifyTreeAndFilesystem()
+
+        val groupPostDelete = repo.getSceneItemFromId(groupId)
+        assertNull(groupPostDelete, "Group still existed in tree")
     }
 }

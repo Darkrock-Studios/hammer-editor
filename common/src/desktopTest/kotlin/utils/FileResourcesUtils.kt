@@ -43,18 +43,16 @@ object FileResourcesUtils {
         val fromDir = File(dirURL.toURI())
 
         resFiles.forEach { sourceFile ->
-            val sourcePath = sourceFile.toPath().toOkioPath()
+            val relPath = sourceFile.toOkioPath().relativeTo(fromDir.toOkioPath())
+
+            var targetPath = to / from
+            relPath.segments.forEach { segment ->
+                targetPath /= segment
+            }
 
             if (sourceFile.isDirectory) {
-                ffs.createDirectories(sourcePath)
+                ffs.createDirectories(targetPath)
             } else {
-                val relPath = sourceFile.toOkioPath().relativeTo(fromDir.toOkioPath())
-
-                var targetPath = to / from
-                relPath.segments.forEach { segment ->
-                    targetPath /= segment
-                }
-
                 ffs.createDirectories(targetPath.parent!!)
 
                 ffs.write(targetPath.normalized(), false) {
