@@ -29,7 +29,7 @@ class ProjectRepositoryTest {
         val projectsDir = getProjectsDirectory()
         ffs.createDirectory(projectsDir)
 
-        createProjectOne(ffs)
+        createProject(ffs, PROJECT_1_NAME)
 
         projectsRepo = mockk()
 
@@ -61,7 +61,7 @@ class ProjectRepositoryTest {
 
     @Test
     fun `Test Proj 1 Setup`() {
-        createProjectOne(ffs)
+        createProject(ffs, PROJECT_1_NAME)
 
         val projPath = getProjectsDirectory().div(PROJECT_1_NAME)
         assertTrue(ffs.exists(projPath))

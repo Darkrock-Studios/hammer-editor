@@ -1,3 +1,6 @@
+package projecteditorrepository
+
+import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorRepositoryOkio
@@ -7,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
+import createProject
 import io.mockk.every
 import io.mockk.mockk
 import okio.Path.Companion.toPath
@@ -15,7 +19,10 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import utils.getPrivateProperty
+import verifyCoords
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ProjectEditorRepositoryOkioMoveTest {
 
@@ -25,7 +32,11 @@ class ProjectEditorRepositoryOkioMoveTest {
     private lateinit var projectDef: ProjectDef
     private lateinit var repo: ProjectEditorRepository
 
-    private fun verify(node: TreeNode<SceneItem>, print: Boolean = false, vararg ids: Int) {
+    private fun verify(
+        node: TreeNode<SceneItem>,
+        ffs: FakeFileSystem,
+        print: Boolean, vararg ids: Int
+    ) {
         assertEquals(ids.size, node.children().size)
 
         if (print) {
@@ -37,15 +48,23 @@ class ProjectEditorRepositoryOkioMoveTest {
         node.children().forEachIndexed { index, child ->
             assertEquals(index, child.value.order, "Out of order")
             assertEquals(ids[index], child.value.id, "IDs are out of order")
+
+            // Check mem to filesystem
+            val scenePath = repo.getSceneFilePath(child.value.id)
+            assertTrue(ffs.exists(scenePath.toOkioPath()))
         }
-    }
 
-    private fun verifyCoords(tree: Tree<SceneItem>, coords: NodeCoordinates, id: Int) {
-        val child = tree[coords.parentIndex].children()[coords.childLocalIndex]
-        assertEquals(id, child.value.id, "Node by coordinates did not match")
-
-        val byGlobal = tree[coords.globalIndex]
-        assertEquals(id, byGlobal.value.id, "Global Index did not match")
+        // Check file system to mem
+        val nodesById = node.children().associateBy({ it.value.id }, { it.value })
+        val scenePath = repo.getSceneFilePath(node.value.id)
+        ffs.list(scenePath.toOkioPath())
+            .filter { it.name != ProjectEditorRepository.BUFFER_DIRECTORY }
+            .sortedBy { it.name }.forEach { childPath ->
+                val sceneItem = repo.getSceneFromPath(childPath.toHPath())
+                val foundItem = nodesById[sceneItem.id]
+                assertNotNull(sceneItem, "File system scene didn't exist in tree")
+                assertEquals(foundItem, sceneItem, "File system scene didn't match tree scene")
+            }
     }
 
     @Before
@@ -66,7 +85,7 @@ class ProjectEditorRepositoryOkioMoveTest {
             path = projectPath
         )
 
-        createProjectOne(ffs)
+        createProject(ffs, PROJECT_1_NAME)
 
         repo = ProjectEditorRepositoryOkio(
             projectDef = projectDef,
@@ -106,8 +125,7 @@ class ProjectEditorRepositoryOkioMoveTest {
 
         val afterTree =
             repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-        // Initial Order: 1 2 6 7
-        verify(afterTree[leafToVerify], print, *ids)
+        verify(afterTree[leafToVerify], ffs, print, *ids)
     }
 
     @Test
@@ -123,7 +141,8 @@ class ProjectEditorRepositoryOkioMoveTest {
                 before = false
             )
         )
-        moveTest(moveRequest, 1, 0, true, 1, 6, 2, 7)
+        // Initial Order: 1 2 6 7
+        moveTest(moveRequest, 1, 0, false, 1, 6, 2, 7)
     }
 
     @Test
@@ -140,7 +159,7 @@ class ProjectEditorRepositoryOkioMoveTest {
             )
         )
         // Initial Order: 1, 2, 6, 7
-        moveTest(moveRequest, 6, 0, true, 2, 6, 1, 7)
+        moveTest(moveRequest, 6, 0, false, 2, 6, 1, 7)
     }
 
     @Test
@@ -221,7 +240,7 @@ class ProjectEditorRepositoryOkioMoveTest {
             )
         )
         // Initial Order: 3, 4, 5
-        moveTest(moveRequest, 3, 2, true, 6, 3, 4, 5)
+        moveTest(moveRequest, 3, 2, false, 6, 3, 4, 5)
     }
 
     companion object {

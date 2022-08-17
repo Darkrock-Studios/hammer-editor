@@ -1,13 +1,18 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.tree.Tree
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import utils.FileResourcesUtils
+import kotlin.test.assertEquals
 
 const val PROJECT_1_NAME = "Test Project 1"
+const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
 val projectNames = listOf(PROJECT_1_NAME, "Project 2", "Project 3")
 
 fun getProject1Def(): ProjectDef {
@@ -40,13 +45,28 @@ fun createProjectDirectories(ffs: FakeFileSystem) {
     }
 }
 
-fun createProjectOne(ffs: FakeFileSystem) {
+/**
+ * Create an in-mem project from a predefined resource
+ */
+fun createProject(ffs: FakeFileSystem, projectName: String) {
     val projDir = getProjectsDirectory()
     ffs.createDirectories(projDir)
 
     FileResourcesUtils.copyResourceFolderToFakeFileSystem(
-        PROJECT_1_NAME.toPath(),
+        projectName.toPath(),
         getProjectsDirectory(),
         ffs
     )
+}
+
+/**
+ * This just helps confirm you wrote the test correctly, figuring out the coords
+ * by hand can be tricky.
+ */
+fun verifyCoords(tree: Tree<SceneItem>, coords: NodeCoordinates, id: Int) {
+    val child = tree[coords.parentIndex].children()[coords.childLocalIndex]
+    assertEquals(id, child.value.id, "Node by coordinates did not match")
+
+    val byGlobal = tree[coords.globalIndex]
+    assertEquals(id, byGlobal.value.id, "Global Index did not match")
 }

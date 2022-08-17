@@ -79,16 +79,16 @@ class ProjectEditorRepositoryOkio(
         return bufferPathSegment.toHPath()
     }
 
-    override fun getSceneFilePath(sceneDef: SceneItem, isNewScene: Boolean): HPath {
+    override fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean): HPath {
         val scenePathSegment = getSceneDirectory().toOkioPath()
 
-        val pathSegments = sceneTree.getBranch(true) { it.id == sceneDef.id }
+        val pathSegments = sceneTree.getBranch(true) { it.id == sceneItem.id }
             .map { node -> node.value }
-            .filter { sceneItem -> !sceneItem.isRootScene }
-            .map { sceneItem -> getSceneFileName(sceneItem) }
+            .filter { scene -> !scene.isRootScene }
+            .map { scene -> getSceneFileName(scene) }
             .toMutableList()
 
-        pathSegments.add(getSceneFileName(sceneDef, isNewScene))
+        pathSegments.add(getSceneFileName(sceneItem, isNewScene))
 
         var fullPath: Path = scenePathSegment
         pathSegments.forEach { segment ->
@@ -323,7 +323,7 @@ class ProjectEditorRepositoryOkio(
             Napier.d("Invalid scene name")
             null
         } else {
-            val lastOrder = getLastOrderNumber()
+            val lastOrder = getLastOrderNumber(parent?.id)
             val nextOrder = lastOrder + 1
             val sceneId = claimNextSceneId()
             val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
@@ -523,20 +523,26 @@ class ProjectEditorRepositoryOkio(
         fileSystem.delete(path)
     }
 
-    override fun getLastOrderNumber(): Int {
-        val scenePath = getSceneDirectory().toOkioPath()
-        val numScenes = fileSystem.list(scenePath).count {
+    override fun getLastOrderNumber(parentPath: HPath): Int {
+        val numScenes = fileSystem.list(parentPath.toOkioPath()).count {
             fileSystem.metadataOrNull(it)?.isRegularFile == true
         }
         return numScenes
     }
 
-    override fun getSceneItemFromId(id: Int): SceneItem? {
-        return sceneTree.findValueOrNull { it.id == id }
-    }
+    override fun getLastOrderNumber(parentId: Int?): Int {
+        val parentPath: HPath = if (parentId != null && parentId != 0) {
+            val parentItem =
+                getSceneItemFromId(parentId) ?: throw IllegalStateException("Parent not found")
 
-    private fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
-        return sceneTree.findOrNull { it.id == id }
+            getSceneFilePath(parentItem)
+        } else {
+            getSceneDirectory()
+        }
+
+        val numScenes = fileSystem.list(parentPath.toOkioPath())
+            .count { it.name != BUFFER_DIRECTORY } - 1
+        return numScenes
     }
 
     override fun renameScene(sceneDef: SceneItem, newName: String) {

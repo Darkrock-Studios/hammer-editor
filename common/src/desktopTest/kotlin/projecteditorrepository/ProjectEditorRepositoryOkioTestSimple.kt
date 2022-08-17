@@ -1,3 +1,5 @@
+package projecteditorrepository
+
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository

@@ -185,10 +185,10 @@ abstract class ProjectEditorRepository(
     abstract fun storeSceneBuffer(sceneDef: SceneItem): Boolean
     abstract fun storeTempSceneBuffer(sceneDef: SceneItem): Boolean
     abstract fun clearTempScene(sceneDef: SceneItem)
-    abstract fun getLastOrderNumber(): Int
+    abstract fun getLastOrderNumber(parentId: Int?): Int
+    abstract fun getLastOrderNumber(parentPath: HPath): Int
     abstract fun updateSceneOrder(parentId: Int)
     abstract fun moveScene(moveRequest: MoveRequest)
-    abstract fun getSceneItemFromId(id: Int): SceneItem?
     abstract fun renameScene(sceneDef: SceneItem, newName: String)
 
     fun getSceneSummaries(): SceneSummary {
@@ -247,18 +247,27 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    private fun willNextSceneIncreaseMagnitude(): Boolean {
-        return getLastOrderNumber().numDigits() < (getLastOrderNumber() + 1).numDigits()
+    private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {
+        val lastOrder = getLastOrderNumber(parentId)
+        return lastOrder.numDigits() < (lastOrder + 1).numDigits()
     }
 
     fun getSceneFileName(
         sceneDef: SceneItem,
         isNewScene: Boolean = false
     ): String {
-        val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude()) {
-            getLastOrderNumber().numDigits() + 1
+        val parent = getSceneParentFromId(sceneDef.id)
+        val parentId: Int = if (parent == null || parent.isRootScene) {
+            rootScene.id
         } else {
-            getLastOrderNumber().numDigits()
+            parent.id
+        }
+        val parentPath = getSceneFilePath(parentId)
+
+        val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude(parentId)) {
+            getLastOrderNumber(parentPath).numDigits() + 1
+        } else {
+            getLastOrderNumber(parentPath).numDigits()
         }
 
         val order = sceneDef.order.toString().padStart(orderDigits, '0')
@@ -332,6 +341,18 @@ abstract class ProjectEditorRepository(
         } catch (e: IllegalStateException) {
             throw InvalidSceneFilename("Invalid filename", fileName)
         }
+    }
+
+    fun getSceneItemFromId(id: Int): SceneItem? {
+        return sceneTree.findValueOrNull { it.id == id }
+    }
+
+    protected fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
+        return sceneTree.findOrNull { it.id == id }
+    }
+
+    fun getSceneParentFromId(id: Int): SceneItem? {
+        return sceneTree.findOrNull { it.id == id }?.parent?.value
     }
 
     fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
