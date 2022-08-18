@@ -38,6 +38,8 @@ kotlin {
                 api(compose.preview)
                 api(compose.foundation)
                 api(compose.material)
+                api(compose.animation)
+                api(compose.animationGraphics)
                 //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
                 //api(compose.material3)
                 api(compose.materialIconsExtended)

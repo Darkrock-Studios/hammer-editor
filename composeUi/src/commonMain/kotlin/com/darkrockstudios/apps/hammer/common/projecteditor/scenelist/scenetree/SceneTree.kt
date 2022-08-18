@@ -143,6 +143,7 @@ fun SceneTree(
                 SceneTreeNode(
                     node = childNode,
                     selectedId = selectedId,
+                    parentCollapsed = false,
                     draggableFactory = draggableFactory,
                     collapsedNodes = collapsedNodes,
                     itemUi = itemUi

@@ -34,7 +34,11 @@ internal fun findInsertPosition(
         val size = layout.size
         val itemPos = layout.positionIn(columnLayoutInfo)
 
-        if (id != selectedId && dragY >= itemPos.y && dragY <= (itemPos.y + size.height)) {
+        if (id != selectedId
+            && dragY >= itemPos.y
+            && dragY <= (itemPos.y + size.height)
+        ) {
+
             val leafGlobalIndex = tree.indexOf { it.id == id }
             val isAncestorOf = tree.isAncestorOf(
                 needleIndex = selectedItemIndex,

@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 fun SceneTreeNode(
     node: TreeValue<SceneItem>,
     selectedId: Int,
+    parentCollapsed: Boolean,
     draggableFactory: ((TreeValue<SceneItem>) -> Modifier)?,
     itemUi: ItemUi,
     collapsedNodes: HashMap<Int, Boolean>
@@ -30,18 +31,19 @@ fun SceneTreeNode(
         collapsed = collapse
     }
 
-    val dragModifier = draggableFactory?.invoke(node) ?: Modifier
-    itemUi(node, toggleExpanded, dragModifier)
+    AnimatedVisibility(visible = !parentCollapsed) {
+        val dragModifier = draggableFactory?.invoke(node) ?: Modifier
+        itemUi(node, toggleExpanded, dragModifier)
+    }
 
     node.children.forEach { child ->
-        AnimatedVisibility(visible = !collapsed) {
-            SceneTreeNode(
-                node = child,
-                selectedId = selectedId,
-                draggableFactory = if (!collapsed) draggableFactory else null,
-                itemUi = itemUi,
-                collapsedNodes = collapsedNodes,
-            )
-        }
+        SceneTreeNode(
+            node = child,
+            selectedId = selectedId,
+            parentCollapsed = (collapsed || parentCollapsed),
+            draggableFactory = if (!collapsed) draggableFactory else null,
+            itemUi = itemUi,
+            collapsedNodes = collapsedNodes,
+        )
     }
 }
