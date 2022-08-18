@@ -181,8 +181,16 @@ data class ImmutableTree<T>(
         root.print(0)
     }
 
+    private var cachedHash: Int? = null
     override fun hashCode(): Int {
-        return root.hashCode() + totalChildren
+        val hash = cachedHash
+        return if (hash == null) {
+            val newHash = root.hashCode() + totalChildren
+            cachedHash = newHash
+            newHash
+        } else {
+            hash
+        }
     }
 
     override fun equals(other: Any?): Boolean {
