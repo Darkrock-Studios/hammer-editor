@@ -29,7 +29,7 @@ fun SceneListUi(
     var newSceneItemNameText by remember { mutableStateOf("") }
     var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
-    val summary = state.scenes
+    val summary = state.sceneSummary
 
     Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
         TextField(

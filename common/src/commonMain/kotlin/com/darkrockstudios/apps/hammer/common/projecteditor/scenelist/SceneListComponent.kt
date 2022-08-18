@@ -52,7 +52,7 @@ class SceneListComponent(
     override fun loadScenes() {
         _state.reduce {
             val scenes = projectEditor.getSceneSummaries()
-            it.copy(scenes = scenes)
+            it.copy(sceneSummary = scenes)
         }
     }
 
@@ -94,30 +94,26 @@ class SceneListComponent(
     override fun onSceneListUpdate(scenes: SceneSummary) {
         _state.reduce {
             it.copy(
-                scenes = scenes
+                sceneSummary = scenes
             )
         }
     }
 
     override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
-        /*
-        val currentSummary =
-            _state.value.scenes.sceneTree.find { it.id == sceneBuffer.content.scene.id }
-        val hasDirty = _state.value.scenes.hasDirtyBuffer.contains(sceneBuffer.content.scene.id)
-
-        if (currentSummary != null && hasDirty != sceneBuffer.dirty) {
-            _state.reduce {
-                val index = it.scenes.indexOfFirst { summary ->
-                    summary.sceneDef.id == sceneBuffer.content.scene.id
-                }
-                val oldSummary = it.scenes[index]
-                val newSummary = oldSummary.copy(hasDirtyBuffer = sceneBuffer.dirty)
-                val newList = it.scenes.toMutableList()
-                newList[index] = newSummary
-
-                it.copy(scenes = newList)
+        val oldSummary = _state.value.sceneSummary ?: return
+        _state.reduce { oldState ->
+            val updated = oldSummary.hasDirtyBuffer.toMutableSet()
+            if (sceneBuffer.dirty) {
+                updated.add(sceneBuffer.content.scene.id)
+            } else {
+                updated.remove(sceneBuffer.content.scene.id)
             }
+
+            oldState.copy(
+                sceneSummary = oldSummary.copy(
+                    hasDirtyBuffer = updated
+                )
+            )
         }
-        */
     }
 }

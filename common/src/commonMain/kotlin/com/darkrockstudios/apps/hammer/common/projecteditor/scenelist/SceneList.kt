@@ -8,7 +8,6 @@ interface SceneList : HammerComponent {
     val state: Value<State>
     fun onSceneSelected(sceneDef: SceneItem)
 
-    //fun updateSceneOrder(moveRequest: MoveRequest)
     fun moveScene(moveRequest: MoveRequest)
     fun loadScenes()
     fun createScene(sceneName: String)
@@ -21,6 +20,6 @@ interface SceneList : HammerComponent {
     data class State(
         val projectDef: ProjectDef,
         val selectedSceneItem: SceneItem? = null,
-        val scenes: SceneSummary? = null
+        val sceneSummary: SceneSummary? = null
     )
 }

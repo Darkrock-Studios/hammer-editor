@@ -104,7 +104,10 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    protected fun getDirtyBufferIds(): Set<Int> = sceneBuffers.map { it.key }.toSet()
+    protected fun getDirtyBufferIds(): Set<Int> = sceneBuffers
+        .filter { it.value.dirty }
+        .map { it.key }
+        .toSet()
 
     protected fun cancelTempStoreJob(sceneDef: SceneItem) {
         storeTempJobs.remove(sceneDef.id)?.cancel("cancelTempStoreJob")
