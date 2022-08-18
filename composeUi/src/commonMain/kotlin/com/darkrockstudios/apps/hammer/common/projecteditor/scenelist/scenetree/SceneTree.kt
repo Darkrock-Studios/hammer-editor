@@ -106,12 +106,13 @@ fun SceneTree(
     }
 
     val draggableFactory = { childNode: TreeValue<SceneItem> ->
-        dragModifier(
+        val data = DragModifierData(
             childNode = childNode,
             summary = { summary },
             nodeLayouts = { nodeLayouts },
             containerLayoutInfo = { containerLayoutInfo },
             columnLayoutInfo = { columnLayoutInfo },
+            collapsedNodes = collapsedNodes,
             startDragging = startDragging,
             stopDragging = stopDragging,
             selectedId = { selectedId },
@@ -121,7 +122,10 @@ fun SceneTree(
             initialScroll = { initialScroll },
             setOffsetY = { offsetY += it },
             count = dragId,
-        ) { insertAt = it }
+            setInsertAt = { insertAt = it }
+        )
+
+        dragModifier(data)
     }
 
     Box(modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -164,22 +168,19 @@ fun SceneTree(
 
                 val isGroup = node.value.type.isCollection
                 if (localOffset != null) {
-                    val lineY = if (isGroup
-                        && node.children.isEmpty()
-                        && !insertPos.before
-                    ) {
-                        localOffset.y + insertBelowLayout.size.height - scrollState.value
+                    val lineY = if (insertPos.before) {
+                        localOffset.y - scrollState.value
                     } else {
-                        if (insertPos.before) {
-                            localOffset.y - scrollState.value
-                        } else {
-                            localOffset.y + insertBelowLayout.size.height - scrollState.value
-                        }
+                        localOffset.y + insertBelowLayout.size.height - scrollState.value
                     }
 
+                    val isCollapsed = (collapsedNodes[node.value.id] == true)
                     val nestingInset = 32f
-                    val nestingDept =
-                        if (isGroup && !insertPos.before) node.depth + 1 else node.depth
+                    val nestingDept = if (isGroup && !insertPos.before && !isCollapsed) {
+                        node.depth + 1
+                    } else {
+                        node.depth
+                    }
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val canvasWidth = size.width
