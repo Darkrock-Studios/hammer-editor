@@ -131,7 +131,9 @@ fun SceneNode(
             draggable = draggable,
             hasDirtyBuffer = summary.hasDirtyBuffer,
             toggleExpand = toggleExpand,
-            onSceneAltClick = component::onSceneSelected,
+            onSceneAltClick = { selectedScene ->
+                sceneDefDeleteTarget(selectedScene)
+            },
         )
     }
 }

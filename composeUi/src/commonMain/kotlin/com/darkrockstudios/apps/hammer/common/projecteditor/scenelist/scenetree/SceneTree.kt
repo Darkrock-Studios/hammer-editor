@@ -35,6 +35,15 @@ fun SceneTree(
 ) {
     summary ?: return
 
+    var dragId by remember { mutableStateOf(0) }
+
+    var treeHash by remember { mutableStateOf(summary.sceneTree.hashCode()) }
+    val newHash = summary.sceneTree.hashCode()
+    if (treeHash != newHash) {
+        treeHash = newHash
+        dragId += 1
+    }
+
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
@@ -44,7 +53,6 @@ fun SceneTree(
     var offsetY by remember { mutableStateOf(0f) }
     var selectedId by remember { mutableStateOf(-1) }
     var insertAt by remember { mutableStateOf<InsertPosition?>(null) }
-    var dragId by remember { mutableStateOf(0) }
 
     val startDragging = { id: Int ->
         if (selectedId == -1) {
@@ -143,8 +151,9 @@ fun SceneTree(
                     }
                 }
 
+                val isGroup = node.value.type.isCollection
                 if (localOffset != null) {
-                    val lineY = if (node.value.type.isCollection
+                    val lineY = if (isGroup
                         && node.children.isEmpty()
                         && !insertPos.before
                     ) {
@@ -157,15 +166,18 @@ fun SceneTree(
                         }
                     }
 
-                    val isGroup = node.totalChildren > 0
-                    val nestingDept = if (isGroup) node.depth + 1 else node.depth
+                    val nestingInset = 32f
+                    val nestingDept =
+                        if (isGroup && !insertPos.before) node.depth + 1 else node.depth
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val canvasWidth = size.width
 
+                        val insetSize = (nestingDept * nestingInset)
+
                         drawLine(
-                            start = Offset(x = canvasWidth, y = lineY),
-                            end = Offset(x = (nestingDept * 16f), y = lineY),
+                            start = Offset(x = insetSize, y = lineY),
+                            end = Offset(x = canvasWidth - insetSize, y = lineY),
                             color = Color.Black,
                             strokeWidth = 5f,
                             cap = StrokeCap.Round

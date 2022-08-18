@@ -75,9 +75,19 @@ class SceneListComponent(
         }
     }
 
-    override fun deleteScene(sceneDef: SceneItem) {
-        if (!projectEditor.deleteScene(sceneDef)) {
-            Napier.e("Failed to delete Scene: ${sceneDef.id} - ${sceneDef.name}")
+    override fun deleteScene(scene: SceneItem) {
+        when (scene.type) {
+            SceneItem.Type.Scene -> {
+                if (!projectEditor.deleteScene(scene)) {
+                    Napier.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
+                }
+            }
+            SceneItem.Type.Group -> {
+                if (!projectEditor.deleteGroup(scene)) {
+                    Napier.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
+                }
+            }
+            SceneItem.Type.Root -> throw IllegalStateException("Cannot delete Root")
         }
     }
 

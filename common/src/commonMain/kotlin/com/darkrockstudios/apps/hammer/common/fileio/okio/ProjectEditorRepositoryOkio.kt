@@ -205,15 +205,24 @@ class ProjectEditorRepositoryOkio(
 
         val fromParent = fromNode.parent
         val fromIndex = fromParent?.localIndexOf(fromNode) ?: -1
+        val changingParents = (toParentNode != fromParent)
 
         val finalIndex = if (toParentNode.numChildrenImmedate() == 0) {
             0
         } else {
-            if (fromIndex <= insertIndex) {
-                if (moveRequest.toPosition.before) {
-                    insertIndex - 1
+            if (!changingParents) {
+                if (fromIndex <= insertIndex) {
+                    if (moveRequest.toPosition.before) {
+                        (insertIndex - 1).coerceAtLeast(0)
+                    } else {
+                        insertIndex
+                    }
                 } else {
-                    insertIndex
+                    if (moveRequest.toPosition.before) {
+                        insertIndex
+                    } else {
+                        insertIndex + 1
+                    }
                 }
             } else {
                 if (moveRequest.toPosition.before) {
@@ -318,7 +327,6 @@ class ProjectEditorRepositoryOkio(
     private fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
         val cleanedNamed = name.trim()
 
-        Napier.d("createScene: $cleanedNamed")
         return if (!validateSceneName(cleanedNamed)) {
             Napier.d("Invalid scene name")
             null
@@ -357,6 +365,8 @@ class ProjectEditorRepositoryOkio(
             if (lastOrder.numDigits() < nextOrder.numDigits()) {
                 updateSceneOrder(parent?.id ?: SceneItem.ROOT_ID)
             }
+
+            Napier.i("createScene: $cleanedNamed")
 
             reloadScenes()
 
