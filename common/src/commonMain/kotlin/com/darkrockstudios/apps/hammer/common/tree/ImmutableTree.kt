@@ -153,6 +153,26 @@ data class ImmutableTree<T>(
         return isAncestor
     }
 
+    fun getBranch(leafIndex: Int, excludeLeaf: Boolean): List<TreeValue<T>> {
+        val branch = mutableListOf<TreeValue<T>>()
+
+        val leaf = this[leafIndex]
+        if (!excludeLeaf) {
+            branch.add(leaf)
+        }
+
+        var curParentIndex = leaf.parent
+        while (curParentIndex > -1) {
+            val curParent = this[curParentIndex]
+            branch.add(curParent)
+            curParentIndex = curParent.parent
+        }
+
+        branch.reverse()
+
+        return branch
+    }
+
     fun getCoordinatesFor(node: TreeValue<T>): NodeCoordinates {
         return if (node == root) {
             NodeCoordinates.Root

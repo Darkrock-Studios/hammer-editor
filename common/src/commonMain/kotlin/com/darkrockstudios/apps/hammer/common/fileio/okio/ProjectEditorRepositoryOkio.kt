@@ -246,9 +246,11 @@ class ProjectEditorRepositoryOkio(
     }
 
     override fun moveScene(moveRequest: MoveRequest) {
+
         val fromNode = sceneTree.find { it.id == moveRequest.id }
         val fromParentNode = fromNode.parent
             ?: throw IllegalStateException("Item had no parent")
+
         val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 
         val isMovingParents = (fromParentNode != toParentNode)

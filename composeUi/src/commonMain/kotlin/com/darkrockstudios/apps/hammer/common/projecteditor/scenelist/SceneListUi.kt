@@ -108,7 +108,7 @@ fun SceneNode(
     state: SceneList.State,
     summary: SceneSummary,
     component: SceneList,
-    toggleExpand: () -> Unit,
+    toggleExpand: (nodeId: Int) -> Unit,
     sceneDefDeleteTarget: (SceneItem) -> Unit,
 ) {
     val scene = sceneNode.value
@@ -192,7 +192,7 @@ fun SceneGroupItem(
     sceneNode: TreeValue<SceneItem>,
     draggable: Modifier,
     hasDirtyBuffer: Set<Int>,
-    toggleExpand: () -> Unit,
+    toggleExpand: (nodeId: Int) -> Unit,
     onSceneAltClick: (SceneItem) -> Unit,
 ) {
     val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
@@ -201,12 +201,12 @@ fun SceneGroupItem(
         modifier = draggable
             .fillMaxWidth()
             .padding(
-                start = (Ui.PADDING + (Ui.PADDING * (sceneNode.depth - 1) * 2)),
+                start = (Ui.PADDING + (Ui.PADDING * (sceneNode.depth - 1) * 2)).coerceAtLeast(0.dp),
                 top = Ui.PADDING,
                 bottom = Ui.PADDING,
                 end = Ui.PADDING
             )
-            .clickable(onClick = toggleExpand),
+            .clickable(onClick = { toggleExpand(sceneNode.value.id) }),
         elevation = Ui.ELEVATION,
         backgroundColor = MaterialTheme.colors.secondaryVariant
     ) {

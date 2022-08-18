@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 
-import androidx.compose.foundation.ScrollState
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -12,12 +12,12 @@ data class DragModifierData(
     val summary: () -> SceneSummary,
     val nodeLayouts: () -> HashMap<Int, LayoutCoordinates>,
     val columnLayoutInfo: () -> LayoutCoordinates?,
-    val collapsedNodes: HashMap<Int, Boolean>,
+    val collapsedNodes: SnapshotStateMap<Int, Boolean>,
     val startDragging: (Int) -> Unit,
     val stopDragging: () -> Unit,
     val selectedId: () -> Int,
     val offsetY: () -> Float,
-    val scrollState: () -> ScrollState,
+    val scrollState: () -> Int,
     val autoScroll: (container: LayoutCoordinates, up: Boolean) -> Unit,
     val initialScroll: () -> Int,
     val setOffsetY: (offset: Float) -> Unit,

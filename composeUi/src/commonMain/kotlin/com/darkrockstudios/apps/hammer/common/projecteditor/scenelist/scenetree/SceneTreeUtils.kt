@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -14,31 +16,25 @@ internal fun LayoutCoordinates.positionIn(ancestor: LayoutCoordinates): Offset {
 
 internal fun findInsertPosition(
     dragOffset: Offset,
-    layouts: HashMap<Int, LayoutCoordinates>,
-    collapsedGroups: HashMap<Int, Boolean>,
+    layouts: List<LazyListItemInfo>,
+    collapsedGroups: SnapshotStateMap<Int, Boolean>,
     tree: ImmutableTree<SceneItem>,
     selectedId: Int,
-    columnLayoutInfo: LayoutCoordinates
 ): InsertPosition? {
-    val selectedItem = layouts[selectedId] ?: return null
-    val selectedLocalPos = selectedItem.positionIn(columnLayoutInfo)
-
-    val dragY = dragOffset.y + selectedLocalPos.y
+    val dragY = dragOffset.y
 
     val selectedItemIndex = tree.indexOf { it.id == selectedId }
 
     var foundItemId: InsertPosition? = null
-    for ((id, layout) in layouts.entries) {
-        if (!layout.isAttached) continue
-
+    for (layout in layouts) {
+        val id = layout.key as Int
         val size = layout.size
-        val itemPos = layout.positionIn(columnLayoutInfo)
+        val itemPos = layout.offset
 
         if (id != selectedId
-            && dragY >= itemPos.y
-            && dragY <= (itemPos.y + size.height)
+            && dragY >= itemPos
+            && dragY <= (itemPos + size)
         ) {
-
             val leafGlobalIndex = tree.indexOf { it.id == id }
             val isAncestorOf = tree.isAncestorOf(
                 needleIndex = selectedItemIndex,
@@ -46,11 +42,13 @@ internal fun findInsertPosition(
             )
             if (!isAncestorOf) {
                 // Decide above or below
-                val halfHeight = size.height / 2f
-                val localY = dragY - itemPos.y
+                val halfHeight = size / 2f
+                val localY = dragY - itemPos
                 val before = localY < halfHeight
 
                 val leaf = tree[leafGlobalIndex]
+                if (leaf.value.type == SceneItem.Type.Root) continue
+
                 // Leaf is a group
                 foundItemId = if (leaf.value.type.isCollection) {
                     // Insert above group

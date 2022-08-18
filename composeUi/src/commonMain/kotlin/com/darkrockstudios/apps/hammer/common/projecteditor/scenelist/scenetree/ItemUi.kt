@@ -7,6 +7,6 @@ import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 
 typealias ItemUi = @Composable (
     node: TreeValue<SceneItem>,
-    toggleExpanded: () -> Unit,
+    toggleExpanded: (nodeId: Int) -> Unit,
     draggable: Modifier,
 ) -> Unit
