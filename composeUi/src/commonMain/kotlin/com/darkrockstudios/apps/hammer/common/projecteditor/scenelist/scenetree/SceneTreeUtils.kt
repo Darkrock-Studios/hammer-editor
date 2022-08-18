@@ -36,15 +36,15 @@ internal fun findInsertPosition(
 
         if (id != selectedId && dragY >= itemPos.y && dragY <= (itemPos.y + size.height)) {
             val leafGlobalIndex = tree.indexOf { it.id == id }
-            val isAncestorOf =
-                tree.isAncestorOf(needleIndex = selectedItemIndex, leafIndex = leafGlobalIndex)
+            val isAncestorOf = tree.isAncestorOf(
+                needleIndex = selectedItemIndex,
+                leafIndex = leafGlobalIndex
+            )
             if (!isAncestorOf) {
                 // Decide above or below
                 val halfHeight = size.height / 2f
                 val localY = dragY - itemPos.y
                 val before = localY < halfHeight
-
-                //Napier.d("$localY < $halfHeight = before: $before")
 
                 val leaf = tree[leafGlobalIndex]
                 // Leaf is a group

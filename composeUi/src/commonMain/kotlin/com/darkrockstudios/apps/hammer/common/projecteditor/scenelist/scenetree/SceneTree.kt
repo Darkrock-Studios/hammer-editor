@@ -35,6 +35,8 @@ fun SceneTree(
 ) {
     summary ?: return
 
+    val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
+    val collapsedNodes by remember { mutableStateOf(HashMap<Int, Boolean>()) }
     var dragId by remember { mutableStateOf(0) }
 
     var treeHash by remember { mutableStateOf(summary.sceneTree.hashCode()) }
@@ -42,12 +44,21 @@ fun SceneTree(
     if (treeHash != newHash) {
         treeHash = newHash
         dragId += 1
+
+        // Prune layouts if the id is not found in the tree
+        val layoutIt = nodeLayouts.iterator()
+        while (layoutIt.hasNext()) {
+            val (id, _) = layoutIt.next()
+            val foundNode = summary.sceneTree.findBy { it.id == id }
+            if (foundNode == null) {
+                layoutIt.remove()
+                collapsedNodes.remove(id)
+            }
+        }
     }
 
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
-    val collapsedNodes by remember { mutableStateOf(HashMap<Int, Boolean>()) }
 
     var initialScroll by remember { mutableStateOf(0) }
     var offsetY by remember { mutableStateOf(0f) }
@@ -177,7 +188,7 @@ fun SceneTree(
 
                         drawLine(
                             start = Offset(x = insetSize, y = lineY),
-                            end = Offset(x = canvasWidth - insetSize, y = lineY),
+                            end = Offset(x = canvasWidth - nestingInset, y = lineY),
                             color = Color.Black,
                             strokeWidth = 5f,
                             cap = StrokeCap.Round

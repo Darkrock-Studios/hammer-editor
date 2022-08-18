@@ -12,7 +12,7 @@ interface SceneList : HammerComponent {
     fun loadScenes()
     fun createScene(sceneName: String)
     fun createGroup(groupName: String)
-    fun deleteScene(sceneDef: SceneItem)
+    fun deleteScene(scene: SceneItem)
 
     fun onSceneListUpdate(scenes: SceneSummary)
     fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)

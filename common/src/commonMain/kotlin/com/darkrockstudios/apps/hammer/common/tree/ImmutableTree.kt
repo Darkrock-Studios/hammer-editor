@@ -180,6 +180,24 @@ data class ImmutableTree<T>(
     fun print() {
         root.print(0)
     }
+
+    override fun hashCode(): Int {
+        return root.hashCode() + totalChildren
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return when {
+            this === other -> true
+            other is ImmutableTree<*> -> {
+                if (other.totalChildren != totalChildren) {
+                    false
+                } else {
+                    root == other.root
+                }
+            }
+            else -> false
+        }
+    }
 }
 
 data class NodeCoordinates(val globalIndex: Int, val parentIndex: Int, val childLocalIndex: Int) {

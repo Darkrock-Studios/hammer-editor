@@ -388,16 +388,21 @@ class ProjectEditorRepositoryOkio(
 
                 val sceneNode = getSceneNodeFromId(scene.id)
 
-                sceneNode?.parent?.apply {
-                    val parentId: Int = value.id
-                    removeChild(sceneNode)
+                val parent = sceneNode?.parent
+                if (parent != null) {
+                    val parentId: Int = parent.value.id
+                    parent.removeChild(sceneNode)
 
                     updateSceneOrder(parentId)
-                } ?: throw IllegalStateException("Deleted scene must have parent")
+                    Napier.w("Scene ${scene.id} deleted")
 
-                reloadScenes()
+                    reloadScenes()
 
-                true
+                    true
+                } else {
+                    Napier.w("Failed to delete scene ${scene.id}")
+                    false
+                }
             }
         } catch (e: IOException) {
             Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
@@ -422,16 +427,21 @@ class ProjectEditorRepositoryOkio(
 
                 val sceneNode = getSceneNodeFromId(scene.id)
 
-                sceneNode?.parent?.apply {
-                    val parentId: Int = value.id
-                    removeChild(sceneNode)
+                val parent = sceneNode?.parent
+                if (parent != null) {
+                    val parentId: Int = parent.value.id
+                    parent.removeChild(sceneNode)
 
                     updateSceneOrder(parentId)
-                } ?: throw IllegalStateException("Deleted scene must have parent")
+                    Napier.w("Group ${scene.id} deleted")
 
-                reloadScenes()
+                    reloadScenes()
 
-                true
+                    true
+                } else {
+                    Napier.w("Failed to delete group ${scene.id}")
+                    false
+                }
             }
         } catch (e: IOException) {
             Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
