@@ -133,6 +133,8 @@ abstract class ProjectEditorRepository(
             updateSceneBuffer(buffer)
         }
 
+        reloadScenes()
+
         editorScope.launch {
             while (isActive) {
                 val result = contentChannel.receiveCatching()

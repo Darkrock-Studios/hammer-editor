@@ -32,6 +32,8 @@ class SceneListComponent(
             _state.reduce { it.copy(selectedSceneItem = scene) }
         }
 
+        loadScenes()
+
         projectEditor.subscribeToSceneUpdates(scope, ::onSceneListUpdate)
         projectEditor.subscribeToBufferUpdates(null, scope, ::onSceneBufferUpdate)
     }
