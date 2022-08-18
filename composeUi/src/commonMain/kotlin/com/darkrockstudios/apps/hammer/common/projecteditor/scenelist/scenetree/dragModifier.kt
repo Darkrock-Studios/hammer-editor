@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -18,7 +18,7 @@ internal fun dragModifier(data: DragModifierData): Modifier {
                 data.nodeLayouts()[childNode.value.id] = coordinates
             }
             .pointerInput(count) {
-                detectDragGestures(
+                detectDragGesturesAfterLongPress(
                     onDragStart = {
                         startDragging(childNode.value.id)
                     },
