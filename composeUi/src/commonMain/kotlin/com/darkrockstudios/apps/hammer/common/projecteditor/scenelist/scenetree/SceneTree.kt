@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -186,12 +187,13 @@ fun SceneTree(
                         val canvasWidth = size.width
 
                         val insetSize = (nestingDept * nestingInset)
+                        val endX = canvasWidth - nestingInset
 
                         drawLine(
-                            start = Offset(x = insetSize, y = lineY),
-                            end = Offset(x = canvasWidth - nestingInset, y = lineY),
+                            start = Offset(x = insetSize.dp.toPx(), y = lineY),
+                            end = Offset(x = endX.dp.toPx(), y = lineY),
                             color = Color.Black,
-                            strokeWidth = 5f,
+                            strokeWidth = 5f.dp.toPx(),
                             cap = StrokeCap.Round
                         )
                     }
