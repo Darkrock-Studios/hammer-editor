@@ -598,11 +598,16 @@ class ProjectEditorRepositoryOkio(
         return numScenes
     }
 
-    override fun renameScene(sceneDef: SceneItem, newName: String) {
+    override fun renameScene(sceneItem: SceneItem, newName: String) {
         val cleanedNamed = newName.trim()
 
-        val oldPath = getSceneFilePath(sceneDef).toOkioPath()
-        val newDef = sceneDef.copy(name = cleanedNamed)
+        val oldPath = getSceneFilePath(sceneItem).toOkioPath()
+        val newDef = sceneItem.copy(name = cleanedNamed)
+
+        val node = getSceneNodeFromId(sceneItem.id)
+            ?: throw IllegalStateException("Failed to get scene for renaming: ${sceneItem.id}")
+        node.value = newDef
+
         val newPath = getSceneFilePath(newDef).toOkioPath()
 
         fileSystem.atomicMove(oldPath, newPath)
