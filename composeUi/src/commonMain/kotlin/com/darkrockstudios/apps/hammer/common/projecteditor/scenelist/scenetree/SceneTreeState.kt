@@ -82,8 +82,12 @@ class SceneTreeState(
         val previousIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
         if (scrollJob?.isActive != true) {
             scrollJob = if (up) {
-                coroutineScope.launch {
-                    listState.animateScrollToItem(previousIndex)
+                if (previousIndex > 0) {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(previousIndex)
+                    }
+                } else {
+                    null
                 }
             } else {
                 coroutineScope.launch {
