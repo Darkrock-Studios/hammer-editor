@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -41,18 +43,11 @@ fun SceneTree(
                     //contentType = { summary.sceneTree[it].value.type }
                 ) { index ->
                     val childNode = summary.sceneTree[index]
-                    val shouldCollapse = if (collapsedNodes.isEmpty()) {
-                        false
-                    } else {
-                        val branch = summary.sceneTree.getBranch(index, true)
-                        if (branch.isEmpty()) {
-                            false
-                        } else {
-                            summary.sceneTree.getBranch(index, true)
-                                .map { collapsedNodes[it.value.id] == true }
-                                .reduce { acc, treeNodeCollapsed -> acc || treeNodeCollapsed }
-                        }
-                    }
+                    val shouldCollapse = shouldCollapseNode(
+                        index,
+                        summary,
+                        collapsedNodes
+                    )
 
                     if (!childNode.value.isRootScene) {
                         SceneTreeNode(
@@ -70,6 +65,25 @@ fun SceneTree(
             }
 
             drawInsertLine(state)
+        }
+    }
+}
+
+private fun shouldCollapseNode(
+    index: Int,
+    summary: SceneSummary,
+    collapsedNodes: SnapshotStateMap<Int, Boolean>
+): Boolean {
+    return if (collapsedNodes.isEmpty()) {
+        false
+    } else {
+        val branch = summary.sceneTree.getBranch(index, true)
+        if (branch.isEmpty()) {
+            false
+        } else {
+            summary.sceneTree.getBranch(index, true)
+                .map { collapsedNodes[it.value.id] == true }
+                .reduce { acc, treeNodeCollapsed -> acc || treeNodeCollapsed }
         }
     }
 }

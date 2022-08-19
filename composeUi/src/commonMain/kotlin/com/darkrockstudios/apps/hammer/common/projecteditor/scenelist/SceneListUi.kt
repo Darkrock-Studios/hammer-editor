@@ -90,10 +90,10 @@ fun SceneListUi(
             SceneTree(
                 modifier = Modifier.fillMaxSize(),
                 state = treeState
-            ) { sceneNode, toggleExpand, draggable ->
+            ) { sceneNode, toggleExpand, draggableModifier ->
                 SceneNode(
                     sceneNode = sceneNode,
-                    draggable = draggable,
+                    draggableModifier = draggableModifier,
                     state = state,
                     summary = summary,
                     component = component,
@@ -119,7 +119,7 @@ fun SceneListUi(
 @Composable
 fun SceneNode(
     sceneNode: TreeValue<SceneItem>,
-    draggable: Modifier,
+    draggableModifier: Modifier,
     state: SceneList.State,
     summary: SceneSummary,
     component: SceneList,
@@ -131,7 +131,7 @@ fun SceneNode(
     if (scene.type == SceneItem.Type.Scene) {
         SceneItem(
             scene = scene,
-            draggable = draggable,
+            draggable = draggableModifier,
             depth = sceneNode.depth,
             hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
             isSelected = isSelected,
@@ -143,7 +143,7 @@ fun SceneNode(
     } else {
         SceneGroupItem(
             sceneNode = sceneNode,
-            draggable = draggable,
+            draggable = draggableModifier,
             hasDirtyBuffer = summary.hasDirtyBuffer,
             toggleExpand = toggleExpand,
             onSceneAltClick = { selectedScene ->
