@@ -22,5 +22,7 @@ class HammerApplication: Application() {
             androidContext(this@HammerApplication)
             modules(mainModule)
         }
+
+        ExampleProject.install(this)
     }
 }
