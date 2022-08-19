@@ -17,10 +17,11 @@ fun SceneTreeNode(
     collapsed: Boolean,
     selectedId: Int,
     itemUi: ItemUi,
-    toggleExpanded: (nodeId: Int) -> Unit
+    toggleExpanded: (nodeId: Int) -> Unit,
+    modifier: Modifier
 ) {
-    AnimatedVisibility(visible = !collapsed) {
-        val dragModifier = Modifier.alpha(if (node.value.id == selectedId) 0.5f else 1f)
-        itemUi(node, toggleExpanded, dragModifier)
+    AnimatedVisibility(visible = !collapsed, modifier = modifier) {
+        val itemModifier = Modifier.alpha(if (node.value.id == selectedId) 0.5f else 1f)
+        itemUi(node, toggleExpanded, itemModifier)
     }
 }
