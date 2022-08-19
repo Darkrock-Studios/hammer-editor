@@ -126,6 +126,9 @@ fun SceneTree(
                             }
                         }
                     },
+                    onDragCancel = {
+                        stopDragging()
+                    },
                     onDragEnd = {
                         stopDragging()
                     }
