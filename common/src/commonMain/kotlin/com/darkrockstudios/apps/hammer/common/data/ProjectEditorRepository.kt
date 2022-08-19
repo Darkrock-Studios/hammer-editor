@@ -175,8 +175,8 @@ abstract class ProjectEditorRepository(
     abstract fun getSceneFilePath(sceneId: Int): HPath
     abstract fun getSceneDirectory(): HPath
     abstract fun getSceneBufferDirectory(): HPath
-    abstract fun getSceneFilePath(scene: SceneItem, isNewScene: Boolean = false): HPath
-    abstract fun getSceneBufferTempPath(sceneDef: SceneItem): HPath
+    abstract fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath
+    abstract fun getSceneBufferTempPath(sceneItem: SceneItem): HPath
     abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
     abstract fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
     abstract fun deleteScene(scene: SceneItem): Boolean
@@ -187,15 +187,15 @@ abstract class ProjectEditorRepository(
     abstract fun getSceneTempBufferContents(): List<SceneContent>
     abstract fun getSceneAtIndex(index: Int): SceneItem
     abstract fun getSceneFromPath(path: HPath): SceneItem
-    abstract fun loadSceneBuffer(sceneDef: SceneItem): SceneBuffer
-    abstract fun storeSceneBuffer(sceneDef: SceneItem): Boolean
-    abstract fun storeTempSceneBuffer(sceneDef: SceneItem): Boolean
-    abstract fun clearTempScene(sceneDef: SceneItem)
+    abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
+    abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
+    abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean
+    abstract fun clearTempScene(sceneItem: SceneItem)
     abstract fun getLastOrderNumber(parentId: Int?): Int
     abstract fun getLastOrderNumber(parentPath: HPath): Int
     abstract fun updateSceneOrder(parentId: Int)
     abstract fun moveScene(moveRequest: MoveRequest)
-    abstract fun renameScene(sceneDef: SceneItem, newName: String)
+    abstract fun renameScene(sceneItem: SceneItem, newName: String)
 
     fun getSceneSummaries(): SceneSummary {
         return SceneSummary(
@@ -381,11 +381,16 @@ abstract class ProjectEditorRepository(
         const val SCENE_FILENAME_EXTENSION = ".md"
         const val SCENE_DIRECTORY = "scenes"
         const val BUFFER_DIRECTORY = ".buffers"
-        const val tempSuffix = ".temp"
     }
 
     abstract fun getHpath(sceneItem: SceneItem): HPath
 }
+
+fun Collection<HPath>.filterScenePaths() = filter {
+    it.name != ProjectEditorRepository.BUFFER_DIRECTORY
+            && it.name != ".."
+}
+    .sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :
     IllegalStateException("$fileName failed to parse because: $message")
