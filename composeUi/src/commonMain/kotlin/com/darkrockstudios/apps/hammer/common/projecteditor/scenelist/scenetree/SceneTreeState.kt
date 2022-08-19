@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -33,7 +34,7 @@ class SceneTreeState(
     val coroutineScope: CoroutineScope,
     val listState: LazyListState,
 ) {
-    var summary by mutableStateOf(sceneSummary)
+    internal var summary by mutableStateOf(sceneSummary)
     var selectedId by mutableStateOf(-1)
     var insertAt by mutableStateOf<InsertPosition?>(null)
     val collapsedNodes = mutableStateMapOf<Int, Boolean>()
@@ -42,7 +43,12 @@ class SceneTreeState(
     private var scrollJob by mutableStateOf<Job?>(null)
     private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())
 
-    init {
+    fun updateSummary(sceneSummary: SceneSummary) {
+        summary = sceneSummary
+        cleanUpOnDelete()
+    }
+
+    private fun cleanUpOnDelete() {
         val newHash = summary.sceneTree.hashCode()
         if (treeHash != newHash) {
             treeHash = newHash
@@ -58,6 +64,18 @@ class SceneTreeState(
                 }
             }
         }
+    }
+
+    fun collapseAll() {
+        summary.sceneTree
+            .filter { it.value.type == SceneItem.Type.Group }
+            .forEach { node ->
+                collapsedNodes[node.value.id] = true
+            }
+    }
+
+    fun expandAll() {
+        collapsedNodes.clear()
     }
 
     fun autoScroll(up: Boolean) {

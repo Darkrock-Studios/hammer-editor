@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -31,52 +29,63 @@ fun SceneListUi(
     var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
     val summary = state.sceneSummary
-
-    Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
-        TextField(
-            value = newSceneItemNameText,
-            onValueChange = { newSceneItemNameText = it },
-            label = { Text("New Scene Name") }
+    if (summary != null) {
+        val treeState = rememberReorderableLazyListState(
+            summary = summary,
+            moveItem = component::moveScene
         )
-        Row {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    component.createScene(newSceneItemNameText)
-                    newSceneItemNameText = ""
-                },
-                text = { Text("Create Scene") },
-                icon = { Icon(Icons.Filled.Add, "") },
-                modifier = Modifier.padding(top = Ui.PADDING)
-            )
-            ExtendedFloatingActionButton(
-                onClick = {
-                    component.createGroup(newSceneItemNameText)
-                    newSceneItemNameText = ""
-                },
-                text = { Text("Create Group") },
-                icon = { Icon(Icons.Filled.Add, "") },
-                modifier = Modifier.padding(top = Ui.PADDING)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .wrapContentHeight()
-                .padding(vertical = Ui.PADDING),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "\uD83D\uDCDD Scenes:",
-                style = MaterialTheme.typography.h5,
-            )
-        }
+        treeState.updateSummary(summary)
 
-        if (summary != null) {
-            val treeState = rememberReorderableLazyListState(
-                summary = summary,
-                moveItem = component::moveScene
+        Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
+            TextField(
+                value = newSceneItemNameText,
+                onValueChange = { newSceneItemNameText = it },
+                label = { Text("New Scene Name") }
             )
-            treeState.summary = summary
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        component.createScene(newSceneItemNameText)
+                        newSceneItemNameText = ""
+                    },
+                    text = { Text("Create Scene") },
+                    icon = { Icon(Icons.Filled.Add, "") },
+                    modifier = Modifier.padding(top = Ui.PADDING)
+                )
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        component.createGroup(newSceneItemNameText)
+                        newSceneItemNameText = ""
+                    },
+                    text = { Text("Create Group") },
+                    icon = { Icon(Icons.Filled.Add, "") },
+                    modifier = Modifier.padding(top = Ui.PADDING)
+                )
+                Button(
+                    onClick = treeState::collapseAll,
+                    modifier = Modifier.padding(top = Ui.PADDING)
+                ) {
+                    Text("C")
+                }
+                Button(
+                    onClick = treeState::expandAll,
+                    modifier = Modifier.padding(top = Ui.PADDING)
+                ) {
+                    Text("E")
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(vertical = Ui.PADDING),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "\uD83D\uDCDD Scenes:",
+                    style = MaterialTheme.typography.h5,
+                )
+            }
 
             SceneTree(
                 modifier = Modifier.fillMaxSize(),
