@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -13,13 +13,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -36,7 +33,6 @@ fun SceneTree(
 ) {
     summary ?: return
 
-    val nodeLayouts by remember { mutableStateOf(HashMap<Int, LayoutCoordinates>()) }
     val collapsedNodes = remember { mutableStateMapOf<Int, Boolean>() }
     var dragId by remember { mutableStateOf(0) }
 
@@ -47,34 +43,25 @@ fun SceneTree(
         dragId += 1
 
         // Prune layouts if the id is not found in the tree
-        val layoutIt = nodeLayouts.iterator()
-        while (layoutIt.hasNext()) {
-            val (id, _) = layoutIt.next()
+        val nodeIt = collapsedNodes.iterator()
+        while (nodeIt.hasNext()) {
+            val (id, _) = nodeIt.next()
             val foundNode = summary.sceneTree.findBy { it.id == id }
             if (foundNode == null) {
-                layoutIt.remove()
-                collapsedNodes.remove(id)
+                nodeIt.remove()
             }
         }
     }
 
     val coroutineScope = rememberCoroutineScope()
 
-    var initialScroll by remember { mutableStateOf(0) }
-    var offsetY by remember { mutableStateOf(0f) }
     var selectedId by remember { mutableStateOf(-1) }
     var insertAt by remember { mutableStateOf<InsertPosition?>(null) }
     val listState = rememberLazyListState()
 
-    var columnLayoutInfo by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var containerLayoutInfo by remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    val scroll = 0
-
     val startDragging = { id: Int ->
         if (selectedId == -1) {
             selectedId = id
-            initialScroll = scroll
         }
     }
     val stopDragging = {
@@ -89,21 +76,28 @@ fun SceneTree(
         }
 
         selectedId = -1
-        offsetY = 0f
-        initialScroll = 0
         insertAt = null
         dragId += 1
     }
 
     var scrollJob by remember { mutableStateOf<Job?>(null) }
-    val autoScroll = { containerInfo: LayoutCoordinates, up: Boolean ->
+    val autoScroll = { up: Boolean ->
         if (scrollJob?.isActive != true) {
-            var scrollAmount: Float = containerInfo.size.height * .2f
-            if (up) {
-                scrollAmount *= -1f
-            }
-            scrollJob = coroutineScope.launch {
-                listState.animateScrollBy(scrollAmount)
+            scrollJob = if (up) {
+                coroutineScope.launch {
+                    listState.animateScrollToItem(listState.firstVisibleItemIndex - 1)
+                }
+            } else {
+                coroutineScope.launch {
+                    listState.layoutInfo.apply {
+                        val viewportHeight = viewportEndOffset + viewportStartOffset
+                        val index = visibleItemsInfo.size + listState.firstVisibleItemIndex - 1
+                        val lastInfo = visibleItemsInfo[visibleItemsInfo.size - 1]
+                        val offset = lastInfo.size - viewportHeight
+
+                        listState.animateScrollToItem(index, offset)
+                    }
+                }
             }
         }
     }
@@ -113,60 +107,51 @@ fun SceneTree(
         collapsedNodes[nodeId] = collapse
     }
 
-    Box(modifier = Modifier.onGloballyPositioned { coordinates ->
-        containerLayoutInfo = coordinates
-    }) {
+    Box(modifier = Modifier) {
         LazyColumn(
             state = listState,
-            modifier = modifier
-                .onGloballyPositioned { coordinates ->
-                    columnLayoutInfo = coordinates
-                }.pointerInput(dragId) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { offset ->
-                            for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
-                                if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
-                                    val id = itemInfo.key as Int
-                                    Napier.d("Found node to start dragging: $id")
-                                    startDragging(id)
-                                    break
-                                }
-                            }
-                        },
-                        onDragEnd = {
-                            stopDragging()
-                        }
-                    ) { change, _ ->
-                        val insertPosition = findInsertPosition(
-                            dragOffset = change.position,
-                            layouts = listState.layoutInfo.visibleItemsInfo,
-                            collapsedGroups = collapsedNodes,
-                            tree = summary.sceneTree,
-                            selectedId = selectedId,
-                        )
-
-                        if (insertAt != insertPosition) {
-                            insertAt = insertPosition
-                        }
-
-                        // Auto scroll test
-                        /*
-                        nodeLayouts[childNode.value.id]?.let { layout ->
-                            val windowPos = layout.localToWindow(change.position)
-                            val localPos = containerInfo.windowToLocal(windowPos)
-
-                            val bottomTenPercent = containerInfo.size.height * .9f
-                            val topTenPercent = containerInfo.size.height * .1f
-                            if (localPos.y >= bottomTenPercent) {
-                                autoScroll(containerInfo, false)
-                            } else if (localPos.y <= topTenPercent) {
-                                autoScroll(containerInfo, true)
+            modifier = modifier.pointerInput(dragId) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset ->
+                        for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
+                            if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
+                                val id = itemInfo.key as Int
+                                startDragging(id)
+                                break
                             }
                         }
-                        */
-                        //}
+                    },
+                    onDragEnd = {
+                        stopDragging()
                     }
-                },
+                ) { change, _ ->
+                    val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
+                    val insertPosition = findInsertPosition(
+                        dragOffset = change.position,
+                        layouts = layoutInfo.visibleItemsInfo,
+                        collapsedGroups = collapsedNodes,
+                        tree = summary.sceneTree,
+                        selectedId = selectedId,
+                    )
+
+                    if (insertAt != insertPosition) {
+                        insertAt = insertPosition
+                    }
+
+                    // Auto scroll test
+                    // TODO Compose 1.3.0 should have this field
+                    //val height = layoutInfo.viewportSize.height
+                    val height = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+                    val bottomTenPercent: Float = height * .9f
+                    val topTenPercent: Float = height * .1f
+
+                    if (change.position.y >= bottomTenPercent) {
+                        autoScroll(false)
+                    } else if (change.position.y <= topTenPercent) {
+                        autoScroll(true)
+                    }
+                }
+            },
         ) {
             items(
                 count = summary.sceneTree.totalChildren,
