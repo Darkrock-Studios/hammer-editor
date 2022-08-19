@@ -35,10 +35,10 @@ fun SceneTree(
         Box(modifier = Modifier) {
             LazyColumn(
                 state = state.listState,
-                modifier = reorderableModifier(state, modifier),
+                modifier = reorderableModifier(state, modifier).fillMaxSize(),
             ) {
                 items(
-                    count = summary.sceneTree.totalChildren,
+                    count = summary.sceneTree.totalNodes,
                     key = { summary.sceneTree[it].value.id },
                     //contentType = { summary.sceneTree[it].value.type }
                 ) { index ->

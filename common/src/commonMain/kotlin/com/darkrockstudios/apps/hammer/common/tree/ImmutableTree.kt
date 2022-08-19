@@ -98,6 +98,10 @@ data class ImmutableTree<T>(
         nodeIndex = newIndex
     }
 
+    val totalNodes: Int
+        // +1 for the root it's self
+        get() = totalChildren + 1
+
     operator fun get(index: Int): TreeValue<T> =
         nodeIndex[index] ?: throw IndexOutOfBoundsException()
 

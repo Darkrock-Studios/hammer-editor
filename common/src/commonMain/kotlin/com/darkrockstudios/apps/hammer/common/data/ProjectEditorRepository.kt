@@ -387,10 +387,8 @@ abstract class ProjectEditorRepository(
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
-    it.name != ProjectEditorRepository.BUFFER_DIRECTORY
-            && it.name != ".."
-}
-    .sortedBy { it.name }
+    it.name != ProjectEditorRepository.BUFFER_DIRECTORY && it.name != ".."
+}.sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :
     IllegalStateException("$fileName failed to parse because: $message")
