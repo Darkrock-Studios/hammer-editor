@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
  * of the entire tree
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneTree(
     summary: SceneSummary?,
@@ -82,16 +86,17 @@ fun SceneTree(
 
     var scrollJob by remember { mutableStateOf<Job?>(null) }
     val autoScroll = { up: Boolean ->
+        val previousIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
         if (scrollJob?.isActive != true) {
             scrollJob = if (up) {
                 coroutineScope.launch {
-                    listState.animateScrollToItem(listState.firstVisibleItemIndex - 1)
+                    listState.animateScrollToItem(previousIndex)
                 }
             } else {
                 coroutineScope.launch {
                     listState.layoutInfo.apply {
                         val viewportHeight = viewportEndOffset + viewportStartOffset
-                        val index = visibleItemsInfo.size + listState.firstVisibleItemIndex - 1
+                        val index = visibleItemsInfo.size + previousIndex
                         val lastInfo = visibleItemsInfo[visibleItemsInfo.size - 1]
                         val offset = lastInfo.size - viewportHeight
 
@@ -178,6 +183,9 @@ fun SceneTree(
                         collapsed = shouldCollapse, // need to take parent into account
                         selectedId = selectedId,
                         toggleExpanded = toggleExpanded,
+                        modifier = Modifier.wrapContentHeight()
+                            .fillMaxWidth()
+                            .animateItemPlacement(),
                         itemUi = itemUi
                     )
                 }

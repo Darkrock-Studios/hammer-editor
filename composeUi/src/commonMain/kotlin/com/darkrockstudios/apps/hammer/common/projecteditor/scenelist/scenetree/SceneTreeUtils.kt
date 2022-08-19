@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
-import io.github.aakira.napier.Napier
 
 
 internal fun findInsertPosition(
@@ -49,23 +48,18 @@ internal fun findInsertPosition(
                 foundItemId = if (leaf.value.type.isCollection) {
                     // Insert above group
                     if (before) {
-                        Napier.d("A")
                         val coords = tree.getCoordinatesFor(leaf)
                         InsertPosition(coords, true)
                     }
                     // Insert as first item in group
                     else {
                         if (collapsedGroups[leaf.value.id] == true) {
-                            Napier.d("B")
                             val coords = tree.getCoordinatesFor(leaf)
                             InsertPosition(coords, false)
                         } else if (leaf.children.isNotEmpty()) {
-                            Napier.d("C")
                             val coords = tree.getCoordinatesFor(leaf.children[0])
                             InsertPosition(coords, true)
                         } else {
-                            Napier.d("D")
-
                             val coords = NodeCoordinates(
                                 globalIndex = leaf.index + 1,
                                 parentIndex = leaf.index,
