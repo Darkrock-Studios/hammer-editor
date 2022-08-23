@@ -31,6 +31,7 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
+            //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             dependencies {
                 api(project(":common"))
                 api(compose.runtime)
@@ -38,11 +39,11 @@ kotlin {
                 api(compose.preview)
                 api(compose.foundation)
                 api(compose.material)
+                //api(compose.material3)
                 api(compose.animation)
                 api(compose.animationGraphics)
-                //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-                //api(compose.material3)
                 api(compose.materialIconsExtended)
+                api("org.jetbrains.compose.ui:ui-util:$compose_version")
                 api("org.jetbrains.compose.ui:ui-text:$compose_version")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
                 api("com.darkrockstudios:richtexteditor:1.3.0")

@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 const val PROJECT_1_NAME = "Test Project 1"
 const val PROJECT_2_NAME = "Test Project 2"
 const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
-val projectNames = listOf(PROJECT_1_NAME, PROJECT_2_NAME, OUT_OF_ORDER_PROJECT_NAME)
+val projectNames = listOf(OUT_OF_ORDER_PROJECT_NAME, PROJECT_1_NAME, PROJECT_2_NAME)
 
 fun getProject1Def(): ProjectDef {
     val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()

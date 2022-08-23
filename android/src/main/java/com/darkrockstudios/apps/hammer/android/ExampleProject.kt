@@ -11,7 +11,7 @@ import java.util.zip.ZipInputStream
 
 object ExampleProject {
 
-    private val PROJECT_NAME = "Alice In Wonderland"
+    private const val PROJECT_NAME = "Alice In Wonderland"
     fun install(context: Context) {
         val projectFile = File(projectsDir(), PROJECT_NAME)
         if (!projectFile.exists()) {
@@ -50,22 +50,6 @@ object ExampleProject {
 
     private fun projectsDir(): File {
         return File(File(getRootDocumentDirectory()), ProjectsRepository.PROJECTS_DIR)
-    }
-
-    /**
-     * Iterates through all [ZipEntry]s of the given [ZipInputStream] and
-     * passes the current zip entry and stream to the provided [BiConsumer], but does
-     * **not** recursively parse entries of nested zip files.
-     */
-    @Throws(IOException::class)
-    fun forEachZipEntry(zis: ZipInputStream, consumer: BiConsumer<ZipEntry, ZipInputStream>) {
-        var entry: ZipEntry?
-        do {
-            entry = zis.nextEntry
-            if (entry != null) {
-                consumer.accept(entry, zis)
-            }
-        } while (entry != null)
     }
 
     /**

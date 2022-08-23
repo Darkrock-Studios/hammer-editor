@@ -43,6 +43,8 @@ class SceneTreeState(
     private var scrollJob by mutableStateOf<Job?>(null)
     private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())
 
+    fun getTree() = summary.sceneTree
+
     fun updateSummary(sceneSummary: SceneSummary) {
         summary = sceneSummary
         cleanUpOnDelete()
