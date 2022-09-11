@@ -1,11 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.RouterState
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -47,17 +48,17 @@ class ProjectEditorComponent(
             onSceneSelected = ::onSceneSelected
         )
 
-    override val listRouterState: Value<RouterState<*, ProjectEditor.Child.List>> =
+    override val listRouterState: Value<ChildStack<*, ProjectEditor.Child.List>> =
         listRouter.state
 
     private val _shouldConfirmClose = MutableValue(false)
     override val shouldConfirmClose = _shouldConfirmClose
 
-    override val detailsRouterState: Value<RouterState<*, ProjectEditor.Child.Detail>> =
+    override val detailsRouterState: Value<ChildStack<*, ProjectEditor.Child.Detail>> =
         detailsRouter.state
 
     override fun isDetailShown(): Boolean {
-        return detailsRouterState.value.activeChild.instance !is ProjectEditor.Child.Detail.None
+        return detailsRouterState.value.active.instance !is ProjectEditor.Child.Detail.None
     }
 
     private val _state = MutableValue(ProjectEditor.State(projectDef))
@@ -136,13 +137,17 @@ class ProjectEditorComponent(
         projectRepository.closeEditor(projectDef)
     }
 
-    init {
-        backPressedHandler.register {
+    private val backButtonHandler = object : BackCallback() {
+        override fun onBack() {
             closeDetails()
         }
+    }
+
+    init {
+        backHandler.register(backButtonHandler)
 
         detailsRouter.state.observe(lifecycle) {
-            (it.activeChild.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
+            (it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
                 selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
             }
             updateCloseConfirmRequirement()

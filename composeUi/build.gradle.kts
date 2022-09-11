@@ -1,4 +1,4 @@
-import org.jetbrains.compose.compose
+ import org.jetbrains.compose.compose
 
 val app_version: String by extra
 val android_compile_sdk: String by extra

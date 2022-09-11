@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.*
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -11,51 +12,54 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListC
 import kotlinx.coroutines.flow.SharedFlow
 
 internal class ListRouter(
-    componentContext: ComponentContext,
-    private val projectDef: ProjectDef,
-    private val selectedSceneItem: SharedFlow<SceneItem?>,
-    private val onSceneSelected: (sceneDef: SceneItem) -> Unit
+		componentContext: ComponentContext,
+		private val projectDef: ProjectDef,
+		private val selectedSceneItem: SharedFlow<SceneItem?>,
+		private val onSceneSelected: (sceneDef: SceneItem) -> Unit
 ) {
-    private val router =
-        componentContext.router<Config, ProjectEditor.Child.List>(
-            initialConfiguration = Config.List,
-            key = "MainRouter",
-            childFactory = ::createChild
-        )
+	private val navigation = StackNavigation<Config>()
 
-    val state: Value<RouterState<Config, ProjectEditor.Child.List>> = router.state
+	private val stack = componentContext.childStack(
+			source = navigation,
+			initialConfiguration = Config.List,
+			key = "MainRouter",
+			childFactory = ::createChild
+	)
 
-    private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.Child.List =
-        when (config) {
-            is Config.List -> ProjectEditor.Child.List.Scenes(sceneList(componentContext))
-            is Config.None -> ProjectEditor.Child.List.None
-        }
+	val state: Value<ChildStack<Config, ProjectEditor.Child.List>>
+		get() = stack
 
-    private fun sceneList(componentContext: ComponentContext): SceneListComponent =
-        SceneListComponent(
-            componentContext = componentContext,
-            projectDef = projectDef,
-            selectedSceneItem = selectedSceneItem,
-            sceneSelected = onSceneSelected
-        )
+	private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.Child.List =
+			when (config) {
+				is Config.List -> ProjectEditor.Child.List.Scenes(sceneList(componentContext))
+				is Config.None -> ProjectEditor.Child.List.None
+			}
 
-    fun moveToBackStack() {
-        if (router.activeChild.configuration !is Config.None) {
-            router.push(Config.None)
-        }
-    }
+	private fun sceneList(componentContext: ComponentContext): SceneListComponent =
+			SceneListComponent(
+					componentContext = componentContext,
+					projectDef = projectDef,
+					selectedSceneItem = selectedSceneItem,
+					sceneSelected = onSceneSelected
+			)
 
-    fun show() {
-        if (router.activeChild.configuration !is Config.List) {
-            router.pop()
-        }
-    }
+	fun moveToBackStack() {
+		if (stack.value.active.configuration !is Config.None) {
+			navigation.push(Config.None)
+		}
+	}
 
-    sealed class Config : Parcelable {
-        @Parcelize
-        object List : Config()
+	fun show() {
+		if (stack.value.active.configuration !is Config.List) {
+			navigation.pop()
+		}
+	}
 
-        @Parcelize
-        object None : Config()
-    }
+	sealed class Config : Parcelable {
+		@Parcelize
+		object List : Config()
+
+		@Parcelize
+		object None : Config()
+	}
 }

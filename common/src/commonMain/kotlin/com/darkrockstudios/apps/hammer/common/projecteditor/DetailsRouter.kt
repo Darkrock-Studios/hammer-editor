@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.RouterState
-import com.arkivanov.decompose.router.activeChild
-import com.arkivanov.decompose.router.popWhile
-import com.arkivanov.decompose.router.router
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -14,66 +14,75 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEdi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
 
 internal class DetailsRouter(
-    componentContext: ComponentContext,
-    private val addMenu: (menu: MenuDescriptor) -> Unit,
-    private val removeMenu: (id: String) -> Unit,
-    private val closeDetails: () -> Unit,
-) {
+		componentContext: ComponentContext,
+		private val addMenu: (menu: MenuDescriptor) -> Unit,
+		private val removeMenu: (id: String) -> Unit,
+		private val closeDetails: () -> Unit,
+							)
+{
 
-    private val router =
-        componentContext.router<Config, ProjectEditor.Child.Detail>(
-            initialConfiguration = Config.None,
-            key = "DetailsRouter",
-            childFactory = ::createChild
-        )
+	private val navigation = StackNavigation<Config>()
 
-    val state: Value<RouterState<Config, ProjectEditor.Child.Detail>> = router.state
+	private val stack = componentContext.childStack(
+			source = navigation,
+			initialConfiguration = Config.None,
+			key = "DetailsRouter",
+			childFactory = ::createChild
+												   )
 
-    private fun createChild(
-        config: Config,
-        componentContext: ComponentContext
-    ): ProjectEditor.Child.Detail =
-        when (config) {
-            is Config.None -> ProjectEditor.Child.Detail.None
-            is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
-                sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
-            )
-        }
+	val state: Value<ChildStack<Config, ProjectEditor.Child.Detail>>
+		get() = stack
 
-    private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
-        SceneEditorComponent(
-            componentContext = componentContext,
-            originalSceneItem = sceneDef,
-            addMenu = addMenu,
-            removeMenu = removeMenu,
-            closeSceneEditor = closeDetails
-        )
+	private fun createChild(
+			config: Config,
+			componentContext: ComponentContext
+						   ): ProjectEditor.Child.Detail =
+		when(config)
+		{
+			is Config.None        -> ProjectEditor.Child.Detail.None
+			is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
+					sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
+																	  )
+		}
 
-    fun showScene(sceneDef: SceneItem) {
-        router.navigate(
-            transformer = { stack ->
-                stack.dropLastWhile { it is Config.SceneEditor }
-                    .plus(Config.SceneEditor(sceneDef = sceneDef))
-            },
-            onComplete = { _, _ -> }
-        )
-    }
+	private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
+		SceneEditorComponent(
+				componentContext = componentContext,
+				originalSceneItem = sceneDef,
+				addMenu = addMenu,
+				removeMenu = removeMenu,
+				closeSceneEditor = closeDetails
+							)
 
-    fun closeScene() {
-        router.popWhile { it !is Config.None }
-    }
+	fun showScene(sceneDef: SceneItem)
+	{
+		navigation.navigate(
+				transformer = { stack ->
+					stack.dropLastWhile { it is Config.SceneEditor }
+							.plus(Config.SceneEditor(sceneDef = sceneDef))
+				},
+				onComplete = { _, _ -> }
+						   )
+	}
 
-    fun isShown(): Boolean =
-        when (router.activeChild.configuration) {
-            is Config.None -> false
-            is Config.SceneEditor -> true
-        }
+	fun closeScene()
+	{
+		navigation.popWhile { it !is Config.None }
+	}
 
-    sealed class Config : Parcelable {
-        @Parcelize
-        object None : Config()
+	fun isShown(): Boolean =
+		when(stack.value.active.configuration)
+		{
+			is Config.None        -> false
+			is Config.SceneEditor -> true
+		}
 
-        @Parcelize
-        data class SceneEditor(val sceneDef: SceneItem) : Config()
-    }
+	sealed class Config: Parcelable
+	{
+		@Parcelize
+		object None: Config()
+
+		@Parcelize
+		data class SceneEditor(val sceneDef: SceneItem): Config()
+	}
 }

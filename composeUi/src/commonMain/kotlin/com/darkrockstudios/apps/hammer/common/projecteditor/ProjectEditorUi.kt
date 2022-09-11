@@ -6,16 +6,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.extensions.compose.jetbrains.Children
-import com.arkivanov.decompose.extensions.compose.jetbrains.animation.child.childAnimation
-import com.arkivanov.decompose.extensions.compose.jetbrains.animation.child.fade
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.arkivanov.decompose.router.RouterState
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getValue
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
@@ -30,7 +27,7 @@ fun ProjectEditorUi(
     drawableKlass: Any? = null
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val state by component.state.subscribeAsState()
+        val state by component.state
         val isMultiPane = state.isMultiPane
 
         Row(modifier = Modifier.fillMaxSize()) {
@@ -66,13 +63,13 @@ fun ProjectEditorUi(
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun ListPane(
-    routerState: Value<RouterState<*, ProjectEditor.Child.List>>,
+    routerState: Value<ChildStack<*, ProjectEditor.Child.List>>,
     modifier: Modifier
 ) {
     Children(
-        routerState = routerState,
+        stack = routerState.value,
         modifier = modifier,
-        animation = childAnimation(fade()),
+        animation = stackAnimation {},
     ) {
         when (val child = it.instance) {
             is ProjectEditor.Child.List.Scenes ->
@@ -88,14 +85,14 @@ private fun ListPane(
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun DetailsPane(
-    routerState: Value<RouterState<*, ProjectEditor.Child.Detail>>,
+    routerState: Value<ChildStack<*, ProjectEditor.Child.Detail>>,
     modifier: Modifier,
     drawableKlass: Any? = null
 ) {
     Children(
-        routerState = routerState,
+        stack = routerState.value,
         modifier = modifier,
-        animation = childAnimation(fade()),
+        animation = stackAnimation {},
     ) {
         when (val child = it.instance) {
             is ProjectEditor.Child.Detail.None -> Box {}

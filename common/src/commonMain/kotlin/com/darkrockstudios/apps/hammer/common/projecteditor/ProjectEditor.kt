@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
-import com.arkivanov.decompose.router.RouterState
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
@@ -8,8 +8,8 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEdi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
 
 interface ProjectEditor : HammerComponent {
-    val listRouterState: Value<RouterState<*, Child.List>>
-    val detailsRouterState: Value<RouterState<*, Child.Detail>>
+    val listRouterState: Value<ChildStack<*, Child.List>>
+    val detailsRouterState: Value<ChildStack<*, Child.Detail>>
 
     data class State(
         val projectDef: ProjectDef,
