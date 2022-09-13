@@ -10,6 +10,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.*
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getValue
@@ -69,7 +70,7 @@ private fun ListPane(
     Children(
         stack = routerState.value,
         modifier = modifier,
-        animation = stackAnimation {},
+        animation = stackAnimation { _, _, _ -> fade() },
     ) {
         when (val child = it.instance) {
             is ProjectEditor.Child.List.Scenes ->
@@ -92,7 +93,7 @@ private fun DetailsPane(
     Children(
         stack = routerState.value,
         modifier = modifier,
-        animation = stackAnimation {},
+        animation = stackAnimation { _, _, _ -> fade() },
     ) {
         when (val child = it.instance) {
             is ProjectEditor.Child.Detail.None -> Box {}
