@@ -18,8 +18,7 @@ internal class DetailsRouter(
 		private val addMenu: (menu: MenuDescriptor) -> Unit,
 		private val removeMenu: (id: String) -> Unit,
 		private val closeDetails: () -> Unit,
-							)
-{
+) {
 
 	private val navigation = StackNavigation<Config>()
 
@@ -28,7 +27,7 @@ internal class DetailsRouter(
 			initialConfiguration = Config.None,
 			key = "DetailsRouter",
 			childFactory = ::createChild
-												   )
+	)
 
 	val state: Value<ChildStack<Config, ProjectEditor.Child.Detail>>
 		get() = stack
@@ -36,53 +35,48 @@ internal class DetailsRouter(
 	private fun createChild(
 			config: Config,
 			componentContext: ComponentContext
-						   ): ProjectEditor.Child.Detail =
-		when(config)
-		{
-			is Config.None        -> ProjectEditor.Child.Detail.None
-			is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
-					sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
-																	  )
-		}
+	): ProjectEditor.Child.Detail =
+			when (config) {
+				is Config.None -> ProjectEditor.Child.Detail.None
+				is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
+						sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
+				)
+			}
 
 	private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
-		SceneEditorComponent(
-				componentContext = componentContext,
-				originalSceneItem = sceneDef,
-				addMenu = addMenu,
-				removeMenu = removeMenu,
-				closeSceneEditor = closeDetails
-							)
+			SceneEditorComponent(
+					componentContext = componentContext,
+					originalSceneItem = sceneDef,
+					addMenu = addMenu,
+					removeMenu = removeMenu,
+					closeSceneEditor = closeDetails
+			)
 
-	fun showScene(sceneDef: SceneItem)
-	{
+	fun showScene(sceneDef: SceneItem) {
 		navigation.navigate(
 				transformer = { stack ->
 					stack.dropLastWhile { it is Config.SceneEditor }
 							.plus(Config.SceneEditor(sceneDef = sceneDef))
 				},
 				onComplete = { _, _ -> }
-						   )
+		)
 	}
 
-	fun closeScene()
-	{
+	fun closeScene() {
 		navigation.popWhile { it !is Config.None }
 	}
 
 	fun isShown(): Boolean =
-		when(stack.value.active.configuration)
-		{
-			is Config.None        -> false
-			is Config.SceneEditor -> true
-		}
+			when (stack.value.active.configuration) {
+				is Config.None -> false
+				is Config.SceneEditor -> true
+			}
 
-	sealed class Config: Parcelable
-	{
+	sealed class Config : Parcelable {
 		@Parcelize
-		object None: Config()
+		object None : Config()
 
 		@Parcelize
-		data class SceneEditor(val sceneDef: SceneItem): Config()
+		data class SceneEditor(val sceneDef: SceneItem) : Config()
 	}
 }
