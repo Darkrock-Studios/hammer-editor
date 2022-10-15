@@ -71,8 +71,8 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.appcompat:appcompat:1.5.0")
-                api("androidx.core:core-ktx:1.8.0")
+                api("androidx.appcompat:appcompat:1.5.1")
+                api("androidx.core:core-ktx:1.9.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
                 api("io.insert-koin:koin-android:$koin_version")
             }
