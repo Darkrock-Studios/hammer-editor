@@ -1,5 +1,3 @@
-import org.jetbrains.compose.compose
-
 val app_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
@@ -19,6 +17,7 @@ plugins {
     kotlin("plugin.serialization")
     id("com.android.library")
     id("kotlin-parcelize")
+    id("org.jetbrains.compose")
 }
 
 group = "com.darkrockstudios.apps.hammer"
