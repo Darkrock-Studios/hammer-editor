@@ -7,6 +7,8 @@ expect fun getPlatformName(): String
 
 expect fun getRootDocumentDirectory(): String
 
+expect fun getConfigDirectory(): String
+
 expect fun getPlatformFilesystem(): FileSystem
 
 expect val defaultDispatcher: CoroutineContext

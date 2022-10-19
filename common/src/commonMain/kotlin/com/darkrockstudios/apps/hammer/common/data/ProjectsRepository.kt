@@ -1,9 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
 
 abstract class ProjectsRepository {
+
+    protected val projectsScope = CoroutineScope(defaultDispatcher)
 
     abstract fun getProjectsDirectory(): HPath
     abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef>
@@ -36,8 +40,4 @@ abstract class ProjectsRepository {
         val name: String,
         val condition: (String) -> Boolean,
     )
-
-    companion object {
-        const val PROJECTS_DIR = "HammerProjects"
-    }
 }

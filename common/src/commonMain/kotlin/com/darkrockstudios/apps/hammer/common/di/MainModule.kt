@@ -5,12 +5,14 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import okio.FileSystem
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val mainModule = module {
+    singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
     single { getPlatformFilesystem() } bind FileSystem::class
     singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
     single {

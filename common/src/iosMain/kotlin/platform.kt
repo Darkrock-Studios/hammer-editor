@@ -16,6 +16,8 @@ actual fun getRootDocumentDirectory(): String {
     return "not implemented"
 }
 
+actual fun getConfigDirectory(): String = "not implemented"
+
 fun initializeKoin() {
     startKoin {
         logger(NapierLogger())

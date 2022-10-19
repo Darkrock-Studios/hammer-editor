@@ -3,23 +3,31 @@ package com.darkrockstudios.apps.hammer.common.fileio.okio
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import kotlinx.coroutines.launch
 import okio.FileSystem
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
-    private val fileSystem: FileSystem
+    private val fileSystem: FileSystem,
+    globalSettingsRepository: GlobalSettingsRepository
 ) : ProjectsRepository() {
 
+    private var globalSettings = globalSettingsRepository.globalSettings
+
     init {
+        projectsScope.launch {
+            globalSettingsRepository.globalSettingsUpdates.collect { newSettings ->
+                globalSettings = newSettings
+            }
+        }
+
         val projectsDir = getProjectsDirectory().toOkioPath()
         if (!fileSystem.exists(projectsDir)) throw IllegalStateException("Projects dir does not exist")
     }
 
     override fun getProjectsDirectory(): HPath {
-        val rootPath = getRootDocumentDirectory().toPath()
-        val proj = PROJECTS_DIR.toPath()
-        val projectsDir = rootPath.div(proj)
+        val projectsDir = globalSettings.projectsDirectory.toPath()
 
         if (!fileSystem.exists(projectsDir)) {
             fileSystem.createDirectory(projectsDir)

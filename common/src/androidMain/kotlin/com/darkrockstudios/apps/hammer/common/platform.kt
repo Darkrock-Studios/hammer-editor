@@ -16,6 +16,7 @@ fun setRootDocumentDirectory(context: Context) {
 }
 
 actual fun getRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
+actual fun getConfigDirectory(): String = File(rootDocumentDirectory, "config").absolutePath
 
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 
