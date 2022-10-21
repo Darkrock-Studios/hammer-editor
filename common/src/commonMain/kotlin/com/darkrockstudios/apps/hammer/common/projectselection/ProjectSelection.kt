@@ -6,10 +6,11 @@ import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 interface ProjectSelection : HammerComponent {
+    val showProjectDirectory: Boolean
     val state: Value<State>
 
     fun loadProjectList()
-    fun setProjectsDir(path: HPath)
+    fun setProjectsDir(path: String)
     fun selectProject(projectDef: ProjectDef)
     fun createProject(projectName: String)
     fun deleteProject(projectDef: ProjectDef)

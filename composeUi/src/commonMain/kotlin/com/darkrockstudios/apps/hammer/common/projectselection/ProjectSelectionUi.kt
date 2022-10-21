@@ -20,7 +20,12 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier = Modifier) {
     val state by component.state.subscribeAsState()
     var newProjectNameText by remember { mutableStateOf("") }
+    var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
     var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
+
+    LaunchedEffect(state.projectsDir) {
+        component.loadProjectList()
+    }
 
     Column(modifier = modifier.padding(Ui.PADDING)) {
         TextField(
@@ -34,6 +39,19 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
             newProjectNameText = ""
         }) {
             Text("Create Project")
+        }
+
+        if (component.showProjectDirectory) {
+            TextField(
+                value = projectsPathText,
+                onValueChange = { projectsPathText = it },
+                label = { Text("Path to Projects Directory") }
+            )
+            Button(onClick = {
+                component.setProjectsDir(projectsPathText)
+            }) {
+                Text("Update Dir")
+            }
         }
 
         LazyColumn(

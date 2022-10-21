@@ -13,5 +13,9 @@ fun AppPreview(
     componentContext: ComponentContext,
     onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
-    ProjectSelectionComponent(componentContext, onProjectSelected)
+    ProjectSelectionComponent(
+        componentContext = componentContext,
+        showProjectDirectory = true,
+        onProjectSelected = onProjectSelected
+    )
 }

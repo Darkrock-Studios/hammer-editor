@@ -9,14 +9,19 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
+import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
     componentContext: ComponentContext,
+    override val showProjectDirectory: Boolean = false,
     private val onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) : ProjectSelection, ComponentBase(componentContext) {
-
+    private val globalSettingsRepository by inject<GlobalSettingsRepository>()
     private val projectsRepository by inject<ProjectsRepository>()
     private val projectRepository by inject<ProjectRepository>()
 
@@ -29,7 +34,14 @@ class ProjectSelectionComponent(
     override val state: Value<ProjectSelection.State> = _value
 
     init {
-        loadProjectList()
+        scope.launch {
+            globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+                _value.reduce {
+                    val projectsPath = settings.projectsDirectory.toPath().toHPath()
+                    it.copy(projectsDir = projectsPath)
+                }
+            }
+        }
     }
 
     override fun loadProjectList() {
@@ -39,10 +51,22 @@ class ProjectSelectionComponent(
         }
     }
 
-    override fun setProjectsDir(path: HPath) {
+    override fun setProjectsDir(path: String) {
+        val hpath = HPath(
+            path = path,
+            name = "",
+            isAbsolute = true
+        )
+
+        val curSettings = globalSettingsRepository.globalSettings
+        val updatedSettings = curSettings.copy(projectsDirectory = path)
+        globalSettingsRepository.updateSettings(updatedSettings)
+
+        projectsRepository.getProjectsDirectory()
         _value.reduce {
-            it.copy(projectsDir = path)
+            it.copy(projectsDir = hpath)
         }
+        loadProjectList()
     }
 
     override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)

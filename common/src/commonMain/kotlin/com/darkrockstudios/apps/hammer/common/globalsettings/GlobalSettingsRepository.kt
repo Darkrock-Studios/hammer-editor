@@ -35,6 +35,7 @@ class GlobalSettingsRepository(
 	fun updateSettings(settings: GlobalSettings) {
 		writeSettings(settings)
 		globalSettings = settings
+		_globalSettingsUpdates.tryEmit(settings)
 	}
 
 	private fun writeSettings(settings: GlobalSettings) {

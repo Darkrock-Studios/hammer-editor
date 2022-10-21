@@ -73,7 +73,13 @@ private fun ApplicationScope.ProjectSelectionWindow(
     ) {
         Surface(modifier = Modifier.fillMaxSize()) {
             MaterialTheme {
-                ProjectSelectionUi(ProjectSelectionComponent(compContext, onProjectSelected))
+                ProjectSelectionUi(
+                    ProjectSelectionComponent(
+                        componentContext = compContext,
+                        showProjectDirectory = true,
+                        onProjectSelected = onProjectSelected
+                    )
+                )
             }
         }
     }
