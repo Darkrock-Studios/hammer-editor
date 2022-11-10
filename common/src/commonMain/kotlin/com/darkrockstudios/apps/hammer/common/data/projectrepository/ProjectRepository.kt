@@ -1,4 +1,8 @@
-package com.darkrockstudios.apps.hammer.common.data
+package com.darkrockstudios.apps.hammer.common.data.projectrepository
+
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 
 abstract class ProjectRepository(
     protected val projectsRepository: ProjectsRepository

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.content.Context
-import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import io.github.aakira.napier.Napier
 import java.io.*

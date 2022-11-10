@@ -1,5 +1,13 @@
-package com.darkrockstudios.apps.hammer.common.data
+package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
 
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
@@ -387,7 +395,7 @@ abstract class ProjectEditorRepository(
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
-    it.name != ProjectEditorRepository.BUFFER_DIRECTORY && it.name != ".."
+    it.name != ProjectEditorRepository.BUFFER_DIRECTORY && it.name != "src/commonMain"
 }.sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :

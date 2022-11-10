@@ -1,7 +1,10 @@
-package com.darkrockstudios.apps.hammer.common.fileio.okio
+package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
 
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.util.numDigits
@@ -20,7 +23,7 @@ class ProjectEditorRepositoryOkio(
 
     override fun getSceneParentPath(path: HPath): ScenePathSegments {
         val parentPath = path.toOkioPath().parent
-        return if (parentPath != null && parentPath.name != "..") {
+        return if (parentPath != null && parentPath.name != "src/commonMain") {
             getScenePathSegments(parentPath.toHPath())
         } else {
             ScenePathSegments(emptyList())

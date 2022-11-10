@@ -1,5 +1,6 @@
-package com.darkrockstudios.apps.hammer.common.data
+package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier

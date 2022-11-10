@@ -1,9 +1,9 @@
-package com.darkrockstudios.apps.hammer.common.fileio.okio
+package com.darkrockstudios.apps.hammer.common.data.projectrepository
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.ProjectRepository
-import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
 import okio.FileSystem
 
 class ProjectRepositoryOkio(

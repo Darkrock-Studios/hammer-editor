@@ -1,8 +1,8 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorFactory
-import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectEditorFactory
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepositoryOkio
 import io.mockk.*
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem

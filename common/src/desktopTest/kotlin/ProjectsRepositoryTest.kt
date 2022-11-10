@@ -1,5 +1,5 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
-import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.fakefilesystem.FakeFileSystem

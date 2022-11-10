@@ -3,7 +3,9 @@ package projecteditorrepository
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.fileio.okio.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
