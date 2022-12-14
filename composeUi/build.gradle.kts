@@ -1,11 +1,9 @@
- import org.jetbrains.compose.compose
-
 val app_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
 val kotlin_version: String by extra
-val compose_version: String by extra
+val jetbrains_compose_version: String by extra
 val decompose_version: String by extra
 val mockk_version: String by extra
 val okio_version: String by extra
@@ -43,8 +41,8 @@ kotlin {
                 api(compose.animation)
                 api(compose.animationGraphics)
                 api(compose.materialIconsExtended)
-                api("org.jetbrains.compose.ui:ui-util:$compose_version")
-                api("org.jetbrains.compose.ui:ui-text:$compose_version")
+                api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
+                api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
                 api("com.darkrockstudios:richtexteditor:1.3.0")
             }
