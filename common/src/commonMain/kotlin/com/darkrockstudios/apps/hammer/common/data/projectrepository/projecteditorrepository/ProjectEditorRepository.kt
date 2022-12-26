@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -80,7 +81,9 @@ abstract class ProjectEditorRepository(
         return scope.launch {
             bufferUpdateChannel.collect { newBuffer ->
                 if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
-                    onBufferUpdate(newBuffer)
+                    withContext(mainDispatcher) {
+                        onBufferUpdate(newBuffer)
+                    }
                 }
             }
         }

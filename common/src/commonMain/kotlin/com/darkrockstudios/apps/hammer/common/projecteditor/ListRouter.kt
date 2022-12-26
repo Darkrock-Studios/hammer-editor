@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
@@ -26,14 +25,14 @@ internal class ListRouter(
 			childFactory = ::createChild
 	)
 
-	val state: Value<ChildStack<Config, ProjectEditor.Child.List>>
+	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.List>>
 		get() = stack
 
-	private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.Child.List =
-			when (config) {
-				is Config.List -> ProjectEditor.Child.List.Scenes(sceneList(componentContext))
-				is Config.None -> ProjectEditor.Child.List.None
-			}
+	private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.ChildDestination.List =
+		when (config) {
+			is Config.List -> ProjectEditor.ChildDestination.List.Scenes(sceneList(componentContext))
+			is Config.None -> ProjectEditor.ChildDestination.List.None
+		}
 
 	private fun sceneList(componentContext: ComponentContext): SceneListComponent =
 			SceneListComponent(

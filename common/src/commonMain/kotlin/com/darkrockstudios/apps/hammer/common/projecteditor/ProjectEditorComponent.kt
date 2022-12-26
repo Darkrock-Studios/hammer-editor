@@ -48,17 +48,17 @@ class ProjectEditorComponent(
             onSceneSelected = ::onSceneSelected
         )
 
-    override val listRouterState: Value<ChildStack<*, ProjectEditor.Child.List>> =
+    override val listRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>> =
         listRouter.state
 
     private val _shouldConfirmClose = MutableValue(false)
     override val shouldConfirmClose = _shouldConfirmClose
 
-    override val detailsRouterState: Value<ChildStack<*, ProjectEditor.Child.Detail>> =
+    override val detailsRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>> =
         detailsRouter.state
 
     override fun isDetailShown(): Boolean {
-        return detailsRouterState.value.active.instance !is ProjectEditor.Child.Detail.None
+        return detailsRouterState.value.active.instance !is ProjectEditor.ChildDestination.Detail.None
     }
 
     private val _state = MutableValue(ProjectEditor.State(projectDef))

@@ -18,7 +18,8 @@ class SceneEditorComponent(
     originalSceneItem: SceneItem,
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
-    private val closeSceneEditor: () -> Unit
+    private val closeSceneEditor: () -> Unit,
+    private val showDraftsList: (SceneItem) -> Unit,
 ) : ComponentBase(componentContext), SceneEditor {
 
     private val projectRepository: ProjectRepository by inject()
@@ -106,13 +107,29 @@ class SceneEditorComponent(
             ""
         ) {
             Napier.d("Scene rename selected")
+        }
 
+        val draftsItem = MenuItemDescriptor(
+            "scene-editor-view-drafts",
+            "Drafts",
+            ""
+        ) {
+            Napier.i("View drafts")
+            showDraftsList(sceneDef)
+        }
+
+        val saveDraftItem = MenuItemDescriptor(
+            "scene-editor-save-draft",
+            "Save Draft",
+            ""
+        ) {
+            Napier.i("Save draft")
         }
 
         val menu = MenuDescriptor(
             getMenuId(),
             "Scene",
-            listOf(renameItem, saveItem, discardItem, closeItem)
+            listOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
         )
         addMenu(menu)
     }

@@ -4,12 +4,13 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.HammerComponent
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
 
 interface ProjectEditor : HammerComponent {
-    val listRouterState: Value<ChildStack<*, Child.List>>
-    val detailsRouterState: Value<ChildStack<*, Child.Detail>>
+    val listRouterState: Value<ChildStack<*, ChildDestination.List>>
+    val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 
     data class State(
         val projectDef: ProjectDef,
@@ -28,15 +29,17 @@ interface ProjectEditor : HammerComponent {
     fun hasUnsavedBuffers(): Boolean
     fun storeDirtyBuffers()
 
-    sealed class Child {
-        sealed class List : Child() {
+    sealed class ChildDestination {
+        sealed class List : ChildDestination() {
             class Scenes(val component: SceneList) : List()
 
             object None : List()
         }
 
-        sealed class Detail : Child() {
-            class Editor(val component: SceneEditor) : Detail()
+        sealed class Detail : ChildDestination() {
+            class EditorDestination(val component: SceneEditor) : Detail()
+
+            class DraftsDestination(val component: DraftsList) : Detail()
 
             object None : Detail()
         }

@@ -10,8 +10,12 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
+import io.github.aakira.napier.Napier
 
 internal class DetailsRouter(
 		componentContext: ComponentContext,
@@ -29,37 +33,70 @@ internal class DetailsRouter(
 			childFactory = ::createChild
 	)
 
-	val state: Value<ChildStack<Config, ProjectEditor.Child.Detail>>
+	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.Detail>>
 		get() = stack
 
 	private fun createChild(
-			config: Config,
-			componentContext: ComponentContext
-	): ProjectEditor.Child.Detail =
-			when (config) {
-				is Config.None -> ProjectEditor.Child.Detail.None
-				is Config.SceneEditor -> ProjectEditor.Child.Detail.Editor(
-						sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
-				)
-			}
+		config: Config,
+		componentContext: ComponentContext
+	): ProjectEditor.ChildDestination.Detail =
+		when (config) {
+			is Config.None -> ProjectEditor.ChildDestination.Detail.None
+			is Config.SceneEditor -> ProjectEditor.ChildDestination.Detail.EditorDestination(
+				sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
+			)
+
+			is Config.DraftsList -> ProjectEditor.ChildDestination.Detail.DraftsDestination(
+				draftsList(componentContext = componentContext, sceneDef = config.sceneDef)
+			)
+		}
 
 	private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
-			SceneEditorComponent(
-					componentContext = componentContext,
-					originalSceneItem = sceneDef,
-					addMenu = addMenu,
-					removeMenu = removeMenu,
-					closeSceneEditor = closeDetails
-			)
+		SceneEditorComponent(
+			componentContext = componentContext,
+			originalSceneItem = sceneDef,
+			addMenu = addMenu,
+			removeMenu = removeMenu,
+			closeSceneEditor = closeDetails,
+			showDraftsList = ::showDraftsList
+		)
+
+	private fun draftsList(componentContext: ComponentContext, sceneDef: SceneItem): DraftsList =
+		DraftsListComponent(
+			componentContext = componentContext,
+			sceneItem = sceneDef,
+			onDraftSelected = ::showDraft
+		)
 
 	fun showScene(sceneDef: SceneItem) {
 		navigation.navigate(
-				transformer = { stack ->
-					stack.dropLastWhile { it is Config.SceneEditor }
-							.plus(Config.SceneEditor(sceneDef = sceneDef))
-				},
-				onComplete = { _, _ -> }
+			transformer = { stack ->
+				stack.dropLastWhile { it is Config.SceneEditor }
+					.plus(Config.SceneEditor(sceneDef = sceneDef))
+			},
+			onComplete = { _, _ -> }
 		)
+	}
+
+	fun showDraftsList(sceneDef: SceneItem) {
+		navigation.navigate(
+			transformer = { stack ->
+				stack.plus(Config.DraftsList(sceneDef = sceneDef))
+			},
+			onComplete = { _, _ -> }
+		)
+	}
+
+	fun showDraft(draftDef: DraftDef) {
+		Napier.w { "showDraft: ${draftDef.draftSequence} - ${draftDef.draftName}" }
+		/*
+		navigation.navigate(
+			transformer = { stack ->
+				stack.plus(Config.DraftsList(sceneDef = sceneDef))
+			},
+			onComplete = { _, _ -> }
+		)
+		*/
 	}
 
 	fun closeScene() {
@@ -67,10 +104,10 @@ internal class DetailsRouter(
 	}
 
 	fun isShown(): Boolean =
-			when (stack.value.active.configuration) {
-				is Config.None -> false
-				is Config.SceneEditor -> true
-			}
+		when (stack.value.active.configuration) {
+			is Config.None -> false
+			else -> true
+		}
 
 	sealed class Config : Parcelable {
 		@Parcelize
@@ -78,5 +115,8 @@ internal class DetailsRouter(
 
 		@Parcelize
 		data class SceneEditor(val sceneDef: SceneItem) : Config()
+
+		@Parcelize
+		data class DraftsList(val sceneDef: SceneItem) : Config()
 	}
 }

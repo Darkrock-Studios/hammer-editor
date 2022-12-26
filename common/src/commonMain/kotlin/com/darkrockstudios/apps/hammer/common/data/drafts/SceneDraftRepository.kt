@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 abstract class SceneDraftRepository(
-    protected val projectEditorRepository: ProjectEditorRepository
+    protected val projectRepository: ProjectRepository,
 ) {
     abstract fun getDraftsDirectory(projectDef: ProjectDef): HPath
     abstract fun findDrafts(

@@ -21,4 +21,4 @@ actual fun getConfigDirectory(): String = File(rootDocumentDirectory, "config").
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 
 actual val defaultDispatcher: CoroutineContext = Dispatchers.Default
-actual val uiDispatcher: CoroutineContext = Dispatchers.Main
+actual val mainDispatcher: CoroutineContext = Dispatchers.Main

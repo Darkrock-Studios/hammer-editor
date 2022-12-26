@@ -13,9 +13,9 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.*
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
-import io.github.aakira.napier.Napier
 
 private val MULTI_PANE_WIDTH_THRESHOLD = 800.dp
 private const val LIST_PANE_WEIGHT = 0.4F
@@ -65,8 +65,8 @@ fun ProjectEditorUi(
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun ListPane(
-		routerState: Value<ChildStack<*, ProjectEditor.Child.List>>,
-		modifier: Modifier
+	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>>,
+	modifier: Modifier
 ) {
 	val state by routerState.subscribeAsState()
 
@@ -76,13 +76,13 @@ private fun ListPane(
 			animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
-			is ProjectEditor.Child.List.Scenes ->
+			is ProjectEditor.ChildDestination.List.Scenes ->
 				SceneListUi(
-						component = child.component,
-						modifier = Modifier.fillMaxSize()
+					component = child.component,
+					modifier = Modifier.fillMaxSize()
 				)
 
-			is ProjectEditor.Child.List.None -> Box {}
+			is ProjectEditor.ChildDestination.List.None -> Box {}
 		}
 	}
 }
@@ -90,9 +90,9 @@ private fun ListPane(
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun DetailsPane(
-		routerState: Value<ChildStack<*, ProjectEditor.Child.Detail>>,
-		modifier: Modifier,
-		drawableKlass: Any? = null
+	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>>,
+	modifier: Modifier,
+	drawableKlass: Any? = null
 ) {
 	val state by routerState.subscribeAsState()
 
@@ -102,12 +102,19 @@ private fun DetailsPane(
 			animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
-			is ProjectEditor.Child.Detail.None -> Box {}
-			is ProjectEditor.Child.Detail.Editor -> {
+			is ProjectEditor.ChildDestination.Detail.None -> Box {}
+			is ProjectEditor.ChildDestination.Detail.EditorDestination -> {
 				SceneEditorUi(
-						component = child.component,
-						modifier = Modifier.fillMaxSize(),
-						drawableKlass = drawableKlass
+					component = child.component,
+					modifier = Modifier.fillMaxSize(),
+					drawableKlass = drawableKlass
+				)
+			}
+
+			is ProjectEditor.ChildDestination.Detail.DraftsDestination -> {
+				DraftsListUi(
+					component = child.component,
+					modifier = Modifier.fillMaxSize()
 				)
 			}
 		}
