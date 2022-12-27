@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import androidx.compose.ui.Modifier
@@ -18,41 +15,49 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEdi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
 private val MULTI_PANE_WIDTH_THRESHOLD = 800.dp
-private const val LIST_PANE_WEIGHT = 0.4F
-private const val DETAILS_PANE_WEIGHT = 0.6F
+private const val DETAILS_PANE_WEIGHT = 2F
+private val LIST_PANE_WIDTH = 512.dp
 
 @Composable
 fun ProjectEditorUi(
-		component: ProjectEditor,
-		modifier: Modifier = Modifier,
-		drawableKlass: Any? = null
+	component: ProjectEditor,
+	modifier: Modifier = Modifier,
+	drawableKlass: Any? = null
 ) {
 	BoxWithConstraints(modifier = modifier) {
 		val state by component.state.subscribeAsState()
 
 		val isMultiPane = state.isMultiPane
 
-		Row(modifier = Modifier.fillMaxSize()) {
-			ListPane(
+		Row {
+			val listModifier = if (isMultiPane) {
+				Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH)
+			} else {
+				Modifier.weight(1f)
+			}
+
+			// List
+			Column(modifier = listModifier) {
+				ListPane(
 					routerState = component.listRouterState,
-					modifier = Modifier.weight(if (isMultiPane) LIST_PANE_WEIGHT else 1F),
-			)
-
-			if (isMultiPane) {
-				Box(modifier = Modifier.weight(DETAILS_PANE_WEIGHT))
-			}
-		}
-
-		Row(modifier = Modifier.fillMaxSize()) {
-			if (isMultiPane) {
-				Box(modifier = Modifier.weight(LIST_PANE_WEIGHT))
+					modifier = Modifier.fillMaxSize(),
+				)
 			}
 
-			DetailsPane(
+			val detailsModifier = if (isMultiPane) {
+				Modifier.weight(DETAILS_PANE_WEIGHT)
+			} else {
+				Modifier.fillMaxSize()
+			}
+
+			// Detail
+			Column(modifier = detailsModifier) {
+				DetailsPane(
 					routerState = component.detailsRouterState,
-					modifier = Modifier.weight(if (isMultiPane) DETAILS_PANE_WEIGHT else 1F),
+					modifier = Modifier.fillMaxWidth(),
 					drawableKlass = drawableKlass
-			)
+				)
+			}
 		}
 
 		val isMultiPaneRequired = this@BoxWithConstraints.maxWidth >= MULTI_PANE_WIDTH_THRESHOLD
