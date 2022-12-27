@@ -95,7 +95,9 @@ abstract class ProjectEditorRepository(
     ): Job {
         val job = scope.launch {
             sceneListChannel.collect { scenes ->
-                onSceneListUpdate(scenes)
+                withContext(mainDispatcher) {
+                    onSceneListUpdate(scenes)
+                }
             }
         }
         reloadScenes()
