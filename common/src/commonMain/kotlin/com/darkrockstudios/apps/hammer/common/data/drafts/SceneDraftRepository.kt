@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -29,7 +30,7 @@ abstract class SceneDraftRepository(
 
     abstract fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
 
-    abstract fun loadDraft(sceneItem: SceneItem): DraftDef
+    abstract fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent?
 
     abstract fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath
 

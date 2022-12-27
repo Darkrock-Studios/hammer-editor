@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -8,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 
@@ -89,8 +91,27 @@ class SceneDraftRepositoryOkio(
         return newDef
     }
 
-    override fun loadDraft(sceneItem: SceneItem): DraftDef {
-        //editor.onContentChanged()
-        return DraftDef(0, 0, "")
+    override fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent? {
+        val path = getDraftPath(sceneItem, draftDef).toOkioPath()
+
+        if (!fileSystem.exists(path)) {
+            Napier.e("loadDraft failed: Draft file already exists: $path")
+            return null
+        }
+
+        val sceneContent: SceneContent? = try {
+            fileSystem.read(path) {
+                val content = readUtf8()
+                SceneContent(
+                    scene = sceneItem,
+                    markdown = content
+                )
+            }
+        } catch (e: IOException) {
+            Napier.e("Failed to load Scene (${sceneItem.name})")
+            null
+        }
+
+        return sceneContent
     }
 }

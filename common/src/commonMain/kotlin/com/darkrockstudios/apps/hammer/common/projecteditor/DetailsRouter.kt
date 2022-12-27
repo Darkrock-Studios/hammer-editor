@@ -1,16 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.popWhile
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
@@ -65,13 +61,13 @@ internal class DetailsRouter(
 		DraftsListComponent(
 			componentContext = componentContext,
 			sceneItem = sceneDef,
-			onDraftSelected = ::showDraft
+			closeDrafts = ::closeDrafts
 		)
 
 	fun showScene(sceneDef: SceneItem) {
 		navigation.navigate(
 			transformer = { stack ->
-				stack.dropLastWhile { it is Config.SceneEditor }
+				stack.dropLastWhile { it !is Config.None }
 					.plus(Config.SceneEditor(sceneDef = sceneDef))
 			},
 			onComplete = { _, _ -> }
@@ -87,16 +83,8 @@ internal class DetailsRouter(
 		)
 	}
 
-	fun showDraft(draftDef: DraftDef) {
-		Napier.w { "showDraft: ${draftDef.draftSequence} - ${draftDef.draftName}" }
-		/*
-		navigation.navigate(
-			transformer = { stack ->
-				stack.plus(Config.DraftsList(sceneDef = sceneDef))
-			},
-			onComplete = { _, _ -> }
-		)
-		*/
+	private fun closeDrafts() {
+		navigation.popWhile { it is Config.DraftsList }
 	}
 
 	fun closeScene() {

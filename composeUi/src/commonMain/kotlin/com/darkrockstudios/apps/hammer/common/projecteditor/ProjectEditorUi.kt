@@ -110,7 +110,6 @@ private fun DetailsPane(
 					drawableKlass = drawableKlass
 				)
 			}
-
 			is ProjectEditor.ChildDestination.Detail.DraftsDestination -> {
 				DraftsListUi(
 					component = child.component,

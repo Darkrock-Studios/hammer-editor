@@ -12,6 +12,8 @@ interface DraftsList : HammerComponent {
 
     fun selectDraft(draftDef: DraftDef)
 
+    fun cancel()
+
     data class State(
         val sceneItem: SceneItem,
         val drafts: List<DraftDef>
