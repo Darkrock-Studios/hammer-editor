@@ -116,7 +116,7 @@ private fun ApplicationScope.ProjectEditorWindow(
     val menu by app.menu.subscribeAsState()
 
     Window(
-        title = "Hammer",
+        title = "Hammer - ${projectDef.name}",
         state = windowState,
         onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
     ) {

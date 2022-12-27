@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
@@ -24,6 +25,8 @@ class SceneEditorComponent(
 
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(originalSceneItem.projectDef)
+
+    private val draftsRepository: SceneDraftRepository by inject()
 
     private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
     override val state: Value<SceneEditor.State> = _state
@@ -107,6 +110,7 @@ class SceneEditorComponent(
             ""
         ) {
             Napier.d("Scene rename selected")
+            beginSceneNameEdit()
         }
 
         val draftsItem = MenuItemDescriptor(
@@ -124,6 +128,7 @@ class SceneEditorComponent(
             ""
         ) {
             Napier.i("Save draft")
+            beginSaveDraft()
         }
 
         val menu = MenuDescriptor(
@@ -154,6 +159,33 @@ class SceneEditorComponent(
             it.copy(
                 sceneItem = it.sceneItem.copy(name = newName)
             )
+        }
+    }
+
+    override fun beginSaveDraft() {
+        _state.reduce { it.copy(isSavingDraft = true) }
+    }
+
+    override fun endSaveDraft() {
+        _state.reduce { it.copy(isSavingDraft = false) }
+    }
+
+    override fun saveDraft(draftName: String): Boolean {
+        return if (SceneDraftRepository.validDraftName(draftName)) {
+            val draftDef = draftsRepository.saveDraft(
+                sceneDef,
+                draftName
+            )
+            if (draftDef != null) {
+                Napier.i { "Draft Saved: ${draftDef.draftSequence}" }
+                true
+            } else {
+                Napier.e { "Failed to save Draft!" }
+                false
+            }
+        } else {
+            Napier.w { "Failed to save Draft, invalid name: $draftName" }
+            false
         }
     }
 

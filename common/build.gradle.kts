@@ -66,6 +66,7 @@ kotlin {
                 //implementation("io.insert-koin:koin-test:$koin_version")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
                 implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
+                implementation("io.mockk:mockk-common:$mockk_version")
             }
         }
         val androidMain by getting {
@@ -92,6 +93,7 @@ kotlin {
                 api(compose.preview)
                 api(compose.desktop.currentOs)
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
             }
         }
         val desktopTest by getting {

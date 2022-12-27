@@ -240,7 +240,7 @@ abstract class ProjectEditorRepository(
         _bufferUpdateChannel.tryEmit(newBuffer)
     }
 
-    protected fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
+    fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
     protected fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
         sceneBuffers.containsKey(sceneDef.id)
 
