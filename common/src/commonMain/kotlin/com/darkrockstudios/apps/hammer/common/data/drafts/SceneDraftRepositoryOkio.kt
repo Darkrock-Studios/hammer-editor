@@ -25,27 +25,37 @@ class SceneDraftRepositoryOkio(
         return path.toHPath()
     }
 
+    override fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath {
+        val draftsDir = getDraftsDirectory(projectDef).toOkioPath()
+        val sceneDrafts = draftsDir / sceneId.toString()
+        return sceneDrafts.toHPath()
+    }
+
     override fun findDrafts(
         projectDef: ProjectDef,
         sceneId: Int
     ): List<DraftDef> {
-        val draftsDir = getDraftsDirectory(projectDef).toOkioPath()
+        val draftsDir = getSceneDraftsDirectory(projectDef, sceneId).toOkioPath()
 
-        val drafts = fileSystem.list(draftsDir).filter { path: Path ->
-            validDraftFileName(path.name)
-        }.mapNotNull { path: Path ->
-            parseDraftFileName(path.name)
-        }.filter { draftDef: DraftDef ->
-            draftDef.sceneId == sceneId
-        }.sortedBy { draftDef: DraftDef ->
-            draftDef.draftSequence
+        val drafts = if (fileSystem.exists(draftsDir)) {
+            fileSystem.list(draftsDir).filter { path: Path ->
+                validDraftFileName(path.name)
+            }.mapNotNull { path: Path ->
+                parseDraftFileName(path.name)
+            }.filter { draftDef: DraftDef ->
+                draftDef.sceneId == sceneId
+            }.sortedBy { draftDef: DraftDef ->
+                draftDef.draftSequence
+            }
+        } else {
+            emptyList()
         }
 
         return drafts
     }
 
     override fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath {
-        val dir = getDraftsDirectory(sceneItem.projectDef)
+        val dir = getSceneDraftsDirectory(sceneItem.projectDef, sceneItem.id)
         val filename = getFilename(draftDef)
         val path = dir.toOkioPath() / filename
         return path.toHPath()
@@ -64,6 +74,8 @@ class SceneDraftRepositoryOkio(
             draftName = draftName
         )
         val path = getDraftPath(sceneItem, newDef).toOkioPath()
+        val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
+        fileSystem.createDirectories(parentPath)
 
         if (fileSystem.exists(path)) {
             Napier.e("saveDraft failed: Draft file already exists: $path")

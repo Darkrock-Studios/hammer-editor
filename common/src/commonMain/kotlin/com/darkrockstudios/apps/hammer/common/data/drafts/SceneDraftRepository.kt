@@ -10,6 +10,7 @@ abstract class SceneDraftRepository(
     protected val projectRepository: ProjectRepository,
 ) {
     abstract fun getDraftsDirectory(projectDef: ProjectDef): HPath
+    abstract fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath
     abstract fun findDrafts(
         projectDef: ProjectDef,
         sceneId: Int
