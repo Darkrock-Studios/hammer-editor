@@ -65,7 +65,7 @@ class ProjectRootActivity : AppCompatActivity() {
                             )
                         },
                         content = { padding ->
-                            ProjectRootUi(component, padding)
+                            ProjectRootUi(component, padding, R.drawable::class)
 
                             // TODO: This needs to be state
                             //val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()
