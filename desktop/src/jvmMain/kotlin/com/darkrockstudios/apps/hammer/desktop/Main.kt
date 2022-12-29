@@ -15,13 +15,14 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.di.NapierLogger
 import com.darkrockstudios.apps.hammer.common.di.mainModule
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import io.github.aakira.napier.DebugAntilog
@@ -100,8 +101,8 @@ private fun ApplicationScope.ProjectEditorWindow(
 
     val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
 
-    val component = remember<ProjectEditor> {
-        ProjectEditorComponent(
+    val component = remember<ProjectRoot> {
+        ProjectRootComponent(
             componentContext = compContext,
             projectDef = projectDef,
             addMenu = { menu ->
@@ -145,7 +146,7 @@ private fun ApplicationScope.ProjectEditorWindow(
             }
             Surface(modifier = Modifier.fillMaxSize()) {
                 MaterialTheme {
-                    ProjectEditorUi(component)
+                    ProjectRootUi(component)
                 }
             }
         }
@@ -221,7 +222,7 @@ private fun ApplicationScope.performClose(
 }
 
 private fun ApplicationScope.onRequestClose(
-    component: ProjectEditor,
+    component: AppCloseManager,
     app: ApplicationState,
     closeType: ApplicationState.CloseType
 ) {

@@ -10,8 +10,8 @@ import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.koin.core.component.inject
@@ -130,11 +130,6 @@ class ProjectEditorComponent(
 
     override fun storeDirtyBuffers() {
         projectEditor.storeAllBuffers()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        projectRepository.closeEditor(projectDef)
     }
 
     private val backButtonHandler = object : BackCallback() {
