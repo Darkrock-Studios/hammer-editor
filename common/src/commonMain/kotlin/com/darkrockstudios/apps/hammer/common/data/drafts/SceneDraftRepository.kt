@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import kotlinx.datetime.Instant
 
 abstract class SceneDraftRepository(
     protected val projectRepository: ProjectRepository,
@@ -16,19 +17,6 @@ abstract class SceneDraftRepository(
         sceneId: Int
     ): List<DraftDef>
 
-    fun getNextSequence(
-        projectDef: ProjectDef,
-        sceneId: Int
-    ): Int {
-        val drafts = findDrafts(projectDef, sceneId)
-        val latestDraft = drafts.lastOrNull()
-        return if (latestDraft != null) {
-            latestDraft.draftSequence + 1
-        } else {
-            0
-        }
-    }
-
     abstract fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
 
     abstract fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent?
@@ -36,7 +24,7 @@ abstract class SceneDraftRepository(
     abstract fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath
 
     fun getFilename(draftDef: DraftDef): String {
-        return "${draftDef.sceneId}-${draftDef.draftSequence}-${draftDef.draftName}.md"
+        return "${draftDef.sceneId}-${draftDef.draftTimestamp.epochSeconds}-${draftDef.draftName}.md"
     }
 
     companion object {
@@ -55,16 +43,18 @@ abstract class SceneDraftRepository(
             val matches = DRAFT_FILENAME_PATTERN.matchEntire(filename)
             return if (validDraftFileName(filename) && matches != null) {
                 val sceneId = matches.groups[1]?.value?.toInt()
-                val draftSequence = matches.groups[2]?.value?.toInt()
+                val draftTimestamp = matches.groups[2]?.value?.toLong()
                 val draftName = matches.groups[3]?.value
 
                 if (sceneId == null) error("Failed to parsed Scene ID from draft file name")
-                if (draftSequence == null) error("Failed to parsed draft sequence from draft file name")
+                if (draftTimestamp == null) error("Failed to parsed draft sequence from draft file name")
                 if (draftName == null) error("Failed to parsed draft name from draft file name")
+
+                val draftCreatedAt = Instant.fromEpochSeconds(draftTimestamp, 0)
 
                 DraftDef(
                     sceneId = sceneId,
-                    draftSequence = draftSequence,
+                    draftTimestamp = draftCreatedAt,
                     draftName = draftName
                 )
             } else {

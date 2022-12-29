@@ -400,7 +400,7 @@ abstract class ProjectEditorRepository(
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
-    it.name != ProjectEditorRepository.BUFFER_DIRECTORY && it.name != "src/commonMain"
+    !it.name.startsWith(".") && it.name != "src/commonMain"
 }.sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :

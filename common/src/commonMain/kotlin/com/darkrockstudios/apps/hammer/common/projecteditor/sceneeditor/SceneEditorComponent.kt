@@ -177,7 +177,7 @@ class SceneEditorComponent(
                 draftName
             )
             if (draftDef != null) {
-                Napier.i { "Draft Saved: ${draftDef.draftSequence}" }
+                Napier.i { "Draft Saved: ${draftDef.draftTimestamp}" }
                 true
             } else {
                 Napier.e { "Failed to save Draft!" }

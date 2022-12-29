@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun DraftsListUi(
@@ -68,6 +70,11 @@ fun DraftItem(
             ),
         elevation = Ui.ELEVATION
     ) {
-        Text("${draftDef.draftSequence} - ${draftDef.draftName}")
+        Column {
+            Text("${draftDef.draftTimestamp} - ${draftDef.draftName}")
+
+            val localInstant = draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
+            Text("Created: $localInstant")
+        }
     }
 }

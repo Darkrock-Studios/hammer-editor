@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.Clock
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -48,7 +49,7 @@ class SceneDraftRepositoryOkio(
             }.filter { draftDef: DraftDef ->
                 draftDef.sceneId == sceneId
             }.sortedBy { draftDef: DraftDef ->
-                draftDef.draftSequence
+                draftDef.draftTimestamp
             }
         } else {
             emptyList()
@@ -70,10 +71,10 @@ class SceneDraftRepositoryOkio(
             return null
         }
 
-        val newDraftSequence = getNextSequence(sceneItem.projectDef, sceneItem.id)
+        val newDraftTimestamp = Clock.System.now()
         val newDef = DraftDef(
             sceneId = sceneItem.id,
-            draftSequence = newDraftSequence,
+            draftTimestamp = newDraftTimestamp,
             draftName = draftName
         )
         val path = getDraftPath(sceneItem, newDef).toOkioPath()
