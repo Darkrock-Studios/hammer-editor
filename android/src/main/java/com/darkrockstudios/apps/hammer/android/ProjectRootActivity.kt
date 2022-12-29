@@ -24,7 +24,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
         val isWide = resources.getBoolean(R.bool.is_wide)
 
-        val projectDef = intent.getParcelableExtra(EXTRA_PROJECT, ProjectDef::class.java)
+        val projectDef = intent.getParcelableExtra<ProjectDef>(EXTRA_PROJECT)
         if (projectDef == null) {
             finish()
         } else {
@@ -65,7 +65,7 @@ class ProjectRootActivity : AppCompatActivity() {
                             )
                         },
                         content = { padding ->
-                            ProjectRootUi(component)
+                            ProjectRootUi(component, padding)
 
                             // TODO: This needs to be state
                             //val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()

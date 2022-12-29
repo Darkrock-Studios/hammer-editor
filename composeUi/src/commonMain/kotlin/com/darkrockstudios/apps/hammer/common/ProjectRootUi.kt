@@ -21,8 +21,8 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 800.dp
 
 @Composable
-fun ProjectRootUi(component: ProjectRoot) {
-	BoxWithConstraints {
+fun ProjectRootUi(component: ProjectRoot, padding: PaddingValues = PaddingValues.Absolute()) {
+	BoxWithConstraints(Modifier.padding(padding)) {
 		val routerState by component.routerState.subscribeAsState()
 
 		val isWide = this.maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD
