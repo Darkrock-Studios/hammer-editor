@@ -2,10 +2,10 @@ package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.*
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -14,55 +14,45 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
-private val MULTI_PANE_WIDTH_THRESHOLD = 800.dp
-private const val DETAILS_PANE_WEIGHT = 2F
 private val LIST_PANE_WIDTH = 512.dp
 
 @Composable
 fun ProjectEditorUi(
 	component: ProjectEditor,
 	modifier: Modifier = Modifier,
+	isWide: Boolean,
 	drawableKlass: Any? = null
 ) {
 	BoxWithConstraints(modifier = modifier) {
 		val state by component.state.subscribeAsState()
-
+		val detailsState by component.detailsRouterState.subscribeAsState()
 		val isMultiPane = state.isMultiPane
 
 		Row {
 			val listModifier = if (isMultiPane) {
 				Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH)
 			} else {
-				Modifier.weight(1f)
-			}
-
-			// List
-			Column(modifier = listModifier) {
-				ListPane(
-					routerState = component.listRouterState,
-					modifier = Modifier.fillMaxSize(),
-				)
-			}
-
-			val detailsModifier = if (isMultiPane) {
-				Modifier.weight(DETAILS_PANE_WEIGHT)
-			} else {
 				Modifier.fillMaxSize()
 			}
 
-			// Detail
-			Column(modifier = detailsModifier) {
-				DetailsPane(
-					routerState = component.detailsRouterState,
-					modifier = Modifier.fillMaxWidth(),
-					drawableKlass = drawableKlass
+			// List
+			if ((!isMultiPane && !component.isDetailShown()) || isMultiPane) {
+				ListPane(
+					routerState = component.listRouterState,
+					modifier = listModifier,
 				)
 			}
+
+			// Detail
+			DetailsPane(
+				state = detailsState,
+				modifier = Modifier.fillMaxWidth(),
+				drawableKlass = drawableKlass
+			)
 		}
 
-		val isMultiPaneRequired = this@BoxWithConstraints.maxWidth >= MULTI_PANE_WIDTH_THRESHOLD
-		LaunchedEffect(isMultiPaneRequired) {
-			component.setMultiPane(isMultiPaneRequired)
+		LaunchedEffect(isWide) {
+			component.setMultiPane(isWide)
 		}
 	}
 }
@@ -76,9 +66,9 @@ private fun ListPane(
 	val state by routerState.subscribeAsState()
 
 	Children(
-			stack = state,
-			modifier = modifier,
-			animation = stackAnimation { _, _, _ -> fade() },
+		stack = state,
+		modifier = modifier,
+		animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.List.Scenes ->
@@ -95,16 +85,14 @@ private fun ListPane(
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun DetailsPane(
-	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>>,
+	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
 	modifier: Modifier,
 	drawableKlass: Any? = null
 ) {
-	val state by routerState.subscribeAsState()
-
 	Children(
-			stack = state,
-			modifier = modifier,
-			animation = stackAnimation { _, _, _ -> fade() },
+		stack = state,
+		modifier = modifier,
+		animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.Detail.None -> Box {}
@@ -115,6 +103,7 @@ private fun DetailsPane(
 					drawableKlass = drawableKlass
 				)
 			}
+
 			is ProjectEditor.ChildDestination.Detail.DraftsDestination -> {
 				DraftsListUi(
 					component = child.component,
