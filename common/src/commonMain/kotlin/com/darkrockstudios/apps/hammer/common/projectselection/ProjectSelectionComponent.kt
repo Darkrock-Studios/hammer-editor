@@ -11,8 +11,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 
@@ -36,9 +38,11 @@ class ProjectSelectionComponent(
     init {
         scope.launch {
             globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-                _value.reduce {
-                    val projectsPath = settings.projectsDirectory.toPath().toHPath()
-                    it.copy(projectsDir = projectsPath)
+                withContext(mainDispatcher) {
+                    _value.reduce {
+                        val projectsPath = settings.projectsDirectory.toPath().toHPath()
+                        it.copy(projectsDir = projectsPath)
+                    }
                 }
             }
         }
