@@ -1,8 +1,8 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import okio.Path
@@ -32,7 +32,7 @@ fun createRootDirectory(ffs: FakeFileSystem) {
 
 fun getProjectsDirectory(): Path {
     val rootPath = getRootDocumentDirectory().toPath()
-    val proj = ProjectsRepository.PROJECTS_DIR.toPath()
+    val proj = GlobalSettingsRepository.DEFAULT_PROJECTS_DIR.toPath()
     val projectsDir = rootPath.div(proj)
 
     return projectsDir

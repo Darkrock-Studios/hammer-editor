@@ -2,6 +2,10 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import io.mockk.every
+import io.mockk.mockk
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
@@ -13,9 +17,16 @@ import kotlin.test.assertTrue
 class ProjectsRepositoryTest {
 
     private lateinit var ffs: FakeFileSystem
+    private lateinit var settingsRepo: GlobalSettingsRepository
+    private lateinit var settings: GlobalSettings
 
     @Before
     fun setup() {
+        settingsRepo = mockk()
+        settings = mockk()
+        every { settingsRepo.globalSettings } answers { settings }
+        every { settings.projectsDirectory } answers { getProjectsDirectory().toString() }
+
         ffs = FakeFileSystem()
 
         createRootDirectory(ffs)
@@ -31,14 +42,14 @@ class ProjectsRepositoryTest {
         val projDir = getProjectsDirectory()
         assertFalse(ffs.exists(projDir), "Dir should not have existed already")
 
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
 
         assertTrue(ffs.exists(projDir), "Init did not create project dir")
     }
 
     @Test
     fun `Scene Name Validation`() {
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
 
         assertTrue(repo.validateFileName("good"))
         assertFalse(repo.validateFileName(null))
@@ -52,7 +63,7 @@ class ProjectsRepositoryTest {
     @Test
     fun `Get Projects Directory`() {
         val actualProjDir = getProjectsDirectory().toHPath()
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
         val projectDir = repo.getProjectsDirectory()
         assertEquals(actualProjDir, projectDir)
     }
@@ -61,7 +72,7 @@ class ProjectsRepositoryTest {
     fun `Get Projects`() {
         createProjectDirectories(ffs)
 
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
         val projects = repo.getProjects()
 
         assertEquals(projectNames.size, projects.size)
@@ -73,7 +84,7 @@ class ProjectsRepositoryTest {
     @Test
     fun `Get Project Directory`() {
         createProjectDirectories(ffs)
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
 
         val projectName = projectNames[0]
         val projectDir = repo.getProjectDirectory(projectName)
@@ -84,7 +95,7 @@ class ProjectsRepositoryTest {
 
     @Test
     fun `Create Project`() {
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
 
         val projectName = projectNames[0]
         val created = repo.createProject(projectName)
@@ -100,7 +111,7 @@ class ProjectsRepositoryTest {
     @Test
     fun `Delete Project`() {
         createProjectDirectories(ffs)
-        val repo = ProjectsRepositoryOkio(ffs)
+        val repo = ProjectsRepositoryOkio(ffs, settingsRepo)
 
         val projectName = projectNames[0]
         val projPath = getProjectsDirectory().div(projectName)
