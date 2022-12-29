@@ -24,7 +24,9 @@ class ProjectEditorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val projectDef = intent.getParcelableExtra<ProjectDef>(EXTRA_PROJECT)
+        val isWide = resources.getBoolean(R.bool.is_wide)
+
+        val projectDef = intent.getParcelableExtra(EXTRA_PROJECT, ProjectDef::class.java)
         if (projectDef == null) {
             finish()
         } else {
@@ -68,6 +70,7 @@ class ProjectEditorActivity : AppCompatActivity() {
                             ProjectEditorUi(
                                 component,
                                 Modifier.padding(padding),
+                                isWide,
                                 R.drawable::class
                             )
 

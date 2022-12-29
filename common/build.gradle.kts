@@ -58,6 +58,7 @@ kotlin {
                 //api("com.akuleshov7:ktoml-core:0.2.12")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
                 //implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
+                api("com.arkivanov.essenty:lifecycle:$essenty_version")
             }
         }
         val commonTest by getting {

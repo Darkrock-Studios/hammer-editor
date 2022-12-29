@@ -4,6 +4,7 @@ val android_target_sdk: String by extra
 val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val jetbrains_compose_version: String by extra
+val jetpack_compose_compiler_version: String by extra
 val decompose_version: String by extra
 val mockk_version: String by extra
 val okio_version: String by extra
