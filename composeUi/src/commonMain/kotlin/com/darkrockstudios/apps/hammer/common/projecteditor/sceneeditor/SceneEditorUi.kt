@@ -134,7 +134,7 @@ fun SceneEditorUi(
                     component.onContentChanged(ComposeRichText(rtv.getLastSnapshot()))
                 },
                 textFieldStyle = defaultRichTextFieldStyle().copy(
-                    placeholder = "My rich text editor in action",
+                    placeholder = "Begin writing your Scene here",
                     textColor = MaterialTheme.colors.onBackground,
                     placeholderColor = MaterialTheme.colors.secondaryVariant,
                 )
