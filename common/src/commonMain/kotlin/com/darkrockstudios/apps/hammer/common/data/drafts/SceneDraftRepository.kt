@@ -40,7 +40,7 @@ abstract class SceneDraftRepository(
     }
 
     companion object {
-        const val DRAFTS_DIR = "drafts"
+        const val DRAFTS_DIR = ".drafts"
         val DRAFT_FILENAME_PATTERN = Regex("""(\d+)-(\d+)-([\da-zA-Z _']+)\.md""")
         val DRAFT_NAME_PATTERN = Regex("""[\da-zA-Z _']+""")
         val MAX_DRAFT_NAME_LENGTH = 128

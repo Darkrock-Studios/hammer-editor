@@ -19,7 +19,10 @@ class SceneDraftRepositoryOkio(
 ) : SceneDraftRepository(projectRepository) {
 
     override fun getDraftsDirectory(projectDef: ProjectDef): HPath {
-        val path: Path = projectDef.path.toOkioPath() / DRAFTS_DIR
+        val editor = projectRepository.getProjectEditor(projectDef)
+        val sceneDir = editor.getSceneDirectory().toOkioPath()
+
+        val path: Path = sceneDir / DRAFTS_DIR
         val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
         fileSystem.createDirectories(path)
         return path.toHPath()
