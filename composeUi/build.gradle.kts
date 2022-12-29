@@ -66,6 +66,12 @@ android {
         minSdk = android_min_sdk.toInt()
         targetSdk = android_target_sdk.toInt()
     }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8

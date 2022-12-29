@@ -21,7 +21,6 @@ repositories {
 }
 
 dependencies {
-    api(project(":common"))
     api(project(":composeUi"))
     implementation("androidx.activity:activity-compose:1.6.1")
 }
@@ -37,6 +36,9 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

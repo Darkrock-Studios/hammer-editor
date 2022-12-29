@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -157,6 +156,7 @@ private fun SaveDraftDialog(
 ) {
     var draftName by remember { mutableStateOf("") }
 
+    /*
     Dialog(visible = state.isSavingDraft, onCloseRequest = {
         component.endSaveDraft()
         draftName = ""
@@ -187,6 +187,7 @@ private fun SaveDraftDialog(
             }
         }
     }
+    */
 }
 
 @Composable

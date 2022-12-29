@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.content.Context
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import io.github.aakira.napier.Napier
 import java.io.*
 import java.util.function.BiConsumer
@@ -49,7 +49,7 @@ object ExampleProject {
     }
 
     private fun projectsDir(): File {
-        return File(File(getRootDocumentDirectory()), ProjectsRepository.PROJECTS_DIR)
+        return File(File(getRootDocumentDirectory()), GlobalSettingsRepository.DEFAULT_PROJECTS_DIR)
     }
 
     /**

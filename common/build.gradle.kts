@@ -17,7 +17,6 @@ plugins {
     kotlin("plugin.serialization")
     id("com.android.library")
     id("kotlin-parcelize")
-    id("org.jetbrains.compose")
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -55,7 +54,6 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
                 // This is being held back to 0.3.2 due to ios support not working in later versions
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
-                //api("com.akuleshov7:ktoml-core:0.2.12")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
                 //implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
                 api("com.arkivanov.essenty:lifecycle:$essenty_version")
@@ -72,7 +70,7 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.appcompat:appcompat:1.5.1")
+                //api("androidx.appcompat:appcompat:1.5.1")
                 api("androidx.core:core-ktx:1.9.0")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
                 api("io.insert-koin:koin-android:$koin_version")
@@ -91,8 +89,6 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
-                api(compose.preview)
-                api(compose.desktop.currentOs)
                 api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
             }

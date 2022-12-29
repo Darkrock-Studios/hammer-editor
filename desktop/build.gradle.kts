@@ -1,4 +1,3 @@
-import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val app_version: String by extra
@@ -25,6 +24,7 @@ kotlin {
             dependencies {
                 implementation(project(":common"))
                 implementation(project(":composeUi"))
+                implementation(compose.preview)
                 implementation(compose.desktop.currentOs)
             }
         }
