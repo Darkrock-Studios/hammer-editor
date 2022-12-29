@@ -13,7 +13,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ProjectEditorActivity">
+        <activity android:name=".ProjectRootActivity">
         </activity>
     </application>
 </manifest>

@@ -5,22 +5,20 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 
-class ProjectEditorActivity : AppCompatActivity() {
+class ProjectRootActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -34,7 +32,7 @@ class ProjectEditorActivity : AppCompatActivity() {
                 MaterialTheme {
                     val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
                     val component = remember {
-                        ProjectEditorComponent(
+                        ProjectRootComponent(
                             componentContext = defaultComponentContext(),
                             projectDef = projectDef,
                             addMenu = { menuDescriptor ->
@@ -67,15 +65,11 @@ class ProjectEditorActivity : AppCompatActivity() {
                             )
                         },
                         content = { padding ->
-                            ProjectEditorUi(
-                                component,
-                                Modifier.padding(padding),
-                                isWide,
-                                R.drawable::class
-                            )
+                            ProjectRootUi(component)
 
-                            val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()
-                            BackHandler(enabled = shouldConfirmClose.value) {
+                            // TODO: This needs to be state
+                            //val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()
+                            BackHandler(enabled = component.hasUnsavedBuffers()) {
                                 confirmCloseDialog(component)
                             }
                         }
@@ -85,7 +79,7 @@ class ProjectEditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun confirmCloseDialog(component: ProjectEditorComponent) {
+    private fun confirmCloseDialog(component: AppCloseManager) {
         AlertDialog.Builder(this)
             .setTitle("Unsaved Scenes")
             .setMessage("Save unsaved scenes?")

@@ -12,6 +12,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.painterResource
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -156,11 +157,11 @@ private fun SaveDraftDialog(
 ) {
     var draftName by remember { mutableStateOf("") }
 
-    /*
-    Dialog(visible = state.isSavingDraft, onCloseRequest = {
-        component.endSaveDraft()
-        draftName = ""
-    }) {
+    MpDialog(visible = state.isSavingDraft,
+        onCloseRequest = {
+            component.endSaveDraft()
+            draftName = ""
+        }) {
         Column {
             Text("Save Draft:")
             TextField(
@@ -187,7 +188,6 @@ private fun SaveDraftDialog(
             }
         }
     }
-    */
 }
 
 @Composable

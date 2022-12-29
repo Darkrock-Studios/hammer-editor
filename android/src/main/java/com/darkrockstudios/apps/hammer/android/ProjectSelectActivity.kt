@@ -45,8 +45,8 @@ class ProjectSelectActivity : AppCompatActivity() {
     }
 
     private fun onProjectSelected(projectDef: ProjectDef) {
-        val intent = Intent(this, ProjectEditorActivity::class.java).apply {
-            putExtra(ProjectEditorActivity.EXTRA_PROJECT, projectDef)
+        val intent = Intent(this, ProjectRootActivity::class.java).apply {
+            putExtra(ProjectRootActivity.EXTRA_PROJECT, projectDef)
         }
         startActivity(intent)
     }
