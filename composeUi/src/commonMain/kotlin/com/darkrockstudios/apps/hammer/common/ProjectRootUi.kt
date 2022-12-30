@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
@@ -29,7 +30,8 @@ fun ProjectRootUi(
 	BoxWithConstraints(Modifier.padding(padding)) {
 		val routerState by component.routerState.subscribeAsState()
 
-		val isWide = this.maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD
+		val smallestSize = min(maxWidth, maxHeight)
+		val isWide = smallestSize >= VERTICAL_CONTROL_WIDTH_THRESHOLD
 		if (isWide) {
 			Row(modifier = Modifier.fillMaxSize()) {
 				Column(Modifier.wrapContentWidth().fillMaxHeight()) {

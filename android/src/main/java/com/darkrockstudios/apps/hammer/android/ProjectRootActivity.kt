@@ -8,9 +8,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -21,8 +23,6 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 class ProjectRootActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val isWide = resources.getBoolean(R.bool.is_wide)
 
         val projectDef = intent.getParcelableExtra<ProjectDef>(EXTRA_PROJECT)
         if (projectDef == null) {
@@ -67,10 +67,14 @@ class ProjectRootActivity : AppCompatActivity() {
                         content = { padding ->
                             ProjectRootUi(component, padding, R.drawable::class)
 
-                            // TODO: This needs to be state
-                            //val shouldConfirmClose = component.shouldConfirmClose.subscribeAsState()
-                            BackHandler(enabled = component.hasUnsavedBuffers()) {
-                                confirmCloseDialog(component)
+                            val shouldConfirmClose by component.shouldConfirmClose.subscribeAsState()
+                            val backEnabled by component.backEnabled.subscribeAsState()
+                            BackHandler(enabled = backEnabled) {
+                                if (shouldConfirmClose) {
+                                    confirmCloseDialog(component)
+                                } else {
+                                    finish()
+                                }
                             }
                         }
                     )

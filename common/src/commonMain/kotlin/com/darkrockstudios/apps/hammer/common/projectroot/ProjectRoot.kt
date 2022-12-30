@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
     val routerState: Value<ChildStack<*, Destination>>
+    val shouldConfirmClose: Value<Boolean>
+    val backEnabled: Value<Boolean>
 
     fun showEditor()
     fun showNotes()

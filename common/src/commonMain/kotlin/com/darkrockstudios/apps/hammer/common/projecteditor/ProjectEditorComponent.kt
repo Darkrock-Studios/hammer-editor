@@ -26,11 +26,16 @@ class ProjectEditorComponent(
     private val projectRepository: ProjectRepository by inject()
     private val projectEditor = projectRepository.getProjectEditor(projectDef)
 
-    //private val isDetailsToolbarVisible = BehaviorSubject(!_models.value.isMultiPane)
     private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
+
+    private val _shouldCloseRoot = MutableSharedFlow<Boolean>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    override val shouldCloseRoot = _shouldCloseRoot
 
     private val detailsRouter =
         DetailsRouter(
@@ -51,9 +56,6 @@ class ProjectEditorComponent(
     override val listRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>> =
         listRouter.state
 
-    private val _shouldConfirmClose = MutableValue(false)
-    override val shouldConfirmClose = _shouldConfirmClose
-
     override val detailsRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>> =
         detailsRouter.state
 
@@ -63,10 +65,6 @@ class ProjectEditorComponent(
 
     private val _state = MutableValue(ProjectEditor.State(projectDef))
     override val state: Value<ProjectEditor.State> = _state
-
-    private fun updateCloseConfirmRequirement() {
-        _shouldConfirmClose.value = !isDetailShown() && hasUnsavedBuffers()
-    }
 
     override fun closeDetails(): Boolean {
         return if (isMultiPaneMode() && detailsRouter.isShown()) {
@@ -101,7 +99,6 @@ class ProjectEditorComponent(
 
     override fun setMultiPane(isMultiPane: Boolean) {
         _state.reduce { it.copy(isMultiPane = isMultiPane) }
-        //isDetailsToolbarVisible.onNext(!isMultiPane)
 
         if (isMultiPane) {
             switchToMultiPane()
@@ -145,11 +142,13 @@ class ProjectEditorComponent(
             (it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
                 selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
             }
-            updateCloseConfirmRequirement()
+            backButtonHandler.isEnabled = isDetailShown()
+
+            _shouldCloseRoot.tryEmit(!isDetailShown())
         }
 
         projectEditor.subscribeToBufferUpdates(null, scope) {
-            updateCloseConfirmRequirement()
+            backButtonHandler.isEnabled = isDetailShown()
         }
     }
 }

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.di.HammerComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
+import kotlinx.coroutines.flow.SharedFlow
 
 interface ProjectEditor : AppCloseManager, HammerComponent {
     val listRouterState: Value<ChildStack<*, ChildDestination.List>>
@@ -18,11 +19,11 @@ interface ProjectEditor : AppCloseManager, HammerComponent {
         val isMultiPane: Boolean = false
     )
 
-    fun isDetailShown(): Boolean
-
     val state: Value<State>
 
-    val shouldConfirmClose: Value<Boolean>
+    val shouldCloseRoot: SharedFlow<Boolean>
+
+    fun isDetailShown(): Boolean
 
     fun setMultiPane(isMultiPane: Boolean)
     fun closeDetails(): Boolean
