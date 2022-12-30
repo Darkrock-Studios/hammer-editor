@@ -31,7 +31,8 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
         Column(
             modifier = modifier
                 .padding(Ui.PADDING)
-                .requiredWidthIn(min = 0.dp, max = 512.dp)
+                .wrapContentWidth()
+                .widthIn(min = 0.dp, max = 512.dp)
                 .fillMaxHeight()
                 .align(Alignment.Center)
         ) {
