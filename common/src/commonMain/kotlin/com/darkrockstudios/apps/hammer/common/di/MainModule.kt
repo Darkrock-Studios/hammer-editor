@@ -24,7 +24,8 @@ val mainModule = module {
 	single {
 		ProjectRepositoryOkio(
 			fileSystem = get(),
-			projectsRepository = get()
+			projectsRepository = get(),
+			toml = get()
 		)
 	} bind ProjectRepository::class
 

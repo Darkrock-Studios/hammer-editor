@@ -1,14 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
 
+import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.Clock
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -16,7 +22,8 @@ import okio.Path
 class ProjectEditorRepositoryOkio(
     projectDef: ProjectDef,
     projectsRepository: ProjectsRepository,
-    private val fileSystem: FileSystem
+    private val fileSystem: FileSystem,
+    private val toml: Toml
 ) : ProjectEditorRepository(projectDef, projectsRepository) {
 
     override fun getSceneFilename(path: HPath) = path.toOkioPath().name
@@ -621,6 +628,52 @@ class ProjectEditorRepositoryOkio(
         fileSystem.atomicMove(oldPath, newPath)
 
         reloadScenes()
+    }
+
+    override fun getMetadataPath(): HPath {
+        return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
+    }
+
+    override fun loadMetadata(): ProjectMetadata {
+        val path = getMetadataPath().toOkioPath()
+
+        val metadata = try {
+            val metadataText = fileSystem.read(path) {
+                readUtf8()
+            }
+            toml.decodeFromString<ProjectMetadata>(metadataText)
+        } catch (e: IOException) {
+            Napier.e("Failed to project metadata")
+
+            // Delete any old corrupt file if we got here
+            fileSystem.delete(path, false)
+
+            createNewMetadata()
+        }
+
+        return metadata
+    }
+
+    private fun createNewMetadata(): ProjectMetadata {
+        val newMetadata = ProjectMetadata(
+            info = Info(
+                created = Clock.System.now()
+            )
+        )
+
+        saveMetadata(newMetadata)
+
+        return newMetadata
+    }
+
+    override fun saveMetadata(metadata: ProjectMetadata) {
+        val path = getMetadataPath().toOkioPath()
+
+        val metadataText = toml.encodeToString<ProjectMetadata>(metadata)
+
+        fileSystem.write(path, false) {
+            writeUtf8(metadataText)
+        }
     }
 }
 

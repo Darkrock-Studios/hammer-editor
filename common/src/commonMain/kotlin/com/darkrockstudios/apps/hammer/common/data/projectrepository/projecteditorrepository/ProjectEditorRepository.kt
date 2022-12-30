@@ -1,19 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
 
-import com.darkrockstudios.apps.hammer.common.data.MoveRequest
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -35,6 +30,8 @@ abstract class ProjectEditorRepository(
         name = "",
         order = 0
     )
+
+    private lateinit var metadata: ProjectMetadata
 
     private var nextSceneId: Int = 0
 
@@ -150,6 +147,8 @@ abstract class ProjectEditorRepository(
         }
 
         reloadScenes()
+
+        metadata = loadMetadata()
 
         editorScope.launch {
             while (isActive) {
@@ -375,6 +374,10 @@ abstract class ProjectEditorRepository(
     }
 
     fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
+
+    protected abstract fun loadMetadata(): ProjectMetadata
+    protected abstract fun saveMetadata(metadata: ProjectMetadata)
+    protected abstract fun getMetadataPath(): HPath
 
     fun close() {
         contentChannel.close()
