@@ -55,7 +55,7 @@ kotlin {
                 // This is being held back to 0.3.2 due to ios support not working in later versions
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-                //implementation("net.mamoe.yamlkt:yamlkt:0.10.2")
+                implementation("com.akuleshov7:ktoml-core:0.3.0")
                 api("com.arkivanov.essenty:lifecycle:$essenty_version")
             }
         }

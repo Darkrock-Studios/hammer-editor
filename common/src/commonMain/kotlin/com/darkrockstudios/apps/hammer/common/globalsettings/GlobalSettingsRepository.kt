@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.globalsettings
 
+import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import kotlinx.coroutines.channels.BufferOverflow
@@ -7,12 +8,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path.Companion.toPath
 
 class GlobalSettingsRepository(
-	private val fileSystem: FileSystem
+	private val fileSystem: FileSystem,
+	private val toml: Toml
 ) {
 	var globalSettings: GlobalSettings
 		private set
@@ -39,26 +40,26 @@ class GlobalSettingsRepository(
 	}
 
 	private fun writeSettings(settings: GlobalSettings) {
-		val settingsJson = Json.encodeToString(settings)
+		val settingsText = toml.encodeToString(settings)
 
 		fileSystem.createDirectories(CONFIG_PATH.parent!!)
 		fileSystem.write(CONFIG_PATH, false) {
-			writeUtf8(settingsJson)
+			writeUtf8(settingsText)
 		}
 	}
 
 	private fun loadSettings(): GlobalSettings {
-		lateinit var settingsJson: String
+		lateinit var settingsText: String
 		fileSystem.read(CONFIG_PATH) {
-			settingsJson = readUtf8()
+			settingsText = readUtf8()
 		}
 
-		val settings: GlobalSettings = Json.decodeFromString(settingsJson)
+		val settings: GlobalSettings = toml.decodeFromString(settingsText)
 		return settings
 	}
 
 	companion object {
-		private const val FILE_NAME = "global_settings.json"
+		private const val FILE_NAME = "global_settings.toml"
 		private val CONFIG_PATH = getConfigDirectory().toPath() / FILE_NAME
 
 		const val DEFAULT_PROJECTS_DIR = "HammerProjects"
