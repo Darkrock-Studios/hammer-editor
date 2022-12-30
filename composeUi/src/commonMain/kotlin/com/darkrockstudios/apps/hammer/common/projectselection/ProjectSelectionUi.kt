@@ -27,54 +27,62 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
         component.loadProjectList()
     }
 
-    Column(modifier = modifier.padding(Ui.PADDING)) {
-        TextField(
-            value = newProjectNameText,
-            onValueChange = { newProjectNameText = it },
-            label = { Text("New Project Name") }
-        )
-
-        Button(onClick = {
-            component.createProject(newProjectNameText)
-            newProjectNameText = ""
-        }) {
-            Text("Create Project")
-        }
-
-        if (component.showProjectDirectory) {
-            TextField(
-                value = projectsPathText,
-                onValueChange = { projectsPathText = it },
-                label = { Text("Path to Projects Directory") }
-            )
-            Button(onClick = {
-                component.setProjectsDir(projectsPathText)
-            }) {
-                Text("Update Dir")
-            }
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(Ui.PADDING)
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+                .padding(Ui.PADDING)
+                .requiredWidthIn(min = 0.dp, max = 512.dp)
+                .fillMaxHeight()
+                .align(Alignment.Center)
         ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "\uD83D\uDCDD Projects:",
-                        style = MaterialTheme.typography.h5
-                    )
+            TextField(
+                value = newProjectNameText,
+                onValueChange = { newProjectNameText = it },
+                label = { Text("New Project Name") }
+            )
+
+            Button(onClick = {
+                component.createProject(newProjectNameText)
+                newProjectNameText = ""
+            }) {
+                Text("Create Project")
+            }
+
+            if (component.showProjectDirectory) {
+                TextField(
+                    value = projectsPathText,
+                    onValueChange = { projectsPathText = it },
+                    label = { Text("Path to Projects Directory") }
+                )
+                Button(onClick = {
+                    component.setProjectsDir(projectsPathText)
+                }) {
+                    Text("Update Dir")
                 }
             }
-            items(state.projectDefs.size) { index ->
-                ProjectCard(state.projectDefs[index], component::selectProject) { project ->
-                    projectDefDeleteTarget = project
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(Ui.PADDING)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .wrapContentHeight()
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "\uD83D\uDCDD Projects:",
+                            style = MaterialTheme.typography.h5
+                        )
+                    }
+                }
+                items(state.projectDefs.size) { index ->
+                    ProjectCard(state.projectDefs[index], component::selectProject) { project ->
+                        projectDefDeleteTarget = project
+                    }
                 }
             }
         }

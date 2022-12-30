@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
-private val LIST_PANE_WIDTH = 512.dp
+private val LIST_PANE_WIDTH = 400.dp
 
 @Composable
 fun ProjectEditorUi(

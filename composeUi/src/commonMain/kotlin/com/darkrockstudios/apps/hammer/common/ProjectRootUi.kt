@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 
-private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 800.dp
+private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 700.dp
 
 @Composable
 fun ProjectRootUi(
