@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projectroot
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
@@ -81,23 +82,11 @@ internal class ProjectRootRouter(
     }
 
     fun showEditor() {
-        navigation.navigate(
-            transformer = { stack ->
-                stack.dropWhile { true }
-                    .plus(Config.EditorConfig(projectDef = projectDef))
-            },
-            onComplete = { _, _ -> }
-        )
+        navigation.bringToFront(Config.EditorConfig(projectDef = projectDef))
     }
 
     fun showNotes() {
-        navigation.navigate(
-            transformer = { stack ->
-                stack.dropWhile { true }
-                    .plus(Config.NotesConfig(projectDef = projectDef))
-            },
-            onComplete = { _, _ -> }
-        )
+        navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
     }
 
     fun isAtRoot(): Boolean {
