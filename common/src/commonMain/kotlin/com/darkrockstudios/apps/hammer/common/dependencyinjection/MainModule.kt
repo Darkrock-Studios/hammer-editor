@@ -1,8 +1,10 @@
-package com.darkrockstudios.apps.hammer.common.di
+package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -25,6 +27,7 @@ val mainModule = module {
 		ProjectRepositoryOkio(
 			fileSystem = get(),
 			projectsRepository = get(),
+			idRepository = get(),
 			toml = get()
 		)
 	} bind ProjectRepository::class
@@ -32,4 +35,6 @@ val mainModule = module {
 	singleOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
 
 	singleOf(::createTomlSerializer) bind Toml::class
+
+	singleOf(::IdRepositoryOkio) bind IdRepository::class
 }

@@ -54,9 +54,6 @@ class ProjectRootComponent(
     }
 
     private fun updateCloseConfirmRequirement() {
-        val isAtRoot = router.isAtRoot()
-        val unsaved = hasUnsavedBuffers()
-        Napier.d { "isAtRoot: $isAtRoot unsaved: $unsaved" }
         _shouldConfirmClose.value = hasUnsavedBuffers() && router.isAtRoot()
         _backEnabled.value = router.isAtRoot()
     }

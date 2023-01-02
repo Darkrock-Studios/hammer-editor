@@ -5,7 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.di.HammerComponent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface SceneEditor : HammerComponent {
     val state: Value<State>

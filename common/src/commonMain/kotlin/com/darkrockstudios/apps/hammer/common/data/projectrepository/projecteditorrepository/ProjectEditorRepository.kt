@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
 
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -21,7 +22,8 @@ import kotlin.time.toDuration
 
 abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
-    private val projectsRepository: ProjectsRepository
+    private val projectsRepository: ProjectsRepository,
+    private val idRepository: IdRepository
 ) {
     val rootScene = SceneItem(
         projectDef = projectDef,
@@ -31,9 +33,9 @@ abstract class ProjectEditorRepository(
         order = 0
     )
 
-    private lateinit var metadata: ProjectMetadata
+    protected val idProvider = idRepository.getIdProvider(projectDef)
 
-    private var nextSceneId: Int = 0
+    private lateinit var metadata: ProjectMetadata
 
     private val editorScope = CoroutineScope(defaultDispatcher)
     private val contentChannel = Channel<SceneContent>(
@@ -132,12 +134,7 @@ abstract class ProjectEditorRepository(
 
         cleanupSceneOrder()
 
-        val lastSceneId = findLastSceneId()
-        if (lastSceneId != null) {
-            setLastSceneId(lastSceneId)
-        } else {
-            setLastSceneId(0)
-        }
+        idProvider.findNextId()
 
         // Load any existing temp scenes into buffers
         val tempContent = getSceneTempBufferContents()
@@ -164,21 +161,6 @@ abstract class ProjectEditorRepository(
                 }
             }
         }
-    }
-
-    /**
-     * Returns null if there are no scenes yet
-     */
-    private fun findLastSceneId(): Int? = sceneTree.toList().maxByOrNull { it.value.id }?.value?.id
-
-    private fun setLastSceneId(lastSceneId: Int) {
-        nextSceneId = lastSceneId + 1
-    }
-
-    protected fun claimNextSceneId(): Int {
-        val newSceneId = nextSceneId
-        nextSceneId += 1
-        return newSceneId
     }
 
     abstract fun getSceneFilename(path: HPath): String
@@ -317,18 +299,9 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    fun getSceneIdFromFilename(path: HPath): Int {
+    fun getSceneIdFromPath(path: HPath): Int {
         val fileName = getSceneFilename(path)
-        val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
-            ?: throw IllegalStateException("Scene filename was bad: $fileName")
-        try {
-            val sceneId = captures.groupValues[3].toInt()
-            return sceneId
-        } catch (e: NumberFormatException) {
-            throw InvalidSceneFilename("Number format exception", fileName)
-        } catch (e: IllegalStateException) {
-            throw InvalidSceneFilename("Invalid filename", fileName)
-        }
+        return getSceneIdFromFilename(fileName)
     }
 
     @Throws(InvalidSceneFilename::class)
@@ -379,12 +352,15 @@ abstract class ProjectEditorRepository(
     protected abstract fun saveMetadata(metadata: ProjectMetadata)
     protected abstract fun getMetadataPath(): HPath
 
+    abstract fun getHpath(sceneItem: SceneItem): HPath
+
     fun close() {
         contentChannel.close()
         runBlocking {
             storeTempJobs.forEach { it.value.join() }
         }
         editorScope.cancel("Editor Closed")
+        idRepository.close(projectDef)
         // During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
         getSceneTempBufferContents().forEach {
             clearTempScene(it.scene)
@@ -397,13 +373,28 @@ abstract class ProjectEditorRepository(
         const val SCENE_FILENAME_EXTENSION = ".md"
         const val SCENE_DIRECTORY = "scenes"
         const val BUFFER_DIRECTORY = ".buffers"
-    }
 
-    abstract fun getHpath(sceneItem: SceneItem): HPath
+        fun getSceneIdFromFilename(fileName: String): Int {
+            val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+                ?: throw IllegalStateException("Scene filename was bad: $fileName")
+            try {
+                val sceneId = captures.groupValues[3].toInt()
+                return sceneId
+            } catch (e: NumberFormatException) {
+                throw InvalidSceneFilename("Number format exception", fileName)
+            } catch (e: IllegalStateException) {
+                throw InvalidSceneFilename("Invalid filename", fileName)
+            }
+        }
+    }
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
-    !it.name.startsWith(".") && it.name != "src/commonMain"
+    !it.name.startsWith(".")
+}.sortedBy { it.name }
+
+fun Sequence<HPath>.filterScenePaths() = filter {
+    !it.name.startsWith(".")
 }.sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :

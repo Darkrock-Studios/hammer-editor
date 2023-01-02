@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.di
+package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import org.koin.core.component.KoinComponent
 

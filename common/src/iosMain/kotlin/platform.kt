@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common
 
-import com.darkrockstudios.apps.hammer.common.di.NapierLogger
-import com.darkrockstudios.apps.hammer.common.di.mainModule
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import kotlinx.coroutines.Dispatchers
 import okio.FileSystem
 import org.koin.core.context.startKoin

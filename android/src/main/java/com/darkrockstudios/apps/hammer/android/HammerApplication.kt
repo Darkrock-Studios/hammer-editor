@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.app.Application
-import com.darkrockstudios.apps.hammer.common.di.NapierLogger
-import com.darkrockstudios.apps.hammer.common.di.mainModule
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.setRootDocumentDirectory
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier

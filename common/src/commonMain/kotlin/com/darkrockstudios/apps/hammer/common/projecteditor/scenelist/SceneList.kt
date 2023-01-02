@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.di.HammerComponent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface SceneList : HammerComponent {
     val state: Value<State>

@@ -1,11 +1,18 @@
 package projecteditorrepository
 
 import PROJECT_1_NAME
-import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.data.InsertPosition
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
@@ -14,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import createProject
 import io.mockk.every
+import io.mockk.justRun
 import io.mockk.mockk
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -33,6 +41,16 @@ class ProjectEditorRepositoryOkioMoveTest {
     private lateinit var projectsRepo: ProjectsRepository
     private lateinit var projectDef: ProjectDef
     private lateinit var repo: ProjectEditorRepository
+    private lateinit var idRepository: IdRepository
+    private lateinit var isProvider: IdProvider
+    private var nextId = -1
+    private lateinit var toml: Toml
+
+    private fun claimId(): Int {
+        val id = nextId
+        nextId++
+        return id
+    }
 
     private fun verify(
         node: TreeNode<SceneItem>,
@@ -87,12 +105,25 @@ class ProjectEditorRepositoryOkioMoveTest {
             path = projectPath
         )
 
+        toml = createTomlSerializer()
+
+        nextId = -1
+        isProvider = mockk()
+        every { isProvider.claimNextSceneId() } answers { claimId() }
+        every { isProvider.findNextId() } answers {}
+
+        idRepository = mockk()
+        every { idRepository.getIdProvider(any()) } returns isProvider
+        justRun { idRepository.close(any()) }
+
         createProject(ffs, PROJECT_1_NAME)
 
         repo = ProjectEditorRepositoryOkio(
             projectDef = projectDef,
             projectsRepository = projectsRepo,
-            fileSystem = ffs
+            fileSystem = ffs,
+            toml = toml,
+            idRepository = idRepository
         )
 
         repo.initializeProjectEditor()

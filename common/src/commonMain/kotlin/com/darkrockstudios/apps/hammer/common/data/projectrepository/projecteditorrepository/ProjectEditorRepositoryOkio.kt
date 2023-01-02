@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectrepository.projectedi
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -22,9 +23,10 @@ import okio.Path
 class ProjectEditorRepositoryOkio(
     projectDef: ProjectDef,
     projectsRepository: ProjectsRepository,
+    idRepository: IdRepository,
     private val fileSystem: FileSystem,
     private val toml: Toml
-) : ProjectEditorRepository(projectDef, projectsRepository) {
+) : ProjectEditorRepository(projectDef, projectsRepository, idRepository) {
 
     override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -42,7 +44,7 @@ class ProjectEditorRepositoryOkio(
 
         val sceneDir = getSceneDirectory().toOkioPath()
         return if (parentPath != sceneDir) {
-            val sceneId = getSceneIdFromFilename(path)
+            val sceneId = getSceneIdFromPath(path)
             val parentScenes = sceneTree.getBranch(true) { it.id == sceneId }
                 .map { it.value.id }
             ScenePathSegments(pathSegments = parentScenes)
@@ -70,14 +72,7 @@ class ProjectEditorRepositoryOkio(
         return path.toHPath()
     }
 
-    override fun getSceneDirectory(): HPath {
-        val projOkPath = projectDef.path.toOkioPath()
-        val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
-        if (!fileSystem.exists(sceneDirPath)) {
-            fileSystem.createDirectory(sceneDirPath)
-        }
-        return sceneDirPath.toHPath()
-    }
+    override fun getSceneDirectory() = getSceneDirectory(projectDef, fileSystem)
 
     override fun getSceneBufferDirectory(): HPath {
         val projOkPath = projectDef.path.toOkioPath()
@@ -188,7 +183,7 @@ class ProjectEditorRepositoryOkio(
     private fun getGroupChildPathsById(root: Path): Map<Int, Path> {
         return getScenePathsOkio(root)
             .map { scenePath ->
-                val sceneId = getSceneIdFromFilename(scenePath.toHPath())
+                val sceneId = getSceneIdFromPath(scenePath.toHPath())
                 Pair(sceneId, scenePath)
             }.associateBy({ it.first }, { it.second })
     }
@@ -340,7 +335,7 @@ class ProjectEditorRepositoryOkio(
         } else {
             val lastOrder = getLastOrderNumber(parent?.id)
             val nextOrder = lastOrder + 1
-            val sceneId = claimNextSceneId()
+            val sceneId = idProvider.claimNextSceneId()
             val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
             val newSceneItem = SceneItem(
@@ -675,9 +670,27 @@ class ProjectEditorRepositoryOkio(
             writeUtf8(metadataText)
         }
     }
+
+    companion object {
+        fun getSceneDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
+            val projOkPath = projectDef.path.toOkioPath()
+            val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
+            if (!fileSystem.exists(sceneDirPath)) {
+                fileSystem.createDirectories(sceneDirPath)
+            }
+            return sceneDirPath.toHPath()
+        }
+    }
 }
 
 fun Collection<Path>.filterScenePathsOkio() =
     map { it.toHPath() }
         .filterScenePaths()
         .map { it.toOkioPath() }
+        .filter { path -> !path.segments.any { part -> part.startsWith(".") } }
+
+fun Sequence<Path>.filterScenePathsOkio() =
+    map { it.toHPath() }
+        .filterScenePaths()
+        .map { it.toOkioPath() }
+        .filter { path -> !path.segments.any { part -> part.startsWith(".") } }

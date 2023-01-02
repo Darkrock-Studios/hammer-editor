@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.di
+package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import io.github.aakira.napier.LogLevel
 import io.github.aakira.napier.Napier

@@ -44,23 +44,23 @@ fun SceneListUi(
             )
             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        component.createScene(newSceneItemNameText)
-                        newSceneItemNameText = ""
-                    },
-                    text = { Text("Create Scene") },
-                    icon = { Icon(Icons.Filled.Add, "") },
-                    modifier = Modifier.padding(top = Ui.PADDING)
-                )
+					onClick = {
+						component.createScene(newSceneItemNameText)
+						newSceneItemNameText = ""
+					},
+					text = { Text("Scene") },
+					icon = { Icon(Icons.Filled.Add, "") },
+					modifier = Modifier.padding(top = Ui.PADDING)
+				)
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        component.createGroup(newSceneItemNameText)
-                        newSceneItemNameText = ""
-                    },
-                    text = { Text("Create Group") },
-                    icon = { Icon(Icons.Filled.Add, "") },
-                    modifier = Modifier.padding(top = Ui.PADDING)
-                )
+					onClick = {
+						component.createGroup(newSceneItemNameText)
+						newSceneItemNameText = ""
+					},
+					text = { Text("Group") },
+					icon = { Icon(Icons.Filled.Add, "") },
+					modifier = Modifier.padding(top = Ui.PADDING)
+				)
                 Button(
                     onClick = treeState::collapseAll,
                     modifier = Modifier.padding(top = Ui.PADDING)

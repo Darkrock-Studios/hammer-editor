@@ -1,16 +1,21 @@
 package projecteditorrepository
 
+import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
+import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import io.mockk.every
+import io.mockk.justRun
 import io.mockk.mockk
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -22,21 +27,31 @@ import kotlin.test.assertEquals
 
 class ProjectEditorRepositoryOkioTestSimple {
 
-    private lateinit var ffs: FakeFileSystem
-    private lateinit var projectPath: HPath
-    private lateinit var scenesPath: HPath
-    private lateinit var projectsRepo: ProjectsRepository
-    private lateinit var projectDef: ProjectDef
+	private lateinit var ffs: FakeFileSystem
+	private lateinit var projectPath: HPath
+	private lateinit var scenesPath: HPath
+	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectDef: ProjectDef
+	private lateinit var idRepository: IdRepository
+	private lateinit var isProvider: IdProvider
+	private var nextId = -1
+	private lateinit var toml: Toml
 
-    private val sceneFiles = mapOf(
-        "1-Scene 1-1.md" to "This is scene 1 content",
-        "2-Scene 2-2.md" to "This is scene 2 content",
-        "3-Scene 3-3.md" to "This is scene 3 content"
-    )
+	private fun claimId(): Int {
+		val id = nextId
+		nextId++
+		return id
+	}
 
-    private fun populateProject(fs: FakeFileSystem) {
-        fs.createDirectories(projectPath.toOkioPath())
-        scenesPath = projectPath.toOkioPath().div(ProjectEditorRepository.SCENE_DIRECTORY).toHPath()
+	private val sceneFiles = mapOf(
+		"1-Scene 1-1.md" to "This is scene 1 content",
+		"2-Scene 2-2.md" to "This is scene 2 content",
+		"3-Scene 3-3.md" to "This is scene 3 content"
+	)
+
+	private fun populateProject(fs: FakeFileSystem) {
+		fs.createDirectories(projectPath.toOkioPath())
+		scenesPath = projectPath.toOkioPath().div(ProjectEditorRepository.SCENE_DIRECTORY).toHPath()
 
         fs.createDirectory(scenesPath.toOkioPath())
 
@@ -57,22 +72,33 @@ class ProjectEditorRepositoryOkioTestSimple {
     fun setup() {
         ffs = FakeFileSystem()
 
-        val rootDir = getRootDocumentDirectory()
-        ffs.createDirectories(rootDir.toPath())
+		val rootDir = getRootDocumentDirectory()
+		ffs.createDirectories(rootDir.toPath())
 
-        projectsRepo = mockk()
-        every { projectsRepo.getProjectsDirectory() } returns
-                rootDir.toPath().div(PROJ_DIR).toHPath()
+		projectsRepo = mockk()
+		every { projectsRepo.getProjectsDirectory() } returns
+				rootDir.toPath().div(PROJ_DIR).toHPath()
 
-        projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
+		projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
 
-        populateProject(ffs)
+		toml = createTomlSerializer()
 
-        projectDef = ProjectDef(
-            name = PROJ_NAME,
-            path = projectPath
-        )
-    }
+		nextId = -1
+		isProvider = mockk()
+		every { isProvider.claimNextSceneId() } answers { claimId() }
+		every { isProvider.findNextId() } answers {}
+
+		idRepository = mockk()
+		every { idRepository.getIdProvider(any()) } returns isProvider
+		justRun { idRepository.close(any()) }
+
+		populateProject(ffs)
+
+		projectDef = ProjectDef(
+			name = PROJ_NAME,
+			path = projectPath
+		)
+	}
 
     @After
     fun tearDown() {
@@ -82,10 +108,12 @@ class ProjectEditorRepositoryOkioTestSimple {
     @Test
     fun `Get filename`() {
         val repo = ProjectEditorRepositoryOkio(
-            projectDef = projectDef,
-            projectsRepository = projectsRepo,
-            fileSystem = ffs
-        )
+			projectDef = projectDef,
+			projectsRepository = projectsRepo,
+			fileSystem = ffs,
+			idRepository = idRepository,
+			toml = toml
+		)
 
         val expectedFilename = sceneFiles.entries.first().key
         val scenePath = scenePath(expectedFilename)
@@ -96,10 +124,12 @@ class ProjectEditorRepositoryOkioTestSimple {
     @Test
     fun `Load Scene Tree`() {
         val repo = ProjectEditorRepositoryOkio(
-            projectDef = projectDef,
-            projectsRepository = projectsRepo,
-            fileSystem = ffs
-        )
+			projectDef = projectDef,
+			projectsRepository = projectsRepo,
+			fileSystem = ffs,
+			idRepository = idRepository,
+			toml = toml
+		)
 
         val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
 
@@ -112,10 +142,12 @@ class ProjectEditorRepositoryOkioTestSimple {
     @Test
     fun `Init Editor`() {
         val repo = ProjectEditorRepositoryOkio(
-            projectDef = projectDef,
-            projectsRepository = projectsRepo,
-            fileSystem = ffs
-        )
+			projectDef = projectDef,
+			projectsRepository = projectsRepo,
+			fileSystem = ffs,
+			idRepository = idRepository,
+			toml = toml
+		)
 
         repo.initializeProjectEditor()
 

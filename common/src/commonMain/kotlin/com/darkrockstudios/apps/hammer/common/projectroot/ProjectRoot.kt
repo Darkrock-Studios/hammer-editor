@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projectroot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
-import com.darkrockstudios.apps.hammer.common.di.HammerComponent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 
