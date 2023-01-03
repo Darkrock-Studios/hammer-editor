@@ -546,7 +546,6 @@ class ProjectEditorRepositoryOkio(
             val cleanBuffer = buffer.copy(dirty = false)
             updateSceneBuffer(cleanBuffer)
 
-            cancelTempStoreJob(sceneItem)
             clearTempScene(sceneItem)
 
             true

@@ -10,15 +10,13 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMeta
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import com.darkrockstudios.apps.hammer.common.util.numDigits
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.time.Duration.Companion.milliseconds
 
 abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
@@ -38,16 +36,18 @@ abstract class ProjectEditorRepository(
     private lateinit var metadata: ProjectMetadata
 
     private val editorScope = CoroutineScope(defaultDispatcher)
-    private val contentChannel = Channel<SceneContent>(
-        capacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
 
-    private val _bufferUpdateChannel = MutableSharedFlow<SceneBuffer>(
+    private val _contentFlow = MutableSharedFlow<SceneContent>(
+        extraBufferCapacity = 1
+    )
+    private val contentFlow: SharedFlow<SceneContent> = _contentFlow
+    private var contentUpdateJob: Job? = null
+
+    private val _bufferUpdateFlow = MutableSharedFlow<SceneBuffer>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-    private val bufferUpdateChannel: SharedFlow<SceneBuffer> = _bufferUpdateChannel
+    private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
 
     private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
         extraBufferCapacity = 1,
@@ -78,7 +78,7 @@ abstract class ProjectEditorRepository(
         onBufferUpdate: (SceneBuffer) -> Unit
     ): Job {
         return scope.launch {
-            bufferUpdateChannel.collect { newBuffer ->
+            bufferUpdateFlow.collect { newBuffer ->
                 if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
                     withContext(mainDispatcher) {
                         onBufferUpdate(newBuffer)
@@ -110,7 +110,6 @@ abstract class ProjectEditorRepository(
         val job = storeTempJobs[sceneDef.id]
         job?.cancel("Starting a new one")
         storeTempJobs[sceneDef.id] = editorScope.launch {
-            delay(2.toDuration(DurationUnit.SECONDS))
             storeTempSceneBuffer(sceneDef)
             storeTempJobs.remove(sceneDef.id)
         }
@@ -120,10 +119,6 @@ abstract class ProjectEditorRepository(
         .filter { it.value.dirty }
         .map { it.key }
         .toSet()
-
-    protected fun cancelTempStoreJob(sceneDef: SceneItem) {
-        storeTempJobs.remove(sceneDef.id)?.cancel("cancelTempStoreJob")
-    }
 
     /**
      * This needs to be called after instantiation
@@ -147,18 +142,10 @@ abstract class ProjectEditorRepository(
 
         metadata = loadMetadata()
 
-        editorScope.launch {
-            while (isActive) {
-                val result = contentChannel.receiveCatching()
-                if (result.isSuccess) {
-                    val content = result.getOrNull()
-                    if (content == null) {
-                        Napier.w { "ProjectEditorRepository failed to get content from contentChannel" }
-                    } else {
-                        updateSceneBufferContent(content)
-                        launchSaveJob(content.scene)
-                    }
-                }
+        contentUpdateJob = editorScope.launch {
+            contentFlow.debounceUntilQuiescent(500.milliseconds).collect { content ->
+                updateSceneBufferContent(content)
+                launchSaveJob(content.scene)
             }
         }
     }
@@ -205,7 +192,7 @@ abstract class ProjectEditorRepository(
 
     fun onContentChanged(content: SceneContent) {
         editorScope.launch {
-            contentChannel.send(content)
+            _contentFlow.emit(content)
         }
     }
 
@@ -220,7 +207,7 @@ abstract class ProjectEditorRepository(
 
     protected fun updateSceneBuffer(newBuffer: SceneBuffer) {
         sceneBuffers[newBuffer.content.scene.id] = newBuffer
-        _bufferUpdateChannel.tryEmit(newBuffer)
+        _bufferUpdateFlow.tryEmit(newBuffer)
     }
 
     fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
@@ -355,7 +342,7 @@ abstract class ProjectEditorRepository(
     abstract fun getHpath(sceneItem: SceneItem): HPath
 
     fun close() {
-        contentChannel.close()
+        contentUpdateJob?.cancel("Editor Closed")
         runBlocking {
             storeTempJobs.forEach { it.value.join() }
         }
