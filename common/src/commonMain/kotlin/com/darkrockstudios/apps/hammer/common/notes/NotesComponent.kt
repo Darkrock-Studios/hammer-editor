@@ -49,4 +49,8 @@ class NotesComponent(
 
 		return result
 	}
+
+	override fun deleteNote(id: Long) {
+		notesRepository.deleteNote(id.toInt())
+	}
 }

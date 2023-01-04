@@ -33,6 +33,7 @@ abstract class NotesRepository(
 	abstract fun getNotePath(id: Int): HPath
 	abstract fun loadNotes()
 	abstract fun createNote(noteText: String): NoteError
+	abstract fun deleteNote(id: Int)
 
 	fun validateNote(noteText: String): NoteError {
 		return if (noteText.trim().length > MAX_NOTE_SIZE) {

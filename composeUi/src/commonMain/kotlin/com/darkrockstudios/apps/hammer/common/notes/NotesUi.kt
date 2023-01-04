@@ -8,9 +8,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.notes.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -61,7 +63,12 @@ fun NotesUi(
 					}
 				} else {
 					items(notes.size) { index ->
-						NoteItem(note = notes[index])
+						NoteItem(
+							note = notes[index],
+							component = component,
+							snackbarHostState = snackbarHostState,
+							scope = scope
+						)
 					}
 				}
 			}
@@ -74,8 +81,13 @@ fun NotesUi(
 @Composable
 fun NoteItem(
 	note: NoteContent,
+	component: Notes,
+	snackbarHostState: SnackbarHostState,
+	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
 ) {
+	var confirmDelete by remember { mutableStateOf(false) }
+
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
@@ -86,6 +98,46 @@ fun NoteItem(
 			Text(note.id.toString())
 			Text(note.created.toLocalDateTime(TimeZone.currentSystemDefault()).toString())
 			Text(note.content)
+			Button(onClick = { confirmDelete = true }) {
+				Text("Delete")
+			}
+		}
+	}
+
+	ConfirmDeleteDialog(note, component, snackbarHostState, scope, confirmDelete) {
+		confirmDelete = false
+	}
+}
+
+@Composable
+fun ConfirmDeleteDialog(
+	note: NoteContent,
+	component: Notes,
+	snackbarHostState: SnackbarHostState,
+	scope: CoroutineScope,
+	confirmDelete: Boolean,
+	closeDialog: () -> Unit
+) {
+	MpDialog(
+		onCloseRequest = { },
+		title = "Delete Note?",
+		visible = confirmDelete,
+		resizable = false
+	) {
+		Row(Modifier.wrapContentSize()) {
+			Button(onClick = {
+				component.deleteNote(note.id)
+				scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
+				closeDialog()
+			}) {
+				Text("DELETE")
+			}
+
+			Button(onClick = {
+				closeDialog()
+			}) {
+				Text("Cancel")
+			}
 		}
 	}
 }

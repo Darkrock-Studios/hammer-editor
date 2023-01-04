@@ -10,6 +10,7 @@ interface Notes : HammerComponent {
 	val state: Value<State>
 
 	fun createNote(noteText: String): NoteError
+	fun deleteNote(id: Long)
 
 	data class State(
 		val projectDef: ProjectDef,

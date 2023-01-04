@@ -66,6 +66,12 @@ class NotesRepositoryOkio(
 		}
 	}
 
+	override fun deleteNote(id: Int) {
+		val path = getNotePath(id).toOkioPath()
+		fileSystem.delete(path, true)
+		loadNotes()
+	}
+
 	private fun loadNote(path: Path): NoteContainer {
 		val noteToml = fileSystem.read(path) {
 			readUtf8()

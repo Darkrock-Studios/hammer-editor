@@ -8,9 +8,15 @@ actual fun MpDialog(
 	onCloseRequest: () -> Unit,
 	visible: Boolean,
 	title: String,
+	resizable: Boolean,
 	content: @Composable () -> Unit
 ) {
-	Dialog(visible = visible, onCloseRequest = onCloseRequest) {
+	Dialog(
+		visible = visible,
+		onCloseRequest = onCloseRequest,
+		title = title,
+		resizable = resizable
+	) {
 		content()
 	}
 }
