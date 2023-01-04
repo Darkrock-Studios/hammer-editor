@@ -3,12 +3,12 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.Instant
 
 abstract class SceneDraftRepository(
-    protected val projectRepository: ProjectRepository,
+	protected val projectEditorRepository: ProjectEditorRepository,
 ) {
     abstract fun getDraftsDirectory(projectDef: ProjectDef): HPath
     abstract fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath

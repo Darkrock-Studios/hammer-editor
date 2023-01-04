@@ -1,9 +1,9 @@
-package com.darkrockstudios.apps.hammer.common.data.id.provider.handler
+package com.darkrockstudios.apps.hammer.common.data.id.handler
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.filterScenePathsOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
 

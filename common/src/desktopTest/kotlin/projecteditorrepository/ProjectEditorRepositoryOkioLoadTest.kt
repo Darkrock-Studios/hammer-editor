@@ -7,9 +7,8 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -19,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import createProject
 import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -37,7 +35,6 @@ class ProjectEditorRepositoryOkioLoadTest {
     private lateinit var projectDef: ProjectDef
     private lateinit var repo: ProjectEditorRepository
     private lateinit var idRepository: IdRepository
-    private lateinit var isProvider: IdProvider
     private var nextId = -1
     private lateinit var toml: Toml
 
@@ -58,12 +55,8 @@ class ProjectEditorRepositoryOkioLoadTest {
         toml = createTomlSerializer()
 
         nextId = -1
-        isProvider = mockk()
-        every { isProvider.claimNextSceneId() } answers { claimId() }
-
-        idRepository = mockk()
-        every { idRepository.getIdProvider(any()) } returns isProvider
-        justRun { idRepository.close(any()) }
+		idRepository = mockk()
+		every { idRepository.claimNextSceneId() } answers { claimId() }
 
         projectsRepo = mockk()
         every { projectsRepo.getProjectsDirectory() } returns

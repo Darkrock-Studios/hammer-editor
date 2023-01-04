@@ -4,25 +4,22 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.darkrockstudios.apps.hammer.common.ComponentBase
+import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.projectInject
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.onEach
-import org.koin.core.component.inject
 
 class SceneListComponent(
     componentContext: ComponentContext,
     projectDef: ProjectDef,
     selectedSceneItem: SharedFlow<SceneItem?>,
     private val sceneSelected: (sceneDef: SceneItem) -> Unit
-) : ComponentBase(componentContext), SceneList {
+) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
-    private val projectRepository: ProjectRepository by inject()
-    private val projectEditor: ProjectEditorRepository =
-        projectRepository.getProjectEditor(projectDef)
+    private val projectEditor: ProjectEditorRepository by projectInject()
 
     private val _state = MutableValue(SceneList.State(projectDef = projectDef))
     override val state: Value<SceneList.State> = _state

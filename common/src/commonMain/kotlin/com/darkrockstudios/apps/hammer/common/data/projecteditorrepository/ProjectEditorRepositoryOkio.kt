@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
+package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -335,7 +335,7 @@ class ProjectEditorRepositoryOkio(
         } else {
             val lastOrder = getLastOrderNumber(parent?.id)
             val nextOrder = lastOrder + 1
-            val sceneId = idProvider.claimNextSceneId()
+            val sceneId = idRepository.claimNextSceneId()
             val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
             val newSceneItem = SceneItem(

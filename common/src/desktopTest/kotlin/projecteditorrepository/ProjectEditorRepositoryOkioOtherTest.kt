@@ -7,9 +7,8 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -20,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import createProject
 import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -39,7 +37,6 @@ class ProjectEditorRepositoryOkioOtherTest {
     private lateinit var projectDef: ProjectDef
     private lateinit var repo: ProjectEditorRepository
     private lateinit var idRepository: IdRepository
-    private lateinit var isProvider: IdProvider
     private var nextId = -1
     private lateinit var toml: Toml
 
@@ -75,26 +72,22 @@ class ProjectEditorRepositoryOkioOtherTest {
 
     @Before
     fun setup() {
-        ffs = FakeFileSystem()
+		ffs = FakeFileSystem()
 
-        val rootDir = getRootDocumentDirectory()
-        ffs.createDirectories(rootDir.toPath())
+		val rootDir = getRootDocumentDirectory()
+		ffs.createDirectories(rootDir.toPath())
 
-        toml = createTomlSerializer()
+		toml = createTomlSerializer()
 
-        nextId = 8
-        isProvider = mockk()
-        every { isProvider.claimNextSceneId() } answers { claimId() }
-        every { isProvider.findNextId() } answers { }
+		nextId = 8
+		idRepository = mockk()
+		every { idRepository.claimNextSceneId() } answers { claimId() }
+		every { idRepository.findNextId() } answers { }
 
-        idRepository = mockk()
-        every { idRepository.getIdProvider(any()) } returns isProvider
-        justRun { idRepository.close(any()) }
-
-        projectsRepo = mockk()
-        every { projectsRepo.getProjectsDirectory() } returns
-                rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
-    }
+		projectsRepo = mockk()
+		every { projectsRepo.getProjectsDirectory() } returns
+				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+	}
 
     @After
     fun tearDown() {

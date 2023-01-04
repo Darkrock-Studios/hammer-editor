@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectrepository.projecteditorrepository
+package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -16,13 +16,14 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import okio.Closeable
 import kotlin.time.Duration.Companion.milliseconds
 
 abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
     private val projectsRepository: ProjectsRepository,
-    private val idRepository: IdRepository
-) {
+    protected val idRepository: IdRepository
+) : Closeable {
     val rootScene = SceneItem(
         projectDef = projectDef,
         type = SceneItem.Type.Root,
@@ -30,8 +31,6 @@ abstract class ProjectEditorRepository(
         name = "",
         order = 0
     )
-
-    protected val idProvider = idRepository.getIdProvider(projectDef)
 
     private lateinit var metadata: ProjectMetadata
 
@@ -123,13 +122,13 @@ abstract class ProjectEditorRepository(
     /**
      * This needs to be called after instantiation
      */
-    fun initializeProjectEditor() {
+    fun initializeProjectEditor(): ProjectEditorRepository {
         val root = loadSceneTree()
         sceneTree.setRoot(root)
 
         cleanupSceneOrder()
 
-        idProvider.findNextId()
+        idRepository.findNextId()
 
         // Load any existing temp scenes into buffers
         val tempContent = getSceneTempBufferContents()
@@ -148,6 +147,8 @@ abstract class ProjectEditorRepository(
                 launchSaveJob(content.scene)
             }
         }
+
+        return this
     }
 
     abstract fun getSceneFilename(path: HPath): String
@@ -341,13 +342,12 @@ abstract class ProjectEditorRepository(
 
     abstract fun getHpath(sceneItem: SceneItem): HPath
 
-    fun close() {
+    override fun close() {
         contentUpdateJob?.cancel("Editor Closed")
         runBlocking {
             storeTempJobs.forEach { it.value.join() }
         }
         editorScope.cancel("Editor Closed")
-        idRepository.close(projectDef)
         // During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
         getSceneTempBufferContents().forEach {
             clearTempScene(it.scene)

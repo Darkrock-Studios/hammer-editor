@@ -44,10 +44,10 @@ fun DraftsListUi(
                     item {
                         Text("No Drafts Found")
                     }
-                }
-
-                items(drafts.size) { index ->
-                    DraftItem(draftDef = drafts[index], onDraftSelected = component::selectDraft)
+                } else {
+                    items(drafts.size) { index ->
+                        DraftItem(draftDef = drafts[index], onDraftSelected = component::selectDraft)
+                    }
                 }
             }
         }

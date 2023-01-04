@@ -6,7 +6,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -25,7 +24,6 @@ class ProjectSelectionComponent(
 ) : ProjectSelection, ComponentBase(componentContext) {
     private val globalSettingsRepository by inject<GlobalSettingsRepository>()
     private val projectsRepository by inject<ProjectsRepository>()
-    private val projectRepository by inject<ProjectRepository>()
 
     private val _value = MutableValue(
         ProjectSelection.State(
@@ -85,13 +83,8 @@ class ProjectSelectionComponent(
     }
 
     override fun deleteProject(projectDef: ProjectDef) {
-        projectRepository.closeEditor(projectDef)
         if (projectsRepository.deleteProject(projectDef)) {
             loadProjectList()
         }
-    }
-
-    override fun onStart() {
-        projectRepository.closeEditors()
     }
 }

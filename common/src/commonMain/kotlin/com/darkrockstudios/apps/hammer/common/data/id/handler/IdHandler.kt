@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.id.provider.handler
+package com.darkrockstudios.apps.hammer.common.data.id.handler
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 

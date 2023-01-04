@@ -1,25 +1,33 @@
 package com.darkrockstudios.apps.hammer.common.data.id
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
+import com.darkrockstudios.apps.hammer.common.data.id.handler.IdHandler
+import kotlin.jvm.Synchronized
+import kotlin.math.max
 
-abstract class IdRepository {
-	private val idProviders = mutableMapOf<ProjectDef, IdProvider>()
+abstract class IdRepository(private val projectDef: ProjectDef) {
+	protected abstract val idHandlers: List<IdHandler>
 
-	fun getIdProvider(projectDef: ProjectDef): IdProvider {
-		val provider = idProviders[projectDef]
-		return if (provider != null) {
-			provider
+	private var nextId: Int = -1
+	fun findNextId() {
+		var lastId = -1
+
+		idHandlers.forEach { handler ->
+			val highestId = handler.findHighestId(projectDef)
+			lastId = max(lastId, highestId)
+		}
+
+		nextId = if (lastId < 0) {
+			0
 		} else {
-			val newProvider = createNewProvider(projectDef)
-			idProviders[projectDef] = newProvider
-			newProvider
+			lastId + 1
 		}
 	}
 
-	fun close(projectDef: ProjectDef) {
-		idProviders.remove(projectDef)
+	@Synchronized
+	fun claimNextSceneId(): Int {
+		val newSceneId = nextId
+		nextId += 1
+		return newSceneId
 	}
-
-	protected abstract fun createNewProvider(projectDef: ProjectDef): IdProvider
 }

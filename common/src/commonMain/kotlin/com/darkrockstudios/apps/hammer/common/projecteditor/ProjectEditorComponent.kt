@@ -7,32 +7,31 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.darkrockstudios.apps.hammer.common.ComponentBase
+import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import org.koin.core.component.inject
 
 class ProjectEditorComponent(
-    componentContext: ComponentContext,
-    private val projectDef: ProjectDef,
-    addMenu: (menu: MenuDescriptor) -> Unit,
-    removeMenu: (id: String) -> Unit,
-) : ComponentBase(componentContext), ProjectEditor {
+	componentContext: ComponentContext,
+	private val projectDef: ProjectDef,
+	addMenu: (menu: MenuDescriptor) -> Unit,
+	removeMenu: (id: String) -> Unit,
+) : ProjectComponentBase(projectDef, componentContext), ProjectEditor {
 
-    private val projectRepository: ProjectRepository by inject()
-    private val projectEditor = projectRepository.getProjectEditor(projectDef)
+	private val projectEditor: ProjectEditorRepository by projectInject()
 
-    private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
-        replay = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
+	private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
 
-    private val _shouldCloseRoot = MutableSharedFlow<Boolean>(
-        replay = 1,
+	private val _shouldCloseRoot = MutableSharedFlow<Boolean>(
+		replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     override val shouldCloseRoot = _shouldCloseRoot

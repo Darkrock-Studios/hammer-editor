@@ -1,6 +1,6 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProvider
-import com.darkrockstudios.apps.hammer.common.data.id.provider.IdProviderOkio
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -8,9 +8,9 @@ import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 
-class IdProviderTest {
+class IdRepositoryTest {
 	private lateinit var ffs: FakeFileSystem
-	private lateinit var isProvider: IdProvider
+	private lateinit var idRepository: IdRepository
 
 	@Before
 	fun setup() {
@@ -26,11 +26,11 @@ class IdProviderTest {
 	fun `findLastId Scene Ids`() {
 		createProject(ffs, PROJECT_1_NAME)
 
-		isProvider = IdProviderOkio(getProject1Def(), ffs)
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs)
 
-		isProvider.findNextId()
+		idRepository.findNextId()
 
-		assertEquals(isProvider.claimNextSceneId(), 8, "Failed to find last scene ID")
+		assertEquals(idRepository.claimNextSceneId(), 8, "Failed to find last scene ID")
 	}
 
 	@Test
@@ -44,10 +44,10 @@ class IdProviderTest {
 			path = projectPath
 		)
 
-		isProvider = IdProviderOkio(projectDef, ffs)
+		idRepository = IdRepositoryOkio(projectDef, ffs)
 
-		isProvider.findNextId()
+		idRepository.findNextId()
 
-		assertEquals(isProvider.claimNextSceneId(), 0, "Failed to find last scene ID")
+		assertEquals(idRepository.claimNextSceneId(), 0, "Failed to find last scene ID")
 	}
 }

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -13,21 +13,19 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 
-
 class SceneDraftRepositoryOkio(
-    projectRepository: ProjectRepository,
-    private val fileSystem: FileSystem
-) : SceneDraftRepository(projectRepository) {
+	projectEditorRepository: ProjectEditorRepository,
+	private val fileSystem: FileSystem
+) : SceneDraftRepository(projectEditorRepository) {
 
-    override fun getDraftsDirectory(projectDef: ProjectDef): HPath {
-        val editor = projectRepository.getProjectEditor(projectDef)
-        val sceneDir = editor.getSceneDirectory().toOkioPath()
+	override fun getDraftsDirectory(projectDef: ProjectDef): HPath {
+		val sceneDir = projectEditorRepository.getSceneDirectory().toOkioPath()
 
-        val path: Path = sceneDir / DRAFTS_DIR
-        val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
-        fileSystem.createDirectories(path)
-        return path.toHPath()
-    }
+		val path: Path = sceneDir / DRAFTS_DIR
+		val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
+		fileSystem.createDirectories(path)
+		return path.toHPath()
+	}
 
     override fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath {
         val draftsDir = getDraftsDirectory(projectDef).toOkioPath()
@@ -86,17 +84,15 @@ class SceneDraftRepositoryOkio(
             return null
         }
 
-        val editor = projectRepository.getProjectEditor(sceneItem.projectDef)
-
-        val existingBuffer = editor.getSceneBuffer(sceneItem)
-        val content: String = if (existingBuffer != null) {
-            Napier.i { "Draft content loaded from memory" }
-            existingBuffer.content.coerceMarkdown()
-        } else {
-            Napier.i { "Draft content loaded from disk" }
-            val loadedBuffer = editor.loadSceneBuffer(sceneItem)
-            loadedBuffer.content.coerceMarkdown()
-        }
+		val existingBuffer = projectEditorRepository.getSceneBuffer(sceneItem)
+		val content: String = if (existingBuffer != null) {
+			Napier.i { "Draft content loaded from memory" }
+			existingBuffer.content.coerceMarkdown()
+		} else {
+			Napier.i { "Draft content loaded from disk" }
+			val loadedBuffer = projectEditorRepository.loadSceneBuffer(sceneItem)
+			loadedBuffer.content.coerceMarkdown()
+		}
 
         fileSystem.write(path, true) {
             writeUtf8(content)

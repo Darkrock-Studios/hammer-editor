@@ -5,13 +5,16 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepository
-import com.darkrockstudios.apps.hammer.common.data.projectrepository.ProjectRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import okio.FileSystem
+import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -23,18 +26,15 @@ val mainModule = module {
 
 	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
 
-	single {
-		ProjectRepositoryOkio(
-			fileSystem = get(),
-			projectsRepository = get(),
-			idRepository = get(),
-			toml = get()
-		)
-	} bind ProjectRepository::class
-
-	singleOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
-
 	singleOf(::createTomlSerializer) bind Toml::class
 
-	singleOf(::IdRepositoryOkio) bind IdRepository::class
+	scope<ProjectDefScope> {
+		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
+
+		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
+
+		scopedOf(::IdRepositoryOkio) bind IdRepository::class
+
+		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
+	}
 }
