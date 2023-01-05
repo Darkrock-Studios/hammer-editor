@@ -1,10 +1,10 @@
-package com.darkrockstudios.apps.hammer.common.data.notes
+package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContainer
-import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath

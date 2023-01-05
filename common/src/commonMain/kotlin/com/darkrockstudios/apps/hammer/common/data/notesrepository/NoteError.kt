@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.notes
+package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
 enum class NoteError {
 	NONE,

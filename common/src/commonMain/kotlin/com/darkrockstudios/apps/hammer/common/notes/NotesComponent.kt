@@ -7,9 +7,9 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.notes.NoteError
-import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.launch

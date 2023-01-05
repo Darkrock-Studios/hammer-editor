@@ -5,8 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository

@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.id.handler
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.notes.filterNotePathsOkio
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.filterNotePathsOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
 
