@@ -49,6 +49,10 @@ class ProjectRootComponent(
 		router.showNotes()
 	}
 
+	override fun showEncyclopedia() {
+		router.showEncyclopedia()
+	}
+
 	override fun hasUnsavedBuffers(): Boolean {
 		return projectEditor.hasDirtyBuffers()
 	}

@@ -10,6 +10,8 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.encyclopedia.Encyclopedia
+import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaComponent
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.notes.NotesComponent
@@ -51,6 +53,10 @@ internal class ProjectRootRouter(
             is Config.NotesConfig -> ProjectRoot.Destination.NotesDestination(
                 notes(config, componentContext)
             )
+
+            is Config.EncyclopediaConfig -> ProjectRoot.Destination.EncyclopediaDestination(
+                encyclopedia(config, componentContext)
+            )
         }
 
     private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): ProjectEditor {
@@ -81,12 +87,23 @@ internal class ProjectRootRouter(
         )
     }
 
+    private fun encyclopedia(config: Config.EncyclopediaConfig, componentContext: ComponentContext): Encyclopedia {
+        return EncyclopediaComponent(
+            componentContext = componentContext,
+            projectDef = config.projectDef
+        )
+    }
+
     fun showEditor() {
         navigation.bringToFront(Config.EditorConfig(projectDef = projectDef))
     }
 
     fun showNotes() {
         navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
+    }
+
+    fun showEncyclopedia() {
+        navigation.bringToFront(Config.EncyclopediaConfig(projectDef = projectDef))
     }
 
     fun isAtRoot(): Boolean {
@@ -96,6 +113,10 @@ internal class ProjectRootRouter(
             }
 
             is ProjectRoot.Destination.NotesDestination -> {
+                true
+            }
+
+            is ProjectRoot.Destination.EncyclopediaDestination -> {
                 true
             }
         }
@@ -111,5 +132,8 @@ internal class ProjectRootRouter(
 
         @Parcelize
         data class NotesConfig(val projectDef: ProjectDef) : Config()
+
+        @Parcelize
+        data class EncyclopediaConfig(val projectDef: ProjectDef) : Config()
     }
 }

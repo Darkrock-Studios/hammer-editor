@@ -15,6 +15,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
+import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
@@ -58,6 +59,9 @@ fun FeatureTabs(component: ProjectRoot) {
 	Button(onClick = { component.showNotes() }) {
 		Text("Notes")
 	}
+	Button(onClick = { component.showEncyclopedia() }) {
+		Text("Encyclopedia")
+	}
 }
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -79,6 +83,9 @@ fun FeatureContent(
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component)
+
+			is ProjectRoot.Destination.EncyclopediaDestination ->
+				EncyclopediaUi(child.component)
 		}
 	}
 }
