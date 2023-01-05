@@ -69,7 +69,17 @@ class NotesRepositoryOkio(
 	override fun deleteNote(id: Int) {
 		val path = getNotePath(id).toOkioPath()
 		fileSystem.delete(path, true)
-		loadNotes()
+	}
+
+	override fun updateNote(noteContent: NoteContent) {
+		val note = NoteContainer(noteContent)
+		val path = getNotePath(noteContent.id.toInt()).toOkioPath()
+
+		val noteToml = toml.encodeToString(note)
+
+		fileSystem.write(path, mustCreate = false) {
+			writeUtf8(noteToml)
+		}
 	}
 
 	private fun loadNote(path: Path): NoteContainer {

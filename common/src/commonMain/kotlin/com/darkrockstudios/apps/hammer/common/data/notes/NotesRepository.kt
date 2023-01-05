@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.notes
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContainer
+import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -34,10 +35,14 @@ abstract class NotesRepository(
 	abstract fun loadNotes()
 	abstract fun createNote(noteText: String): NoteError
 	abstract fun deleteNote(id: Int)
+	abstract fun updateNote(noteContent: NoteContent)
 
 	fun validateNote(noteText: String): NoteError {
+		val trimmed = noteText.trim()
 		return if (noteText.trim().length > MAX_NOTE_SIZE) {
 			NoteError.TOO_LONG
+		} else if (trimmed.isEmpty()) {
+			NoteError.EMPTY
 		} else {
 			NoteError.NONE
 		}
@@ -48,13 +53,13 @@ abstract class NotesRepository(
 	}
 
 	companion object {
-		val NOTE_FILENAME_PATTERN = Regex("""(\d+)\.toml""")
+		val NOTE_FILENAME_PATTERN = Regex("""note-(\d+)\.toml""")
 		const val NOTES_FILENAME_EXTENSION = ".toml"
 		const val NOTES_DIRECTORY = "notes"
 		const val MAX_NOTE_SIZE = 20
 
 		fun getNoteFilenameFromId(id: Int): String {
-			return "$id.toml"
+			return "note-$id.toml"
 		}
 
 		fun getNoteIdFromFilename(fileName: String): Int {
@@ -69,7 +74,6 @@ abstract class NotesRepository(
 				throw InvalidSceneFilename("Invalid filename", fileName)
 			}
 		}
-
 	}
 }
 

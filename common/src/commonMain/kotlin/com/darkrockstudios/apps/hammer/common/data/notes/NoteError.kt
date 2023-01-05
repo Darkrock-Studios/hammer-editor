@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.notes
 
 enum class NoteError {
 	NONE,
+	EMPTY,
 	TOO_LONG;
 
 	val isSuccess: Boolean

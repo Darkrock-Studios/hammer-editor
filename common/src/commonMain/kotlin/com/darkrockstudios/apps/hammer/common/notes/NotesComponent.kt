@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notes.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notes.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notes.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.launch
@@ -52,5 +53,11 @@ class NotesComponent(
 
 	override fun deleteNote(id: Long) {
 		notesRepository.deleteNote(id.toInt())
+		notesRepository.loadNotes()
+	}
+
+	override fun updateNote(noteContent: NoteContent) {
+		notesRepository.updateNote(noteContent)
+		notesRepository.loadNotes()
 	}
 }
