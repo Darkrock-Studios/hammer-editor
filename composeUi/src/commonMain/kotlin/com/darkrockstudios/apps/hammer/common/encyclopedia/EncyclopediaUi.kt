@@ -9,8 +9,10 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.DropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -76,9 +78,9 @@ fun EncyclopediaUi(component: Encyclopedia) {
 				)
 			}
 		}
-	}
 
-	SnackbarHost(snackbarHostState, modifier = Modifier)
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomEnd))
+	}
 }
 
 @Composable
@@ -90,60 +92,77 @@ fun CreateEntry(
 	close: () -> Unit
 ) {
 	var newEntryNameText by remember { mutableStateOf("") }
-	var newEntryContentText by remember { mutableStateOf("") }
+	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
 	var newTagsText by remember { mutableStateOf("") }
-	var newTypeText by remember { mutableStateOf("") }
+	var selectedType by remember { mutableStateOf(EntryType.PERSON) }
 
-	Column(modifier = modifier.padding(Ui.PADDING)) {
-		Text("Create New Entry")
+	Column(modifier = modifier.padding(Ui.PADDING).widthIn(128.dp, 420.dp)) {
+
+		Text(
+			"Create New Entry",
+			modifier = Modifier.padding(PaddingValues(bottom = Ui.PADDING)),
+			style = MaterialTheme.typography.h4
+		)
+
+		Text("Type:", modifier = Modifier.padding(bottom = 2.dp))
+		val types = EntryType.values().toList()
+		DropDown(
+			modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
+			items = types,
+			defaultIndex = types.indexOf(EntryType.PERSON)
+		) { item ->
+			selectedType = item
+		}
 
 		TextField(
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(top = Ui.PADDING, bottom = Ui.PADDING)),
 			value = newEntryNameText,
 			onValueChange = { newEntryNameText = it },
 			placeholder = { Text("Name") }
 		)
 
 		TextField(
-			value = newEntryNameText,
-			onValueChange = { newEntryNameText = it },
-			placeholder = { Text("Name") }
-		)
-		TextField(
-			value = newEntryContentText,
-			onValueChange = { newEntryContentText = it },
-			placeholder = { Text("Content") }
-		)
-		TextField(
-			value = newTypeText,
-			onValueChange = { newTypeText = it },
-			placeholder = { Text("Type") }
-		)
-		TextField(
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
 			value = newTagsText,
 			onValueChange = { newTagsText = it },
 			placeholder = { Text("Tags (space seperated)") }
 		)
-		Row {
-			Button(onClick = {
-				val result = component.createEntry(
-					name = newEntryNameText,
-					type = EntryType.fromString(newTypeText),
-					text = newEntryContentText,
-					tags = newTagsText.splitToSequence(" ").toList()
-				)
-				when (result.error) {
-					EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }
-					EntryError.NONE -> {
-						newEntryNameText = ""
-						close()
-						scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+
+		OutlinedTextField(
+			value = newEntryContentText,
+			onValueChange = { newEntryContentText = it },
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
+			placeholder = { Text(text = "Describe your entry") },
+			maxLines = 10,
+		)
+
+		Row(modifier = Modifier.fillMaxWidth()) {
+			Button(
+				modifier = Modifier.weight(1f).padding(PaddingValues(end = Ui.PADDING)),
+				onClick = {
+					val result = component.createEntry(
+						name = newEntryNameText,
+						type = selectedType,
+						text = newEntryContentText.text,
+						tags = newTagsText.splitToSequence(" ").toList()
+					)
+					when (result.error) {
+						EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }
+						EntryError.NONE -> {
+							newEntryNameText = ""
+							close()
+							scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+						}
 					}
 				}
-			}) {
+			) {
 				Text("Create")
 			}
 
-			Button(onClick = { close() }) {
+			Button(
+				modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.PADDING)),
+				onClick = { close() }
+			) {
 				Text("Cancel")
 			}
 		}

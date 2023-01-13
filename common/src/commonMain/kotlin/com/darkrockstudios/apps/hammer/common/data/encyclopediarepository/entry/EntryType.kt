@@ -6,6 +6,8 @@ enum class EntryType(val text: String) {
 	THING("thing"),
 	EVENT("event");
 
+	override fun toString() = text
+
 	companion object {
 		fun fromString(string: String): EntryType {
 			val sanitized = string.trim().lowercase()
