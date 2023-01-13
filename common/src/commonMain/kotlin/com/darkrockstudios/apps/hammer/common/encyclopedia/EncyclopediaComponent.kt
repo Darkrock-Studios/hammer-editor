@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
@@ -17,7 +18,7 @@ import kotlinx.coroutines.withContext
 
 class EncyclopediaComponent(
 	componentContext: ComponentContext,
-	private val projectDef: ProjectDef
+	projectDef: ProjectDef
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val _state = MutableValue(Encyclopedia.State(projectDef = projectDef, entryDefs = emptyList()))
@@ -39,6 +40,26 @@ class EncyclopediaComponent(
 		}
 
 		encyclopediaRepository.loadEntries()
+	}
+
+	override fun updateFilter(text: String?, type: EntryType?) {
+		_state.reduce { state ->
+			state.copy(
+				filterText = text,
+				filterType = type
+			)
+		}
+	}
+
+	override fun getFilteredEntries(): List<EntryDef> {
+		val type = state.value.filterType
+		val text = state.value.filterText
+
+		return state.value.entryDefs.filter { entry ->
+			val typeOk = type == null || entry.type == type
+			val textOk = text.isNullOrEmpty() || entry.name.lowercase().startsWith(text.trim().lowercase())
+			typeOk && textOk
+		}
 	}
 
 	override fun createEntry(name: String, type: EntryType, text: String, tags: List<String>): EntryResult {

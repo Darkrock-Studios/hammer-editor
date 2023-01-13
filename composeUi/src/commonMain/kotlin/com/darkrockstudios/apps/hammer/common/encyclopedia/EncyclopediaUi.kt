@@ -148,8 +148,16 @@ fun BoxWithConstraintsScope.BrowseEntries(
 ) {
 	val state by component.state.subscribeAsState()
 	val types = remember { EntryType.values().toList() }
-	var selectedType by remember { mutableStateOf(EntryType.PERSON) }
+	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	var searchText by remember { mutableStateOf("") }
+
+	val filteredEntries by remember(
+		Triple(
+			state.entryDefs,
+			state.filterText,
+			state.filterType
+		)
+	) { mutableStateOf(component.getFilteredEntries()) }
 
 	Column {
 		Text("Encyclopedia")
@@ -158,7 +166,10 @@ fun BoxWithConstraintsScope.BrowseEntries(
 		Row(verticalAlignment = Alignment.CenterVertically) {
 			TextField(
 				value = searchText,
-				onValueChange = { searchText = it },
+				onValueChange = {
+					searchText = it
+					component.updateFilter(searchText, selectedType)
+				},
 				placeholder = { Text("Search") },
 				modifier = Modifier.weight(1f)
 			)
@@ -169,9 +180,10 @@ fun BoxWithConstraintsScope.BrowseEntries(
 				modifier = Modifier,
 				padding = Ui.PADDING,
 				items = types,
-				defaultIndex = types.indexOf(EntryType.PERSON)
+				defaultIndex = types.indexOf(state.filterType)
 			) { item ->
 				selectedType = item
+				component.updateFilter(searchText, selectedType)
 			}
 		}
 
@@ -183,14 +195,14 @@ fun BoxWithConstraintsScope.BrowseEntries(
 			modifier = Modifier.fillMaxWidth(),
 			contentPadding = PaddingValues(Ui.PADDING)
 		) {
-			if (state.entryDefs.isEmpty()) {
+			if (filteredEntries.isEmpty()) {
 				item {
 					Text("No Entries Found")
 				}
 			} else {
-				items(state.entryDefs.size) { index ->
+				items(filteredEntries.size) { index ->
 					EntryDefItem(
-						entry = state.entryDefs[index],
+						entry = filteredEntries[index],
 						component = component,
 						snackbarHostState = snackbarHostState,
 						scope = scope

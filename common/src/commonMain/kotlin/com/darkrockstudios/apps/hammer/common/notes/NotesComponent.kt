@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 class NotesComponent(
 	componentContext: ComponentContext,
-	private val projectDef: ProjectDef,
+	projectDef: ProjectDef,
 	addMenu: (menu: MenuDescriptor) -> Unit,
 	removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Notes {

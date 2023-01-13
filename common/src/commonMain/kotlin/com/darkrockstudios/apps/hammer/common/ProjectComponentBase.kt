@@ -10,7 +10,7 @@ import org.koin.core.qualifier.Qualifier
 import org.koin.mp.KoinPlatformTools
 
 abstract class ProjectComponentBase(
-	projectDef: ProjectDef,
+	protected val projectDef: ProjectDef,
 	componentContext: ComponentContext
 ) : ComponentBase(componentContext) {
 	val projectScope = ProjectDefScope(projectDef)

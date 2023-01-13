@@ -14,7 +14,7 @@ import io.github.aakira.napier.Napier
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
-	private val projectDef: ProjectDef,
+	projectDef: ProjectDef,
 	addMenu: (menu: MenuDescriptor) -> Unit,
 	removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {

@@ -99,6 +99,12 @@ private fun fakeComponent(): Encyclopedia = object : Encyclopedia {
 			)
 		)
 
+	override fun updateFilter(text: String?, type: EntryType?) {
+
+	}
+
 	override fun createEntry(name: String, type: EntryType, text: String, tags: List<String>) =
 		EntryResult(EntryError.NONE)
+
+	override fun getFilteredEntries() = state.value.entryDefs
 }

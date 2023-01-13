@@ -17,10 +17,10 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 class ProjectEditorComponent(
-	componentContext: ComponentContext,
-	private val projectDef: ProjectDef,
-	addMenu: (menu: MenuDescriptor) -> Unit,
-	removeMenu: (id: String) -> Unit,
+    componentContext: ComponentContext,
+    projectDef: ProjectDef,
+    addMenu: (menu: MenuDescriptor) -> Unit,
+    removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectEditor {
 
 	private val projectEditor: ProjectEditorRepository by projectInject()

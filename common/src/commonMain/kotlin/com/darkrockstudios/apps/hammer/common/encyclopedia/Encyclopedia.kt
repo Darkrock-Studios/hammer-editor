@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 interface Encyclopedia : HammerComponent {
 	val state: Value<State>
 
+	fun updateFilter(text: String?, type: EntryType?)
+
 	fun createEntry(
 		name: String,
 		type: EntryType,
@@ -17,8 +19,12 @@ interface Encyclopedia : HammerComponent {
 		tags: List<String>
 	): EntryResult
 
+	fun getFilteredEntries(): List<EntryDef>
+
 	data class State(
 		val projectDef: ProjectDef,
-		val entryDefs: List<EntryDef>
+		val entryDefs: List<EntryDef>,
+		val filterText: String? = null,
+		val filterType: EntryType? = EntryType.PERSON
 	)
 }
