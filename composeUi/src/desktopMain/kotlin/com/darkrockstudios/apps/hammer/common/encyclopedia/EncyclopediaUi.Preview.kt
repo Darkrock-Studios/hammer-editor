@@ -1,12 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -41,6 +47,25 @@ private fun EntryDefItemPreview() {
 private fun EncyclopediaUiPreview() {
 	val component: Encyclopedia = fakeComponent()
 	EncyclopediaUi(component)
+}
+
+@Preview
+@Composable
+private fun CreateEntryPreview() {
+	val component: Encyclopedia = fakeComponent()
+	val scope = rememberCoroutineScope()
+	val snackbarHostState = remember { SnackbarHostState() }
+
+	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
+		CreateEntry(
+			component = component,
+			scope = scope,
+			snackbarHostState = snackbarHostState,
+			modifier = Modifier.align(Alignment.Center)
+		) {
+
+		}
+	}
 }
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(

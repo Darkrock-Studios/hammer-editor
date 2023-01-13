@@ -22,9 +22,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun EncyclopediaUi(component: Encyclopedia) {
-
-	val state by component.state.subscribeAsState()
-
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
@@ -35,47 +32,18 @@ fun EncyclopediaUi(component: Encyclopedia) {
 			CreateEntry(
 				component = component,
 				scope = scope,
-				modifier = Modifier.align(Alignment.Center),
+				modifier = Modifier.align(Alignment.TopCenter),
 				snackbarHostState = snackbarHostState
 			) {
 				showCreate = false
 			}
 		} else {
-			Column {
-				Text("Encyclopedia")
-
-				Spacer(modifier = Modifier)
-
-				Text("Notes")
-				LazyVerticalGrid(
-					columns = GridCells.Adaptive(512.dp),
-					modifier = Modifier.fillMaxWidth(),
-					contentPadding = PaddingValues(Ui.PADDING)
-				) {
-					if (state.entryDefs.isEmpty()) {
-						item {
-							Text("No Entries Found")
-						}
-					} else {
-						items(state.entryDefs.size) { index ->
-							EntryDefItem(
-								entry = state.entryDefs[index],
-								component = component,
-								snackbarHostState = snackbarHostState,
-								scope = scope
-							)
-						}
-					}
-				}
-			}
-			FloatingActionButton(
-				onClick = { showCreate = true },
-				modifier = Modifier.align(Alignment.BottomEnd)
+			BrowseEntries(
+				component = component,
+				scope = scope,
+				snackbarHostState = snackbarHostState
 			) {
-				Icon(
-					Icons.Rounded.Add,
-					"Create Entry"
-				)
+				showCreate = true
 			}
 		}
 
@@ -95,6 +63,7 @@ fun CreateEntry(
 	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
 	var newTagsText by remember { mutableStateOf("") }
 	var selectedType by remember { mutableStateOf(EntryType.PERSON) }
+	val types = remember { EntryType.values().toList() }
 
 	Column(modifier = modifier.padding(Ui.PADDING).widthIn(128.dp, 420.dp)) {
 
@@ -105,9 +74,10 @@ fun CreateEntry(
 		)
 
 		Text("Type:", modifier = Modifier.padding(bottom = 2.dp))
-		val types = EntryType.values().toList()
+
 		DropDown(
-			modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
+			modifier = Modifier.fillMaxWidth(),
+			padding = Ui.PADDING,
 			items = types,
 			defaultIndex = types.indexOf(EntryType.PERSON)
 		) { item ->
@@ -168,6 +138,78 @@ fun CreateEntry(
 		}
 	}
 }
+
+@Composable
+fun BoxWithConstraintsScope.BrowseEntries(
+	component: Encyclopedia,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState,
+	showCreate: () -> Unit
+) {
+	val state by component.state.subscribeAsState()
+	val types = remember { EntryType.values().toList() }
+	var selectedType by remember { mutableStateOf(EntryType.PERSON) }
+	var searchText by remember { mutableStateOf("") }
+
+	Column {
+		Text("Encyclopedia")
+		Spacer(modifier = Modifier.size(Ui.PADDING))
+
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			TextField(
+				value = searchText,
+				onValueChange = { searchText = it },
+				placeholder = { Text("Search") },
+				modifier = Modifier.weight(1f)
+			)
+
+			Spacer(Modifier.width(Ui.PADDING))
+
+			DropDown(
+				modifier = Modifier,
+				padding = Ui.PADDING,
+				items = types,
+				defaultIndex = types.indexOf(EntryType.PERSON)
+			) { item ->
+				selectedType = item
+			}
+		}
+
+		Spacer(modifier = Modifier.size(Ui.PADDING))
+
+		Text("Notes")
+		LazyVerticalGrid(
+			columns = GridCells.Adaptive(512.dp),
+			modifier = Modifier.fillMaxWidth(),
+			contentPadding = PaddingValues(Ui.PADDING)
+		) {
+			if (state.entryDefs.isEmpty()) {
+				item {
+					Text("No Entries Found")
+				}
+			} else {
+				items(state.entryDefs.size) { index ->
+					EntryDefItem(
+						entry = state.entryDefs[index],
+						component = component,
+						snackbarHostState = snackbarHostState,
+						scope = scope
+					)
+				}
+			}
+		}
+	}
+	FloatingActionButton(
+		onClick = showCreate,
+		modifier = Modifier.align(Alignment.BottomEnd)
+	) {
+		Icon(
+			Icons.Rounded.Add,
+			"Create Entry"
+		)
+	}
+}
+
 
 @Composable
 fun EntryDefItem(
