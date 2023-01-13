@@ -123,23 +123,29 @@ fun CreateEntry(
 			onValueChange = { newTagsText = it },
 			placeholder = { Text("Tags (space seperated)") }
 		)
-		Button(onClick = {
-			val result = component.createEntry(
-				name = newEntryNameText,
-				type = EntryType.fromString(newTypeText),
-				text = newEntryContentText,
-				tags = newTagsText.splitToSequence(" ").toList()
-			)
-			when (result.error) {
-				EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }
-				EntryError.NONE -> {
-					newEntryNameText = ""
-					close()
-					scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+		Row {
+			Button(onClick = {
+				val result = component.createEntry(
+					name = newEntryNameText,
+					type = EntryType.fromString(newTypeText),
+					text = newEntryContentText,
+					tags = newTagsText.splitToSequence(" ").toList()
+				)
+				when (result.error) {
+					EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }
+					EntryError.NONE -> {
+						newEntryNameText = ""
+						close()
+						scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+					}
 				}
+			}) {
+				Text("Create")
 			}
-		}) {
-			Text("Create")
+
+			Button(onClick = { close() }) {
+				Text("Cancel")
+			}
 		}
 	}
 }
