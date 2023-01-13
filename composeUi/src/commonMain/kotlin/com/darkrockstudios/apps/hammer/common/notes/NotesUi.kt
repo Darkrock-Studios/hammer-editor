@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -70,7 +69,7 @@ fun NotesUi(
 							note = notes[index],
 							component = component,
 							snackbarHostState = snackbarHostState,
-							scope = scope
+							scope = scope,
 						)
 					}
 				}
@@ -78,6 +77,10 @@ fun NotesUi(
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier)
+	}
+
+	state.confirmDelete?.let { note ->
+		ConfirmDeleteDialog(note, component, snackbarHostState, scope)
 	}
 }
 
@@ -90,7 +93,6 @@ fun NoteItem(
 	modifier: Modifier = Modifier,
 ) {
 	var isEditing by remember { mutableStateOf(false) }
-	var confirmDelete by remember { mutableStateOf(false) }
 	var updatedNoteText by remember { mutableStateOf(note.content) }
 
 	Card(
@@ -121,46 +123,40 @@ fun NoteItem(
 					isEditing = true
 				}
 			}
-			Button(onClick = { confirmDelete = true }) {
+			Button(onClick = { component.confirmDelete(note) }) {
 				Text("Delete")
 			}
 		}
 	}
-
-	ConfirmDeleteDialog(note, component, snackbarHostState, scope, confirmDelete) {
-		confirmDelete = false
-	}
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ConfirmDeleteDialog(
 	note: NoteContent,
 	component: Notes,
 	snackbarHostState: SnackbarHostState,
 	scope: CoroutineScope,
-	confirmDelete: Boolean,
-	closeDialog: () -> Unit
 ) {
-	MpDialog(
-		onCloseRequest = { },
-		title = "Delete Note?",
-		visible = confirmDelete,
-		resizable = false
-	) {
-		Row(Modifier.wrapContentSize()) {
-			Button(onClick = {
-				component.deleteNote(note.id)
-				scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
-				closeDialog()
-			}) {
-				Text("DELETE")
-			}
+	AlertDialog(
+		onDismissRequest = {},
+		title = { Text("Delete Note ${note.id}?") },
+		buttons = {
+			Row(Modifier.wrapContentSize()) {
+				Button(onClick = {
+					component.deleteNote(note.id)
+					component.dismissConfirmDelete()
+					scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
+				}) {
+					Text("DELETE")
+				}
 
-			Button(onClick = {
-				closeDialog()
-			}) {
-				Text("Cancel")
+				Button(onClick = {
+					component.dismissConfirmDelete()
+				}) {
+					Text("Cancel")
+				}
 			}
 		}
-	}
+	)
 }

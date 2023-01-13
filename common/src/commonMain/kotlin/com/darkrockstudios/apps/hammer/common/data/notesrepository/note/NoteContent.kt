@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class NoteContent(
-	val id: Long,
+	val id: Int,
 	val created: Instant,
 	val content: String
 )

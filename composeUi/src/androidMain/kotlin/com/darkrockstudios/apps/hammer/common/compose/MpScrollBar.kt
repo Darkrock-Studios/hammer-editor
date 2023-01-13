@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
+package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -125,7 +125,9 @@ fun AndroidScrollbar(
 			animationSpec =
 			tween(delayMillis = animationDelayMs, durationMillis = animationDurationMs))
 
-	return Canvas(modifier = Modifier.width(thickness).fillMaxHeight()) {
+	return Canvas(modifier = Modifier
+		.width(thickness)
+		.fillMaxHeight()) {
 		state.layoutInfo.visibleItemsInfo.firstOrNull()?.let { firstVisibleItem ->
 			if (state.isScrollInProgress || alpha > 0f) {
 				// Size of the viewport, the entire size of the scrollable composable we are decorating with

@@ -50,7 +50,7 @@ class NotesRepositoryOkio(
 			val newId = idRepository.claimNextSceneId()
 			val newNote = NoteContainer(
 				NoteContent(
-					id = newId.toLong(),
+					id = newId,
 					created = Clock.System.now(),
 					content = noteText
 				)
@@ -73,7 +73,7 @@ class NotesRepositoryOkio(
 
 	override fun updateNote(noteContent: NoteContent) {
 		val note = NoteContainer(noteContent)
-		val path = getNotePath(noteContent.id.toInt()).toOkioPath()
+		val path = getNotePath(noteContent.id).toOkioPath()
 
 		val noteToml = toml.encodeToString(note)
 

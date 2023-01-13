@@ -28,12 +28,15 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionU
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.core.context.GlobalContext
+import javax.swing.UIManager
 
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main() {
     Napier.base(DebugAntilog())
+
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
 
     GlobalContext.startKoin {
         logger(NapierLogger())

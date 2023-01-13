@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -8,15 +9,17 @@ actual fun MpDialog(
 	onCloseRequest: () -> Unit,
 	visible: Boolean,
 	title: String,
-	resizable: Boolean,
+	modifier: Modifier,
 	content: @Composable () -> Unit
 ) {
-	Dialog(
-		visible = visible,
-		onCloseRequest = onCloseRequest,
-		title = title,
-		resizable = resizable
-	) {
-		content()
+	// TODO This is crashing on desktop sometimes, look into it
+	if (visible) {
+		Dialog(
+			onCloseRequest = onCloseRequest,
+			visible = visible,
+			title = title,
+		) {
+			content()
+		}
 	}
 }

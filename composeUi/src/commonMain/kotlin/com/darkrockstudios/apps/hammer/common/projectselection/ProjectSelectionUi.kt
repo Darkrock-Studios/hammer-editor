@@ -4,6 +4,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,8 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBar
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -22,6 +26,7 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
     var newProjectNameText by remember { mutableStateOf("") }
     var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
     var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
+    var showDirectoryPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.projectsDir) {
         component.loadProjectList()
@@ -60,31 +65,39 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
                 }) {
                     Text("Update Dir")
                 }
+                Button(onClick = { showDirectoryPicker = true }) {
+                    Text("Select Dir")
+                }
             }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(Ui.PADDING)
-            ) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "\uD83D\uDCDD Projects:",
-                            style = MaterialTheme.typography.h5
-                        )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                val listState: LazyListState = rememberLazyListState()
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    state = listState,
+                    contentPadding = PaddingValues(Ui.PADDING)
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .wrapContentHeight()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "\uD83D\uDCDD Projects:",
+                                style = MaterialTheme.typography.h5
+                            )
+                        }
+                    }
+                    items(state.projectDefs.size) { index ->
+                        ProjectCard(state.projectDefs[index], component::selectProject) { project ->
+                            projectDefDeleteTarget = project
+                        }
                     }
                 }
-                items(state.projectDefs.size) { index ->
-                    ProjectCard(state.projectDefs[index], component::selectProject) { project ->
-                        projectDefDeleteTarget = project
-                    }
-                }
+                MpScrollBar(state = listState)
             }
         }
     }
@@ -96,6 +109,15 @@ fun ProjectSelectionUi(component: ProjectSelectionComponent, modifier: Modifier 
             }
 
             projectDefDeleteTarget = null
+        }
+    }
+
+    DirectoryPicker(showDirectoryPicker) { path ->
+        showDirectoryPicker = false
+
+        if (path != null) {
+            projectsPathText = path
+            component.setProjectsDir(projectsPathText)
         }
     }
 }

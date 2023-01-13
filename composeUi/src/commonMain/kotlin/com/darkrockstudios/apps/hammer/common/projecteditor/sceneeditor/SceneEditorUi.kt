@@ -157,13 +157,15 @@ private fun SaveDraftDialog(
 ) {
     var draftName by remember { mutableStateOf("") }
 
-    MpDialog(visible = state.isSavingDraft,
+    MpDialog(
+        visible = state.isSavingDraft,
+        title = "Save Draft:",
         onCloseRequest = {
             component.endSaveDraft()
             draftName = ""
-        }) {
+        }
+    ) {
         Column {
-            Text("Save Draft:")
             TextField(
                 value = draftName,
                 onValueChange = { draftName = it },

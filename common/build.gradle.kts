@@ -46,17 +46,17 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api("com.arkivanov.decompose:decompose:$decompose_version")
-                api("io.github.aakira:napier:2.6.1")
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-                api("io.insert-koin:koin-core:$koin_version")
-                api("com.squareup.okio:okio:$okio_version")
+				api("io.github.aakira:napier:2.6.1")
+				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				api("io.insert-koin:koin-core:$koin_version")
+				api("com.squareup.okio:okio:$okio_version")
 
-                api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-                // This is being held back to 0.3.2 due to ios support not working in later versions
-                api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-                implementation("com.akuleshov7:ktoml-core:0.3.0")
-                api("com.arkivanov.essenty:lifecycle:$essenty_version")
+				api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
+				// This is being held back to 0.3.2 due to ios support not working in later versions
+				api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
+				//implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+				implementation("com.akuleshov7:ktoml-core:0.4.0")
+				api("com.arkivanov.essenty:lifecycle:$essenty_version")
             }
         }
         val commonTest by getting {

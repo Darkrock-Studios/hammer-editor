@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class EntryContent(
-	val id: Long,
+	val id: Int,
 	val name: String,
 	val type: EntryType,
 	val text: String,

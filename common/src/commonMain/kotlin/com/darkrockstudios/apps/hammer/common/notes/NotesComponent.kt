@@ -51,13 +51,29 @@ class NotesComponent(
 		return result
 	}
 
-	override fun deleteNote(id: Long) {
-		notesRepository.deleteNote(id.toInt())
+	override fun deleteNote(id: Int) {
+		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
 	}
 
 	override fun updateNote(noteContent: NoteContent) {
 		notesRepository.updateNote(noteContent)
 		notesRepository.loadNotes()
+	}
+
+	override fun confirmDelete(note: NoteContent) {
+		_state.reduce {
+			it.copy(
+				confirmDelete = note
+			)
+		}
+	}
+
+	override fun dismissConfirmDelete() {
+		_state.reduce {
+			it.copy(
+				confirmDelete = null
+			)
+		}
 	}
 }

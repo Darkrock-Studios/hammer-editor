@@ -82,7 +82,7 @@ class EncyclopediaRepositoryOkio(
 		Result
 		val newId = idRepository.claimNextSceneId()
 		val entry = EntryContent(
-			id = newId.toLong(),
+			id = newId,
 			name = name.trim(),
 			type = type,
 			text = text.trim(),

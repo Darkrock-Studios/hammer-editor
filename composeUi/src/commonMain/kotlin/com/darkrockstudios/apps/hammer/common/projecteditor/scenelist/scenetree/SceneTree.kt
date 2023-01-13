@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBar
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.MpScrollBar
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing

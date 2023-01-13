@@ -10,11 +10,15 @@ interface Notes : HammerComponent {
 	val state: Value<State>
 
 	fun createNote(noteText: String): NoteError
-	fun deleteNote(id: Long)
+	fun deleteNote(id: Int)
 	fun updateNote(noteContent: NoteContent)
+
+	fun confirmDelete(note: NoteContent)
+	fun dismissConfirmDelete()
 
 	data class State(
 		val projectDef: ProjectDef,
-		val notes: List<NoteContent>
+		val notes: List<NoteContent>,
+		val confirmDelete: NoteContent? = null
 	)
 }

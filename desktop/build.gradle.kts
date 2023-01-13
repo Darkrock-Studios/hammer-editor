@@ -40,5 +40,6 @@ compose.desktop {
             packageName = "hammer"
             packageVersion = app_version
         }
+        jvmArgs("-Dcompose.application.configure.swing.globals=false")
     }
 }

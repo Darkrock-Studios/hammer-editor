@@ -78,7 +78,7 @@ abstract class EncyclopediaRepository(
 
 		fun getEntryFilename(entry: EntryContent): String =
 			getEntryFilename(
-				id = entry.id.toInt(),
+				id = entry.id,
 				type = entry.type,
 				name = entry.name
 			)

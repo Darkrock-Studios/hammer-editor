@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
+package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyListState
