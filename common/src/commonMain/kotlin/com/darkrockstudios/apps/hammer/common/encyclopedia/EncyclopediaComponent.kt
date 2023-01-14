@@ -9,10 +9,13 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
+import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,6 +28,10 @@ class EncyclopediaComponent(
 	override val state: Value<Encyclopedia.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+
+	private val entryContentCache = Cache.Builder()
+		.maximumCacheSize(20)
+		.build<Int, EntryContainer>()
 
 	init {
 		scope.launch {
@@ -57,8 +64,19 @@ class EncyclopediaComponent(
 
 		return state.value.entryDefs.filter { entry ->
 			val typeOk = type == null || entry.type == type
-			val textOk = text.isNullOrEmpty() || entry.name.lowercase().startsWith(text.trim().lowercase())
+			val textOk = text.isNullOrEmpty() || entry.name.contains(text.trim(), ignoreCase = true)
 			typeOk && textOk
+		}
+	}
+
+	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
+		val cachedEntry = entryContentCache.get(entryDef.id)
+		return if (cachedEntry != null) {
+			cachedEntry.entry
+		} else {
+			val container = encyclopediaRepository.loadEntry(entryDef)
+			entryContentCache.put(entryDef.id, container)
+			container.entry
 		}
 	}
 

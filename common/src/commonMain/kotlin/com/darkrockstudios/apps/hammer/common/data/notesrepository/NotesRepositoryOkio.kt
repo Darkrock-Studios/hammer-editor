@@ -47,7 +47,7 @@ class NotesRepositoryOkio(
 			result
 		} else {
 
-			val newId = idRepository.claimNextSceneId()
+			val newId = idRepository.claimNextId()
 			val newNote = NoteContainer(
 				NoteContent(
 					id = newId,

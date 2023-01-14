@@ -39,6 +39,8 @@ abstract class EncyclopediaRepository(
 
 	abstract fun loadEntries()
 	abstract fun getEntryDef(entryPath: HPath): EntryDef
+
+	abstract fun loadEntry(entryDef: EntryDef): EntryContainer
 	abstract fun loadEntry(entryPath: HPath): EntryContainer
 	abstract fun createEntry(
 		name: String,

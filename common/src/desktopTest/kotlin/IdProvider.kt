@@ -30,7 +30,7 @@ class IdRepositoryTest {
 
 		idRepository.findNextId()
 
-		assertEquals(idRepository.claimNextSceneId(), 8, "Failed to find last scene ID")
+		assertEquals(idRepository.claimNextId(), 8, "Failed to find last scene ID")
 	}
 
 	@Test
@@ -48,6 +48,6 @@ class IdRepositoryTest {
 
 		idRepository.findNextId()
 
-		assertEquals(idRepository.claimNextSceneId(), 0, "Failed to find last scene ID")
+		assertEquals(idRepository.claimNextId(), 0, "Failed to find last scene ID")
 	}
 }

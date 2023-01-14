@@ -25,7 +25,7 @@ abstract class IdRepository(private val projectDef: ProjectDef) {
 	}
 
 	@Synchronized
-	fun claimNextSceneId(): Int {
+	fun claimNextId(): Int {
 		val newSceneId = nextId
 		nextId += 1
 		return newSceneId

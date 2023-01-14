@@ -56,7 +56,7 @@ class ProjectEditorRepositoryOkioLoadTest {
 
         nextId = -1
 		idRepository = mockk()
-		every { idRepository.claimNextSceneId() } answers { claimId() }
+		every { idRepository.claimNextId() } answers { claimId() }
 
         projectsRepo = mockk()
         every { projectsRepo.getProjectsDirectory() } returns

@@ -7,12 +7,14 @@ import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 actual fun getPlatformName(): String {
-    return "Android"
+	return "Android"
 }
+
+actual fun getHomeDirectory(): String = getRootDocumentDirectory()
 
 private lateinit var rootDocumentDirectory: File
 fun setRootDocumentDirectory(context: Context) {
-    rootDocumentDirectory = context.filesDir
+	rootDocumentDirectory = context.filesDir
 }
 
 actual fun getRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath

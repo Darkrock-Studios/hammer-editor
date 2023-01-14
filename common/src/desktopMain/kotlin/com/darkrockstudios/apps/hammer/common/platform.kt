@@ -9,6 +9,8 @@ actual fun getPlatformName(): String {
     return "Desktop"
 }
 
+actual fun getHomeDirectory(): String = System.getProperty("user.home")
+
 actual fun getRootDocumentDirectory(): String = System.getProperty("user.home")
 
 private val CONFIG_DIR = ".hammer"

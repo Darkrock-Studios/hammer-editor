@@ -23,19 +23,37 @@ fun <T> DropDown(
 	padding: Dp = 16.dp,
 	items: List<T>,
 	defaultIndex: Int = 0,
-	onValueChanged: (T) -> Unit
+	noneOption: String? = null,
+	onValueChanged: (T?) -> Unit
 ) {
 	var selectedIndex by remember { mutableStateOf(defaultIndex) }
-	var categoriesExpanded by remember { mutableStateOf(false) }
+	var itemsExpanded by remember { mutableStateOf(false) }
 
 	BoxWithConstraints(
 		modifier = modifier
 			.background(Color.LightGray)
 			.border(1.dp, MaterialTheme.colors.onBackground)
-			.clickable(onClick = { categoriesExpanded = true })
+			.clickable(onClick = { itemsExpanded = true })
 	) {
+		val itemText = if (selectedIndex == 0 && noneOption != null) {
+			noneOption
+		} else {
+			val index = if (noneOption != null) {
+				selectedIndex - 1
+			} else {
+				selectedIndex
+			}
+			items[index].toString()
+		}
+
+		val indexOffset = if (noneOption != null) {
+			1
+		} else {
+			0
+		}
+
 		Text(
-			items[selectedIndex].toString(),
+			itemText,
 			modifier = Modifier.padding(
 				PaddingValues(start = padding, end = padding * 2, top = padding, bottom = padding)
 			).wrapContentWidth()
@@ -46,13 +64,23 @@ fun <T> DropDown(
 			modifier = Modifier.align(Alignment.CenterEnd)
 		)
 		DropdownMenu(
-			expanded = categoriesExpanded,
-			onDismissRequest = { categoriesExpanded = false },
+			expanded = itemsExpanded,
+			onDismissRequest = { itemsExpanded = false },
 		) {
+			if (noneOption != null) {
+				DropdownMenuItem(onClick = {
+					selectedIndex = 0
+					itemsExpanded = false
+					onValueChanged(null)
+				}) {
+					Text(noneOption)
+				}
+			}
+
 			items.forEachIndexed { index, item ->
 				DropdownMenuItem(onClick = {
-					selectedIndex = index
-					categoriesExpanded = false
+					selectedIndex = index + indexOffset
+					itemsExpanded = false
 					onValueChanged(items[index])
 				}) {
 					Text(text = item.toString())

@@ -81,7 +81,7 @@ class ProjectEditorRepositoryOkioOtherTest {
 
 		nextId = 8
 		idRepository = mockk()
-		every { idRepository.claimNextSceneId() } answers { claimId() }
+		every { idRepository.claimNextId() } answers { claimId() }
 		every { idRepository.findNextId() } answers { }
 
 		projectsRepo = mockk()

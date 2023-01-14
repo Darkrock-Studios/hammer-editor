@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import okio.FileSystem
 import okio.Path
@@ -58,17 +59,19 @@ class EncyclopediaRepositoryOkio(
 		return getEntryDefFromFilename(entryPath.name, projectDef)
 	}
 
+	override fun loadEntry(entryDef: EntryDef): EntryContainer {
+		val path = getEntryPath(entryDef)
+		return loadEntry(path)
+	}
+
 	override fun loadEntry(entryPath: HPath): EntryContainer {
-		// TODO Not yet Implemented
-		return EntryContainer(
-			EntryContent(
-				id = -1,
-				type = EntryType.PERSON,
-				name = "",
-				text = "",
-				tags = emptyList()
-			)
-		)
+		val path = entryPath.toOkioPath()
+		val contentToml: String = fileSystem.read(path) {
+			readUtf8()
+		}
+
+		val entry: EntryContainer = toml.decodeFromString(contentToml)
+		return entry
 	}
 
 	override fun createEntry(
@@ -79,14 +82,16 @@ class EncyclopediaRepositoryOkio(
 	): EntryResult {
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
-		Result
-		val newId = idRepository.claimNextSceneId()
+
+		val cleanedTags = tags.map { it.trim() }
+
+		val newId = idRepository.claimNextId()
 		val entry = EntryContent(
 			id = newId,
 			name = name.trim(),
 			type = type,
 			text = text.trim(),
-			tags = tags
+			tags = cleanedTags
 		)
 		val container = EntryContainer(entry)
 		val entryToml = toml.encodeToString(container)

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -35,7 +36,7 @@ private fun EntryDefItemPreview() {
 	val component: Encyclopedia = fakeComponent()
 
 	EntryDefItem(
-		entry = entry,
+		entryDef = entry,
 		component = component,
 		snackbarHostState = snackbarHostState,
 		scope = scope,
@@ -77,6 +78,15 @@ private fun fakeProjectDef(): ProjectDef = ProjectDef(
 	)
 )
 
+private fun fakeEntryContent(): EntryContent = EntryContent(
+	name = "Test",
+	id = 0,
+	type = EntryType.PERSON,
+	text = "Lots of text text to show how things look and thats pretty cool",
+	tags = listOf("one", "two")
+)
+
+
 private fun fakeComponent(): Encyclopedia = object : Encyclopedia {
 	override val state: Value<Encyclopedia.State>
 		get() = MutableValue(
@@ -94,17 +104,27 @@ private fun fakeComponent(): Encyclopedia = object : Encyclopedia {
 						name = "Two",
 						type = EntryType.PLACE,
 						id = 1
+					),
+					EntryDef(
+						projectDef = fakeProjectDef(),
+						name = "Three",
+						type = EntryType.PLACE,
+						id = 1
+					),
+					EntryDef(
+						projectDef = fakeProjectDef(),
+						name = "Four",
+						type = EntryType.PLACE,
+						id = 1
 					)
 				)
 			)
 		)
 
-	override fun updateFilter(text: String?, type: EntryType?) {
-
-	}
-
+	override fun updateFilter(text: String?, type: EntryType?) {}
 	override fun createEntry(name: String, type: EntryType, text: String, tags: List<String>) =
 		EntryResult(EntryError.NONE)
 
 	override fun getFilteredEntries() = state.value.entryDefs
+	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 }

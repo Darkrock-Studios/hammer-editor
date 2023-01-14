@@ -57,6 +57,7 @@ kotlin {
 				//implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 				implementation("com.akuleshov7:ktoml-core:0.4.0")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
+                implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
             }
         }
         val commonTest by getting {

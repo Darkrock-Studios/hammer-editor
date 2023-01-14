@@ -335,7 +335,7 @@ class ProjectEditorRepositoryOkio(
         } else {
             val lastOrder = getLastOrderNumber(parent?.id)
             val nextOrder = lastOrder + 1
-            val sceneId = idRepository.claimNextSceneId()
+            val sceneId = idRepository.claimNextId()
             val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
             val newSceneItem = SceneItem(
