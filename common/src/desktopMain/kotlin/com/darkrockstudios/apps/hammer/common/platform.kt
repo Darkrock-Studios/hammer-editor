@@ -11,6 +11,11 @@ actual fun getPlatformName(): String {
 
 actual fun getHomeDirectory(): String = System.getProperty("user.home")
 
+actual fun getCacheDirectory(): String = File(getConfigDirectory(), "cache").absolutePath
+
+private val IMAGE_CACHE_DIR = "images"
+actual fun getImageCacheDirectory(): String = File(getCacheDirectory(), IMAGE_CACHE_DIR).absolutePath
+
 actual fun getRootDocumentDirectory(): String = System.getProperty("user.home")
 
 private val CONFIG_DIR = ".hammer"

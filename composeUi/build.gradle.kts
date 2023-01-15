@@ -47,6 +47,7 @@ kotlin {
                 api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
                 api("com.darkrockstudios:richtexteditor:1.3.0")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
+                api("io.github.qdsfdhvh:image-loader:1.2.7")
             }
         }
         val commonTest by getting {

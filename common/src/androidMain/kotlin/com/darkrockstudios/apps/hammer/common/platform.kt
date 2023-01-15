@@ -13,8 +13,18 @@ actual fun getPlatformName(): String {
 actual fun getHomeDirectory(): String = getRootDocumentDirectory()
 
 private lateinit var rootDocumentDirectory: File
-fun setRootDocumentDirectory(context: Context) {
+fun setDirectories(context: Context) {
 	rootDocumentDirectory = context.filesDir
+	cacheDirectory = context.cacheDir
+}
+
+private lateinit var cacheDirectory: File
+actual fun getCacheDirectory(): String {
+	return cacheDirectory.absolutePath
+}
+
+actual fun getImageCacheDirectory(): String {
+	return File(getCacheDirectory(), "images").absolutePath
 }
 
 actual fun getRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath

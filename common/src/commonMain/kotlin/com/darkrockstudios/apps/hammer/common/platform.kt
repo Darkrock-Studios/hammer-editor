@@ -4,13 +4,11 @@ import okio.FileSystem
 import kotlin.coroutines.CoroutineContext
 
 expect fun getHomeDirectory(): String
-
+expect fun getCacheDirectory(): String
+expect fun getImageCacheDirectory(): String
 expect fun getPlatformName(): String
-
 expect fun getRootDocumentDirectory(): String
-
 expect fun getConfigDirectory(): String
-
 expect fun getPlatformFilesystem(): FileSystem
 
 expect val defaultDispatcher: CoroutineContext

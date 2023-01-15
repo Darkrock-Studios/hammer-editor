@@ -2,10 +2,7 @@ package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -20,14 +17,18 @@ import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
+import com.seiko.imageloader.ImageLoader
+import com.seiko.imageloader.LocalImageLoader
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.core.context.GlobalContext
+import org.koin.java.KoinJavaComponent.get
 import javax.swing.UIManager
 
 @ExperimentalDecomposeApi
@@ -40,19 +41,25 @@ fun main() {
 
     GlobalContext.startKoin {
         logger(NapierLogger())
-        modules(mainModule)
+        modules(mainModule, imageLoadingModule)
     }
 
     application {
         val applicationState = remember { ApplicationState() }
-        when (val windowState = applicationState.windows.value) {
-            is WindowState.ProjectSectionWindow -> {
-                ProjectSelectionWindow { project ->
-                    applicationState.openProject(project)
+        val imageLoader: ImageLoader = get(ImageLoader::class.java)
+        CompositionLocalProvider(
+            LocalImageLoader provides imageLoader,
+        ) {
+            when (val windowState = applicationState.windows.value) {
+                is WindowState.ProjectSectionWindow -> {
+                    ProjectSelectionWindow { project ->
+                        applicationState.openProject(project)
+                    }
                 }
-            }
-            is WindowState.ProjectWindow -> {
-                ProjectEditorWindow(applicationState, windowState.projectDef)
+
+                is WindowState.ProjectWindow -> {
+                    ProjectEditorWindow(applicationState, windowState.projectDef)
+                }
             }
         }
     }

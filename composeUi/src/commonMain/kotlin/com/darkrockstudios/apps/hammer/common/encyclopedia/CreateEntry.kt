@@ -1,12 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.DropDown
+import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -33,7 +38,14 @@ internal fun CreateEntry(
 	var showFilePicker by remember { mutableStateOf(false) }
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
-	Column(modifier = modifier.padding(Ui.PADDING).widthIn(128.dp, 420.dp)) {
+	var offset by remember { mutableStateOf(0f) }
+
+	Column(
+		modifier = modifier.padding(Ui.PADDING)
+			.widthIn(128.dp, 420.dp)
+			.fillMaxHeight()
+			.verticalScroll(rememberScrollState())
+	) {
 
 		Text(
 			"Create New Entry",
@@ -110,6 +122,21 @@ internal fun CreateEntry(
 				onClick = { close() }
 			) {
 				Text("Cancel")
+			}
+		}
+
+		if (imagePath != null) {
+			Row {
+				ImageItem(
+					modifier = Modifier.size(128.dp).background(Color.LightGray),
+					path = imagePath
+				)
+				Button(
+					modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.PADDING)),
+					onClick = { imagePath = null }
+				) {
+					Text("Remove Image")
+				}
 			}
 		}
 	}
