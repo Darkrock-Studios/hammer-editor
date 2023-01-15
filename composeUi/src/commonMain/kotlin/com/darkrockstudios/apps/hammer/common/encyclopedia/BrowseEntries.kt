@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxWithConstraintsScope.BrowseEntries(
 	component: Encyclopedia,
@@ -35,6 +37,8 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 			state.filterType
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
+
+	if (state.showCreate) return
 
 	Column {
 		Text("Encyclopedia")
@@ -83,7 +87,8 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 						entryDef = filteredEntries[index],
 						component = component,
 						snackbarHostState = snackbarHostState,
-						scope = scope
+						scope = scope,
+						modifier = Modifier.animateItemPlacement()
 					)
 				}
 			}

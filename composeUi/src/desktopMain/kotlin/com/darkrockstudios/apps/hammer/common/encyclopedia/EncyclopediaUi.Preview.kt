@@ -127,4 +127,5 @@ private fun fakeComponent(): Encyclopedia = object : Encyclopedia {
 
 	override fun getFilteredEntries() = state.value.entryDefs
 	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
+	override fun showCreate(show: Boolean) {}
 }

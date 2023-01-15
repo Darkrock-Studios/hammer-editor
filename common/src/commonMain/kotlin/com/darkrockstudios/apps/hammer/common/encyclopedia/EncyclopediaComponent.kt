@@ -88,4 +88,12 @@ class EncyclopediaComponent(
 
 		return result
 	}
+
+	override fun showCreate(show: Boolean) {
+		_state.reduce { state ->
+			state.copy(
+				showCreate = show
+			)
+		}
+	}
 }

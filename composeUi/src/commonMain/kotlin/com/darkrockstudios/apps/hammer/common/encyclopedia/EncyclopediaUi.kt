@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -15,26 +17,22 @@ fun EncyclopediaUi(component: Encyclopedia) {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	var showCreate by remember { mutableStateOf(false) }
-
 	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
-		if (showCreate) {
-			CreateEntry(
-				component = component,
-				scope = scope,
-				modifier = Modifier.align(Alignment.TopCenter),
-				snackbarHostState = snackbarHostState
-			) {
-				showCreate = false
-			}
-		} else {
-			BrowseEntries(
-				component = component,
-				scope = scope,
-				snackbarHostState = snackbarHostState
-			) {
-				showCreate = true
-			}
+		CreateEntry(
+			component = component,
+			scope = scope,
+			modifier = Modifier.align(Alignment.TopCenter),
+			snackbarHostState = snackbarHostState
+		) {
+			component.showCreate(false)
+		}
+
+		BrowseEntries(
+			component = component,
+			scope = scope,
+			snackbarHostState = snackbarHostState
+		) {
+			component.showCreate(true)
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomEnd))

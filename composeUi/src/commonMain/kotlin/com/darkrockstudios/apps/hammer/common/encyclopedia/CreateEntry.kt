@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.DropDown
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -29,6 +30,8 @@ internal fun CreateEntry(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
+	val state by component.state.subscribeAsState()
+
 	var newEntryNameText by remember { mutableStateOf("") }
 	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
 	var newTagsText by remember { mutableStateOf("") }
@@ -38,7 +41,7 @@ internal fun CreateEntry(
 	var showFilePicker by remember { mutableStateOf(false) }
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
-	var offset by remember { mutableStateOf(0f) }
+	if (!state.showCreate) return
 
 	Column(
 		modifier = modifier.padding(Ui.PADDING)

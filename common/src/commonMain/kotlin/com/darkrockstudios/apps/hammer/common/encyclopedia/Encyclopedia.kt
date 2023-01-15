@@ -24,10 +24,13 @@ interface Encyclopedia : HammerComponent {
 
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 
+	fun showCreate(show: Boolean)
+
 	data class State(
 		val projectDef: ProjectDef,
 		val entryDefs: List<EntryDef>,
 		val filterText: String? = null,
-		val filterType: EntryType? = null
+		val filterType: EntryType? = null,
+		val showCreate: Boolean = false
 	)
 }
