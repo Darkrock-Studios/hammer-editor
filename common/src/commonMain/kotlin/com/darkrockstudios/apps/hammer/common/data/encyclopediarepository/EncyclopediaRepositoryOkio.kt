@@ -15,6 +15,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import okio.FileSystem
 import okio.Path
+import okio.Path.Companion.toPath
 
 class EncyclopediaRepositoryOkio(
 	projectDef: ProjectDef,
@@ -43,6 +44,18 @@ class EncyclopediaRepositoryOkio(
 		val filename = getEntryFilename(entryDef)
 		val path = dir / filename
 		return path.toHPath()
+	}
+
+	override fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath {
+		val dir = getTypeDirectory(entryDef.type).toOkioPath()
+		val filename = getEntryImageFilename(entryDef, fileExension)
+		val path = dir / filename
+		return path.toHPath()
+	}
+
+	override fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean {
+		val path = getEntryImagePath(entryDef, fileExension).toOkioPath()
+		return fileSystem.exists(path)
 	}
 
 	override fun loadEntries() {
@@ -78,7 +91,8 @@ class EncyclopediaRepositoryOkio(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>
+		tags: List<String>,
+		imagePath: String?
 	): EntryResult {
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
@@ -102,7 +116,26 @@ class EncyclopediaRepositoryOkio(
 			writeUtf8(entryToml)
 		}
 
+		if (imagePath != null) {
+			setEntryImage(entry.toDef(projectDef), imagePath)
+		}
+
 		return EntryResult(container, EntryError.NONE)
+	}
+
+	override fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+		val targetPath = getEntryImagePath(entryDef, "jpg").toOkioPath()
+		if (imagePath != null) {
+			fileSystem.read(imagePath.toPath()) {
+				val pixelData = readByteArray()
+
+				fileSystem.write(targetPath) {
+					write(pixelData)
+				}
+			}
+		} else {
+			fileSystem.delete(targetPath)
+		}
 	}
 
 	companion object {

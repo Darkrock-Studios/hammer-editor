@@ -80,8 +80,14 @@ class EncyclopediaComponent(
 		}
 	}
 
-	override fun createEntry(name: String, type: EntryType, text: String, tags: List<String>): EntryResult {
-		val result = encyclopediaRepository.createEntry(name, type, text, tags)
+	override fun createEntry(
+		name: String,
+		type: EntryType,
+		text: String,
+		tags: List<String>,
+		imagePath: String?
+	): EntryResult {
+		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)
 		if (result.error == EntryError.NONE) {
 			encyclopediaRepository.loadEntries()
 		}
@@ -94,6 +100,14 @@ class EncyclopediaComponent(
 			state.copy(
 				showCreate = show
 			)
+		}
+	}
+
+	override fun getImagePath(entryDef: EntryDef): String? {
+		return if (encyclopediaRepository.hasEntryImage(entryDef, "jpg")) {
+			encyclopediaRepository.getEntryImagePath(entryDef, "jpg").path
+		} else {
+			null
 		}
 	}
 }

@@ -17,7 +17,8 @@ interface Encyclopedia : HammerComponent {
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>
+		tags: List<String>,
+		imagePath: String?
 	): EntryResult
 
 	fun getFilteredEntries(): List<EntryDef>
@@ -25,6 +26,8 @@ interface Encyclopedia : HammerComponent {
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 
 	fun showCreate(show: Boolean)
+
+	fun getImagePath(entryDef: EntryDef): String?
 
 	data class State(
 		val projectDef: ProjectDef,

@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -24,8 +24,7 @@ fun ImageItem(
 	contentScale: ContentScale = ContentScale.Fit,
 	contentDescription: String? = null
 ) {
-	Box(modifier.aspectRatio(1f), Alignment.Center) {
-
+	Box(modifier, Alignment.Center) {
 		val request = if (path != null) {
 			val uri = Uri.parse(path)
 			ImageRequestBuilder()
@@ -38,6 +37,7 @@ fun ImageItem(
 		}
 
 		ImageItem(
+			modifier = Modifier.fillMaxWidth(),
 			request = request,
 			contentScale = contentScale,
 			contentDescription = contentDescription
@@ -52,7 +52,7 @@ fun ImageItem(
 	contentScale: ContentScale = ContentScale.Fit,
 	contentDescription: String? = null
 ) {
-	Box(modifier.aspectRatio(1f), Alignment.Center) {
+	Box(modifier, Alignment.Center) {
 		val painter = rememberAsyncImagePainter(request)
 		Image(
 			painter = painter,

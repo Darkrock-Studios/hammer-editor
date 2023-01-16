@@ -105,7 +105,8 @@ internal fun CreateEntry(
 						name = newEntryNameText,
 						type = selectedType,
 						text = newEntryContentText.text,
-						tags = newTagsText.splitToSequence(" ").toList()
+						tags = newTagsText.splitToSequence(" ").toList(),
+						imagePath = imagePath
 					)
 					when (result.error) {
 						EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }

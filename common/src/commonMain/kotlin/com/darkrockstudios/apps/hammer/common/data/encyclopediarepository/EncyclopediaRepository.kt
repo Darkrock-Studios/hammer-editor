@@ -36,6 +36,8 @@ abstract class EncyclopediaRepository(
 	abstract fun getEncyclopediaDirectory(): HPath
 	abstract fun getEntryPath(entryContent: EntryContent): HPath
 	abstract fun getEntryPath(entryDef: EntryDef): HPath
+	abstract fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath
+	abstract fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean
 
 	abstract fun loadEntries()
 	abstract fun getEntryDef(entryPath: HPath): EntryDef
@@ -46,8 +48,11 @@ abstract class EncyclopediaRepository(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>
+		tags: List<String>,
+		imagePath: String?
 	): EntryResult
+
+	abstract fun setEntryImage(entryDef: EntryDef, imagePath: String?)
 
 	fun validateEntry(
 		name: String,
@@ -78,6 +83,13 @@ abstract class EncyclopediaRepository(
 				name = entryDef.name
 			)
 
+		fun getEntryImageFilename(entryDef: EntryDef, fileExtension: String): String =
+			getEntryImageFilename(
+				id = entryDef.id,
+				type = entryDef.type,
+				fileExtension = fileExtension
+			)
+
 		fun getEntryFilename(entry: EntryContent): String =
 			getEntryFilename(
 				id = entry.id,
@@ -87,6 +99,10 @@ abstract class EncyclopediaRepository(
 
 		private fun getEntryFilename(id: Int, type: EntryType, name: String): String {
 			return "${type.text}-$id-$name.toml"
+		}
+
+		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
+			return "${type.text}-$id-image.$fileExtension"
 		}
 
 		fun getEntryIdFromFilename(fileName: String): Int {
