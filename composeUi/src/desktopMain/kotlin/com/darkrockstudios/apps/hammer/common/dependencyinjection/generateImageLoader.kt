@@ -11,7 +11,6 @@ import com.seiko.imageloader.cache.memory.MemoryCacheBuilder
 import com.seiko.imageloader.component.decoder.SkiaImageDecoder
 import com.seiko.imageloader.component.mapper.Mapper
 import com.seiko.imageloader.request.Options
-import io.github.aakira.napier.Napier
 import okio.Path.Companion.toPath
 import java.io.File
 
@@ -42,12 +41,7 @@ private class WindowsFileUriMapper : Mapper<File> {
 	override fun map(data: Any, options: Options): File? {
 		if (data !is Uri) return null
 		if (!isApplicable(data)) return null
-
-		return File(data.toString()).also {
-			Napier.v(
-				tag = "WindowsFileUriMapper",
-			) { "mapper to File" }
-		}
+		return File(data.toString())
 	}
 
 	private val pattern = Regex("""^[a-zA-Z]$""")

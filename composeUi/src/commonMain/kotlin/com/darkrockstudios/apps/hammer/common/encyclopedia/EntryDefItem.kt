@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,11 +22,10 @@ import kotlinx.coroutines.withContext
 internal fun EntryDefItem(
 	entryDef: EntryDef,
 	component: Encyclopedia,
-	snackbarHostState: SnackbarHostState,
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
 ) {
-	var loadContentJob = remember<Job?> { null }
+	var loadContentJob by remember { mutableStateOf<Job?>(null) }
 	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
 	var entryImagePath by remember { mutableStateOf<String?>(null) }
 

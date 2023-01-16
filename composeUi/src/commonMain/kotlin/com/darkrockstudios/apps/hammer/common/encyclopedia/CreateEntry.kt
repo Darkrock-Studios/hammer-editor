@@ -110,6 +110,7 @@ internal fun CreateEntry(
 					)
 					when (result.error) {
 						EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long") }
+						EntryError.NAME_INVALID_CHARACTERS -> scope.launch { snackbarHostState.showSnackbar("Entry Name must be alpha-numeric") }
 						EntryError.NONE -> {
 							newEntryNameText = ""
 							close()

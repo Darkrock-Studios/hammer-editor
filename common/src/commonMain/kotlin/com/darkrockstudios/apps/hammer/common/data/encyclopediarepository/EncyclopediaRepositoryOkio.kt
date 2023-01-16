@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -15,13 +16,13 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import okio.FileSystem
 import okio.Path
-import okio.Path.Companion.toPath
 
 class EncyclopediaRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	private val toml: Toml,
-	private val fileSystem: FileSystem
+	private val fileSystem: FileSystem,
+	private val externalFileIo: ExternalFileIo
 ) : EncyclopediaRepository(projectDef, idRepository) {
 
 	override fun getTypeDirectory(type: EntryType): HPath {
@@ -126,12 +127,9 @@ class EncyclopediaRepositoryOkio(
 	override fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
 		val targetPath = getEntryImagePath(entryDef, "jpg").toOkioPath()
 		if (imagePath != null) {
-			fileSystem.read(imagePath.toPath()) {
-				val pixelData = readByteArray()
-
-				fileSystem.write(targetPath) {
-					write(pixelData)
-				}
+			val pixelData = externalFileIo.readExternalFile(imagePath)
+			fileSystem.write(targetPath) {
+				write(pixelData)
 			}
 		} else {
 			fileSystem.delete(targetPath)

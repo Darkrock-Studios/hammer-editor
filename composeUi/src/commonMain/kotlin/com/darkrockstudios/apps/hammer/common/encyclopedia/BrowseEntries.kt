@@ -86,7 +86,6 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 					EntryDefItem(
 						entryDef = filteredEntries[index],
 						component = component,
-						snackbarHostState = snackbarHostState,
 						scope = scope,
 						modifier = Modifier.animateItemPlacement()
 					)

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import okio.FileSystem
@@ -22,6 +23,8 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val mainModule = module {
+	includes(externalFileIoModule)
+
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class

@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -24,25 +23,23 @@ fun ImageItem(
 	contentScale: ContentScale = ContentScale.Fit,
 	contentDescription: String? = null
 ) {
-	Box(modifier, Alignment.Center) {
-		val request = if (path != null) {
-			val uri = Uri.parse(path)
-			ImageRequestBuilder()
-				.data(uri)
-				.build()
-		} else {
-			ImageRequestBuilder()
-				.data(null)
-				.build()
-		}
-
-		ImageItem(
-			modifier = Modifier.fillMaxWidth(),
-			request = request,
-			contentScale = contentScale,
-			contentDescription = contentDescription
-		)
+	val request = if (path != null) {
+		val uri = Uri.parse(path)
+		ImageRequestBuilder()
+			.data(uri)
+			.build()
+	} else {
+		ImageRequestBuilder()
+			.data(null)
+			.build()
 	}
+
+	ImageItem(
+		modifier = modifier,
+		request = request,
+		contentScale = contentScale,
+		contentDescription = contentDescription
+	)
 }
 
 @Composable
@@ -54,12 +51,6 @@ fun ImageItem(
 ) {
 	Box(modifier, Alignment.Center) {
 		val painter = rememberAsyncImagePainter(request)
-		Image(
-			painter = painter,
-			contentDescription = contentDescription,
-			contentScale = contentScale,
-			modifier = Modifier.fillMaxSize(),
-		)
 		when (val requestState = painter.requestState) {
 			ImageRequestState.Loading -> {
 				CircularProgressIndicator()
@@ -69,7 +60,14 @@ fun ImageItem(
 				Text(requestState.error.message ?: "Image Error")
 			}
 
-			ImageRequestState.Success -> Unit
+			ImageRequestState.Success -> {
+				Image(
+					painter = painter,
+					contentDescription = contentDescription,
+					contentScale = contentScale,
+					modifier = Modifier.fillMaxSize(),
+				)
+			}
 		}
 	}
 }

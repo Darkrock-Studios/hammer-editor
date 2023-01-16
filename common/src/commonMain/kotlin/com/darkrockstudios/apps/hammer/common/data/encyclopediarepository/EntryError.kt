@@ -6,7 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 
 enum class EntryError : BaseError {
 	NONE,
-	NAME_TOO_LONG
+	NAME_TOO_LONG,
+	NAME_INVALID_CHARACTERS,
 }
 
 typealias EntryResult = CreateResult<EntryContainer, EntryError>
