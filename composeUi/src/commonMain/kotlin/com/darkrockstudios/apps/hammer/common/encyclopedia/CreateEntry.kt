@@ -41,7 +41,7 @@ internal fun CreateEntry(
 	var showFilePicker by remember { mutableStateOf(false) }
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
-	if (!state.showCreate) return
+	if (!state.showCreate || state.viewEntry != null) return
 
 	Column(
 		modifier = modifier.padding(Ui.PADDING)

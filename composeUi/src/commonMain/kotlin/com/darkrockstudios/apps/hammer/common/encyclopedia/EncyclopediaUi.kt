@@ -35,6 +35,12 @@ fun EncyclopediaUi(component: Encyclopedia) {
 			component.showCreate(true)
 		}
 
+		ViewEntry(
+			modifier = Modifier.align(Alignment.TopCenter),
+			component = component,
+			scope = scope,
+		)
+
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomEnd))
 	}
 }

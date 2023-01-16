@@ -35,10 +35,9 @@ private fun EntryDefItemPreview() {
 	)
 	val component: Encyclopedia = fakeComponent()
 
-	EntryDefItem(
+	EncyclopediaEntryItem(
 		entryDef = entry,
 		component = component,
-		snackbarHostState = snackbarHostState,
 		scope = scope,
 	)
 }
@@ -135,4 +134,5 @@ private fun fakeComponent(): Encyclopedia = object : Encyclopedia {
 	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 	override fun showCreate(show: Boolean) {}
 	override fun getImagePath(entryDef: EntryDef) = null
+	override fun viewEntry(entryDef: EntryDef?) {}
 }

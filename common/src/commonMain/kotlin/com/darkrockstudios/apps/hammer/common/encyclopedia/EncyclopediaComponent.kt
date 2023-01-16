@@ -110,4 +110,12 @@ class EncyclopediaComponent(
 			null
 		}
 	}
+
+	override fun viewEntry(entryDef: EntryDef?) {
+		_state.reduce { state ->
+			state.copy(
+				viewEntry = entryDef
+			)
+		}
+	}
 }

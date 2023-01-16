@@ -29,11 +29,14 @@ interface Encyclopedia : HammerComponent {
 
 	fun getImagePath(entryDef: EntryDef): String?
 
+	fun viewEntry(entryDef: EntryDef?)
+
 	data class State(
 		val projectDef: ProjectDef,
 		val entryDefs: List<EntryDef>,
 		val filterText: String? = null,
 		val filterType: EntryType? = null,
-		val showCreate: Boolean = false
+		val showCreate: Boolean = false,
+		val viewEntry: EntryDef? = null
 	)
 }

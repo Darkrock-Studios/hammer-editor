@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun EntryDefItem(
+internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
 	component: Encyclopedia,
 	scope: CoroutineScope,
@@ -45,7 +46,8 @@ internal fun EntryDefItem(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(Ui.PADDING),
+			.padding(Ui.PADDING)
+			.clickable { component.viewEntry(entryDef) },
 		elevation = Ui.ELEVATION
 	) {
 		Column {

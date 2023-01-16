@@ -38,7 +38,7 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
 
-	if (state.showCreate) return
+	if (state.showCreate || state.viewEntry != null) return
 
 	Column {
 		Text("Encyclopedia")
@@ -83,7 +83,7 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 				}
 			} else {
 				items(filteredEntries.size) { index ->
-					EntryDefItem(
+					EncyclopediaEntryItem(
 						entryDef = filteredEntries[index],
 						component = component,
 						scope = scope,
