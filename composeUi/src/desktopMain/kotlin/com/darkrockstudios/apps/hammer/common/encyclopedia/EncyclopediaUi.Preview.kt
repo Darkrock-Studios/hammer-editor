@@ -134,14 +134,17 @@ private fun ViewEntryPreview() {
 
 		override fun getImagePath(entryDef: EntryDef) = null
 		override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
+		override suspend fun deleteEntry(entryDef: EntryDef) = true
 	}
 	val scope = rememberCoroutineScope()
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
 		ViewEntryUi(
 			component = component,
 			scope = scope,
-			closeEntry = {}
+			closeEntry = {},
+			snackbarHostState = snackbarHostState
 		)
 	}
 }

@@ -45,6 +45,7 @@ fun EncyclopediaUi(component: Encyclopedia) {
 						modifier = Modifier.align(Alignment.TopCenter),
 						component = child.component,
 						scope = scope,
+						snackbarHostState = snackbarHostState,
 						closeEntry = component::showBrowse
 					)
 				}

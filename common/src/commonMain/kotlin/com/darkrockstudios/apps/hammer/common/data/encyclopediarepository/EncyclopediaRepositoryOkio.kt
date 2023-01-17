@@ -136,6 +136,12 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
+	override fun deleteEntry(entryDef: EntryDef): Boolean {
+		val path = getEntryPath(entryDef).toOkioPath()
+		fileSystem.delete(path)
+		return true
+	}
+
 	companion object {
 		fun getTypeDirectory(
 			projectDef: ProjectDef,

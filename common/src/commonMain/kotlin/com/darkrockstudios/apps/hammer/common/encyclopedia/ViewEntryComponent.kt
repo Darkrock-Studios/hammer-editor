@@ -31,4 +31,9 @@ class ViewEntryComponent(
 		val container = encyclopediaRepository.loadEntry(entryDef)
 		return container.entry
 	}
+
+	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
+		encyclopediaRepository.deleteEntry(entryDef)
+		return true
+	}
 }

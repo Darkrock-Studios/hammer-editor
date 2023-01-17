@@ -14,4 +14,5 @@ interface ViewEntry {
 
 	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
+	suspend fun deleteEntry(entryDef: EntryDef): Boolean
 }

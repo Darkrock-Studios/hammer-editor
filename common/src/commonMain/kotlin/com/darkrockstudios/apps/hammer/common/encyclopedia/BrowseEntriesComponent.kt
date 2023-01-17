@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -44,7 +45,9 @@ class BrowseEntriesComponent(
 			}
 		}
 
-		encyclopediaRepository.loadEntries()
+		lifecycle.doOnResume {
+			encyclopediaRepository.loadEntries()
+		}
 	}
 
 	override fun updateFilter(text: String?, type: EntryType?) {

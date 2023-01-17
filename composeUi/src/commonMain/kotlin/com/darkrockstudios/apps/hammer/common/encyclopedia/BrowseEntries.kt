@@ -29,7 +29,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	val state by component.state.subscribeAsState()
 	val types = remember { EntryType.values().toList() }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
-	var searchText by remember { mutableStateOf("") }
+	var searchText by remember { mutableStateOf(state.filterText ?: "") }
 
 	val filteredEntries by remember(
 		Triple(

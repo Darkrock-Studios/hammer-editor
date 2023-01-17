@@ -73,6 +73,8 @@ abstract class EncyclopediaRepository(
 		scope.cancel("Closing EncyclopediaRepository")
 	}
 
+	abstract fun deleteEntry(entryDef: EntryDef): Boolean
+
 	companion object {
 		val ENTRY_NAME_PATTERN = Regex("""([\da-zA-Z ]+)""")
 		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\da-zA-Z ]+)\.toml""")
