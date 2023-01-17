@@ -46,7 +46,7 @@ internal fun ViewEntryUi(
 	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 		val content = state.content
 		if (content != null) {
-			Column(modifier = modifier.fillMaxHeight().align(Alignment.Center)) {
+			Column(modifier = modifier.fillMaxHeight().widthIn(128.dp, 420.dp).align(Alignment.TopStart)) {
 				Row(horizontalArrangement = Arrangement.End) {
 					Button(
 						onClick = {
@@ -145,6 +145,20 @@ internal fun ViewEntryUi(
 						}
 					}) {
 						Text("Save")
+					}
+
+					Button(onClick = {
+						scope.launch {
+							entryNameText = content.name
+							entryText = content.text
+
+							withContext(mainDispatcher) {
+								editName = false
+								editText = false
+							}
+						}
+					}) {
+						Text("Cancel")
 					}
 				}
 			}

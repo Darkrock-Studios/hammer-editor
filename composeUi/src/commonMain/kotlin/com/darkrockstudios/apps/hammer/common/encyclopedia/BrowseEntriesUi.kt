@@ -40,7 +40,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
 
-	Column {
+	Column(modifier = Modifier.padding(Ui.PADDING)) {
 		Text("Encyclopedia")
 		Spacer(modifier = Modifier.size(Ui.PADDING))
 

@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -15,7 +14,6 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 @Composable
 fun EncyclopediaUi(component: Encyclopedia) {
@@ -24,7 +22,7 @@ fun EncyclopediaUi(component: Encyclopedia) {
 
 	val state by component.state.subscribeAsState()
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
+	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 		Children(
 			stack = state,
 			modifier = Modifier,
