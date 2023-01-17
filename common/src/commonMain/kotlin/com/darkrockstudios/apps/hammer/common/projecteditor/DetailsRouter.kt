@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -11,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
-import io.github.aakira.napier.Napier
 
 internal class DetailsRouter(
 		componentContext: ComponentContext,

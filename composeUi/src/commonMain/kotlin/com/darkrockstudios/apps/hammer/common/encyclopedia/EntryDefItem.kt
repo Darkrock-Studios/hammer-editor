@@ -22,7 +22,8 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
-	component: Encyclopedia,
+	component: BrowseEntries,
+	viewEntry: (EntryDef) -> Unit,
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
 ) {
@@ -47,7 +48,7 @@ internal fun EncyclopediaEntryItem(
 		modifier = modifier
 			.fillMaxWidth()
 			.padding(Ui.PADDING)
-			.clickable { component.viewEntry(entryDef) },
+			.clickable { viewEntry(entryDef) },
 		elevation = Ui.ELEVATION
 	) {
 		Column {

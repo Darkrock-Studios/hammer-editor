@@ -1,42 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface Encyclopedia : HammerComponent {
-	val state: Value<State>
+	val state: Value<ChildStack<EncyclopediaComponent.Config, Destination>>
 
-	fun updateFilter(text: String?, type: EntryType?)
+	sealed class Destination {
+		data class BrowseEntriesDestination(val component: BrowseEntries) : Destination()
 
-	fun createEntry(
-		name: String,
-		type: EntryType,
-		text: String,
-		tags: List<String>,
-		imagePath: String?
-	): EntryResult
+		data class ViewEntryDestination(val component: ViewEntry) : Destination()
 
-	fun getFilteredEntries(): List<EntryDef>
+		data class CreateEntryDestination(val component: CreateEntry) : Destination()
+	}
 
-	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
-
-	fun showCreate(show: Boolean)
-
-	fun getImagePath(entryDef: EntryDef): String?
-
-	fun viewEntry(entryDef: EntryDef?)
-
-	data class State(
-		val projectDef: ProjectDef,
-		val entryDefs: List<EntryDef>,
-		val filterText: String? = null,
-		val filterType: EntryType? = null,
-		val showCreate: Boolean = false,
-		val viewEntry: EntryDef? = null
-	)
+	fun showBrowse()
+	fun showViewEntry(entryDef: EntryDef)
+	fun showCreateEntry()
 }

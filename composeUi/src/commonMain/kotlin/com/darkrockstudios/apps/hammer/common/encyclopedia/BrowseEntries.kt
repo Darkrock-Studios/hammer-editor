@@ -14,16 +14,17 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.DropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun BoxWithConstraintsScope.BrowseEntries(
-	component: Encyclopedia,
+internal fun BoxWithConstraintsScope.BrowseEntriesUi(
+	component: BrowseEntries,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
-	showCreate: () -> Unit
+	showCreate: () -> Unit,
+	viewEntry: (EntryDef) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
 	val types = remember { EntryType.values().toList() }
@@ -37,8 +38,6 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 			state.filterType
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
-
-	if (state.showCreate || state.viewEntry != null) return
 
 	Column {
 		Text("Encyclopedia")
@@ -86,6 +85,7 @@ internal fun BoxWithConstraintsScope.BrowseEntries(
 					EncyclopediaEntryItem(
 						entryDef = filteredEntries[index],
 						component = component,
+						viewEntry = viewEntry,
 						scope = scope,
 						modifier = Modifier.animateItemPlacement()
 					)

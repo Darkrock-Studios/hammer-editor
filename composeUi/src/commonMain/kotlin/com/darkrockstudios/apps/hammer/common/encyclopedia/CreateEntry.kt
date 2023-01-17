@@ -23,8 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun CreateEntry(
-	component: Encyclopedia,
+internal fun CreateEntryUi(
+	component: CreateEntry,
 	scope: CoroutineScope,
 	snackbarHostState: SnackbarHostState,
 	modifier: Modifier,
@@ -40,8 +40,6 @@ internal fun CreateEntry(
 
 	var showFilePicker by remember { mutableStateOf(false) }
 	var imagePath by remember { mutableStateOf<String?>(null) }
-
-	if (!state.showCreate || state.viewEntry != null) return
 
 	Column(
 		modifier = modifier.padding(Ui.PADDING)

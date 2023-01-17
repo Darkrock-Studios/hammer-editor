@@ -1,121 +1,104 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.parcelable.Parcelable
+import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
-import com.darkrockstudios.apps.hammer.common.projectInject
-import io.github.reactivecircus.cache4k.Cache
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class EncyclopediaComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
-	private val _state = MutableValue(Encyclopedia.State(projectDef = projectDef, entryDefs = emptyList()))
-	override val state: Value<Encyclopedia.State> = _state
+	private val navigation = StackNavigation<Config>()
 
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val _stack = componentContext.childStack(
+		source = navigation,
+		initialConfiguration = Config.BrowseEntriesConfig(projectDef = projectDef),
+		key = "ProjectRootRouter",
+		childFactory = ::createChild
+	)
 
-	private val entryContentCache = Cache.Builder()
-		.maximumCacheSize(20)
-		.build<Int, EntryContainer>()
+	override val state: Value<ChildStack<Config, Encyclopedia.Destination>>
+		get() = _stack
 
-	init {
-		scope.launch {
-			encyclopediaRepository.entryListFlow.collect { entryDefs ->
-				withContext(mainDispatcher) {
-					_state.reduce { state ->
-						state.copy(
-							entryDefs = entryDefs
-						)
-					}
+	private fun createChild(
+		config: Config,
+		componentContext: ComponentContext
+	): Encyclopedia.Destination =
+		when (config) {
+			is Config.BrowseEntriesConfig -> Encyclopedia.Destination.BrowseEntriesDestination(
+				createBrowseEntries(config, componentContext)
+			)
+
+			is Config.ViewEntryConfig -> Encyclopedia.Destination.ViewEntryDestination(
+				createViewEntry(config, componentContext)
+			)
+
+			is Config.CreateEntryConfig -> Encyclopedia.Destination.CreateEntryDestination(
+				createCreateEntry(config, componentContext)
+			)
+		}
+
+	override fun showBrowse() {
+		navigation.navigate(
+			transformer = { stack ->
+				val newStack = stack.dropLastWhile { it !is Config.BrowseEntriesConfig }
+				return@navigate newStack.ifEmpty {
+					listOf(Config.BrowseEntriesConfig(projectDef))
 				}
-			}
-		}
-
-		encyclopediaRepository.loadEntries()
+			},
+			onComplete = { _, _ -> }
+		)
 	}
 
-	override fun updateFilter(text: String?, type: EntryType?) {
-		_state.reduce { state ->
-			state.copy(
-				filterText = text,
-				filterType = type
-			)
-		}
+	override fun showViewEntry(entryDef: EntryDef) {
+		navigation.push(Config.ViewEntryConfig(entryDef))
 	}
 
-	override fun getFilteredEntries(): List<EntryDef> {
-		val type = state.value.filterType
-		val text = state.value.filterText
-
-		return state.value.entryDefs.filter { entry ->
-			val typeOk = type == null || entry.type == type
-			val textOk = text.isNullOrEmpty() || entry.name.contains(text.trim(), ignoreCase = true)
-			typeOk && textOk
-		}
+	override fun showCreateEntry() {
+		navigation.push(Config.CreateEntryConfig(projectDef))
 	}
 
-	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
-		val cachedEntry = entryContentCache.get(entryDef.id)
-		return if (cachedEntry != null) {
-			cachedEntry.entry
-		} else {
-			val container = encyclopediaRepository.loadEntry(entryDef)
-			entryContentCache.put(entryDef.id, container)
-			container.entry
-		}
+	private fun createBrowseEntries(
+		config: Config.BrowseEntriesConfig,
+		componentContext: ComponentContext
+	): BrowseEntries {
+		return BrowseEntriesComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef
+		)
 	}
 
-	override fun createEntry(
-		name: String,
-		type: EntryType,
-		text: String,
-		tags: List<String>,
-		imagePath: String?
-	): EntryResult {
-		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)
-		if (result.error == EntryError.NONE) {
-			encyclopediaRepository.loadEntries()
-		}
-
-		return result
+	private fun createViewEntry(config: Config.ViewEntryConfig, componentContext: ComponentContext): ViewEntry {
+		return ViewEntryComponent(
+			componentContext = componentContext,
+			entryDef = config.entryDef
+		)
 	}
 
-	override fun showCreate(show: Boolean) {
-		_state.reduce { state ->
-			state.copy(
-				showCreate = show
-			)
-		}
+	private fun createCreateEntry(config: Config.CreateEntryConfig, componentContext: ComponentContext): CreateEntry {
+		return CreateEntryComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef
+		)
 	}
 
-	override fun getImagePath(entryDef: EntryDef): String? {
-		return if (encyclopediaRepository.hasEntryImage(entryDef, "jpg")) {
-			encyclopediaRepository.getEntryImagePath(entryDef, "jpg").path
-		} else {
-			null
-		}
-	}
+	sealed class Config : Parcelable {
+		@Parcelize
+		data class BrowseEntriesConfig(val projectDef: ProjectDef) : Config()
 
-	override fun viewEntry(entryDef: EntryDef?) {
-		_state.reduce { state ->
-			state.copy(
-				viewEntry = entryDef
-			)
-		}
+		@Parcelize
+		data class ViewEntryConfig(val entryDef: EntryDef) : Config()
+
+		@Parcelize
+		data class CreateEntryConfig(val projectDef: ProjectDef) : Config()
 	}
 }
