@@ -36,6 +36,7 @@ abstract class EncyclopediaRepository(
 	abstract fun getEncyclopediaDirectory(): HPath
 	abstract fun getEntryPath(entryContent: EntryContent): HPath
 	abstract fun getEntryPath(entryDef: EntryDef): HPath
+	abstract fun getEntryPath(id: Int): HPath
 	abstract fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath
 	abstract fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean
 
@@ -74,6 +75,15 @@ abstract class EncyclopediaRepository(
 	}
 
 	abstract fun deleteEntry(entryDef: EntryDef): Boolean
+
+	abstract fun removeEntryImage(entryDef: EntryDef): Boolean
+
+	abstract fun updateEntry(
+		oldEntryDef: EntryDef,
+		name: String,
+		text: String,
+		tags: List<String>,
+	): EntryResult
 
 	companion object {
 		val ENTRY_NAME_PATTERN = Regex("""([\da-zA-Z ]+)""")

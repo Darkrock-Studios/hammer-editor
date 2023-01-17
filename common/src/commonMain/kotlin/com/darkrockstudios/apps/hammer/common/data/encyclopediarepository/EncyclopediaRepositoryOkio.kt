@@ -11,10 +11,12 @@ import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 class EncyclopediaRepositoryOkio(
@@ -45,6 +47,29 @@ class EncyclopediaRepositoryOkio(
 		val filename = getEntryFilename(entryDef)
 		val path = dir / filename
 		return path.toHPath()
+	}
+
+	override fun getEntryPath(id: Int): HPath {
+		var path: HPath? = null
+
+		val types = EntryType.values()
+		for (type in types) {
+			val typeDir = getTypeDirectory(type).toOkioPath()
+			val files = fileSystem.listRecursively(typeDir)
+			for (file in files) {
+				try {
+					val entryId = getEntryIdFromFilename(file.name)
+					if (id == entryId) {
+						path = file.toHPath()
+						break
+					}
+				} catch (_: IllegalStateException) {
+				}
+			}
+			if (path != null) break
+		}
+
+		return path ?: throw EntryNotFound(id)
 	}
 
 	override fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath {
@@ -139,7 +164,57 @@ class EncyclopediaRepositoryOkio(
 	override fun deleteEntry(entryDef: EntryDef): Boolean {
 		val path = getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
+
+		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
+		fileSystem.delete(imagePath)
+
 		return true
+	}
+
+	override fun removeEntryImage(entryDef: EntryDef): Boolean {
+		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
+
+		return try {
+			fileSystem.delete(imagePath)
+			true
+		} catch (e: IOException) {
+			Napier.w("Failed to delete Entry Image: $imagePath", e)
+			false
+		}
+	}
+
+	override fun updateEntry(
+		oldEntryDef: EntryDef,
+		name: String,
+		text: String,
+		tags: List<String>,
+	): EntryResult {
+
+		val result = validateEntry(name, oldEntryDef.type, text, tags)
+		if (result != EntryError.NONE) return EntryResult(result)
+
+		val cleanedTags = tags.map { it.trim() }
+
+		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
+		fileSystem.delete(oldPath)
+
+		val entry = EntryContent(
+			id = oldEntryDef.id,
+			name = name.trim(),
+			type = oldEntryDef.type,
+			text = text.trim(),
+			tags = cleanedTags
+		)
+		val container = EntryContainer(entry)
+		val entryToml = toml.encodeToString(container)
+
+		val path = getEntryPath(entry).toOkioPath()
+
+		fileSystem.write(path) {
+			writeUtf8(entryToml)
+		}
+
+		return EntryResult(container, EntryError.NONE)
 	}
 
 	companion object {
@@ -167,6 +242,8 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 }
+
+class EntryNotFound(val id: Int) : IllegalArgumentException("Failed to find Entry for ID: $id")
 
 fun Sequence<Path>.filterEntryPathsOkio() =
 	map { it.toHPath() }

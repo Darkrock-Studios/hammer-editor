@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.*
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.*
@@ -18,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	component: BrowseEntries,
@@ -87,7 +88,6 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,
-						modifier = Modifier.animateItemPlacement()
 					)
 				}
 			}

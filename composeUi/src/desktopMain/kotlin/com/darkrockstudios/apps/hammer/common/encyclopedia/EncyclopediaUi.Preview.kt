@@ -135,6 +135,11 @@ private fun ViewEntryPreview() {
 		override fun getImagePath(entryDef: EntryDef) = null
 		override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 		override suspend fun deleteEntry(entryDef: EntryDef) = true
+		override suspend fun updateEntry(name: String, type: EntryType, text: String, tags: List<String>) =
+			EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
+
+		override suspend fun removeEntryImage() = true
+		override suspend fun setImage(path: String) {}
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }

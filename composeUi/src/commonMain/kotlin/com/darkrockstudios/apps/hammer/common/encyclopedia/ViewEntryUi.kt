@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -10,11 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,28 +28,24 @@ internal fun ViewEntryUi(
 	closeEntry: () -> Unit
 ) {
 	val state by component.state.subscribeAsState()
-	var loadContentJob by remember { mutableStateOf<Job?>(null) }
-	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
-	var entryImagePath by remember { mutableStateOf<String?>(null) }
+	var showFilePicker by remember { mutableStateOf(false) }
 
-	LaunchedEffect(state.entryDef) {
-		entryImagePath = null
-		loadContentJob?.cancel()
+	var editName by remember { mutableStateOf(false) }
+	var entryNameText by remember { mutableStateOf(state.content?.name ?: "") }
 
-		loadContentJob = scope.launch {
-			entryImagePath = component.getImagePath(state.entryDef)
-			val content = component.loadEntryContent(state.entryDef)
-			withContext(mainDispatcher) {
-				entryContent = content
-				loadContentJob = null
-			}
+	var editText by remember { mutableStateOf(false) }
+	var entryText by remember { mutableStateOf(state.content?.text ?: "") }
+
+	LaunchedEffect(state.content) {
+		state.content?.let {
+			entryNameText = it.name
+			entryText = it.text
 		}
 	}
 
 	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-		val content = entryContent
+		val content = state.content
 		if (content != null) {
-
 			Column(modifier = modifier.fillMaxHeight().align(Alignment.Center)) {
 				Row(horizontalArrangement = Arrangement.End) {
 					Button(
@@ -73,18 +70,24 @@ internal fun ViewEntryUi(
 					}
 				}
 
-				if (entryImagePath != null) {
+				if (state.entryImagePath != null) {
 					BoxWithConstraints {
 						ImageItem(
-							path = entryImagePath,
+							path = state.entryImagePath,
 							modifier = Modifier.size(256.dp)
 						)
-						Button(onClick = { }, modifier.align(Alignment.TopEnd)) {
+						Button(onClick = {
+							scope.launch { component.removeEntryImage() }
+						}, modifier.align(Alignment.TopEnd)) {
 							Icon(
 								Icons.Rounded.Remove,
 								"Remove Image"
 							)
 						}
+					}
+				} else {
+					Button(onClick = { showFilePicker = true }) {
+						Text("Select Image")
 					}
 				}
 
@@ -94,11 +97,66 @@ internal fun ViewEntryUi(
 					}
 				}
 
-				Text(content.name)
-				Text(content.text)
+				if (editName) {
+					TextField(
+						modifier = Modifier.fillMaxWidth()
+							.padding(PaddingValues(top = Ui.PADDING, bottom = Ui.PADDING)),
+						value = entryNameText,
+						onValueChange = { entryNameText = it },
+						placeholder = { Text("Name") }
+					)
+				} else {
+					Text(
+						entryNameText,
+						modifier = Modifier.clickable { editName = true }
+					)
+				}
+
+				if (editText) {
+					OutlinedTextField(
+						value = entryText,
+						onValueChange = { entryText = it },
+						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
+						placeholder = { Text(text = "Describe your entry") },
+						maxLines = 10,
+					)
+				} else {
+					Text(
+						entryText,
+						modifier = Modifier.clickable { editText = true }
+					)
+				}
+
+				if (editName || editText) {
+					Button(onClick = {
+						val tags = state.content?.tags ?: return@Button
+
+						scope.launch {
+							component.updateEntry(
+								name = entryNameText,
+								text = entryText,
+								tags = tags
+							)
+
+							withContext(mainDispatcher) {
+								editName = false
+								editText = false
+							}
+						}
+					}) {
+						Text("Save")
+					}
+				}
 			}
 		} else {
 			CircularProgressIndicator()
 		}
+	}
+
+	FilePicker(show = showFilePicker, fileExtension = "jpg") { path ->
+		if (path != null) {
+			scope.launch { component.setImage(path) }
+		}
+		showFilePicker = false
 	}
 }
