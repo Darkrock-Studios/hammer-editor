@@ -28,7 +28,7 @@ internal class ProjectRootRouter(
     private val removeMenu: (id: String) -> Unit,
     private val updateShouldClose: () -> Unit,
     private val scope: CoroutineScope
-) {
+) : Router {
     private val navigation = StackNavigation<Config>()
 
     private val stack = componentContext.childStack(
@@ -90,7 +90,8 @@ internal class ProjectRootRouter(
     private fun encyclopedia(config: Config.EncyclopediaConfig, componentContext: ComponentContext): Encyclopedia {
         return EncyclopediaComponent(
             componentContext = componentContext,
-            projectDef = config.projectDef
+            projectDef = config.projectDef,
+            updateShouldClose = updateShouldClose
         )
     }
 
@@ -106,20 +107,9 @@ internal class ProjectRootRouter(
         navigation.bringToFront(Config.EncyclopediaConfig(projectDef = projectDef))
     }
 
-    fun isAtRoot(): Boolean {
-        return when (val destination = state.value.active.instance) {
-            is ProjectRoot.Destination.EditorDestination -> {
-                !destination.component.isDetailShown()
-            }
-
-            is ProjectRoot.Destination.NotesDestination -> {
-                true
-            }
-
-            is ProjectRoot.Destination.EncyclopediaDestination -> {
-                true
-            }
-        }
+    override fun isAtRoot(): Boolean {
+        val router = state.value.active.instance as? Router
+        return router?.isAtRoot() ?: true
     }
 
     init {

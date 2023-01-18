@@ -18,10 +18,14 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
     fun showEncyclopedia()
 
     sealed class Destination {
-        data class EditorDestination(val component: ProjectEditor) : Destination()
+        data class EditorDestination(val component: ProjectEditor) : Destination(), Router {
+            override fun isAtRoot() = component.isAtRoot()
+        }
 
         data class NotesDestination(val component: Notes) : Destination()
 
-        data class EncyclopediaDestination(val component: Encyclopedia) : Destination()
+        data class EncyclopediaDestination(val component: Encyclopedia) : Destination(), Router {
+            override fun isAtRoot() = component.isAtRoot()
+        }
     }
 }

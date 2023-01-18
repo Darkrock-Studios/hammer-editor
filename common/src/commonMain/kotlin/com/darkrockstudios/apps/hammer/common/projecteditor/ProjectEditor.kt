@@ -8,9 +8,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.common.projectroot.Router
 import kotlinx.coroutines.flow.SharedFlow
 
-interface ProjectEditor : AppCloseManager, HammerComponent {
+interface ProjectEditor : AppCloseManager, Router, HammerComponent {
     val listRouterState: Value<ChildStack<*, ChildDestination.List>>
     val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 

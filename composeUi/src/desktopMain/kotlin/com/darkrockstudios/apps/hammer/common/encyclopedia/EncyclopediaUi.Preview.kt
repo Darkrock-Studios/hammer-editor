@@ -71,7 +71,7 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 @Composable
 private fun EncyclopediaUiPreview() {
 	val component: Encyclopedia = object : Encyclopedia {
-		override val state: Value<ChildStack<EncyclopediaComponent.Config, Encyclopedia.Destination>>
+		override val stack: Value<ChildStack<EncyclopediaComponent.Config, Encyclopedia.Destination>>
 			get() = MutableValue(
 				ChildStack(
 					EncyclopediaComponent.Config.BrowseEntriesConfig(
@@ -86,6 +86,7 @@ private fun EncyclopediaUiPreview() {
 		override fun showBrowse() {}
 		override fun showViewEntry(entryDef: EntryDef) {}
 		override fun showCreateEntry() {}
+		override fun isAtRoot() = true
 	}
 	EncyclopediaUi(component)
 }

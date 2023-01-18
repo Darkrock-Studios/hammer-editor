@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.observe
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
@@ -11,7 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 
 class EncyclopediaComponent(
 	componentContext: ComponentContext,
-	projectDef: ProjectDef
+	projectDef: ProjectDef,
+	private val updateShouldClose: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Config>()
@@ -23,7 +26,7 @@ class EncyclopediaComponent(
 		childFactory = ::createChild
 	)
 
-	override val state: Value<ChildStack<Config, Encyclopedia.Destination>>
+	override val stack: Value<ChildStack<Config, Encyclopedia.Destination>>
 		get() = _stack
 
 	private fun createChild(
@@ -56,6 +59,10 @@ class EncyclopediaComponent(
 		navigation.push(Config.CreateEntryConfig(projectDef))
 	}
 
+	override fun isAtRoot(): Boolean {
+		return stack.value.active.configuration is Config.BrowseEntriesConfig
+	}
+
 	private fun createBrowseEntries(
 		config: Config.BrowseEntriesConfig,
 		componentContext: ComponentContext
@@ -78,6 +85,23 @@ class EncyclopediaComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef
 		)
+	}
+
+	private val backButtonHandler = object : BackCallback() {
+		override fun onBack() {
+			if (!isAtRoot()) {
+				navigation.pop()
+			}
+		}
+	}
+
+	init {
+		backHandler.register(backButtonHandler)
+
+		stack.observe(lifecycle) {
+			backButtonHandler.isEnabled = !isAtRoot()
+			updateShouldClose()
+		}
 	}
 
 	sealed class Config : Parcelable {

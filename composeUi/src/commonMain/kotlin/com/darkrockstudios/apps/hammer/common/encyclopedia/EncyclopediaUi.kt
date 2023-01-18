@@ -20,7 +20,7 @@ fun EncyclopediaUi(component: Encyclopedia) {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	val state by component.state.subscribeAsState()
+	val state by component.stack.subscribeAsState()
 
 	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 		Children(

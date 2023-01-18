@@ -124,6 +124,10 @@ class ProjectEditorComponent(
         return projectEditor.hasDirtyBuffers()
     }
 
+    override fun isAtRoot(): Boolean {
+        return !isDetailShown()
+    }
+
     override fun storeDirtyBuffers() {
         projectEditor.storeAllBuffers()
     }
