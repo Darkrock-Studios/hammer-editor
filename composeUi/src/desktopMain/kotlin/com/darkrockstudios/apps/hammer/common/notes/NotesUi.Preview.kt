@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.material.SnackbarHostState
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope

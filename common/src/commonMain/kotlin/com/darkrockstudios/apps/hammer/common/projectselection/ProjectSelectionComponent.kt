@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -12,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
@@ -24,32 +26,44 @@ class ProjectSelectionComponent(
 ) : ProjectSelection, ComponentBase(componentContext) {
     private val globalSettingsRepository by inject<GlobalSettingsRepository>()
     private val projectsRepository by inject<ProjectsRepository>()
+    private var loadProjectsJob: Job? = null
 
-    private val _value = MutableValue(
+    private val _state = MutableValue(
         ProjectSelection.State(
             projectsDir = projectsRepository.getProjectsDirectory(),
             projectDefs = emptyList()
         )
     )
-    override val state: Value<ProjectSelection.State> = _value
+    override val state: Value<ProjectSelection.State> = _state
 
     init {
         scope.launch {
             globalSettingsRepository.globalSettingsUpdates.collect { settings ->
                 withContext(mainDispatcher) {
-                    _value.reduce {
+                    _state.reduce {
                         val projectsPath = settings.projectsDirectory.toPath().toHPath()
                         it.copy(projectsDir = projectsPath)
                     }
                 }
             }
         }
+
+        lifecycle.doOnCreate {
+            loadProjectList()
+        }
     }
 
     override fun loadProjectList() {
-        _value.reduce {
+        loadProjectsJob?.cancel()
+        loadProjectsJob = scope.launch {
             val projects = projectsRepository.getProjects(state.value.projectsDir)
-            it.copy(projectDefs = projects)
+
+            withContext(mainDispatcher) {
+                _state.reduce {
+                    it.copy(projectDefs = projects)
+                }
+                loadProjectsJob = null
+            }
         }
     }
 
@@ -65,7 +79,7 @@ class ProjectSelectionComponent(
         globalSettingsRepository.updateSettings(updatedSettings)
 
         projectsRepository.getProjectsDirectory()
-        _value.reduce {
+        _state.reduce {
             it.copy(projectsDir = hpath)
         }
         loadProjectList()

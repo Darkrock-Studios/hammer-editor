@@ -5,9 +5,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.*
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
@@ -28,6 +30,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val imageLoader: ImageLoader by inject()
 
+	@OptIn(ExperimentalMaterial3Api::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -37,7 +40,7 @@ class ProjectRootActivity : AppCompatActivity() {
 		} else {
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
-					MaterialTheme {
+					AppTheme(true) {
 						val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
 						val component = remember {
 							ProjectRootComponent(
@@ -53,9 +56,7 @@ class ProjectRootActivity : AppCompatActivity() {
 							)
 						}
 
-						val scaffoldState = rememberScaffoldState()
 						Scaffold(
-							scaffoldState = scaffoldState,
 							topBar = {
 								TopAppBar(
 									title = { Text("Hammer") },

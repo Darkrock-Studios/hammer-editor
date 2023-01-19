@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -84,6 +86,7 @@ fun NotesUi(
 	}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteItem(
 	note: NoteContent,
@@ -99,7 +102,6 @@ fun NoteItem(
 		modifier = modifier
 			.fillMaxWidth()
 			.padding(Ui.PADDING),
-		elevation = Ui.ELEVATION
 	) {
 		Column {
 			Text(note.id.toString())

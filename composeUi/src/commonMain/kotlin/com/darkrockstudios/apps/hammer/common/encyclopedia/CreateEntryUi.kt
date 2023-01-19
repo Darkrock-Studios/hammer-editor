@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,7 +51,7 @@ internal fun CreateEntryUi(
 		Text(
 			"Create New Entry",
 			modifier = Modifier.padding(PaddingValues(bottom = Ui.PADDING)),
-			style = MaterialTheme.typography.h4
+			style = MaterialTheme.typography.headlineMedium
 		)
 
 		Text("Type:", modifier = Modifier.padding(bottom = 2.dp))

@@ -2,9 +2,7 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -19,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
@@ -49,7 +48,6 @@ internal fun EncyclopediaEntryItem(
 			.fillMaxWidth()
 			.padding(Ui.PADDING)
 			.clickable { viewEntry(entryDef) },
-		elevation = Ui.ELEVATION
 	) {
 		Column {
 

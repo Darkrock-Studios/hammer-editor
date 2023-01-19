@@ -6,16 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.LocalImageLoader
 import org.koin.android.ext.android.inject
 
 @ExperimentalMaterialApi
@@ -33,25 +32,25 @@ class ProjectSelectActivity : AppCompatActivity() {
         )
 
         setContent {
-            CompositionLocalProvider(
-                LocalImageLoader provides imageLoader,
-            ) {
-                MaterialTheme {
-                    val scaffoldState = rememberScaffoldState()
-                    Scaffold(
-                        scaffoldState = scaffoldState,
-                        topBar = {
-                            TopAppBar(
-                                title = { Text("Hammer") },
-                                elevation = Ui.ELEVATION,
-                            )
-                        },
-                        content = { padding ->
+//            CompositionLocalProvider(
+//                LocalImageLoader provides imageLoader,
+			//) {
+			AppTheme(true) {
+				val scaffoldState = rememberScaffoldState()
+				Scaffold(
+					scaffoldState = scaffoldState,
+					topBar = {
+						TopAppBar(
+							title = { Text("Hammer") },
+							elevation = Ui.ELEVATION,
+						)
+					},
+					content = { padding ->
                             ProjectSelectionUi(component, Modifier.padding(padding))
                         }
                     )
                 }
-            }
+			//}
         }
     }
 

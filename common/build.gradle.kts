@@ -5,7 +5,6 @@ val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
-val compose_version: String by extra
 val decompose_version: String by extra
 val koin_version: String by extra
 val okio_version: String by extra

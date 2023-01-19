@@ -3,12 +3,12 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
@@ -82,11 +82,16 @@ fun SceneEditorUi(
                     ClickableText(
                         AnnotatedString("Scene: ${state.sceneItem.name}"),
                         modifier = Modifier.padding(Ui.PADDING),
-                        onClick = { component.beginSceneNameEdit() }
+                        onClick = { component.beginSceneNameEdit() },
+                        style = TextStyle.Default.copy(color = MaterialTheme.colorScheme.onBackground)
                     )
                 }
                 if (state.sceneBuffer?.dirty == true) {
-                    Text("Unsaved", modifier = Modifier.padding(Ui.PADDING))
+                    Text(
+                        "Unsaved",
+                        modifier = Modifier.padding(Ui.PADDING),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                     Button(onClick = {
                         component.storeSceneContent()
                         scope.launch { snackbarHostState.showSnackbar("Saved") }
@@ -95,7 +100,7 @@ fun SceneEditorUi(
                     }
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth().background(Color.Gray)) {
+            Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
                 EditorAction(
                     iconRes = "drawable/icon_bold.xml",
                     drawableKlass = drawableKlass,
@@ -135,8 +140,8 @@ fun SceneEditorUi(
                 },
                 textFieldStyle = defaultRichTextFieldStyle().copy(
                     placeholder = "Begin writing your Scene here",
-                    textColor = MaterialTheme.colors.onBackground,
-                    placeholderColor = MaterialTheme.colors.secondaryVariant,
+                    textColor = MaterialTheme.colorScheme.onBackground,
+                    placeholderColor = MaterialTheme.colorScheme.onBackground,
                 )
             )
         }
@@ -203,7 +208,7 @@ private fun EditorAction(
         Icon(
             modifier = Modifier.size(24.dp),
             painter = painterResource(res = iconRes, drawableKlass = drawableKlass),
-            tint = if (active) Color.White else Color.Black,
+            tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             contentDescription = null
         )
     }

@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.*
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -31,8 +34,8 @@ fun <T> DropDown(
 
 	BoxWithConstraints(
 		modifier = modifier
-			.background(Color.LightGray)
-			.border(1.dp, MaterialTheme.colors.onBackground)
+			.background(MaterialTheme.colorScheme.tertiaryContainer)
+			.border(1.dp, MaterialTheme.colorScheme.onTertiary)
 			.clickable(onClick = { itemsExpanded = true })
 	) {
 		val itemText = if (selectedIndex == 0 && noneOption != null) {
@@ -56,12 +59,14 @@ fun <T> DropDown(
 			itemText,
 			modifier = Modifier.padding(
 				PaddingValues(start = padding, end = padding * 2, top = padding, bottom = padding)
-			).wrapContentWidth()
+			).wrapContentWidth(),
+			color = MaterialTheme.colorScheme.onTertiaryContainer
 		)
 		Icon(
 			Icons.Rounded.ArrowDropDown,
 			"Drop Down Menu",
-			modifier = Modifier.align(Alignment.CenterEnd)
+			modifier = Modifier.align(Alignment.CenterEnd),
+			tint = MaterialTheme.colorScheme.onTertiaryContainer
 		)
 		DropdownMenu(
 			expanded = itemsExpanded,

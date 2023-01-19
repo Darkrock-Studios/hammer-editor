@@ -30,15 +30,14 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
-            //@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             dependencies {
                 api(project(":common"))
                 api(compose.runtime)
                 api(compose.uiTooling)
                 api(compose.preview)
                 api(compose.foundation)
-                api(compose.material)
-                //api(compose.material3)
+                api(compose.material3)
                 api(compose.animation)
                 api(compose.animationGraphics)
                 api(compose.materialIconsExtended)

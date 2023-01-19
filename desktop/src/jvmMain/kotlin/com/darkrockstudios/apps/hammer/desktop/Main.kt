@@ -1,7 +1,13 @@
 package com.darkrockstudios.apps.hammer.desktop
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
@@ -15,6 +21,7 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -23,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
+import com.jthemedetecor.OsThemeDetector
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import io.github.aakira.napier.DebugAntilog
@@ -35,34 +43,43 @@ import javax.swing.UIManager
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main() {
-    Napier.base(DebugAntilog())
+	Napier.base(DebugAntilog())
 
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+	UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
 
-    GlobalContext.startKoin {
-        logger(NapierLogger())
-        modules(mainModule, imageLoadingModule)
-    }
+	GlobalContext.startKoin {
+		logger(NapierLogger())
+		modules(mainModule, imageLoadingModule)
+	}
 
-    application {
-        val applicationState = remember { ApplicationState() }
-        val imageLoader: ImageLoader = get(ImageLoader::class.java)
-        CompositionLocalProvider(
-            LocalImageLoader provides imageLoader,
-        ) {
-            when (val windowState = applicationState.windows.value) {
-                is WindowState.ProjectSectionWindow -> {
-                    ProjectSelectionWindow { project ->
-                        applicationState.openProject(project)
-                    }
-                }
+	val osThemeDetector = OsThemeDetector.getDetector()
+	application {
+		val applicationState = remember { ApplicationState() }
+		val imageLoader: ImageLoader = get(ImageLoader::class.java)
 
-                is WindowState.ProjectWindow -> {
-                    ProjectEditorWindow(applicationState, windowState.projectDef)
-                }
-            }
-        }
-    }
+		var darkMode by remember { mutableStateOf(osThemeDetector.isDark) }
+		osThemeDetector.registerListener { isDarkModeEnabled ->
+			darkMode = isDarkModeEnabled
+		}
+
+		AppTheme(useDarkTheme = darkMode) {
+			CompositionLocalProvider(
+				LocalImageLoader provides imageLoader,
+			) {
+				when (val windowState = applicationState.windows.value) {
+					is WindowState.ProjectSectionWindow -> {
+						ProjectSelectionWindow { project ->
+							applicationState.openProject(project)
+						}
+					}
+
+					is WindowState.ProjectWindow -> {
+						ProjectEditorWindow(applicationState, windowState.projectDef)
+					}
+				}
+			}
+		}
+	}
 }
 
 @ExperimentalMaterialApi
@@ -70,30 +87,31 @@ fun main() {
 @ExperimentalDecomposeApi
 @Composable
 private fun ApplicationScope.ProjectSelectionWindow(
-    onProjectSelected: (projectDef: ProjectDef) -> Unit
+	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
-    val lifecycle = remember { LifecycleRegistry() }
-    val compContext = remember { DefaultComponentContext(lifecycle) }
-    val windowState = rememberWindowState()
-    LifecycleController(lifecycle, windowState)
+	val lifecycle = remember { LifecycleRegistry() }
+	val compContext = remember { DefaultComponentContext(lifecycle) }
+	val windowState = rememberWindowState()
+	val component = remember(onProjectSelected) {
+		ProjectSelectionComponent(
+			componentContext = compContext,
+			showProjectDirectory = true,
+			onProjectSelected = onProjectSelected
+		)
+	}
+	LifecycleController(lifecycle, windowState)
 
-    Window(
-        title = "Project Selection",
-        state = windowState,
-        onCloseRequest = ::exitApplication,
-    ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            MaterialTheme {
-                ProjectSelectionUi(
-                    ProjectSelectionComponent(
-                        componentContext = compContext,
-                        showProjectDirectory = true,
-                        onProjectSelected = onProjectSelected
-                    )
-                )
-            }
-        }
-    }
+	Window(
+		title = "Project Selection",
+		state = windowState,
+		onCloseRequest = ::exitApplication,
+	) {
+		Box(
+			modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+		) {
+			ProjectSelectionUi(component)
+		}
+	}
 }
 
 @ExperimentalComposeApi
@@ -101,144 +119,142 @@ private fun ApplicationScope.ProjectSelectionWindow(
 @ExperimentalMaterialApi
 @Composable
 private fun ApplicationScope.ProjectEditorWindow(
-    app: ApplicationState,
-    projectDef: ProjectDef
+	app: ApplicationState,
+	projectDef: ProjectDef
 ) {
-    val lifecycle = remember { LifecycleRegistry() }
-    val compContext = remember { DefaultComponentContext(lifecycle) }
-    val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
-    LifecycleController(lifecycle, windowState)
+	val lifecycle = remember { LifecycleRegistry() }
+	val compContext = remember { DefaultComponentContext(lifecycle) }
+	val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
+	LifecycleController(lifecycle, windowState)
 
-    val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
+	val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
 
-    val component = remember<ProjectRoot> {
-        ProjectRootComponent(
-            componentContext = compContext,
-            projectDef = projectDef,
-            addMenu = { menu ->
-                app.addMenu(menu)
-            },
-            removeMenu = { menuId ->
-                app.removeMenu(menuId)
-            }
-        )
-    }
+	val component = remember<ProjectRoot> {
+		ProjectRootComponent(
+			componentContext = compContext,
+			projectDef = projectDef,
+			addMenu = { menu ->
+				app.addMenu(menu)
+			},
+			removeMenu = { menuId ->
+				app.removeMenu(menuId)
+			}
+		)
+	}
 
-    val menu by app.menu.subscribeAsState()
+	val menu by app.menu.subscribeAsState()
 
-    Window(
-        title = "Hammer - ${projectDef.name}",
-        state = windowState,
-        onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
-    ) {
-        Column {
-            MenuBar {
-                Menu("File") {
-                    Item("Close Project", onClick = {
-                        onRequestClose(component, app, ApplicationState.CloseType.Project)
-                    })
-                    Item("Exit", onClick = {
-                        onRequestClose(component, app, ApplicationState.CloseType.Application)
-                    })
-                }
+	Window(
+		title = "Hammer - ${projectDef.name}",
+		state = windowState,
+		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
+	) {
+		Column {
+			MenuBar {
+				Menu("File") {
+					Item("Close Project", onClick = {
+						onRequestClose(component, app, ApplicationState.CloseType.Project)
+					})
+					Item("Exit", onClick = {
+						onRequestClose(component, app, ApplicationState.CloseType.Application)
+					})
+				}
 
-                menu.forEach { menuDescriptor ->
-                    Menu(menuDescriptor.label) {
-                        menuDescriptor.items.forEach { itemDescriptor ->
-                            Item(
-                                itemDescriptor.label,
-                                onClick = { itemDescriptor.action(itemDescriptor.id) },
-                                shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
-                            )
-                        }
-                    }
-                }
-            }
-            Surface(modifier = Modifier.fillMaxSize()) {
-                MaterialTheme {
-                    ProjectRootUi(component)
-                }
-            }
-        }
+				menu.forEach { menuDescriptor ->
+					Menu(menuDescriptor.label) {
+						menuDescriptor.items.forEach { itemDescriptor ->
+							Item(
+								itemDescriptor.label,
+								onClick = { itemDescriptor.action(itemDescriptor.id) },
+								shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
+							)
+						}
+					}
+				}
+			}
+			Surface(modifier = Modifier.fillMaxSize()) {
+				ProjectRootUi(component)
+			}
+		}
 
-        if (closeDialog.value != ApplicationState.CloseType.None) {
-            confirmCloseDialog(closeDialog.value) { result, closeType ->
-                if (result == ConfirmCloseResult.SaveAll) {
-                    component.storeDirtyBuffers()
-                }
+		if (closeDialog.value != ApplicationState.CloseType.None) {
+			confirmCloseDialog(closeDialog.value) { result, closeType ->
+				if (result == ConfirmCloseResult.SaveAll) {
+					component.storeDirtyBuffers()
+				}
 
-                app.dismissConfirmProjectClose()
+				app.dismissConfirmProjectClose()
 
-                if (result != ConfirmCloseResult.Cancel) {
-                    performClose(app, closeType)
-                }
-            }
-        }
-    }
+				if (result != ConfirmCloseResult.Cancel) {
+					performClose(app, closeType)
+				}
+			}
+		}
+	}
 }
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
 private fun confirmCloseDialog(
-    closeType: ApplicationState.CloseType,
-    dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
+	closeType: ApplicationState.CloseType,
+	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
-    AlertDialog(
-        title = { Text("Unsaved Scenes") },
-        text = { Text("Save unsaved scenes?") },
-        onDismissRequest = { /* Noop */ },
-        buttons = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-                    Text("Save and close")
-                }
-                Button(onClick = {
-                    dismissDialog(
-                        ConfirmCloseResult.Cancel,
-                        ApplicationState.CloseType.None
-                    )
-                }) {
-                    Text("Cancel")
-                }
-                Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-                    Text("Discard and close")
-                }
-            }
-        },
-        modifier = Modifier.width(300.dp).padding(Ui.PADDING)
-    )
+	AlertDialog(
+		title = { Text("Unsaved Scenes") },
+		text = { Text("Save unsaved scenes?") },
+		onDismissRequest = { /* Noop */ },
+		buttons = {
+			Column(
+				modifier = Modifier.fillMaxWidth(),
+			) {
+				Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
+					Text("Save and close")
+				}
+				Button(onClick = {
+					dismissDialog(
+						ConfirmCloseResult.Cancel,
+						ApplicationState.CloseType.None
+					)
+				}) {
+					Text("Cancel")
+				}
+				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
+					Text("Discard and close")
+				}
+			}
+		},
+		modifier = Modifier.width(300.dp).padding(Ui.PADDING)
+	)
 }
 
 private enum class ConfirmCloseResult {
-    SaveAll,
-    Discard,
-    Cancel
+	SaveAll,
+	Discard,
+	Cancel
 }
 
 private fun ApplicationScope.performClose(
-    app: ApplicationState,
-    closeType: ApplicationState.CloseType
+	app: ApplicationState,
+	closeType: ApplicationState.CloseType
 ) {
-    when (closeType) {
-        ApplicationState.CloseType.Application -> exitApplication()
-        ApplicationState.CloseType.Project -> app.closeProject()
-        ApplicationState.CloseType.None -> {
-            /* noop */
-        }
-    }
+	when (closeType) {
+		ApplicationState.CloseType.Application -> exitApplication()
+		ApplicationState.CloseType.Project -> app.closeProject()
+		ApplicationState.CloseType.None -> {
+			/* noop */
+		}
+	}
 }
 
 private fun ApplicationScope.onRequestClose(
-    component: AppCloseManager,
-    app: ApplicationState,
-    closeType: ApplicationState.CloseType
+	component: AppCloseManager,
+	app: ApplicationState,
+	closeType: ApplicationState.CloseType
 ) {
-    if (component.hasUnsavedBuffers()) {
-        app.showConfirmProjectClose(closeType)
-    } else {
-        performClose(app, closeType)
-    }
+	if (component.hasUnsavedBuffers()) {
+		app.showConfirmProjectClose(closeType)
+	} else {
+		performClose(app, closeType)
+	}
 }
