@@ -58,7 +58,7 @@ fun NotesUi(
 		LazyVerticalGrid(
 			columns = GridCells.Adaptive(512.dp),
 			modifier = Modifier.fillMaxWidth(),
-			contentPadding = PaddingValues(Ui.PADDING)
+			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {
 			state.apply {
 				if (notes.isEmpty()) {
@@ -101,7 +101,7 @@ fun NoteItem(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(Ui.PADDING),
+			.padding(Ui.Padding.XL),
 	) {
 		Column {
 			Text(note.id.toString())

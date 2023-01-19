@@ -56,7 +56,11 @@ kotlin {
             }
         }
         val androidMain by getting
-        val desktopMain by getting
+        val desktopMain by getting {
+            dependencies {
+                api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
+            }
+        }
     }
 }
 android {

@@ -26,7 +26,6 @@ kotlin {
                 implementation(project(":composeUi"))
                 implementation(compose.preview)
                 implementation(compose.desktop.currentOs)
-                implementation("com.github.Dansoftowner:jSystemThemeDetector:3.8")
             }
         }
         val jvmTest by getting

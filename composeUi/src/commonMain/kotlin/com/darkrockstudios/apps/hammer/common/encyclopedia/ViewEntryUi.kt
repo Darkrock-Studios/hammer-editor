@@ -100,7 +100,7 @@ internal fun ViewEntryUi(
 				if (editName) {
 					TextField(
 						modifier = Modifier.fillMaxWidth()
-							.padding(PaddingValues(top = Ui.PADDING, bottom = Ui.PADDING)),
+							.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.XL)),
 						value = entryNameText,
 						onValueChange = { entryNameText = it },
 						placeholder = { Text("Name") }
@@ -116,7 +116,7 @@ internal fun ViewEntryUi(
 					OutlinedTextField(
 						value = entryText,
 						onValueChange = { entryText = it },
-						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
+						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
 						placeholder = { Text(text = "Describe your entry") },
 						maxLines = 10,
 					)

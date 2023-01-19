@@ -60,7 +60,7 @@ class ProjectRootActivity : AppCompatActivity() {
 							topBar = {
 								TopAppBar(
 									title = { Text("Hammer") },
-									elevation = Ui.ELEVATION,
+									elevation = Ui.Elevation.MEDIUM,
 									navigationIcon = {
 										IconButton(onClick = ::onBackPressed) {
 											Icon(Icons.Filled.ArrowBack, "backIcon")

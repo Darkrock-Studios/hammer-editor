@@ -46,7 +46,7 @@ internal fun EncyclopediaEntryItem(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(Ui.PADDING)
+			.padding(Ui.Padding.XL)
 			.clickable { viewEntry(entryDef) },
 	) {
 		Column {

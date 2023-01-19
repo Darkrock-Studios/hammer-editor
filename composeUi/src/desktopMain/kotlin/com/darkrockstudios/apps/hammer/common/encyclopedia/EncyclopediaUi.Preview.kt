@@ -14,14 +14,13 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 
 @Preview
 @Composable
@@ -112,7 +111,7 @@ private fun CreateEntryPreview() {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
+	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		CreateEntryUi(
 			component = component,
 			scope = scope,
@@ -145,7 +144,7 @@ private fun ViewEntryPreview() {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.PADDING)) {
+	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		ViewEntryUi(
 			component = component,
 			scope = scope,
@@ -154,15 +153,6 @@ private fun ViewEntryPreview() {
 		)
 	}
 }
-
-private fun fakeProjectDef(): ProjectDef = ProjectDef(
-	name = "Test",
-	path = HPath(
-		name = "Test",
-		path = "/",
-		isAbsolute = true
-	)
-)
 
 private fun fakeEntryDef(): EntryDef = EntryDef(
 	projectDef = fakeProjectDef(),

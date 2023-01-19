@@ -42,7 +42,7 @@ internal fun CreateEntryUi(
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
 	Column(
-		modifier = modifier.padding(Ui.PADDING)
+		modifier = modifier.padding(Ui.Padding.XL)
 			.widthIn(128.dp, 420.dp)
 			.fillMaxHeight()
 			.verticalScroll(rememberScrollState())
@@ -50,7 +50,7 @@ internal fun CreateEntryUi(
 
 		Text(
 			"Create New Entry",
-			modifier = Modifier.padding(PaddingValues(bottom = Ui.PADDING)),
+			modifier = Modifier.padding(PaddingValues(bottom = Ui.Padding.XL)),
 			style = MaterialTheme.typography.headlineMedium
 		)
 

@@ -38,7 +38,7 @@ fun SceneListUi(
 		)
 		treeState.updateSummary(summary)
 
-		Column(modifier = modifier.fillMaxWidth().padding(Ui.PADDING)) {
+		Column(modifier = modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
 			TextField(
 				value = newSceneItemNameText,
 				onValueChange = { newSceneItemNameText = it },
@@ -52,7 +52,7 @@ fun SceneListUi(
 					},
 					text = { Text("Scene") },
 					icon = { Icon(Icons.Filled.Add, "") },
-					modifier = Modifier.padding(top = Ui.PADDING)
+					modifier = Modifier.padding(top = Ui.Padding.XL)
 				)
 				ExtendedFloatingActionButton(
 					onClick = {
@@ -61,17 +61,17 @@ fun SceneListUi(
 					},
 					text = { Text("Group") },
 					icon = { Icon(Icons.Filled.Add, "") },
-					modifier = Modifier.padding(top = Ui.PADDING)
+					modifier = Modifier.padding(top = Ui.Padding.XL)
 				)
 				Button(
 					onClick = treeState::collapseAll,
-					modifier = Modifier.padding(top = Ui.PADDING)
+					modifier = Modifier.padding(top = Ui.Padding.XL)
 				) {
 					Text("C")
 				}
 				Button(
 					onClick = treeState::expandAll,
-					modifier = Modifier.padding(top = Ui.PADDING)
+					modifier = Modifier.padding(top = Ui.Padding.XL)
 				) {
 					Text("E")
 				}
@@ -79,7 +79,7 @@ fun SceneListUi(
 			Row(
 				modifier = Modifier.fillMaxWidth()
 					.wrapContentHeight()
-					.padding(vertical = Ui.PADDING),
+					.padding(vertical = Ui.Padding.XL),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
@@ -171,10 +171,10 @@ fun SceneItem(
 		modifier = draggable
 			.fillMaxWidth()
 			.padding(
-				start = (Ui.PADDING + (Ui.PADDING * (depth - 1) * 2)),
-				top = Ui.PADDING,
-				bottom = Ui.PADDING,
-				end = Ui.PADDING
+				start = (Ui.Padding.XL + (Ui.Padding.XL * (depth - 1) * 2)),
+				top = Ui.Padding.XL,
+				bottom = Ui.Padding.XL,
+				end = Ui.Padding.XL
 			)
 			.combinedClickable(
 				onClick = { onSceneSelected(scene) },
@@ -186,7 +186,7 @@ fun SceneItem(
 	) {
 		Row(
 			modifier = Modifier
-				.padding(Ui.PADDING)
+				.padding(Ui.Padding.XL)
 				.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 		) {
@@ -222,16 +222,16 @@ fun SceneGroupItem(
 		modifier = draggable
 			.fillMaxWidth()
 			.padding(
-				start = (Ui.PADDING + (Ui.PADDING * (sceneNode.depth - 1) * 2)).coerceAtLeast(0.dp),
-				top = Ui.PADDING,
-				bottom = Ui.PADDING,
-				end = Ui.PADDING
+				start = (Ui.Padding.XL + (Ui.Padding.XL * (sceneNode.depth - 1) * 2)).coerceAtLeast(0.dp),
+				top = Ui.Padding.XL,
+				bottom = Ui.Padding.XL,
+				end = Ui.Padding.XL
 			)
 			.clickable(onClick = { toggleExpand(sceneNode.value.id) }),
 		colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
 	) {
 		Row(
-			modifier = Modifier.padding(Ui.PADDING).fillMaxWidth(),
+			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween
 		) {
 			Text(
@@ -278,6 +278,6 @@ fun sceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
 				}
 			}
 		},
-		modifier = Modifier.width(300.dp).padding(Ui.PADDING)
+		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
 	)
 }

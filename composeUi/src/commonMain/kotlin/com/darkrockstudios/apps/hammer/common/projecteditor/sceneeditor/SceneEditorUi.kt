@@ -69,7 +69,7 @@ fun SceneEditorUi(
                     TextField(
                         value = editSceneNameValue,
                         onValueChange = { editSceneNameValue = it },
-                        modifier = Modifier.padding(Ui.PADDING),
+                        modifier = Modifier.padding(Ui.Padding.XL),
                         label = { Text("Scene Name") }
                     )
                     Button(onClick = { component.changeSceneName(editSceneNameValue) }) {
@@ -81,7 +81,7 @@ fun SceneEditorUi(
                 } else {
                     ClickableText(
                         AnnotatedString("Scene: ${state.sceneItem.name}"),
-                        modifier = Modifier.padding(Ui.PADDING),
+                        modifier = Modifier.padding(Ui.Padding.XL),
                         onClick = { component.beginSceneNameEdit() },
                         style = TextStyle.Default.copy(color = MaterialTheme.colorScheme.onBackground)
                     )
@@ -89,7 +89,7 @@ fun SceneEditorUi(
                 if (state.sceneBuffer?.dirty == true) {
                     Text(
                         "Unsaved",
-                        modifier = Modifier.padding(Ui.PADDING),
+                        modifier = Modifier.padding(Ui.Padding.XL),
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Button(onClick = {
@@ -132,7 +132,7 @@ fun SceneEditorUi(
             }
 
             RichTextEditor(
-                modifier = Modifier.fillMaxSize().padding(Ui.PADDING),
+                modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
                 value = sceneText,
                 onValueChange = { rtv ->
                     sceneText = rtv

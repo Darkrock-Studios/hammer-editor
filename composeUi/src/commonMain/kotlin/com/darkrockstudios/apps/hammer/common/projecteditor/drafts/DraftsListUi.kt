@@ -41,7 +41,7 @@ fun DraftsListUi(
 
         LazyColumn(
             modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(Ui.PADDING)
+            contentPadding = PaddingValues(Ui.Padding.XL)
         ) {
             state.apply {
                 if (drafts.isEmpty()) {
@@ -68,7 +68,7 @@ fun DraftItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(Ui.PADDING)
+            .padding(Ui.Padding.XL)
             .combinedClickable(
                 onClick = { onDraftSelected(draftDef) },
 			)

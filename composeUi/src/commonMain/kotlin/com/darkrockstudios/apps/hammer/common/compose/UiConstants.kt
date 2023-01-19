@@ -1,13 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 object Ui {
-    object Colors {
-        val ACCENT = Color(0xAA2233FF)
+    object Elevation {
+        val SMALL = 4.dp
+        val MEDIUM = 8.dp
+        val LARGE = 12.dp
+    }
+
+    object Padding {
+        val S = 4.dp
+        val M = 8.dp
+        val L = 12.dp
+        val XL = 16.dp
     }
 
     val PADDING = 16.dp
-    val ELEVATION = 12.dp
 }

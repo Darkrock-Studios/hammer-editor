@@ -224,7 +224,7 @@ private fun confirmCloseDialog(
 				}
 			}
 		},
-		modifier = Modifier.width(300.dp).padding(Ui.PADDING)
+		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
 	)
 }
 
