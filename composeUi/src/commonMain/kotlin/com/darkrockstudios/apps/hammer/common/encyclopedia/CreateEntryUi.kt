@@ -22,6 +22,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateEntryUi(
 	component: CreateEntry,

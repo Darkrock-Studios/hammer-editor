@@ -39,6 +39,7 @@ private fun getInitialContent(sceneContent: SceneContent?): RichTextValue {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SceneEditorUi(
     component: SceneEditor,
@@ -154,6 +155,7 @@ fun SceneEditorUi(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SaveDraftDialog(
     state: SceneEditor.State,

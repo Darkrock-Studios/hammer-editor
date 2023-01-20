@@ -36,7 +36,7 @@ enum class Locations(val text: String, val icon: ImageVector) {
 @ExperimentalComposeApi
 @Composable
 fun ProjectSelectionUi(component: ProjectSelection, modifier: Modifier = Modifier) {
-	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+	BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 		Row(modifier = Modifier.fillMaxSize()) {
 			var selectedItem by remember { mutableStateOf(Locations.Projects) }
 			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
@@ -58,6 +58,7 @@ fun ProjectSelectionUi(component: ProjectSelection, modifier: Modifier = Modifie
 	}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Settings(
 	component: ProjectSelection,
@@ -145,7 +146,8 @@ fun ProjectList(
 				LazyColumn(
 					modifier = Modifier.weight(1f),
 					state = listState,
-					contentPadding = PaddingValues(Ui.Padding.XL)
+					contentPadding = PaddingValues(Ui.Padding.XL),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 				) {
 					items(state.projectDefs.size) { index ->
 						ProjectCard(state.projectDefs[index], component::selectProject) { project ->
@@ -219,9 +221,9 @@ fun ProjectCard(
 			Divider(modifier = Modifier.fillMaxWidth().height(1.dp))
 		}
 	}
-	Spacer(modifier = Modifier.size(Ui.Padding.M))
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () -> Unit) {
 	MpDialog(

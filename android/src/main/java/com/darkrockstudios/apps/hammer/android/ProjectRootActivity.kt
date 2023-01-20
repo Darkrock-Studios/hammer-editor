@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -17,7 +16,6 @@ import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.ProjectRootUi
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -58,9 +56,8 @@ class ProjectRootActivity : AppCompatActivity() {
 
 						Scaffold(
 							topBar = {
-								TopAppBar(
+								CenterAlignedTopAppBar(
 									title = { Text("Hammer") },
-									elevation = Ui.Elevation.MEDIUM,
 									navigationIcon = {
 										IconButton(onClick = ::onBackPressed) {
 											Icon(Icons.Filled.ArrowBack, "backIcon")

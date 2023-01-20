@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.rememberReorderableLazyListState
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SceneListUi(
 	component: SceneList,
