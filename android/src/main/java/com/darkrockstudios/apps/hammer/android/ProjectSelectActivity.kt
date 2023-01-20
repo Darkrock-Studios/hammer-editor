@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
@@ -15,49 +16,50 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.seiko.imageloader.ImageLoader
+import com.seiko.imageloader.LocalImageLoader
 import org.koin.android.ext.android.inject
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 class ProjectSelectActivity : AppCompatActivity() {
 
-    private val imageLoader: ImageLoader by inject()
+	private val imageLoader: ImageLoader by inject()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+	override fun onCreate(savedInstanceState: Bundle?) {
+		super.onCreate(savedInstanceState)
 
-        val component = ProjectSelectionComponent(
-            componentContext = defaultComponentContext(),
-            onProjectSelected = ::onProjectSelected
-        )
+		val component = ProjectSelectionComponent(
+			componentContext = defaultComponentContext(),
+			onProjectSelected = ::onProjectSelected
+		)
 
-        setContent {
-//            CompositionLocalProvider(
-//                LocalImageLoader provides imageLoader,
-			//) {
-			AppTheme(true) {
-				val scaffoldState = rememberScaffoldState()
-				Scaffold(
-					scaffoldState = scaffoldState,
-					topBar = {
-						TopAppBar(
-							title = { Text("Hammer") },
-							elevation = Ui.ELEVATION,
-						)
-					},
-					content = { padding ->
-                            ProjectSelectionUi(component, Modifier.padding(padding))
-                        }
-                    )
-                }
-			//}
-        }
-    }
+		setContent {
+			CompositionLocalProvider(
+				LocalImageLoader provides imageLoader,
+			) {
+				AppTheme(true) {
+					val scaffoldState = rememberScaffoldState()
+					Scaffold(
+						scaffoldState = scaffoldState,
+						topBar = {
+							TopAppBar(
+								title = { Text("Hammer") },
+								elevation = Ui.Elevation.MEDIUM,
+							)
+						},
+						content = { padding ->
+							ProjectSelectionUi(component, Modifier.padding(padding))
+						}
+					)
+				}
+			}
+		}
+	}
 
-    private fun onProjectSelected(projectDef: ProjectDef) {
-        val intent = Intent(this, ProjectRootActivity::class.java).apply {
-            putExtra(ProjectRootActivity.EXTRA_PROJECT, projectDef)
-        }
-        startActivity(intent)
-    }
+	private fun onProjectSelected(projectDef: ProjectDef) {
+		val intent = Intent(this, ProjectRootActivity::class.java).apply {
+			putExtra(ProjectRootActivity.EXTRA_PROJECT, projectDef)
+		}
+		startActivity(intent)
+	}
 }
