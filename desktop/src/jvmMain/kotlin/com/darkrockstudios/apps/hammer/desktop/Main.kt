@@ -20,6 +20,9 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.github.weisj.darklaf.LafManager
+import com.github.weisj.darklaf.theme.DarculaTheme
+import com.github.weisj.darklaf.theme.IntelliJTheme
 import com.jthemedetecor.OsThemeDetector
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
@@ -27,7 +30,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
-import javax.swing.UIManager
+
 
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
@@ -35,14 +38,18 @@ import javax.swing.UIManager
 fun main() {
 	Napier.base(DebugAntilog())
 
-	UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-
 	GlobalContext.startKoin {
 		logger(NapierLogger())
 		modules(mainModule, imageLoadingModule)
 	}
 
 	val osThemeDetector = OsThemeDetector.getDetector()
+	if (osThemeDetector.isDark) {
+		LafManager.install(DarculaTheme())
+	} else {
+		LafManager.install(IntelliJTheme())
+	}
+
 	application {
 		val applicationState = remember { ApplicationState() }
 		val imageLoader: ImageLoader = get(ImageLoader::class.java)
@@ -50,6 +57,13 @@ fun main() {
 		var darkMode by remember { mutableStateOf(osThemeDetector.isDark) }
 		osThemeDetector.registerListener { isDarkModeEnabled ->
 			darkMode = isDarkModeEnabled
+
+			if (darkMode) {
+				LafManager.install(DarculaTheme())
+			} else {
+				LafManager.install(IntelliJTheme())
+			}
+			LafManager.updateLaf()
 		}
 
 		AppTheme(useDarkTheme = darkMode) {

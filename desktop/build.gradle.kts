@@ -26,6 +26,7 @@ kotlin {
                 implementation(project(":composeUi"))
                 implementation(compose.preview)
                 implementation(compose.desktop.currentOs)
+                implementation("com.github.weisj:darklaf-core:3.0.2")
             }
         }
         val jvmTest by getting
