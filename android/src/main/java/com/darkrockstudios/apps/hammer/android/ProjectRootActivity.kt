@@ -5,30 +5,32 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
+import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class ProjectRootActivity : AppCompatActivity() {
 
 	private val imageLoader: ImageLoader by inject()
 
-	@OptIn(ExperimentalMaterial3Api::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -39,55 +41,108 @@ class ProjectRootActivity : AppCompatActivity() {
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
 					AppTheme(true) {
-						val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
-						val component = remember {
-							ProjectRootComponent(
-								componentContext = defaultComponentContext(),
-								projectDef = projectDef,
-								addMenu = { menuDescriptor ->
-									menu.value =
-										mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-								},
-								removeMenu = { menuId ->
-									menu.value = menu.value.filter { it.id != menuId }.toSet()
-								}
-							)
-						}
-
-						Scaffold(
-							topBar = {
-								CenterAlignedTopAppBar(
-									title = { Text("Hammer") },
-									navigationIcon = {
-										IconButton(onClick = ::onBackPressed) {
-											Icon(Icons.Filled.ArrowBack, "backIcon")
-										}
-									},
-									actions = {
-										if (menu.value.isNotEmpty()) {
-											TopAppBarDropdownMenu(menu.value.toList())
-										}
-									}
-								)
-							},
-							content = { padding ->
-								ProjectRootUi(component, padding, R.drawable::class)
-
-								val shouldConfirmClose by component.shouldConfirmClose.subscribeAsState()
-								val backEnabled by component.backEnabled.subscribeAsState()
-								BackHandler(enabled = backEnabled) {
-									if (shouldConfirmClose) {
-										confirmCloseDialog(component)
-									} else {
-										finish()
-									}
-								}
-							}
-						)
+						Content(projectDef)
 					}
 				}
 			}
 		}
+	}
+
+	@OptIn(ExperimentalMaterial3Api::class)
+	@Composable
+	private fun Content(projectDef: ProjectDef) {
+		val scope = rememberCoroutineScope()
+		val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+		val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
+		val component = remember {
+			ProjectRootComponent(
+				componentContext = defaultComponentContext(),
+				projectDef = projectDef,
+				addMenu = { menuDescriptor ->
+					menu.value =
+						mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
+				},
+				removeMenu = { menuId ->
+					menu.value = menu.value.filter { it.id != menuId }.toSet()
+				}
+			)
+		}
+
+		val router by component.routerState.subscribeAsState()
+		val showBack = !component.isAtRoot()
+		val shouldConfirmClose by component.shouldConfirmClose.subscribeAsState()
+		val backEnabled by component.backEnabled.subscribeAsState()
+		val destinationTypes = remember { ProjectRoot.DestinationTypes.values() }
+
+		BackHandler(enabled = backEnabled) {
+			if (shouldConfirmClose) {
+				confirmCloseDialog(component)
+			} else {
+				finish()
+			}
+		}
+
+		Scaffold(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.background),
+			topBar = {
+				TopBar(
+					title = projectDef.name,
+					drawerOpen = drawerState,
+					showBack = showBack,
+					onButtonClicked = {
+						if (showBack) {
+							onBackPressed()
+						} else {
+							scope.launch {
+								if (drawerState.isOpen) {
+									drawerState.close()
+								} else {
+									drawerState.open()
+								}
+							}
+						}
+					},
+					actions = {
+						if (menu.value.isNotEmpty()) {
+							TopAppBarDropdownMenu(menu.value.toList())
+						}
+					}
+				)
+			},
+			content = { innerPadding ->
+				ModalNavigationDrawer(
+					modifier = Modifier.padding(innerPadding),
+					drawerState = drawerState,
+					drawerContent = {
+						ModalDrawerSheet(modifier = Modifier.width(Ui.NAV_DRAWER)) {
+							Spacer(Modifier.height(12.dp))
+							destinationTypes.forEach { item ->
+								NavigationDrawerItem(
+									icon = {
+										Icon(
+											imageVector = getDestinationIcon(item),
+											contentDescription = item.text
+										)
+									},
+									label = { Text(item.text) },
+									selected = router.active.instance.getLocationType() == item,
+									onClick = {
+										scope.launch { drawerState.close() }
+										component.showDestination(item)
+									}
+								)
+							}
+						}
+					},
+					content = {
+						ProjectRootUi(component, innerPadding, R.drawable::class)
+					}
+				)
+			}
+		)
 	}
 
 	private fun confirmCloseDialog(component: AppCloseManager) {

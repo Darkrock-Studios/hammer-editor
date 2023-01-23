@@ -16,6 +16,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
     fun showEditor()
     fun showNotes()
     fun showEncyclopedia()
+    fun showDestination(type: DestinationTypes)
+    fun isAtRoot(): Boolean
 
     sealed class Destination {
         data class EditorDestination(val component: ProjectEditor) : Destination(), Router {
@@ -27,5 +29,17 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
         data class EncyclopediaDestination(val component: Encyclopedia) : Destination(), Router {
             override fun isAtRoot() = component.isAtRoot()
         }
+
+        fun getLocationType(): ProjectRoot.DestinationTypes {
+            return when (this) {
+                is ProjectRoot.Destination.EditorDestination -> ProjectRoot.DestinationTypes.Editor
+                is ProjectRoot.Destination.EncyclopediaDestination -> ProjectRoot.DestinationTypes.Encyclopedia
+                is ProjectRoot.Destination.NotesDestination -> ProjectRoot.DestinationTypes.Notes
+            }
+        }
+    }
+
+    enum class DestinationTypes(val text: String) {
+        Editor("Editor"), Notes("Notes"), Encyclopedia("Encyclopedia")
     }
 }

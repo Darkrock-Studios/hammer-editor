@@ -17,4 +17,5 @@ object Ui {
     }
 
     val PADDING = 16.dp
+    val NAV_DRAWER = 256.dp
 }

@@ -5,14 +5,8 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -79,7 +73,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 								drawerState.open()
 							}
 						}
-					}
+					},
 				)
 			},
 			content = { innerPadding ->
@@ -87,7 +81,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 					modifier = Modifier.padding(innerPadding),
 					drawerState = drawerState,
 					drawerContent = {
-						ModalDrawerSheet {
+						ModalDrawerSheet(modifier = Modifier.width(Ui.NAV_DRAWER)) {
 							Spacer(Modifier.height(12.dp))
 							ProjectSelection.Locations.values().forEach { item ->
 								NavigationDrawerItem(
@@ -108,37 +102,6 @@ class ProjectSelectActivity : AppCompatActivity() {
 					}
 				)
 			}
-		)
-	}
-
-	@OptIn(ExperimentalMaterial3Api::class)
-	@Composable
-	private fun TopBar(
-		title: String = "",
-		drawerOpen: DrawerState,
-		onButtonClicked: () -> Unit
-	) {
-		val icon = when (drawerOpen.currentValue) {
-			DrawerValue.Closed -> Icons.Filled.Menu
-			DrawerValue.Open -> Icons.Filled.MenuOpen
-		}
-
-		TopAppBar(
-			title = {
-				Text(
-					text = title
-				)
-			},
-			navigationIcon = {
-				IconButton(onClick = { onButtonClicked() }) {
-					Icon(icon, contentDescription = "Nav Drawer")
-				}
-			},
-			colors = TopAppBarDefaults.smallTopAppBarColors(
-				containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-					Ui.Elevation.MEDIUM
-				)
-			)
 		)
 	}
 

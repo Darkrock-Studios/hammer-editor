@@ -53,6 +53,14 @@ class ProjectRootComponent(
 		router.showEncyclopedia()
 	}
 
+	override fun showDestination(type: ProjectRoot.DestinationTypes) {
+		when (type) {
+			ProjectRoot.DestinationTypes.Editor -> showEditor()
+			ProjectRoot.DestinationTypes.Notes -> showNotes()
+			ProjectRoot.DestinationTypes.Encyclopedia -> showEncyclopedia()
+		}
+	}
+
 	override fun hasUnsavedBuffers(): Boolean {
 		return projectEditor.hasDirtyBuffers()
 	}
@@ -60,6 +68,8 @@ class ProjectRootComponent(
 	override fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
+
+	override fun isAtRoot() = router.isAtRoot()
 
 	private fun updateCloseConfirmRequirement() {
 		_shouldConfirmClose.value = hasUnsavedBuffers() && router.isAtRoot()

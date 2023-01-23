@@ -1,12 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -21,6 +20,14 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 
 private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 700.dp
 
+fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
+	return when (location) {
+		ProjectRoot.DestinationTypes.Editor -> Icons.Filled.Edit
+		ProjectRoot.DestinationTypes.Notes -> Icons.Filled.Dock
+		ProjectRoot.DestinationTypes.Encyclopedia -> Icons.Filled.Dataset
+	}
+}
+
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
@@ -32,34 +39,7 @@ fun ProjectRootUi(
 
 		val smallestSize = min(maxWidth, maxHeight)
 		val isWide = smallestSize >= VERTICAL_CONTROL_WIDTH_THRESHOLD
-		if (isWide) {
-			Row(modifier = Modifier.fillMaxSize()) {
-				Column(Modifier.wrapContentWidth().fillMaxHeight()) {
-					FeatureTabs(component)
-				}
-				FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
-			}
-		} else {
-			Column(modifier = Modifier.fillMaxSize()) {
-				Row(modifier = Modifier.fillMaxWidth().background(Color.Cyan)) {
-					FeatureTabs(component)
-				}
-				FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
-			}
-		}
-	}
-}
-
-@Composable
-fun FeatureTabs(component: ProjectRoot) {
-	Button(onClick = { component.showEditor() }) {
-		Text("Editor")
-	}
-	Button(onClick = { component.showNotes() }) {
-		Text("Notes")
-	}
-	Button(onClick = { component.showEncyclopedia() }) {
-		Text("Encyclopedia")
+		FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
 	}
 }
 
