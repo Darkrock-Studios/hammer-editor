@@ -219,10 +219,11 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 	MpDialog(
 		onCloseRequest = close,
 		visible = show,
-		title = "Create Project"
+		title = "Create Project",
+		modifier = Modifier.wrapContentSize()
 	) {
 		var newProjectNameText by remember { mutableStateOf("") }
-		Box(modifier = Modifier.fillMaxSize()) {
+		Box {
 			Column(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.TopCenter)) {
 				TextField(
 					value = newProjectNameText,
@@ -265,6 +266,6 @@ fun projectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean) -> Unit
 				}
 			}
 		},
-		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
+		modifier = Modifier.widthIn(128.dp, 300.dp).wrapContentHeight().padding(Ui.Padding.XL)
 	)
 }
