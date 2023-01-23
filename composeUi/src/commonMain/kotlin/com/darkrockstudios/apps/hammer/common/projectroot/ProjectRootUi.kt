@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common
+package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,7 +18,6 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
-import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 
 private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 700.dp
 
