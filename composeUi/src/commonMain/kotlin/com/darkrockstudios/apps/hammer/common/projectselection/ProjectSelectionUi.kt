@@ -27,34 +27,24 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 
-enum class Locations(val text: String, val icon: ImageVector) {
-	Projects("Projects", Icons.Filled.LibraryBooks),
-	Sittings("Settings", Icons.Filled.Settings)
+fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
+	return when (location) {
+		ProjectSelection.Locations.Projects -> Icons.Filled.LibraryBooks
+		ProjectSelection.Locations.Sittings -> Icons.Filled.Settings
+	}
 }
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-fun ProjectSelectionUi(component: ProjectSelection, modifier: Modifier = Modifier) {
-	BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-		Row(modifier = Modifier.fillMaxSize()) {
-			var selectedItem by remember { mutableStateOf(Locations.Projects) }
-			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-				Locations.values().forEach { item ->
-					NavigationRailItem(
-						icon = { Icon(imageVector = item.icon, contentDescription = item.text) },
-						label = { Text(item.text) },
-						selected = selectedItem == item,
-						onClick = { selectedItem = item }
-					)
-				}
-			}
-
-			when (selectedItem) {
-				Locations.Projects -> ProjectList(component)
-				Locations.Sittings -> Settings(component)
-			}
-		}
+fun ProjectSelectionUi(
+	component: ProjectSelection,
+	modifier: Modifier = Modifier
+) {
+	val state by component.state.subscribeAsState()
+	when (state.location) {
+		ProjectSelection.Locations.Projects -> ProjectList(component, modifier)
+		ProjectSelection.Locations.Sittings -> Settings(component, modifier)
 	}
 }
 

@@ -4,19 +4,31 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material3.*
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
+import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 @ExperimentalMaterialApi
@@ -25,7 +37,6 @@ class ProjectSelectActivity : AppCompatActivity() {
 
 	private val imageLoader: ImageLoader by inject()
 
-	@OptIn(ExperimentalMaterial3Api::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -38,20 +49,97 @@ class ProjectSelectActivity : AppCompatActivity() {
 			CompositionLocalProvider(
 				LocalImageLoader provides imageLoader,
 			) {
-				AppTheme(true) {
-					Scaffold(
-						topBar = {
-							CenterAlignedTopAppBar(
-								title = { Text("Hammer") },
-							)
-						},
-						content = { innerPadding ->
-							ProjectSelectionUi(component, Modifier.padding(innerPadding))
-						}
-					)
+				AppTheme {
+					Content(component)
 				}
 			}
 		}
+	}
+
+	@OptIn(ExperimentalMaterial3Api::class)
+	@Composable
+	private fun Content(component: ProjectSelectionComponent) {
+		val scope = rememberCoroutineScope()
+		val drawerState = rememberDrawerState(DrawerValue.Closed)
+		val state by component.state.subscribeAsState()
+
+		Scaffold(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.background),
+			topBar = {
+				TopBar(
+					title = "Hammer",
+					drawerOpen = drawerState,
+					onButtonClicked = {
+						scope.launch {
+							if (drawerState.isOpen) {
+								drawerState.close()
+							} else {
+								drawerState.open()
+							}
+						}
+					}
+				)
+			},
+			content = { innerPadding ->
+				ModalNavigationDrawer(
+					modifier = Modifier.padding(innerPadding),
+					drawerState = drawerState,
+					drawerContent = {
+						ModalDrawerSheet {
+							Spacer(Modifier.height(12.dp))
+							ProjectSelection.Locations.values().forEach { item ->
+								NavigationDrawerItem(
+									icon = { Icon(getLocationIcon(item), contentDescription = item.text) },
+									label = { Text(item.name) },
+									selected = item == state.location,
+									onClick = {
+										scope.launch { drawerState.close() }
+										component.showLocation(item)
+									},
+									modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+								)
+							}
+						}
+					},
+					content = {
+						ProjectSelectionUi(component, Modifier)
+					}
+				)
+			}
+		)
+	}
+
+	@OptIn(ExperimentalMaterial3Api::class)
+	@Composable
+	private fun TopBar(
+		title: String = "",
+		drawerOpen: DrawerState,
+		onButtonClicked: () -> Unit
+	) {
+		val icon = when (drawerOpen.currentValue) {
+			DrawerValue.Closed -> Icons.Filled.Menu
+			DrawerValue.Open -> Icons.Filled.MenuOpen
+		}
+
+		TopAppBar(
+			title = {
+				Text(
+					text = title
+				)
+			},
+			navigationIcon = {
+				IconButton(onClick = { onButtonClicked() }) {
+					Icon(icon, contentDescription = "Nav Drawer")
+				}
+			},
+			colors = TopAppBarDefaults.smallTopAppBarColors(
+				containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
+					Ui.Elevation.MEDIUM
+				)
+			)
+		)
 	}
 
 	private fun onProjectSelected(projectDef: ProjectDef) {

@@ -106,7 +106,6 @@ private fun CreateEntryPreview() {
 			tags: List<String>,
 			imagePath: String?
 		): EntryResult = EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
-
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }

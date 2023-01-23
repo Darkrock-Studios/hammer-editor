@@ -101,4 +101,10 @@ class ProjectSelectionComponent(
             loadProjectList()
         }
     }
+
+    override fun showLocation(location: ProjectSelection.Locations) {
+        _state.reduce {
+            it.copy(location = location)
+        }
+    }
 }

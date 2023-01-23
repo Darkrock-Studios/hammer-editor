@@ -4,10 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
@@ -28,8 +25,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingMo
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
+import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.jthemedetecor.OsThemeDetector
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
@@ -106,9 +105,20 @@ private fun ApplicationScope.ProjectSelectionWindow(
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 	) {
-		Box(
-			modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-		) {
+		val state by component.state.subscribeAsState()
+
+		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+				ProjectSelection.Locations.values().forEach { item ->
+					NavigationRailItem(
+						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text) },
+						label = { Text(item.text) },
+						selected = state.location == item,
+						onClick = { component.showLocation(item) }
+					)
+				}
+			}
+
 			ProjectSelectionUi(component)
 		}
 	}

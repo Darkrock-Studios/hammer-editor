@@ -14,9 +14,16 @@ interface ProjectSelection : HammerComponent {
     fun selectProject(projectDef: ProjectDef)
     fun createProject(projectName: String)
     fun deleteProject(projectDef: ProjectDef)
+    fun showLocation(location: Locations)
 
     data class State(
         val projectsDir: HPath,
-        val projectDefs: List<ProjectDef> = mutableListOf()
+        val projectDefs: List<ProjectDef> = mutableListOf(),
+        val location: Locations = Locations.Projects
     )
+
+    enum class Locations(val text: String) {
+        Projects("Projects"),
+        Sittings("Settings")
+    }
 }

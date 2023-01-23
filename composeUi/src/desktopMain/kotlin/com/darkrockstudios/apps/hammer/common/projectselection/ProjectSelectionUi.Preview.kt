@@ -65,5 +65,6 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 		override fun selectProject(projectDef: ProjectDef) {}
 		override fun createProject(projectName: String) {}
 		override fun deleteProject(projectDef: ProjectDef) {}
+		override fun showLocation(location: ProjectSelection.Locations) {}
 	}
 }
