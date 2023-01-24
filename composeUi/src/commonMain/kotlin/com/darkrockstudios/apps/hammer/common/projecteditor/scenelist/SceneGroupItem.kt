@@ -29,7 +29,7 @@ internal fun SceneGroupItem(
 
 	var groupModifier = draggable
 		.fillMaxWidth()
-		.padding(start = (Ui.Padding.XL + (Ui.Padding.XL * (sceneNode.depth - 1) * 2)).coerceAtLeast(0.dp))
+		.padding(start = (Ui.Padding.L * (sceneNode.depth - 1) * 2).coerceAtLeast(0.dp))
 		.clickable(onClick = { toggleExpand(sceneNode.value.id) })
 
 	if (!collapsed) {

@@ -30,7 +30,7 @@ internal fun SceneItem(
 	var modifier = draggable
 		.fillMaxWidth()
 		.wrapContentHeight()
-		.padding(start = (Ui.Padding.XL + (Ui.Padding.XL * (depth - 1) * 2)))
+		.padding(start = (Ui.Padding.L * (depth - 1) * 2))
 		.background(if (isSelected) selectionColor() else MaterialTheme.colorScheme.surfaceVariant)
 		.combinedClickable(
 			onClick = { onSceneSelected(scene) },
