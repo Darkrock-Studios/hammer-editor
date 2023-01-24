@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,6 +46,7 @@ private fun fakeNode(id: Int, order: Int): TreeValue<SceneItem> {
 }
 */
 
+@OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
 private fun SceneItemPreview() {

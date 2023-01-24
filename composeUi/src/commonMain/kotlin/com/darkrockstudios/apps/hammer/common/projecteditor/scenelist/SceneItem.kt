@@ -1,13 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,22 +44,27 @@ internal fun SceneItem(
 		border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
 	) {
 		BoxWithConstraints {
-			Row(
-				modifier = Modifier
-					.wrapContentHeight()
-					.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically
+			ContextMenuArea(
+				items = {
+					listOf(
+						ContextMenuItem(
+							label = "Delete",
+							onClick = { onSceneAltClick(scene) }
+						)
+					)
+				},
 			) {
-				Text(
-					scene.name,
-					style = MaterialTheme.typography.bodyLarge,
-					modifier = Modifier.weight(1f).padding(start = Ui.Padding.L)
-				)
-				IconButton(onClick = { onSceneAltClick(scene) }, modifier = Modifier) {
-					Icon(
-						imageVector = Icons.Filled.Delete,
-						contentDescription = "Delete",
-						modifier = Modifier.size(18.dp),
+				Row(
+					modifier = Modifier
+						.padding(Ui.Padding.L)
+						.wrapContentHeight()
+						.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
+						scene.name,
+						style = MaterialTheme.typography.bodyLarge,
+						modifier = Modifier.weight(1f).padding(start = Ui.Padding.L)
 					)
 				}
 			}
