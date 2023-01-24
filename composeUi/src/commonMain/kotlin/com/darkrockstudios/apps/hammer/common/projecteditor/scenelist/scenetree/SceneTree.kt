@@ -26,21 +26,24 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SceneTree(
-		state: SceneTreeState,
-		modifier: Modifier,
-		itemUi: ItemUi
+	state: SceneTreeState,
+	modifier: Modifier,
+	itemUi: ItemUi,
+	contentPadding: PaddingValues
 ) {
 	state.apply {
 		Box {
 			Row {
 				LazyColumn(
-						state = state.listState,
-						modifier = reorderableModifier(state, modifier).weight(1f),
+					state = state.listState,
+					modifier = reorderableModifier(state, modifier)
+						.weight(1f),
+					contentPadding = contentPadding
 				) {
 					items(
-							count = summary.sceneTree.totalNodes,
-							key = { summary.sceneTree[it].value.id },
-							contentType = { summary.sceneTree[it].value.type }
+						count = summary.sceneTree.totalNodes,
+						key = { summary.sceneTree[it].value.id },
+						contentType = { summary.sceneTree[it].value.type }
 					) { index ->
 						val childNode = summary.sceneTree[index]
 						val shouldCollapseSelf = shouldCollapseNode(
@@ -73,9 +76,9 @@ fun SceneTree(
 }
 
 private fun shouldCollapseNode(
-		index: Int,
-		summary: SceneSummary,
-		collapsedNodes: SnapshotStateMap<Int, Boolean>
+	index: Int,
+	summary: SceneSummary,
+	collapsedNodes: SnapshotStateMap<Int, Boolean>
 ): Boolean {
 	return if (collapsedNodes.isEmpty()) {
 		false
@@ -85,8 +88,8 @@ private fun shouldCollapseNode(
 			false
 		} else {
 			summary.sceneTree.getBranch(index, true)
-					.map { collapsedNodes[it.value.id] == true }
-					.reduce { acc, treeNodeCollapsed -> acc || treeNodeCollapsed }
+				.map { collapsedNodes[it.value.id] == true }
+				.reduce { acc, treeNodeCollapsed -> acc || treeNodeCollapsed }
 		}
 	}
 }
@@ -96,29 +99,29 @@ private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modi
 	state.apply {
 		return modifier.pointerInput(dragId) {
 			detectDragGesturesAfterLongPress(
-					onDragStart = { offset ->
-						for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
-							if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
-								val id = itemInfo.key as Int
-								startDragging(id)
-								break
-							}
+				onDragStart = { offset ->
+					for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
+						if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
+							val id = itemInfo.key as Int
+							startDragging(id)
+							break
 						}
-					},
-					onDragCancel = {
-						stopDragging()
-					},
-					onDragEnd = {
-						stopDragging()
 					}
+				},
+				onDragCancel = {
+					stopDragging()
+				},
+				onDragEnd = {
+					stopDragging()
+				}
 			) { change, _ ->
 				val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
 				val insertPosition = findInsertPosition(
-						dragOffset = change.position,
-						layouts = layoutInfo.visibleItemsInfo,
-						collapsedGroups = collapsedNodes,
-						tree = summary.sceneTree,
-						selectedId = selectedId,
+					dragOffset = change.position,
+					layouts = layoutInfo.visibleItemsInfo,
+					collapsedGroups = collapsedNodes,
+					tree = summary.sceneTree,
+					selectedId = selectedId,
 				)
 
 				if (insertAt != insertPosition) {
@@ -157,35 +160,35 @@ private fun drawInsertLine(state: SceneTreeState, color: Color = MaterialTheme.c
 			listState.layoutInfo.visibleItemsInfo.find { it.key == node.value.id }
 				?.let { insertBelowLayout ->
 
-						val isGroup = node.value.type.isCollection
-						val lineY = if (insertPos.before) {
-							insertBelowLayout.offset
-						} else {
-							insertBelowLayout.offset + insertBelowLayout.size
-						}
-
-						val isCollapsed = (collapsedNodes[node.value.id] == true)
-						val nestingDept = if (isGroup && !insertPos.before && !isCollapsed) {
-							node.depth + 1
-						} else {
-							node.depth
-						}
-
-						Canvas(modifier = Modifier.fillMaxSize().clipToBounds()) {
-							val canvasWidth = size.width
-
-							val insetSize = (nestingDept * NESTING_INSET)
-							val endX = canvasWidth - NESTING_INSET
-
-							drawLine(
-								start = Offset(x = insetSize.dp.toPx(), y = lineY.toFloat()),
-								end = Offset(x = endX.dp.toPx(), y = lineY.toFloat()),
-								color = color,
-								strokeWidth = 5f.dp.toPx(),
-								cap = StrokeCap.Round
-							)
-						}
+					val isGroup = node.value.type.isCollection
+					val lineY = if (insertPos.before) {
+						insertBelowLayout.offset
+					} else {
+						insertBelowLayout.offset + insertBelowLayout.size
 					}
+
+					val isCollapsed = (collapsedNodes[node.value.id] == true)
+					val nestingDept = if (isGroup && !insertPos.before && !isCollapsed) {
+						node.depth + 1
+					} else {
+						node.depth
+					}
+
+					Canvas(modifier = Modifier.fillMaxSize().clipToBounds()) {
+						val canvasWidth = size.width
+
+						val insetSize = (nestingDept * NESTING_INSET)
+						val endX = canvasWidth - NESTING_INSET
+
+						drawLine(
+							start = Offset(x = insetSize.dp.toPx(), y = lineY.toFloat()),
+							end = Offset(x = endX.dp.toPx(), y = lineY.toFloat()),
+							color = color,
+							strokeWidth = 5f.dp.toPx(),
+							cap = StrokeCap.Round
+						)
+					}
+				}
 		}
 	}
 }

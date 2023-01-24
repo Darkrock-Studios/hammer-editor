@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,108 +13,137 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.rememberReorderableLazyListState
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
+import io.github.aakira.napier.Napier
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class, ExperimentalMaterial3Api::class)
+@OptIn(
+	ExperimentalMaterialApi::class,
+	ExperimentalComposeApi::class,
+	ExperimentalMaterial3Api::class,
+	ExperimentalFoundationApi::class
+)
 @Composable
 fun SceneListUi(
 	component: SceneList,
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
-	var newSceneItemNameText by remember { mutableStateOf("") }
 	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
-	val summary = state.sceneSummary
-	if (summary != null) {
-		val treeState = rememberReorderableLazyListState(
-			summary = summary,
-			moveItem = component::moveScene
-		)
-		treeState.updateSummary(summary)
+	var showCreateGroupDialog by remember { mutableStateOf(false) }
+	var showCreateSceneDialog by remember { mutableStateOf(false) }
+	var expandOrCollapse by remember { mutableStateOf(false) }
 
-		Column(modifier = modifier.fillMaxSize()) {
-			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-				TextField(
-					value = newSceneItemNameText,
-					onValueChange = { newSceneItemNameText = it },
-					label = { Text("New Scene Name") }
-				)
-				Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-					ExtendedFloatingActionButton(
-						onClick = {
-							component.createScene(newSceneItemNameText)
-							newSceneItemNameText = ""
-						},
-						text = { Text("Scene") },
-						icon = { Icon(Icons.Filled.Add, "") },
-						modifier = Modifier.padding(top = Ui.Padding.XL)
-					)
-					ExtendedFloatingActionButton(
-						onClick = {
-							component.createGroup(newSceneItemNameText)
-							newSceneItemNameText = ""
-						},
-						text = { Text("Group") },
-						icon = { Icon(Icons.Filled.Add, "") },
-						modifier = Modifier.padding(top = Ui.Padding.XL)
-					)
-					Button(
-						onClick = treeState::collapseAll,
-						modifier = Modifier.padding(top = Ui.Padding.XL)
-					) {
-						Text("C")
-					}
-					Button(
-						onClick = treeState::expandAll,
-						modifier = Modifier.padding(top = Ui.Padding.XL)
-					) {
-						Text("E")
-					}
-				}
+	BoxWithConstraints {
+		val summary = state.sceneSummary
+		if (summary != null) {
+			val treeState = rememberReorderableLazyListState(
+				summary = summary,
+				moveItem = component::moveScene
+			)
+			treeState.updateSummary(summary)
+
+			Column(modifier = modifier.fillMaxSize()) {
 				Row(
 					modifier = Modifier.fillMaxWidth()
 						.wrapContentHeight()
-						.padding(vertical = Ui.Padding.XL),
+						.padding(Ui.Padding.L),
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Text(
 						"\uD83D\uDCDD Scenes:",
 						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground
+						color = MaterialTheme.colorScheme.onBackground,
+						modifier = Modifier.weight(1f)
 					)
-				}
-			}
 
-			SceneTree(
-				modifier = Modifier.fillMaxSize(),
-				state = treeState,
-				itemUi = { node: TreeValue<SceneItem>,
-						   toggleExpanded: (nodeId: Int) -> Unit,
-						   collapsed: Boolean,
-						   draggable: Modifier ->
-
-					SceneNode(
-						sceneNode = node,
-						draggableModifier = draggable,
-						state = state,
-						summary = summary,
-						component = component,
-						toggleExpand = toggleExpanded,
-						collapsed = collapsed,
-						sceneDefDeleteTarget = { deleteTarget ->
-							sceneDefDeleteTarget = deleteTarget
+					if (expandOrCollapse) {
+						ElevatedButton(onClick = {
+							treeState.expandAll()
+							expandOrCollapse = false
+						}) {
+							Icon(Icons.Filled.ExpandMore, "Expand")
 						}
-					)
+					} else {
+						ElevatedButton(onClick = {
+							treeState.collapseAll()
+							expandOrCollapse = true
+						}) {
+							Icon(Icons.Filled.ExpandLess, "Collapse")
+						}
+					}
 				}
-			)
+
+				Divider(modifier = Modifier.fillMaxWidth())
+
+				SceneTree(
+					modifier = Modifier.fillMaxSize(),
+					state = treeState,
+					itemUi = { node: TreeValue<SceneItem>,
+							   toggleExpanded: (nodeId: Int) -> Unit,
+							   collapsed: Boolean,
+							   draggable: Modifier ->
+
+						SceneNode(
+							sceneNode = node,
+							draggableModifier = draggable,
+							state = state,
+							summary = summary,
+							component = component,
+							toggleExpand = toggleExpanded,
+							collapsed = collapsed,
+							sceneDefDeleteTarget = { deleteTarget ->
+								sceneDefDeleteTarget = deleteTarget
+							}
+						)
+					},
+					contentPadding = PaddingValues(bottom = 100.dp)
+				)
+			}
 		}
+
+		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
+			FloatingActionButton(
+				onClick = { showCreateGroupDialog = true },
+				modifier = Modifier.padding(end = Ui.Padding.M)
+			) {
+				Icon(Icons.Filled.CreateNewFolder, "Create Group")
+			}
+			FloatingActionButton(onClick = { showCreateSceneDialog = true }) {
+				Icon(Icons.Filled.PostAdd, "Create Scene")
+			}
+		}
+	}
+
+	CreateDialog(
+		show = showCreateGroupDialog,
+		title = "Create Group",
+		textLabel = "Group Name"
+	) { groupName ->
+		Napier.d { "Create dialog close" }
+		if (groupName != null) {
+			component.createGroup(groupName)
+		}
+		showCreateGroupDialog = false
+	}
+
+	CreateDialog(
+		show = showCreateSceneDialog,
+		title = "Create Scene",
+		textLabel = "Scene Name"
+	) { sceneName ->
+		Napier.d { "Create dialog close" }
+		if (sceneName != null) {
+			component.createScene(sceneName)
+		}
+		showCreateSceneDialog = false
 	}
 
 	sceneDefDeleteTarget?.let { scene ->
@@ -127,6 +156,41 @@ fun SceneListUi(
 	}
 }
 
+@ExperimentalMaterial3Api
+@Composable
+private fun CreateDialog(
+	show: Boolean,
+	title: String,
+	textLabel: String,
+	onClose: (name: String?) -> Unit
+) {
+	MpDialog(
+		visible = show,
+		title = title,
+		onCloseRequest = { onClose(null) }
+	) {
+		var nameText by remember { mutableStateOf("") }
+		Column {
+			TextField(
+				value = nameText,
+				onValueChange = { nameText = it },
+				label = { Text(textLabel) }
+			)
+
+			Row {
+				Button(onClick = { onClose(nameText) }) {
+					Text("Create")
+				}
+
+				Button(onClick = { onClose(null) }) {
+					Text("Cancel")
+				}
+			}
+		}
+	}
+}
+
+@ExperimentalFoundationApi
 @Composable
 private fun SceneNode(
 	sceneNode: TreeValue<SceneItem>,
