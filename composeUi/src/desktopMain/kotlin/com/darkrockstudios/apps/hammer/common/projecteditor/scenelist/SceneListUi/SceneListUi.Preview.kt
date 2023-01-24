@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneItemUi
+import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneItem
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
 
 /*
@@ -49,7 +49,7 @@ private fun fakeNode(id: Int, order: Int): TreeValue<SceneItem> {
 @Composable
 private fun SceneItemPreview() {
 	Column {
-		SceneItemUi(
+		SceneItem(
 			scene = fakeScene(0, 0),
 			draggable = Modifier,
 			depth = 0,
@@ -58,7 +58,7 @@ private fun SceneItemPreview() {
 			onSceneSelected = {},
 			onSceneAltClick = {}
 		)
-		SceneItemUi(
+		SceneItem(
 			scene = fakeScene(1, 1),
 			draggable = Modifier,
 			depth = 0,
@@ -67,7 +67,7 @@ private fun SceneItemPreview() {
 			onSceneSelected = {},
 			onSceneAltClick = {}
 		)
-		SceneItemUi(
+		SceneItem(
 			scene = fakeScene(2, 2),
 			draggable = Modifier,
 			depth = 0,

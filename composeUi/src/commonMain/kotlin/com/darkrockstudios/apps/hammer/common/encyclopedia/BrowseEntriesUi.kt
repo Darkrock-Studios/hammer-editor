@@ -40,7 +40,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 	Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		Text("Encyclopedia")
-		Spacer(modifier = Modifier.size(Ui.PADDING))
+		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 		Row(verticalAlignment = Alignment.CenterVertically) {
 			TextField(
@@ -53,11 +53,11 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				modifier = Modifier.weight(1f)
 			)
 
-			Spacer(Modifier.width(Ui.PADDING))
+			Spacer(Modifier.width(Ui.Padding.XL))
 
 			DropDown(
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
-				padding = Ui.PADDING,
+				padding = Ui.Padding.XL,
 				items = types,
 				noneOption = "All",
 				defaultIndex = state.filterType?.let { types.indexOf(state.filterType) + 1 } ?: 0
@@ -67,13 +67,13 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			}
 		}
 
-		Spacer(modifier = Modifier.size(Ui.PADDING))
+		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 		Text("Notes")
 		LazyVerticalGrid(
 			columns = GridCells.Adaptive(512.dp),
 			modifier = Modifier.fillMaxWidth(),
-			contentPadding = PaddingValues(Ui.PADDING)
+			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {
 			if (filteredEntries.isEmpty()) {
 				item {

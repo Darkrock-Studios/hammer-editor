@@ -59,7 +59,7 @@ internal fun CreateEntryUi(
 
 		DropDown(
 			modifier = Modifier.fillMaxWidth(),
-			padding = Ui.PADDING,
+			padding = Ui.Padding.XL,
 			items = types,
 			defaultIndex = types.indexOf(EntryType.PERSON)
 		) { item ->
@@ -71,14 +71,14 @@ internal fun CreateEntryUi(
 		}
 
 		TextField(
-			modifier = Modifier.fillMaxWidth().padding(PaddingValues(top = Ui.PADDING, bottom = Ui.PADDING)),
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.XL)),
 			value = newEntryNameText,
 			onValueChange = { newEntryNameText = it },
 			placeholder = { Text("Name") }
 		)
 
 		TextField(
-			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
 			value = newTagsText,
 			onValueChange = { newTagsText = it },
 			placeholder = { Text("Tags (space seperated)") }
@@ -87,7 +87,7 @@ internal fun CreateEntryUi(
 		OutlinedTextField(
 			value = newEntryContentText,
 			onValueChange = { newEntryContentText = it },
-			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.PADDING)),
+			modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
 			placeholder = { Text(text = "Describe your entry") },
 			maxLines = 10,
 		)
@@ -98,7 +98,7 @@ internal fun CreateEntryUi(
 
 		Row(modifier = Modifier.fillMaxWidth()) {
 			Button(
-				modifier = Modifier.weight(1f).padding(PaddingValues(end = Ui.PADDING)),
+				modifier = Modifier.weight(1f).padding(PaddingValues(end = Ui.Padding.XL)),
 				onClick = {
 					val result = component.createEntry(
 						name = newEntryNameText,
@@ -122,7 +122,7 @@ internal fun CreateEntryUi(
 			}
 
 			Button(
-				modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.PADDING)),
+				modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
 				onClick = { close() }
 			) {
 				Text("Cancel")
@@ -136,7 +136,7 @@ internal fun CreateEntryUi(
 					path = imagePath
 				)
 				Button(
-					modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.PADDING)),
+					modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
 					onClick = { imagePath = null }
 				) {
 					Text("Remove Image")
