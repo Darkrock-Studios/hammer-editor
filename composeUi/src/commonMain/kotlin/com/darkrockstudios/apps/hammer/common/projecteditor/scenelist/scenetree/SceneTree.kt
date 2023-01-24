@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
@@ -42,22 +43,24 @@ fun SceneTree(
 							//contentType = { summary.sceneTree[it].value.type }
 					) { index ->
 						val childNode = summary.sceneTree[index]
-						val shouldCollapse = shouldCollapseNode(
-								index,
-								summary,
-								collapsedNodes
+						val shouldCollapseSelf = shouldCollapseNode(
+							index,
+							summary,
+							collapsedNodes
 						)
+						val nodeCollapsesChildren = collapsedNodes[childNode.value.id] ?: false
 
 						if (!childNode.value.isRootScene) {
 							SceneTreeNode(
-									node = childNode,
-									collapsed = shouldCollapse, // need to take parent into account
-									selectedId = selectedId,
-									toggleExpanded = state::toggleExpanded,
-									modifier = Modifier.wrapContentHeight()
-											.fillMaxWidth()
-											.animateItemPlacement(),
-									itemUi = itemUi
+								node = childNode,
+								collapsed = shouldCollapseSelf, // need to take parent into account
+								nodeCollapsesChildren = nodeCollapsesChildren,
+								selectedId = selectedId,
+								toggleExpanded = state::toggleExpanded,
+								modifier = Modifier.wrapContentHeight()
+									.fillMaxWidth()
+									.animateItemPlacement(),
+								itemUi = itemUi
 							)
 						}
 					}
@@ -142,7 +145,7 @@ private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modi
 private const val NESTING_INSET = 32f
 
 @Composable
-private fun drawInsertLine(state: SceneTreeState) {
+private fun drawInsertLine(state: SceneTreeState, color: Color = MaterialTheme.colorScheme.secondary) {
 	state.apply {
 		insertAt?.let { insertPos ->
 			val node = if (summary.sceneTree.totalChildren <= insertPos.coords.globalIndex) {
@@ -152,7 +155,7 @@ private fun drawInsertLine(state: SceneTreeState) {
 			}
 
 			listState.layoutInfo.visibleItemsInfo.find { it.key == node.value.id }
-					?.let { insertBelowLayout ->
+				?.let { insertBelowLayout ->
 
 						val isGroup = node.value.type.isCollection
 						val lineY = if (insertPos.before) {
@@ -175,11 +178,11 @@ private fun drawInsertLine(state: SceneTreeState) {
 							val endX = canvasWidth - NESTING_INSET
 
 							drawLine(
-									start = Offset(x = insetSize.dp.toPx(), y = lineY.toFloat()),
-									end = Offset(x = endX.dp.toPx(), y = lineY.toFloat()),
-									color = Color.Black,
-									strokeWidth = 5f.dp.toPx(),
-									cap = StrokeCap.Round
+								start = Offset(x = insetSize.dp.toPx(), y = lineY.toFloat()),
+								end = Offset(x = endX.dp.toPx(), y = lineY.toFloat()),
+								color = color,
+								strokeWidth = 5f.dp.toPx(),
+								cap = StrokeCap.Round
 							)
 						}
 					}

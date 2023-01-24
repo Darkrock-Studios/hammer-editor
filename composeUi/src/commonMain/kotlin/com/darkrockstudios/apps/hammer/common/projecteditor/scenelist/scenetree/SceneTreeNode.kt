@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 fun SceneTreeNode(
     node: TreeValue<SceneItem>,
     collapsed: Boolean,
+    nodeCollapsesChildren: Boolean,
     selectedId: Int,
     itemUi: ItemUi,
     toggleExpanded: (nodeId: Int) -> Unit,
@@ -22,6 +23,11 @@ fun SceneTreeNode(
 ) {
     AnimatedVisibility(visible = !collapsed, modifier = modifier) {
         val itemModifier = Modifier.alpha(if (node.value.id == selectedId) 0.5f else 1f)
-        itemUi(node, toggleExpanded, itemModifier)
+        itemUi(
+            node,
+            toggleExpanded,
+            nodeCollapsesChildren,
+            itemModifier
+        )
     }
 }
