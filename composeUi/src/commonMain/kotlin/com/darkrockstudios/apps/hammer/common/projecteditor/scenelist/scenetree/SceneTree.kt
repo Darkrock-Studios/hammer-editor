@@ -40,7 +40,7 @@ fun SceneTree(
 					items(
 							count = summary.sceneTree.totalNodes,
 							key = { summary.sceneTree[it].value.id },
-							//contentType = { summary.sceneTree[it].value.type }
+							contentType = { summary.sceneTree[it].value.type }
 					) { index ->
 						val childNode = summary.sceneTree[index]
 						val shouldCollapseSelf = shouldCollapseNode(
