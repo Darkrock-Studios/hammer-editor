@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.leftBorder
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -32,6 +33,7 @@ internal fun SceneItem(
 			.wrapContentHeight()
 			.padding(start = (Ui.Padding.XL + (Ui.Padding.XL * (depth - 1) * 2)))
 			.background(if (isSelected) selectionColor() else MaterialTheme.colorScheme.surfaceVariant)
+			.leftBorder(1.dp, MaterialTheme.colorScheme.outline)
 			.combinedClickable(
 				onClick = { onSceneSelected(scene) },
 			),

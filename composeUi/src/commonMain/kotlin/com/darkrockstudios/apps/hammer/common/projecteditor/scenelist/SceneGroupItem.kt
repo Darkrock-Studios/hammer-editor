@@ -27,17 +27,17 @@ internal fun SceneGroupItem(
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 
-	var modifier = draggable
+	var groupModifier = draggable
 		.fillMaxWidth()
 		.padding(start = (Ui.Padding.XL + (Ui.Padding.XL * (sceneNode.depth - 1) * 2)).coerceAtLeast(0.dp))
 		.clickable(onClick = { toggleExpand(sceneNode.value.id) })
 
 	if (!collapsed) {
-		modifier = modifier.bottomBorder(1.dp, MaterialTheme.colorScheme.outline)
+		groupModifier = groupModifier.bottomBorder(1.dp, MaterialTheme.colorScheme.outline)
 	}
 
 	Surface(
-		modifier = modifier,
+		modifier = groupModifier,
 		tonalElevation = if (collapsed) 1.dp else 0.dp,
 	) {
 		BoxWithConstraints {
