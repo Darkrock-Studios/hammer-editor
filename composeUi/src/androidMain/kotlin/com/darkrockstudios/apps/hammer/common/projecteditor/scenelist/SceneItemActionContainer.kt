@@ -16,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -29,9 +31,11 @@ actual fun SceneItemActionContainer(
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit
 ) {
+	val hapticFeedback = LocalHapticFeedback.current
 	var showMenu by remember { mutableStateOf(false) }
 	val swipeableState = rememberSwipeableState(0, confirmStateChange = { value ->
 		if (value == 1) {
+			hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
 			showMenu = true
 		}
 		false

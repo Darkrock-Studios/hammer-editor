@@ -219,11 +219,15 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 		onCloseRequest = close,
 		visible = show,
 		title = "Create Project",
-		modifier = Modifier.wrapContentSize()
+		modifier = Modifier.padding(Ui.Padding.XL)
 	) {
 		var newProjectNameText by remember { mutableStateOf("") }
-		Box {
-			Column(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.TopCenter)) {
+		Box(modifier = Modifier.fillMaxWidth()) {
+			Column(
+				modifier = Modifier
+					.width(IntrinsicSize.Max)
+					.align(Alignment.Center)
+			) {
 				TextField(
 					value = newProjectNameText,
 					onValueChange = { newProjectNameText = it },
@@ -262,7 +266,7 @@ fun projectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean) -> Unit
 					.padding(Ui.Padding.XL)
 			) {
 				Text(
-					"Are you sure you want to delete this project: ${projectDef.name}",
+					"Are you sure you want to delete this project:\n${projectDef.name}",
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.onSurface
 				)
