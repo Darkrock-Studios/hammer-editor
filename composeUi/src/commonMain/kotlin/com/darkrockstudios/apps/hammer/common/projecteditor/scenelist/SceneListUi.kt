@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.rememberReorderableLazyListState
 import com.darkrockstudios.apps.hammer.common.tree.TreeValue
@@ -40,72 +41,71 @@ fun SceneListUi(
 	var expandOrCollapse by remember { mutableStateOf(false) }
 
 	BoxWithConstraints {
-		val summary = state.sceneSummary
-		if (summary != null) {
-			val treeState = rememberReorderableLazyListState(
-				summary = summary,
-				moveItem = component::moveScene
-			)
+		val treeState = rememberReorderableLazyListState(
+			summary = emptySceneSummary(state.projectDef),
+			moveItem = component::moveScene
+		)
+		state.sceneSummary?.let { summary ->
 			treeState.updateSummary(summary)
+		}
 
-			Column(modifier = modifier.fillMaxSize()) {
-				Row(
-					modifier = Modifier.fillMaxWidth()
-						.wrapContentHeight()
-						.padding(Ui.Padding.L),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Text(
-						"\uD83D\uDCDD Scenes:",
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.weight(1f)
-					)
+		Column(modifier = modifier.fillMaxSize()) {
+			Row(
+				modifier = Modifier.fillMaxWidth()
+					.wrapContentHeight()
+					.padding(Ui.Padding.L),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					"\uD83D\uDCDD Scenes:",
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.weight(1f)
+				)
 
-					if (expandOrCollapse) {
-						ElevatedButton(onClick = {
-							treeState.expandAll()
-							expandOrCollapse = false
-						}) {
-							Icon(Icons.Filled.ExpandMore, "Expand")
-						}
-					} else {
-						ElevatedButton(onClick = {
-							treeState.collapseAll()
-							expandOrCollapse = true
-						}) {
-							Icon(Icons.Filled.ExpandLess, "Collapse")
-						}
+				if (expandOrCollapse) {
+					ElevatedButton(onClick = {
+						treeState.expandAll()
+						expandOrCollapse = false
+					}) {
+						Icon(Icons.Filled.ExpandMore, "Expand")
+					}
+				} else {
+					ElevatedButton(onClick = {
+						treeState.collapseAll()
+						expandOrCollapse = true
+					}) {
+						Icon(Icons.Filled.ExpandLess, "Collapse")
 					}
 				}
-
-				Divider(modifier = Modifier.fillMaxWidth())
-
-				SceneTree(
-					modifier = Modifier.fillMaxSize(),
-					state = treeState,
-					itemUi = { node: TreeValue<SceneItem>,
-							   toggleExpanded: (nodeId: Int) -> Unit,
-							   collapsed: Boolean,
-							   draggable: Modifier ->
-
-						SceneNode(
-							sceneNode = node,
-							draggableModifier = draggable,
-							state = state,
-							summary = summary,
-							component = component,
-							toggleExpand = toggleExpanded,
-							collapsed = collapsed,
-							sceneDefDeleteTarget = { deleteTarget ->
-								sceneDefDeleteTarget = deleteTarget
-							}
-						)
-					},
-					contentPadding = PaddingValues(bottom = 100.dp)
-				)
 			}
+
+			Divider(modifier = Modifier.fillMaxWidth())
+
+			SceneTree(
+				modifier = Modifier.fillMaxSize(),
+				state = treeState,
+				itemUi = { node: TreeValue<SceneItem>,
+						   toggleExpanded: (nodeId: Int) -> Unit,
+						   collapsed: Boolean,
+						   draggable: Modifier ->
+
+					SceneNode(
+						sceneNode = node,
+						draggableModifier = draggable,
+						state = state,
+						summary = treeState.summary,
+						component = component,
+						toggleExpand = toggleExpanded,
+						collapsed = collapsed,
+						sceneDefDeleteTarget = { deleteTarget ->
+							sceneDefDeleteTarget = deleteTarget
+						}
+					)
+				},
+				contentPadding = PaddingValues(bottom = 100.dp)
+			)
 		}
 
 		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
