@@ -37,18 +37,18 @@ fun SceneListUi(
 	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
 	var showCreateGroupDialog by remember { mutableStateOf(false) }
-	var showCreateSceneDialog by remember { mutableStateOf(false) }
+	var showCreateSceneDialog by remember { mutableStateOf<SceneItem?>(null) }
 	var expandOrCollapse by remember { mutableStateOf(false) }
 
-	BoxWithConstraints {
-		val treeState = rememberReorderableLazyListState(
-			summary = emptySceneSummary(state.projectDef),
-			moveItem = component::moveScene
-		)
-		state.sceneSummary?.let { summary ->
-			treeState.updateSummary(summary)
-		}
+	val treeState = rememberReorderableLazyListState(
+		summary = emptySceneSummary(state.projectDef),
+		moveItem = component::moveScene
+	)
+	state.sceneSummary?.let { summary ->
+		treeState.updateSummary(summary)
+	}
 
+	BoxWithConstraints {
 		Column(modifier = modifier.fillMaxSize()) {
 			Row(
 				modifier = Modifier.fillMaxWidth()
@@ -101,6 +101,9 @@ fun SceneListUi(
 						collapsed = collapsed,
 						sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
+						},
+						createScene = { parent ->
+							showCreateSceneDialog = parent
 						}
 					)
 				},
@@ -115,7 +118,9 @@ fun SceneListUi(
 			) {
 				Icon(Icons.Filled.CreateNewFolder, "Create Group")
 			}
-			FloatingActionButton(onClick = { showCreateSceneDialog = true }) {
+			FloatingActionButton(onClick = {
+				showCreateSceneDialog = treeState.summary.sceneTree.root.value
+			}) {
 				Icon(Icons.Filled.PostAdd, "Create Scene")
 			}
 		}
@@ -134,23 +139,30 @@ fun SceneListUi(
 	}
 
 	CreateDialog(
-		show = showCreateSceneDialog,
+		show = showCreateSceneDialog != null,
 		title = "Create Scene",
 		textLabel = "Scene Name"
 	) { sceneName ->
 		Napier.d { "Create dialog close" }
 		if (sceneName != null) {
-			component.createScene(sceneName)
+			component.createScene(showCreateSceneDialog, sceneName)
 		}
-		showCreateSceneDialog = false
+		showCreateSceneDialog = null
 	}
 
 	sceneDefDeleteTarget?.let { scene ->
-		SceneDeleteDialog(scene) { deleteScene ->
-			if (deleteScene) {
-				component.deleteScene(scene)
+		val node = treeState.getTree().find { it.value.id == scene.id }
+		if (scene.type == SceneItem.Type.Group && node?.children?.isEmpty() == false) {
+			GroupDeleteNotAllowedDialog(scene) {
+				sceneDefDeleteTarget = null
 			}
-			sceneDefDeleteTarget = null
+		} else {
+			SceneDeleteDialog(scene) { deleteScene ->
+				if (deleteScene) {
+					component.deleteScene(scene)
+				}
+				sceneDefDeleteTarget = null
+			}
 		}
 	}
 }
@@ -212,6 +224,7 @@ private fun SceneNode(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
+	createScene: (SceneItem) -> Unit
 ) {
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem
@@ -237,6 +250,7 @@ private fun SceneNode(
 			onSceneAltClick = { selectedScene ->
 				sceneDefDeleteTarget(selectedScene)
 			},
+			onCreateSceneClick = createScene
 		)
 	}
 }
@@ -287,6 +301,39 @@ internal fun SceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Uni
 					Button(onClick = { dismissDialog(false) }) {
 						Text("Dismiss")
 					}
+				}
+			}
+		}
+	}
+}
+
+@ExperimentalMaterialApi
+@ExperimentalComposeApi
+@Composable
+internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
+	MpDialog(
+		onCloseRequest = {},
+		visible = true,
+		modifier = Modifier.padding(Ui.Padding.XL),
+		title = "Cannot Delete Group"
+	) {
+		Box(modifier = Modifier.fillMaxWidth()) {
+			Column(
+				modifier = Modifier
+					.width(IntrinsicSize.Max)
+					.align(Alignment.Center)
+					.padding(Ui.Padding.XL)
+			) {
+				Text(
+					"You cannot delete a group while it still has children:\n\"${scene.name}\"",
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+				Button(onClick = { dismissDialog(false) }) {
+					Text("Okay")
 				}
 			}
 		}

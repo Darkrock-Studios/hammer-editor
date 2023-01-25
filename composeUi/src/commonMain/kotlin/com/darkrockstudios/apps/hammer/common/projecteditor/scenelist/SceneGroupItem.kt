@@ -3,10 +3,12 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +26,7 @@ internal fun SceneGroupItem(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	onSceneAltClick: (SceneItem) -> Unit,
+	onCreateSceneClick: (SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 
@@ -36,49 +39,44 @@ internal fun SceneGroupItem(
 		groupModifier = groupModifier.bottomBorder(1.dp, MaterialTheme.colorScheme.outline)
 	}
 
-	Surface(
-		modifier = groupModifier,
-		tonalElevation = if (collapsed) 1.dp else 0.dp,
+	SceneGroupActionContainer(
+		scene = scene,
+		onSceneAltClick = onSceneAltClick,
+		onCreateSceneClick = onCreateSceneClick
 	) {
-		BoxWithConstraints {
-			Row(
-				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				if (collapsed) {
-					Icon(
-						imageVector = Icons.Filled.Folder,
-						contentDescription = "Group Collapsed",
-						modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-					)
-				} else {
-					Icon(
-						imageVector = Icons.Filled.FolderOpen,
-						contentDescription = "Group Expanded",
-						modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-					)
-				}
-
-				Text(
-					scene.name,
-					modifier = Modifier.weight(1f),
-					style = MaterialTheme.typography.bodyLarge
-				)
-
-				if (children.isEmpty()) {
-					IconButton(
-						onClick = { onSceneAltClick(scene) },
-						modifier = Modifier.size(Ui.MIN_TOUCH_SIZE)
-					) {
-						Icon(Icons.Filled.Delete, contentDescription = "Delete Group")
+		Surface(
+			modifier = groupModifier,
+			tonalElevation = if (collapsed) 1.dp else 0.dp,
+		) {
+			BoxWithConstraints {
+				Row(
+					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					if (collapsed) {
+						Icon(
+							imageVector = Icons.Filled.Folder,
+							contentDescription = "Group Collapsed",
+							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
+						)
+					} else {
+						Icon(
+							imageVector = Icons.Filled.FolderOpen,
+							contentDescription = "Group Expanded",
+							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
+						)
 					}
-				} else {
-					Spacer(modifier = Modifier.size(Ui.MIN_TOUCH_SIZE))
-				}
-			}
 
-			val hasDirtyBuffer = children.any { hasDirtyBuffer.contains(it.value.id) }
-			Unsaved(hasDirtyBuffer)
+					Text(
+						scene.name,
+						modifier = Modifier.weight(1f),
+						style = MaterialTheme.typography.bodyLarge
+					)
+				}
+
+				val hasDirtyBuffer = children.any { hasDirtyBuffer.contains(it.value.id) }
+				Unsaved(hasDirtyBuffer)
+			}
 		}
 	}
 }

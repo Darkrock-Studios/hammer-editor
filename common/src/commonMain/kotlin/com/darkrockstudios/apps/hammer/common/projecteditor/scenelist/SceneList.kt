@@ -8,7 +8,7 @@ interface SceneList {
     fun onSceneSelected(sceneDef: SceneItem)
     fun moveScene(moveRequest: MoveRequest)
     fun loadScenes()
-    fun createScene(sceneName: String)
+    fun createScene(parent: SceneItem?, sceneName: String)
     fun createGroup(groupName: String)
     fun deleteScene(scene: SceneItem)
 
