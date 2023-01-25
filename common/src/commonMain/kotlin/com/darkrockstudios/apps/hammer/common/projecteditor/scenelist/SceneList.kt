@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.*
 interface SceneList {
     val state: Value<State>
     fun onSceneSelected(sceneDef: SceneItem)
-
     fun moveScene(moveRequest: MoveRequest)
     fun loadScenes()
     fun createScene(sceneName: String)

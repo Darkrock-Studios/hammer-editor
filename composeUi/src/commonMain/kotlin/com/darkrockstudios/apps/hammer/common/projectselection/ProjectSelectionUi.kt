@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
@@ -249,23 +248,39 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 @ExperimentalComposeApi
 @Composable
 fun projectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean) -> Unit) {
-	AlertDialog(
-		title = { Text("Delete Project") },
-		text = { Text("Are you sure you want to delete this project: ${projectDef.name}") },
-		onDismissRequest = { /* noop */ },
-		buttons = {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
+	MpDialog(
+		onCloseRequest = {},
+		visible = true,
+		modifier = Modifier.padding(Ui.Padding.XL),
+		title = "Delete Project"
+	) {
+		Box(modifier = Modifier.fillMaxWidth()) {
+			Column(
+				modifier = Modifier
+					.width(IntrinsicSize.Max)
+					.align(Alignment.Center)
+					.padding(Ui.Padding.XL)
 			) {
-				Button(onClick = { dismissDialog(true) }) {
-					Text("DELETE")
-				}
-				Button(onClick = { dismissDialog(false) }) {
-					Text("Dismiss")
+				Text(
+					"Are you sure you want to delete this project: ${projectDef.name}",
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Button(onClick = { dismissDialog(true) }) {
+						Text("DELETE")
+					}
+					Button(onClick = { dismissDialog(false) }) {
+						Text("Dismiss")
+					}
 				}
 			}
-		},
-		modifier = Modifier.widthIn(128.dp, 300.dp).wrapContentHeight().padding(Ui.Padding.XL)
-	)
+		}
+	}
 }

@@ -1,9 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Text
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
 
 @Composable
 actual fun MpDialog(
@@ -14,18 +19,20 @@ actual fun MpDialog(
 	content: @Composable () -> Unit
 ) {
 	if (visible) {
-		AlertDialog(
-			title = { Text(title) },
-			onDismissRequest = { onCloseRequest() },
-			buttons = {
-				content()
-			},
-			modifier = modifier
+		Dialog(
+			onDismissRequest = onCloseRequest,
+			content = {
+				Card {
+					Column(modifier = modifier) {
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge
+						)
+						Spacer(modifier = Modifier.size(Ui.Padding.L))
+						content()
+					}
+				}
+			}
 		)
-		/*
-		Dialog(onDismissRequest = onCloseRequest) {
-			content()
-		}
-		*/
 	}
 }

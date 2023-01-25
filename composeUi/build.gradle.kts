@@ -33,34 +33,39 @@ kotlin {
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             dependencies {
                 api(project(":common"))
-                api(compose.runtime)
-                api(compose.uiTooling)
-                api(compose.preview)
-                api(compose.foundation)
-                api(compose.material3)
-                api(compose.animation)
-                api(compose.animationGraphics)
-                api(compose.materialIconsExtended)
-                api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
-                api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
-                api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
-                api("com.darkrockstudios:richtexteditor:1.3.0")
+				api(compose.runtime)
+				api(compose.uiTooling)
+				api(compose.preview)
+				api(compose.foundation)
+				//api(compose.material3)
+				// JB material3 is way behind, so this lib is a workaround:
+				api("io.github.qdsfdhvh:material3:1.0.8")
+				api(compose.animation)
+				api(compose.animationGraphics)
+				api(compose.materialIconsExtended)
+				api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
+				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
+				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
+				api("com.darkrockstudios:richtexteditor:1.3.0")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
-                api("io.github.qdsfdhvh:image-loader:1.2.7")
-            }
-        }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
-            }
-        }
-        val androidMain by getting
-        val desktopMain by getting {
-            dependencies {
-                api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
-            }
-        }
+				api("io.github.qdsfdhvh:image-loader:1.2.7")
+			}
+		}
+		val commonTest by getting {
+			dependencies {
+				implementation(kotlin("test"))
+				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+			}
+		}
+		val androidMain by getting {
+			dependencies {
+			}
+		}
+		val desktopMain by getting {
+			dependencies {
+				api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
+			}
+		}
     }
 }
 android {

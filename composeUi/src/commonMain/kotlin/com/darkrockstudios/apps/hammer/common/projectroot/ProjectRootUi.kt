@@ -31,10 +31,9 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
-	padding: PaddingValues = PaddingValues.Absolute(),
 	drawableKlass: Any? = null
 ) {
-	BoxWithConstraints(Modifier.padding(padding)) {
+	BoxWithConstraints {
 		val routerState by component.routerState.subscribeAsState()
 
 		val smallestSize = min(maxWidth, maxHeight)

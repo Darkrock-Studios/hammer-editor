@@ -38,11 +38,12 @@ class ProjectEditorComponent(
 
     private val detailsRouter =
         DetailsRouter(
-            componentContext = this,
-            addMenu = addMenu,
-            closeDetails = ::closeDetails,
-            removeMenu = removeMenu
-        )
+			componentContext = this,
+			selectedSceneItem = selectedSceneItemFlow,
+			addMenu = addMenu,
+			closeDetails = ::closeDetails,
+			removeMenu = removeMenu
+		)
 
     private val listRouter =
         ListRouter(

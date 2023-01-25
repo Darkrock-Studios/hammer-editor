@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -147,7 +146,7 @@ fun SceneListUi(
 	}
 
 	sceneDefDeleteTarget?.let { scene ->
-		sceneDeleteDialog(scene) { deleteScene ->
+		SceneDeleteDialog(scene) { deleteScene ->
 			if (deleteScene) {
 				component.deleteScene(scene)
 			}
@@ -167,23 +166,35 @@ private fun CreateDialog(
 	MpDialog(
 		visible = show,
 		title = title,
+		modifier = Modifier.padding(Ui.Padding.XL),
 		onCloseRequest = { onClose(null) }
 	) {
 		var nameText by remember { mutableStateOf("") }
-		Column {
-			TextField(
-				value = nameText,
-				onValueChange = { nameText = it },
-				label = { Text(textLabel) }
-			)
+		Box(modifier = Modifier.fillMaxWidth()) {
+			Column(
+				modifier = Modifier
+					.width(IntrinsicSize.Max)
+					.align(Alignment.Center)
+			) {
+				TextField(
+					value = nameText,
+					onValueChange = { nameText = it },
+					label = { Text(textLabel) }
+				)
 
-			Row {
-				Button(onClick = { onClose(nameText) }) {
-					Text("Create")
-				}
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				Button(onClick = { onClose(null) }) {
-					Text("Cancel")
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Button(onClick = { onClose(nameText) }) {
+						Text("Create")
+					}
+
+					Button(onClick = { onClose(null) }) {
+						Text("Cancel")
+					}
 				}
 			}
 		}
@@ -244,24 +255,40 @@ internal fun selectionColor(): Color = MaterialTheme.colorScheme.tertiaryContain
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-internal fun sceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
-	AlertDialog(
-		title = { Text("Delete Scene") },
-		text = { Text("Are you sure you want to delete this scene: ${scene.name}") },
-		onDismissRequest = { /* noop */ },
-		buttons = {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
+internal fun SceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
+	MpDialog(
+		onCloseRequest = {},
+		visible = true,
+		modifier = Modifier.padding(Ui.Padding.XL),
+		title = "Delete Scene"
+	) {
+		Box(modifier = Modifier.fillMaxWidth()) {
+			Column(
+				modifier = Modifier
+					.width(IntrinsicSize.Max)
+					.align(Alignment.Center)
+					.padding(Ui.Padding.XL)
 			) {
-				Button(onClick = { dismissDialog(true) }) {
-					Text("DELETE")
-				}
-				Button(onClick = { dismissDialog(false) }) {
-					Text("Dismiss")
+				Text(
+					"Are you sure you want to delete this scene:\n\"${scene.name}\"",
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Button(onClick = { dismissDialog(true) }) {
+						Text("DELETE")
+					}
+					Button(onClick = { dismissDialog(false) }) {
+						Text("Dismiss")
+					}
 				}
 			}
-		},
-		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
-	)
+		}
+	}
 }

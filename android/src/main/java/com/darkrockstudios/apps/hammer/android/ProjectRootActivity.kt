@@ -40,7 +40,7 @@ class ProjectRootActivity : AppCompatActivity() {
 		} else {
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
-					AppTheme(true) {
+					AppTheme {
 						Content(projectDef)
 					}
 				}
@@ -138,7 +138,7 @@ class ProjectRootActivity : AppCompatActivity() {
 						}
 					},
 					content = {
-						ProjectRootUi(component, innerPadding, R.drawable::class)
+						ProjectRootUi(component, R.drawable::class)
 					}
 				)
 			}

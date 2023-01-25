@@ -14,12 +14,14 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorComponent
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 internal class DetailsRouter(
-		componentContext: ComponentContext,
-		private val addMenu: (menu: MenuDescriptor) -> Unit,
-		private val removeMenu: (id: String) -> Unit,
-		private val closeDetails: () -> Unit,
+	componentContext: ComponentContext,
+	private val selectedSceneItem: MutableSharedFlow<SceneItem?>,
+	private val removeMenu: (id: String) -> Unit,
+	private val closeDetails: () -> Unit,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
 	private val navigation = StackNavigation<Config>()
@@ -91,6 +93,7 @@ internal class DetailsRouter(
 
 	fun closeScene() {
 		navigation.popWhile { it !is Config.None }
+		selectedSceneItem.tryEmit(null)
 	}
 
 	fun isShown(): Boolean =

@@ -1,17 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
-import androidx.compose.foundation.ContextMenuArea
-import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -44,39 +41,39 @@ internal fun SceneGroupItem(
 		tonalElevation = if (collapsed) 1.dp else 0.dp,
 	) {
 		BoxWithConstraints {
-			ContextMenuArea(
-				enabled = children.isEmpty(),
-				items = {
-					listOf(
-						ContextMenuItem(
-							label = "Delete",
-							onClick = { onSceneAltClick(scene) }
-						)
-					)
-				},
+			Row(
+				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Row(
-					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
-				) {
-					if (collapsed) {
-						Icon(
-							imageVector = Icons.Filled.Folder,
-							contentDescription = "Group Collapsed",
-							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-						)
-					} else {
-						Icon(
-							imageVector = Icons.Filled.FolderOpen,
-							contentDescription = "Group Expanded",
-							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-						)
-					}
-
-					Text(
-						scene.name,
-						modifier = Modifier.weight(1f),
-						style = MaterialTheme.typography.bodyLarge
+				if (collapsed) {
+					Icon(
+						imageVector = Icons.Filled.Folder,
+						contentDescription = "Group Collapsed",
+						modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
 					)
+				} else {
+					Icon(
+						imageVector = Icons.Filled.FolderOpen,
+						contentDescription = "Group Expanded",
+						modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
+					)
+				}
+
+				Text(
+					scene.name,
+					modifier = Modifier.weight(1f),
+					style = MaterialTheme.typography.bodyLarge
+				)
+
+				if (children.isEmpty()) {
+					IconButton(
+						onClick = { onSceneAltClick(scene) },
+						modifier = Modifier.size(Ui.MIN_TOUCH_SIZE)
+					) {
+						Icon(Icons.Filled.Delete, contentDescription = "Delete Group")
+					}
+				} else {
+					Spacer(modifier = Modifier.size(Ui.MIN_TOUCH_SIZE))
 				}
 			}
 

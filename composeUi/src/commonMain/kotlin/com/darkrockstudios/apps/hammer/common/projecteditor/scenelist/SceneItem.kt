@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,23 +40,14 @@ internal fun SceneItem(
 		modifier = modifier.leftBorder(1.dp, MaterialTheme.colorScheme.outline)
 	}
 
-	Surface(
-		modifier = modifier,
-		color = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-		tonalElevation = if (isSelected) Ui.Elevation.MEDIUM else 0.dp,
-		border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
-	) {
-		BoxWithConstraints {
-			ContextMenuArea(
-				items = {
-					listOf(
-						ContextMenuItem(
-							label = "Delete",
-							onClick = { onSceneAltClick(scene) }
-						)
-					)
-				},
-			) {
+	SceneItemActionContainer(scene, onSceneAltClick) {
+		Surface(
+			modifier = modifier,
+			color = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+			tonalElevation = if (isSelected) Ui.Elevation.MEDIUM else 0.dp,
+			border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
+		) {
+			BoxWithConstraints {
 				Row(
 					modifier = Modifier
 						.padding(Ui.Padding.L)
@@ -67,9 +61,9 @@ internal fun SceneItem(
 						modifier = Modifier.weight(1f).padding(start = Ui.Padding.L)
 					)
 				}
-			}
 
-			Unsaved(hasDirtyBuffer)
+				Unsaved(hasDirtyBuffer)
+			}
 		}
 	}
 }
