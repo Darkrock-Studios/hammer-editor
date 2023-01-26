@@ -45,6 +45,7 @@ class NotesComponent(
 	override fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)
 		if (result.isSuccess) {
+			dismissCreate()
 			notesRepository.loadNotes()
 		}
 
@@ -62,18 +63,18 @@ class NotesComponent(
 	}
 
 	override fun confirmDelete(note: NoteContent) {
-		_state.reduce {
-			it.copy(
-				confirmDelete = note
-			)
-		}
+		_state.reduce { it.copy(confirmDelete = note) }
 	}
 
 	override fun dismissConfirmDelete() {
-		_state.reduce {
-			it.copy(
-				confirmDelete = null
-			)
-		}
+		_state.reduce { it.copy(confirmDelete = null) }
+	}
+
+	override fun showCreate() {
+		_state.reduce { it.copy(showCreate = true) }
+	}
+
+	override fun dismissCreate() {
+		_state.reduce { it.copy(showCreate = false) }
 	}
 }

@@ -4,82 +4,82 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
+import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesUi(
 	component: Notes
 ) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
-	var newNoteText by remember { mutableStateOf("") }
-	var newNoteError by remember { mutableStateOf(false) }
-
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	Column {
-		Text("New Note:")
-		TextField(
-			value = newNoteText,
-			onValueChange = { newNoteText = it },
-			isError = newNoteError
-		)
-		Button(onClick = {
-			val result = component.createNote(newNoteText)
-			newNoteError = !result.isSuccess
-			when (result) {
-				NoteError.TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Note was too long") }
-				NoteError.EMPTY -> scope.launch { snackbarHostState.showSnackbar("Note was empty") }
-				NoteError.NONE -> {
-					newNoteText = ""
-					scope.launch { snackbarHostState.showSnackbar("Note Created") }
-				}
-			}
-		}) {
-			Text("Create")
-		}
-		Spacer(modifier = Modifier)
+	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
+		Column {
+			Text(
+				"Notes",
+				style = MaterialTheme.typography.headlineLarge,
+				color = MaterialTheme.colorScheme.onBackground
+			)
 
-		Text("Notes")
-		LazyVerticalGrid(
-			columns = GridCells.Adaptive(512.dp),
-			modifier = Modifier.fillMaxWidth(),
-			contentPadding = PaddingValues(Ui.Padding.XL)
-		) {
-			state.apply {
-				if (notes.isEmpty()) {
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			LazyVerticalGrid(
+				columns = GridCells.Adaptive(400.dp),
+				modifier = Modifier.fillMaxWidth(),
+				contentPadding = PaddingValues(Ui.Padding.XL)
+			) {
+				if (state.notes.isEmpty()) {
 					item {
-						Text("No Notes Found")
-					}
-				} else {
-					items(notes.size) { index ->
-						NoteItem(
-							note = notes[index],
-							component = component,
-							snackbarHostState = snackbarHostState,
-							scope = scope,
+						Text(
+							"No Notes Found",
+							style = MaterialTheme.typography.displayMedium
 						)
 					}
 				}
+
+				items(
+					count = state.notes.size,
+				) { index ->
+					NoteItem(
+						note = state.notes[index],
+						component = component,
+						snackbarHostState = snackbarHostState,
+						scope = scope,
+					)
+				}
 			}
 		}
 
-		SnackbarHost(snackbarHostState, modifier = Modifier)
+		FloatingActionButton(
+			onClick = { component.showCreate() },
+			modifier = Modifier.align(Alignment.BottomEnd)
+		) {
+			Icon(Icons.Filled.Create, "Create Note")
+		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+	}
+
+	if (state.showCreate) {
+		CreateNoteDialog(component, snackbarHostState, scope)
 	}
 
 	state.confirmDelete?.let { note ->
@@ -100,66 +100,67 @@ fun NoteItem(
 	var updatedNoteText by remember { mutableStateOf(note.content) }
 
 	Card(
-		modifier = modifier
-			.fillMaxWidth()
-			.padding(Ui.Padding.XL),
+		modifier = modifier.fillMaxWidth().padding(Ui.Padding.XL)
 	) {
-		Column {
-			Text(note.id.toString())
-			Text(note.created.toLocalDateTime(TimeZone.currentSystemDefault()).toString())
-			if (isEditing) {
-				TextField(
-					value = updatedNoteText,
-					onValueChange = { updatedNoteText = it },
-				)
-				Button(onClick = {
-					component.updateNote(note.copy(content = updatedNoteText))
-					isEditing = false
-				}) {
-					Text("Save")
+		Column(
+			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
+		) {
+			Row {
+				if (isEditing) {
+					Column(modifier = Modifier.weight(1f)) {
+						Row {
+							IconButton(onClick = {
+								component.updateNote(note.copy(content = updatedNoteText))
+								isEditing = false
+							}) {
+								Icon(
+									Icons.Filled.Check,
+									"Rename",
+									tint = MaterialTheme.colorScheme.onSurface
+								)
+							}
+							IconButton(onClick = { isEditing = false }) {
+								Icon(
+									Icons.Filled.Cancel,
+									"Cancel",
+									tint = MaterialTheme.colorScheme.error
+								)
+							}
+						}
+						TextField(
+							modifier = Modifier.fillMaxWidth(),
+							value = updatedNoteText,
+							onValueChange = { updatedNoteText = it },
+						)
+					}
+				} else {
+					ClickableText(
+						note.content.markdownToAnnotatedString(),
+						modifier = Modifier.weight(1f),
+						style = MaterialTheme.typography.bodyMedium
+							.copy(color = MaterialTheme.colorScheme.onBackground),
+					) {
+						isEditing = true
+					}
 				}
-				Button(onClick = { isEditing = false }) {
-					Text("Cancel")
-				}
-			} else {
-				ClickableText(note.content.markdownToAnnotatedString()) {
-					isEditing = true
+
+				IconButton(
+					onClick = { component.confirmDelete(note) },
+				) {
+					Icon(Icons.Filled.Delete, "Delete")
 				}
 			}
-			Button(onClick = { component.confirmDelete(note) }) {
-				Text("Delete")
+			Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+			val date = remember(note.created) {
+				val created = note.created.toLocalDateTime(TimeZone.currentSystemDefault())
+				created.format("dd MMM `yy")
 			}
+
+			Text(
+				date,
+				style = MaterialTheme.typography.bodySmall
+			)
 		}
 	}
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun ConfirmDeleteDialog(
-	note: NoteContent,
-	component: Notes,
-	snackbarHostState: SnackbarHostState,
-	scope: CoroutineScope,
-) {
-	AlertDialog(
-		onDismissRequest = {},
-		title = { Text("Delete Note ${note.id}?") },
-		buttons = {
-			Row(Modifier.wrapContentSize()) {
-				Button(onClick = {
-					component.deleteNote(note.id)
-					component.dismissConfirmDelete()
-					scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
-				}) {
-					Text("DELETE")
-				}
-
-				Button(onClick = {
-					component.dismissConfirmDelete()
-				}) {
-					Text("Cancel")
-				}
-			}
-		}
-	)
 }

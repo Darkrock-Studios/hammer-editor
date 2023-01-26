@@ -16,9 +16,13 @@ interface Notes : HammerComponent {
 	fun confirmDelete(note: NoteContent)
 	fun dismissConfirmDelete()
 
+	fun showCreate()
+	fun dismissCreate()
+
 	data class State(
 		val projectDef: ProjectDef,
 		val notes: List<NoteContent>,
-		val confirmDelete: NoteContent? = null
+		val confirmDelete: NoteContent? = null,
+		val showCreate: Boolean = false
 	)
 }

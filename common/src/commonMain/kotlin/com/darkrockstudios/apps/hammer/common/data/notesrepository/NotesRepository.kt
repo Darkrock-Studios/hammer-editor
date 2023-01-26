@@ -56,7 +56,7 @@ abstract class NotesRepository(
 		val NOTE_FILENAME_PATTERN = Regex("""note-(\d+)\.toml""")
 		const val NOTES_FILENAME_EXTENSION = ".toml"
 		const val NOTES_DIRECTORY = "notes"
-		const val MAX_NOTE_SIZE = 20
+		const val MAX_NOTE_SIZE = 2048
 
 		fun getNoteFilenameFromId(id: Int): String {
 			return "note-$id.toml"

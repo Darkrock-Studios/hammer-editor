@@ -74,4 +74,6 @@ private fun fakeComponent(): Notes = object : Notes {
 	override fun updateNote(noteContent: NoteContent) {}
 	override fun confirmDelete(note: NoteContent) {}
 	override fun dismissConfirmDelete() {}
+	override fun showCreate() {}
+	override fun dismissCreate() {}
 }

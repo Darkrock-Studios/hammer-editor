@@ -138,7 +138,10 @@ fun ProjectList(
 					contentPadding = PaddingValues(Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 				) {
-					items(state.projectDefs.size) { index ->
+					items(
+						count = state.projectDefs.size,
+						key = { index -> state.projectDefs[index].name.hashCode() }
+					) { index ->
 						ProjectCard(state.projectDefs[index], component::selectProject) { project ->
 							projectDefDeleteTarget = project
 						}
