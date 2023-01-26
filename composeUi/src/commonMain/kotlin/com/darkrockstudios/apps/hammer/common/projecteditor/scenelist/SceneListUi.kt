@@ -35,7 +35,7 @@ fun SceneListUi(
 	val state by component.state.subscribeAsState()
 	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
-	var showCreateGroupDialog by remember { mutableStateOf(false) }
+	var showCreateGroupDialog by remember { mutableStateOf<SceneItem?>(null) }
 	var showCreateSceneDialog by remember { mutableStateOf<SceneItem?>(null) }
 	var expandOrCollapse by remember { mutableStateOf(false) }
 
@@ -101,9 +101,8 @@ fun SceneListUi(
 						sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
 						},
-						createScene = { parent ->
-							showCreateSceneDialog = parent
-						}
+						createScene = { parent -> showCreateSceneDialog = parent },
+						createGroup = { parent -> showCreateGroupDialog = parent }
 					)
 				},
 				contentPadding = PaddingValues(bottom = 100.dp)
@@ -112,7 +111,7 @@ fun SceneListUi(
 
 		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
 			FloatingActionButton(
-				onClick = { showCreateGroupDialog = true },
+				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
 				modifier = Modifier.padding(end = Ui.Padding.M)
 			) {
 				Icon(Icons.Filled.CreateNewFolder, "Create Group")
@@ -126,15 +125,15 @@ fun SceneListUi(
 	}
 
 	CreateDialog(
-		show = showCreateGroupDialog,
+		show = showCreateGroupDialog != null,
 		title = "Create Group",
 		textLabel = "Group Name"
 	) { groupName ->
 		Napier.d { "Create dialog close" }
 		if (groupName != null) {
-			component.createGroup(groupName)
+			component.createGroup(showCreateGroupDialog, groupName)
 		}
-		showCreateGroupDialog = false
+		showCreateGroupDialog = null
 	}
 
 	CreateDialog(
@@ -177,7 +176,8 @@ private fun SceneNode(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
-	createScene: (SceneItem) -> Unit
+	createScene: (SceneItem) -> Unit,
+	createGroup: (SceneItem) -> Unit
 ) {
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem
@@ -189,9 +189,7 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
 			onSceneSelected = component::onSceneSelected,
-			onSceneAltClick = { selectedScene ->
-				sceneDefDeleteTarget(selectedScene)
-			},
+			onSceneAltClick = sceneDefDeleteTarget,
 		)
 	} else {
 		SceneGroupItem(
@@ -200,9 +198,8 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer,
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
-			onSceneAltClick = { selectedScene ->
-				sceneDefDeleteTarget(selectedScene)
-			},
+			onSceneAltClick = sceneDefDeleteTarget,
+			onCreateGroupClick = createGroup,
 			onCreateSceneClick = createScene
 		)
 	}

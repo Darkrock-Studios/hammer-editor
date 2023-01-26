@@ -31,6 +31,7 @@ actual fun SceneGroupActionContainer(
 	scene: SceneItem,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
+	onCreateGroupClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit
 ) {
 	val hapticFeedback = LocalHapticFeedback.current
@@ -94,7 +95,8 @@ actual fun SceneGroupActionContainer(
 					Icons.Outlined.Delete,
 					contentDescription = "Delete Group"
 				)
-			})
+			}
+		)
 		DropdownMenuItem(
 			text = { Text("Create Scene") },
 			onClick = {
@@ -106,6 +108,20 @@ actual fun SceneGroupActionContainer(
 					Icons.Outlined.Create,
 					contentDescription = "Create Scene"
 				)
-			})
+			}
+		)
+		DropdownMenuItem(
+			text = { Text("Create Group") },
+			onClick = {
+				onCreateGroupClick(scene)
+				showMenu = false
+			},
+			leadingIcon = {
+				Icon(
+					Icons.Outlined.Create,
+					contentDescription = "Create Group"
+				)
+			}
+		)
 	}
 }

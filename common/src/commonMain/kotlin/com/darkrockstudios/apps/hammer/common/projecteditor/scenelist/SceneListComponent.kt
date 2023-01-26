@@ -82,8 +82,14 @@ class SceneListComponent(
 		}
 	}
 
-	override fun createGroup(groupName: String) {
-		val newSceneItem = projectEditor.createGroup(null, groupName)
+	override fun createGroup(parent: SceneItem?, groupName: String) {
+		val foundParent = if (parent?.isRootScene == true) {
+			null
+		} else {
+			parent
+		}
+
+		val newSceneItem = projectEditor.createGroup(foundParent, groupName)
 		if (newSceneItem != null) {
 			Napier.i("Group created: $groupName")
 		} else {

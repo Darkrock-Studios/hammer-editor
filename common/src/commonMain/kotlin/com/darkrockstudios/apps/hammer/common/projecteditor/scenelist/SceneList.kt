@@ -9,7 +9,7 @@ interface SceneList {
     fun moveScene(moveRequest: MoveRequest)
     fun loadScenes()
     fun createScene(parent: SceneItem?, sceneName: String)
-    fun createGroup(groupName: String)
+    fun createGroup(parent: SceneItem?, groupName: String)
     fun deleteScene(scene: SceneItem)
 
     fun onSceneListUpdate(scenes: SceneSummary)

@@ -11,6 +11,7 @@ actual fun SceneGroupActionContainer(
 	scene: SceneItem,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
+	onCreateGroupClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit
 ) {
 	ContextMenuArea(
@@ -23,6 +24,10 @@ actual fun SceneGroupActionContainer(
 				ContextMenuItem(
 					label = "Create Scene",
 					onClick = { onCreateSceneClick(scene) }
+				),
+				ContextMenuItem(
+					label = "Create Group",
+					onClick = { onCreateGroupClick(scene) }
 				)
 			)
 		},

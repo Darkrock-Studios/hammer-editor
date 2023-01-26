@@ -27,6 +27,7 @@ internal fun SceneGroupItem(
 	collapsed: Boolean,
 	onSceneAltClick: (SceneItem) -> Unit,
 	onCreateSceneClick: (SceneItem) -> Unit,
+	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 
@@ -42,7 +43,8 @@ internal fun SceneGroupItem(
 	SceneGroupActionContainer(
 		scene = scene,
 		onSceneAltClick = onSceneAltClick,
-		onCreateSceneClick = onCreateSceneClick
+		onCreateSceneClick = onCreateSceneClick,
+		onCreateGroupClick = onCreateGroupClick,
 	) {
 		Surface(
 			modifier = groupModifier,
