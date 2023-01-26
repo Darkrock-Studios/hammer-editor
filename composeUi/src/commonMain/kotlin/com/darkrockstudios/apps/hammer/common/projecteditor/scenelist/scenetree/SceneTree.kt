@@ -31,47 +31,45 @@ fun SceneTree(
 	itemUi: ItemUi,
 	contentPadding: PaddingValues
 ) {
-	state.apply {
-		Box {
-			Row {
-				LazyColumn(
-					state = state.listState,
-					modifier = reorderableModifier(state, modifier)
-						.weight(1f),
-					contentPadding = contentPadding
-				) {
-					items(
-						count = summary.sceneTree.totalNodes,
-						key = { summary.sceneTree[it].value.id },
-						contentType = { summary.sceneTree[it].value.type }
-					) { index ->
-						val childNode = summary.sceneTree[index]
-						val shouldCollapseSelf = shouldCollapseNode(
-							index,
-							summary,
-							collapsedNodes
-						)
-						val nodeCollapsesChildren = collapsedNodes[childNode.value.id] ?: false
+	Box {
+		Row {
+			LazyColumn(
+				state = state.listState,
+				modifier = modifier.reorderableModifier(state)
+					.weight(1f),
+				contentPadding = contentPadding
+			) {
+				items(
+					count = state.summary.sceneTree.totalNodes,
+					key = { state.summary.sceneTree[it].value.id },
+					contentType = { state.summary.sceneTree[it].value.type }
+				) { index ->
+					val childNode = state.summary.sceneTree[index]
+					val shouldCollapseSelf = shouldCollapseNode(
+						index,
+						state.summary,
+						state.collapsedNodes
+					)
+					val nodeCollapsesChildren = state.collapsedNodes[childNode.value.id] ?: false
 
-						if (!childNode.value.isRootScene) {
-							SceneTreeNode(
-								node = childNode,
-								collapsed = shouldCollapseSelf, // need to take parent into account
-								nodeCollapsesChildren = nodeCollapsesChildren,
-								selectedId = selectedId,
-								toggleExpanded = state::toggleExpanded,
-								modifier = Modifier.wrapContentHeight()
-									.fillMaxWidth()
-									.animateItemPlacement(),
-								itemUi = itemUi
-							)
-						}
+					if (!childNode.value.isRootScene) {
+						SceneTreeNode(
+							node = childNode,
+							collapsed = shouldCollapseSelf, // need to take parent into account
+							nodeCollapsesChildren = nodeCollapsesChildren,
+							selectedId = state.selectedId,
+							toggleExpanded = state::toggleExpanded,
+							modifier = Modifier.wrapContentHeight()
+								.fillMaxWidth()
+								.animateItemPlacement(),
+							itemUi = itemUi
+						)
 					}
 				}
-				MpScrollBar(state = state.listState)
 			}
-			drawInsertLine(state)
+			MpScrollBar(state = state.listState)
 		}
+		drawInsertLine(state)
 	}
 }
 
@@ -95,9 +93,9 @@ private fun shouldCollapseNode(
 }
 
 @Composable
-private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modifier {
+private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 	state.apply {
-		return modifier.pointerInput(dragId) {
+		return pointerInput(Unit) {
 			detectDragGesturesAfterLongPress(
 				onDragStart = { offset ->
 					for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
@@ -115,6 +113,8 @@ private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modi
 					stopDragging()
 				}
 			) { change, _ ->
+				change.consume()
+
 				val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
 				val insertPosition = findInsertPosition(
 					dragOffset = change.position,
@@ -129,9 +129,7 @@ private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modi
 				}
 
 				// Auto scroll
-				// TODO Compose 1.3.0 should have this field
-				//val height = layoutInfo.viewportSize.height
-				val height = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+				val height = layoutInfo.viewportSize.height - layoutInfo.viewportStartOffset
 				val bottomTenPercent: Float = height * .9f
 				val topTenPercent: Float = height * .1f
 
@@ -145,7 +143,7 @@ private fun reorderableModifier(state: SceneTreeState, modifier: Modifier): Modi
 	}
 }
 
-private const val NESTING_INSET = 32f
+private val NESTING_INSET = 16f.dp
 
 @Composable
 private fun drawInsertLine(state: SceneTreeState, color: Color = MaterialTheme.colorScheme.secondary) {
@@ -177,12 +175,12 @@ private fun drawInsertLine(state: SceneTreeState, color: Color = MaterialTheme.c
 					Canvas(modifier = Modifier.fillMaxSize().clipToBounds()) {
 						val canvasWidth = size.width
 
-						val insetSize = (nestingDept * NESTING_INSET)
-						val endX = canvasWidth - NESTING_INSET
+						val insetSize = (nestingDept * NESTING_INSET.toPx())
+						val endX = canvasWidth - NESTING_INSET.toPx()
 
 						drawLine(
-							start = Offset(x = insetSize.dp.toPx(), y = lineY.toFloat()),
-							end = Offset(x = endX.dp.toPx(), y = lineY.toFloat()),
+							start = Offset(x = insetSize, y = lineY.toFloat()),
+							end = Offset(x = endX, y = lineY.toFloat()),
 							color = color,
 							strokeWidth = 5f.dp.toPx(),
 							cap = StrokeCap.Round

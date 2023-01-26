@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -167,52 +166,6 @@ fun SceneListUi(
 	}
 }
 
-@ExperimentalMaterial3Api
-@Composable
-private fun CreateDialog(
-	show: Boolean,
-	title: String,
-	textLabel: String,
-	onClose: (name: String?) -> Unit
-) {
-	MpDialog(
-		visible = show,
-		title = title,
-		modifier = Modifier.padding(Ui.Padding.XL),
-		onCloseRequest = { onClose(null) }
-	) {
-		var nameText by remember { mutableStateOf("") }
-		Box(modifier = Modifier.fillMaxWidth()) {
-			Column(
-				modifier = Modifier
-					.width(IntrinsicSize.Max)
-					.align(Alignment.Center)
-			) {
-				TextField(
-					value = nameText,
-					onValueChange = { nameText = it },
-					label = { Text(textLabel) }
-				)
-
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween
-				) {
-					Button(onClick = { onClose(nameText) }) {
-						Text("Create")
-					}
-
-					Button(onClick = { onClose(null) }) {
-						Text("Cancel")
-					}
-				}
-			}
-		}
-	}
-}
-
 @ExperimentalFoundationApi
 @Composable
 private fun SceneNode(
@@ -265,77 +218,3 @@ internal fun BoxWithConstraintsScope.Unsaved(hasDirtyBuffer: Boolean) {
 
 @Composable
 internal fun selectionColor(): Color = MaterialTheme.colorScheme.tertiaryContainer
-
-@ExperimentalMaterialApi
-@ExperimentalComposeApi
-@Composable
-internal fun SceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
-	MpDialog(
-		onCloseRequest = {},
-		visible = true,
-		modifier = Modifier.padding(Ui.Padding.XL),
-		title = "Delete Scene"
-	) {
-		Box(modifier = Modifier.fillMaxWidth()) {
-			Column(
-				modifier = Modifier
-					.width(IntrinsicSize.Max)
-					.align(Alignment.Center)
-					.padding(Ui.Padding.XL)
-			) {
-				Text(
-					"Are you sure you want to delete this scene:\n\"${scene.name}\"",
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.onSurface
-				)
-
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-				Row(
-					modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L),
-					horizontalArrangement = Arrangement.SpaceBetween
-				) {
-					Button(onClick = { dismissDialog(true) }) {
-						Text("DELETE")
-					}
-					Button(onClick = { dismissDialog(false) }) {
-						Text("Dismiss")
-					}
-				}
-			}
-		}
-	}
-}
-
-@ExperimentalMaterialApi
-@ExperimentalComposeApi
-@Composable
-internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
-	MpDialog(
-		onCloseRequest = {},
-		visible = true,
-		modifier = Modifier.padding(Ui.Padding.XL),
-		title = "Cannot Delete Group"
-	) {
-		Box(modifier = Modifier.fillMaxWidth()) {
-			Column(
-				modifier = Modifier
-					.width(IntrinsicSize.Max)
-					.align(Alignment.Center)
-					.padding(Ui.Padding.XL)
-			) {
-				Text(
-					"You cannot delete a group while it still has children:\n\"${scene.name}\"",
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.onSurface
-				)
-
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-				Button(onClick = { dismissDialog(false) }) {
-					Text("Okay")
-				}
-			}
-		}
-	}
-}

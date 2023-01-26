@@ -35,10 +35,9 @@ class SceneTreeState(
     val listState: LazyListState,
 ) {
     internal var summary by mutableStateOf(sceneSummary)
-    var selectedId by mutableStateOf(-1)
+    var selectedId by mutableStateOf(NO_SELECTION)
     var insertAt by mutableStateOf<InsertPosition?>(null)
     val collapsedNodes = mutableStateMapOf<Int, Boolean>()
-    var dragId by mutableStateOf(0)
 
     private var scrollJob by mutableStateOf<Job?>(null)
     private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())
@@ -54,7 +53,6 @@ class SceneTreeState(
         val newHash = summary.sceneTree.hashCode()
         if (treeHash != newHash) {
             treeHash = newHash
-            dragId += 1
 
             // Prune layouts if the id is not found in the tree
             val nodeIt = collapsedNodes.iterator()
@@ -107,7 +105,7 @@ class SceneTreeState(
     }
 
     fun startDragging(id: Int) {
-        if (selectedId == -1) {
+        if (selectedId == NO_SELECTION) {
             selectedId = id
         }
     }
@@ -123,13 +121,16 @@ class SceneTreeState(
             moveItem(request)
         }
 
-        selectedId = -1
+        selectedId = NO_SELECTION
         insertAt = null
-        dragId += 1
     }
 
     fun toggleExpanded(nodeId: Int) {
         val collapse = !(collapsedNodes[nodeId] ?: false)
         collapsedNodes[nodeId] = collapse
+    }
+
+    companion object {
+        const val NO_SELECTION = -1
     }
 }
