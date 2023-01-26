@@ -68,9 +68,7 @@ private fun fakeComponent(): Notes = object : Notes {
 		)
 
 	override fun createNote(noteText: String) = NoteError.NONE
-
 	override fun deleteNote(id: Int) {}
-
 	override fun updateNote(noteContent: NoteContent) {}
 	override fun confirmDelete(note: NoteContent) {}
 	override fun dismissConfirmDelete() {}

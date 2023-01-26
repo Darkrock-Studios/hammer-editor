@@ -44,9 +44,7 @@ private fun ProjectCardPreview() {
 
 private fun fakeProjectSelectionComponent(): ProjectSelection {
 	return object : ProjectSelection {
-		override val showProjectDirectory: Boolean
-			get() = false
-
+		override val showProjectDirectory = true
 		override val state: Value<ProjectSelection.State>
 			get() = MutableValue(
 				ProjectSelection.State(

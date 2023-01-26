@@ -74,26 +74,28 @@ fun Settings(
 
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-		Column(modifier = Modifier.padding(Ui.Padding.M)) {
-			Text(
-				"Projects Directory",
-				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.onBackground,
-			)
+		if (component.showProjectDirectory) {
+			Column(modifier = Modifier.padding(Ui.Padding.M)) {
+				Text(
+					"Projects Directory",
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onBackground,
+				)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
+				Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-			TextField(
-				value = projectsPathText,
-				onValueChange = { projectsPathText = it },
-				enabled = false,
-				label = { Text("Path to Projects Directory") }
-			)
+				TextField(
+					value = projectsPathText,
+					onValueChange = { projectsPathText = it },
+					enabled = false,
+					label = { Text("Path to Projects Directory") }
+				)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
+				Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-			Button(onClick = { showDirectoryPicker = true }) {
-				Text("Select Dir")
+				Button(onClick = { showDirectoryPicker = true }) {
+					Text("Select Dir")
+				}
 			}
 		}
 	}
