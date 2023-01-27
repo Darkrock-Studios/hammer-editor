@@ -14,12 +14,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -28,8 +35,12 @@ import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
+import org.koin.java.KoinJavaComponent.getKoin
 
 
 @ExperimentalDecomposeApi
@@ -50,20 +61,46 @@ fun main() {
 		LafManager.install(IntelliJTheme())
 	}
 
+	val scope = CoroutineScope(defaultDispatcher)
+
+	// Listen and react to Global Settings updates
+	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
+	val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	val settingsUpdateJob = scope.launch {
+		globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			withContext(mainDispatcher) {
+				globalSettings.reduce { settings }
+			}
+		}
+	}
+
 	application {
 		val applicationState = remember { ApplicationState() }
 		val imageLoader: ImageLoader = get(ImageLoader::class.java)
 
-		var darkMode by remember { mutableStateOf(osThemeDetector.isDark) }
-		osThemeDetector.registerListener { isDarkModeEnabled ->
-			darkMode = isDarkModeEnabled
+		val settingsState by globalSettings.subscribeAsState()
+		val initialDark = when (settingsState.uiTheme) {
+			UiTheme.Light -> false
+			UiTheme.Dark -> true
+			UiTheme.FollowSystem -> osThemeDetector.isDark
+		}
+		var darkMode by remember(initialDark) { mutableStateOf(initialDark) }
+		val themeListener = remember {
+			{ isDarkModeEnabled: Boolean ->
+				darkMode = isDarkModeEnabled
 
-			if (darkMode) {
-				LafManager.install(DarculaTheme())
-			} else {
-				LafManager.install(IntelliJTheme())
+				if (darkMode) {
+					LafManager.install(DarculaTheme())
+				} else {
+					LafManager.install(IntelliJTheme())
+				}
+				LafManager.updateLaf()
 			}
-			LafManager.updateLaf()
+		}
+		if (settingsState.uiTheme == UiTheme.FollowSystem) {
+			osThemeDetector.registerListener(themeListener)
+		} else {
+			osThemeDetector.registerListener(themeListener)
 		}
 
 		AppTheme(useDarkTheme = darkMode) {
@@ -84,6 +121,8 @@ fun main() {
 			}
 		}
 	}
+
+	settingsUpdateJob.cancel()
 }
 
 @ExperimentalMaterialApi

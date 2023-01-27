@@ -103,8 +103,8 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override fun onSceneSelected(sceneDef: SceneItem) {}
 	override fun moveScene(moveRequest: MoveRequest) {}
 	override fun loadScenes() {}
-	override fun createScene(sceneName: String) {}
-	override fun createGroup(groupName: String) {}
+	override fun createScene(parent: SceneItem?, sceneName: String) {}
+	override fun createGroup(parent: SceneItem?, groupName: String) {}
 	override fun deleteScene(scene: SceneItem) {}
 	override fun onSceneListUpdate(scenes: SceneSummary) {}
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {}

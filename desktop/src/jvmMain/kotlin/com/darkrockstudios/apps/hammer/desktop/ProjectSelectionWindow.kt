@@ -36,7 +36,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle) }
 	val windowState = rememberWindowState()
-	val component = remember(onProjectSelected) {
+	val component = remember {
 		ProjectSelectionComponent(
 			componentContext = compContext,
 			showProjectDirectory = true,

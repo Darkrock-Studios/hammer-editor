@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.DropDown
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -39,7 +39,6 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	) { mutableStateOf(component.getFilteredEntries()) }
 
 	Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		Text("Encyclopedia")
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 		Row(verticalAlignment = Alignment.CenterVertically) {
@@ -55,7 +54,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 			Spacer(Modifier.width(Ui.Padding.XL))
 
-			DropDown(
+			ExposedDropDown(
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
 				padding = Ui.Padding.XL,
 				items = types,
@@ -69,7 +68,6 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-		Text("Notes")
 		LazyVerticalGrid(
 			columns = GridCells.Adaptive(512.dp),
 			modifier = Modifier.fillMaxWidth(),

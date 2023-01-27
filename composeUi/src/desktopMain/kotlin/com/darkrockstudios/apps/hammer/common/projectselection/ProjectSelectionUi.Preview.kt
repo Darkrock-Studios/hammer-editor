@@ -14,6 +14,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 
 
@@ -54,7 +55,8 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 						fakeProjectDef(),
 						fakeProjectDef(),
 						fakeProjectDef(),
-					)
+					),
+					uiTheme = UiTheme.Dark
 				)
 			)
 
@@ -64,5 +66,6 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 		override fun createProject(projectName: String) {}
 		override fun deleteProject(projectDef: ProjectDef) {}
 		override fun showLocation(location: ProjectSelection.Locations) {}
+		override fun setUiTheme(theme: UiTheme) {}
 	}
 }

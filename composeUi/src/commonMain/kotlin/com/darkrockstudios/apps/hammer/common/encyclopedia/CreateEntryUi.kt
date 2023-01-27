@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.DropDown
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -57,7 +57,7 @@ internal fun CreateEntryUi(
 
 		Text("Type:", modifier = Modifier.padding(bottom = 2.dp))
 
-		DropDown(
+		ExposedDropDown(
 			modifier = Modifier.fillMaxWidth(),
 			padding = Ui.Padding.XL,
 			items = types,

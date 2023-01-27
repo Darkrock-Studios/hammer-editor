@@ -6,30 +6,42 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
 class ProjectRootActivity : AppCompatActivity() {
 
 	private val imageLoader: ImageLoader by inject()
+	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	private var settingsUpdateJob: Job? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -40,12 +52,37 @@ class ProjectRootActivity : AppCompatActivity() {
 		} else {
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
-					AppTheme {
+					val settingsState by globalSettings.subscribeAsState()
+					val isDark = when (settingsState.uiTheme) {
+						UiTheme.Light -> false
+						UiTheme.Dark -> true
+						UiTheme.FollowSystem -> isSystemInDarkTheme()
+					}
+
+					AppTheme(isDark) {
 						Content(projectDef)
 					}
 				}
 			}
 		}
+	}
+
+	override fun onStart() {
+		super.onStart()
+
+		settingsUpdateJob = lifecycleScope.launch {
+			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+				withContext(mainDispatcher) {
+					globalSettings.reduce { settings }
+				}
+			}
+		}
+	}
+
+	override fun onStop() {
+		super.onStop()
+		settingsUpdateJob?.cancel()
+		settingsUpdateJob = null
 	}
 
 	@OptIn(ExperimentalMaterial3Api::class)

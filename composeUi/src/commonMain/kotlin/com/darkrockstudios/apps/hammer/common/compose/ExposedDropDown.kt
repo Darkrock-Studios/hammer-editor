@@ -7,13 +7,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,10 +17,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun <T> DropDown(
+fun <T> ExposedDropDown(
+	items: List<T>,
 	modifier: Modifier = Modifier,
 	padding: Dp = 16.dp,
-	items: List<T>,
 	defaultIndex: Int = 0,
 	noneOption: String? = null,
 	onValueChanged: (T?) -> Unit
@@ -73,23 +69,25 @@ fun <T> DropDown(
 			onDismissRequest = { itemsExpanded = false },
 		) {
 			if (noneOption != null) {
-				DropdownMenuItem(onClick = {
-					selectedIndex = 0
-					itemsExpanded = false
-					onValueChanged(null)
-				}) {
-					Text(noneOption)
-				}
+				DropdownMenuItem(
+					onClick = {
+						selectedIndex = 0
+						itemsExpanded = false
+						onValueChanged(null)
+					},
+					text = { Text(noneOption) }
+				)
 			}
 
 			items.forEachIndexed { index, item ->
-				DropdownMenuItem(onClick = {
-					selectedIndex = index + indexOffset
-					itemsExpanded = false
-					onValueChanged(items[index])
-				}) {
-					Text(text = item.toString())
-				}
+				DropdownMenuItem(
+					onClick = {
+						selectedIndex = index + indexOffset
+						itemsExpanded = false
+						onValueChanged(items[index])
+					},
+					text = { Text(text = item.toString()) }
+				)
 			}
 		}
 	}
