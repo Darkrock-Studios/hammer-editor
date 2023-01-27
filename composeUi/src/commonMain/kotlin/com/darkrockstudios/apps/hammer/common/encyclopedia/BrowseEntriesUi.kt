@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
@@ -17,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	component: BrowseEntries,
@@ -38,10 +39,11 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
 
-	Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-		Row(verticalAlignment = Alignment.CenterVertically) {
+	Column(modifier = Modifier.fillMaxSize()) {
+		Row(
+			modifier = Modifier.padding(Ui.Padding.XL),
+			verticalAlignment = Alignment.CenterVertically
+		) {
 			TextField(
 				value = searchText,
 				onValueChange = {
@@ -54,7 +56,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 			Spacer(Modifier.width(Ui.Padding.XL))
 
-			ExposedDropDown(
+			ExposedDropDown<EntryType>(
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
 				padding = Ui.Padding.XL,
 				items = types,
@@ -66,10 +68,8 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			}
 		}
 
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-		LazyVerticalGrid(
-			columns = GridCells.Adaptive(512.dp),
+		LazyVerticalStaggeredGrid(
+			columns = StaggeredGridCells.Adaptive(512.dp),
 			modifier = Modifier.fillMaxWidth(),
 			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {
@@ -84,14 +84,18 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,
-					)
+					) { type ->
+						selectedType = type
+						component.updateFilter(searchText, type)
+					}
 				}
 			}
 		}
 	}
+
 	FloatingActionButton(
 		onClick = showCreate,
-		modifier = Modifier.align(Alignment.BottomEnd)
+		modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.XL)
 	) {
 		Icon(
 			Icons.Rounded.Add,

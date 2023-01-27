@@ -37,9 +37,9 @@ kotlin {
 				api(compose.uiTooling)
 				api(compose.preview)
 				api(compose.foundation)
-				//api(compose.material3)
+				api(compose.material3)
 				// JB material3 is way behind, so this lib is a workaround:
-				api("io.github.qdsfdhvh:material3:1.0.8")
+				//api("io.github.qdsfdhvh:material3:1.0.8")
 				api(compose.animation)
 				api(compose.animationGraphics)
 				api(compose.materialIconsExtended)

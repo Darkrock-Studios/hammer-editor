@@ -61,12 +61,11 @@ abstract class EncyclopediaRepository(
 		text: String,
 		tags: List<String>
 	): EntryError {
-		return if (name.trim().length > MAX_NAME_SIZE) {
-			EntryError.NAME_TOO_LONG
-		} else if (!ENTRY_NAME_PATTERN.matches(name.trim())) {
-			EntryError.NAME_INVALID_CHARACTERS
-		} else {
-			EntryError.NONE
+		return when {
+			name.trim().length > MAX_NAME_SIZE -> EntryError.NAME_TOO_LONG
+			!ENTRY_NAME_PATTERN.matches(name.trim()) -> EntryError.NAME_INVALID_CHARACTERS
+			tags.any { it.length > MAX_TAG_SIZE } -> EntryError.TAG_TOO_LONG
+			else -> EntryError.NONE
 		}
 	}
 
@@ -90,6 +89,7 @@ abstract class EncyclopediaRepository(
 		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\da-zA-Z ]+)\.toml""")
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 		const val MAX_NAME_SIZE = 64
+		const val MAX_TAG_SIZE = 64
 
 		fun getEntryFilename(entryDef: EntryDef): String =
 			getEntryFilename(

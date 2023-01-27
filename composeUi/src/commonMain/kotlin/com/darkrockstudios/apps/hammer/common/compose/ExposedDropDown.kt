@@ -25,7 +25,7 @@ fun <T> ExposedDropDown(
 	noneOption: String? = null,
 	onValueChanged: (T?) -> Unit
 ) {
-	var selectedIndex by remember { mutableStateOf(defaultIndex) }
+	var selectedIndex by remember(defaultIndex) { mutableStateOf(defaultIndex) }
 	var itemsExpanded by remember { mutableStateOf(false) }
 
 	BoxWithConstraints(

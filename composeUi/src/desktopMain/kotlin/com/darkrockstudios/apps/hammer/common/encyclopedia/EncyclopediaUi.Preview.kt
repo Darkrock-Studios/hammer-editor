@@ -39,6 +39,7 @@ private fun EntryDefItemPreview() {
 		component = browseEntriesComponent,
 		viewEntry = {},
 		scope = scope,
+		filterByType = {}
 	)
 }
 

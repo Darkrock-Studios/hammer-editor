@@ -123,7 +123,7 @@ class EncyclopediaRepositoryOkio(
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
 
-		val cleanedTags = tags.map { it.trim() }
+		val cleanedTags = tags.map { it.trim() }.filter { it.isNotEmpty() }
 
 		val newId = idRepository.claimNextId()
 		val entry = EntryContent(
