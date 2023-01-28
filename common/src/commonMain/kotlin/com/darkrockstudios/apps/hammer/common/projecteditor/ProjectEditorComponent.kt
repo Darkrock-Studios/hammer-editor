@@ -135,7 +135,11 @@ class ProjectEditorComponent(
 
     private val backButtonHandler = object : BackCallback() {
         override fun onBack() {
-            closeDetails()
+            if (!detailsRouter.isAtRoot()) {
+                detailsRouter.onBack()
+            } else {
+                closeDetails()
+            }
         }
     }
 

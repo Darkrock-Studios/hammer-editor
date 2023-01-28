@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.popWhile
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -104,21 +101,11 @@ internal class DetailsRouter(
 	}
 
 	private fun showDraftsList(sceneDef: SceneItem) {
-		navigation.navigate(
-			transformer = { stack ->
-				stack.plus(Config.DraftsList(sceneDef = sceneDef))
-			},
-			onComplete = { _, _ -> }
-		)
+		navigation.push(Config.DraftsList(sceneDef = sceneDef))
 	}
 
 	private fun compareDraft(sceneDef: SceneItem, draftDef: DraftDef) {
-		navigation.navigate(
-			transformer = { stack ->
-				stack.plus(Config.DraftCompare(sceneDef = sceneDef, draftDef = draftDef))
-			},
-			onComplete = { _, _ -> }
-		)
+		navigation.push(Config.DraftCompare(sceneDef = sceneDef, draftDef = draftDef))
 	}
 
 	private fun closeDrafts() {
@@ -131,6 +118,15 @@ internal class DetailsRouter(
 
 	private fun backToEditor() {
 		navigation.popWhile { it !is Config.SceneEditor }
+	}
+
+	fun onBack() {
+		navigation.pop()
+	}
+
+	fun isAtRoot(): Boolean {
+		return stack.active.configuration is Config.SceneEditor ||
+				stack.active.configuration is Config.None
 	}
 
 	fun closeScene() {
