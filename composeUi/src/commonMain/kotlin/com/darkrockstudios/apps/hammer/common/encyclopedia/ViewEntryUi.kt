@@ -14,10 +14,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.ConfirmDialog
-import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.compose.TagRow
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
@@ -161,14 +158,17 @@ internal fun ViewEntryUi(
 						)
 					}
 				}
-				IconButton(
-					onClick = { closeEntry() },
-				) {
-					Icon(
-						Icons.Filled.Close,
-						contentDescription = "Close Entry",
-						tint = MaterialTheme.colorScheme.onSurface
-					)
+
+				if (LocalScreenCharacteristic.current.needsExplicitClose) {
+					IconButton(
+						onClick = { closeEntry() },
+					) {
+						Icon(
+							Icons.Filled.Close,
+							contentDescription = "Close Entry",
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
 				}
 			}
 

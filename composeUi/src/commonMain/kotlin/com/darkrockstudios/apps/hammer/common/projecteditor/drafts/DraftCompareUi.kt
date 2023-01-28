@@ -12,9 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DraftCompareUi(component: DraftCompare) {
 	val state by component.state.subscribeAsState()
@@ -27,59 +27,100 @@ fun DraftCompareUi(component: DraftCompare) {
 	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
-		IconButton(
-			onClick = { component.cancel() },
-			modifier = Modifier.align(Alignment.End)
-		) {
-			Icon(
-				Icons.Default.Cancel,
-				contentDescription = "Cancel",
-				tint = MaterialTheme.colorScheme.onBackground
+		if (LocalScreenCharacteristic.current.needsExplicitClose) {
+			IconButton(
+				onClick = { component.cancel() },
+				modifier = Modifier.align(Alignment.End)
+			) {
+				Icon(
+					Icons.Default.Cancel,
+					contentDescription = "Cancel",
+					tint = MaterialTheme.colorScheme.onBackground
+				)
+			}
+		}
+
+		if (LocalScreenCharacteristic.current.isWide) {
+			Row(modifier = Modifier.fillMaxSize()) {
+				CurrentContent(
+					modifier = Modifier.weight(1f),
+					sceneText = sceneText
+				)
+
+				DraftContent(
+					modifier = Modifier.weight(1f),
+					component = component,
+					draftText = draftText
+				)
+			}
+		} else {
+			Column(modifier = Modifier.fillMaxSize()) {
+				CurrentContent(
+					modifier = Modifier.weight(1f),
+					sceneText = sceneText
+				)
+
+				DraftContent(
+					modifier = Modifier.weight(1f),
+					component = component,
+					draftText = draftText
+				)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CurrentContent(modifier: Modifier, sceneText: String) {
+	Card(modifier = modifier.padding(Ui.Padding.L)) {
+		Column(modifier = Modifier.padding(Ui.Padding.L)) {
+			Text(
+				"Current",
+				style = MaterialTheme.typography.headlineLarge
+			)
+			Button(
+				onClick = {},
+				enabled = false
+			) {
+				Text("Keep Current")
+			}
+
+			TextField(
+				value = sceneText,
+				onValueChange = {
+					//sceneText = it
+				},
+				modifier = Modifier.fillMaxSize()
 			)
 		}
-		Row(modifier = Modifier.fillMaxSize()) {
-			Card(modifier = Modifier.weight(1f).padding(Ui.Padding.L)) {
-				Column(modifier = Modifier.padding(Ui.Padding.L)) {
-					Text(
-						"Current",
-						style = MaterialTheme.typography.headlineLarge
-					)
-					Button(
-						onClick = {},
-						enabled = false
-					) {
-						Text("Keep Current")
-					}
+	}
+}
 
-					TextField(
-						value = sceneText,
-						onValueChange = {
-							//sceneText = it
-						},
-						modifier = Modifier.fillMaxSize()
-					)
-				}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DraftContent(
+	modifier: Modifier,
+	component: DraftCompare,
+	draftText: String,
+) {
+	Card(modifier = modifier.padding(Ui.Padding.L)) {
+		Column(modifier = Modifier.padding(Ui.Padding.L)) {
+			Text(
+				"Draft: ${component.draftDef.draftName}",
+				style = MaterialTheme.typography.headlineLarge
+			)
+			Button(onClick = { component.pickDraft() }) {
+				Text("Use This One")
 			}
 
-			Card(modifier = Modifier.weight(1f).padding(Ui.Padding.L)) {
-				Column(modifier = Modifier.padding(Ui.Padding.L)) {
-					Text(
-						"Draft: ${state.draftDef.draftName}",
-						style = MaterialTheme.typography.headlineLarge
-					)
-					Button(onClick = { component.pickDraft() }) {
-						Text("Use This One")
-					}
-
-					TextField(
-						value = draftText,
-						onValueChange = {
-							//sceneText = it
-						},
-						modifier = Modifier.fillMaxSize()
-					)
-				}
-			}
+			TextField(
+				value = draftText,
+				onValueChange = {
+					//sceneText = it
+				},
+				modifier = Modifier.fillMaxSize()
+			)
 		}
 	}
 }

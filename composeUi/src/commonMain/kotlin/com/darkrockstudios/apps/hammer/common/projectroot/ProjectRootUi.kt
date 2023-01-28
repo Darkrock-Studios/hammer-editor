@@ -13,9 +13,12 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
+import com.darkrockstudios.apps.hammer.common.uiNeedsExplicitCloseButtons
 
 private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 700.dp
 
@@ -36,7 +39,14 @@ fun ProjectRootUi(
 		val routerState by component.routerState.subscribeAsState()
 
 		val isWide = maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD
-		FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
+		CompositionLocalProvider(
+			LocalScreenCharacteristic provides ScreenCharacteristics(
+				isWide,
+				uiNeedsExplicitCloseButtons()
+			)
+		) {
+			FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
+		}
 	}
 }
 

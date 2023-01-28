@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -38,11 +39,13 @@ fun DraftsListUi(
 		Card(modifier = Modifier.padding(Ui.Padding.XL).widthIn(128.dp, 600.dp)) {
 			Column {
 				Column(modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()) {
-					IconButton(
-						onClick = { component.cancel() },
-						modifier = Modifier.align(Alignment.End)
-					) {
-						Icon(Icons.Default.Close, "Close Drafts")
+					if (LocalScreenCharacteristic.current.needsExplicitClose) {
+						IconButton(
+							onClick = { component.cancel() },
+							modifier = Modifier.align(Alignment.End)
+						) {
+							Icon(Icons.Default.Close, "Close Drafts")
+						}
 					}
 
 					Text(
