@@ -6,8 +6,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
 
@@ -17,14 +17,6 @@ fun SceneEditorUiPreview() {
 	val component = fakeComponent()
 	SceneEditorUi(component)
 }
-
-private fun fakeSceneItem() = SceneItem(
-	projectDef = fakeProjectDef(),
-	type = SceneItem.Type.Scene,
-	id = 0,
-	name = "Test Scene",
-	order = 0
-)
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(
 	name = "Test",

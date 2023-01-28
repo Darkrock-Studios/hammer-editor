@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneList
@@ -38,9 +39,8 @@ interface ProjectEditor : AppCloseManager, Router, HammerComponent {
 
         sealed class Detail : ChildDestination() {
             data class EditorDestination(val component: SceneEditor) : Detail()
-
             data class DraftsDestination(val component: DraftsList) : Detail()
-
+            data class DraftCompareDestination(val component: DraftCompare) : Detail()
             object None : Detail()
         }
     }

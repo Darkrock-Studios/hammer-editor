@@ -10,6 +10,9 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompareComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditor
@@ -27,10 +30,10 @@ internal class DetailsRouter(
 	private val navigation = StackNavigation<Config>()
 
 	private val stack = componentContext.childStack(
-			source = navigation,
-			initialConfiguration = Config.None,
-			key = "DetailsRouter",
-			childFactory = ::createChild
+		source = navigation,
+		initialConfiguration = Config.None,
+		key = "DetailsRouter",
+		childFactory = ::createChild
 	)
 
 	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.Detail>>
@@ -49,6 +52,14 @@ internal class DetailsRouter(
 			is Config.DraftsList -> ProjectEditor.ChildDestination.Detail.DraftsDestination(
 				draftsList(componentContext = componentContext, sceneDef = config.sceneDef)
 			)
+
+			is Config.DraftCompare -> ProjectEditor.ChildDestination.Detail.DraftCompareDestination(
+				draftCompare(
+					componentContext = componentContext,
+					sceneDef = config.sceneDef,
+					draftDef = config.draftDef
+				)
+			)
 		}
 
 	private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
@@ -65,7 +76,21 @@ internal class DetailsRouter(
 		DraftsListComponent(
 			componentContext = componentContext,
 			sceneItem = sceneDef,
-			closeDrafts = ::closeDrafts
+			closeDrafts = ::closeDrafts,
+			compareDraft = ::compareDraft
+		)
+
+	private fun draftCompare(
+		componentContext: ComponentContext,
+		sceneDef: SceneItem,
+		draftDef: DraftDef
+	): DraftCompare =
+		DraftCompareComponent(
+			componentContext = componentContext,
+			sceneItem = sceneDef,
+			draftDef = draftDef,
+			cancelCompare = ::cancelDraftCompare,
+			backToEditor = ::backToEditor
 		)
 
 	fun showScene(sceneDef: SceneItem) {
@@ -78,7 +103,7 @@ internal class DetailsRouter(
 		)
 	}
 
-	fun showDraftsList(sceneDef: SceneItem) {
+	private fun showDraftsList(sceneDef: SceneItem) {
 		navigation.navigate(
 			transformer = { stack ->
 				stack.plus(Config.DraftsList(sceneDef = sceneDef))
@@ -87,8 +112,25 @@ internal class DetailsRouter(
 		)
 	}
 
+	private fun compareDraft(sceneDef: SceneItem, draftDef: DraftDef) {
+		navigation.navigate(
+			transformer = { stack ->
+				stack.plus(Config.DraftCompare(sceneDef = sceneDef, draftDef = draftDef))
+			},
+			onComplete = { _, _ -> }
+		)
+	}
+
 	private fun closeDrafts() {
 		navigation.popWhile { it is Config.DraftsList }
+	}
+
+	private fun cancelDraftCompare() {
+		navigation.popWhile { it is Config.DraftCompare }
+	}
+
+	private fun backToEditor() {
+		navigation.popWhile { it !is Config.SceneEditor }
 	}
 
 	fun closeScene() {
@@ -111,5 +153,8 @@ internal class DetailsRouter(
 
 		@Parcelize
 		data class DraftsList(val sceneDef: SceneItem) : Config()
+
+		@Parcelize
+		data class DraftCompare(val sceneDef: SceneItem, val draftDef: DraftDef) : Config()
 	}
 }

@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
@@ -19,11 +18,11 @@ import kotlinx.coroutines.withContext
 class DraftsListComponent(
 	componentContext: ComponentContext,
 	private val sceneItem: SceneItem,
-	private val closeDrafts: () -> Unit
+	private val closeDrafts: () -> Unit,
+	private val compareDraft: (sceneDef: SceneItem, draftDef: DraftDef) -> Unit
 ) : ProjectComponentBase(sceneItem.projectDef, componentContext), DraftsList {
 
 	private val draftsRepository: SceneDraftRepository by projectInject()
-	private val projectEditor: ProjectEditorRepository by projectInject()
 
 	private val _state = MutableValue(
 		DraftsList.State(
@@ -49,13 +48,7 @@ class DraftsListComponent(
 	}
 
 	override fun selectDraft(draftDef: DraftDef) {
-		val draftContent = draftsRepository.loadDraft(sceneItem, draftDef)
-
-		if (draftContent != null) {
-			projectEditor.onContentChanged(draftContent)
-		}
-
-		closeDrafts()
+		compareDraft(sceneItem, draftDef)
 	}
 
 	override fun cancel() {

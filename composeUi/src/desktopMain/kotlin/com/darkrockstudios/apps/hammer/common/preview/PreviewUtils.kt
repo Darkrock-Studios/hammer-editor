@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 fun fakeProjectDef(): ProjectDef = ProjectDef(
@@ -10,4 +11,12 @@ fun fakeProjectDef(): ProjectDef = ProjectDef(
 		path = "/",
 		isAbsolute = true
 	)
+)
+
+fun fakeSceneItem() = SceneItem(
+	projectDef = fakeProjectDef(),
+	type = SceneItem.Type.Scene,
+	id = 0,
+	name = "Test Scene",
+	order = 0
 )
