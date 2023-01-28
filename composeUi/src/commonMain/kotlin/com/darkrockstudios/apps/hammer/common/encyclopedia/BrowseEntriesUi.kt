@@ -70,7 +70,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 		LazyVerticalStaggeredGrid(
 			columns = StaggeredGridCells.Adaptive(512.dp),
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier.fillMaxSize(),
 			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {
 			if (filteredEntries.isEmpty()) {

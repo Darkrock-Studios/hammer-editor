@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -23,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NotesUi(
 	component: Notes
@@ -41,8 +43,8 @@ fun NotesUi(
 
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-			LazyVerticalGrid(
-				columns = GridCells.Adaptive(400.dp),
+			LazyVerticalStaggeredGrid(
+				columns = StaggeredGridCells.Adaptive(400.dp),
 				modifier = Modifier.fillMaxWidth(),
 				contentPadding = PaddingValues(Ui.Padding.XL)
 			) {

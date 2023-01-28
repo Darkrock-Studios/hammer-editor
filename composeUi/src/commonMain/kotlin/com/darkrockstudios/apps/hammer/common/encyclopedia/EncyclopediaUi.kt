@@ -60,6 +60,6 @@ fun EncyclopediaUi(component: Encyclopedia) {
 			}
 		}
 
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomEnd))
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }

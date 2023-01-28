@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
@@ -17,16 +18,25 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
-actual fun MpScrollBar(
-		modifier: Modifier,
-		state: LazyListState
+actual fun MpScrollBarList(
+	modifier: Modifier,
+	state: LazyListState
 ) {
 	AndroidScrollbar(
-			state = state,
-			horizontal = false,
-			fixedKnobRatio = 0.1f
+		state = state,
+		horizontal = false,
+		fixedKnobRatio = 0.1f
 	)
 }
+
+@Composable
+actual fun MpScrollBar(
+	modifier: Modifier,
+	state: ScrollState
+) {
+
+}
+
 
 /**
  * Renders a scrollbar.

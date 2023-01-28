@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +64,7 @@ fun ImageItem(
 					painter = painter,
 					contentDescription = contentDescription,
 					contentScale = contentScale,
-					modifier = Modifier.fillMaxSize(),
+					modifier = Modifier,
 				)
 			}
 		}

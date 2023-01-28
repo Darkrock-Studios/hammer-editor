@@ -1,19 +1,21 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
@@ -129,7 +131,10 @@ private fun ViewEntryPreview() {
 	val component: ViewEntry = object : ViewEntry {
 		override val state: Value<ViewEntry.State>
 			get() = MutableValue(
-				ViewEntry.State(fakeEntryDef())
+				ViewEntry.State(
+					entryDef = fakeEntryDef(),
+					content = fakeEntryContent()
+				)
 			)
 
 		override fun getImagePath(entryDef: EntryDef) = null
@@ -144,13 +149,40 @@ private fun ViewEntryPreview() {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		ViewEntryUi(
-			component = component,
-			scope = scope,
-			closeEntry = {},
-			snackbarHostState = snackbarHostState
-		)
+	Column {
+		AppTheme {
+			BoxWithConstraints(
+				modifier = Modifier
+					.background(MaterialTheme.colorScheme.background)
+					.fillMaxSize()
+					.padding(Ui.Padding.XL)
+			) {
+				ViewEntryUi(
+					component = component,
+					scope = scope,
+					closeEntry = {},
+					snackbarHostState = snackbarHostState
+				)
+			}
+		}
+
+		Spacer(modifier = Modifier.padding(16.dp))
+
+		AppTheme(true) {
+			BoxWithConstraints(
+				modifier = Modifier
+					.background(MaterialTheme.colorScheme.background)
+					.fillMaxSize()
+					.padding(Ui.Padding.XL)
+			) {
+				ViewEntryUi(
+					component = component,
+					scope = scope,
+					closeEntry = {},
+					snackbarHostState = snackbarHostState
+				)
+			}
+		}
 	}
 }
 

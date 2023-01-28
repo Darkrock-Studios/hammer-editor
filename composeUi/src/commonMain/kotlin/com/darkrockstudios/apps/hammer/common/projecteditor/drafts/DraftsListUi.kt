@@ -24,60 +24,63 @@ import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun DraftsListUi(
-    component: DraftsList,
-    modifier: Modifier = Modifier,
+	component: DraftsList,
+	modifier: Modifier = Modifier,
 ) {
-    val state by component.state.subscribeAsState()
+	val state by component.state.subscribeAsState()
 
-    LaunchedEffect(state.sceneItem) {
-        component.loadDrafts()
-    }
+	LaunchedEffect(state.sceneItem) {
+		component.loadDrafts()
+	}
 
-    Column {
-        Button(onClick = { component.cancel() }, modifier = Modifier.align(Alignment.End)) {
-            Text("X")
-        }
-        Text("${state.sceneItem.name} Drafts:")
+	Column {
+		Button(
+			onClick = { component.cancel() },
+			modifier = Modifier.align(Alignment.End)
+		) {
+			Text("X")
+		}
+		Text("${state.sceneItem.name} Drafts:")
 
-        LazyColumn(
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(Ui.Padding.XL)
-        ) {
-            state.apply {
-                if (drafts.isEmpty()) {
-                    item {
-                        Text("No Drafts Found")
-                    }
-                } else {
-                    items(drafts.size) { index ->
-                        DraftItem(draftDef = drafts[index], onDraftSelected = component::selectDraft)
-                    }
-                }
-            }
-        }
-    }
+		LazyColumn(
+			modifier = modifier.fillMaxWidth(),
+			contentPadding = PaddingValues(Ui.Padding.XL)
+		) {
+			state.apply {
+				if (drafts.isEmpty()) {
+					item {
+						Text("No Drafts Found")
+					}
+				} else {
+					items(drafts.size) { index ->
+						DraftItem(draftDef = drafts[index], onDraftSelected = component::selectDraft)
+					}
+				}
+			}
+		}
+	}
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DraftItem(
-    draftDef: DraftDef,
-    modifier: Modifier = Modifier,
-    onDraftSelected: (DraftDef) -> Unit
+	draftDef: DraftDef,
+	modifier: Modifier = Modifier,
+	onDraftSelected: (DraftDef) -> Unit
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(Ui.Padding.XL)
-            .combinedClickable(
-                onClick = { onDraftSelected(draftDef) },
+	Card(
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(Ui.Padding.XL)
+			.combinedClickable(
+				onClick = { onDraftSelected(draftDef) },
 			)
-    ) {
-        Column {
-            Text("${draftDef.draftTimestamp} - ${draftDef.draftName}")
+	) {
+		Column {
+			Text("${draftDef.draftTimestamp} - ${draftDef.draftName}")
 
-            val localInstant = draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
-            Text("Created: $localInstant")
-        }
-    }
+			val localInstant = draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
+			Text("Created: $localInstant")
+		}
+	}
 }

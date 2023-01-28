@@ -13,11 +13,12 @@ import androidx.compose.ui.unit.dp
 fun TagRow(
 	tags: Collection<String>,
 	modifier: Modifier = Modifier,
+	alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
 ) {
 	SimpleFlowRow(
 		verticalGap = 8.dp,
 		horizontalGap = 8.dp,
-		alignment = Alignment.CenterHorizontally,
+		alignment = alignment,
 		modifier = modifier
 	) {
 		for (tag in tags) {

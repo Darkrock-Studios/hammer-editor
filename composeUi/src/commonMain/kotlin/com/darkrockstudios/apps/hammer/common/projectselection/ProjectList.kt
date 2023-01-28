@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBar
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -60,7 +60,7 @@ internal fun ProjectList(
 						}
 					}
 				}
-				MpScrollBar(state = listState)
+				MpScrollBarList(state = listState)
 			}
 		}
 		FloatingActionButton(

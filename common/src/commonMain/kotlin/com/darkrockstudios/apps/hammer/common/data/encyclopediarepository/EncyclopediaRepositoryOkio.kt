@@ -178,6 +178,7 @@ class EncyclopediaRepositoryOkio(
 			fileSystem.delete(imagePath)
 			true
 		} catch (e: IOException) {
+			Napier.w("Message: " + e.message)
 			Napier.w("Failed to delete Entry Image: $imagePath", e)
 			false
 		}

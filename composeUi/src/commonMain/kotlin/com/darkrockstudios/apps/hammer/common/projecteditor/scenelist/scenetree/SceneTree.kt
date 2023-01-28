@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBar
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 
 /**
@@ -67,7 +67,7 @@ fun SceneTree(
 					}
 				}
 			}
-			MpScrollBar(state = state.listState)
+			MpScrollBarList(state = state.listState)
 		}
 		drawInsertLine(state)
 	}

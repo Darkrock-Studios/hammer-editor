@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,9 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
-import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -44,15 +45,14 @@ internal fun CreateEntryUi(
 	var showFilePicker by remember { mutableStateOf(false) }
 	var imagePath by remember { mutableStateOf<String?>(null) }
 
-	Box(
+	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center
 	) {
-		Card {
+		Card(modifier = Modifier.heightIn(0.dp, maxHeight).verticalScroll(rememberScrollState())) {
 			Column(
 				modifier = modifier.padding(Ui.Padding.XL)
 					.widthIn(128.dp, 420.dp)
-					.verticalScroll(rememberScrollState())
 			) {
 
 				Text(
@@ -63,7 +63,7 @@ internal fun CreateEntryUi(
 
 				Text(
 					"Type:",
-					style = MaterialTheme.typography.headlineSmall,
+					style = MaterialTheme.typography.titleMedium,
 					modifier = Modifier.padding(bottom = Ui.Padding.M)
 				)
 
@@ -82,14 +82,14 @@ internal fun CreateEntryUi(
 
 				TextField(
 					modifier = Modifier.fillMaxWidth()
-						.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.XL)),
+						.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.L)),
 					value = newEntryNameText,
 					onValueChange = { newEntryNameText = it },
 					placeholder = { Text("Name") }
 				)
 
 				TextField(
-					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
+					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
 					value = newTagsText,
 					onValueChange = { newTagsText = it },
 					placeholder = { Text("Tags (space seperated)") }
@@ -98,14 +98,41 @@ internal fun CreateEntryUi(
 				OutlinedTextField(
 					value = newEntryContentText,
 					onValueChange = { newEntryContentText = it },
-					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
+					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
 					placeholder = { Text(text = "Describe your entry") },
 					maxLines = 10,
 				)
 
-				Button(onClick = { showFilePicker = true }) {
-					Text("Select Image")
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+				Box(
+					modifier = Modifier.fillMaxWidth()
+						.border(width = 1.dp, color = MaterialTheme.colorScheme.outline),
+					contentAlignment = Alignment.Center
+				) {
+					if (imagePath != null) {
+						Box(modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)) {
+							ImageItem(
+								modifier = Modifier.size(128.dp).background(Color.LightGray),
+								path = imagePath
+							)
+							Button(
+								modifier = Modifier
+									.padding(PaddingValues(start = Ui.Padding.XL))
+									.align(Alignment.TopEnd),
+								onClick = { imagePath = null }
+							) {
+								Icon(Icons.Default.Delete, "Remove Image")
+							}
+						}
+					} else {
+						Button(onClick = { showFilePicker = true }) {
+							Text("Select Image")
+						}
+					}
 				}
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Row(modifier = Modifier.fillMaxWidth()) {
 					Button(
@@ -120,7 +147,12 @@ internal fun CreateEntryUi(
 							)
 							when (result.error) {
 								EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long. Max ${EncyclopediaRepository.MAX_NAME_SIZE}") }
-								EntryError.NAME_INVALID_CHARACTERS -> scope.launch { snackbarHostState.showSnackbar("Entry Name must be alpha-numeric") }
+								EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
+									snackbarHostState.showSnackbar(
+										"Entry Name must be alpha-numeric"
+									)
+								}
+
 								EntryError.TAG_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Tag is too long. Max ${EncyclopediaRepository.MAX_TAG_SIZE}") }
 								EntryError.NONE -> {
 									newEntryNameText = ""
@@ -138,21 +170,6 @@ internal fun CreateEntryUi(
 						onClick = { close() }
 					) {
 						Text("Cancel")
-					}
-				}
-
-				if (imagePath != null) {
-					Row {
-						ImageItem(
-							modifier = Modifier.size(128.dp).background(Color.LightGray),
-							path = imagePath
-						)
-						Button(
-							modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
-							onClick = { imagePath = null }
-						) {
-							Text("Remove Image")
-						}
 					}
 				}
 			}
