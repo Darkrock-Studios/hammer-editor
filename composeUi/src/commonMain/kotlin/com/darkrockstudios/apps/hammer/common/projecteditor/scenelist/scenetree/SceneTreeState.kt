@@ -45,8 +45,10 @@ class SceneTreeState(
     fun getTree() = summary.sceneTree
 
     fun updateSummary(sceneSummary: SceneSummary) {
-        summary = sceneSummary
-        cleanUpOnDelete()
+        if (summary != sceneSummary) {
+            summary = sceneSummary
+            cleanUpOnDelete()
+        }
     }
 
     private fun cleanUpOnDelete() {

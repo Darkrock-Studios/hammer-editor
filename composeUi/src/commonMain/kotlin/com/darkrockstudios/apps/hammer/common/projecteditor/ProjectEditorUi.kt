@@ -29,25 +29,29 @@ fun ProjectEditorUi(
 		val detailsState by component.detailsRouterState.subscribeAsState()
 		val isMultiPane = state.isMultiPane
 
-		Row {
+		BoxWithConstraints {
 			val listModifier = if (isMultiPane) {
-				Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH)
+				Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH).fillMaxHeight()
 			} else {
 				Modifier.fillMaxSize()
 			}
 
-			// List
-			if ((!isMultiPane && !component.isDetailShown()) || isMultiPane) {
-				ListPane(
-					routerState = component.listRouterState,
-					modifier = listModifier,
-				)
-			}
+			//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
+			ListPane(
+				routerState = component.listRouterState,
+				modifier = listModifier,
+			)
 
+			val detailsModifier = if (isMultiPane) {
+				Modifier.padding(start = LIST_PANE_WIDTH).requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
+					.fillMaxHeight()
+			} else {
+				Modifier.fillMaxSize()
+			}
 			// Detail
 			DetailsPane(
 				state = detailsState,
-				modifier = Modifier.fillMaxWidth(),
+				modifier = detailsModifier,
 				drawableKlass = drawableKlass
 			)
 		}
@@ -69,13 +73,12 @@ private fun ListPane(
 	Children(
 		stack = state,
 		modifier = modifier,
-		animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.List.Scenes ->
 				SceneListUi(
 					component = child.component,
-					modifier = Modifier.fillMaxSize()
+					modifier = Modifier.fillMaxSize(),
 				)
 
 			is ProjectEditor.ChildDestination.List.None -> Box {}
