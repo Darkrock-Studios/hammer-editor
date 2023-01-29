@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -13,6 +14,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+private val collapsedNotesSaver = Saver<SnapshotStateMap<Int, Boolean>, List<Pair<Int, Boolean>>>(
+	save = { map ->
+		map.toList()
+	},
+	restore = { saved ->
+		val map = SnapshotStateMap<Int, Boolean>()
+		saved.forEach { item ->
+			map[item.first] = item.second
+		}
+		map
+	}
+)
+
 @Composable
 fun rememberReorderableLazyListState(
 	summary: SceneSummary,
@@ -20,7 +34,8 @@ fun rememberReorderableLazyListState(
 ): SceneTreeState {
 	val coroutineScope = rememberCoroutineScope()
 	val listState = rememberLazyListState()
-	val collapsedNodes = rememberSaveable { mutableStateMapOf<Int, Boolean>() }
+	val collapsedNodes = rememberSaveable(saver = collapsedNotesSaver) { mutableStateMapOf() }
+
 	return remember {
 		SceneTreeState(
 			sceneSummary = summary,

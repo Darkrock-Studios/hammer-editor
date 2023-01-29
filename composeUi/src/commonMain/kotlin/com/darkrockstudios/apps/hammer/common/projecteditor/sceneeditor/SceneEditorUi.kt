@@ -15,7 +15,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.painterResource
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -174,57 +173,6 @@ fun SceneEditorUi(
 
 	SaveDraftDialog(state, component) { message ->
 		scope.launch { snackbarHostState.showSnackbar(message) }
-	}
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SaveDraftDialog(
-	state: SceneEditor.State,
-	component: SceneEditor,
-	showSnackbar: (message: String) -> Unit
-) {
-	var draftName by remember { mutableStateOf("") }
-
-	MpDialog(
-		visible = state.isSavingDraft,
-		title = "Save Draft:",
-		onCloseRequest = {
-			component.endSaveDraft()
-			draftName = ""
-		}
-	) {
-		Box(modifier = Modifier.fillMaxWidth()) {
-			Column(
-				modifier = Modifier
-					.width(IntrinsicSize.Max)
-					.align(Alignment.Center)
-					.padding(Ui.Padding.XL)
-			) {
-				TextField(
-					value = draftName,
-					onValueChange = { draftName = it },
-					singleLine = true
-				)
-				Row {
-					Button(onClick = {
-						if (component.saveDraft(draftName)) {
-							component.endSaveDraft()
-							draftName = ""
-							showSnackbar("Draft Saved")
-						}
-					}) {
-						Text("Save")
-					}
-					Button(onClick = {
-						component.endSaveDraft()
-						draftName = ""
-					}) {
-						Text("Cancel")
-					}
-				}
-			}
-		}
 	}
 }
 
