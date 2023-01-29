@@ -5,6 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -47,6 +49,25 @@ class DraftCompareComponent(
 					)
 				}
 			}
+		}
+	}
+
+	override fun onContentChanged(content: PlatformRichText) {
+		projectEditor.onContentChanged(
+			SceneContent(
+				scene = sceneItem,
+				platformRepresentation = content
+			)
+		)
+	}
+
+	override fun pickMerged() {
+		val content = state.value.sceneContent
+		if (content != null) {
+			projectEditor.onContentChanged(content)
+			backToEditor()
+		} else {
+			Napier.e { "Cannot pick merged, merged content was NULL" }
 		}
 	}
 

@@ -17,29 +17,10 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.painterResource
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.text.markdownToSnapshot
-import com.darkrockstudios.richtexteditor.model.RichTextValue
 import com.darkrockstudios.richtexteditor.model.Style
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
 import kotlinx.coroutines.launch
-
-private fun getInitialContent(sceneContent: SceneContent?): RichTextValue {
-	return if (sceneContent != null) {
-		val composeText = sceneContent.platformRepresentation as? ComposeRichText
-		val markdown = sceneContent.markdown
-		if (composeText != null) {
-			RichTextValue.fromSnapshot(composeText.snapshot)
-		} else if (markdown != null) {
-			RichTextValue.fromSnapshot(markdown.markdownToSnapshot())
-		} else {
-			throw IllegalStateException("Should be impossible to not have either platform rep or markdown")
-		}
-	} else {
-		RichTextValue.get()
-	}
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,12 +36,12 @@ fun SceneEditorUi(
 	val snackbarHostState = remember { SnackbarHostState() }
 	var sceneText by remember {
 		mutableStateOf(
-			getInitialContent(state.sceneBuffer?.content)
+			getInitialEditorContent(state.sceneBuffer?.content)
 		)
 	}
 
 	LaunchedEffect(lastDiscarded) {
-		sceneText = getInitialContent(state.sceneBuffer?.content)
+		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
 	}
 
 	Box(modifier = modifier) {
