@@ -40,8 +40,8 @@ fun DraftCompareUi(component: DraftCompare) {
 			}
 		}
 
-		if (LocalScreenCharacteristic.current.isWide) {
-			Row(modifier = Modifier.fillMaxSize()) {
+		val content = remember {
+			movableContentOf {
 				DraftContent(
 					modifier = Modifier.weight(1f),
 					component = component,
@@ -52,17 +52,15 @@ fun DraftCompareUi(component: DraftCompare) {
 					component = component
 				)
 			}
+		}
+
+		if (LocalScreenCharacteristic.current.isWide) {
+			Row(modifier = Modifier.fillMaxSize()) {
+				content()
+			}
 		} else {
 			Column(modifier = Modifier.fillMaxSize()) {
-				DraftContent(
-					modifier = Modifier.weight(1f),
-					component = component,
-				)
-
-				CurrentContent(
-					modifier = Modifier.weight(1f),
-					component = component
-				)
+				content()
 			}
 		}
 	}
