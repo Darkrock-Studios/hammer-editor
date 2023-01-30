@@ -35,6 +35,8 @@ class BrowseEntriesComponent(
 	init {
 		scope.launch {
 			encyclopediaRepository.entryListFlow.collect { entryDefs ->
+				entryContentCache.invalidateAll()
+
 				withContext(mainDispatcher) {
 					_state.reduce { state ->
 						state.copy(
