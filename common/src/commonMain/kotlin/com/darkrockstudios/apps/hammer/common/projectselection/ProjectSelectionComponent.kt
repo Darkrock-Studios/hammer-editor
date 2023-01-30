@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -27,6 +28,7 @@ class ProjectSelectionComponent(
 ) : ProjectSelection, ComponentBase(componentContext) {
 	private val globalSettingsRepository by inject<GlobalSettingsRepository>()
 	private val projectsRepository by inject<ProjectsRepository>()
+	private val exampleProjectRepository by inject<ExampleProjectRepository>()
 	private var loadProjectsJob: Job? = null
 
 	private val _state = MutableValue(
@@ -51,6 +53,10 @@ class ProjectSelectionComponent(
 					}
 				}
 			}
+		}
+
+		if (exampleProjectRepository.shouldInstallFirstTime()) {
+			exampleProjectRepository.install()
 		}
 
 		lifecycle.doOnCreate {

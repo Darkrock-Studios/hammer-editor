@@ -43,19 +43,21 @@ kotlin {
 
     sourceSets {
         val commonMain by getting {
+            resources.srcDirs("resources")
+
             dependencies {
                 api("com.arkivanov.decompose:decompose:$decompose_version")
-				api("io.github.aakira:napier:2.6.1")
-				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-				api("io.insert-koin:koin-core:$koin_version")
-				api("com.squareup.okio:okio:$okio_version")
+                api("io.github.aakira:napier:2.6.1")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+                api("io.insert-koin:koin-core:$koin_version")
+                api("com.squareup.okio:okio:$okio_version")
 
-				api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-				// This is being held back to 0.3.2 due to ios support not working in later versions
-				api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
-				//implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-				implementation("com.akuleshov7:ktoml-core:0.4.0")
-				api("com.arkivanov.essenty:lifecycle:$essenty_version")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
+                // This is being held back to 0.3.2 due to ios support not working in later versions
+                api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
+                //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+                implementation("com.akuleshov7:ktoml-core:0.4.0")
+                api("com.arkivanov.essenty:lifecycle:$essenty_version")
                 implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
             }
         }
@@ -103,8 +105,12 @@ kotlin {
 
 android {
     compileSdk = android_compile_sdk.toInt()
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
+    sourceSets {
+        named("main") {
+            manifest.srcFile("src/androidMain/AndroidManifest.xml")
+            res.srcDirs("resources", "src/androidMain/res", "src/commonMain/resources")
+        }
+    }
     defaultConfig {
         minSdk = android_min_sdk.toInt()
         targetSdk = android_target_sdk.toInt()

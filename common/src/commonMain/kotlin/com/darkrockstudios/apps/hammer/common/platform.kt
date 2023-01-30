@@ -12,4 +12,5 @@ expect fun getConfigDirectory(): String
 expect fun getPlatformFilesystem(): FileSystem
 
 expect val defaultDispatcher: CoroutineContext
+expect val ioDispatcher: CoroutineContext
 expect val mainDispatcher: CoroutineContext

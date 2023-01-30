@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -24,6 +25,7 @@ import org.koin.dsl.module
 
 val mainModule = module {
 	includes(externalFileIoModule)
+	includes(exampleProjectModule)
 
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 

@@ -40,4 +40,5 @@ fun initializeKoin() {
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 
 actual val defaultDispatcher: CoroutineContext = Dispatchers.Default
+actual val ioDispatcher: CoroutineContext = Dispatchers.Default
 actual val mainDispatcher: CoroutineContext = Dispatchers.Main

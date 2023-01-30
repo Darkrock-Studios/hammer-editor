@@ -23,7 +23,5 @@ class HammerApplication: Application() {
             androidContext(this@HammerApplication)
             modules(mainModule, imageLoadingModule)
         }
-
-        ExampleProject.install(this)
     }
 }
