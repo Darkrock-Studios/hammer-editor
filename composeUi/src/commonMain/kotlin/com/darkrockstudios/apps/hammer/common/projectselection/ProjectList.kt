@@ -14,7 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
@@ -51,6 +53,18 @@ internal fun ProjectList(
 					contentPadding = PaddingValues(Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 				) {
+					if (state.projectDefs.isEmpty()) {
+						item {
+							Text(
+								"No Projects Found",
+								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
+								style = MaterialTheme.typography.headlineSmall,
+								textAlign = TextAlign.Center,
+								fontStyle = FontStyle.Italic
+							)
+						}
+					}
+
 					items(
 						count = state.projectDefs.size,
 						key = { index -> state.projectDefs[index].name.hashCode() }
@@ -107,7 +121,7 @@ internal fun ProjectCard(
 					projectDef.name,
 					modifier = Modifier.weight(1f),
 					style = MaterialTheme.typography.headlineMedium,
-					fontWeight = FontWeight.Bold
+					fontWeight = FontWeight.Bold,
 				)
 				IconButton(onClick = { onProjectAltClick(projectDef) }, modifier = Modifier) {
 					Icon(

@@ -75,7 +75,11 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 		) {
 			if (filteredEntries.isEmpty()) {
 				item {
-					Text("No Entries Found")
+					Text(
+						"No Entries Found",
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground
+					)
 				}
 			} else {
 				items(filteredEntries.size) { index ->

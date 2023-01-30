@@ -45,14 +45,15 @@ fun NotesUi(
 
 			LazyVerticalStaggeredGrid(
 				columns = StaggeredGridCells.Adaptive(400.dp),
-				modifier = Modifier.fillMaxWidth(),
+				modifier = Modifier.fillMaxSize(),
 				contentPadding = PaddingValues(Ui.Padding.XL)
 			) {
 				if (state.notes.isEmpty()) {
 					item {
 						Text(
 							"No Notes Found",
-							style = MaterialTheme.typography.displayMedium
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onBackground
 						)
 					}
 				}
