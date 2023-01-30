@@ -125,4 +125,9 @@ class ProjectSelectionComponent(
 		)
 		globalSettingsRepository.updateSettings(settings)
 	}
+
+	override suspend fun reinstallExampleProject() {
+		exampleProjectRepository.install()
+		loadProjectList()
+	}
 }

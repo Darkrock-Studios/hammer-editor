@@ -17,6 +17,7 @@ interface ProjectSelection : HammerComponent {
     fun deleteProject(projectDef: ProjectDef)
     fun showLocation(location: Locations)
     fun setUiTheme(theme: UiTheme)
+    suspend fun reinstallExampleProject()
 
     data class State(
         val projectsDir: HPath,
