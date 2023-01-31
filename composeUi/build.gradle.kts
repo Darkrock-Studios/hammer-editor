@@ -46,7 +46,7 @@ kotlin {
 				api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
 				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
 				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
-				api("com.darkrockstudios:richtexteditor:1.3.0")
+				api("com.darkrockstudios:richtexteditor:1.4.0")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
 				api("io.github.qdsfdhvh:image-loader:1.2.7")
 			}
