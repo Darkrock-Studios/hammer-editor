@@ -143,8 +143,9 @@ abstract class ProjectEditorRepository(
 
         contentUpdateJob = editorScope.launch {
             contentFlow.debounceUntilQuiescent(500.milliseconds).collect { content ->
-                updateSceneBufferContent(content)
-                launchSaveJob(content.scene)
+                if (updateSceneBufferContent(content)) {
+                    launchSaveJob(content.scene)
+                }
             }
         }
 
@@ -197,12 +198,15 @@ abstract class ProjectEditorRepository(
         }
     }
 
-    private fun updateSceneBufferContent(content: SceneContent) {
+    private fun updateSceneBufferContent(content: SceneContent): Boolean {
         val oldBuffer = sceneBuffers[content.scene.id]
         // Skip update if nothing is different
-        if (content != oldBuffer?.content) {
+        return if (content != oldBuffer?.content) {
             val newBuffer = SceneBuffer(content, true)
             updateSceneBuffer(newBuffer)
+            true
+        } else {
+            false
         }
     }
 
