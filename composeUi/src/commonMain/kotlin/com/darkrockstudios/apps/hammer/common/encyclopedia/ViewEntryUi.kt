@@ -44,6 +44,7 @@ internal fun ViewEntryUi(
 	var showDeleteImageDialog by remember { mutableStateOf(false) }
 	var showDeleteEntryDialog by remember { mutableStateOf(false) }
 
+	val screen = LocalScreenCharacteristic.current
 	val content = state.content
 
 	LaunchedEffect(state.content) {
@@ -159,7 +160,7 @@ internal fun ViewEntryUi(
 					}
 				}
 
-				if (LocalScreenCharacteristic.current.needsExplicitClose) {
+				if (screen.needsExplicitClose) {
 					IconButton(
 						onClick = { closeEntry() },
 					) {
@@ -191,66 +192,37 @@ internal fun ViewEntryUi(
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			Row(modifier = Modifier) {
-				if (state.entryImagePath != null) {
-					Box(modifier = Modifier.weight(1f).wrapContentHeight()) {
-						ImageItem(
-							path = state.entryImagePath,
-							modifier = Modifier.wrapContentHeight()
-								.align(Alignment.TopEnd)
-								.clickable(onClick = { showDeleteImageDialog = true }),
-							contentScale = ContentScale.FillWidth,
-						)
-					}
-				}
-
-				Column(
-					modifier = Modifier
-						.weight(1f)
-						.wrapContentHeight()
-						.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
-						.verticalScroll(rememberScrollState())
-				) {
-					AssistChip(
-						onClick = {},
-						enabled = false,
-						label = { Text(state.entryDef.type.text) },
-						leadingIcon = { Icon(getEntryTypeIcon(state.entryDef.type), state.entryDef.type.text) },
-						modifier = Modifier.padding(end = Ui.Padding.L)
+			if (screen.isWide) {
+				Row {
+					Image(
+						modifier = Modifier.weight(1f),
+						state = state,
+						showDeleteImageDialog = { showDeleteImageDialog = true }
 					)
-
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-					if (content != null) {
-						Column {
-							if (editText) {
-								OutlinedTextField(
-									value = entryText,
-									onValueChange = { entryText = it },
-									modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
-									placeholder = { Text(text = "Describe your entry") },
-									maxLines = 10,
-								)
-							} else {
-								Text(
-									entryText,
-									modifier = Modifier.fillMaxWidth().clickable { editText = true },
-									style = MaterialTheme.typography.bodyMedium,
-									color = MaterialTheme.colorScheme.onBackground,
-								)
-							}
-
-							Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-							TagRow(
-								tags = content.tags,
-								modifier = Modifier.fillMaxWidth(),
-								alignment = Alignment.End
-							)
-						}
-					} else {
-						CircularProgressIndicator()
-					}
+					Contents(
+						modifier = Modifier.weight(1f),
+						state = state,
+						editText = editText,
+						entryText = entryText,
+						setEntryText = { entryText = it },
+						beginEdit = { editText = true }
+					)
+				}
+			} else {
+				Column {
+					Image(
+						modifier = Modifier.weight(1f),
+						state = state,
+						showDeleteImageDialog = { showDeleteImageDialog = true }
+					)
+					Contents(
+						modifier = Modifier.weight(1f),
+						state = state,
+						editText = editText,
+						entryText = entryText,
+						setEntryText = { entryText = it },
+						beginEdit = { editText = true }
+					)
 				}
 			}
 		}
@@ -293,6 +265,86 @@ internal fun ViewEntryUi(
 				}
 			}
 			showDeleteEntryDialog = false
+		}
+	}
+}
+
+@Composable
+private fun Image(
+	modifier: Modifier = Modifier,
+	state: ViewEntry.State,
+	showDeleteImageDialog: () -> Unit
+) {
+	if (state.entryImagePath != null) {
+		Box(modifier = modifier.wrapContentHeight()) {
+			ImageItem(
+				path = state.entryImagePath,
+				modifier = Modifier.wrapContentHeight()
+					.align(Alignment.TopEnd)
+					.clickable(onClick = showDeleteImageDialog),
+				contentScale = ContentScale.FillWidth,
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Contents(
+	modifier: Modifier = Modifier,
+	state: ViewEntry.State,
+	editText: Boolean,
+	entryText: String,
+	setEntryText: (String) -> Unit,
+	beginEdit: () -> Unit,
+) {
+	val content = state.content
+
+	Column(
+		modifier = modifier
+			.wrapContentHeight()
+			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
+			.verticalScroll(rememberScrollState())
+	) {
+		AssistChip(
+			onClick = {},
+			enabled = false,
+			label = { Text(state.entryDef.type.text) },
+			leadingIcon = { Icon(getEntryTypeIcon(state.entryDef.type), state.entryDef.type.text) },
+			modifier = Modifier.padding(end = Ui.Padding.L)
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+		if (content != null) {
+			Column {
+				if (editText) {
+					OutlinedTextField(
+						value = entryText,
+						onValueChange = setEntryText,
+						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
+						placeholder = { Text(text = "Describe your entry") },
+						maxLines = 10,
+					)
+				} else {
+					Text(
+						entryText,
+						modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
+				}
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+				TagRow(
+					tags = content.tags,
+					modifier = Modifier.fillMaxWidth(),
+					alignment = Alignment.End
+				)
+			}
+		} else {
+			CircularProgressIndicator()
 		}
 	}
 }

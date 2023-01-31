@@ -67,5 +67,6 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 		override fun deleteProject(projectDef: ProjectDef) {}
 		override fun showLocation(location: ProjectSelection.Locations) {}
 		override fun setUiTheme(theme: UiTheme) {}
+		override suspend fun reinstallExampleProject() {}
 	}
 }
