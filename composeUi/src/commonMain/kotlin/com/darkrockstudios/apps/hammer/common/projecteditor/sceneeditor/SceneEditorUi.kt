@@ -145,6 +145,7 @@ fun SceneEditorUi(
 					placeholder = "Begin writing your Scene here",
 					textColor = MaterialTheme.colorScheme.onBackground,
 					placeholderColor = MaterialTheme.colorScheme.onBackground,
+					textStyle = MaterialTheme.typography.bodyMedium,
 				)
 			)
 		}
