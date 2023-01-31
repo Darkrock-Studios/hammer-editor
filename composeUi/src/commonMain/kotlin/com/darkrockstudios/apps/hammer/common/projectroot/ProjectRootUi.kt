@@ -9,8 +9,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
@@ -61,7 +59,7 @@ fun FeatureContent(
 	Children(
 		modifier = modifier,
 		stack = routerState,
-		animation = stackAnimation { _, _, _ -> fade() },
+		//animation = stackAnimation { _, _, _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
