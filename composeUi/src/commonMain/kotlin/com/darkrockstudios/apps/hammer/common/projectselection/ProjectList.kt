@@ -107,13 +107,13 @@ internal fun ProjectCard(
 	onProjectClick: (projectDef: ProjectDef) -> Unit,
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit
 ) {
-	Surface(
+	Card(
 		modifier = Modifier
 			.fillMaxWidth()
 			.combinedClickable(
 				onClick = { onProjectClick(projectDef) },
 			),
-		tonalElevation = Ui.Elevation.SMALL
+		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 			Row(modifier = Modifier.padding(bottom = Ui.Padding.S).fillMaxWidth()) {
@@ -137,7 +137,10 @@ internal fun ProjectCard(
 				modifier = Modifier.padding(bottom = Ui.Padding.M, start = Ui.Padding.L),
 				style = MaterialTheme.typography.bodySmall
 			)
-			Divider(modifier = Modifier.fillMaxWidth().height(1.dp))
+			Divider(
+				modifier = Modifier.fillMaxWidth().height(1.dp),
+				color = MaterialTheme.colorScheme.outline
+			)
 		}
 	}
 }

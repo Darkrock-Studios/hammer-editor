@@ -67,6 +67,7 @@ internal fun EncyclopediaEntryItem(
 			.fillMaxWidth()
 			.padding(Ui.Padding.XL)
 			.clickable { viewEntry(entryDef) },
+		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(modifier = Modifier.fillMaxWidth()) {
 

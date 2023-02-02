@@ -103,7 +103,8 @@ fun NoteItem(
 	var updatedNoteText by remember { mutableStateOf(note.content) }
 
 	Card(
-		modifier = modifier.fillMaxWidth().padding(Ui.Padding.XL)
+		modifier = modifier.fillMaxWidth().padding(Ui.Padding.XL),
+		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(
 			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
