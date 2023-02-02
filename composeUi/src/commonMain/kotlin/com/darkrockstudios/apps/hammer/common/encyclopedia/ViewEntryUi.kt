@@ -276,13 +276,19 @@ private fun Image(
 	showDeleteImageDialog: () -> Unit
 ) {
 	if (state.entryImagePath != null) {
+		val scale = if (LocalScreenCharacteristic.current.isWide) {
+			ContentScale.FillWidth
+		} else {
+			ContentScale.FillHeight
+		}
+
 		Box(modifier = modifier.wrapContentHeight()) {
 			ImageItem(
 				path = state.entryImagePath,
 				modifier = Modifier.wrapContentHeight()
 					.align(Alignment.TopEnd)
 					.clickable(onClick = showDeleteImageDialog),
-				contentScale = ContentScale.FillWidth,
+				contentScale = scale,
 			)
 		}
 	}
