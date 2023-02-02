@@ -138,7 +138,7 @@ fun SceneEditorUi(
 				RichTextEditor(
 					modifier = Modifier
 						.fillMaxHeight()
-						.weight(1f)
+						.widthIn(128.dp, 700.dp)
 						.padding(Ui.Padding.XL),
 					value = sceneText,
 					onValueChange = { rtv ->
@@ -152,6 +152,9 @@ fun SceneEditorUi(
 						textStyle = MaterialTheme.typography.bodyMedium,
 					),
 				)
+
+				Divider(modifier = Modifier.fillMaxHeight().width(1.dp))
+
 				/*
 				MpScrollBar(
 					modifier = Modifier.fillMaxHeight(),
