@@ -38,8 +38,15 @@ compose.desktop {
         mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            includeAllModules = true
             packageName = "hammer"
             packageVersion = app_version
+            outputBaseDir.set(project.buildDir.resolve("installers"))
+
+            windows.apply {
+                menuGroup = "Hammer"
+                shortcut = true
+            }
         }
         jvmArgs("-Dcompose.application.configure.swing.globals=false")
     }

@@ -43,3 +43,5 @@ bin/
 *.hprof
 .idea
 /local.properties
+
+wix311/
