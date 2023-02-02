@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.painterResource
 import com.darkrockstudios.richtexteditor.model.Style
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
@@ -134,20 +133,32 @@ fun SceneEditorUi(
 				}
 			}
 
-			RichTextEditor(
-				modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
-				value = sceneText,
-				onValueChange = { rtv ->
-					sceneText = rtv
-					component.onContentChanged(ComposeRichText(rtv.getLastSnapshot()))
-				},
-				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = "Begin writing your Scene here",
-					textColor = MaterialTheme.colorScheme.onBackground,
-					placeholderColor = MaterialTheme.colorScheme.onBackground,
-					textStyle = MaterialTheme.typography.bodyMedium,
+			//val verticalScrollState = rememberScrollState(0)
+			Row {
+				RichTextEditor(
+					modifier = Modifier
+						.fillMaxHeight()
+						.weight(1f)
+						.padding(Ui.Padding.XL),
+					value = sceneText,
+					onValueChange = { rtv ->
+						sceneText = rtv
+						component.onContentChanged(ComposeRichText(rtv.getLastSnapshot()))
+					},
+					textFieldStyle = defaultRichTextFieldStyle().copy(
+						placeholder = "Begin writing your Scene here",
+						textColor = MaterialTheme.colorScheme.onBackground,
+						placeholderColor = MaterialTheme.colorScheme.onBackground,
+						textStyle = MaterialTheme.typography.bodyMedium,
+					),
 				)
-			)
+				/*
+				MpScrollBar(
+					modifier = Modifier.fillMaxHeight(),
+					state = verticalScrollState
+				)
+				*/
+			}
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
@@ -155,22 +166,5 @@ fun SceneEditorUi(
 
 	SaveDraftDialog(state, component) { message ->
 		scope.launch { snackbarHostState.showSnackbar(message) }
-	}
-}
-
-@Composable
-private fun EditorAction(
-	iconRes: String,
-	drawableKlass: Any? = null,
-	active: Boolean,
-	onClick: () -> Unit,
-) {
-	IconButton(onClick = onClick) {
-		Icon(
-			modifier = Modifier.size(24.dp),
-			painter = painterResource(res = iconRes, drawableKlass = drawableKlass),
-			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-			contentDescription = null
-		)
 	}
 }

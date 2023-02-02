@@ -12,6 +12,7 @@ expect fun MpScrollBarList(
 	state: LazyListState
 )
 
+@Composable
 expect fun MpScrollBar(
 	modifier: Modifier = Modifier.fillMaxHeight(),
 	state: ScrollState
