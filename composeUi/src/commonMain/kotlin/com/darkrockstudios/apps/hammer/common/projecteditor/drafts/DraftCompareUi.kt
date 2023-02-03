@@ -149,7 +149,8 @@ private fun DraftContent(
 					placeholder = "Draft",
 					textColor = MaterialTheme.colorScheme.onBackground,
 					placeholderColor = MaterialTheme.colorScheme.onBackground,
-				)
+				),
+				readOnly = true
 			)
 		}
 	}
