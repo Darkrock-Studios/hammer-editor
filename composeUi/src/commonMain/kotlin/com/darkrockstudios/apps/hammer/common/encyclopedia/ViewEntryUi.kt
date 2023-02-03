@@ -236,6 +236,7 @@ private fun Image(
 			ImageItem(
 				path = state.entryImagePath,
 				modifier = Modifier.wrapContentHeight()
+					.fillMaxWidth()
 					.align(Alignment.TopEnd)
 					.clickable(onClick = showDeleteImageDialog),
 				contentScale = ContentScale.FillWidth,
