@@ -8,6 +8,7 @@ val jetpack_compose_compiler_version: String by extra
 val decompose_version: String by extra
 val mockk_version: String by extra
 val okio_version: String by extra
+val koin_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -48,7 +49,7 @@ kotlin {
 				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
 				api("com.darkrockstudios:richtexteditor:1.4.1")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
-				api("io.github.qdsfdhvh:image-loader:1.2.7")
+				api("io.github.qdsfdhvh:image-loader:1.2.8")
 			}
 		}
 		val commonTest by getting {
@@ -59,6 +60,7 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
+				api("io.insert-koin:koin-androidx-compose:3.4.1")
 			}
 		}
 		val desktopMain by getting {

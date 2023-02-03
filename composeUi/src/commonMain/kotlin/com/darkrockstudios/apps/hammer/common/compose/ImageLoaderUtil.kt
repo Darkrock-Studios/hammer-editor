@@ -3,20 +3,14 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
-import com.seiko.imageloader.ImageLoaderBuilder
 import com.seiko.imageloader.intercept.Interceptor
-import com.seiko.imageloader.request.ComposePainterResult
-import com.seiko.imageloader.request.ImageResult
-import com.seiko.imageloader.request.NullRequestData
+import com.seiko.imageloader.model.ImageResult
+import com.seiko.imageloader.model.NullRequestData
 import com.seiko.imageloader.util.LogPriority
 import com.seiko.imageloader.util.Logger
 import io.github.aakira.napier.Napier
 
-fun ImageLoaderBuilder.commonConfig(): ImageLoaderBuilder {
-	return logger(NapierLogger(LogPriority.VERBOSE))
-}
-
-private class NapierLogger(private val setPriority: LogPriority) : Logger {
+class ImageLoaderNapierLogger(private val setPriority: LogPriority) : Logger {
 
 	override fun isLoggable(priority: LogPriority): Boolean {
 		return setPriority.ordinal <= priority.ordinal
@@ -42,7 +36,7 @@ object NullDataInterceptor : Interceptor {
 	override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
 		val data = chain.request.data
 		if (data === NullRequestData || data is String && data.isEmpty()) {
-			return ComposePainterResult(
+			return ImageResult.Painter(
 				request = chain.request,
 				painter = EmptyPainter,
 			)

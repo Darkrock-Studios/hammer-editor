@@ -60,7 +60,8 @@ internal fun ProjectList(
 								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
 								style = MaterialTheme.typography.headlineSmall,
 								textAlign = TextAlign.Center,
-								fontStyle = FontStyle.Italic
+								fontStyle = FontStyle.Italic,
+								color = MaterialTheme.colorScheme.onBackground
 							)
 						}
 					}

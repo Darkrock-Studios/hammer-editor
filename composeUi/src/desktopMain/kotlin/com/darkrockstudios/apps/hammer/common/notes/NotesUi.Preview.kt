@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -16,9 +13,6 @@ import kotlinx.datetime.Clock
 @Preview
 @Composable
 private fun NoteItemPreview() {
-	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
-
 	val note = NoteContent(
 		id = 1,
 		created = Clock.System.now(),
@@ -28,8 +22,6 @@ private fun NoteItemPreview() {
 	NoteItem(
 		note = note,
 		component = component,
-		snackbarHostState = snackbarHostState,
-		scope = scope,
 	)
 }
 

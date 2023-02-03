@@ -10,9 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import com.eygraber.uri.Uri
 import com.seiko.imageloader.ImageRequestState
+import com.seiko.imageloader.model.ImageRequest
 import com.seiko.imageloader.rememberAsyncImagePainter
-import com.seiko.imageloader.request.ImageRequest
-import com.seiko.imageloader.request.ImageRequestBuilder
 
 
 @Composable
@@ -24,13 +23,11 @@ fun ImageItem(
 ) {
 	val request = if (path != null) {
 		val uri = Uri.parse(path)
-		ImageRequestBuilder()
-			.data(uri)
-			.build()
+		ImageRequest {
+			data(uri)
+		}
 	} else {
-		ImageRequestBuilder()
-			.data(null)
-			.build()
+		ImageRequest {}
 	}
 
 	ImageItem(

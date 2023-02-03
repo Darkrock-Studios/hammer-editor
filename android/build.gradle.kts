@@ -5,6 +5,7 @@ val android_target_sdk: String by extra
 val android_min_sdk: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
+val koin_version: String by extra
 
 plugins {
     kotlin("android")
@@ -22,7 +23,8 @@ repositories {
 
 dependencies {
     api(project(":composeUi"))
-    implementation("androidx.activity:activity-compose:1.6.1")
+	implementation("androidx.activity:activity-compose:1.6.1")
+	implementation("io.insert-koin:koin-android:$koin_version")
 }
 
 android {

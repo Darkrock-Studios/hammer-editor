@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -34,8 +33,6 @@ internal fun CreateEntryUi(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
-	val state by component.state.subscribeAsState()
-
 	var newEntryNameText by remember { mutableStateOf("") }
 	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
 	var newTagsText by remember { mutableStateOf("") }

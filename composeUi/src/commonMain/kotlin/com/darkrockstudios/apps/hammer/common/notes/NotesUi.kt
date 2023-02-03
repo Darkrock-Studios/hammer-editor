@@ -20,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
 import com.darkrockstudios.apps.hammer.common.util.format
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -64,8 +63,6 @@ fun NotesUi(
 					NoteItem(
 						note = state.notes[index],
 						component = component,
-						snackbarHostState = snackbarHostState,
-						scope = scope,
 					)
 				}
 			}
@@ -95,8 +92,6 @@ fun NotesUi(
 fun NoteItem(
 	note: NoteContent,
 	component: Notes,
-	snackbarHostState: SnackbarHostState,
-	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
 ) {
 	var isEditing by remember { mutableStateOf(false) }

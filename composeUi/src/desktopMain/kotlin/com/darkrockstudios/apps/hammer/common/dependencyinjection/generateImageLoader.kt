@@ -1,40 +1,44 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.compose.ImageLoaderNapierLogger
 import com.darkrockstudios.apps.hammer.common.compose.NullDataInterceptor
-import com.darkrockstudios.apps.hammer.common.compose.commonConfig
 import com.darkrockstudios.apps.hammer.common.getImageCacheDirectory
 import com.eygraber.uri.Uri
 import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.ImageLoaderBuilder
-import com.seiko.imageloader.cache.disk.DiskCacheBuilder
-import com.seiko.imageloader.cache.memory.MemoryCacheBuilder
+import com.seiko.imageloader.cache.disk.DiskCache
+import com.seiko.imageloader.cache.memory.MemoryCache
+import com.seiko.imageloader.cache.memory.maxSizePercent
 import com.seiko.imageloader.component.decoder.SkiaImageDecoder
 import com.seiko.imageloader.component.mapper.Mapper
-import com.seiko.imageloader.request.Options
+import com.seiko.imageloader.component.setupDefaultComponents
+import com.seiko.imageloader.option.Options
+import com.seiko.imageloader.util.LogPriority
 import okio.Path.Companion.toPath
 import java.io.File
 
 internal fun generateImageLoader(): ImageLoader {
-	return ImageLoaderBuilder()
-		.commonConfig()
-		.memoryCache {
-			MemoryCacheBuilder()
-				// Set the max size to 25% of the app's available memory.
-				.maxSizePercent(0.25)
-				.build()
-		}
-		.diskCache {
-			DiskCacheBuilder()
-				.directory(getImageCacheDirectory().toPath())
-				.maxSizeBytes(128L * 1024 * 1024) // 128MB
-				.build()
-		}
-		.addInterceptor(NullDataInterceptor)
-		.components {
+	return ImageLoader {
+		components {
+			setupDefaultComponents()
 			add(WindowsFileUriMapper())
 			add(SkiaImageDecoder.Factory())
 		}
-		.build()
+		logger = ImageLoaderNapierLogger(LogPriority.WARN)
+		interceptor {
+			addInterceptor(NullDataInterceptor)
+			memoryCache {
+				MemoryCache {
+					maxSizePercent(0.25)
+				}
+			}
+			diskCache {
+				DiskCache {
+					directory(getImageCacheDirectory().toPath())
+					maxSizeBytes(128L * 1024 * 1024) // 512MB
+				}
+			}
+		}
+	}
 }
 
 private class WindowsFileUriMapper : Mapper<File> {
