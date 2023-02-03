@@ -12,7 +12,10 @@ interface ViewEntry {
 	data class State(
 		val entryDef: EntryDef,
 		val entryImagePath: String? = null,
-		val content: EntryContent? = null
+		val content: EntryContent? = null,
+		val showAddImageDialog: Boolean = false,
+		val showDeleteImageDialog: Boolean = false,
+		val showDeleteEntryDialog: Boolean = false,
 	)
 
 	fun getImagePath(entryDef: EntryDef): String?
@@ -21,4 +24,11 @@ interface ViewEntry {
 	suspend fun updateEntry(name: String, text: String, tags: List<String>): EntryResult
 	suspend fun removeEntryImage(): Boolean
 	suspend fun setImage(path: String)
+
+	fun showDeleteEntryDialog()
+	fun closeDeleteEntryDialog()
+	fun showDeleteImageDialog()
+	fun closeDeleteImageDialog()
+	fun showAddImageDialog()
+	fun closeAddImageDialog()
 }

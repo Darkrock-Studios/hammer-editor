@@ -8,6 +8,7 @@ import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 
@@ -15,6 +16,8 @@ class EncyclopediaComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
+	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Config>()
@@ -76,7 +79,9 @@ class EncyclopediaComponent(
 	private fun createViewEntry(config: Config.ViewEntryConfig, componentContext: ComponentContext): ViewEntry {
 		return ViewEntryComponent(
 			componentContext = componentContext,
-			entryDef = config.entryDef
+			entryDef = config.entryDef,
+			addMenu = addMenu,
+			removeMenu = removeMenu
 		)
 	}
 

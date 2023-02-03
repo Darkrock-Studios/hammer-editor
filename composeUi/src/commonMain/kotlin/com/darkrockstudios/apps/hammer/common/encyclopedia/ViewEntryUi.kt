@@ -29,20 +29,15 @@ internal fun ViewEntryUi(
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
 	snackbarHostState: SnackbarHostState,
-	closeEntry: () -> Unit
+	closeEntry: () -> Unit,
 ) {
 	val state by component.state.subscribeAsState()
-	var showFilePicker by remember { mutableStateOf(false) }
 
 	var editName by remember { mutableStateOf(false) }
 	var entryNameText by remember { mutableStateOf(state.content?.name ?: "") }
 
 	var editText by remember { mutableStateOf(false) }
 	var entryText by remember { mutableStateOf(state.content?.text ?: "") }
-
-	var showMenu by remember { mutableStateOf(false) }
-	var showDeleteImageDialog by remember { mutableStateOf(false) }
-	var showDeleteEntryDialog by remember { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
 	val content = state.content
@@ -108,55 +103,16 @@ internal fun ViewEntryUi(
 						)
 					}
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					if (screen.needsExplicitClose) {
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-					Divider(
-						color = MaterialTheme.colorScheme.outline,
-						modifier = Modifier.fillMaxHeight().width(1.dp)
-							.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
-					)
-
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
-				}
-
-				IconButton(
-					onClick = { showMenu = true },
-				) {
-					Icon(
-						Icons.Filled.MoreVert,
-						contentDescription = "Options",
-						tint = MaterialTheme.colorScheme.onSurface
-					)
-
-					DropdownMenu(
-						expanded = showMenu,
-						onDismissRequest = { showMenu = false }
-					) {
-						if (state.entryImagePath == null) {
-							DropdownMenuItem(
-								text = { Text("Add Image") },
-								onClick = {
-									showFilePicker = true
-									showMenu = false
-								},
-							)
-						} else {
-							DropdownMenuItem(
-								text = { Text("Remove Image") },
-								onClick = {
-									showDeleteImageDialog = true
-									showMenu = false
-								},
-							)
-						}
-
-						DropdownMenuItem(
-							text = { Text("Delete Entry") },
-							onClick = {
-								showDeleteEntryDialog = true
-								showMenu = false
-							},
+						Divider(
+							color = MaterialTheme.colorScheme.outline,
+							modifier = Modifier.fillMaxHeight().width(1.dp)
+								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
 						)
+
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 					}
 				}
 
@@ -197,10 +153,10 @@ internal fun ViewEntryUi(
 					Image(
 						modifier = Modifier.weight(1f),
 						state = state,
-						showDeleteImageDialog = { showDeleteImageDialog = true }
+						showDeleteImageDialog = component::showDeleteImageDialog
 					)
 					Contents(
-						modifier = Modifier.weight(1f),
+						modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
 						state = state,
 						editText = editText,
 						entryText = entryText,
@@ -209,14 +165,14 @@ internal fun ViewEntryUi(
 					)
 				}
 			} else {
-				Column {
+				Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 					Image(
-						modifier = Modifier.weight(1f),
+						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
 						state = state,
-						showDeleteImageDialog = { showDeleteImageDialog = true }
+						showDeleteImageDialog = component::showDeleteImageDialog
 					)
 					Contents(
-						modifier = Modifier.weight(1f),
+						modifier = Modifier.wrapContentHeight(),
 						state = state,
 						editText = editText,
 						entryText = entryText,
@@ -228,14 +184,14 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	FilePicker(show = showFilePicker, fileExtension = "jpg") { path ->
+	FilePicker(show = state.showAddImageDialog, fileExtension = "jpg") { path ->
 		if (path != null) {
 			scope.launch { component.setImage(path) }
 		}
-		showFilePicker = false
+		component.closeAddImageDialog()
 	}
 
-	if (showDeleteImageDialog) {
+	if (state.showDeleteImageDialog) {
 		ConfirmDialog(
 			title = "Delete Image?",
 			message = "This cannot be undone!",
@@ -244,11 +200,11 @@ internal fun ViewEntryUi(
 			if (shouldDelete) {
 				scope.launch { component.removeEntryImage() }
 			}
-			showDeleteImageDialog = false
+			component.closeDeleteImageDialog()
 		}
 	}
 
-	if (showDeleteEntryDialog) {
+	if (state.showDeleteEntryDialog) {
 		ConfirmDialog(
 			title = "Delete Entry?",
 			message = "This cannot be undone!",
@@ -264,7 +220,7 @@ internal fun ViewEntryUi(
 					}
 				}
 			}
-			showDeleteEntryDialog = false
+			component.closeDeleteEntryDialog()
 		}
 	}
 }
@@ -276,19 +232,13 @@ private fun Image(
 	showDeleteImageDialog: () -> Unit
 ) {
 	if (state.entryImagePath != null) {
-		val scale = if (LocalScreenCharacteristic.current.isWide) {
-			ContentScale.FillWidth
-		} else {
-			ContentScale.FillHeight
-		}
-
 		Box(modifier = modifier.wrapContentHeight()) {
 			ImageItem(
 				path = state.entryImagePath,
 				modifier = Modifier.wrapContentHeight()
 					.align(Alignment.TopEnd)
 					.clickable(onClick = showDeleteImageDialog),
-				contentScale = scale,
+				contentScale = ContentScale.FillWidth,
 			)
 		}
 	}
@@ -310,7 +260,6 @@ private fun Contents(
 		modifier = modifier
 			.wrapContentHeight()
 			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
-			.verticalScroll(rememberScrollState())
 	) {
 		AssistChip(
 			onClick = {},

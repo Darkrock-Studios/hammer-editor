@@ -145,6 +145,12 @@ private fun ViewEntryPreview() {
 
 		override suspend fun removeEntryImage() = true
 		override suspend fun setImage(path: String) {}
+		override fun showDeleteEntryDialog() {}
+		override fun closeDeleteEntryDialog() {}
+		override fun showDeleteImageDialog() {}
+		override fun closeDeleteImageDialog() {}
+		override fun showAddImageDialog() {}
+		override fun closeAddImageDialog() {}
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }

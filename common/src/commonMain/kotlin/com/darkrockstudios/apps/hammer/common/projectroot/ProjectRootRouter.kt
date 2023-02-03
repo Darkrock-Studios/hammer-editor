@@ -91,7 +91,9 @@ internal class ProjectRootRouter(
         return EncyclopediaComponent(
             componentContext = componentContext,
             projectDef = config.projectDef,
-            updateShouldClose = updateShouldClose
+            updateShouldClose = updateShouldClose,
+            addMenu = addMenu,
+            removeMenu = removeMenu
         )
     }
 
