@@ -56,7 +56,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 			Spacer(Modifier.width(Ui.Padding.XL))
 
-			ExposedDropDown<EntryType>(
+			ExposedDropDown(
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
 				padding = Ui.Padding.XL,
 				items = types,

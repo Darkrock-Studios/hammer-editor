@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.ioDispatcher
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -52,10 +53,11 @@ internal fun EncyclopediaEntryItem(
 	LaunchedEffect(entryDef) {
 		entryImagePath = null
 		loadContentJob?.cancel()
-		loadContentJob = scope.launch {
-			entryImagePath = component.getImagePath(entryDef)
+		loadContentJob = scope.launch(ioDispatcher) {
+			val imagePath = component.getImagePath(entryDef)
 			val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
+				entryImagePath = imagePath
 				entryContent = content
 				loadContentJob = null
 			}
