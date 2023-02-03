@@ -99,6 +99,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 				.fillMaxSize()
 				.background(MaterialTheme.colorScheme.background),
 			topBar = {
+				SetStatusBar()
 				TopBar(
 					title = "Hammer",
 					drawerOpen = drawerState,

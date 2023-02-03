@@ -125,6 +125,7 @@ class ProjectRootActivity : AppCompatActivity() {
 				.fillMaxSize()
 				.background(MaterialTheme.colorScheme.background),
 			topBar = {
+				SetStatusBar()
 				TopBar(
 					title = projectDef.name,
 					drawerOpen = drawerState,
