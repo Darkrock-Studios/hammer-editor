@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 
@@ -15,6 +16,7 @@ abstract class ProjectsRepository {
     abstract fun getProjectDirectory(projectName: String): HPath
     abstract fun createProject(projectName: String): Boolean
     abstract fun deleteProject(projectDef: ProjectDef): Boolean
+    abstract suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata?
 
     fun validateFileName(fileName: String?): Boolean {
         return if (fileName != null) {

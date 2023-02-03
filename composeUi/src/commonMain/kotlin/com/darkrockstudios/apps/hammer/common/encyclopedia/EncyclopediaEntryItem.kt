@@ -45,7 +45,7 @@ internal fun EncyclopediaEntryItem(
 	modifier: Modifier = Modifier,
 	filterByType: (type: EntryType) -> Unit
 ) {
-	var loadContentJob by remember { mutableStateOf<Job?>(null) }
+	var loadContentJob = remember<Job?> { null }
 	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
 	var entryImagePath by remember { mutableStateOf<String?>(null) }
 

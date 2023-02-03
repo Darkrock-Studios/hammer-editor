@@ -624,9 +624,7 @@ class ProjectEditorRepositoryOkio(
         reloadScenes()
     }
 
-    override fun getMetadataPath(): HPath {
-        return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
-    }
+    override fun getMetadataPath() = getMetadataPath(projectDef)
 
     override fun loadMetadata(): ProjectMetadata {
         val path = getMetadataPath().toOkioPath()

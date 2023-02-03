@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 
 interface ProjectSelection : HammerComponent {
     val showProjectDirectory: Boolean
@@ -18,6 +19,7 @@ interface ProjectSelection : HammerComponent {
     fun showLocation(location: Locations)
     fun setUiTheme(theme: UiTheme)
     suspend fun reinstallExampleProject()
+    suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
 
     data class State(
         val projectsDir: HPath,

@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -129,5 +130,9 @@ class ProjectSelectionComponent(
 	override suspend fun reinstallExampleProject() {
 		exampleProjectRepository.install()
 		loadProjectList()
+	}
+
+	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
+		return projectsRepository.loadMetadata(projectDef)
 	}
 }

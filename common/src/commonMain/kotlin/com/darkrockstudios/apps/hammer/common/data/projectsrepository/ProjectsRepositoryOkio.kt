@@ -1,17 +1,24 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
+import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
 import okio.FileSystem
+import okio.IOException
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
     private val fileSystem: FileSystem,
-    globalSettingsRepository: GlobalSettingsRepository
+    private val toml: Toml,
+    globalSettingsRepository: GlobalSettingsRepository,
 ) : ProjectsRepository() {
 
     private var globalSettings = globalSettingsRepository.globalSettings
@@ -74,5 +81,21 @@ class ProjectsRepositoryOkio(
         } else {
             false
         }
+    }
+
+    override suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata? {
+        val path = ProjectEditorRepository.getMetadataPath(projectDef).toOkioPath()
+
+        val metadata = try {
+            val metadataText = fileSystem.read(path) {
+                readUtf8()
+            }
+            toml.decodeFromString<ProjectMetadata>(metadataText)
+        } catch (e: IOException) {
+            Napier.e("Failed to project metadata")
+            null
+        }
+
+        return metadata
     }
 }

@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
@@ -376,6 +378,10 @@ abstract class ProjectEditorRepository(
             } catch (e: IllegalStateException) {
                 throw InvalidSceneFilename("Invalid filename", fileName)
             }
+        }
+
+        fun getMetadataPath(projectDef: ProjectDef): HPath {
+            return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
         }
     }
 }

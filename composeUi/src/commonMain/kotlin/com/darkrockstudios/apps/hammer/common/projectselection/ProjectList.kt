@@ -22,6 +22,16 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.util.format
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -29,6 +39,8 @@ internal fun ProjectList(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier
 ) {
+	val scope = rememberCoroutineScope()
+
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }
@@ -70,7 +82,12 @@ internal fun ProjectList(
 						count = state.projectDefs.size,
 						key = { index -> state.projectDefs[index].name.hashCode() }
 					) { index ->
-						ProjectCard(state.projectDefs[index], component::selectProject) { project ->
+						ProjectCard(
+							component = component,
+							projectDef = state.projectDefs[index],
+							onProjectClick = component::selectProject,
+							scope = scope
+						) { project ->
 							projectDefDeleteTarget = project
 						}
 					}
@@ -104,10 +121,26 @@ internal fun ProjectList(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProjectCard(
+	component: ProjectSelection,
 	projectDef: ProjectDef,
+	scope: CoroutineScope,
 	onProjectClick: (projectDef: ProjectDef) -> Unit,
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit
 ) {
+	var loadContentJob = remember<Job?> { null }
+	var projectMetadata by remember { mutableStateOf<ProjectMetadata?>(null) }
+
+	LaunchedEffect(projectDef) {
+		loadContentJob?.cancel()
+		loadContentJob = scope.launch {
+			val data = component.loadProjectMetadata(projectDef)
+			withContext(mainDispatcher) {
+				projectMetadata = data
+				loadContentJob = null
+			}
+		}
+	}
+
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -133,8 +166,15 @@ internal fun ProjectCard(
 				}
 			}
 
+			val date = remember(projectMetadata?.info) {
+				projectMetadata?.info?.created?.let { instant: Instant ->
+					val created = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+					created.format("dd MMM `yy")
+				} ?: ""
+			}
+
 			Text(
-				"Created: 1/12/93",
+				date,
 				modifier = Modifier.padding(bottom = Ui.Padding.M, start = Ui.Padding.L),
 				style = MaterialTheme.typography.bodySmall
 			)
