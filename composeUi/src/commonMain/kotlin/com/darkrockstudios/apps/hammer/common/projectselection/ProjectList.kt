@@ -33,8 +33,6 @@ internal fun ProjectList(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier
 ) {
-	val scope = rememberCoroutineScope()
-
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }

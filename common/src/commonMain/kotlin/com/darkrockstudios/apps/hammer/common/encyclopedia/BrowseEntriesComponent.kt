@@ -33,6 +33,14 @@ class BrowseEntriesComponent(
 		.build<Int, EntryContainer>()
 
 	init {
+		watchEntries()
+
+		lifecycle.doOnResume {
+			encyclopediaRepository.loadEntries()
+		}
+	}
+
+	private fun watchEntries() {
 		scope.launch {
 			encyclopediaRepository.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
@@ -45,10 +53,6 @@ class BrowseEntriesComponent(
 					}
 				}
 			}
-		}
-
-		lifecycle.doOnResume {
-			encyclopediaRepository.loadEntries()
 		}
 	}
 
