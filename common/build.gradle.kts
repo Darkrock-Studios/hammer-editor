@@ -85,7 +85,7 @@ kotlin {
             }
         }
         val iosTest by getting
-        val androidTest by getting {
+        val androidUnitTest by getting {
             dependencies {
             }
         }
