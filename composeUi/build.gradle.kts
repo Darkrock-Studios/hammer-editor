@@ -71,6 +71,7 @@ kotlin {
     }
 }
 android {
+    namespace = "com.darkrockstudios.apps.hammer.composeui"
     compileSdk = android_compile_sdk.toInt()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")

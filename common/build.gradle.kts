@@ -104,6 +104,7 @@ kotlin {
 }
 
 android {
+    namespace = "com.darkrockstudios.apps.hammer.common"
     compileSdk = android_compile_sdk.toInt()
     sourceSets {
         named("main") {

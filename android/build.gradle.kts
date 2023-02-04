@@ -28,6 +28,7 @@ dependencies {
 }
 
 android {
+    namespace = "com.darkrockstudios.apps.hammer.android"
     compileSdk = android_compile_sdk.toInt()
     defaultConfig {
         applicationId = "com.darkrockstudios.apps.hammer.android"
