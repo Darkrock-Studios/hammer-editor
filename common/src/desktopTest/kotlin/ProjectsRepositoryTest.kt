@@ -111,8 +111,6 @@ class ProjectsRepositoryTest {
 
         val created2 = repo.createProject(projectName)
         assertFalse(created2)
-
-        assertFalse { true }
     }
 
     @Test
