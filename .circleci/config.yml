@@ -46,3 +46,5 @@ jobs:
       - run:
           name: Run Tests
           command: ./gradlew allTests
+      - store_test_results:
+          path: ~/repo/common/build/reports/tests/allTests/
