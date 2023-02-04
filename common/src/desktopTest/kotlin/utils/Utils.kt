@@ -6,6 +6,7 @@ import kotlin.reflect.full.functions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
+@Suppress("UNCHECKED_CAST")
 fun <T : Any, R> T.callPrivate(methodName: String, vararg args: Any?): R {
     val privateMethod: KFunction<*>? =
         this::class.functions.find { t -> return@find t.name == methodName }
@@ -22,6 +23,7 @@ fun <T : Any, R> T.callPrivate(methodName: String, vararg args: Any?): R {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 fun <T : Any, R> T.getPrivateProperty(variableName: String): R {
     return this::class.memberProperties.find { it.name == variableName }?.let { field ->
         field.isAccessible = true

@@ -14,28 +14,41 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.ioDispatcher
+import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import okio.FileSystem
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+const val DISPATCHER_MAIN = "main-dispatcher"
+const val DISPATCHER_DEFAULT = "default-dispatcher"
+const val DISPATCHER_IO = "io-dispatcher"
+
+
 val mainModule = module {
-	includes(externalFileIoModule)
-	includes(exampleProjectModule)
+    includes(externalFileIoModule)
+    includes(exampleProjectModule)
 
-	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+    single(named(DISPATCHER_MAIN)) { mainDispatcher }
+    single(named(DISPATCHER_DEFAULT)) { defaultDispatcher }
+    single(named(DISPATCHER_IO)) { ioDispatcher }
 
-	singleOf(::getPlatformFilesystem) bind FileSystem::class
+    singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
+    singleOf(::getPlatformFilesystem) bind FileSystem::class
 
-	singleOf(::createTomlSerializer) bind Toml::class
+    singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
 
-	scope<ProjectDefScope> {
+    singleOf(::createTomlSerializer) bind Toml::class
+
+    scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
 		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class

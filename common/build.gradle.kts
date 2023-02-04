@@ -67,7 +67,6 @@ kotlin {
                 //implementation("io.insert-koin:koin-test:$koin_version")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
                 implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
-                implementation("io.mockk:mockk-common:$mockk_version")
             }
         }
         val androidMain by getting {
@@ -97,7 +96,9 @@ kotlin {
         }
         val desktopTest by getting {
             dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
                 implementation("io.mockk:mockk:$mockk_version")
+                implementation("io.insert-koin:koin-test:$koin_version")
             }
         }
     }

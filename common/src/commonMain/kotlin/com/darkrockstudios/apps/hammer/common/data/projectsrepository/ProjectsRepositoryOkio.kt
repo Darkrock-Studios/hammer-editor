@@ -24,14 +24,18 @@ class ProjectsRepositoryOkio(
     private var globalSettings = globalSettingsRepository.globalSettings
 
     init {
+        watchSettings(globalSettingsRepository)
+
+        val projectsDir = getProjectsDirectory().toOkioPath()
+        if (!fileSystem.exists(projectsDir)) throw IllegalStateException("Projects dir does not exist")
+    }
+
+    private fun watchSettings(globalSettingsRepository: GlobalSettingsRepository) {
         projectsScope.launch {
             globalSettingsRepository.globalSettingsUpdates.collect { newSettings ->
                 globalSettings = newSettings
             }
         }
-
-        val projectsDir = getProjectsDirectory().toOkioPath()
-        if (!fileSystem.exists(projectsDir)) throw IllegalStateException("Projects dir does not exist")
     }
 
     override fun getProjectsDirectory(): HPath {

@@ -58,7 +58,6 @@ kotlin {
 				implementation(kotlin("test"))
 				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
 				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
-				implementation("io.mockk:mockk-common:$mockk_version")
 				api(compose.uiTestJUnit4)
 			}
 		}

@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -22,25 +23,31 @@ class NotesComponent(
 	removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Notes {
 
-	private val notesRepository: NotesRepository by projectInject()
+    private val notesRepository: NotesRepository by projectInject()
 
-	private val _state = MutableValue(Notes.State(projectDef = projectDef, notes = emptyList()))
-	override val state: Value<Notes.State> = _state
+    private val _state = MutableValue(Notes.State(projectDef = projectDef, notes = emptyList()))
+    override val state: Value<Notes.State> = _state
 
-	init {
-		scope.launch {
-			notesRepository.notesListFlow.collect { noteContainers ->
-				withContext(mainDispatcher) {
-					val notes = noteContainers.map { it.note }
-					_state.reduce {
-						it.copy(notes = notes)
-					}
-				}
-			}
-		}
+    init {
+        watchNotes()
 
-		notesRepository.loadNotes()
-	}
+        lifecycle.doOnCreate {
+            notesRepository.loadNotes()
+        }
+    }
+
+    private fun watchNotes() {
+        scope.launch {
+            notesRepository.notesListFlow.collect { noteContainers ->
+                withContext(mainDispatcher) {
+                    val notes = noteContainers.map { it.note }
+                    _state.reduce {
+                        it.copy(notes = notes)
+                    }
+                }
+            }
+        }
+    }
 
 	override fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)

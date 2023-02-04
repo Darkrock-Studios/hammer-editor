@@ -6,8 +6,10 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
-import io.mockk.every
-import io.mockk.mockk
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
@@ -16,7 +18,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class ProjectsRepositoryTest {
+@OptIn(ExperimentalCoroutinesApi::class)
+class ProjectsRepositoryTest : BaseTest() {
 
     private lateinit var ffs: FakeFileSystem
     private lateinit var settingsRepo: GlobalSettingsRepository
@@ -30,12 +33,19 @@ class ProjectsRepositoryTest {
         settingsRepo = mockk()
         settings = mockk()
         every { settingsRepo.globalSettings } answers { settings }
+        coEvery { settingsRepo.globalSettingsUpdates } coAnswers {
+            val flow = mockk<SharedFlow<GlobalSettings>>()
+            coJustAwait { flow.collect(any()) }
+            flow
+        }
         every { settings.projectsDirectory } answers { getProjectsDirectory().toString() }
 
         ffs = FakeFileSystem()
 
         createRootDirectory(ffs)
+        setupKoin()
     }
+
 
     @After
     fun teardown() {
@@ -43,7 +53,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `ProjectsRepository init`() {
+    fun `ProjectsRepository init`() = scope.runTest {
         val projDir = getProjectsDirectory()
         assertFalse(ffs.exists(projDir), "Dir should not have existed already")
 
@@ -53,7 +63,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Scene Name Validation`() {
+    fun `Scene Name Validation`() = scope.runTest {
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
         assertTrue(repo.validateFileName("good"))
@@ -66,7 +76,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Get Projects Directory`() {
+    fun `Get Projects Directory`() = scope.runTest {
         val actualProjDir = getProjectsDirectory().toHPath()
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
         val projectDir = repo.getProjectsDirectory()
@@ -74,7 +84,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Get Projects`() {
+    fun `Get Projects`() = scope.runTest {
         createProjectDirectories(ffs)
 
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
@@ -87,7 +97,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Get Project Directory`() {
+    fun `Get Project Directory`() = scope.runTest {
         createProjectDirectories(ffs)
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
@@ -99,7 +109,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Create Project`() {
+    fun `Create Project`() = scope.runTest {
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
         val projectName = projectNames[0]
@@ -114,7 +124,7 @@ class ProjectsRepositoryTest {
     }
 
     @Test
-    fun `Delete Project`() {
+    fun `Delete Project`() = scope.runTest {
         createProjectDirectories(ffs)
         val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 

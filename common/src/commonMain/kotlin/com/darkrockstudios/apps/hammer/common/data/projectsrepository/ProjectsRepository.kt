@@ -1,15 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import kotlin.coroutines.CoroutineContext
 
-abstract class ProjectsRepository {
+abstract class ProjectsRepository : KoinComponent {
 
-    protected val projectsScope = CoroutineScope(defaultDispatcher)
+    protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+    protected val projectsScope = CoroutineScope(dispatcherDefault)
 
     abstract fun getProjectsDirectory(): HPath
     abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef>
