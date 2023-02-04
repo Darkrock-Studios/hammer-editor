@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,7 +32,7 @@ import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
-internal fun ProjectList(
+fun ProjectList(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier
 ) {
@@ -108,9 +111,11 @@ internal fun ProjectList(
 	}
 }
 
+val ProjectCardTestTag = "project-card"
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun ProjectCard(
+fun ProjectCard(
 	projectData: ProjectData,
 	onProjectClick: (projectDef: ProjectDef) -> Unit,
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit
@@ -120,7 +125,9 @@ internal fun ProjectCard(
 			.fillMaxWidth()
 			.combinedClickable(
 				onClick = { onProjectClick(projectData.definition) },
-			),
+			)
+			.semantics { contentDescription = "Project Card for ${projectData.definition.name}" }
+			.testTag(ProjectCardTestTag),
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
@@ -131,7 +138,7 @@ internal fun ProjectCard(
 					style = MaterialTheme.typography.headlineMedium,
 					fontWeight = FontWeight.Bold,
 				)
-				IconButton(onClick = { onProjectAltClick(projectData.definition) }, modifier = Modifier) {
+				IconButton(onClick = { onProjectAltClick(projectData.definition) }) {
 					Icon(
 						imageVector = Icons.Filled.Delete,
 						contentDescription = "Delete",

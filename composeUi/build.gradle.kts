@@ -53,9 +53,13 @@ kotlin {
 			}
 		}
 		val commonTest by getting {
+			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 			dependencies {
 				implementation(kotlin("test"))
 				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
+				implementation("io.mockk:mockk-common:$mockk_version")
+				api(compose.uiTestJUnit4)
 			}
 		}
 		val androidMain by getting {
@@ -65,7 +69,13 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
+				implementation(compose.desktop.currentOs)
 				api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
+			}
+		}
+		val desktopTest by getting {
+			dependencies {
+				implementation("io.mockk:mockk:$mockk_version")
 			}
 		}
     }
