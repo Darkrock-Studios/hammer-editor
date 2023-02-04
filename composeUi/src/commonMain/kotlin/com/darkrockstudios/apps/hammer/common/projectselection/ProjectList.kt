@@ -22,13 +22,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
-import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.util.format
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -65,7 +59,7 @@ internal fun ProjectList(
 					contentPadding = PaddingValues(Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 				) {
-					if (state.projectDefs.isEmpty()) {
+					if (state.projects.isEmpty()) {
 						item {
 							Text(
 								"No Projects Found",
@@ -79,14 +73,12 @@ internal fun ProjectList(
 					}
 
 					items(
-						count = state.projectDefs.size,
-						key = { index -> state.projectDefs[index].name.hashCode() }
+						count = state.projects.size,
+						key = { index -> state.projects[index].definition.name.hashCode() }
 					) { index ->
 						ProjectCard(
-							component = component,
-							projectDef = state.projectDefs[index],
+							projectData = state.projects[index],
 							onProjectClick = component::selectProject,
-							scope = scope
 						) { project ->
 							projectDefDeleteTarget = project
 						}
@@ -121,43 +113,27 @@ internal fun ProjectList(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ProjectCard(
-	component: ProjectSelection,
-	projectDef: ProjectDef,
-	scope: CoroutineScope,
+	projectData: ProjectData,
 	onProjectClick: (projectDef: ProjectDef) -> Unit,
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit
 ) {
-	var loadContentJob = remember<Job?> { null }
-	var projectMetadata by remember { mutableStateOf<ProjectMetadata?>(null) }
-
-	LaunchedEffect(projectDef) {
-		loadContentJob?.cancel()
-		loadContentJob = scope.launch {
-			val data = component.loadProjectMetadata(projectDef)
-			withContext(mainDispatcher) {
-				projectMetadata = data
-				loadContentJob = null
-			}
-		}
-	}
-
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
 			.combinedClickable(
-				onClick = { onProjectClick(projectDef) },
+				onClick = { onProjectClick(projectData.definition) },
 			),
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 			Row(modifier = Modifier.padding(bottom = Ui.Padding.S).fillMaxWidth()) {
 				Text(
-					projectDef.name,
+					projectData.definition.name,
 					modifier = Modifier.weight(1f),
 					style = MaterialTheme.typography.headlineMedium,
 					fontWeight = FontWeight.Bold,
 				)
-				IconButton(onClick = { onProjectAltClick(projectDef) }, modifier = Modifier) {
+				IconButton(onClick = { onProjectAltClick(projectData.definition) }, modifier = Modifier) {
 					Icon(
 						imageVector = Icons.Filled.Delete,
 						contentDescription = "Delete",
@@ -166,11 +142,11 @@ internal fun ProjectCard(
 				}
 			}
 
-			val date = remember(projectMetadata?.info) {
-				projectMetadata?.info?.created?.let { instant: Instant ->
+			val date = remember(projectData.metadata.info) {
+				projectData.metadata.info.created.let { instant: Instant ->
 					val created = instant.toLocalDateTime(TimeZone.currentSystemDefault())
 					created.format("dd MMM `yy")
-				} ?: ""
+				}
 			}
 
 			Text(

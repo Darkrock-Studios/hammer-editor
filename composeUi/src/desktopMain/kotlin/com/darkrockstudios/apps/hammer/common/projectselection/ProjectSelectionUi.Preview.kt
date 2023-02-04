@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 
 
@@ -30,20 +31,18 @@ private fun ProjectSelectionUiPreview() {
 @Preview
 @Composable
 private fun ProjectCardPreview() {
-	val component = fakeProjectSelectionComponent()
-	val scope = rememberCoroutineScope()
-
+	val data = fakeProjectData()
 	Column {
 		Spacer(modifier = Modifier.size(32.dp))
 
 		AppTheme(false) {
-			ProjectCard(component, fakeProjectDef(), scope, {}, {})
+			ProjectCard(data, {}, {})
 		}
 
 		Spacer(modifier = Modifier.size(32.dp))
 
 		AppTheme(true) {
-			ProjectCard(component, fakeProjectDef(), scope, {}, {})
+			ProjectCard(data, {}, {})
 		}
 	}
 }
@@ -55,11 +54,11 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 			get() = MutableValue(
 				ProjectSelection.State(
 					projectsDir = HPath("/asd/asd", "asd", true),
-					projectDefs = listOf(
-						fakeProjectDef(),
-						fakeProjectDef(),
-						fakeProjectDef(),
-						fakeProjectDef(),
+					projects = listOf(
+						fakeProjectData(),
+						fakeProjectData(),
+						fakeProjectData(),
+						fakeProjectData(),
 					),
 					uiTheme = UiTheme.Dark
 				)
@@ -78,3 +77,8 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 		}
 	}
 }
+
+fun fakeProjectData() = ProjectData(
+	fakeProjectDef(),
+	fakeProjectMetadata()
+)

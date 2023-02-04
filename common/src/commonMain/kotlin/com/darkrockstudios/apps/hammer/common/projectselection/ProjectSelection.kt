@@ -23,7 +23,7 @@ interface ProjectSelection : HammerComponent {
 
     data class State(
         val projectsDir: HPath,
-        val projectDefs: List<ProjectDef> = mutableListOf(),
+        val projects: List<ProjectData> = mutableListOf(),
         val location: Locations = Locations.Projects,
         val uiTheme: UiTheme
     )

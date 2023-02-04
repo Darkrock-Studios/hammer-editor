@@ -35,13 +35,25 @@ class ProjectSelectionComponent(
 	private val _state = MutableValue(
 		ProjectSelection.State(
 			projectsDir = projectsRepository.getProjectsDirectory(),
-			projectDefs = emptyList(),
+			projects = emptyList(),
 			uiTheme = globalSettingsRepository.globalSettings.uiTheme
 		)
 	)
 	override val state: Value<ProjectSelection.State> = _state
 
 	init {
+		watchSettingsUpdates()
+
+		if (exampleProjectRepository.shouldInstallFirstTime()) {
+			exampleProjectRepository.install()
+		}
+
+		lifecycle.doOnCreate {
+			loadProjectList()
+		}
+	}
+
+	private fun watchSettingsUpdates() {
 		scope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 				withContext(mainDispatcher) {
@@ -55,24 +67,25 @@ class ProjectSelectionComponent(
 				}
 			}
 		}
-
-		if (exampleProjectRepository.shouldInstallFirstTime()) {
-			exampleProjectRepository.install()
-		}
-
-		lifecycle.doOnCreate {
-			loadProjectList()
-		}
 	}
 
 	override fun loadProjectList() {
 		loadProjectsJob?.cancel()
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(state.value.projectsDir)
+			val projectData = projects.mapNotNull {  projectDef ->
+				val metadata = projectsRepository.loadMetadata(projectDef)
+				if(metadata != null) {
+					ProjectData(projectDef, metadata)
+				} else {
+					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
+					null
+				}
+			}
 
 			withContext(mainDispatcher) {
 				_state.reduce {
-					it.copy(projectDefs = projects)
+					it.copy(projects = projectData)
 				}
 				loadProjectsJob = null
 			}
