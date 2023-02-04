@@ -45,7 +45,7 @@ jobs:
       # run tests!
       - run:
           name: Run Tests
-          command: ./gradlew allTests
+          command: ./gradlew desktopTest
       - run:
           name: Save test results
           command: |
@@ -62,3 +62,5 @@ jobs:
           path: ~/test-results/junit
       - store_artifacts:
           path: ~/test-results/reports
+      - store_artifacts:
+          path: ~/test-results/junit
