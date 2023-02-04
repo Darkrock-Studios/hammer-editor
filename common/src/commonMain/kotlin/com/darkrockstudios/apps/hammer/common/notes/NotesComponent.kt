@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,7 +38,7 @@ class NotesComponent(
     private fun watchNotes() {
         scope.launch {
             notesRepository.notesListFlow.collect { noteContainers ->
-                withContext(mainDispatcher) {
+                withContext(dispatcherMain) {
                     val notes = noteContainers.map { it.note }
                     _state.reduce {
                         it.copy(notes = notes)

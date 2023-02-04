@@ -1,5 +1,6 @@
 package projecteditorrepository
 
+import BaseTest
 import PROJECT_1_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -32,7 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class ProjectEditorRepositoryOkioMoveTest {
+class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 
     private lateinit var ffs: FakeFileSystem
     private lateinit var projectPath: HPath
@@ -85,7 +86,8 @@ class ProjectEditorRepositoryOkioMoveTest {
     }
 
     @Before
-    fun setup() {
+    override fun setup() {
+        super.setup()
         ffs = FakeFileSystem()
 
         val rootDir = getRootDocumentDirectory()
@@ -102,28 +104,31 @@ class ProjectEditorRepositoryOkioMoveTest {
 			path = projectPath
 		)
 
-		toml = createTomlSerializer()
+        toml = createTomlSerializer()
 
-		nextId = -1
-		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers {}
+        nextId = -1
+        idRepository = mockk()
+        every { idRepository.claimNextId() } answers { claimId() }
+        every { idRepository.findNextId() } answers {}
 
-		createProject(ffs, PROJECT_1_NAME)
+        createProject(ffs, PROJECT_1_NAME)
 
-		repo = ProjectEditorRepositoryOkio(
-			projectDef = projectDef,
-			projectsRepository = projectsRepo,
-			fileSystem = ffs,
-			toml = toml,
-			idRepository = idRepository
-		)
+        setupKoin()
+
+        repo = ProjectEditorRepositoryOkio(
+            projectDef = projectDef,
+            projectsRepository = projectsRepo,
+            fileSystem = ffs,
+            toml = toml,
+            idRepository = idRepository
+        )
 
         repo.initializeProjectEditor()
     }
 
     @After
-    fun tearDown() {
+    override fun tearDown() {
+        super.tearDown()
         repo.close()
 
         ffs.checkNoOpenFiles()

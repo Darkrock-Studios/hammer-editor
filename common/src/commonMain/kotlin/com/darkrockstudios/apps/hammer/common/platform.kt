@@ -11,6 +11,17 @@ expect fun getRootDocumentDirectory(): String
 expect fun getConfigDirectory(): String
 expect fun getPlatformFilesystem(): FileSystem
 
-expect val defaultDispatcher: CoroutineContext
-expect val ioDispatcher: CoroutineContext
-expect val mainDispatcher: CoroutineContext
+/**
+ * Do not reference this directly, use injected
+ */
+internal expect val platformDefaultDispatcher: CoroutineContext
+
+/**
+ * Do not reference this directly, use injected
+ */
+expect val platformIoDispatcher: CoroutineContext
+
+/**
+ * Do not reference this directly, use injected
+ */
+expect val platformMainDispatcher: CoroutineContext

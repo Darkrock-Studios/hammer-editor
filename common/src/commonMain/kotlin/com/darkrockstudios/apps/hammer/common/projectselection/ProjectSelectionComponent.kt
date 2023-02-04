@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
@@ -56,15 +55,15 @@ class ProjectSelectionComponent(
 	private fun watchSettingsUpdates() {
 		scope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-				withContext(mainDispatcher) {
-					_state.reduce {
-						val projectsPath = settings.projectsDirectory.toPath().toHPath()
-						it.copy(
-							projectsDir = projectsPath,
-							uiTheme = settings.uiTheme
-						)
-					}
-				}
+                withContext(dispatcherMain) {
+                    _state.reduce {
+                        val projectsPath = settings.projectsDirectory.toPath().toHPath()
+                        it.copy(
+                            projectsDir = projectsPath,
+                            uiTheme = settings.uiTheme
+                        )
+                    }
+                }
 			}
 		}
 	}
@@ -83,12 +82,12 @@ class ProjectSelectionComponent(
 				}
 			}
 
-			withContext(mainDispatcher) {
-				_state.reduce {
-					it.copy(projects = projectData)
-				}
-				loadProjectsJob = null
-			}
+            withContext(dispatcherMain) {
+                _state.reduce {
+                    it.copy(projects = projectData)
+                }
+                loadProjectsJob = null
+            }
 		}
 	}
 

@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
@@ -40,6 +40,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val imageLoader: ImageLoader by inject()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val mainDispatcher by injectMainDispatcher()
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
 

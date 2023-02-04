@@ -14,12 +14,12 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.ioDispatcher
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
+import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import okio.FileSystem
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
@@ -36,9 +36,9 @@ val mainModule = module {
     includes(externalFileIoModule)
     includes(exampleProjectModule)
 
-    single(named(DISPATCHER_MAIN)) { mainDispatcher }
-    single(named(DISPATCHER_DEFAULT)) { defaultDispatcher }
-    single(named(DISPATCHER_IO)) { ioDispatcher }
+    single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
+    single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
+    single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
     singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 

@@ -3,11 +3,11 @@ package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.tree.Tree
@@ -19,13 +19,15 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import okio.Closeable
+import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.milliseconds
 
 abstract class ProjectEditorRepository(
     val projectDef: ProjectDef,
     private val projectsRepository: ProjectsRepository,
     protected val idRepository: IdRepository
-) : Closeable {
+) : Closeable, KoinComponent {
+
     val rootScene = SceneItem(
         projectDef = projectDef,
         type = SceneItem.Type.Root,
@@ -36,7 +38,9 @@ abstract class ProjectEditorRepository(
 
     private lateinit var metadata: ProjectMetadata
 
-    private val editorScope = CoroutineScope(defaultDispatcher)
+    protected val dispatcherMain by injectMainDispatcher()
+    protected val dispatcherDefault by injectDefaultDispatcher()
+    private val editorScope = CoroutineScope(dispatcherDefault)
 
     private val _contentFlow = MutableSharedFlow<SceneContent>(
         extraBufferCapacity = 1
@@ -81,7 +85,7 @@ abstract class ProjectEditorRepository(
         return scope.launch {
             bufferUpdateFlow.collect { newBuffer ->
                 if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
-                    withContext(mainDispatcher) {
+                    withContext(dispatcherMain) {
                         onBufferUpdate(newBuffer)
                     }
                 }
@@ -95,7 +99,7 @@ abstract class ProjectEditorRepository(
     ): Job {
         val job = scope.launch {
             sceneListChannel.collect { scenes ->
-                withContext(mainDispatcher) {
+                withContext(dispatcherMain) {
                     onSceneListUpdate(scenes)
                 }
             }

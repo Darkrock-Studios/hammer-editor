@@ -7,7 +7,6 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,10 +39,10 @@ class SceneListComponent(
 	private fun watchSelectedScene(selectedSceneItem: SharedFlow<SceneItem?>) {
 		scope.launch {
 			selectedSceneItem.collect { scene ->
-				withContext(mainDispatcher) {
-					Napier.d("Scene Selected: $scene")
-					_state.reduce { it.copy(selectedSceneItem = scene) }
-				}
+                withContext(dispatcherMain) {
+                    Napier.d("Scene Selected: $scene")
+                    _state.reduce { it.copy(selectedSceneItem = scene) }
+                }
 			}
 		}
 	}

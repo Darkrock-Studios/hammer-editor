@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,14 +36,14 @@ class ViewEntryComponent(
 		scope.launch {
 			val entryImagePath = getImagePath(state.value.entryDef)
 			val content = loadEntryContent(state.value.entryDef)
-			withContext(mainDispatcher) {
-				_state.reduce {
-					it.copy(
-						entryImagePath = entryImagePath,
-						content = content
-					)
-				}
-			}
+            withContext(dispatcherMain) {
+                _state.reduce {
+                    it.copy(
+                        entryImagePath = entryImagePath,
+                        content = content
+                    )
+                }
+            }
 		}
 	}
 

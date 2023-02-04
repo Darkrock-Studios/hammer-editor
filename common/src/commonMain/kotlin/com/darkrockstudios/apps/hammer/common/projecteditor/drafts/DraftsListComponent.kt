@@ -8,8 +8,6 @@ import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,17 +31,17 @@ class DraftsListComponent(
 	override val state: Value<DraftsList.State> = _state
 
 	override fun loadDrafts() {
-		scope.launch(defaultDispatcher) {
-			val drafts = draftsRepository.findDrafts(
-				sceneItem.projectDef,
-				sceneItem.id
-			)
+		scope.launch(dispatcherDefault) {
+            val drafts = draftsRepository.findDrafts(
+                sceneItem.projectDef,
+                sceneItem.id
+            )
 
-			withContext(mainDispatcher) {
-				_state.reduce {
-					it.copy(drafts = drafts)
-				}
-			}
+            withContext(dispatcherMain) {
+                _state.reduce {
+                    it.copy(drafts = drafts)
+                }
+            }
 		}
 	}
 

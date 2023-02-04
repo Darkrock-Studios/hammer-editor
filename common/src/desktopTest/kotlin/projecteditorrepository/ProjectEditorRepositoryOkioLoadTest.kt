@@ -1,5 +1,6 @@
 package projecteditorrepository
 
+import BaseTest
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
@@ -28,7 +29,7 @@ import utils.callPrivate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ProjectEditorRepositoryOkioLoadTest {
+class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
     private lateinit var ffs: FakeFileSystem
     private lateinit var projectPath: HPath
     private lateinit var projectsRepo: ProjectsRepository
@@ -45,7 +46,8 @@ class ProjectEditorRepositoryOkioLoadTest {
     }
 
     @Before
-    fun setup() {
+    override fun setup() {
+        super.setup()
         ffs = FakeFileSystem()
         ffs.emulateWindows()
 
@@ -55,16 +57,19 @@ class ProjectEditorRepositoryOkioLoadTest {
         toml = createTomlSerializer()
 
         nextId = -1
-		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
+        idRepository = mockk()
+        every { idRepository.claimNextId() } answers { claimId() }
 
         projectsRepo = mockk()
         every { projectsRepo.getProjectsDirectory() } returns
                 rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+
+        setupKoin()
     }
 
     @After
-    fun tearDown() {
+    override fun tearDown() {
+        super.tearDown()
         repo.close()
 
         ffs.checkNoOpenFiles()

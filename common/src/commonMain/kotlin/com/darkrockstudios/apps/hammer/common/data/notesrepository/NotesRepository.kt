@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.InvalidSceneFilename
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -13,22 +13,28 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import okio.Closeable
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import kotlin.coroutines.CoroutineContext
 
 abstract class NotesRepository(
-	protected val projectDef: ProjectDef,
-	protected val idRepository: IdRepository
-) : Closeable {
-	protected val notesScope = CoroutineScope(defaultDispatcher)
+    protected val projectDef: ProjectDef,
+    protected val idRepository: IdRepository
+) : Closeable, KoinComponent {
 
-	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
+    protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+    protected val notesScope = CoroutineScope(dispatcherDefault)
 
-	protected suspend fun updateNotes(notes: List<NoteContainer>) {
-		_notesListFlow.emit(notes)
-	}
+    private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
+
+    protected suspend fun updateNotes(notes: List<NoteContainer>) {
+        _notesListFlow.emit(notes)
+    }
 
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath

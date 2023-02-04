@@ -22,12 +22,12 @@ open class BaseTest : KoinTest {
     protected val scope = TestScope()
 
     @Before
-    fun setUp() {
+    open fun setup() {
         Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
     }
 
     @After
-    fun tearDown() {
+    open fun tearDown() {
         stopKoin()
     }
 

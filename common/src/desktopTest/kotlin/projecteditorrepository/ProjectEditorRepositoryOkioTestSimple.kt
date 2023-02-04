@@ -1,5 +1,6 @@
 package projecteditorrepository
 
+import BaseTest
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -23,16 +24,16 @@ import utils.callPrivate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ProjectEditorRepositoryOkioTestSimple {
+class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
-	private lateinit var ffs: FakeFileSystem
-	private lateinit var projectPath: HPath
-	private lateinit var scenesPath: HPath
-	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var projectDef: ProjectDef
-	private lateinit var idRepository: IdRepository
-	private var nextId = -1
-	private lateinit var toml: Toml
+    private lateinit var ffs: FakeFileSystem
+    private lateinit var projectPath: HPath
+    private lateinit var scenesPath: HPath
+    private lateinit var projectsRepo: ProjectsRepository
+    private lateinit var projectDef: ProjectDef
+    private lateinit var idRepository: IdRepository
+    private var nextId = -1
+    private lateinit var toml: Toml
 
 	private fun claimId(): Int {
 		val id = nextId
@@ -66,35 +67,39 @@ class ProjectEditorRepositoryOkioTestSimple {
     }
 
     @Before
-    fun setup() {
+    override fun setup() {
+        super.setup()
         ffs = FakeFileSystem()
 
-		val rootDir = getRootDocumentDirectory()
-		ffs.createDirectories(rootDir.toPath())
+        val rootDir = getRootDocumentDirectory()
+        ffs.createDirectories(rootDir.toPath())
 
-		projectsRepo = mockk()
-		every { projectsRepo.getProjectsDirectory() } returns
-				rootDir.toPath().div(PROJ_DIR).toHPath()
+        projectsRepo = mockk()
+        every { projectsRepo.getProjectsDirectory() } returns
+                rootDir.toPath().div(PROJ_DIR).toHPath()
 
-		projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
+        projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
 
 		toml = createTomlSerializer()
 
 		nextId = -1
-		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers {}
+        idRepository = mockk()
+        every { idRepository.claimNextId() } answers { claimId() }
+        every { idRepository.findNextId() } answers {}
 
-		populateProject(ffs)
+        populateProject(ffs)
 
-		projectDef = ProjectDef(
-			name = PROJ_NAME,
-			path = projectPath
-		)
-	}
+        projectDef = ProjectDef(
+            name = PROJ_NAME,
+            path = projectPath
+        )
+
+        setupKoin()
+    }
 
     @After
-    fun tearDown() {
+    override fun tearDown() {
+        super.tearDown()
         ffs.checkNoOpenFiles()
     }
 

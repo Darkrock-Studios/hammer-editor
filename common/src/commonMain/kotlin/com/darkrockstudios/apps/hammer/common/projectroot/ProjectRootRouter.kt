@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaComponent
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
@@ -20,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorCompone
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.CoroutineContext
 
 internal class ProjectRootRouter(
     componentContext: ComponentContext,
@@ -27,7 +27,8 @@ internal class ProjectRootRouter(
     private val addMenu: (menu: MenuDescriptor) -> Unit,
     private val removeMenu: (id: String) -> Unit,
     private val updateShouldClose: () -> Unit,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val dispatcherMain: CoroutineContext,
 ) : Router {
     private val navigation = StackNavigation<Config>()
 
@@ -69,7 +70,7 @@ internal class ProjectRootRouter(
 
         scope.launch {
             editor.shouldCloseRoot.collect {
-                withContext(mainDispatcher) {
+                withContext(dispatcherMain) {
                     updateShouldClose()
                 }
             }

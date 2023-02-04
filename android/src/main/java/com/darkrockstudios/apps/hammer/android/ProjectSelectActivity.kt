@@ -22,7 +22,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
+import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
@@ -74,9 +74,9 @@ class ProjectSelectActivity : AppCompatActivity() {
 
 		settingsUpdateJob = lifecycleScope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-				withContext(mainDispatcher) {
-					globalSettings.reduce { settings }
-				}
+                withContext(platformMainDispatcher) {
+                    globalSettings.reduce { settings }
+                }
 			}
 		}
 	}

@@ -15,8 +15,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -31,6 +29,8 @@ internal fun ViewEntryUi(
 	snackbarHostState: SnackbarHostState,
 	closeEntry: () -> Unit,
 ) {
+	val dispatcherMain = rememberMainDispatcher()
+	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
 	var editName by remember { mutableStateOf(false) }
@@ -68,7 +68,7 @@ internal fun ViewEntryUi(
 								tags = content.tags
 							)
 
-							withContext(mainDispatcher) {
+							withContext(dispatcherMain) {
 								editName = false
 								editText = false
 							}
@@ -90,7 +90,7 @@ internal fun ViewEntryUi(
 							entryNameText = content.name
 							entryText = content.text
 
-							withContext(mainDispatcher) {
+							withContext(dispatcherMain) {
 								editName = false
 								editText = false
 							}
@@ -211,9 +211,9 @@ internal fun ViewEntryUi(
 			confirmButton = "Delete"
 		) { shouldDelete ->
 			if (shouldDelete) {
-				scope.launch(defaultDispatcher) {
+				scope.launch(dispatcherDefault) {
 					if (component.deleteEntry(state.entryDef)) {
-						withContext(mainDispatcher) {
+						withContext(dispatcherMain) {
 							closeEntry()
 						}
 						snackbarHostState.showSnackbar("Entry Deleted")

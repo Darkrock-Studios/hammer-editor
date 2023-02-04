@@ -1,5 +1,6 @@
 package projecteditorrepository
 
+import BaseTest
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
@@ -29,7 +30,7 @@ import utils.callPrivate
 import utils.getPrivateProperty
 import kotlin.test.*
 
-class ProjectEditorRepositoryOkioOtherTest {
+class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
     private lateinit var ffs: FakeFileSystem
     private lateinit var projectPath: HPath
@@ -71,26 +72,30 @@ class ProjectEditorRepositoryOkioOtherTest {
     }
 
     @Before
-    fun setup() {
-		ffs = FakeFileSystem()
+    override fun setup() {
+        super.setup()
+        ffs = FakeFileSystem()
 
-		val rootDir = getRootDocumentDirectory()
-		ffs.createDirectories(rootDir.toPath())
+        val rootDir = getRootDocumentDirectory()
+        ffs.createDirectories(rootDir.toPath())
 
-		toml = createTomlSerializer()
+        toml = createTomlSerializer()
 
-		nextId = 8
-		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers { }
+        nextId = 8
+        idRepository = mockk()
+        every { idRepository.claimNextId() } answers { claimId() }
+        every { idRepository.findNextId() } answers { }
 
-		projectsRepo = mockk()
-		every { projectsRepo.getProjectsDirectory() } returns
-				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
-	}
+        projectsRepo = mockk()
+        every { projectsRepo.getProjectsDirectory() } returns
+                rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+
+        setupKoin()
+    }
 
     @After
-    fun tearDown() {
+    override fun tearDown() {
+        super.tearDown()
         repo.close()
 
         ffs.checkNoOpenFiles()

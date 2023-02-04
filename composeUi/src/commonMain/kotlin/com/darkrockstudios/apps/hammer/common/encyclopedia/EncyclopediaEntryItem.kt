@@ -14,14 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.compose.TagRow
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.ioDispatcher
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -46,16 +42,18 @@ internal fun EncyclopediaEntryItem(
 	modifier: Modifier = Modifier,
 	filterByType: (type: EntryType) -> Unit
 ) {
-	var loadContentJob = remember<Job?> { null }
-	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
-	var entryImagePath by remember { mutableStateOf<String?>(null) }
+    val ioDispatcher = rememberIoDispatcher()
+    val mainDispatcher = rememberMainDispatcher()
+    var loadContentJob = remember<Job?> { null }
+    var entryContent by remember { mutableStateOf<EntryContent?>(null) }
+    var entryImagePath by remember { mutableStateOf<String?>(null) }
 
-	LaunchedEffect(entryDef) {
-		entryImagePath = null
-		loadContentJob?.cancel()
-		loadContentJob = scope.launch(ioDispatcher) {
-			val imagePath = component.getImagePath(entryDef)
-			val content = component.loadEntryContent(entryDef)
+    LaunchedEffect(entryDef) {
+        entryImagePath = null
+        loadContentJob?.cancel()
+        loadContentJob = scope.launch(ioDispatcher) {
+            val imagePath = component.getImagePath(entryDef)
+            val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
 				entryImagePath = imagePath
 				entryContent = content

@@ -27,7 +27,8 @@ class ProjectsRepositoryTest : BaseTest() {
     private lateinit var toml: Toml
 
     @Before
-    fun setup() {
+    override fun setup() {
+        super.setup()
         toml = createTomlSerializer()
 
         settingsRepo = mockk()
@@ -48,7 +49,8 @@ class ProjectsRepositoryTest : BaseTest() {
 
 
     @After
-    fun teardown() {
+    override fun tearDown() {
+        super.tearDown()
         ffs.checkNoOpenFiles()
     }
 

@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -41,7 +40,7 @@ class DraftCompareComponent(
 			val currentBuffer = projectEditor.loadSceneBuffer(sceneItem)
 			val draftContent = draftsRepository.loadDraft(sceneItem, draftDef)
 
-			withContext(mainDispatcher) {
+			withContext(dispatcherMain) {
 				_state.reduce {
 					it.copy(
 						sceneContent = currentBuffer.content,

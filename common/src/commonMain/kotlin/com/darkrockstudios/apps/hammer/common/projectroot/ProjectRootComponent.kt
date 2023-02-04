@@ -37,7 +37,8 @@ class ProjectRootComponent(
 		addMenu,
 		removeMenu,
 		::updateCloseConfirmRequirement,
-		scope
+		scope,
+		dispatcherMain
 	)
 
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination>> = router.state

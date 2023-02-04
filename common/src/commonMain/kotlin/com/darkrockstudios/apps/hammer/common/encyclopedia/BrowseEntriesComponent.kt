@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
@@ -45,13 +44,13 @@ class BrowseEntriesComponent(
 			encyclopediaRepository.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
 
-				withContext(mainDispatcher) {
-					_state.reduce { state ->
-						state.copy(
-							entryDefs = entryDefs
-						)
-					}
-				}
+                withContext(dispatcherMain) {
+                    _state.reduce { state ->
+                        state.copy(
+                            entryDefs = entryDefs
+                        )
+                    }
+                }
 			}
 		}
 	}

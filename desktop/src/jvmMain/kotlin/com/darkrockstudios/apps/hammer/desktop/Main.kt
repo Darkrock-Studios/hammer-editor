@@ -19,14 +19,14 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.defaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.mainDispatcher
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -61,7 +61,8 @@ fun main() {
 		LafManager.install(IntelliJTheme())
 	}
 
-	val scope = CoroutineScope(defaultDispatcher)
+	val scope = CoroutineScope(getDefaultDispatcher())
+	val mainDispatcher = getMainDispatcher()
 
 	// Listen and react to Global Settings updates
 	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
