@@ -59,7 +59,7 @@ jobs:
             find . -type f -regex ".*/build/reports/tests/.*" -exec cp {} ~/test-results/reports/ \;
           when: always
       - store_test_results:
-          path: ~/test-results/junit
+          path: ~/test-results
       - store_artifacts:
           path: ~/test-results/reports
       - store_artifacts:
