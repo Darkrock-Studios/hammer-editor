@@ -1,7 +1,8 @@
 # hammer-editor
-A simple tool for building stories.
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Wavesonics/hammer-editor/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Wavesonics/hammer-editor/tree/master)
+
+A simple tool for building stories.
 
 ### Multi-platform
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run.
