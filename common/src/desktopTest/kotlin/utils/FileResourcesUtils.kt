@@ -38,6 +38,7 @@ object FileResourcesUtils {
 	) {
 		val clazz = FileResourcesUtils::class.java
 		val resFiles = getResourceFiles(clazz, from.toString())
+			.filter { it.name != ".gitkeep" }
 
 		val dirURL = clazz.classLoader.getResource(from.toString())!!
 		val fromDir = File(dirURL.toURI())

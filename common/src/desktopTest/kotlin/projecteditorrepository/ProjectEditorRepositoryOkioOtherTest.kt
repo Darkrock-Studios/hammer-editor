@@ -357,7 +357,7 @@ class ProjectEditorRepositoryOkioOtherTest {
         val groupPath = repo.getSceneFilePath(groupPreDelete)
 
         val deleted = repo.deleteGroup(groupPreDelete)
-        assertTrue(deleted)
+        assertTrue(deleted, "deleteGroup returned false")
 
         assertFalse(ffs.exists(groupPath.toOkioPath()), "Group file was not deleted")
 
