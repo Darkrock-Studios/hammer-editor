@@ -35,7 +35,7 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
-      - run: ~/repo/gradlew dependencies
+      - run: ./gradlew dependencies
 
       - save_cache:
           paths:
@@ -43,4 +43,4 @@ jobs:
           key: v1-dependencies-{{ checksum "build.gradle.kts" }}
 
       # run tests!
-      - run: ~/repo/gradlew test
+      - run: ./gradlew test
