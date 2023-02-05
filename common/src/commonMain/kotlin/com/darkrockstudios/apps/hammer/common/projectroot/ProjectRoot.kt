@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
+import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
     val routerState: Value<ChildStack<*, Destination>>
@@ -20,26 +21,31 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
     fun isAtRoot(): Boolean
 
     sealed class Destination {
-        data class EditorDestination(val component: ProjectEditor) : Destination(), Router {
-            override fun isAtRoot() = component.isAtRoot()
-        }
+		data class EditorDestination(val component: ProjectEditor) : Destination(), Router {
+			override fun isAtRoot() = component.isAtRoot()
+		}
 
-        data class NotesDestination(val component: Notes) : Destination()
+		data class NotesDestination(val component: Notes) : Destination()
 
-        data class EncyclopediaDestination(val component: Encyclopedia) : Destination(), Router {
-            override fun isAtRoot() = component.isAtRoot()
-        }
+		data class EncyclopediaDestination(val component: Encyclopedia) : Destination(), Router {
+			override fun isAtRoot() = component.isAtRoot()
+		}
 
-        fun getLocationType(): ProjectRoot.DestinationTypes {
-            return when (this) {
-                is ProjectRoot.Destination.EditorDestination -> ProjectRoot.DestinationTypes.Editor
-                is ProjectRoot.Destination.EncyclopediaDestination -> ProjectRoot.DestinationTypes.Encyclopedia
-                is ProjectRoot.Destination.NotesDestination -> ProjectRoot.DestinationTypes.Notes
-            }
-        }
-    }
+		data class TimeLineDestination(val component: TimeLine) : Destination()
 
-    enum class DestinationTypes(val text: String) {
-        Editor("Editor"), Notes("Notes"), Encyclopedia("Encyclopedia")
-    }
+		fun getLocationType(): DestinationTypes {
+			return when (this) {
+				is EditorDestination -> DestinationTypes.Editor
+				is EncyclopediaDestination -> DestinationTypes.Encyclopedia
+				is NotesDestination -> DestinationTypes.Notes
+				is TimeLineDestination -> DestinationTypes.TimeLine
+			}
+		}
+	}
+
+	enum class DestinationTypes(val text: String) {
+		Editor("Editor"), Notes("Notes"), Encyclopedia("Encyclopedia"), TimeLine("Time Line")
+	}
+
+	fun showTimeLine()
 }

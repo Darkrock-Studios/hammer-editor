@@ -54,11 +54,16 @@ class ProjectRootComponent(
 		router.showEncyclopedia()
 	}
 
+	override fun showTimeLine() {
+		router.showTimeLine()
+	}
+
 	override fun showDestination(type: ProjectRoot.DestinationTypes) {
 		when (type) {
 			ProjectRoot.DestinationTypes.Editor -> showEditor()
 			ProjectRoot.DestinationTypes.Notes -> showNotes()
 			ProjectRoot.DestinationTypes.Encyclopedia -> showEncyclopedia()
+			ProjectRoot.DestinationTypes.TimeLine -> showTimeLine()
 		}
 	}
 

@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
@@ -58,5 +60,7 @@ val mainModule = module {
 		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
 
 		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
+
+		scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
 	}
 }

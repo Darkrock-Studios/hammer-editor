@@ -16,6 +16,8 @@ import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
+import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
+import com.darkrockstudios.apps.hammer.common.timeline.TimeLineComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -48,17 +50,21 @@ internal class ProjectRootRouter(
     ): ProjectRoot.Destination =
         when (config) {
             is Config.EditorConfig -> ProjectRoot.Destination.EditorDestination(
-                editorComponent(config, componentContext)
-            )
+				editorComponent(config, componentContext)
+			)
 
-            is Config.NotesConfig -> ProjectRoot.Destination.NotesDestination(
-                notes(config, componentContext)
-            )
+			is Config.NotesConfig -> ProjectRoot.Destination.NotesDestination(
+				notes(config, componentContext)
+			)
 
-            is Config.EncyclopediaConfig -> ProjectRoot.Destination.EncyclopediaDestination(
-                encyclopedia(config, componentContext)
-            )
-        }
+			is Config.EncyclopediaConfig -> ProjectRoot.Destination.EncyclopediaDestination(
+				encyclopedia(config, componentContext)
+			)
+
+			is Config.TimeLineConfig -> ProjectRoot.Destination.TimeLineDestination(
+				timeLine(config, componentContext)
+			)
+		}
 
     private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): ProjectEditor {
         val editor = ProjectEditorComponent(
@@ -88,45 +94,61 @@ internal class ProjectRootRouter(
         )
     }
 
-    private fun encyclopedia(config: Config.EncyclopediaConfig, componentContext: ComponentContext): Encyclopedia {
-        return EncyclopediaComponent(
-            componentContext = componentContext,
-            projectDef = config.projectDef,
-            updateShouldClose = updateShouldClose,
-            addMenu = addMenu,
-            removeMenu = removeMenu
-        )
-    }
+	private fun encyclopedia(config: Config.EncyclopediaConfig, componentContext: ComponentContext): Encyclopedia {
+		return EncyclopediaComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef,
+			updateShouldClose = updateShouldClose,
+			addMenu = addMenu,
+			removeMenu = removeMenu
+		)
+	}
 
-    fun showEditor() {
-        navigation.bringToFront(Config.EditorConfig(projectDef = projectDef))
-    }
+	private fun timeLine(config: Config.TimeLineConfig, componentContext: ComponentContext): TimeLine {
+		return TimeLineComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef,
+			addMenu = addMenu,
+			removeMenu = removeMenu
+		)
+	}
 
-    fun showNotes() {
-        navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
-    }
+	fun showEditor() {
+		navigation.bringToFront(Config.EditorConfig(projectDef = projectDef))
+	}
 
-    fun showEncyclopedia() {
-        navigation.bringToFront(Config.EncyclopediaConfig(projectDef = projectDef))
-    }
+	fun showNotes() {
+		navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
+	}
 
-    override fun isAtRoot(): Boolean {
-        val router = state.value.active.instance as? Router
-        return router?.isAtRoot() ?: true
-    }
+	fun showEncyclopedia() {
+		navigation.bringToFront(Config.EncyclopediaConfig(projectDef = projectDef))
+	}
 
-    init {
-        navigation.subscribe { updateShouldClose() }
-    }
+	fun showTimeLine() {
+		navigation.bringToFront(Config.TimeLineConfig(projectDef = projectDef))
+	}
+
+	override fun isAtRoot(): Boolean {
+		val router = state.value.active.instance as? Router
+		return router?.isAtRoot() ?: true
+	}
+
+	init {
+		navigation.subscribe { updateShouldClose() }
+	}
 
     sealed class Config : Parcelable {
-        @Parcelize
-        data class EditorConfig(val projectDef: ProjectDef) : Config()
+		@Parcelize
+		data class EditorConfig(val projectDef: ProjectDef) : Config()
 
-        @Parcelize
-        data class NotesConfig(val projectDef: ProjectDef) : Config()
+		@Parcelize
+		data class NotesConfig(val projectDef: ProjectDef) : Config()
 
-        @Parcelize
-        data class EncyclopediaConfig(val projectDef: ProjectDef) : Config()
-    }
+		@Parcelize
+		data class EncyclopediaConfig(val projectDef: ProjectDef) : Config()
+
+		@Parcelize
+		data class TimeLineConfig(val projectDef: ProjectDef) : Config()
+	}
 }
