@@ -5,7 +5,7 @@ import com.akuleshov7.ktoml.TomlIndentation
 import com.akuleshov7.ktoml.TomlInputConfig
 import com.akuleshov7.ktoml.TomlOutputConfig
 
-internal fun createTomlSerializer(): Toml {
+fun createTomlSerializer(): Toml {
 	return Toml(
 		inputConfig = TomlInputConfig(
 			// allow/prohibit unknown names during the deserialization, default false
