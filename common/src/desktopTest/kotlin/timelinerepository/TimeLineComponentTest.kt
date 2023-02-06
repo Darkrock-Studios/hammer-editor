@@ -18,6 +18,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -27,6 +28,7 @@ import org.junit.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -86,6 +88,21 @@ class TimeLineComponentTest : BaseTest() {
 		}
 	}
 
+	private fun verifyEventSequence(events: List<TimeLineEvent>, vararg expectedIds: Int) {
+		assertEquals(expectedIds.size, events.size, "Event list was not of expected size")
+
+		events.forEachIndexed { index, event ->
+			val info = if (event.id != expectedIds[index]) {
+				val actual = events.map { it.id }.joinToString()
+				val expected = expectedIds.joinToString()
+				"expected: $expected\n  actual: $actual"
+			} else {
+				""
+			}
+			assertEquals(event.id, expectedIds[index], "Timeline events out of order\n$info\n")
+		}
+	}
+
 	@Test
 	fun `TimeLine Component onCreate`() = runTest {
 		val component = TimeLineComponent(
@@ -135,11 +152,9 @@ class TimeLineComponentTest : BaseTest() {
 		assertEquals(timeline, component.state.value.timeLine, "Timeline did not propogate")
 	}
 
-	@Test
-	fun `Create event`() = runTest {
-		val id = 0
-		every { idRepo.claimNextId() } returns id
-
+	private suspend fun TestScope.defaultTestComponent(
+		originalEvents: List<TimeLineEvent> = emptyList()
+	): TimeLineComponent {
 		val component = TimeLineComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
@@ -148,9 +163,20 @@ class TimeLineComponentTest : BaseTest() {
 		)
 		lifecycleCallbacks[1].onCreate()
 		advanceUntilIdle()
-		val timeline = TimeLineContainer(events = emptyList())
+
+		val timeline = TimeLineContainer(events = originalEvents)
 		timelineRepoCollectCallback.captured.emit(timeline)
 		advanceUntilIdle()
+
+		return component
+	}
+
+	@Test
+	fun `Create event`() = runTest {
+		val id = 0
+		every { idRepo.claimNextId() } returns id
+
+		val component = defaultTestComponent()
 
 		val date = "date"
 		val content = "content"
@@ -176,19 +202,8 @@ class TimeLineComponentTest : BaseTest() {
 
 	@Test
 	fun `Update event`() = runTest {
-		val component = TimeLineComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			addMenu = {},
-			removeMenu = {}
-		)
-		lifecycleCallbacks[1].onCreate()
-		advanceUntilIdle()
-
 		val originalEvents = fakeEvents()
-		val timeline = TimeLineContainer(events = originalEvents)
-		timelineRepoCollectCallback.captured.emit(timeline)
-		advanceUntilIdle()
+		val component = defaultTestComponent(originalEvents)
 
 		val event = originalEvents.first()
 		val date = "updated date"
@@ -210,5 +225,154 @@ class TimeLineComponentTest : BaseTest() {
 
 		// After the update, it should save back to repository
 		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
+	}
+
+	@Test
+	fun `Move event and store to disk`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val first = originalEvents.first()
+		val moved = component.moveEvent(first, 4, false)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
+
+		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
+
+		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
+	}
+
+	@Test
+	fun `Move Fail 0-0`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val first = originalEvents.first()
+		val moved = component.moveEvent(first, 0, false)
+		assertFalse("Move should have failed") { moved }
+	}
+
+	@Test
+	fun `Move event- 0 to 4 before`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val first = originalEvents.first()
+		val moved = component.moveEvent(first, 4, false)
+		assertTrue("Move timeline event failed") { moved }
+
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+
+		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
+
+		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
+	}
+
+	@Test
+	fun `Move event- 0 to 4 after`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val first = originalEvents.first()
+		val moved = component.moveEvent(first, 4, true)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+		assertEquals(4, newEvents.indexOf(first), "Moved item was not at the correct position")
+
+		verifyEventSequence(newEvents, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9)
+	}
+
+	@Test
+	fun `Move event- 4 to 1 before`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val four = originalEvents[4]
+		val moved = component.moveEvent(four, 1, false)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+		assertEquals(1, newEvents.indexOf(four), "Moved item was not at the correct position")
+
+		verifyEventSequence(newEvents, 0, 4, 1, 2, 3, 5, 6, 7, 8, 9)
+	}
+
+	@Test
+	fun `Move event- 4 to 1 after`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val four = originalEvents[4]
+		val moved = component.moveEvent(four, 1, true)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+		assertEquals(2, newEvents.indexOf(four), "Moved item was not at the correct position")
+
+		verifyEventSequence(newEvents, 0, 1, 4, 2, 3, 5, 6, 7, 8, 9)
+	}
+
+	@Test
+	fun `Move event- 0 to 10 before`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val zero = originalEvents[0]
+		val moved = component.moveEvent(zero, 9, false)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+
+		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 0, 9)
+		assertEquals(8, newEvents.indexOf(zero), "Moved item was not at the correct position")
+	}
+
+	@Test
+	fun `Move event- 0 to 10 after`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val zero = originalEvents[0]
+		val moved = component.moveEvent(zero, 9, true)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+
+		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+		assertEquals(9, newEvents.indexOf(zero), "Moved item was not at the correct position")
+	}
+
+	@Test
+	fun `Move event- 10 to 0 before`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val ten = originalEvents[9]
+		val moved = component.moveEvent(ten, 0, false)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+
+		verifyEventSequence(newEvents, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8)
+		assertEquals(0, newEvents.indexOf(ten), "Moved item was not at the correct position")
+	}
+
+	@Test
+	fun `Move event- 10 to 0 after`() = runTest {
+		val originalEvents = fakeEvents()
+		val component = defaultTestComponent(originalEvents)
+
+		val ten = originalEvents[9]
+		val moved = component.moveEvent(ten, 0, true)
+		assertTrue("Move timeline event failed") { moved }
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
+
+		verifyEventSequence(newEvents, 0, 9, 1, 2, 3, 4, 5, 6, 7, 8)
+		assertEquals(1, newEvents.indexOf(ten), "Moved item was not at the correct position")
 	}
 }

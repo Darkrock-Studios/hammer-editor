@@ -22,7 +22,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
 class TimeLineComponent(
@@ -135,21 +134,21 @@ class TimeLineComponent(
 		setTimeline(updatedTimeline)
 	}
 
-	override fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean) {
-		val timeline = _state.value.timeLine ?: return
-
+	override fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
+		val timeline = _state.value.timeLine ?: return false
 		val events = timeline.events.toMutableList()
-
 		val fromIndex = events.indexOfFirst { it.id == event.id }
 
-		if (fromIndex == -1) {
+		return if (fromIndex <= -1) {
 			Napier.e { "moveEvent from event not found!" }
+			false
 		} else if (toIndex >= events.size) {
 			Napier.e { "moveEvent to invalid index: $toIndex" }
+			false
 		} else {
 			// Good to go
 			val computedToIndex = if (after) {
-				max(toIndex + 1, events.size - 1)
+				toIndex + 1
 			} else {
 				toIndex
 			}
@@ -174,6 +173,8 @@ class TimeLineComponent(
 
 				setTimeline(updatedTimeline)
 			}
+
+			moved
 		}
 	}
 }
