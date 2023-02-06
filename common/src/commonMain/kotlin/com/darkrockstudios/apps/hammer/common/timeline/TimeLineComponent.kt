@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.projectInject
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,7 +39,10 @@ class TimeLineComponent(
 	private val _state = MutableValue(TimeLine.State(timeLine = null))
 	override val state: Value<TimeLine.State> = _state
 
-	private val timelineFlow = MutableSharedFlow<TimeLineContainer>()
+	private val timelineFlow = MutableSharedFlow<TimeLineContainer>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
 
 	private var saveJob: Job? = null
 
@@ -57,12 +61,21 @@ class TimeLineComponent(
 		}
 	}
 
+	private fun setTimeline(timeline: TimeLineContainer) {
+		_state.reduce {
+			it.copy(timeLine = timeline)
+		}
+		timelineFlow.tryEmit(timeline)
+	}
+
 	private fun watchTimeLine() {
 		scope.launch {
 			timeLineRepository.timelineFlow.collect { timeLine ->
 				withContext(mainDispatcher) {
-					_state.reduce {
-						it.copy(timeLine = timeLine)
+					if (timeLine != state.value.timeLine) {
+						_state.reduce {
+							it.copy(timeLine = timeLine)
+						}
 					}
 				}
 			}
@@ -72,6 +85,7 @@ class TimeLineComponent(
 	private fun saveOnChange() {
 		saveJob = scope.launch {
 			timelineFlow.debounceUntilQuiescent(1000.milliseconds).collect { timeLine ->
+				Napier.d("comp store timeline")
 				timeLineRepository.storeTimeline(timeLine)
 			}
 		}
@@ -118,7 +132,7 @@ class TimeLineComponent(
 			events = events
 		)
 
-		_state.reduce { it.copy(timeLine = updatedTimeline) }
+		setTimeline(updatedTimeline)
 	}
 
 	override fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean) {
@@ -158,7 +172,7 @@ class TimeLineComponent(
 					events = events
 				)
 
-				_state.reduce { it.copy(timeLine = updatedTimeline) }
+				setTimeline(updatedTimeline)
 			}
 		}
 	}
