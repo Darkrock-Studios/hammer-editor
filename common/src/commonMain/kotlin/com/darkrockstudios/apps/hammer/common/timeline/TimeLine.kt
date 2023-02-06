@@ -9,7 +9,7 @@ interface TimeLine {
 	val state: Value<State>
 
 	fun createEvent(dateText: String?, contentText: String): Boolean
-	fun updateEvent(timeLine: TimeLineEvent)
+	fun updateEvent(event: TimeLineEvent)
 	fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean)
 
 	data class State(

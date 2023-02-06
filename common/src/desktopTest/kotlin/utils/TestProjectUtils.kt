@@ -11,18 +11,28 @@ import okio.fakefilesystem.FakeFileSystem
 import utils.FileResourcesUtils
 import kotlin.test.assertEquals
 
+const val PROJECT_EMPTY_NAME = "Empty Project"
 const val PROJECT_1_NAME = "Test Project 1"
 const val PROJECT_2_NAME = "Test Project 2"
 const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
-val projectNames = listOf(OUT_OF_ORDER_PROJECT_NAME, PROJECT_1_NAME, PROJECT_2_NAME)
+val projectNames = listOf(PROJECT_EMPTY_NAME, OUT_OF_ORDER_PROJECT_NAME, PROJECT_1_NAME, PROJECT_2_NAME)
+
+fun getProjectDef(name: String): ProjectDef {
+	val projectPath = getProjectsDirectory().div(name).toHPath()
+
+	return ProjectDef(
+		name = name,
+		path = projectPath
+	)
+}
 
 fun getProject1Def(): ProjectDef {
-    val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()
+	val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()
 
-    return ProjectDef(
-        name = PROJECT_1_NAME,
-        path = projectPath
-    )
+	return ProjectDef(
+		name = PROJECT_1_NAME,
+		path = projectPath
+	)
 }
 
 fun createRootDirectory(ffs: FakeFileSystem) {

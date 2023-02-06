@@ -2,8 +2,10 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
@@ -14,11 +16,13 @@ class IdRepositoryTest {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var idRepository: IdRepository
 	private lateinit var toml: Toml
+	private lateinit var json: Json
 
 	@Before
 	fun setup() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
+		json = createJsonSerializer()
 	}
 
 	@After
@@ -30,7 +34,7 @@ class IdRepositoryTest {
 	fun `findLastId Scene Ids`() {
 		createProject(ffs, PROJECT_1_NAME)
 
-		idRepository = IdRepositoryOkio(getProject1Def(), ffs, toml)
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
 
 		idRepository.findNextId()
 
@@ -48,7 +52,7 @@ class IdRepositoryTest {
 			path = projectPath
 		)
 
-		idRepository = IdRepositoryOkio(projectDef, ffs, toml)
+		idRepository = IdRepositoryOkio(projectDef, ffs, json)
 
 		idRepository.findNextId()
 

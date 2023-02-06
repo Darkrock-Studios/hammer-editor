@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepos
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
+import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
@@ -35,22 +36,24 @@ const val DISPATCHER_IO = "io-dispatcher"
 
 
 val mainModule = module {
-    includes(externalFileIoModule)
-    includes(exampleProjectModule)
+	includes(externalFileIoModule)
+	includes(exampleProjectModule)
 
-    single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
-    single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
-    single(named(DISPATCHER_IO)) { platformIoDispatcher }
+	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
+	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
+	single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
-    singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-    singleOf(::getPlatformFilesystem) bind FileSystem::class
+	singleOf(::getPlatformFilesystem) bind FileSystem::class
 
-    singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
+	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
 
-    singleOf(::createTomlSerializer) bind Toml::class
+	singleOf(::createTomlSerializer) bind Toml::class
 
-    scope<ProjectDefScope> {
+	singleOf(::createJsonSerializer) bind Json::class
+
+	scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
 		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class

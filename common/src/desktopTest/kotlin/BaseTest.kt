@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -14,22 +15,27 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.test.KoinTest
+import org.koin.test.get
 import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 open class BaseTest : KoinTest {
 
-    protected val scope = TestScope()
+	protected val scope = TestScope()
 
-    @Before
-    open fun setup() {
-        Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
-    }
+	lateinit var mainTestDispatcher: TestDispatcher
+	lateinit var ioTestDispatcher: TestDispatcher
+	lateinit var defaultTestDispatcher: TestDispatcher
 
-    @After
-    open fun tearDown() {
-        stopKoin()
-    }
+	@Before
+	open fun setup() {
+		Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
+	}
+
+	@After
+	open fun tearDown() {
+		stopKoin()
+	}
 
     fun setupKoin(vararg modules: Module) {
         val scheduler = scope.testScheduler
@@ -48,15 +54,19 @@ open class BaseTest : KoinTest {
                             name = "IO dispatcher"
                         )
                     }
-                    single<CoroutineContext>(named(DISPATCHER_MAIN)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "Main dispatcher"
-                        )
-                    }
-                },
-                *modules
-            )
-        }
-    }
+					single<CoroutineContext>(named(DISPATCHER_MAIN)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "Main dispatcher"
+						)
+					}
+				},
+				*modules
+			)
+		}
+
+		mainTestDispatcher = get<CoroutineContext>(named(DISPATCHER_MAIN)) as TestDispatcher
+		ioTestDispatcher = get<CoroutineContext>(named(DISPATCHER_IO)) as TestDispatcher
+		defaultTestDispatcher = get<CoroutineContext>(named(DISPATCHER_DEFAULT)) as TestDispatcher
+	}
 }
