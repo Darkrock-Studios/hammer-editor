@@ -10,7 +10,7 @@ interface TimeLine {
 
 	fun createEvent(dateText: String?, contentText: String): Boolean
 	fun updateEvent(event: TimeLineEvent)
-	fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean
+	fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean = false): Boolean
 
 	data class State(
 		val timeLine: TimeLineContainer?
