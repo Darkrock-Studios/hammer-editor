@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.reorderable
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,7 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -22,7 +24,7 @@ fun <T> DragDropList(
 	key: ((index: Int, item: T) -> Any)? = null,
 	onMove: (Int, Int) -> Unit,
 	modifier: Modifier = Modifier,
-	itemContent: @Composable (T) -> Unit
+	itemContent: @Composable (item: T, dragging: Boolean) -> Unit
 ) {
 	val scope = rememberCoroutineScope()
 
@@ -48,23 +50,28 @@ fun <T> DragDropList(
 			}
 		})
 
+	val hapticFeedback = LocalHapticFeedback.current
 	LazyColumn(
 		modifier = modifier
 			.pointerInput(Unit) {
-				detectDragGestures(
+				detectDragGesturesAfterLongPress(
 					onDrag = { change, offset ->
 						change.consume()
 						dragDropListState.onDrag(offset)
 
 						if (overscrollJob?.isActive == true)
-							return@detectDragGestures
+							return@detectDragGesturesAfterLongPress
 
 						dragDropListState.checkForOverScroll()
 							.takeIf { it != 0f }
 							?.let { overscrollJob = scope.launch { dragDropListState.lazyListState.scrollBy(it) } }
 							?: run { overscrollJob?.cancel() }
 					},
-					onDragStart = { offset -> dragDropListState.onDragStart(offset) },
+					onDragStart = { offset ->
+						if (dragDropListState.onDragStart(offset)) {
+							hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+						}
+					},
 					onDragEnd = { dragDropListState.onDragEnd() },
 					onDragCancel = { dragDropListState.onDragInterrupted() }
 				)
@@ -72,7 +79,8 @@ fun <T> DragDropList(
 		state = dragDropListState.lazyListState
 	) {
 		itemsIndexed(data, key) { index, item ->
-			val zIndex = if (index == dragDropListState.currentIndexOfDraggedItem) {
+			val isDragging = index == dragDropListState.currentIndexOfDraggedItem
+			val zIndex = if (isDragging) {
 				1f
 			} else {
 				0f
@@ -90,7 +98,7 @@ fun <T> DragDropList(
 						}
 					}
 			) {
-				itemContent(item)
+				itemContent(item, isDragging)
 			}
 		}
 	}

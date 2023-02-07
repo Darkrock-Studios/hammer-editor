@@ -51,14 +51,22 @@ class DragDropListState(
 
 	private var overscrollJob by mutableStateOf<Job?>(null)
 
-	fun onDragStart(offset: Offset) {
-		lazyListState.layoutInfo.visibleItemsInfo
-			.firstOrNull { item -> offset.y.toInt() in item.offset..(item.offset + item.size) }
-			?.also {
+	fun onDragStart(offset: Offset): Boolean {
+		val itemInfo = lazyListState.layoutInfo.visibleItemsInfo
+			.firstOrNull { item ->
+				offset.y.toInt() in item.offset..(item.offset + item.size)
+			}
+
+		return if (itemInfo != null) {
+			itemInfo.also {
 				originalIndexOfDraggedItem = it.index
 				currentIndexOfDraggedItem = it.index
 				initiallyDraggedElement = it
 			}
+			true
+		} else {
+			false
+		}
 	}
 
 	fun onDragEnd() {

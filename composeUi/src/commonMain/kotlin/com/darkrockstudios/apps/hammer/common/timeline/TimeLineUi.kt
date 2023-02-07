@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,10 +61,15 @@ fun TimeLineUi(component: TimeLine) {
 				}
 			},
 			modifier = Modifier.fillMaxSize()
-		) { event ->
+		) { event, isDragging ->
 			Card(
-				modifier = Modifier.padding(Ui.Padding.L),
-				elevation = CardDefaults.elevatedCardElevation()
+				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
+				elevation = CardDefaults.elevatedCardElevation(),
+				border = if (isDragging) {
+					BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
+				} else {
+					null
+				}
 			) {
 				Column(modifier = Modifier.padding(Ui.Padding.L)) {
 					event.date?.let { date ->

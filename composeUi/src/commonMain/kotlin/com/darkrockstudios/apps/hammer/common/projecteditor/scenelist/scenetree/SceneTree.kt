@@ -14,7 +14,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -94,12 +96,14 @@ private fun shouldCollapseNode(
 
 @Composable
 private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
+	val hapticFeedback = LocalHapticFeedback.current
 	state.apply {
 		return pointerInput(Unit) {
 			detectDragGesturesAfterLongPress(
 				onDragStart = { offset ->
 					for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
 						if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
+							hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
 							val id = itemInfo.key as Int
 							startDragging(id)
 							break
