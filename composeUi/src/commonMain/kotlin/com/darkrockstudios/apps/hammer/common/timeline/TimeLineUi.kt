@@ -44,14 +44,19 @@ fun TimeLineUi(component: TimeLine) {
 
 		val events = state.timeLine?.events ?: emptyList()
 		if (events.isEmpty()) {
-			Text("No Events")
+			Text(
+				"No Events",
+				color = MaterialTheme.colorScheme.onBackground,
+				style = MaterialTheme.typography.headlineLarge
+			)
 		}
+
 		DragDropList(
 			state.timeLine?.events ?: emptyList(),
 			key = { _, item -> item.id },
 			onMove = { from, to ->
 				state.timeLine?.events?.getOrNull(from)?.let { event ->
-					component.moveEvent(event, to)
+					component.moveEvent(event, to, from < to)
 				}
 			},
 			modifier = Modifier.fillMaxSize()

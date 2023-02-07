@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.reorderable
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,13 +51,13 @@ fun <T> DragDropList(
 	LazyColumn(
 		modifier = modifier
 			.pointerInput(Unit) {
-				detectDragGesturesAfterLongPress(
+				detectDragGestures(
 					onDrag = { change, offset ->
 						change.consume()
 						dragDropListState.onDrag(offset)
 
 						if (overscrollJob?.isActive == true)
-							return@detectDragGesturesAfterLongPress
+							return@detectDragGestures
 
 						dragDropListState.checkForOverScroll()
 							.takeIf { it != 0f }
