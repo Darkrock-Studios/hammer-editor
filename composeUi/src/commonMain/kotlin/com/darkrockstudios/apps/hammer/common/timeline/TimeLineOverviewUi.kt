@@ -12,10 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -54,32 +59,7 @@ fun TimeLineOverviewUi(
 				},
 				modifier = Modifier.fillMaxSize()
 			) { event, isDragging ->
-				Card(
-					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth().clickable { viewEvent(event.id) },
-					elevation = CardDefaults.elevatedCardElevation(),
-					border = if (isDragging) {
-						BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
-					} else {
-						null
-					}
-				) {
-					Column(modifier = Modifier.padding(Ui.Padding.L)) {
-						event.date?.let { date ->
-							Text(date)
-						}
-						val content by remember {
-							derivedStateOf {
-								val maxLength = 256
-								if (event.content.length > maxLength) {
-									event.content.substring(0, maxLength) + "…"
-								} else {
-									event.content
-								}
-							}
-						}
-						Text(content)
-					}
-				}
+				EventCard(event, isDragging, viewEvent)
 			}
 		}
 
@@ -88,6 +68,73 @@ fun TimeLineOverviewUi(
 			modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.XL)
 		) {
 			Icon(Icons.Default.Create, "Create Event")
+		}
+	}
+}
+
+@Composable
+private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: Int) -> Unit) {
+	val lineColor = MaterialTheme.colorScheme.outline
+	Box(modifier = Modifier
+		.fillMaxSize()
+		.drawBehind {
+			val pad = Ui.Padding.XL.toPx()
+
+			drawLine(
+				color = lineColor,
+				start = Offset(pad, 0f),
+				end = Offset(pad, size.height),
+				strokeWidth = Stroke.DefaultMiter,
+				cap = StrokeCap.Round
+			)
+
+			drawLine(
+				color = lineColor,
+				start = Offset(pad, size.height / 2f),
+				end = Offset(pad * 3f, size.height / 2f),
+				strokeWidth = Stroke.DefaultMiter,
+				cap = StrokeCap.Round
+			)
+		}
+	) {
+		Column {
+			event.date?.let { date ->
+				Text(
+					modifier = Modifier.padding(start = Ui.Padding.XL + Ui.Padding.M),
+					text = date,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onBackground
+				)
+			}
+
+			Card(
+				modifier = Modifier.padding(
+					start = Ui.Padding.XL * 3,
+					end = Ui.Padding.XL,
+					top = Ui.Padding.XL,
+					bottom = Ui.Padding.XL
+				).fillMaxWidth().clickable { viewEvent(event.id) },
+				elevation = CardDefaults.elevatedCardElevation(),
+				border = if (isDragging) {
+					BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
+				} else {
+					null
+				}
+			) {
+				Column(modifier = Modifier.padding(Ui.Padding.L)) {
+					val content by remember {
+						derivedStateOf {
+							val maxLength = 256
+							if (event.content.length > maxLength) {
+								event.content.substring(0, maxLength) + "…"
+							} else {
+								event.content
+							}
+						}
+					}
+					Text(content)
+				}
+			}
 		}
 	}
 }

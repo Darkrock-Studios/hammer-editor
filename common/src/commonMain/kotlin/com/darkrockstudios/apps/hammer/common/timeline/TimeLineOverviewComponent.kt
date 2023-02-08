@@ -75,7 +75,6 @@ class TimeLineOverviewComponent(
 	private fun saveOnChange() {
 		saveJob = scope.launch {
 			timelineFlow.debounceUntilQuiescent(1000.milliseconds).collect { timeLine ->
-				Napier.d("comp store timeline")
 				timeLineRepository.storeTimeline(timeLine)
 			}
 		}
