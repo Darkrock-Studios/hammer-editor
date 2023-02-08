@@ -35,10 +35,10 @@ fun ViewTimeLineEventUi(
 	val state by component.state.subscribeAsState()
 
 	var editDate by remember { mutableStateOf(false) }
-	var eventDateText by remember { mutableStateOf(state.event?.date ?: "") }
+	var eventDateText by remember(state.event) { mutableStateOf(state.event?.date ?: "") }
 
 	var editContent by remember { mutableStateOf(false) }
-	var eventText by remember { mutableStateOf(state.event?.content ?: "") }
+	var eventText by remember(state.event) { mutableStateOf(state.event?.content ?: "") }
 
 	val screen = LocalScreenCharacteristic.current
 	val event = state.event
@@ -55,7 +55,7 @@ fun ViewTimeLineEventUi(
 			) {
 				if (event != null && (editDate || editContent)) {
 					IconButton(onClick = {
-						scope.launch {
+						scope.launch(dispatcherDefault) {
 							component.updateEvent(
 								event.copy(
 									date = eventDateText,

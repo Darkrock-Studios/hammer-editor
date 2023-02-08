@@ -31,7 +31,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 			override fun isAtRoot() = component.isAtRoot()
 		}
 
-		data class TimeLineDestination(val component: TimeLine) : Destination()
+		data class TimeLineDestination(val component: TimeLine) : Destination(), Router {
+			override fun isAtRoot() = component.isAtRoot()
+		}
 
 		fun getLocationType(): DestinationTypes {
 			return when (this) {

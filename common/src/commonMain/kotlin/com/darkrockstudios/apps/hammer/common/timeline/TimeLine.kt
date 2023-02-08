@@ -5,10 +5,9 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.projectroot.Router
 
-interface TimeLine : Router, HammerComponent {
+interface TimeLine : Router {
 
 	val stack: Value<ChildStack<Config, Destination>>
 

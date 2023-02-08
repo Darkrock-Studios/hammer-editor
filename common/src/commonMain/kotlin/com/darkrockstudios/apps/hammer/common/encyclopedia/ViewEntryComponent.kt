@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -29,7 +30,7 @@ class ViewEntryComponent(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
 	init {
-		reload()
+		lifecycle.doOnCreate { reload() }
 	}
 
 	private fun reload() {

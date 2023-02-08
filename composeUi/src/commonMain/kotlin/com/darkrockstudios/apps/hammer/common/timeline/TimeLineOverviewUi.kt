@@ -32,8 +32,8 @@ fun TimeLineOverviewUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	Box {
-		Column {
+	Box(modifier = Modifier.padding(Ui.Padding.XL)) {
+		Column(modifier = Modifier.widthIn(0.dp, 700.dp)) {
 			Text(
 				"Time Line",
 				style = MaterialTheme.typography.headlineLarge,
@@ -65,7 +65,7 @@ fun TimeLineOverviewUi(
 
 		FloatingActionButton(
 			onClick = showCreate,
-			modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.XL)
+			modifier = Modifier.align(Alignment.BottomEnd)
 		) {
 			Icon(Icons.Default.Create, "Create Event")
 		}
@@ -100,7 +100,7 @@ private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eve
 		Column {
 			event.date?.let { date ->
 				Text(
-					modifier = Modifier.padding(start = Ui.Padding.XL + Ui.Padding.M),
+					modifier = Modifier.padding(start = Ui.Padding.XL + Ui.Padding.L),
 					text = date,
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onBackground
