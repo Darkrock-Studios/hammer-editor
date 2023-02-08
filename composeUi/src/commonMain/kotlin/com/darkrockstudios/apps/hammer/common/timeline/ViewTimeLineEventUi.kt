@@ -1,25 +1,27 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.reflect.KFunction0
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewTimeLineEventUi(
 	component: ViewTimeLineEvent,
@@ -28,40 +30,137 @@ fun ViewTimeLineEventUi(
 	snackbarHostState: SnackbarHostState,
 	closeEvent: KFunction0<Unit>
 ) {
+	val dispatcherMain = rememberMainDispatcher()
+	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	val screen = LocalScreenCharacteristic.current
-	val needsExplicitClose = remember { screen.needsExplicitClose }
+	var editDate by remember { mutableStateOf(false) }
+	var eventDateText by remember { mutableStateOf(state.event?.date ?: "") }
 
-	state.event?.let { event ->
-		Box(modifier = modifier.fillMaxSize()) {
-			Column(modifier = Modifier.align(Alignment.Center).padding(Ui.Padding.XL)) {
-				if (needsExplicitClose) {
+	var editContent by remember { mutableStateOf(false) }
+	var eventText by remember { mutableStateOf(state.event?.content ?: "") }
+
+	val screen = LocalScreenCharacteristic.current
+	val event = state.event
+
+	Box(
+		modifier = modifier.fillMaxSize().padding(Ui.Padding.XL),
+		contentAlignment = Alignment.TopCenter
+	) {
+		Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
+			Row(
+				modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+				horizontalArrangement = Arrangement.End,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				if (event != null && (editDate || editContent)) {
+					IconButton(onClick = {
+						scope.launch {
+							component.updateEvent(
+								event.copy(
+									date = eventDateText,
+									content = eventText
+								)
+							)
+
+							withContext(dispatcherMain) {
+								editDate = false
+								editContent = false
+							}
+
+							scope.launch {
+								snackbarHostState.showSnackbar("Entry Saved")
+							}
+						}
+					}) {
+						Icon(
+							Icons.Filled.Check,
+							"Save",
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
+
+					IconButton(onClick = {
+						scope.launch {
+							eventDateText = event.date ?: ""
+							eventText = event.content
+
+							withContext(dispatcherMain) {
+								editDate = false
+								editContent = false
+							}
+						}
+					}) {
+						Icon(
+							Icons.Filled.Cancel,
+							"Cancel",
+							tint = MaterialTheme.colorScheme.error
+						)
+					}
+
+					if (screen.needsExplicitClose) {
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+						Divider(
+							color = MaterialTheme.colorScheme.outline,
+							modifier = Modifier.fillMaxHeight().width(1.dp)
+								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+						)
+
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					}
+				}
+
+				if (screen.needsExplicitClose) {
 					IconButton(
 						onClick = closeEvent,
-						modifier = Modifier.align(Alignment.End).padding(Ui.Padding.XL),
 					) {
 						Icon(
-							Icons.Default.Close,
-							"Close",
-							tint = MaterialTheme.colorScheme.onBackground
+							Icons.Filled.Close,
+							contentDescription = "Close Entry",
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
+				}
+			}
+
+			if (event != null) {
+				event.date?.let { date ->
+					if (editDate) {
+						TextField(
+							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
+							value = eventDateText,
+							onValueChange = { eventDateText = it },
+							placeholder = { Text("Date") }
+						)
+					} else {
+						Text(
+							date,
+							style = MaterialTheme.typography.displayMedium,
+							color = MaterialTheme.colorScheme.onBackground,
+							modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { editDate = true }
 						)
 					}
 				}
 
-				event.date?.let { date ->
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+				if (editContent) {
+					OutlinedTextField(
+						value = eventText,
+						onValueChange = { eventText = it },
+						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
+						placeholder = { Text(text = "Describe your event") },
+						maxLines = 10,
+					)
+				} else {
 					Text(
-						date,
-						style = MaterialTheme.typography.displayMedium,
-						color = MaterialTheme.colorScheme.onBackground
+						event.content,
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onBackground,
+						modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { editContent = true }
 					)
 				}
-				Text(
-					event.content,
-					style = MaterialTheme.typography.bodyLarge,
-					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.verticalScroll(rememberScrollState(0))
-				)
 			}
 		}
 	}
