@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -33,7 +34,7 @@ fun TimeLineOverviewUi(
 	val state by component.state.subscribeAsState()
 
 	Box(modifier = Modifier.padding(Ui.Padding.XL)) {
-		Column(modifier = Modifier.widthIn(0.dp, 700.dp)) {
+		Column(modifier = Modifier.widthIn(0.dp, 700.dp).fillMaxWidth()) {
 			Text(
 				"Time Line",
 				style = MaterialTheme.typography.headlineLarge,
@@ -44,8 +45,10 @@ fun TimeLineOverviewUi(
 			if (events.isEmpty()) {
 				Text(
 					"No Events",
+					modifier = Modifier.fillMaxWidth(),
+					textAlign = TextAlign.Center,
 					color = MaterialTheme.colorScheme.onBackground,
-					style = MaterialTheme.typography.headlineLarge
+					style = MaterialTheme.typography.headlineSmall
 				)
 			}
 
