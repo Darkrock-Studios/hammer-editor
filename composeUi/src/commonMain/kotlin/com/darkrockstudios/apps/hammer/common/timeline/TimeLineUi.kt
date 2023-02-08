@@ -1,83 +1,63 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimeLineUi(component: TimeLine) {
-	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
+	val snackbarHostState = remember { SnackbarHostState() }
 
-	var dateText by remember { mutableStateOf("") }
-	var contentText by remember { mutableStateOf("") }
+	val state by component.stack.subscribeAsState()
 
-	Column {
-		Text(
-			"Time Line",
-			style = MaterialTheme.typography.headlineLarge,
-			color = MaterialTheme.colorScheme.onBackground
-		)
-		TextField(
-			value = dateText,
-			onValueChange = { dateText = it },
-			label = { Text("Date (optional)") },
-			singleLine = true
-		)
-		OutlinedTextField(
-			modifier = Modifier.fillMaxWidth().height(128.dp),
-			value = contentText,
-			onValueChange = { contentText = it },
-			label = { Text("Content") },
-		)
-
-		Button(onClick = {
-			component.createEvent(dateText, contentText)
-		}) {
-			Text("Create")
-		}
-
-		val events = state.timeLine?.events ?: emptyList()
-		if (events.isEmpty()) {
-			Text(
-				"No Events",
-				color = MaterialTheme.colorScheme.onBackground,
-				style = MaterialTheme.typography.headlineLarge
-			)
-		}
-
-		DragDropList(
-			state.timeLine?.events ?: emptyList(),
-			key = { _, item -> item.id },
-			onMove = { from, to ->
-				state.timeLine?.events?.getOrNull(from)?.let { event ->
-					component.moveEvent(event, to, from < to)
+	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+		Children(
+			stack = state,
+			modifier = Modifier,
+			//animation = stackAnimation { _, _, _ -> fade() },
+		) {
+			when (val child = it.instance) {
+				is TimeLine.Destination.TimeLineOverviewDestination -> {
+					TimeLineOverviewUi(
+						component = child.component,
+						scope = scope,
+						showCreate = component::showCreateEvent,
+						viewEvent = component::showViewEvent
+					)
 				}
-			},
-			modifier = Modifier.fillMaxSize()
-		) { event, isDragging ->
-			Card(
-				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
-				elevation = CardDefaults.elevatedCardElevation(),
-				border = if (isDragging) {
-					BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
-				} else {
-					null
+
+				is TimeLine.Destination.ViewEventDestination -> {
+					ViewTimeLineEventUi(
+						modifier = Modifier.align(Alignment.TopCenter),
+						component = child.component,
+						scope = scope,
+						snackbarHostState = snackbarHostState,
+						closeEvent = component::showOverview
+					)
 				}
-			) {
-				Column(modifier = Modifier.padding(Ui.Padding.L)) {
-					event.date?.let { date ->
-						Text(date)
-					}
-					Text(event.content)
+
+				is TimeLine.Destination.CreateEventDestination -> {
+					CreateTimeLineEventUi(
+						component = child.component,
+						scope = scope,
+						modifier = Modifier.align(Alignment.TopCenter),
+						snackbarHostState = snackbarHostState,
+						close = component::showOverview
+					)
 				}
 			}
 		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }

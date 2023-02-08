@@ -3,10 +3,10 @@ package com.darkrockstudios.apps.hammer.common.projectroot
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dataset
 import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LineAxis
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -31,7 +31,7 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 		ProjectRoot.DestinationTypes.Editor -> Icons.Filled.Edit
 		ProjectRoot.DestinationTypes.Notes -> Icons.Filled.Dock
 		ProjectRoot.DestinationTypes.Encyclopedia -> Icons.Filled.Dataset
-		ProjectRoot.DestinationTypes.TimeLine -> Icons.Filled.LineAxis
+		ProjectRoot.DestinationTypes.TimeLine -> Icons.Filled.CalendarMonth
 	}
 }
 

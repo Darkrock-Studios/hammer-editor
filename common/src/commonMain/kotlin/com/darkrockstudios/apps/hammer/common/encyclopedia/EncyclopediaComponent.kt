@@ -5,8 +5,6 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -20,54 +18,54 @@ class EncyclopediaComponent(
 	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
-	private val navigation = StackNavigation<Config>()
+	private val navigation = StackNavigation<Encyclopedia.Config>()
 
 	private val _stack = componentContext.childStack(
 		source = navigation,
-		initialConfiguration = Config.BrowseEntriesConfig(projectDef = projectDef),
+		initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
 		key = "ProjectRootRouter",
 		childFactory = ::createChild
 	)
 
-	override val stack: Value<ChildStack<Config, Encyclopedia.Destination>>
+	override val stack: Value<ChildStack<Encyclopedia.Config, Encyclopedia.Destination>>
 		get() = _stack
 
 	private fun createChild(
-		config: Config,
+		config: Encyclopedia.Config,
 		componentContext: ComponentContext
 	): Encyclopedia.Destination =
 		when (config) {
-			is Config.BrowseEntriesConfig -> Encyclopedia.Destination.BrowseEntriesDestination(
+			is Encyclopedia.Config.BrowseEntriesConfig -> Encyclopedia.Destination.BrowseEntriesDestination(
 				createBrowseEntries(config, componentContext)
 			)
 
-			is Config.ViewEntryConfig -> Encyclopedia.Destination.ViewEntryDestination(
+			is Encyclopedia.Config.ViewEntryConfig -> Encyclopedia.Destination.ViewEntryDestination(
 				createViewEntry(config, componentContext)
 			)
 
-			is Config.CreateEntryConfig -> Encyclopedia.Destination.CreateEntryDestination(
+			is Encyclopedia.Config.CreateEntryConfig -> Encyclopedia.Destination.CreateEntryDestination(
 				createCreateEntry(config, componentContext)
 			)
 		}
 
 	override fun showBrowse() {
-		navigation.popWhile { it !is Config.BrowseEntriesConfig }
+		navigation.popWhile { it !is Encyclopedia.Config.BrowseEntriesConfig }
 	}
 
 	override fun showViewEntry(entryDef: EntryDef) {
-		navigation.push(Config.ViewEntryConfig(entryDef))
+		navigation.push(Encyclopedia.Config.ViewEntryConfig(entryDef))
 	}
 
 	override fun showCreateEntry() {
-		navigation.push(Config.CreateEntryConfig(projectDef))
+		navigation.push(Encyclopedia.Config.CreateEntryConfig(projectDef))
 	}
 
 	override fun isAtRoot(): Boolean {
-		return stack.value.active.configuration is Config.BrowseEntriesConfig
+		return stack.value.active.configuration is Encyclopedia.Config.BrowseEntriesConfig
 	}
 
 	private fun createBrowseEntries(
-		config: Config.BrowseEntriesConfig,
+		config: Encyclopedia.Config.BrowseEntriesConfig,
 		componentContext: ComponentContext
 	): BrowseEntries {
 		return BrowseEntriesComponent(
@@ -76,7 +74,10 @@ class EncyclopediaComponent(
 		)
 	}
 
-	private fun createViewEntry(config: Config.ViewEntryConfig, componentContext: ComponentContext): ViewEntry {
+	private fun createViewEntry(
+		config: Encyclopedia.Config.ViewEntryConfig,
+		componentContext: ComponentContext
+	): ViewEntry {
 		return ViewEntryComponent(
 			componentContext = componentContext,
 			entryDef = config.entryDef,
@@ -85,7 +86,10 @@ class EncyclopediaComponent(
 		)
 	}
 
-	private fun createCreateEntry(config: Config.CreateEntryConfig, componentContext: ComponentContext): CreateEntry {
+	private fun createCreateEntry(
+		config: Encyclopedia.Config.CreateEntryConfig,
+		componentContext: ComponentContext
+	): CreateEntry {
 		return CreateEntryComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef
@@ -107,16 +111,5 @@ class EncyclopediaComponent(
 			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}
-	}
-
-	sealed class Config : Parcelable {
-		@Parcelize
-		data class BrowseEntriesConfig(val projectDef: ProjectDef) : Config()
-
-		@Parcelize
-		data class ViewEntryConfig(val entryDef: EntryDef) : Config()
-
-		@Parcelize
-		data class CreateEntryConfig(val projectDef: ProjectDef) : Config()
 	}
 }

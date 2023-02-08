@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.timeline.TimeLineComponent
+import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewComponent
 import getProjectDef
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +33,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class TimeLineComponentTest : BaseTest() {
+class TimeLineOverviewComponentTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
@@ -105,7 +105,7 @@ class TimeLineComponentTest : BaseTest() {
 
 	@Test
 	fun `TimeLine Component onCreate`() = runTest {
-		val component = TimeLineComponent(
+		val component = TimeLineOverviewComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
 			addMenu = {},
@@ -125,7 +125,7 @@ class TimeLineComponentTest : BaseTest() {
 
 	@Test
 	fun `Initial data from repo`() = runTest {
-		val component = TimeLineComponent(
+		val component = TimeLineOverviewComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
 			addMenu = {},
@@ -152,10 +152,10 @@ class TimeLineComponentTest : BaseTest() {
 		assertEquals(timeline, component.state.value.timeLine, "Timeline did not propogate")
 	}
 
-	private suspend fun TestScope.defaultTestComponent(
+	suspend fun TestScope.defaultTestComponent(
 		originalEvents: List<TimeLineEvent> = emptyList()
-	): TimeLineComponent {
-		val component = TimeLineComponent(
+	): TimeLineOverviewComponent {
+		val component = TimeLineOverviewComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
 			addMenu = {},
@@ -169,62 +169,6 @@ class TimeLineComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		return component
-	}
-
-	@Test
-	fun `Create event`() = runTest {
-		val id = 0
-		every { idRepo.claimNextId() } returns id
-
-		val component = defaultTestComponent()
-
-		val date = "date"
-		val content = "content"
-		val didCreate = component.createEvent(dateText = date, contentText = content)
-
-		assertTrue("Component failed to create event") { didCreate }
-		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
-		advanceUntilIdle()
-
-		val expected = TimeLineContainer(
-			events = listOf(
-				TimeLineEvent(
-					id = id,
-					date = date,
-					content = content
-				)
-			)
-		)
-
-		// Our state should be updated after the repository stores it
-		assertEquals(expected, component.state.value.timeLine, "Timeline did not propagate")
-	}
-
-	@Test
-	fun `Update event`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val event = originalEvents.first()
-		val date = "updated date"
-		val content = "updated content"
-		val updatedEvent = event.copy(
-			date = date,
-			content = content
-		)
-		component.updateEvent(updatedEvent)
-		advanceUntilIdle()
-
-		val events = fakeEvents().toMutableList()
-		events[0] = events.first().copy(
-			date = date,
-			content = content
-		)
-		val expected = TimeLineContainer(events = events)
-		assertEquals(expected, component.state.value.timeLine, "Timeline did not propagate")
-
-		// After the update, it should save back to repository
-		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
 	}
 
 	@Test

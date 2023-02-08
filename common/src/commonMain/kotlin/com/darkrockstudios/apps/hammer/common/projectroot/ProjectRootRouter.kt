@@ -108,6 +108,7 @@ internal class ProjectRootRouter(
 		return TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
+			updateShouldClose = updateShouldClose,
 			addMenu = addMenu,
 			removeMenu = removeMenu
 		)
