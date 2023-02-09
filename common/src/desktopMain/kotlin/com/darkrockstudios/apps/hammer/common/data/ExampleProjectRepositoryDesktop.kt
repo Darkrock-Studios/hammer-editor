@@ -44,6 +44,12 @@ class ExampleProjectRepositoryDesktop(
 					Napier.d(outFile.toPath().toString())
 					try {
 						if (!zipEntry.isDirectory) {
+							File(outFile.parent).apply {
+								if (!exists()) {
+									mkdirs()
+								}
+							}
+
 							outFile.createNewFile()
 							FileOutputStream(outFile).use { fis ->
 								copyFile(inputStream = subZipStream, outputStream = fis)

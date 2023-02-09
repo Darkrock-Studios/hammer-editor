@@ -4,8 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.doOnCreate
-import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -43,18 +41,20 @@ class TimeLineOverviewComponent(
 
 	private var saveJob: Job? = null
 
-	init {
-		lifecycle.doOnCreate {
-			saveOnChange()
-			watchTimeLine()
-		}
+	override fun onCreate() {
+		super.onCreate()
 
-		lifecycle.doOnDestroy {
-			saveJob?.cancel()
-			// Save final
-			state.value.timeLine?.let { timeLine ->
-				timeLineRepository.storeTimeline(timeLine)
-			}
+		saveOnChange()
+		watchTimeLine()
+	}
+
+	override fun onDestroy() {
+		super.onDestroy()
+
+		saveJob?.cancel()
+		// Save final
+		state.value.timeLine?.let { timeLine ->
+			timeLineRepository.storeTimeline(timeLine)
 		}
 	}
 

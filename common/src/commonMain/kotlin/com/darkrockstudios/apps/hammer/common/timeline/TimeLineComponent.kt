@@ -26,8 +26,7 @@ class TimeLineComponent(
 		childFactory = ::createChild
 	)
 
-	override val stack: Value<ChildStack<TimeLine.Config, TimeLine.Destination>>
-		get() = _stack
+	override val stack: Value<ChildStack<TimeLine.Config, TimeLine.Destination>> = _stack
 
 	private fun createChild(
 		config: TimeLine.Config,

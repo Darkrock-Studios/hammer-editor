@@ -10,7 +10,7 @@ actual fun getPlatformName(): String {
 	return "Android"
 }
 
-actual fun getHomeDirectory(): String = getRootDocumentDirectory()
+actual fun getHomeDirectory(): String = getDefaultRootDocumentDirectory()
 
 private lateinit var rootDocumentDirectory: File
 fun setDirectories(context: Context) {
@@ -27,7 +27,7 @@ actual fun getImageCacheDirectory(): String {
     return File(getCacheDirectory(), "images").absolutePath
 }
 
-actual fun getRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
+actual fun getDefaultRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
 actual fun getConfigDirectory(): String = File(rootDocumentDirectory, "config").absolutePath
 
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM

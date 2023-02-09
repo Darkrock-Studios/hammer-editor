@@ -10,30 +10,30 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
-    val routerState: Value<ChildStack<*, Destination>>
-    val shouldConfirmClose: Value<Boolean>
-    val backEnabled: Value<Boolean>
+	val routerState: Value<ChildStack<*, Destination<*>>>
+	val shouldConfirmClose: Value<Boolean>
+	val backEnabled: Value<Boolean>
 
-    fun showEditor()
-    fun showNotes()
-    fun showEncyclopedia()
-    fun showDestination(type: DestinationTypes)
-    fun isAtRoot(): Boolean
+	fun showEditor()
+	fun showNotes()
+	fun showEncyclopedia()
+	fun showDestination(type: DestinationTypes)
+	fun isAtRoot(): Boolean
 
-    sealed class Destination {
-		data class EditorDestination(val component: ProjectEditor) : Destination(), Router {
-			override fun isAtRoot() = component.isAtRoot()
+	sealed class Destination<T> : Router {
+		abstract val component: T
+
+		override fun isAtRoot(): Boolean {
+			return (component as? Router)?.isAtRoot() ?: true
 		}
 
-		data class NotesDestination(val component: Notes) : Destination()
+		data class EditorDestination(override val component: ProjectEditor) : Destination<ProjectEditor>()
 
-		data class EncyclopediaDestination(val component: Encyclopedia) : Destination(), Router {
-			override fun isAtRoot() = component.isAtRoot()
-		}
+		data class NotesDestination(override val component: Notes) : Destination<Notes>()
 
-		data class TimeLineDestination(val component: TimeLine) : Destination(), Router {
-			override fun isAtRoot() = component.isAtRoot()
-		}
+		data class EncyclopediaDestination(override val component: Encyclopedia) : Destination<Encyclopedia>()
+
+		data class TimeLineDestination(override val component: TimeLine) : Destination<TimeLine>()
 
 		fun getLocationType(): DestinationTypes {
 			return when (this) {

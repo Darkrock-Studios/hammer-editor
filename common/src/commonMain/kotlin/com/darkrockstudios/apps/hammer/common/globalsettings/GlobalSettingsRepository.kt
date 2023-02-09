@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.globalsettings
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -64,7 +64,7 @@ class GlobalSettingsRepository(
 
 		const val DEFAULT_PROJECTS_DIR = "HammerProjects"
 
-		private fun defaultProjectDir() = getRootDocumentDirectory().toPath() / DEFAULT_PROJECTS_DIR
+		private fun defaultProjectDir() = getDefaultRootDocumentDirectory().toPath() / DEFAULT_PROJECTS_DIR
 
 		fun createDefault(): GlobalSettings {
 			return GlobalSettings(

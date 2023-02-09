@@ -23,9 +23,9 @@ actual fun getImageCacheDirectory(): String {
     return "not implemented"
 }
 
-actual fun getRootDocumentDirectory(): String {
-    //let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(“todos.txt”)
-    return "not implemented"
+actual fun getDefaultRootDocumentDirectory(): String {
+	//let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(“todos.txt”)
+	return "not implemented"
 }
 
 actual fun getConfigDirectory(): String = "not implemented"

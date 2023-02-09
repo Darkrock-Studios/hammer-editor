@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -46,20 +45,21 @@ class ProjectSelectionComponent(
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
 			exampleProjectRepository.install()
 		}
+	}
 
-		lifecycle.doOnCreate {
-			loadProjectList()
-		}
+	override fun onCreate() {
+		super.onCreate()
+		loadProjectList()
 	}
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-                withContext(dispatcherMain) {
-                    _state.reduce {
-                        val projectsPath = settings.projectsDirectory.toPath().toHPath()
-                        it.copy(
-                            projectsDir = projectsPath,
+				withContext(dispatcherMain) {
+					_state.reduce {
+						val projectsPath = settings.projectsDirectory.toPath().toHPath()
+						it.copy(
+							projectsDir = projectsPath,
                             uiTheme = settings.uiTheme
                         )
                     }

@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -28,11 +27,11 @@ class ViewTimeLineEventComponent(
 	private val _state = MutableValue(ViewTimeLineEvent.State())
 	override val state: Value<ViewTimeLineEvent.State> = _state
 
-	init {
-		lifecycle.doOnCreate {
-			loadEvent()
-			watchTimeLine()
-		}
+	override fun onCreate() {
+		super.onCreate()
+
+		loadEvent()
+		watchTimeLine()
 	}
 
 	private fun watchTimeLine() {

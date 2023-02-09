@@ -33,7 +33,7 @@ fun TimeLineOverviewUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	Box(modifier = Modifier.padding(Ui.Padding.XL)) {
+	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		Column(modifier = Modifier.widthIn(0.dp, 700.dp).fillMaxWidth()) {
 			Text(
 				"Time Line",

@@ -1,7 +1,7 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.tree.Tree
@@ -36,13 +36,13 @@ fun getProject1Def(): ProjectDef {
 }
 
 fun createRootDirectory(ffs: FakeFileSystem) {
-    val rootDir = getRootDocumentDirectory()
+	val rootDir = getDefaultRootDocumentDirectory()
     ffs.createDirectories(rootDir.toPath())
 }
 
 fun getProjectsDirectory(): Path {
-    val rootPath = getRootDocumentDirectory().toPath()
-    val proj = GlobalSettingsRepository.DEFAULT_PROJECTS_DIR.toPath()
+	val rootPath = getDefaultRootDocumentDirectory().toPath()
+	val proj = GlobalSettingsRepository.DEFAULT_PROJECTS_DIR.toPath()
     val projectsDir = rootPath.div(proj)
 
     return projectsDir

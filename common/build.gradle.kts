@@ -92,6 +92,7 @@ kotlin {
 			dependencies {
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
+				implementation("net.harawata:appdirs:1.2.1")
 			}
 		}
 		val desktopTest by getting {

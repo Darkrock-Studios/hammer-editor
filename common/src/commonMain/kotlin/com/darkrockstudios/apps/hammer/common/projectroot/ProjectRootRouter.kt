@@ -41,15 +41,15 @@ internal class ProjectRootRouter(
         childFactory = ::createChild
     )
 
-    val state: Value<ChildStack<Config, ProjectRoot.Destination>>
-        get() = stack
+    val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>>
+		get() = stack
 
-    private fun createChild(
-        config: Config,
-        componentContext: ComponentContext
-    ): ProjectRoot.Destination =
-        when (config) {
-            is Config.EditorConfig -> ProjectRoot.Destination.EditorDestination(
+	private fun createChild(
+		config: Config,
+		componentContext: ComponentContext
+	): ProjectRoot.Destination<*> =
+		when (config) {
+			is Config.EditorConfig -> ProjectRoot.Destination.EditorDestination(
 				editorComponent(config, componentContext)
 			)
 

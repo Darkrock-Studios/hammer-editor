@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.getRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.tree.Tree
 import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import createProject
@@ -76,7 +76,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
         super.setup()
         ffs = FakeFileSystem()
 
-        val rootDir = getRootDocumentDirectory()
+        val rootDir = getDefaultRootDocumentDirectory()
         ffs.createDirectories(rootDir.toPath())
 
         toml = createTomlSerializer()
