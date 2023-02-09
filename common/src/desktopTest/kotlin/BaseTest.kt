@@ -3,6 +3,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -34,6 +35,7 @@ open class BaseTest : KoinTest {
 
 	@After
 	open fun tearDown() {
+		scope.cancel()
 		stopKoin()
 	}
 

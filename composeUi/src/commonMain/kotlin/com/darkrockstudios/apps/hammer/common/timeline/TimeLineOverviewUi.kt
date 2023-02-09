@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -23,6 +24,9 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.CoroutineScope
+
+const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
+const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 
 @Composable
 fun TimeLineOverviewUi(
@@ -60,7 +64,7 @@ fun TimeLineOverviewUi(
 						component.moveEvent(event, to, from < to)
 					}
 				},
-				modifier = Modifier.fillMaxSize()
+				modifier = Modifier.fillMaxSize().testTag(TIME_LINE_LIST_TAG)
 			) { event, isDragging ->
 				EventCard(event, isDragging, viewEvent)
 			}
@@ -68,25 +72,31 @@ fun TimeLineOverviewUi(
 
 		FloatingActionButton(
 			onClick = showCreate,
-			modifier = Modifier.align(Alignment.BottomEnd)
+			modifier = Modifier.align(Alignment.BottomEnd).testTag(TIME_LINE_CREATE_TAG)
 		) {
 			Icon(Icons.Default.Create, "Create Event")
 		}
 	}
 }
 
-@Composable
-private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: Int) -> Unit) {
-	val lineColor = MaterialTheme.colorScheme.outline
-	Box(modifier = Modifier
-		.fillMaxSize()
-		.drawBehind {
-			val pad = Ui.Padding.XL.toPx()
+const val EVENT_CARD_TAG = "Timeline Event Card"
+const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
+const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
+const val EVENT_CARD_MAX_CONTENT_LENGTH = 256
 
-			drawLine(
-				color = lineColor,
-				start = Offset(pad, 0f),
-				end = Offset(pad, size.height),
+@Composable
+fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: Int) -> Unit) {
+	val lineColor = MaterialTheme.colorScheme.outline
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.drawBehind {
+				val pad = Ui.Padding.XL.toPx()
+
+				drawLine(
+					color = lineColor,
+					start = Offset(pad, 0f),
+					end = Offset(pad, size.height),
 				strokeWidth = Stroke.DefaultMiter,
 				cap = StrokeCap.Round
 			)
@@ -103,7 +113,9 @@ private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eve
 		Column {
 			event.date?.let { date ->
 				Text(
-					modifier = Modifier.padding(start = Ui.Padding.XL + Ui.Padding.L),
+					modifier = Modifier
+						.padding(start = Ui.Padding.XL + Ui.Padding.L)
+						.testTag(EVENT_CARD_DATE_TAG),
 					text = date,
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onBackground
@@ -116,7 +128,9 @@ private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eve
 					end = Ui.Padding.XL,
 					top = Ui.Padding.XL,
 					bottom = Ui.Padding.XL
-				).fillMaxWidth().clickable { viewEvent(event.id) },
+				).fillMaxWidth()
+					.clickable { viewEvent(event.id) }
+					.testTag(EVENT_CARD_TAG),
 				elevation = CardDefaults.elevatedCardElevation(),
 				border = if (isDragging) {
 					BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
@@ -127,15 +141,17 @@ private fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eve
 				Column(modifier = Modifier.padding(Ui.Padding.L)) {
 					val content by remember {
 						derivedStateOf {
-							val maxLength = 256
-							if (event.content.length > maxLength) {
-								event.content.substring(0, maxLength) + "…"
+							if (event.content.length > EVENT_CARD_MAX_CONTENT_LENGTH) {
+								event.content.substring(0, EVENT_CARD_MAX_CONTENT_LENGTH - 1) + "…"
 							} else {
 								event.content
 							}
 						}
 					}
-					Text(content)
+					Text(
+						content,
+						modifier = Modifier.testTag(EVENT_CARD_CONTENT_TAG)
+					)
 				}
 			}
 		}
