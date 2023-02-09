@@ -112,8 +112,8 @@ class TimeLineOverviewComponentTest : BaseTest() {
 			removeMenu = {}
 		)
 
-		// 1 from decompose, 2 from our component
-		assertEquals(3, lifecycleCallbacks.size, "Three callbacks should be captured")
+		// 1 from decompose, 1 from our component
+		assertEquals(2, lifecycleCallbacks.size, "Three callbacks should be captured")
 
 		// First callback is from decompose
 		lifecycleCallbacks[1].onCreate()
