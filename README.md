@@ -8,7 +8,8 @@
 A simple tool for building stories.
 
 ## Multi-platform
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run.
+This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a
+website-in-a-box, but instead using native client side technologies to provide the best experience possible.
 
 ### Initial support will be for:
 - ![badge-platform-windows]
