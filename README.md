@@ -1,40 +1,29 @@
-# hammer-editor
+# Hammer: A story editor
+![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
 
-![GitHub](https://img.shields.io/github/license/wavesonics/hammer-editor)
-
-![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor)
-
-![badge-platform-android] ![badge-platform-windows]
-
-[![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![badge-latest-release]][url-latest-release]
-
-![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
-
-![badge-kotlin]
+![badge-platform-android] ![badge-platform-windows] ![badge-kotlin]
 
 A simple tool for building stories.
 
-### Multi-platform
+## Multi-platform
 
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run.
 
-Initial support will be for:
+### Initial support will be for:
+- ![badge-platform-windows]
+- ![badge-platform-android] (*Phone & Tablet*)
 
-- Windows
-- Android (Phone & Tablet)
+### Will add support for more platforms in the future:
+- ![badge-platform-linux]
+- ![badge-platform-macos]
+- ![badge-platform-ios]
 
-Will add support for more platforms in the future:
-
-- Linux
-- OSX
-- iOS
-
-### Offline first
+## Offline first
 
 I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web
 Page in a box) which always seems to run into problems while being used offline for long periods of time.
 
-### Transparent Data
+## Transparent Data
 
 Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files,
 just using files and folders to define the project structure. You can open your OSes file browser and take a look for
