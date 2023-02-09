@@ -16,6 +16,7 @@ plugins {
     id("org.jetbrains.compose")
     id("com.android.library")
     id("kotlin-parcelize")
+	id("org.jetbrains.kotlinx.kover")
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -89,13 +90,21 @@ android {
         targetSdk = android_target_sdk.toInt()
     }
     buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
+		compose = true
+	}
+	composeOptions {
+		kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
+	}
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_1_8
+		targetCompatibility = JavaVersion.VERSION_1_8
+	}
+}
+
+kover {
+	filters {
+		classes {
+			includes += "com.darkrockstudios.apps.hammer.*"
+		}
+	}
 }
