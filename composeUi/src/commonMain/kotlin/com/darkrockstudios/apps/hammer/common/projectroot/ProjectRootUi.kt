@@ -7,9 +7,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dataset
 import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -43,7 +41,7 @@ fun ProjectRootUi(
 	BoxWithConstraints {
 		val routerState by component.routerState.subscribeAsState()
 
-		val isWide = maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD
+		val isWide by remember(maxWidth) { derivedStateOf { maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD } }
 		CompositionLocalProvider(
 			LocalScreenCharacteristic provides ScreenCharacteristics(
 				isWide,
@@ -58,7 +56,7 @@ fun ProjectRootUi(
 @Composable
 fun FeatureContent(
 	modifier: Modifier,
-	routerState: ChildStack<*, ProjectRoot.Destination>,
+	routerState: ChildStack<*, ProjectRoot.Destination<*>>,
 	isWide: Boolean,
 	drawableKlass: Any? = null
 ) {
