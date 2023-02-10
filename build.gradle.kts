@@ -21,3 +21,7 @@ plugins {
     id("org.jetbrains.compose") apply false
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
 }
+
+koverMerged {
+    enable()
+}

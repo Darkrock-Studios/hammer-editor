@@ -12,6 +12,7 @@ plugins {
     kotlin("plugin.serialization")
     id("com.android.application")
     id("org.jetbrains.compose")
+    id("org.jetbrains.kotlinx.kover")
 }
 
 group = "com.darkrockstudios.apps.hammer"
