@@ -1,5 +1,10 @@
 # Hammer: A story editor
-![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
+
+![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor)
+
+[![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/master/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
+
+![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
 
 ![badge-platform-android] ![badge-platform-windows]
 
@@ -8,6 +13,7 @@
 A simple tool for building stories.
 
 ## Multi-platform
+
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a
 website-in-a-box, but instead using native client side technologies to provide the best experience possible.
 
