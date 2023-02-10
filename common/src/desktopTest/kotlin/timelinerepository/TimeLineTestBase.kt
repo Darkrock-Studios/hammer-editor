@@ -1,6 +1,5 @@
 package timelinerepository
 
-import BaseTest
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
@@ -18,6 +17,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import utils.BaseTest
 
 abstract class TimeLineTestBase : BaseTest() {
 

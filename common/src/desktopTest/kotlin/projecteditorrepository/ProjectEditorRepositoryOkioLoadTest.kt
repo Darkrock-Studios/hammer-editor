@@ -1,6 +1,5 @@
 package projecteditorrepository
 
-import BaseTest
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
@@ -25,6 +24,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import utils.BaseTest
 import utils.callPrivate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

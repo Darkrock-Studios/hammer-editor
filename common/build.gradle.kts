@@ -129,6 +129,11 @@ kover {
 	filters {
 		classes {
 			includes += "com.darkrockstudios.apps.hammer.*"
+			excludes += listOf(
+				"com.darkrockstudios.apps.hammer.util.*",
+				"com.darkrockstudios.apps.hammer.parcelize.*",
+				"com.darkrockstudios.apps.hammer.fileio.*",
+			)
 		}
 	}
 }

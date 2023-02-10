@@ -1,6 +1,5 @@
 package timelinerepository
 
-import BaseTest
 import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -25,6 +24,7 @@ import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.junit.Test
+import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue

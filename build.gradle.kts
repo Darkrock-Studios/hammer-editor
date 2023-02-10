@@ -24,4 +24,9 @@ plugins {
 
 koverMerged {
     enable()
+    filters {
+        projects {
+            excludes += listOf("android", ":desktop")
+        }
+    }
 }

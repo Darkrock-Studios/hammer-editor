@@ -1,3 +1,5 @@
+package utils
+
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
@@ -39,23 +41,23 @@ open class BaseTest : KoinTest {
 		stopKoin()
 	}
 
-    fun setupKoin(vararg modules: Module) {
-        val scheduler = scope.testScheduler
-        GlobalContext.startKoin {
-            modules(
-                module {
-                    single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "Default dispatcher"
-                        )
-                    }
-                    single<CoroutineContext>(named(DISPATCHER_IO)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "IO dispatcher"
-                        )
-                    }
+	fun setupKoin(vararg modules: Module) {
+		val scheduler = scope.testScheduler
+		GlobalContext.startKoin {
+			modules(
+				module {
+					single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "Default dispatcher"
+						)
+					}
+					single<CoroutineContext>(named(DISPATCHER_IO)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "IO dispatcher"
+						)
+					}
 					single<CoroutineContext>(named(DISPATCHER_MAIN)) {
 						StandardTestDispatcher(
 							scheduler,

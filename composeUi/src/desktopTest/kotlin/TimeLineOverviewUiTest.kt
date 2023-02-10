@@ -46,6 +46,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithText("No Events").assertIsDisplayed()
 	}
 
+	@OptIn(ExperimentalTestApi::class)
 	@Test
 	fun `Event Overview Events`() {
 		val viewEvent = mockk<(Int) -> Unit>()
@@ -71,8 +72,13 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
 		compose.onAllNodesWithTag(EVENT_CARD_TAG).apply {
 			get(0).performClick()
-			verify(exactly = 1) { viewEvent.invoke(any()) }
+			verify(exactly = 1) { viewEvent.invoke(0) }
 		}
+		/*
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performMouseInput {
+			dragAndDrop()
+		}
+		*/
 	}
 
 	@Test

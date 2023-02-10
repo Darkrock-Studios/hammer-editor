@@ -1,6 +1,5 @@
 package timelinerepository
 
-import BaseTest
 import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
@@ -27,6 +26,7 @@ import org.junit.Before
 import org.junit.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull

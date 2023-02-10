@@ -1,6 +1,5 @@
 package projecteditorrepository
 
-import BaseTest
 import PROJECT_1_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -27,6 +26,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import utils.BaseTest
 import utils.getPrivateProperty
 import verifyCoords
 import kotlin.test.assertEquals

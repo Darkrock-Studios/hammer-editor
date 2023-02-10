@@ -1,6 +1,5 @@
 package projecteditorrepository
 
-import BaseTest
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -20,6 +19,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
+import utils.BaseTest
 import utils.callPrivate
 import kotlin.test.Test
 import kotlin.test.assertEquals
