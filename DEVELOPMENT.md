@@ -1,5 +1,4 @@
 # Development
-======
 
 ## Running the Desktop app
 
@@ -37,3 +36,58 @@ Again, most tests live in the `desktopTest` source set, but a few live in `commo
 
 Useful reference for UI
 testing: [Compose Test Cheatsheet](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/package-summary)
+
+
+## Client Development
+### Client Architecture
+
+![Client Architecture Layers](readme/client-architecture-layers.png)
+
+### Coroutines
+
+### Repository Layer
+Repositories will need to declare their own coroutine scope, there is no common base class to do so.
+```kotlin
+	// The various dispatcher can be injected as such
+	private val mainDispatcher by injectMainDispatcher()
+	private val defaultDispatcher by injectDefaultDispatcher()
+	private val ioDispatcher by injectIoDispatcher()
+```
+
+#### Component layer
+Component base class `ComponentBase` has a coroutine scope defined already: `scope`
+
+This scope will be canceled for you when the component is destroyed.
+
+You can inject the various contexts as such:
+```kotlin
+	private val mainDispatcher by injectMainDispatcher()
+	private val defaultDispatcher by injectDefaultDispatcher()
+	private val ioDispatcher by injectIoDispatcher()
+
+	// `scope` here is from the `ComponentBase` parent class
+	scope.launch {
+        // Scope uses the default dispatcher, so make sure to switch contexts when necessary
+        withContext(mainDispatcher) {
+			// Make sure you reduce all of your state variables on the main thread
+		}
+	}
+```
+
+#### UI Layer: Compose
+```kotlin
+	// Define your own, or use scope hoisting to a parent Composable
+	val scope = rememberCoroutineScope()
+
+	// inject which ever dispatcher you need
+	val mainDispatcher = rememberMainDispatcher()
+	val defaultDispatcher = rememberDefaultDispatcher()
+	val ioDispatcher = rememberIoDispatcher()
+	
+	scope.launch(defaultDispatcher) { 
+		// Do stuff in background
+		withContext(mainDispatcher) {
+			// Back on main thread
+		}
+	}
+```

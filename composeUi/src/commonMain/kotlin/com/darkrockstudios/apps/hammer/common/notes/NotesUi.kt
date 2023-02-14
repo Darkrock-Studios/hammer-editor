@@ -17,9 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
 import com.darkrockstudios.apps.hammer.common.util.format
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -29,6 +34,17 @@ fun NotesUi(
 	component: Notes
 ) {
 	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
+	val defaultDispatcher = rememberDefaultDispatcher()
+	val ioDispatcher = rememberIoDispatcher()
+
+	scope.launch(defaultDispatcher) {
+		// Do stuff in background
+		withContext(mainDispatcher) {
+			// Back on main thread
+		}
+	}
+
 	val state by component.state.subscribeAsState()
 	val snackbarHostState = remember { SnackbarHostState() }
 
