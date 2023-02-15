@@ -10,8 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectInject
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
@@ -31,9 +29,6 @@ class TimeLineOverviewComponent(
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
 
 	private val mainDispatcher by injectMainDispatcher()
-	private val defaultDispatcher by injectDefaultDispatcher()
-	private val ioDispatcher by injectIoDispatcher()
-
 	private val timeLineRepository: TimeLineRepository by projectInject()
 
 	private val _state = MutableValue(TimeLineOverview.State(timeLine = null))
