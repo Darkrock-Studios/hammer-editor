@@ -1,4 +1,4 @@
-# Hammer: A story editor
+# ![Hammer Logo](readme/logo.png) Hammer: A story editor
 
 ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/master/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
 
