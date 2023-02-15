@@ -11,6 +11,7 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
@@ -49,6 +50,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 		title = "Project Selection",
 		state = windowState,
 		onCloseRequest = ::exitApplication,
+		icon = painterResource("icon.png"),
 	) {
 		val state by component.state.subscribeAsState()
 

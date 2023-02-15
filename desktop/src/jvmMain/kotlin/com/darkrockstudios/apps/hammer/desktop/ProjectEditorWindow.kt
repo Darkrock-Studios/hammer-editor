@@ -12,6 +12,7 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
@@ -63,6 +64,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	Window(
 		title = "Hammer - ${projectDef.name}",
 		state = windowState,
+		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
 	) {
 		Column {
