@@ -18,9 +18,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
-import com.darkrockstudios.apps.hammer.common.util.format
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import com.darkrockstudios.apps.hammer.common.util.formatLocal
 
 @Composable
 fun DraftsListUi(
@@ -97,8 +95,7 @@ fun DraftItem(
 			)
 
 			val date = remember(draftDef.draftTimestamp) {
-				val created = draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
-				created.format("dd MMM `yy")
+				draftDef.draftTimestamp.formatLocal("dd MMM `yy")
 			}
 			Text(
 				"Created: $date",

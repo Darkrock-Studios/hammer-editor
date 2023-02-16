@@ -37,6 +37,7 @@ abstract class ProjectEditorRepository(
     )
 
     private lateinit var metadata: ProjectMetadata
+    fun getMetadata() = metadata
 
     protected val dispatcherMain by injectMainDispatcher()
     protected val dispatcherDefault by injectDefaultDispatcher()

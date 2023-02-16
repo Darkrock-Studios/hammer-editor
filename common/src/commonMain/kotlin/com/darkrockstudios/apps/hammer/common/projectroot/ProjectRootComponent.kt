@@ -54,6 +54,10 @@ class ProjectRootComponent(
 		router.showEncyclopedia()
 	}
 
+	override fun showHome() {
+		router.showHome()
+	}
+
 	override fun showTimeLine() {
 		router.showTimeLine()
 	}
@@ -64,6 +68,7 @@ class ProjectRootComponent(
 			ProjectRoot.DestinationTypes.Notes -> showNotes()
 			ProjectRoot.DestinationTypes.Encyclopedia -> showEncyclopedia()
 			ProjectRoot.DestinationTypes.TimeLine -> showTimeLine()
+			ProjectRoot.DestinationTypes.Home -> showHome()
 		}
 	}
 

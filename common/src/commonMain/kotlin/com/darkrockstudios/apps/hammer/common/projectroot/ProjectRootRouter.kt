@@ -16,6 +16,8 @@ import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.notes.NotesComponent
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorComponent
+import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHome
+import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeComponent
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineComponent
 import kotlinx.coroutines.CoroutineScope
@@ -35,11 +37,11 @@ internal class ProjectRootRouter(
     private val navigation = StackNavigation<Config>()
 
     private val stack = componentContext.childStack(
-        source = navigation,
-        initialConfiguration = Config.EditorConfig(projectDef),
-        key = "ProjectRootRouter",
-        childFactory = ::createChild
-    )
+		source = navigation,
+		initialConfiguration = Config.HomeConfig(projectDef),
+		key = "ProjectRootRouter",
+		childFactory = ::createChild
+	)
 
     val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>>
 		get() = stack
@@ -63,6 +65,10 @@ internal class ProjectRootRouter(
 
 			is Config.TimeLineConfig -> ProjectRoot.Destination.TimeLineDestination(
 				timeLine(config, componentContext)
+			)
+
+			is Config.HomeConfig -> ProjectRoot.Destination.HomeDestination(
+				home(config, componentContext)
 			)
 		}
 
@@ -114,6 +120,14 @@ internal class ProjectRootRouter(
 		)
 	}
 
+	private fun home(config: Config.HomeConfig, componentContext: ComponentContext): ProjectHome {
+		return ProjectHomeComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef,
+		)
+	}
+
+
 	fun showEditor() {
 		navigation.bringToFront(Config.EditorConfig(projectDef = projectDef))
 	}
@@ -128,6 +142,10 @@ internal class ProjectRootRouter(
 
 	fun showTimeLine() {
 		navigation.bringToFront(Config.TimeLineConfig(projectDef = projectDef))
+	}
+
+	fun showHome() {
+		navigation.bringToFront(Config.HomeConfig(projectDef = projectDef))
 	}
 
 	override fun isAtRoot(): Boolean {
@@ -151,5 +169,8 @@ internal class ProjectRootRouter(
 
 		@Parcelize
 		data class TimeLineConfig(val projectDef: ProjectDef) : Config()
+
+		@Parcelize
+		data class HomeConfig(val projectDef: ProjectDef) : Config()
 	}
 }

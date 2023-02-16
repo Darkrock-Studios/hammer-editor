@@ -40,8 +40,6 @@ kotlin {
 				api(compose.preview)
 				api(compose.foundation)
 				api(compose.material3)
-				// JB material3 is way behind, so this lib is a workaround:
-				//api("io.github.qdsfdhvh:material3:1.0.8")
 				api(compose.animation)
 				api(compose.animationGraphics)
 				api(compose.materialIconsExtended)
@@ -51,6 +49,7 @@ kotlin {
 				api("com.darkrockstudios:richtexteditor:1.4.1")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
 				api("io.github.qdsfdhvh:image-loader:1.2.8")
+				implementation("io.github.koalaplot:koalaplot-core:0.2.1")
 			}
 		}
 		val commonTest by getting {

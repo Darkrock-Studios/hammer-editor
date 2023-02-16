@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.notes.Notes
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditor
+import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
@@ -17,6 +18,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 	fun showEditor()
 	fun showNotes()
 	fun showEncyclopedia()
+	fun showHome()
 	fun showDestination(type: DestinationTypes)
 	fun isAtRoot(): Boolean
 
@@ -35,18 +37,25 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 
 		data class TimeLineDestination(override val component: TimeLine) : Destination<TimeLine>()
 
+		data class HomeDestination(override val component: ProjectHome) : Destination<ProjectHome>()
+
 		fun getLocationType(): DestinationTypes {
 			return when (this) {
 				is EditorDestination -> DestinationTypes.Editor
 				is EncyclopediaDestination -> DestinationTypes.Encyclopedia
 				is NotesDestination -> DestinationTypes.Notes
 				is TimeLineDestination -> DestinationTypes.TimeLine
+				is HomeDestination -> DestinationTypes.Home
 			}
 		}
 	}
 
 	enum class DestinationTypes(val text: String) {
-		Editor("Editor"), Notes("Notes"), Encyclopedia("Encyclopedia"), TimeLine("Time Line")
+		Home("Home"),
+		Editor("Editor"),
+		Notes("Notes"),
+		Encyclopedia("Encyclopedia"),
+		TimeLine("Time Line"),
 	}
 
 	fun showTimeLine()
