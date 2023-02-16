@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
-import com.arkivanov.essenty.lifecycle.doOnResume
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -31,12 +30,14 @@ class BrowseEntriesComponent(
 		.maximumCacheSize(20)
 		.build<Int, EntryContainer>()
 
-	init {
+	override fun onCreate() {
+		super.onCreate()
 		watchEntries()
+	}
 
-		lifecycle.doOnResume {
-			encyclopediaRepository.loadEntries()
-		}
+	override fun onResume() {
+		super.onResume()
+		encyclopediaRepository.loadEntries()
 	}
 
 	private fun watchEntries() {
@@ -44,9 +45,9 @@ class BrowseEntriesComponent(
 			encyclopediaRepository.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
 
-                withContext(dispatcherMain) {
-                    _state.reduce { state ->
-                        state.copy(
+				withContext(dispatcherMain) {
+					_state.reduce { state ->
+						state.copy(
                             entryDefs = entryDefs
                         )
                     }
