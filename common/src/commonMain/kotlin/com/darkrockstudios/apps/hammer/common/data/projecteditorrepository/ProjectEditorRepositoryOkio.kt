@@ -501,6 +501,20 @@ class ProjectEditorRepositoryOkio(
         return getSceneFromPath(scenePath.toHPath())
     }
 
+    override fun loadSceneMarkdownRaw(sceneItem: SceneItem): String {
+        val scenePath = getSceneFilePath(sceneItem).toOkioPath()
+        val content = try {
+            fileSystem.read(scenePath) {
+                readUtf8()
+            }
+        } catch (e: IOException) {
+            Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+            ""
+        }
+
+        return content
+    }
+
     override fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
         val scenePath = getSceneFilePath(sceneItem).toOkioPath()
 

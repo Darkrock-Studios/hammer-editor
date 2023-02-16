@@ -25,3 +25,11 @@ fun <T> Flow<T>.debounceUntilQuiescent(duration: Duration): Flow<T> = channelFlo
 		}
 	}
 }
+
+fun Int.formatDecimalSeparator(): String {
+	return toString()
+		.reversed()
+		.chunked(3)
+		.joinToString(",")
+		.reversed()
+}

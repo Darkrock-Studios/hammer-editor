@@ -30,3 +30,27 @@ fun Modifier.leftBorder(strokeWidth: Dp, color: Color) = composed(
 		}
 	}
 )
+
+fun Modifier.rightBorder(strokeWidth: Dp, color: Color) = composed(
+	factory = {
+		val density = LocalDensity.current
+
+		val strokeWidthPx = density.run { strokeWidth.toPx() }
+
+		Modifier.drawWithCache {
+			onDrawWithContent {
+				drawContent()
+
+				val height = size.width - strokeWidthPx / 2
+				val width = size.width - strokeWidthPx / 2
+
+				drawLine(
+					color = color,
+					start = Offset(x = width, y = 0f),
+					end = Offset(x = width, y = height),
+					strokeWidth = strokeWidthPx
+				)
+			}
+		}
+	}
+)

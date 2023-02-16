@@ -11,10 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
@@ -34,7 +35,7 @@ fun ProjectHomeUi(
                 .verticalScroll(rememberScrollState(0))
         ) {
             Stats(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(2f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
                 state = state
             )
             Actions(
@@ -49,7 +50,7 @@ fun ProjectHomeUi(
                 .verticalScroll(rememberScrollState(0))
         ) {
             Stats(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
                 state = state
             )
             Actions(
@@ -81,7 +82,12 @@ private fun Stats(modifier: Modifier, state: ProjectHome.State) {
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            "Scenes: ${state.numberOfScenes}",
+            "Scenes: ${state.numberOfScenes.formatDecimalSeparator()}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            "Total Words: ${state.totalWords.formatDecimalSeparator()}",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )

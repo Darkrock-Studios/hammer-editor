@@ -177,6 +177,14 @@ abstract class ProjectEditorRepository(
     abstract fun getSceneTempBufferContents(): List<SceneContent>
     abstract fun getSceneAtIndex(index: Int): SceneItem
     abstract fun getSceneFromPath(path: HPath): SceneItem
+
+    /**
+     * This should only be used for stats and other fire and forget actions where accuracy
+     * and integrity of the data is not important.
+     * Anything that wishes to interact with scene content should use `loadSceneBuffer`
+     * instead.
+     */
+    abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem): String
     abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
     abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
     abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean

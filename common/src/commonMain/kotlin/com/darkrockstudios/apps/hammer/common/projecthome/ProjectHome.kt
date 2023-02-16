@@ -13,6 +13,7 @@ interface ProjectHome : Router, HammerComponent {
         val projectDef: ProjectDef,
         val created: String,
         val numberOfScenes: Int = 0,
+        val totalWords: Int = 0,
         val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap()
     )
 }

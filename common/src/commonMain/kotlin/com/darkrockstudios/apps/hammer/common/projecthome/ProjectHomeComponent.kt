@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
@@ -43,7 +44,18 @@ class ProjectHomeComponent(
             val metadata = projectEditorRepository.getMetadata()
             val created = metadata.info.created.formatLocal("dd MMM `yy")
 
-            val numScenes = projectEditorRepository.getSceneTree().root.totalChildren
+            val tree = projectEditorRepository.getSceneTree().root
+            val numScenes = tree.totalChildren
+
+            var words = 0
+            val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")
+            tree.forEach { node ->
+                if (node.value.type == SceneItem.Type.Scene) {
+                    val markdown = projectEditorRepository.loadSceneMarkdownRaw(node.value)
+                    val count = wordRegex.findAll(markdown.trim()).count() + 1
+                    words += count
+                }
+            }
 
             encyclopediaRepository.loadEntries()
             val entriesByType = mutableMapOf<EntryType, Int>()
@@ -59,6 +71,7 @@ class ProjectHomeComponent(
                     it.copy(
                         created = created,
                         numberOfScenes = numScenes,
+                        totalWords = words,
                         encyclopediaEntriesByType = entriesByType
                     )
                 }
