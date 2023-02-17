@@ -97,18 +97,18 @@ fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: In
 					color = lineColor,
 					start = Offset(pad, 0f),
 					end = Offset(pad, size.height),
-				strokeWidth = Stroke.DefaultMiter,
-				cap = StrokeCap.Round
-			)
+					strokeWidth = Stroke.DefaultMiter,
+					cap = StrokeCap.Round
+				)
 
-			drawLine(
-				color = lineColor,
-				start = Offset(pad, size.height / 2f),
-				end = Offset(pad * 3f, size.height / 2f),
-				strokeWidth = Stroke.DefaultMiter,
-				cap = StrokeCap.Round
-			)
-		}
+				drawLine(
+					color = lineColor,
+					start = Offset(pad, size.height / 2f),
+					end = Offset(pad * 3f, size.height / 2f),
+					strokeWidth = Stroke.DefaultMiter,
+					cap = StrokeCap.Round
+				)
+			}
 	) {
 		Column {
 			event.date?.let { date ->

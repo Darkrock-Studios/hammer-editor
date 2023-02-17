@@ -77,21 +77,21 @@ actual fun MpScrollBar(
  */
 @Composable
 fun AndroidScrollbar(
-		state: LazyListState,
-		horizontal: Boolean,
-		alignEnd: Boolean = true,
-		thickness: Dp = 4.dp,
-		fixedKnobRatio: Float? = null,
-		knobCornerRadius: Dp = 4.dp,
-		trackCornerRadius: Dp = 2.dp,
-		knobColor: Color = Color.Black,
-		trackColor: Color = Color.White,
-		padding: Dp = 0.dp,
-		visibleAlpha: Float = 1f,
-		hiddenAlpha: Float = 0f,
-		fadeInAnimationDurationMs: Int = 150,
-		fadeOutAnimationDurationMs: Int = 500,
-		fadeOutAnimationDelayMs: Int = 1000,
+	state: LazyListState,
+	horizontal: Boolean,
+	alignEnd: Boolean = true,
+	thickness: Dp = 4.dp,
+	fixedKnobRatio: Float? = null,
+	knobCornerRadius: Dp = 4.dp,
+	trackCornerRadius: Dp = 2.dp,
+	knobColor: Color = Color.Black,
+	trackColor: Color = Color.White,
+	padding: Dp = 0.dp,
+	visibleAlpha: Float = 1f,
+	hiddenAlpha: Float = 0f,
+	fadeInAnimationDurationMs: Int = 150,
+	fadeOutAnimationDurationMs: Int = 500,
+	fadeOutAnimationDelayMs: Int = 1000,
 ) {
 	check(thickness > 0.dp) { "Thickness must be a positive integer." }
 	check(fixedKnobRatio == null || fixedKnobRatio < 1f) {
@@ -111,43 +111,46 @@ fun AndroidScrollbar(
 	}
 
 	val targetAlpha =
-			if (state.isScrollInProgress) {
-				visibleAlpha
-			} else {
-				hiddenAlpha
-			}
+		if (state.isScrollInProgress) {
+			visibleAlpha
+		} else {
+			hiddenAlpha
+		}
 	val animationDurationMs =
-			if (state.isScrollInProgress) {
-				fadeInAnimationDurationMs
-			} else {
-				fadeOutAnimationDurationMs
-			}
+		if (state.isScrollInProgress) {
+			fadeInAnimationDurationMs
+		} else {
+			fadeOutAnimationDurationMs
+		}
 	val animationDelayMs =
-			if (state.isScrollInProgress) {
-				0
-			} else {
-				fadeOutAnimationDelayMs
-			}
+		if (state.isScrollInProgress) {
+			0
+		} else {
+			fadeOutAnimationDelayMs
+		}
 
 	val alpha by
 	animateFloatAsState(
-			targetValue = targetAlpha,
-			animationSpec =
-			tween(delayMillis = animationDelayMs, durationMillis = animationDurationMs))
+		targetValue = targetAlpha,
+		animationSpec =
+		tween(delayMillis = animationDelayMs, durationMillis = animationDurationMs)
+	)
 
-	return Canvas(modifier = Modifier
-		.width(thickness)
-		.fillMaxHeight()) {
+	return Canvas(
+		modifier = Modifier
+			.width(thickness)
+			.fillMaxHeight()
+	) {
 		state.layoutInfo.visibleItemsInfo.firstOrNull()?.let { firstVisibleItem ->
 			if (state.isScrollInProgress || alpha > 0f) {
 				// Size of the viewport, the entire size of the scrollable composable we are decorating with
 				// this scrollbar.
 				val viewportSize =
-						if (horizontal) {
-							size.width
-						} else {
-							size.height
-						} - padding.toPx() * 2
+					if (horizontal) {
+						size.width
+					} else {
+						size.height
+					} - padding.toPx() * 2
 
 				// The size of the first visible item. We use this to estimate how many items can fit in the
 				// viewport. Of course, this works perfectly when all items have the same size. When they
@@ -165,62 +168,62 @@ fun AndroidScrollbar(
 				// items at once. At first, the value is 0 since we start all the way to the top (or start
 				// edge). As we scroll down (or towards the end), this number will grow.
 				val viewportOffsetInFullListSpace =
-						state.firstVisibleItemIndex * firstItemSize + state.firstVisibleItemScrollOffset
+					state.firstVisibleItemIndex * firstItemSize + state.firstVisibleItemScrollOffset
 
 				// Where we should render the knob in our composable.
 				val knobPosition =
-						(viewportSize / estimatedFullListSize) * viewportOffsetInFullListSpace + padding.toPx()
+					(viewportSize / estimatedFullListSize) * viewportOffsetInFullListSpace + padding.toPx()
 				// How large should the knob be.
 				val knobSize =
-						fixedKnobRatio?.let { it * viewportSize }
-								?: (viewportSize * viewportSize) / estimatedFullListSize
+					fixedKnobRatio?.let { it * viewportSize }
+						?: (viewportSize * viewportSize) / estimatedFullListSize
 
 				// Draw the track
 				drawRoundRect(
-						color = trackColor,
-						topLeft =
-						when {
-							// When the scrollbar is horizontal and aligned to the bottom:
-							horizontal && alignEnd -> Offset(padding.toPx(), size.height - thickness.toPx())
-							// When the scrollbar is horizontal and aligned to the top:
-							horizontal && !alignEnd -> Offset(padding.toPx(), 0f)
-							// When the scrollbar is vertical and aligned to the end:
-							alignEnd -> Offset(size.width - thickness.toPx(), padding.toPx())
-							// When the scrollbar is vertical and aligned to the start:
-							else -> Offset(0f, padding.toPx())
-						},
-						size =
-						if (horizontal) {
-							Size(size.width - padding.toPx() * 2, thickness.toPx())
-						} else {
-							Size(thickness.toPx(), size.height - padding.toPx() * 2)
-						},
-						alpha = alpha,
-						cornerRadius = CornerRadius(x = trackCornerRadius.toPx(), y = trackCornerRadius.toPx()),
+					color = trackColor,
+					topLeft =
+					when {
+						// When the scrollbar is horizontal and aligned to the bottom:
+						horizontal && alignEnd -> Offset(padding.toPx(), size.height - thickness.toPx())
+						// When the scrollbar is horizontal and aligned to the top:
+						horizontal && !alignEnd -> Offset(padding.toPx(), 0f)
+						// When the scrollbar is vertical and aligned to the end:
+						alignEnd -> Offset(size.width - thickness.toPx(), padding.toPx())
+						// When the scrollbar is vertical and aligned to the start:
+						else -> Offset(0f, padding.toPx())
+					},
+					size =
+					if (horizontal) {
+						Size(size.width - padding.toPx() * 2, thickness.toPx())
+					} else {
+						Size(thickness.toPx(), size.height - padding.toPx() * 2)
+					},
+					alpha = alpha,
+					cornerRadius = CornerRadius(x = trackCornerRadius.toPx(), y = trackCornerRadius.toPx()),
 				)
 
 				// Draw the knob
 				drawRoundRect(
-						color = knobColor,
-						topLeft =
-						when {
-							// When the scrollbar is horizontal and aligned to the bottom:
-							horizontal && alignEnd -> Offset(knobPosition, size.height - thickness.toPx())
-							// When the scrollbar is horizontal and aligned to the top:
-							horizontal && !alignEnd -> Offset(knobPosition, 0f)
-							// When the scrollbar is vertical and aligned to the end:
-							alignEnd -> Offset(size.width - thickness.toPx(), knobPosition)
-							// When the scrollbar is vertical and aligned to the start:
-							else -> Offset(0f, knobPosition)
-						},
-						size =
-						if (horizontal) {
-							Size(knobSize, thickness.toPx())
-						} else {
-							Size(thickness.toPx(), knobSize)
-						},
-						alpha = alpha,
-						cornerRadius = CornerRadius(x = knobCornerRadius.toPx(), y = knobCornerRadius.toPx()),
+					color = knobColor,
+					topLeft =
+					when {
+						// When the scrollbar is horizontal and aligned to the bottom:
+						horizontal && alignEnd -> Offset(knobPosition, size.height - thickness.toPx())
+						// When the scrollbar is horizontal and aligned to the top:
+						horizontal && !alignEnd -> Offset(knobPosition, 0f)
+						// When the scrollbar is vertical and aligned to the end:
+						alignEnd -> Offset(size.width - thickness.toPx(), knobPosition)
+						// When the scrollbar is vertical and aligned to the start:
+						else -> Offset(0f, knobPosition)
+					},
+					size =
+					if (horizontal) {
+						Size(knobSize, thickness.toPx())
+					} else {
+						Size(thickness.toPx(), knobSize)
+					},
+					alpha = alpha,
+					cornerRadius = CornerRadius(x = knobCornerRadius.toPx(), y = knobCornerRadius.toPx()),
 				)
 			}
 		}

@@ -10,15 +10,15 @@ import org.koin.java.KoinJavaComponent
 import kotlin.coroutines.CoroutineContext
 
 fun getDefaultDispatcher(): CoroutineContext {
-    return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_DEFAULT))
+	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_DEFAULT))
 }
 
 fun getIoDispatcher(): CoroutineContext {
-    return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_IO))
+	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_IO))
 }
 
 fun getMainDispatcher(): CoroutineContext {
-    return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_MAIN))
+	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_MAIN))
 }
 
 @Composable

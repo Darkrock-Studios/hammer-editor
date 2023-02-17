@@ -42,18 +42,18 @@ internal fun EncyclopediaEntryItem(
 	modifier: Modifier = Modifier,
 	filterByType: (type: EntryType) -> Unit
 ) {
-    val ioDispatcher = rememberIoDispatcher()
-    val mainDispatcher = rememberMainDispatcher()
-    var loadContentJob = remember<Job?> { null }
-    var entryContent by remember { mutableStateOf<EntryContent?>(null) }
-    var entryImagePath by remember { mutableStateOf<String?>(null) }
+	val ioDispatcher = rememberIoDispatcher()
+	val mainDispatcher = rememberMainDispatcher()
+	var loadContentJob = remember<Job?> { null }
+	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
+	var entryImagePath by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(entryDef) {
-        entryImagePath = null
-        loadContentJob?.cancel()
-        loadContentJob = scope.launch(ioDispatcher) {
-            val imagePath = component.getImagePath(entryDef)
-            val content = component.loadEntryContent(entryDef)
+	LaunchedEffect(entryDef) {
+		entryImagePath = null
+		loadContentJob?.cancel()
+		loadContentJob = scope.launch(ioDispatcher) {
+			val imagePath = component.getImagePath(entryDef)
+			val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
 				entryImagePath = imagePath
 				entryContent = content
