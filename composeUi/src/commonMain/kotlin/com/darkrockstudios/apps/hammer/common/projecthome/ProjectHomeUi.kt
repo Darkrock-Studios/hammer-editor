@@ -13,9 +13,6 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -113,13 +110,13 @@ private fun Stats(
 
 		item {
 			GenericStatsBlock("Words in Chapters") {
-				WordsInChaptersChart(Modifier, state)
+				WordsInChaptersChart(state = state)
 			}
 		}
 
 		item {
 			GenericStatsBlock("Encyclopedia Entries") {
-				EncyclopediaChart(Modifier, state)
+				EncyclopediaChart(state = state)
 			}
 		}
 
@@ -273,21 +270,18 @@ private fun WordsInChaptersChart(
 		}
 	}
 
-	Box(modifier = Modifier.gesturesDisabled()) {
-		XYChart(
-			modifier = Modifier.heightIn(64.dp, 196.dp)
-				.focusable(false),
-			xAxisModel = CategoryAxisModel(xAxis),
-			yAxisModel = LinearAxisModel(range = range),
-			xAxisTitle = "Chapter",
-			yAxisTitle = "Words",
-			xAxisLabels = { index -> (index + 1).toString() },
-			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
-			yAxisLabels = { it.toInt().toString() },
-			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
-		) {
-			VerticalBarChart(series = listOf(entries))
-		}
+	XYChart(
+		modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
+		xAxisModel = CategoryAxisModel(xAxis),
+		yAxisModel = LinearAxisModel(range = range),
+		xAxisTitle = "Chapter",
+		yAxisTitle = "Words",
+		xAxisLabels = { index -> (index + 1).toString() },
+		xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
+		yAxisLabels = { it.toInt().toString() },
+		yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
+	) {
+		VerticalBarChart(series = listOf(entries))
 	}
 }
 
@@ -305,19 +299,3 @@ private fun Actions(modifier: Modifier, state: ProjectHome.State) {
 		}
 	}
 }
-
-fun Modifier.gesturesDisabled(disabled: Boolean = true) =
-	if (disabled) {
-		pointerInput(Unit) {
-			awaitPointerEventScope {
-				// we should wait for all new pointer events
-				while (true) {
-					awaitPointerEvent(pass = PointerEventPass.Initial)
-						.changes
-						.forEach(PointerInputChange::consume)
-				}
-			}
-		}
-	} else {
-		this
-	}
