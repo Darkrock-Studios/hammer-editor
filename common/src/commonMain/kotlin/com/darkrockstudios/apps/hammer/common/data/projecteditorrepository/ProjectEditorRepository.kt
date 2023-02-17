@@ -57,9 +57,10 @@ abstract class ProjectEditorRepository(
 
     private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
         extraBufferCapacity = 1,
+        replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-    private val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
+    val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
 
     protected val sceneTree = Tree<SceneItem>()
 

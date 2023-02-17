@@ -1,25 +1,29 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import io.github.koalaplot.core.bar.DefaultBarChartEntry
+import io.github.koalaplot.core.bar.VerticalBarChart
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
+import io.github.koalaplot.core.xychart.*
 
 @Composable
 fun ProjectHomeUi(
@@ -32,10 +36,9 @@ fun ProjectHomeUi(
         Row(
             modifier = Modifier.fillMaxSize()
                 .padding(Ui.Padding.XL)
-                .verticalScroll(rememberScrollState(0))
         ) {
             Stats(
-                modifier = Modifier.weight(2f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier.weight(3f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
                 state = state
             )
             Actions(
@@ -47,7 +50,6 @@ fun ProjectHomeUi(
         Column(
             modifier = Modifier.fillMaxSize()
                 .padding(Ui.Padding.XL)
-                .verticalScroll(rememberScrollState(0))
         ) {
             Stats(
                 modifier = Modifier.fillMaxWidth().bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
@@ -70,36 +72,104 @@ private fun Stats(modifier: Modifier, state: ProjectHome.State) {
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
         Text(
             "Created: ${state.created}",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
         Text(
             "Stats:",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
-        Text(
-            "Scenes: ${state.numberOfScenes.formatDecimalSeparator()}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            "Total Words: ${state.totalWords.formatDecimalSeparator()}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
 
-        Spacer(modifier = Modifier.size(Ui.Padding.XL))
-        Text(
-            "Encyclopedia Entries:",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.size(Ui.Padding.L))
-        EncyclopediaChart(Modifier, state)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(256.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(Ui.Padding.XL)
+        ) {
+            item {
+                NumericStatsBlock("Scenes", state.numberOfScenes)
+            }
+
+            item {
+                NumericStatsBlock("Total Words", state.totalWords)
+            }
+
+            item {
+                GenericBlock("Words in Chapters") {
+                    WordsInChaptersChart(Modifier, state)
+                }
+            }
+
+            item {
+                GenericBlock("Encyclopedia Entries") {
+                    EncyclopediaChart(Modifier, state)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumericStatsBlock(label: String, stateValue: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
+        elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.MEDIUM)
+    ) {
+        Column(modifier = Modifier.padding(Ui.Padding.L).align(CenterHorizontally)) {
+
+            var value by remember { mutableStateOf(0) }
+            val valueCounter by animateIntAsState(
+                targetValue = stateValue,
+                animationSpec = tween(
+                    durationMillis = 2000,
+                    easing = LinearOutSlowInEasing
+                )
+            )
+            LaunchedEffect(stateValue) {
+                value = 0
+            }
+
+            Text(
+                valueCounter.formatDecimalSeparator(),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                label,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun GenericBlock(label: String, content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
+        elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.MEDIUM)
+    ) {
+        Column(modifier = Modifier.padding(Ui.Padding.L).align(CenterHorizontally)) {
+            content()
+            Spacer(modifier = Modifier.size(Ui.Padding.L))
+            Text(
+                label,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -132,6 +202,52 @@ private fun EncyclopediaChart(
             )
         },
     )
+}
+
+@OptIn(ExperimentalKoalaPlotApi::class)
+@Composable
+private fun WordsInChaptersChart(
+    modifier: Modifier = Modifier,
+    state: ProjectHome.State
+) {
+    val entries = remember(state.wordsByChapter) {
+        state.wordsByChapter.entries.mapIndexed { index, entry ->
+            DefaultBarChartEntry(
+                xValue = index,
+                yMin = 0f,
+                yMax = entry.value.toFloat()
+            )
+        }
+    }
+
+    val xAxis = if (state.wordsByChapter.isNotEmpty()) {
+        List(state.wordsByChapter.keys.size) { i -> i }
+    } else {
+        listOf(0, 100)
+    }
+
+    val range = remember(state.wordsByChapter) {
+        val entryValues = state.wordsByChapter.entries.map { it.value.toFloat() }
+        if (entryValues.isNotEmpty()) {
+            entryValues.autoScaleRange()
+        } else {
+            listOf(0f, 1f).autoScaleRange()
+        }
+    }
+
+    XYChart(
+        modifier = Modifier.heightIn(64.dp, 196.dp),
+        xAxisModel = CategoryAxisModel(xAxis),
+        yAxisModel = LinearAxisModel(range = range),
+        xAxisTitle = "Chapter",
+        yAxisTitle = "Words",
+        xAxisLabels = { index -> (index + 1).toString() },
+        xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
+        yAxisLabels = { it.toInt().toString() },
+        yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
+    ) {
+        VerticalBarChart(series = listOf(entries))
+    }
 }
 
 @Composable

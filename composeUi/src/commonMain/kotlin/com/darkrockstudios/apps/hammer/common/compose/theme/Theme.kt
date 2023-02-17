@@ -2,11 +2,10 @@ package com.darkrockstudios.apps.hammer.common.compose.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material.Colors
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 
 
@@ -75,6 +74,24 @@ private val DarkColors = darkColorScheme(
 	//scrim = md_theme_dark_scrim,
 )
 
+private fun generateMaterial2Colors(colorScheme: ColorScheme, isLight: Boolean): Colors {
+	return Colors(
+		primary = colorScheme.primary,
+		primaryVariant = colorScheme.primaryContainer,
+		secondary = colorScheme.secondary,
+		secondaryVariant = colorScheme.secondaryContainer,
+		background = colorScheme.background,
+		surface = colorScheme.surface,
+		error = colorScheme.error,
+		onPrimary = colorScheme.onPrimary,
+		onSecondary = colorScheme.onSecondary,
+		onBackground = colorScheme.onBackground,
+		onSurface = colorScheme.onSurface,
+		onError = colorScheme.onError,
+		isLight = isLight
+	)
+}
+
 @Composable
 fun AppTheme(
 	useDarkTheme: Boolean = isSystemInDarkTheme(),
@@ -84,6 +101,10 @@ fun AppTheme(
 		LightColors
 	} else {
 		DarkColors
+	}
+
+	val material2Colors = remember(useDarkTheme) {
+		generateMaterial2Colors(colors, !useDarkTheme)
 	}
 
 	val shapes = Shapes(
@@ -97,6 +118,13 @@ fun AppTheme(
 	MaterialTheme(
 		colorScheme = colors,
 		shapes = shapes,
-		content = content
+		content = {
+			// TODO Can remove when this is solved https://github.com/KoalaPlot/koalaplot-core/issues/8
+			androidx.compose.material.MaterialTheme(
+				colors = material2Colors
+			) {
+				content()
+			}
+		}
 	)
 }

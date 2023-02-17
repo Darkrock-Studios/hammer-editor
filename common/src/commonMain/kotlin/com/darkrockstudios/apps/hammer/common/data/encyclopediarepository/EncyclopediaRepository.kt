@@ -28,9 +28,10 @@ abstract class EncyclopediaRepository(
     protected val scope = CoroutineScope(dispatcherDefault)
 
     private val _entryListFlow = MutableSharedFlow<List<EntryDef>>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
     val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
 
     protected suspend fun updateEntries(entries: List<EntryDef>) {

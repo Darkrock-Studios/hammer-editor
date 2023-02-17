@@ -14,6 +14,7 @@ interface ProjectHome : Router, HammerComponent {
         val created: String,
         val numberOfScenes: Int = 0,
         val totalWords: Int = 0,
-        val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap()
+        val wordsByChapter: Map<String, Int> = emptyMap(),
+        val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
     )
 }

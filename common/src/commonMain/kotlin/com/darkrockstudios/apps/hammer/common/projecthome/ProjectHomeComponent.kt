@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
@@ -44,17 +45,33 @@ class ProjectHomeComponent(
             val metadata = projectEditorRepository.getMetadata()
             val created = metadata.info.created.formatLocal("dd MMM `yy")
 
-            val tree = projectEditorRepository.getSceneTree().root
+            var sceneSummary: SceneSummary? = null
+            projectEditorRepository.sceneListChannel.take(1).collect { summary ->
+                sceneSummary = summary
+            }
+            val tree = sceneSummary?.sceneTree?.root ?: throw IllegalStateException("Failed to get scene tree")
             val numScenes = tree.totalChildren
 
             var words = 0
-            val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")
             tree.forEach { node ->
                 if (node.value.type == SceneItem.Type.Scene) {
-                    val markdown = projectEditorRepository.loadSceneMarkdownRaw(node.value)
-                    val count = wordRegex.findAll(markdown.trim()).count() + 1
+                    val count = projectEditorRepository.countWordsInScene(node.value)
                     words += count
                 }
+            }
+
+            val wordsByChapter = mutableMapOf<String, Int>()
+            tree.children.forEach { node ->
+                val chapterName = node.value.name
+                var wordsInChapter = 0
+                node.forEach { child ->
+                    if (child.value.type == SceneItem.Type.Scene) {
+                        val count = projectEditorRepository.countWordsInScene(child.value)
+                        wordsInChapter += count
+                    }
+                }
+
+                wordsByChapter[chapterName] = wordsInChapter
             }
 
             encyclopediaRepository.loadEntries()
@@ -72,6 +89,7 @@ class ProjectHomeComponent(
                         created = created,
                         numberOfScenes = numScenes,
                         totalWords = words,
+                        wordsByChapter = wordsByChapter,
                         encyclopediaEntriesByType = entriesByType
                     )
                 }
@@ -80,4 +98,11 @@ class ProjectHomeComponent(
     }
 
     override fun isAtRoot() = true
+}
+
+val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")
+fun ProjectEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
+    val markdown = loadSceneMarkdownRaw(sceneItem)
+    val count = wordRegex.findAll(markdown.trim()).count() + 1
+    return count
 }
