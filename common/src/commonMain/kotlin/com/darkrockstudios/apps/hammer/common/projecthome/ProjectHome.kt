@@ -7,14 +7,19 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.projectroot.Router
 
 interface ProjectHome : Router, HammerComponent {
-    val state: Value<State>
+	val state: Value<State>
 
-    data class State(
-        val projectDef: ProjectDef,
-        val created: String,
-        val numberOfScenes: Int = 0,
-        val totalWords: Int = 0,
-        val wordsByChapter: Map<String, Int> = emptyMap(),
-        val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
-    )
+	suspend fun exportProject(path: String)
+	fun beginProjectExport()
+	fun endProjectExport()
+
+	data class State(
+		val projectDef: ProjectDef,
+		val created: String,
+		val numberOfScenes: Int = 0,
+		val totalWords: Int = 0,
+		val wordsByChapter: Map<String, Int> = emptyMap(),
+		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
+		val showExportDialog: Boolean = false
+	)
 }

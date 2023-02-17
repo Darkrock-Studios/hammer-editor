@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -19,6 +20,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import io.github.koalaplot.core.bar.DefaultBarChartEntry
 import io.github.koalaplot.core.bar.VerticalBarChart
 import io.github.koalaplot.core.pie.BezierLabelConnector
@@ -26,6 +28,8 @@ import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xychart.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProjectHomeUi(
@@ -33,32 +37,42 @@ fun ProjectHomeUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
+	val scope = rememberCoroutineScope()
+	val snackbarHostState = remember { SnackbarHostState() }
 
-	if (screen.isWide) {
-		Row(
-			modifier = Modifier.fillMaxSize()
-				.padding(Ui.Padding.XL)
-		) {
-			Stats(
-				modifier = Modifier.weight(3f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
-				state = state
-			)
-			Actions(
-				modifier = Modifier.weight(1f),
-				state = state
-			)
-		}
-	} else {
-		Stats(
-			modifier = Modifier.fillMaxWidth().bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
-			state = state,
-			otherContent = {
-				Actions(
-					modifier = Modifier.fillMaxWidth(),
+	Box {
+		if (screen.isWide) {
+			Row(
+				modifier = Modifier.fillMaxSize()
+					.padding(Ui.Padding.XL)
+			) {
+				Stats(
+					modifier = Modifier.weight(3f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
 					state = state
 				)
+				Actions(
+					modifier = Modifier.weight(1f),
+					component = component,
+					scope = scope,
+					snackbarHostState = snackbarHostState
+				)
 			}
-		)
+		} else {
+			Stats(
+				modifier = Modifier.fillMaxWidth().bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
+				state = state,
+				otherContent = {
+					Actions(
+						modifier = Modifier.fillMaxWidth(),
+						component = component,
+						scope = scope,
+						snackbarHostState = snackbarHostState
+					)
+				}
+			)
+		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }
 
@@ -286,7 +300,15 @@ private fun WordsInChaptersChart(
 }
 
 @Composable
-private fun Actions(modifier: Modifier, state: ProjectHome.State) {
+private fun Actions(
+	modifier: Modifier,
+	component: ProjectHome,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState
+) {
+	val defaultDispatcher = rememberDefaultDispatcher()
+	val state by component.state.subscribeAsState()
+
 	Column(modifier = modifier.padding(Ui.Padding.XL)) {
 		Text(
 			"Actions:",
@@ -294,8 +316,19 @@ private fun Actions(modifier: Modifier, state: ProjectHome.State) {
 			color = MaterialTheme.colorScheme.onSurface
 		)
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-		Button(onClick = {}) {
+		Button(onClick = component::beginProjectExport) {
 			Text("Export Story")
+		}
+	}
+
+	DirectoryPicker(state.showExportDialog) { path ->
+		if (path != null) {
+			scope.launch(defaultDispatcher) {
+				component.exportProject(path)
+				snackbarHostState.showSnackbar("Story Exported")
+			}
+		} else {
+			component.endProjectExport()
 		}
 	}
 }
