@@ -5,11 +5,11 @@
             android:supportsRtl="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
             android:name=".HammerApplication">
 
         <activity
                 android:name=".ProjectSelectActivity"
-                android:label="@string/app_name"
                 android:windowSoftInputMode="adjustResize"
                 android:exported="true">
             <intent-filter>

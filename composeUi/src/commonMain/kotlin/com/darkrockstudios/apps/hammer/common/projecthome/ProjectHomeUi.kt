@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,6 +13,9 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -59,62 +65,67 @@ fun ProjectHomeUi(
 	}
 }
 
+private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(Int.MAX_VALUE) }
+
 @Composable
 private fun Stats(
 	modifier: Modifier,
 	state: ProjectHome.State,
 	otherContent: (@Composable () -> Unit)? = null
 ) {
-	Column(modifier = modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		Text(
-			state.projectDef.name,
-			style = MaterialTheme.typography.displayMedium,
-			color = MaterialTheme.colorScheme.onSurface
-		)
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
+	LazyVerticalGrid(
+		columns = GridCells.Adaptive(300.dp),
+		modifier = modifier.fillMaxHeight(),
+		contentPadding = PaddingValues(Ui.Padding.XL)
+	) {
+		item(span = spanAll) {
+			Column {
+				Text(
+					state.projectDef.name,
+					style = MaterialTheme.typography.displayMedium,
+					color = MaterialTheme.colorScheme.onSurface
+				)
 
-		Text(
-			"Created: ${state.created}",
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurface
-		)
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-		Text(
-			"Stats:",
-			style = MaterialTheme.typography.headlineLarge,
-			color = MaterialTheme.colorScheme.onSurface
-		)
+				Text(
+					"Created: ${state.created}",
+					style = MaterialTheme.typography.bodyLarge,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-		LazyVerticalGrid(
-			columns = GridCells.Adaptive(256.dp),
-			modifier = Modifier.fillMaxSize(),
-			contentPadding = PaddingValues(Ui.Padding.XL)
-		) {
-			item {
-				NumericStatsBlock("Scenes", state.numberOfScenes)
+				Text(
+					"Stats:",
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.onSurface
+				)
 			}
+		}
 
-			item {
-				NumericStatsBlock("Total Words", state.totalWords)
+		item {
+			NumericStatsBlock("Scenes", state.numberOfScenes)
+		}
+
+		item {
+			NumericStatsBlock("Total Words", state.totalWords)
+		}
+
+		item {
+			GenericStatsBlock("Words in Chapters") {
+				WordsInChaptersChart(Modifier, state)
 			}
+		}
 
-			item {
-				GenericBlock("Words in Chapters") {
-					WordsInChaptersChart(Modifier, state)
-				}
+		item {
+			GenericStatsBlock("Encyclopedia Entries") {
+				EncyclopediaChart(Modifier, state)
 			}
+		}
 
+		if (otherContent != null) {
 			item {
-				GenericBlock("Encyclopedia Entries") {
-					EncyclopediaChart(Modifier, state)
-				}
-			}
-
-			if (otherContent != null) {
-				item {
-					otherContent()
-				}
+				otherContent()
 			}
 		}
 	}
@@ -179,7 +190,7 @@ private fun NumericStatsBlock(label: String, stateValue: Int) {
 }
 
 @Composable
-private fun GenericBlock(label: String, content: @Composable () -> Unit) {
+private fun GenericStatsBlock(label: String, content: @Composable () -> Unit) {
 	Card(
 		modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.MEDIUM)
@@ -211,7 +222,7 @@ private fun EncyclopediaChart(
 		remember(state.encyclopediaEntriesByType) { state.encyclopediaEntriesByType.map { it.value.toFloat() } }
 
 	PieChart(
-		modifier = modifier,
+		modifier = modifier.focusable(false),
 		values = values,
 		label = { index ->
 			Text(
@@ -245,10 +256,12 @@ private fun WordsInChaptersChart(
 		}
 	}
 
-	val xAxis = if (state.wordsByChapter.isNotEmpty()) {
-		List(state.wordsByChapter.keys.size) { i -> i }
-	} else {
-		listOf(0, 100)
+	val xAxis = remember(state.wordsByChapter) {
+		if (state.wordsByChapter.isNotEmpty()) {
+			List(state.wordsByChapter.keys.size) { i -> i }
+		} else {
+			listOf(0, 100)
+		}
 	}
 
 	val range = remember(state.wordsByChapter) {
@@ -260,18 +273,21 @@ private fun WordsInChaptersChart(
 		}
 	}
 
-	XYChart(
-		modifier = Modifier.heightIn(64.dp, 196.dp),
-		xAxisModel = CategoryAxisModel(xAxis),
-		yAxisModel = LinearAxisModel(range = range),
-		xAxisTitle = "Chapter",
-		yAxisTitle = "Words",
-		xAxisLabels = { index -> (index + 1).toString() },
-		xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
-		yAxisLabels = { it.toInt().toString() },
-		yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
-	) {
-		VerticalBarChart(series = listOf(entries))
+	Box(modifier = Modifier.gesturesDisabled()) {
+		XYChart(
+			modifier = Modifier.heightIn(64.dp, 196.dp)
+				.focusable(false),
+			xAxisModel = CategoryAxisModel(xAxis),
+			yAxisModel = LinearAxisModel(range = range),
+			xAxisTitle = "Chapter",
+			yAxisTitle = "Words",
+			xAxisLabels = { index -> (index + 1).toString() },
+			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
+			yAxisLabels = { it.toInt().toString() },
+			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
+		) {
+			VerticalBarChart(series = listOf(entries))
+		}
 	}
 }
 
@@ -289,3 +305,19 @@ private fun Actions(modifier: Modifier, state: ProjectHome.State) {
 		}
 	}
 }
+
+fun Modifier.gesturesDisabled(disabled: Boolean = true) =
+	if (disabled) {
+		pointerInput(Unit) {
+			awaitPointerEventScope {
+				// we should wait for all new pointer events
+				while (true) {
+					awaitPointerEvent(pass = PointerEventPass.Initial)
+						.changes
+						.forEach(PointerInputChange::consume)
+				}
+			}
+		}
+	} else {
+		this
+	}
