@@ -26,24 +26,24 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 internal class ProjectRootRouter(
-    componentContext: ComponentContext,
-    private val projectDef: ProjectDef,
-    private val addMenu: (menu: MenuDescriptor) -> Unit,
-    private val removeMenu: (id: String) -> Unit,
-    private val updateShouldClose: () -> Unit,
-    private val scope: CoroutineScope,
-    private val dispatcherMain: CoroutineContext,
+	componentContext: ComponentContext,
+	private val projectDef: ProjectDef,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
+	private val removeMenu: (id: String) -> Unit,
+	private val updateShouldClose: () -> Unit,
+	private val scope: CoroutineScope,
+	private val dispatcherMain: CoroutineContext,
 ) : Router {
-    private val navigation = StackNavigation<Config>()
+	private val navigation = StackNavigation<Config>()
 
-    private val stack = componentContext.childStack(
+	private val stack = componentContext.childStack(
 		source = navigation,
 		initialConfiguration = Config.HomeConfig(projectDef),
 		key = "ProjectRootRouter",
 		childFactory = ::createChild
 	)
 
-    val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>>
+	val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>>
 		get() = stack
 
 	private fun createChild(
@@ -72,33 +72,33 @@ internal class ProjectRootRouter(
 			)
 		}
 
-    private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): ProjectEditor {
-        val editor = ProjectEditorComponent(
-            componentContext = componentContext,
-            projectDef = config.projectDef,
-            addMenu = addMenu,
-            removeMenu = removeMenu
-        )
+	private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): ProjectEditor {
+		val editor = ProjectEditorComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef,
+			addMenu = addMenu,
+			removeMenu = removeMenu
+		)
 
-        scope.launch {
-            editor.shouldCloseRoot.collect {
-                withContext(dispatcherMain) {
-                    updateShouldClose()
-                }
-            }
-        }
+		scope.launch {
+			editor.shouldCloseRoot.collect {
+				withContext(dispatcherMain) {
+					updateShouldClose()
+				}
+			}
+		}
 
-        return editor
-    }
+		return editor
+	}
 
-    private fun notes(config: Config.NotesConfig, componentContext: ComponentContext): Notes {
-        return NotesComponent(
-            componentContext = componentContext,
-            projectDef = config.projectDef,
-            addMenu = addMenu,
-            removeMenu = removeMenu
-        )
-    }
+	private fun notes(config: Config.NotesConfig, componentContext: ComponentContext): Notes {
+		return NotesComponent(
+			componentContext = componentContext,
+			projectDef = config.projectDef,
+			addMenu = addMenu,
+			removeMenu = removeMenu
+		)
+	}
 
 	private fun encyclopedia(config: Config.EncyclopediaConfig, componentContext: ComponentContext): Encyclopedia {
 		return EncyclopediaComponent(
@@ -157,7 +157,7 @@ internal class ProjectRootRouter(
 		navigation.subscribe { updateShouldClose() }
 	}
 
-    sealed class Config : Parcelable {
+	sealed class Config : Parcelable {
 		@Parcelize
 		data class EditorConfig(val projectDef: ProjectDef) : Config()
 

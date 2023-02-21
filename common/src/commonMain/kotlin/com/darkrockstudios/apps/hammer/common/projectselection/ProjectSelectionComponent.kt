@@ -60,10 +60,10 @@ class ProjectSelectionComponent(
 						val projectsPath = settings.projectsDirectory.toPath().toHPath()
 						it.copy(
 							projectsDir = projectsPath,
-                            uiTheme = settings.uiTheme
-                        )
-                    }
-                }
+							uiTheme = settings.uiTheme
+						)
+					}
+				}
 			}
 		}
 	}
@@ -72,9 +72,9 @@ class ProjectSelectionComponent(
 		loadProjectsJob?.cancel()
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(state.value.projectsDir)
-			val projectData = projects.mapNotNull {  projectDef ->
+			val projectData = projects.mapNotNull { projectDef ->
 				val metadata = projectsRepository.loadMetadata(projectDef)
-				if(metadata != null) {
+				if (metadata != null) {
 					ProjectData(projectDef, metadata)
 				} else {
 					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
@@ -82,12 +82,12 @@ class ProjectSelectionComponent(
 				}
 			}
 
-            withContext(dispatcherMain) {
-                _state.reduce {
-                    it.copy(projects = projectData)
-                }
-                loadProjectsJob = null
-            }
+			withContext(dispatcherMain) {
+				_state.reduce {
+					it.copy(projects = projectData)
+				}
+				loadProjectsJob = null
+			}
 		}
 	}
 

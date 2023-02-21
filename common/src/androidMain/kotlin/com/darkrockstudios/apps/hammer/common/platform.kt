@@ -24,7 +24,7 @@ actual fun getCacheDirectory(): String {
 }
 
 actual fun getImageCacheDirectory(): String {
-    return File(getCacheDirectory(), "images").absolutePath
+	return File(getCacheDirectory(), "images").absolutePath
 }
 
 actual fun getDefaultRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath

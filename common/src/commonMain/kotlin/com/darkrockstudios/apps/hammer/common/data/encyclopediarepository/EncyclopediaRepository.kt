@@ -21,22 +21,22 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
 abstract class EncyclopediaRepository(
-    protected val projectDef: ProjectDef,
-    protected val idRepository: IdRepository
+	protected val projectDef: ProjectDef,
+	protected val idRepository: IdRepository
 ) : Closeable, KoinComponent {
-    protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-    protected val scope = CoroutineScope(dispatcherDefault)
+	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	protected val scope = CoroutineScope(dispatcherDefault)
 
-    private val _entryListFlow = MutableSharedFlow<List<EntryDef>>(
+	private val _entryListFlow = MutableSharedFlow<List<EntryDef>>(
 		extraBufferCapacity = 1,
 		replay = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
-    val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
+	val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
 
-    protected suspend fun updateEntries(entries: List<EntryDef>) {
-        _entryListFlow.emit(entries)
-    }
+	protected suspend fun updateEntries(entries: List<EntryDef>) {
+		_entryListFlow.emit(entries)
+	}
 
 	abstract fun getTypeDirectory(type: EntryType): HPath
 	abstract fun getEncyclopediaDirectory(): HPath

@@ -48,10 +48,10 @@ class BrowseEntriesComponent(
 				withContext(dispatcherMain) {
 					_state.reduce { state ->
 						state.copy(
-                            entryDefs = entryDefs
-                        )
-                    }
-                }
+							entryDefs = entryDefs
+						)
+					}
+				}
 			}
 		}
 	}

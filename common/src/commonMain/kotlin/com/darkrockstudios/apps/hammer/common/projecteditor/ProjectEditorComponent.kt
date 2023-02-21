@@ -17,10 +17,10 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 class ProjectEditorComponent(
-    componentContext: ComponentContext,
-    projectDef: ProjectDef,
-    addMenu: (menu: MenuDescriptor) -> Unit,
-    removeMenu: (id: String) -> Unit,
+	componentContext: ComponentContext,
+	projectDef: ProjectDef,
+	addMenu: (menu: MenuDescriptor) -> Unit,
+	removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectEditor {
 
 	private val projectEditor: ProjectEditorRepository by projectInject()
@@ -32,12 +32,12 @@ class ProjectEditorComponent(
 
 	private val _shouldCloseRoot = MutableSharedFlow<Boolean>(
 		replay = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    override val shouldCloseRoot = _shouldCloseRoot
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	override val shouldCloseRoot = _shouldCloseRoot
 
-    private val detailsRouter =
-        DetailsRouter(
+	private val detailsRouter =
+		DetailsRouter(
 			componentContext = this,
 			selectedSceneItem = selectedSceneItemFlow,
 			addMenu = addMenu,
@@ -45,118 +45,118 @@ class ProjectEditorComponent(
 			removeMenu = removeMenu
 		)
 
-    private val listRouter =
-        ListRouter(
-            componentContext = this,
-            projectDef = projectDef,
-            selectedSceneItem = selectedSceneItemFlow,
-            onSceneSelected = ::onSceneSelected
-        )
+	private val listRouter =
+		ListRouter(
+			componentContext = this,
+			projectDef = projectDef,
+			selectedSceneItem = selectedSceneItemFlow,
+			onSceneSelected = ::onSceneSelected
+		)
 
-    override val listRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>> =
-        listRouter.state
+	override val listRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>> =
+		listRouter.state
 
-    override val detailsRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>> =
-        detailsRouter.state
+	override val detailsRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>> =
+		detailsRouter.state
 
-    override fun isDetailShown(): Boolean {
-        return detailsRouterState.value.active.instance !is ProjectEditor.ChildDestination.Detail.None
-    }
+	override fun isDetailShown(): Boolean {
+		return detailsRouterState.value.active.instance !is ProjectEditor.ChildDestination.Detail.None
+	}
 
-    private val _state = MutableValue(ProjectEditor.State(projectDef))
-    override val state: Value<ProjectEditor.State> = _state
+	private val _state = MutableValue(ProjectEditor.State(projectDef))
+	override val state: Value<ProjectEditor.State> = _state
 
-    override fun closeDetails(): Boolean {
-        return if (isMultiPaneMode() && detailsRouter.isShown()) {
-            closeDetailsInMultipane()
-            true
-        } else if (detailsRouter.isShown()) {
-            closeDetailsAndShowListInSinglepane()
-            true
-        } else {
-            false
-        }
-    }
+	override fun closeDetails(): Boolean {
+		return if (isMultiPaneMode() && detailsRouter.isShown()) {
+			closeDetailsInMultipane()
+			true
+		} else if (detailsRouter.isShown()) {
+			closeDetailsAndShowListInSinglepane()
+			true
+		} else {
+			false
+		}
+	}
 
-    private fun closeDetailsInMultipane() {
-        detailsRouter.closeScene()
-    }
+	private fun closeDetailsInMultipane() {
+		detailsRouter.closeScene()
+	}
 
-    private fun closeDetailsAndShowListInSinglepane() {
-        listRouter.show()
-        detailsRouter.closeScene()
-    }
+	private fun closeDetailsAndShowListInSinglepane() {
+		listRouter.show()
+		detailsRouter.closeScene()
+	}
 
-    private fun onSceneSelected(sceneItem: SceneItem) {
-        detailsRouter.showScene(sceneItem)
+	private fun onSceneSelected(sceneItem: SceneItem) {
+		detailsRouter.showScene(sceneItem)
 
-        if (isMultiPaneMode()) {
-            listRouter.show()
-        } else {
-            listRouter.moveToBackStack()
-        }
-    }
+		if (isMultiPaneMode()) {
+			listRouter.show()
+		} else {
+			listRouter.moveToBackStack()
+		}
+	}
 
-    override fun setMultiPane(isMultiPane: Boolean) {
-        _state.reduce { it.copy(isMultiPane = isMultiPane) }
+	override fun setMultiPane(isMultiPane: Boolean) {
+		_state.reduce { it.copy(isMultiPane = isMultiPane) }
 
-        if (isMultiPane) {
-            switchToMultiPane()
-        } else {
-            switchToSinglePane()
-        }
-    }
+		if (isMultiPane) {
+			switchToMultiPane()
+		} else {
+			switchToSinglePane()
+		}
+	}
 
-    private fun switchToMultiPane() {
-        listRouter.show()
-    }
+	private fun switchToMultiPane() {
+		listRouter.show()
+	}
 
-    private fun switchToSinglePane() {
-        if (detailsRouter.isShown()) {
-            listRouter.moveToBackStack()
-        } else {
-            listRouter.show()
-        }
-    }
+	private fun switchToSinglePane() {
+		if (detailsRouter.isShown()) {
+			listRouter.moveToBackStack()
+		} else {
+			listRouter.show()
+		}
+	}
 
-    private fun isMultiPaneMode(): Boolean = _state.value.isMultiPane
+	private fun isMultiPaneMode(): Boolean = _state.value.isMultiPane
 
-    override fun hasUnsavedBuffers(): Boolean {
-        return projectEditor.hasDirtyBuffers()
-    }
+	override fun hasUnsavedBuffers(): Boolean {
+		return projectEditor.hasDirtyBuffers()
+	}
 
-    override fun isAtRoot(): Boolean {
-        return !isDetailShown()
-    }
+	override fun isAtRoot(): Boolean {
+		return !isDetailShown()
+	}
 
-    override fun storeDirtyBuffers() {
-        projectEditor.storeAllBuffers()
-    }
+	override fun storeDirtyBuffers() {
+		projectEditor.storeAllBuffers()
+	}
 
-    private val backButtonHandler = object : BackCallback() {
-        override fun onBack() {
-            if (!detailsRouter.isAtRoot()) {
-                detailsRouter.onBack()
-            } else {
-                closeDetails()
-            }
-        }
-    }
+	private val backButtonHandler = object : BackCallback() {
+		override fun onBack() {
+			if (!detailsRouter.isAtRoot()) {
+				detailsRouter.onBack()
+			} else {
+				closeDetails()
+			}
+		}
+	}
 
-    init {
-        backHandler.register(backButtonHandler)
+	init {
+		backHandler.register(backButtonHandler)
 
-        detailsRouter.state.observe(lifecycle) {
-            (it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
-                selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
-            }
-            backButtonHandler.isEnabled = isDetailShown()
+		detailsRouter.state.observe(lifecycle) {
+			(it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
+				selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
+			}
+			backButtonHandler.isEnabled = isDetailShown()
 
-            _shouldCloseRoot.tryEmit(!isDetailShown())
-        }
+			_shouldCloseRoot.tryEmit(!isDetailShown())
+		}
 
-        projectEditor.subscribeToBufferUpdates(null, scope) {
-            backButtonHandler.isEnabled = isDetailShown()
-        }
-    }
+		projectEditor.subscribeToBufferUpdates(null, scope) {
+			backButtonHandler.isEnabled = isDetailShown()
+		}
+	}
 }

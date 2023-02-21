@@ -37,37 +37,37 @@ fun getProject1Def(): ProjectDef {
 
 fun createRootDirectory(ffs: FakeFileSystem) {
 	val rootDir = getDefaultRootDocumentDirectory()
-    ffs.createDirectories(rootDir.toPath())
+	ffs.createDirectories(rootDir.toPath())
 }
 
 fun getProjectsDirectory(): Path {
 	val rootPath = getDefaultRootDocumentDirectory().toPath()
 	val proj = GlobalSettingsRepository.DEFAULT_PROJECTS_DIR.toPath()
-    val projectsDir = rootPath.div(proj)
+	val projectsDir = rootPath.div(proj)
 
-    return projectsDir
+	return projectsDir
 }
 
 fun createProjectDirectories(ffs: FakeFileSystem) {
-    val projDir = getProjectsDirectory()
-    ffs.createDirectories(projDir)
-    projectNames.forEach { projectName ->
-        ffs.createDirectory(projDir.div(projectName), true)
-    }
+	val projDir = getProjectsDirectory()
+	ffs.createDirectories(projDir)
+	projectNames.forEach { projectName ->
+		ffs.createDirectory(projDir.div(projectName), true)
+	}
 }
 
 /**
  * Create an in-mem project from a predefined resource
  */
 fun createProject(ffs: FakeFileSystem, projectName: String) {
-    val projDir = getProjectsDirectory()
-    ffs.createDirectories(projDir)
+	val projDir = getProjectsDirectory()
+	ffs.createDirectories(projDir)
 
-    FileResourcesUtils.copyResourceFolderToFakeFileSystem(
-        projectName.toPath(),
-        getProjectsDirectory(),
-        ffs
-    )
+	FileResourcesUtils.copyResourceFolderToFakeFileSystem(
+		projectName.toPath(),
+		getProjectsDirectory(),
+		ffs
+	)
 }
 
 /**
@@ -75,9 +75,9 @@ fun createProject(ffs: FakeFileSystem, projectName: String) {
  * by hand can be tricky.
  */
 fun verifyCoords(tree: Tree<SceneItem>, coords: NodeCoordinates, id: Int) {
-    val child = tree[coords.parentIndex].children()[coords.childLocalIndex]
-    assertEquals(id, child.value.id, "Node by coordinates did not match")
+	val child = tree[coords.parentIndex].children()[coords.childLocalIndex]
+	assertEquals(id, child.value.id, "Node by coordinates did not match")
 
-    val byGlobal = tree[coords.globalIndex]
-    assertEquals(id, byGlobal.value.id, "Global Index did not match")
+	val byGlobal = tree[coords.globalIndex]
+	assertEquals(id, byGlobal.value.id, "Global Index did not match")
 }

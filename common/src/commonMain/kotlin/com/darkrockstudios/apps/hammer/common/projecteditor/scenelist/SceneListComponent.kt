@@ -39,10 +39,10 @@ class SceneListComponent(
 	private fun watchSelectedScene(selectedSceneItem: SharedFlow<SceneItem?>) {
 		scope.launch {
 			selectedSceneItem.collect { scene ->
-                withContext(dispatcherMain) {
-                    Napier.d("Scene Selected: $scene")
-                    _state.reduce { it.copy(selectedSceneItem = scene) }
-                }
+				withContext(dispatcherMain) {
+					Napier.d("Scene Selected: $scene")
+					_state.reduce { it.copy(selectedSceneItem = scene) }
+				}
 			}
 		}
 	}

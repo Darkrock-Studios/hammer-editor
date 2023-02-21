@@ -41,10 +41,10 @@ class ViewEntryComponent(
 				_state.reduce {
 					it.copy(
 						entryImagePath = entryImagePath,
-                        content = content
-                    )
-                }
-            }
+						content = content
+					)
+				}
+			}
 		}
 	}
 

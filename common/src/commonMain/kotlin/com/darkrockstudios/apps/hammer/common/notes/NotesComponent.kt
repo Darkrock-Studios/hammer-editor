@@ -41,9 +41,9 @@ class NotesComponent(
 						it.copy(notes = notes)
 					}
 				}
-            }
-        }
-    }
+			}
+		}
+	}
 
 	override fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)

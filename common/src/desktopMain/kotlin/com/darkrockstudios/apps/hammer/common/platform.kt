@@ -11,7 +11,7 @@ import kotlin.coroutines.CoroutineContext
 var appDirs: AppDirs = AppDirsFactory.getInstance()
 
 actual fun getPlatformName(): String {
-    return "Desktop"
+	return "Desktop"
 }
 
 private val DATA_VERSION = "1.0"
@@ -28,7 +28,7 @@ actual fun getDefaultRootDocumentDirectory(): String = System.getProperty("user.
 
 private val CONFIG_DIR = "hammer"
 actual fun getConfigDirectory(): String =
-    File(appDirs.getUserConfigDir(CONFIG_DIR, DATA_VERSION, AUTHOR)).absolutePath
+	File(appDirs.getUserConfigDir(CONFIG_DIR, DATA_VERSION, AUTHOR)).absolutePath
 
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 

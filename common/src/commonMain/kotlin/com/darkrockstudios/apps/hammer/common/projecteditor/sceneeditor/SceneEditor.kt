@@ -8,25 +8,25 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface SceneEditor : HammerComponent {
-    val state: Value<State>
-    var lastDiscarded: MutableValue<Long>
+	val state: Value<State>
+	var lastDiscarded: MutableValue<Long>
 
-    fun addEditorMenu()
-    fun removeEditorMenu()
-    fun loadSceneContent()
-    fun storeSceneContent(): Boolean
-    fun onContentChanged(content: PlatformRichText)
-    fun beginSceneNameEdit()
-    fun endSceneNameEdit()
-    fun changeSceneName(newName: String)
-    fun beginSaveDraft()
-    fun endSaveDraft()
-    fun saveDraft(draftName: String): Boolean
+	fun addEditorMenu()
+	fun removeEditorMenu()
+	fun loadSceneContent()
+	fun storeSceneContent(): Boolean
+	fun onContentChanged(content: PlatformRichText)
+	fun beginSceneNameEdit()
+	fun endSceneNameEdit()
+	fun changeSceneName(newName: String)
+	fun beginSaveDraft()
+	fun endSaveDraft()
+	fun saveDraft(draftName: String): Boolean
 
-    data class State(
-        val sceneItem: SceneItem,
-        val sceneBuffer: SceneBuffer? = null,
-        val isEditingName: Boolean = false,
-        val isSavingDraft: Boolean = false
-    )
+	data class State(
+		val sceneItem: SceneItem,
+		val sceneBuffer: SceneBuffer? = null,
+		val isEditingName: Boolean = false,
+		val isSavingDraft: Boolean = false
+	)
 }

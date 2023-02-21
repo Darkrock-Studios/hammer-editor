@@ -11,18 +11,18 @@ import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListC
 import kotlinx.coroutines.flow.SharedFlow
 
 internal class ListRouter(
-		componentContext: ComponentContext,
-		private val projectDef: ProjectDef,
-		private val selectedSceneItem: SharedFlow<SceneItem?>,
-		private val onSceneSelected: (sceneDef: SceneItem) -> Unit
+	componentContext: ComponentContext,
+	private val projectDef: ProjectDef,
+	private val selectedSceneItem: SharedFlow<SceneItem?>,
+	private val onSceneSelected: (sceneDef: SceneItem) -> Unit
 ) {
 	private val navigation = StackNavigation<Config>()
 
 	private val stack = componentContext.childStack(
-			source = navigation,
-			initialConfiguration = Config.List,
-			key = "MainRouter",
-			childFactory = ::createChild
+		source = navigation,
+		initialConfiguration = Config.List,
+		key = "MainRouter",
+		childFactory = ::createChild
 	)
 
 	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.List>>
@@ -35,12 +35,12 @@ internal class ListRouter(
 		}
 
 	private fun sceneList(componentContext: ComponentContext): SceneListComponent =
-			SceneListComponent(
-					componentContext = componentContext,
-					projectDef = projectDef,
-					selectedSceneItem = selectedSceneItem,
-					sceneSelected = onSceneSelected
-			)
+		SceneListComponent(
+			componentContext = componentContext,
+			projectDef = projectDef,
+			selectedSceneItem = selectedSceneItem,
+			sceneSelected = onSceneSelected
+		)
 
 	fun moveToBackStack() {
 		if (stack.value.active.configuration !is Config.None) {

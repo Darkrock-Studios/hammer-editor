@@ -5,9 +5,9 @@ import okio.Path
 import okio.Path.Companion.toPath
 
 fun Path.toHPath() = HPath(
-    path = toString(),
-    name = name,
-    isAbsolute = isAbsolute
+	path = toString(),
+	name = name,
+	isAbsolute = isAbsolute
 )
 
 fun HPath.toOkioPath() = path.toPath()

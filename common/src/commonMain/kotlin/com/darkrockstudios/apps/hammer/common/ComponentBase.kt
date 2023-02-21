@@ -11,16 +11,16 @@ import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 abstract class ComponentBase(componentContext: ComponentContext) :
 	ComponentContext by componentContext, Lifecycle.Callbacks, HammerComponent {
 
-    protected val dispatcherDefault by injectDefaultDispatcher()
-    protected val dispatcherIo by injectIoDispatcher()
-    protected val dispatcherMain by injectMainDispatcher()
-    protected val scope = lifecycleCoroutineScope(dispatcherDefault)
+	protected val dispatcherDefault by injectDefaultDispatcher()
+	protected val dispatcherIo by injectIoDispatcher()
+	protected val dispatcherMain by injectMainDispatcher()
+	protected val scope = lifecycleCoroutineScope(dispatcherDefault)
 
-    private fun setup() {
-        lifecycle.subscribe(this)
-    }
+	private fun setup() {
+		lifecycle.subscribe(this)
+	}
 
 	init {
-        setup()
-    }
+		setup()
+	}
 }

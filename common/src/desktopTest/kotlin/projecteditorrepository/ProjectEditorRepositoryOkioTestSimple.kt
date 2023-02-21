@@ -26,14 +26,14 @@ import kotlin.test.assertEquals
 
 class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
-    private lateinit var ffs: FakeFileSystem
-    private lateinit var projectPath: HPath
-    private lateinit var scenesPath: HPath
-    private lateinit var projectsRepo: ProjectsRepository
-    private lateinit var projectDef: ProjectDef
-    private lateinit var idRepository: IdRepository
-    private var nextId = -1
-    private lateinit var toml: Toml
+	private lateinit var ffs: FakeFileSystem
+	private lateinit var projectPath: HPath
+	private lateinit var scenesPath: HPath
+	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectDef: ProjectDef
+	private lateinit var idRepository: IdRepository
+	private var nextId = -1
+	private lateinit var toml: Toml
 
 	private fun claimId(): Int {
 		val id = nextId
@@ -51,61 +51,61 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 		fs.createDirectories(projectPath.toOkioPath())
 		scenesPath = projectPath.toOkioPath().div(ProjectEditorRepository.SCENE_DIRECTORY).toHPath()
 
-        fs.createDirectory(scenesPath.toOkioPath())
+		fs.createDirectory(scenesPath.toOkioPath())
 
-        sceneFiles.entries.forEach { (name, content) ->
-            val path = scenesPath.toOkioPath().div(name)
-            fs.write(path) {
-                writeUtf8(content)
-            }
-        }
-        assertEquals(sceneFiles.size, fs.list(scenesPath.toOkioPath()).size)
-    }
+		sceneFiles.entries.forEach { (name, content) ->
+			val path = scenesPath.toOkioPath().div(name)
+			fs.write(path) {
+				writeUtf8(content)
+			}
+		}
+		assertEquals(sceneFiles.size, fs.list(scenesPath.toOkioPath()).size)
+	}
 
-    private fun scenePath(filename: String): HPath {
-        return scenesPath.toOkioPath().div(filename).toHPath()
-    }
+	private fun scenePath(filename: String): HPath {
+		return scenesPath.toOkioPath().div(filename).toHPath()
+	}
 
-    @Before
-    override fun setup() {
-        super.setup()
-        ffs = FakeFileSystem()
+	@Before
+	override fun setup() {
+		super.setup()
+		ffs = FakeFileSystem()
 
 		val rootDir = getDefaultRootDocumentDirectory()
-        ffs.createDirectories(rootDir.toPath())
+		ffs.createDirectories(rootDir.toPath())
 
-        projectsRepo = mockk()
-        every { projectsRepo.getProjectsDirectory() } returns
-                rootDir.toPath().div(PROJ_DIR).toHPath()
+		projectsRepo = mockk()
+		every { projectsRepo.getProjectsDirectory() } returns
+				rootDir.toPath().div(PROJ_DIR).toHPath()
 
-        projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
+		projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJ_NAME).toHPath()
 
 		toml = createTomlSerializer()
 
 		nextId = -1
-        idRepository = mockk()
-        every { idRepository.claimNextId() } answers { claimId() }
-        every { idRepository.findNextId() } answers {}
+		idRepository = mockk()
+		every { idRepository.claimNextId() } answers { claimId() }
+		every { idRepository.findNextId() } answers {}
 
-        populateProject(ffs)
+		populateProject(ffs)
 
-        projectDef = ProjectDef(
-            name = PROJ_NAME,
-            path = projectPath
-        )
+		projectDef = ProjectDef(
+			name = PROJ_NAME,
+			path = projectPath
+		)
 
-        setupKoin()
-    }
+		setupKoin()
+	}
 
-    @After
-    override fun tearDown() {
-        super.tearDown()
-        ffs.checkNoOpenFiles()
-    }
+	@After
+	override fun tearDown() {
+		super.tearDown()
+		ffs.checkNoOpenFiles()
+	}
 
-    @Test
-    fun `Get filename`() {
-        val repo = ProjectEditorRepositoryOkio(
+	@Test
+	fun `Get filename`() {
+		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
 			fileSystem = ffs,
@@ -113,15 +113,15 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 			toml = toml
 		)
 
-        val expectedFilename = sceneFiles.entries.first().key
-        val scenePath = scenePath(expectedFilename)
-        val sceneFilename = repo.getSceneFilename(scenePath)
-        assertEquals(expectedFilename, sceneFilename)
-    }
+		val expectedFilename = sceneFiles.entries.first().key
+		val scenePath = scenePath(expectedFilename)
+		val sceneFilename = repo.getSceneFilename(scenePath)
+		assertEquals(expectedFilename, sceneFilename)
+	}
 
-    @Test
-    fun `Load Scene Tree`() {
-        val repo = ProjectEditorRepositoryOkio(
+	@Test
+	fun `Load Scene Tree`() {
+		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
 			fileSystem = ffs,
@@ -129,17 +129,17 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 			toml = toml
 		)
 
-        val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
 
-        assertEquals(3, sceneTree.numChildrenRecursive())
-        assertEquals(1, sceneTree[0].value.id)
-        assertEquals(2, sceneTree[1].value.id)
-        assertEquals(3, sceneTree[2].value.id)
-    }
+		assertEquals(3, sceneTree.numChildrenRecursive())
+		assertEquals(1, sceneTree[0].value.id)
+		assertEquals(2, sceneTree[1].value.id)
+		assertEquals(3, sceneTree[2].value.id)
+	}
 
-    @Test
-    fun `Init Editor`() {
-        val repo = ProjectEditorRepositoryOkio(
+	@Test
+	fun `Init Editor`() {
+		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
 			fileSystem = ffs,
@@ -147,13 +147,13 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 			toml = toml
 		)
 
-        repo.initializeProjectEditor()
+		repo.initializeProjectEditor()
 
-        repo.close()
-    }
+		repo.close()
+	}
 
-    companion object {
-        const val PROJ_DIR = "HammerProjects"
-        const val PROJ_NAME = "Test Proj"
-    }
+	companion object {
+		const val PROJ_DIR = "HammerProjects"
+		const val PROJ_NAME = "Test Proj"
+	}
 }

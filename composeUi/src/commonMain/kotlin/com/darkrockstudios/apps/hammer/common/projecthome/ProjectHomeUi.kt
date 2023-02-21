@@ -114,6 +114,7 @@ private fun Stats(
 			}
 		}
 
+		/*
 		item {
 			NumericStatsBlock("Scenes", state.numberOfScenes)
 		}
@@ -133,6 +134,7 @@ private fun Stats(
 				EncyclopediaChart(state = state)
 			}
 		}
+		*/
 
 		if (otherContent != null) {
 			item {

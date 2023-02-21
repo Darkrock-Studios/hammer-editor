@@ -2,8 +2,8 @@ import kotlin.test.Test
 
 class SceneDraftRepositoryTest {
 
-    @Test
-    fun `Get Draft Path`() {
+	@Test
+	fun `Get Draft Path`() {
 		/*
 		val projectRepository: ProjectRepository = mockk()
 		val fs = FakeFileSystem()
@@ -13,11 +13,11 @@ class SceneDraftRepositoryTest {
 		)
 		*/
 
-        // TODO implement the test, add drafts
-        /*
-        val projDef = ProjectDef("Test", HPath())
-        SceneItem()
-        repo.getDraftPath()
-        */
-    }
+		// TODO implement the test, add drafts
+		/*
+		val projDef = ProjectDef("Test", HPath())
+		SceneItem()
+		repo.getDraftPath()
+		*/
+	}
 }

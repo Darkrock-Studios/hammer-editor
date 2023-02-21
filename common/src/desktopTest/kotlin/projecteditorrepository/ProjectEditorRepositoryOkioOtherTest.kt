@@ -32,343 +32,349 @@ import kotlin.test.*
 
 class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
-    private lateinit var ffs: FakeFileSystem
-    private lateinit var projectPath: HPath
-    private lateinit var projectsRepo: ProjectsRepository
-    private lateinit var projectDef: ProjectDef
-    private lateinit var repo: ProjectEditorRepository
-    private lateinit var idRepository: IdRepository
-    private var nextId = -1
-    private lateinit var toml: Toml
-
-    private fun claimId(): Int {
-        val id = nextId
-        nextId++
-        return id
-    }
-
-    private fun verifyTreeAndFilesystem() {
-        val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-
-        // Verify tree nodes match file system nodes
-        tree.filter { !it.value.isRootScene }.forEach { node ->
-            val path = repo.getSceneFilePath(node.value.id)
-            val fsScene = repo.getSceneFromPath(path)
-            assertEquals(node.value, fsScene)
-        }
-
-        // Verify that order's match
-        verifyOrder(tree.root())
-    }
-
-    private fun verifyOrder(node: TreeNode<SceneItem>) {
-        if (node.children().isNotEmpty()) {
-            for (ii in 0 until node.numChildrenImmedate()) {
-                val child = node[ii]
-                assertEquals(ii, child.value.order, "Order incorrect for ID: ${child.value.id}")
-                verifyOrder(child)
-            }
-        }
-    }
-
-    @Before
-    override fun setup() {
-        super.setup()
-        ffs = FakeFileSystem()
-
-        val rootDir = getDefaultRootDocumentDirectory()
-        ffs.createDirectories(rootDir.toPath())
-
-        toml = createTomlSerializer()
-
-        nextId = 8
-        idRepository = mockk()
-        every { idRepository.claimNextId() } answers { claimId() }
-        every { idRepository.findNextId() } answers { }
-
-        projectsRepo = mockk()
-        every { projectsRepo.getProjectsDirectory() } returns
-                rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
-
-        setupKoin()
-    }
-
-    @After
-    override fun tearDown() {
-        super.tearDown()
-        repo.close()
-
-        ffs.checkNoOpenFiles()
-    }
-
-    private fun configure(projectName: String) {
-        projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(projectName).toHPath()
-
-        projectDef = ProjectDef(
-            name = projectName,
-            path = projectPath
-        )
-
-        createProject(ffs, projectName)
-
-        repo = ProjectEditorRepositoryOkio(
-            projectDef = projectDef,
-            projectsRepository = projectsRepo,
-            fileSystem = ffs,
-            toml = toml,
-            idRepository = idRepository
-        )
-    }
-
-    /**
-     * Load a project who's scene's have irregular order numbers
-     * On `initializeProjectEditor()` the orders will be cleaned up
-     */
-    @Test
-    fun `Cleanup Scene Order`() {
-        configure(OUT_OF_ORDER_PROJECT_NAME)
-
-        val beforeSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
-
-        repo.initializeProjectEditor()
-
-        val afterSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
-
-        // Make sure the tree was actually changed, initializeProjectEditor()
-        // should clean up this out of order project
-        assertNotEquals(beforeSceneTree, afterSceneTree)
-
-        verifyTreeAndFilesystem()
-
-        val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
-        tree.forEachIndexed { index, node ->
-            when (index) {
-                0 -> assertTrue(node.value.isRootScene)
-                1 -> {
-                    assertEquals(2, node.value.id)
-                    assertEquals(0, node.value.order)
-                }
-                2 -> {
-                    assertEquals(3, node.value.id)
-                    assertEquals(0, node.value.order)
-                }
-                3 -> {
-                    assertEquals(5, node.value.id)
-                    assertEquals(1, node.value.order)
-                }
-                4 -> {
-                    assertEquals(4, node.value.id)
-                    assertEquals(2, node.value.order)
-                }
-                5 -> {
-                    assertEquals(1, node.value.id)
-                    assertEquals(1, node.value.order)
-                }
-                6 -> {
-                    assertEquals(6, node.value.id)
-                    assertEquals(2, node.value.order)
-                }
-                7 -> {
-                    assertEquals(7, node.value.id)
-                    assertEquals(3, node.value.order)
-                }
-            }
-        }
-    }
-
-    @Test
-    fun `Create Scene, Invalid Scene Name`() {
-        configure(PROJECT_1_NAME)
-
-        every { projectsRepo.validateFileName(any()) } returns false
-
-        repo.initializeProjectEditor()
-
-        val sceneName = "New Scene"
-        val newScene = repo.createScene(null, sceneName)
-        assertNull(newScene, "Scene should not have been created")
-    }
-
-    @Test
-    fun `Create Scene, Under Root`() {
-        configure(PROJECT_1_NAME)
-
-        every { projectsRepo.validateFileName(any()) } returns true
-
-        repo.initializeProjectEditor()
-
-        verifyTreeAndFilesystem()
-
-        val sceneName = "New Scene"
-        val newScene = repo.createScene(null, sceneName)
-        assertNotNull(newScene)
-        assertEquals(sceneName, newScene.name, "Name was incorrect")
-        assertEquals(newScene.type, SceneItem.Type.Scene, "Should be scene")
-        assertEquals(8, newScene.id, "ID was incorrect")
-        assertEquals(4, newScene.order, "Order was incorrect")
-
-        verifyTreeAndFilesystem()
-    }
-
-    @Test
-    fun `Create Scene, In Group`() {
-        configure(PROJECT_1_NAME)
-
-        every { projectsRepo.validateFileName(any()) } returns true
+	private lateinit var ffs: FakeFileSystem
+	private lateinit var projectPath: HPath
+	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectDef: ProjectDef
+	private lateinit var repo: ProjectEditorRepository
+	private lateinit var idRepository: IdRepository
+	private var nextId = -1
+	private lateinit var toml: Toml
+
+	private fun claimId(): Int {
+		val id = nextId
+		nextId++
+		return id
+	}
+
+	private fun verifyTreeAndFilesystem() {
+		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+
+		// Verify tree nodes match file system nodes
+		tree.filter { !it.value.isRootScene }.forEach { node ->
+			val path = repo.getSceneFilePath(node.value.id)
+			val fsScene = repo.getSceneFromPath(path)
+			assertEquals(node.value, fsScene)
+		}
+
+		// Verify that order's match
+		verifyOrder(tree.root())
+	}
+
+	private fun verifyOrder(node: TreeNode<SceneItem>) {
+		if (node.children().isNotEmpty()) {
+			for (ii in 0 until node.numChildrenImmedate()) {
+				val child = node[ii]
+				assertEquals(ii, child.value.order, "Order incorrect for ID: ${child.value.id}")
+				verifyOrder(child)
+			}
+		}
+	}
+
+	@Before
+	override fun setup() {
+		super.setup()
+		ffs = FakeFileSystem()
+
+		val rootDir = getDefaultRootDocumentDirectory()
+		ffs.createDirectories(rootDir.toPath())
+
+		toml = createTomlSerializer()
+
+		nextId = 8
+		idRepository = mockk()
+		every { idRepository.claimNextId() } answers { claimId() }
+		every { idRepository.findNextId() } answers { }
+
+		projectsRepo = mockk()
+		every { projectsRepo.getProjectsDirectory() } returns
+				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+
+		setupKoin()
+	}
+
+	@After
+	override fun tearDown() {
+		super.tearDown()
+		repo.close()
+
+		ffs.checkNoOpenFiles()
+	}
+
+	private fun configure(projectName: String) {
+		projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(projectName).toHPath()
+
+		projectDef = ProjectDef(
+			name = projectName,
+			path = projectPath
+		)
+
+		createProject(ffs, projectName)
+
+		repo = ProjectEditorRepositoryOkio(
+			projectDef = projectDef,
+			projectsRepository = projectsRepo,
+			fileSystem = ffs,
+			toml = toml,
+			idRepository = idRepository
+		)
+	}
+
+	/**
+	 * Load a project who's scene's have irregular order numbers
+	 * On `initializeProjectEditor()` the orders will be cleaned up
+	 */
+	@Test
+	fun `Cleanup Scene Order`() {
+		configure(OUT_OF_ORDER_PROJECT_NAME)
+
+		val beforeSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+
+		repo.initializeProjectEditor()
+
+		val afterSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+
+		// Make sure the tree was actually changed, initializeProjectEditor()
+		// should clean up this out of order project
+		assertNotEquals(beforeSceneTree, afterSceneTree)
+
+		verifyTreeAndFilesystem()
+
+		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+		tree.forEachIndexed { index, node ->
+			when (index) {
+				0 -> assertTrue(node.value.isRootScene)
+				1 -> {
+					assertEquals(2, node.value.id)
+					assertEquals(0, node.value.order)
+				}
 
-        repo.initializeProjectEditor()
-
-        verifyTreeAndFilesystem()
+				2 -> {
+					assertEquals(3, node.value.id)
+					assertEquals(0, node.value.order)
+				}
+
+				3 -> {
+					assertEquals(5, node.value.id)
+					assertEquals(1, node.value.order)
+				}
+
+				4 -> {
+					assertEquals(4, node.value.id)
+					assertEquals(2, node.value.order)
+				}
+
+				5 -> {
+					assertEquals(1, node.value.id)
+					assertEquals(1, node.value.order)
+				}
 
-        val sceneName = "New Scene"
-        val group = repo.getSceneItemFromId(2)
-        assertNotNull(group)
-        assertEquals("Chapter ID 2", group.name)
+				6 -> {
+					assertEquals(6, node.value.id)
+					assertEquals(2, node.value.order)
+				}
 
-        val newScene = repo.createScene(group, sceneName)
-        assertNotNull(newScene)
-        assertEquals(sceneName, newScene.name, "Name was incorrect")
-        assertEquals(newScene.type, SceneItem.Type.Scene, "Should be scene")
-        assertEquals(8, newScene.id, "ID was incorrect")
-        assertEquals(3, newScene.order, "Order was incorrect")
+				7 -> {
+					assertEquals(7, node.value.id)
+					assertEquals(3, node.value.order)
+				}
+			}
+		}
+	}
 
-        verifyTreeAndFilesystem()
-    }
+	@Test
+	fun `Create Scene, Invalid Scene Name`() {
+		configure(PROJECT_1_NAME)
 
-    @Test
-    fun `Create Group, In Root`() {
-        configure(PROJECT_1_NAME)
+		every { projectsRepo.validateFileName(any()) } returns false
 
-        every { projectsRepo.validateFileName(any()) } returns true
+		repo.initializeProjectEditor()
 
-        repo.initializeProjectEditor()
-        verifyTreeAndFilesystem()
+		val sceneName = "New Scene"
+		val newScene = repo.createScene(null, sceneName)
+		assertNull(newScene, "Scene should not have been created")
+	}
 
-        val groupName = "New Group"
-        val newGroup = repo.createGroup(null, groupName)
-        assertNotNull(newGroup)
-        assertEquals(newGroup.type, SceneItem.Type.Group, "Should be group")
-        assertEquals(8, newGroup.id, "ID was incorrect")
-        assertEquals(4, newGroup.order, "Order was incorrect")
+	@Test
+	fun `Create Scene, Under Root`() {
+		configure(PROJECT_1_NAME)
 
-        verifyTreeAndFilesystem()
-    }
+		every { projectsRepo.validateFileName(any()) } returns true
 
-    @Test
-    fun `Create Group, In Group`() {
-        configure(PROJECT_1_NAME)
+		repo.initializeProjectEditor()
 
-        every { projectsRepo.validateFileName(any()) } returns true
+		verifyTreeAndFilesystem()
 
-        repo.initializeProjectEditor()
+		val sceneName = "New Scene"
+		val newScene = repo.createScene(null, sceneName)
+		assertNotNull(newScene)
+		assertEquals(sceneName, newScene.name, "Name was incorrect")
+		assertEquals(newScene.type, SceneItem.Type.Scene, "Should be scene")
+		assertEquals(8, newScene.id, "ID was incorrect")
+		assertEquals(4, newScene.order, "Order was incorrect")
 
-        verifyTreeAndFilesystem()
+		verifyTreeAndFilesystem()
+	}
 
-        val groupName = "New Group"
-        val group = repo.getSceneItemFromId(2)
-        assertNotNull(group)
-        assertEquals("Chapter ID 2", group.name)
+	@Test
+	fun `Create Scene, In Group`() {
+		configure(PROJECT_1_NAME)
 
-        val newGroup = repo.createGroup(group, groupName)
+		every { projectsRepo.validateFileName(any()) } returns true
 
-        assertNotNull(newGroup)
-        assertEquals(groupName, newGroup.name, "Name was incorrect")
-        assertEquals(newGroup.type, SceneItem.Type.Group, "Should be scene")
-        assertEquals(8, newGroup.id, "ID was incorrect")
-        assertEquals(3, newGroup.order, "Order was incorrect")
+		repo.initializeProjectEditor()
 
-        verifyTreeAndFilesystem()
-    }
+		verifyTreeAndFilesystem()
 
-    @Test
-    fun `Delete Scene, In Root`() {
-        configure(PROJECT_2_NAME)
+		val sceneName = "New Scene"
+		val group = repo.getSceneItemFromId(2)
+		assertNotNull(group)
+		assertEquals("Chapter ID 2", group.name)
 
-        repo.initializeProjectEditor()
+		val newScene = repo.createScene(group, sceneName)
+		assertNotNull(newScene)
+		assertEquals(sceneName, newScene.name, "Name was incorrect")
+		assertEquals(newScene.type, SceneItem.Type.Scene, "Should be scene")
+		assertEquals(8, newScene.id, "ID was incorrect")
+		assertEquals(3, newScene.order, "Order was incorrect")
 
-        val sceneId = 6
-        val scenePreDelete = repo.getSceneItemFromId(sceneId)
-        assertNotNull(scenePreDelete)
+		verifyTreeAndFilesystem()
+	}
 
-        val scenePath = repo.getSceneFilePath(scenePreDelete)
+	@Test
+	fun `Create Group, In Root`() {
+		configure(PROJECT_1_NAME)
 
-        val deleted = repo.deleteScene(scenePreDelete)
-        assertTrue(deleted)
+		every { projectsRepo.validateFileName(any()) } returns true
 
-        assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
+		repo.initializeProjectEditor()
+		verifyTreeAndFilesystem()
 
-        verifyTreeAndFilesystem()
+		val groupName = "New Group"
+		val newGroup = repo.createGroup(null, groupName)
+		assertNotNull(newGroup)
+		assertEquals(newGroup.type, SceneItem.Type.Group, "Should be group")
+		assertEquals(8, newGroup.id, "ID was incorrect")
+		assertEquals(4, newGroup.order, "Order was incorrect")
 
-        val scenePostDelete = repo.getSceneItemFromId(sceneId)
-        assertNull(scenePostDelete, "Scene still existed in tree")
-    }
+		verifyTreeAndFilesystem()
+	}
 
-    @Test
-    fun `Delete Scene, In Group`() {
-        configure(PROJECT_2_NAME)
+	@Test
+	fun `Create Group, In Group`() {
+		configure(PROJECT_1_NAME)
 
-        repo.initializeProjectEditor()
+		every { projectsRepo.validateFileName(any()) } returns true
 
-        val sceneId = 3
-        val scenePreDelete = repo.getSceneItemFromId(sceneId)
-        assertNotNull(scenePreDelete)
+		repo.initializeProjectEditor()
 
-        val scenePath = repo.getSceneFilePath(scenePreDelete)
+		verifyTreeAndFilesystem()
 
-        val deleted = repo.deleteScene(scenePreDelete)
-        assertTrue(deleted)
+		val groupName = "New Group"
+		val group = repo.getSceneItemFromId(2)
+		assertNotNull(group)
+		assertEquals("Chapter ID 2", group.name)
 
-        assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
+		val newGroup = repo.createGroup(group, groupName)
 
-        verifyTreeAndFilesystem()
+		assertNotNull(newGroup)
+		assertEquals(groupName, newGroup.name, "Name was incorrect")
+		assertEquals(newGroup.type, SceneItem.Type.Group, "Should be scene")
+		assertEquals(8, newGroup.id, "ID was incorrect")
+		assertEquals(3, newGroup.order, "Order was incorrect")
 
-        val scenePostDelete = repo.getSceneItemFromId(sceneId)
-        assertNull(scenePostDelete, "Scene still existed in tree")
-    }
+		verifyTreeAndFilesystem()
+	}
 
-    @Test
-    fun `Delete Group, In Root, With Children`() {
-        configure(PROJECT_2_NAME)
+	@Test
+	fun `Delete Scene, In Root`() {
+		configure(PROJECT_2_NAME)
 
-        repo.initializeProjectEditor()
+		repo.initializeProjectEditor()
 
-        val groupId = 2
-        val groupPreDelete = repo.getSceneItemFromId(groupId)
-        assertNotNull(groupPreDelete)
+		val sceneId = 6
+		val scenePreDelete = repo.getSceneItemFromId(sceneId)
+		assertNotNull(scenePreDelete)
 
-        val groupPath = repo.getSceneFilePath(groupPreDelete)
+		val scenePath = repo.getSceneFilePath(scenePreDelete)
 
-        val deleted = repo.deleteGroup(groupPreDelete)
-        assertFalse(deleted)
+		val deleted = repo.deleteScene(scenePreDelete)
+		assertTrue(deleted)
 
-        assertTrue(ffs.exists(groupPath.toOkioPath()), "Group file was deleted")
+		assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
 
-        verifyTreeAndFilesystem()
+		verifyTreeAndFilesystem()
 
-        val groupPostDelete = repo.getSceneItemFromId(groupId)
-        assertNotNull(groupPostDelete, "Group no longer existed in tree")
-    }
+		val scenePostDelete = repo.getSceneItemFromId(sceneId)
+		assertNull(scenePostDelete, "Scene still existed in tree")
+	}
 
-    @Test
-    fun `Delete Group, In Root, No Children`() {
-        configure(PROJECT_2_NAME)
+	@Test
+	fun `Delete Scene, In Group`() {
+		configure(PROJECT_2_NAME)
 
-        repo.initializeProjectEditor()
+		repo.initializeProjectEditor()
 
-        val groupId = 8
-        val groupPreDelete = repo.getSceneItemFromId(groupId)
-        assertNotNull(groupPreDelete, "No group for ID: $groupId")
+		val sceneId = 3
+		val scenePreDelete = repo.getSceneItemFromId(sceneId)
+		assertNotNull(scenePreDelete)
 
-        val groupPath = repo.getSceneFilePath(groupPreDelete)
+		val scenePath = repo.getSceneFilePath(scenePreDelete)
 
-        val deleted = repo.deleteGroup(groupPreDelete)
-        assertTrue(deleted, "deleteGroup returned false")
+		val deleted = repo.deleteScene(scenePreDelete)
+		assertTrue(deleted)
 
-        assertFalse(ffs.exists(groupPath.toOkioPath()), "Group file was not deleted")
+		assertFalse(ffs.exists(scenePath.toOkioPath()), "Scene file was not deleted")
 
-        verifyTreeAndFilesystem()
+		verifyTreeAndFilesystem()
 
-        val groupPostDelete = repo.getSceneItemFromId(groupId)
-        assertNull(groupPostDelete, "Group still existed in tree")
-    }
+		val scenePostDelete = repo.getSceneItemFromId(sceneId)
+		assertNull(scenePostDelete, "Scene still existed in tree")
+	}
+
+	@Test
+	fun `Delete Group, In Root, With Children`() {
+		configure(PROJECT_2_NAME)
+
+		repo.initializeProjectEditor()
+
+		val groupId = 2
+		val groupPreDelete = repo.getSceneItemFromId(groupId)
+		assertNotNull(groupPreDelete)
+
+		val groupPath = repo.getSceneFilePath(groupPreDelete)
+
+		val deleted = repo.deleteGroup(groupPreDelete)
+		assertFalse(deleted)
+
+		assertTrue(ffs.exists(groupPath.toOkioPath()), "Group file was deleted")
+
+		verifyTreeAndFilesystem()
+
+		val groupPostDelete = repo.getSceneItemFromId(groupId)
+		assertNotNull(groupPostDelete, "Group no longer existed in tree")
+	}
+
+	@Test
+	fun `Delete Group, In Root, No Children`() {
+		configure(PROJECT_2_NAME)
+
+		repo.initializeProjectEditor()
+
+		val groupId = 8
+		val groupPreDelete = repo.getSceneItemFromId(groupId)
+		assertNotNull(groupPreDelete, "No group for ID: $groupId")
+
+		val groupPath = repo.getSceneFilePath(groupPreDelete)
+
+		val deleted = repo.deleteGroup(groupPreDelete)
+		assertTrue(deleted, "deleteGroup returned false")
+
+		assertFalse(ffs.exists(groupPath.toOkioPath()), "Group file was not deleted")
+
+		verifyTreeAndFilesystem()
+
+		val groupPostDelete = repo.getSceneItemFromId(groupId)
+		assertNull(groupPostDelete, "Group still existed in tree")
+	}
 }

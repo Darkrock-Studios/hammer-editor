@@ -6,16 +6,16 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface DraftsList : HammerComponent {
-    val state: Value<State>
+	val state: Value<State>
 
-    fun loadDrafts()
+	fun loadDrafts()
 
-    fun selectDraft(draftDef: DraftDef)
+	fun selectDraft(draftDef: DraftDef)
 
-    fun cancel()
+	fun cancel()
 
-    data class State(
-        val sceneItem: SceneItem,
-        val drafts: List<DraftDef>
-    )
+	data class State(
+		val sceneItem: SceneItem,
+		val drafts: List<DraftDef>
+	)
 }

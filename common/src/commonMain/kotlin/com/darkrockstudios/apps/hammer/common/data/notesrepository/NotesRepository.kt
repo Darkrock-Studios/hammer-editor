@@ -19,22 +19,22 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
 abstract class NotesRepository(
-    protected val projectDef: ProjectDef,
-    protected val idRepository: IdRepository
+	protected val projectDef: ProjectDef,
+	protected val idRepository: IdRepository
 ) : Closeable, KoinComponent {
 
-    protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-    protected val notesScope = CoroutineScope(dispatcherDefault)
+	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	protected val notesScope = CoroutineScope(dispatcherDefault)
 
-    private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
-    val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
+	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
 
-    protected suspend fun updateNotes(notes: List<NoteContainer>) {
-        _notesListFlow.emit(notes)
-    }
+	protected suspend fun updateNotes(notes: List<NoteContainer>) {
+		_notesListFlow.emit(notes)
+	}
 
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath

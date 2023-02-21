@@ -4,6 +4,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 
 data class ProjectData(
-    val definition: ProjectDef,
-    val metadata: ProjectMetadata
+	val definition: ProjectDef,
+	val metadata: ProjectMetadata
 )

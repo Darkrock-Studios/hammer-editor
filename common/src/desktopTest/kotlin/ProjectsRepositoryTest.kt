@@ -22,125 +22,125 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectsRepositoryTest : BaseTest() {
 
-    private lateinit var ffs: FakeFileSystem
-    private lateinit var settingsRepo: GlobalSettingsRepository
-    private lateinit var settings: GlobalSettings
-    private lateinit var toml: Toml
+	private lateinit var ffs: FakeFileSystem
+	private lateinit var settingsRepo: GlobalSettingsRepository
+	private lateinit var settings: GlobalSettings
+	private lateinit var toml: Toml
 
-    @Before
-    override fun setup() {
-        super.setup()
-        toml = createTomlSerializer()
+	@Before
+	override fun setup() {
+		super.setup()
+		toml = createTomlSerializer()
 
-        settingsRepo = mockk()
-        settings = mockk()
-        every { settingsRepo.globalSettings } answers { settings }
-        coEvery { settingsRepo.globalSettingsUpdates } coAnswers {
-            val flow = mockk<SharedFlow<GlobalSettings>>()
-            coJustAwait { flow.collect(any()) }
-            flow
-        }
-        every { settings.projectsDirectory } answers { getProjectsDirectory().toString() }
+		settingsRepo = mockk()
+		settings = mockk()
+		every { settingsRepo.globalSettings } answers { settings }
+		coEvery { settingsRepo.globalSettingsUpdates } coAnswers {
+			val flow = mockk<SharedFlow<GlobalSettings>>()
+			coJustAwait { flow.collect(any()) }
+			flow
+		}
+		every { settings.projectsDirectory } answers { getProjectsDirectory().toString() }
 
-        ffs = FakeFileSystem()
+		ffs = FakeFileSystem()
 
-        createRootDirectory(ffs)
-        setupKoin()
-    }
+		createRootDirectory(ffs)
+		setupKoin()
+	}
 
 
-    @After
-    override fun tearDown() {
-        super.tearDown()
-        ffs.checkNoOpenFiles()
-    }
+	@After
+	override fun tearDown() {
+		super.tearDown()
+		ffs.checkNoOpenFiles()
+	}
 
-    @Test
-    fun `ProjectsRepository init`() = scope.runTest {
-        val projDir = getProjectsDirectory()
-        assertFalse(ffs.exists(projDir), "Dir should not have existed already")
+	@Test
+	fun `ProjectsRepository init`() = scope.runTest {
+		val projDir = getProjectsDirectory()
+		assertFalse(ffs.exists(projDir), "Dir should not have existed already")
 
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
-        assertTrue(ffs.exists(projDir), "Init did not create project dir")
-    }
+		assertTrue(ffs.exists(projDir), "Init did not create project dir")
+	}
 
-    @Test
-    fun `Scene Name Validation`() = scope.runTest {
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+	@Test
+	fun `Scene Name Validation`() = scope.runTest {
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
-        assertTrue(repo.validateFileName("good"))
-        assertFalse(repo.validateFileName(null))
-        assertFalse(repo.validateFileName(""))
-        assertFalse(repo.validateFileName("bad*bad"))
-        assertFalse(repo.validateFileName("bad-bad"))
-        assertFalse(repo.validateFileName("bad/bad"))
-        assertFalse(repo.validateFileName("""bad\bad"""))
-    }
+		assertTrue(repo.validateFileName("good"))
+		assertFalse(repo.validateFileName(null))
+		assertFalse(repo.validateFileName(""))
+		assertFalse(repo.validateFileName("bad*bad"))
+		assertFalse(repo.validateFileName("bad-bad"))
+		assertFalse(repo.validateFileName("bad/bad"))
+		assertFalse(repo.validateFileName("""bad\bad"""))
+	}
 
-    @Test
-    fun `Get Projects Directory`() = scope.runTest {
-        val actualProjDir = getProjectsDirectory().toHPath()
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
-        val projectDir = repo.getProjectsDirectory()
-        assertEquals(actualProjDir, projectDir)
-    }
+	@Test
+	fun `Get Projects Directory`() = scope.runTest {
+		val actualProjDir = getProjectsDirectory().toHPath()
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val projectDir = repo.getProjectsDirectory()
+		assertEquals(actualProjDir, projectDir)
+	}
 
-    @Test
-    fun `Get Projects`() = scope.runTest {
-        createProjectDirectories(ffs)
+	@Test
+	fun `Get Projects`() = scope.runTest {
+		createProjectDirectories(ffs)
 
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
-        val projects = repo.getProjects()
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val projects = repo.getProjects()
 
-        assertEquals(projectNames.size, projects.size)
-        projects.forEachIndexed { index, project ->
-            assertEquals(projectNames[index], project.name)
-        }
-    }
+		assertEquals(projectNames.size, projects.size)
+		projects.forEachIndexed { index, project ->
+			assertEquals(projectNames[index], project.name)
+		}
+	}
 
-    @Test
-    fun `Get Project Directory`() = scope.runTest {
-        createProjectDirectories(ffs)
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+	@Test
+	fun `Get Project Directory`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
-        val projectName = projectNames[0]
-        val projectDir = repo.getProjectDirectory(projectName)
+		val projectName = projectNames[0]
+		val projectDir = repo.getProjectDirectory(projectName)
 
-        val actualProjDir = getProjectsDirectory().div(projectName)
-        assertEquals(actualProjDir, projectDir.toOkioPath())
-    }
+		val actualProjDir = getProjectsDirectory().div(projectName)
+		assertEquals(actualProjDir, projectDir.toOkioPath())
+	}
 
-    @Test
-    fun `Create Project`() = scope.runTest {
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+	@Test
+	fun `Create Project`() = scope.runTest {
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
-        val projectName = projectNames[0]
-        val created = repo.createProject(projectName)
-        assertTrue(created)
+		val projectName = projectNames[0]
+		val created = repo.createProject(projectName)
+		assertTrue(created)
 
-        val actualProjDir = getProjectsDirectory().div(projectName)
-        assertTrue(ffs.exists(actualProjDir))
+		val actualProjDir = getProjectsDirectory().div(projectName)
+		assertTrue(ffs.exists(actualProjDir))
 
-        val created2 = repo.createProject(projectName)
-        assertFalse(created2)
-    }
+		val created2 = repo.createProject(projectName)
+		assertFalse(created2)
+	}
 
-    @Test
-    fun `Delete Project`() = scope.runTest {
-        createProjectDirectories(ffs)
-        val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+	@Test
+	fun `Delete Project`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
-        val projectName = projectNames[0]
-        val projPath = getProjectsDirectory().div(projectName)
-        val projDef = ProjectDefinition(projectName, projPath.toHPath())
+		val projectName = projectNames[0]
+		val projPath = getProjectsDirectory().div(projectName)
+		val projDef = ProjectDefinition(projectName, projPath.toHPath())
 
-        val deleted = repo.deleteProject(projDef)
-        assertTrue(deleted)
+		val deleted = repo.deleteProject(projDef)
+		assertTrue(deleted)
 
-        assertFalse(ffs.exists(projPath))
+		assertFalse(ffs.exists(projPath))
 
-        val deleteAgain = repo.deleteProject(projDef)
-        assertFalse(deleteAgain)
-    }
+		val deleteAgain = repo.deleteProject(projDef)
+		assertFalse(deleteAgain)
+	}
 }

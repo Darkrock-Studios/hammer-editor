@@ -74,9 +74,9 @@ class ProjectSelectActivity : AppCompatActivity() {
 
 		settingsUpdateJob = lifecycleScope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-                withContext(platformMainDispatcher) {
-                    globalSettings.reduce { settings }
-                }
+				withContext(platformMainDispatcher) {
+					globalSettings.reduce { settings }
+				}
 			}
 		}
 	}

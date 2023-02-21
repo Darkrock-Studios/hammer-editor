@@ -13,35 +13,35 @@ import com.darkrockstudios.apps.hammer.common.projectroot.Router
 import kotlinx.coroutines.flow.SharedFlow
 
 interface ProjectEditor : AppCloseManager, Router, HammerComponent {
-    val listRouterState: Value<ChildStack<*, ChildDestination.List>>
-    val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
+	val listRouterState: Value<ChildStack<*, ChildDestination.List>>
+	val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 
-    data class State(
-        val projectDef: ProjectDef,
-        val isMultiPane: Boolean = false
-    )
+	data class State(
+		val projectDef: ProjectDef,
+		val isMultiPane: Boolean = false
+	)
 
-    val state: Value<State>
+	val state: Value<State>
 
-    val shouldCloseRoot: SharedFlow<Boolean>
+	val shouldCloseRoot: SharedFlow<Boolean>
 
-    fun isDetailShown(): Boolean
+	fun isDetailShown(): Boolean
 
-    fun setMultiPane(isMultiPane: Boolean)
-    fun closeDetails(): Boolean
+	fun setMultiPane(isMultiPane: Boolean)
+	fun closeDetails(): Boolean
 
-    sealed class ChildDestination {
-        sealed class List : ChildDestination() {
-            data class Scenes(val component: SceneList) : List()
+	sealed class ChildDestination {
+		sealed class List : ChildDestination() {
+			data class Scenes(val component: SceneList) : List()
 
-            object None : List()
-        }
+			object None : List()
+		}
 
-        sealed class Detail : ChildDestination() {
-            data class EditorDestination(val component: SceneEditor) : Detail()
-            data class DraftsDestination(val component: DraftsList) : Detail()
-            data class DraftCompareDestination(val component: DraftCompare) : Detail()
-            object None : Detail()
-        }
-    }
+		sealed class Detail : ChildDestination() {
+			data class EditorDestination(val component: SceneEditor) : Detail()
+			data class DraftsDestination(val component: DraftsList) : Detail()
+			data class DraftCompareDestination(val component: DraftCompare) : Detail()
+			object None : Detail()
+		}
+	}
 }

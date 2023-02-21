@@ -9,7 +9,7 @@ import com.arkivanov.essenty.parcelable.Parcelize
  */
 @Parcelize
 data class HPath(
-    val path: String,
-    val name: String,
-    val isAbsolute: Boolean
+	val path: String,
+	val name: String,
+	val isAbsolute: Boolean
 ) : Parcelable

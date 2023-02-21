@@ -9,7 +9,7 @@ import kotlinx.datetime.Instant
 @Parcelize
 @TypeParceler<Instant, InstantParceler>()
 data class DraftDef(
-    val sceneId: Int,
-    val draftTimestamp: Instant,
-    val draftName: String
+	val sceneId: Int,
+	val draftTimestamp: Instant,
+	val draftName: String
 ) : Parcelable

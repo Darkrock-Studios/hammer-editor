@@ -10,18 +10,18 @@ import io.github.aakira.napier.Napier
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 
-class HammerApplication: Application() {
-    override fun onCreate() {
-        super.onCreate()
+class HammerApplication : Application() {
+	override fun onCreate() {
+		super.onCreate()
 
-        setDirectories(this)
+		setDirectories(this)
 
-        Napier.base(DebugAntilog())
+		Napier.base(DebugAntilog())
 
-        startKoin {
-            logger(NapierLogger())
-            androidContext(this@HammerApplication)
-            modules(mainModule, imageLoadingModule)
-        }
-    }
+		startKoin {
+			logger(NapierLogger())
+			androidContext(this@HammerApplication)
+			modules(mainModule, imageLoadingModule)
+		}
+	}
 }
