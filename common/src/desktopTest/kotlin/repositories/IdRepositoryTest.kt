@@ -1,3 +1,6 @@
+package repositories
+
+import PROJECT_1_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -5,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import createProject
+import getProject1Def
+import getProjectsDirectory
 import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After

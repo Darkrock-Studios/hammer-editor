@@ -1,3 +1,5 @@
+package repositories
+
 import kotlin.test.Test
 
 class SceneDraftRepositoryTest {

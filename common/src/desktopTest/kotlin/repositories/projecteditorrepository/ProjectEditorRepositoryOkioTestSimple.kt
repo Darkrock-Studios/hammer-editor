@@ -1,4 +1,4 @@
-package projecteditorrepository
+package repositories.projecteditorrepository
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
