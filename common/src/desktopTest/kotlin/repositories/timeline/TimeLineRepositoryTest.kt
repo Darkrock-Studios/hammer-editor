@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package repositories.timeline
 
 import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml

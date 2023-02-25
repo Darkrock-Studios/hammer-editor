@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package components.timeline
 
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -11,10 +11,12 @@ import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import repositories.timeline.TimeLineTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class CreateTimeLineEventComponent : TimeLineTestBase() {
+class CreateTimeLineEventComponentTest : TimeLineTestBase() {
+
 	@Test
 	fun `Create event`() = runTest {
 		val id = 0

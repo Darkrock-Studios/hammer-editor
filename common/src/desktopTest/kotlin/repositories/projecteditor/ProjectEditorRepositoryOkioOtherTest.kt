@@ -1,4 +1,4 @@
-package repositories.projecteditorrepository
+package repositories.projecteditor
 
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME

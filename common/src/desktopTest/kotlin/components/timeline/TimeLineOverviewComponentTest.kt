@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package components.timeline
 
 import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
@@ -26,6 +26,7 @@ import org.junit.Before
 import org.junit.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import repositories.timeline.fakeEvents
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package repositories.timeline
 
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext

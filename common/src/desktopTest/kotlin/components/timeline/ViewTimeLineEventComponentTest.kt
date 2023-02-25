@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package components.timeline
 
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -10,6 +10,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import repositories.timeline.TimeLineTestBase
+import repositories.timeline.fakeEvents
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)

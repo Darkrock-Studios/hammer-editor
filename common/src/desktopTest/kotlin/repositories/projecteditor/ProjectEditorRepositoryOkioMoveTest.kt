@@ -1,4 +1,4 @@
-package repositories.projecteditorrepository
+package repositories.projecteditor
 
 import PROJECT_1_NAME
 import com.akuleshov7.ktoml.Toml

@@ -1,4 +1,4 @@
-package repositories.timelinerepository
+package repositories.timeline
 
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 
