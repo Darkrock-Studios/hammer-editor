@@ -14,6 +14,7 @@ pluginManagement {
         id("com.android.application").version(extra["agp_version"] as String)
         id("com.android.library").version(extra["agp_version"] as String)
         id("org.jetbrains.compose").version(extra["jetbrains_compose_version"] as String)
+        id("dev.icerock.mobile.multiplatform-resources").version(extra["moko_resources_version"] as String) apply false
     }
 }
 

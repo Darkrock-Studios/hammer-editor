@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -46,12 +47,21 @@ fun ProjectList(
 				.padding(Ui.Padding.XL)
 				.fillMaxSize()
 		) {
-			Text(
-				"\uD83D\uDCDD Projects",
-				style = MaterialTheme.typography.headlineLarge,
-				color = MaterialTheme.colorScheme.onBackground,
-				modifier = Modifier.padding(Ui.Padding.L)
-			)
+			Row {
+				Text(
+					"\uD83D\uDCDD",
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.padding(Ui.Padding.L)
+				)
+				Text(
+					MR.strings.project_select_list_header.localized(),
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.padding(Ui.Padding.L)
+				)
+			}
+
 			Row(modifier = Modifier.fillMaxWidth()) {
 				val listState: LazyListState = rememberLazyListState()
 				LazyColumn(
