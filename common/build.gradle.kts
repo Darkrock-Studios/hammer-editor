@@ -91,6 +91,7 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
+				implementation("org.slf4j:slf4j-simple:2.0.6")
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
 				implementation("net.harawata:appdirs:1.2.1")
