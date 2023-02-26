@@ -8,8 +8,9 @@ buildscript {
         gradlePluginPortal()
     }
 
+    val moko_resources_version: String by extra
     dependencies {
-        classpath("dev.icerock.moko:resources-generator:0.20.1")
+        classpath("dev.icerock.moko:resources-generator:$moko_resources_version")
     }
 }
 
@@ -31,7 +32,6 @@ plugins {
     id("com.android.library") apply false
     id("org.jetbrains.compose") apply false
     id("org.jetbrains.kotlinx.kover") version "0.6.1"
-    id("dev.icerock.mobile.multiplatform-resources") version "0.20.1"
 }
 
 koverMerged {
