@@ -1,6 +1,7 @@
 package repositories
 
 import PROJECT_1_NAME
+import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -37,7 +38,18 @@ class IdRepositoryTest {
 	}
 
 	@Test
-	fun `findLastId Scene Ids`() {
+	fun `findNextId no entities`() {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
+
+		idRepository.findNextId()
+
+		assertEquals(idRepository.claimNextId(), 1, "First claimed ID should be 1 in empty project")
+	}
+
+	@Test
+	fun `findNextId Scene Ids`() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)

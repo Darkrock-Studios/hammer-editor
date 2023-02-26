@@ -18,7 +18,7 @@ abstract class IdRepository(private val projectDef: ProjectDef) {
 		}
 
 		nextId = if (lastId < 0) {
-			0
+			1
 		} else {
 			lastId + 1
 		}
