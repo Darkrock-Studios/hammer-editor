@@ -45,7 +45,7 @@ class ProjectsRepositoryOkio(
 		val projectsDir = globalSettings.projectsDirectory.toPath()
 
 		if (!fileSystem.exists(projectsDir)) {
-			fileSystem.createDirectory(projectsDir)
+			fileSystem.createDirectories(projectsDir)
 		}
 
 		return projectsDir.toHPath()
