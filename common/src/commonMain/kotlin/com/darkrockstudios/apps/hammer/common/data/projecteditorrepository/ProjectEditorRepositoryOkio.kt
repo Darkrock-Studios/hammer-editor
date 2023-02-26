@@ -721,6 +721,10 @@ class ProjectEditorRepositoryOkio(
 			}
 			return sceneDirPath.toHPath()
 		}
+
+		fun getMetadataPath(projectDef: ProjectDef): HPath {
+			return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
+		}
 	}
 }
 
