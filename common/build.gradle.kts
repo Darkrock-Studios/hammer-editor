@@ -123,7 +123,13 @@ android {
 	sourceSets {
 		named("main") {
 			manifest.srcFile("src/androidMain/AndroidManifest.xml")
-			res.srcDirs("resources", "src/androidMain/res", "src/commonMain/resources")
+			res.srcDirs(
+				"resources",
+				"src/androidMain/res",
+				"src/commonMain/resources",
+				// https://github.com/icerockdev/moko-resources/issues/353#issuecomment-1179713713
+				File(buildDir, "generated/moko/androidMain/res")
+			)
 		}
 	}
 	defaultConfig {
