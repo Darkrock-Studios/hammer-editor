@@ -74,6 +74,6 @@ class IdRepositoryTest {
 
 		idRepository.findNextId()
 
-		assertEquals(idRepository.claimNextId(), 0, "Failed to find last scene ID")
+		assertEquals(1, idRepository.claimNextId(), "Failed to find last scene ID")
 	}
 }
