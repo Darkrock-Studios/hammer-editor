@@ -9,6 +9,7 @@ val decompose_version: String by extra
 val mockk_version: String by extra
 val okio_version: String by extra
 val koin_version: String by extra
+val moko_resources_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -50,6 +51,7 @@ kotlin {
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
 				api("io.github.qdsfdhvh:image-loader:1.2.8")
 				implementation("io.github.koalaplot:koalaplot-core:0.2.1")
+				api("dev.icerock.moko:resources-compose:$moko_resources_version")
 			}
 		}
 		val commonTest by getting {

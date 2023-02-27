@@ -3,6 +3,18 @@ val app_version: String by extra
 group = "com.darkrockstudios.apps.hammer"
 version = app_version
 
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+
+    val moko_resources_version: String by extra
+    dependencies {
+        classpath("dev.icerock.moko:resources-generator:$moko_resources_version")
+    }
+}
+
+
 allprojects {
     repositories {
         google()
@@ -26,7 +38,7 @@ koverMerged {
     enable()
     filters {
         projects {
-            excludes += listOf("android", ":desktop")
+            excludes += listOf(":android", ":desktop", ":composeUi")
         }
     }
 }

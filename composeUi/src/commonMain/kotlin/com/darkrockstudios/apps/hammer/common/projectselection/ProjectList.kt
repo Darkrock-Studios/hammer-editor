@@ -22,8 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.Instant
@@ -46,12 +48,22 @@ fun ProjectList(
 				.padding(Ui.Padding.XL)
 				.fillMaxSize()
 		) {
-			Text(
-				"\uD83D\uDCDD Projects",
-				style = MaterialTheme.typography.headlineLarge,
-				color = MaterialTheme.colorScheme.onBackground,
-				modifier = Modifier.padding(Ui.Padding.L)
-			)
+			Row {
+				Text(
+					"\uD83D\uDCDD",
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.padding(start = Ui.Padding.L, top = Ui.Padding.L, bottom = Ui.Padding.L)
+				)
+
+				Text(
+					getString(MR.strings.project_select_list_header),
+					style = MaterialTheme.typography.headlineLarge,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.padding(Ui.Padding.L)
+				)
+			}
+
 			Row(modifier = Modifier.fillMaxWidth()) {
 				val listState: LazyListState = rememberLazyListState()
 				LazyColumn(
@@ -63,7 +75,7 @@ fun ProjectList(
 					if (state.projects.isEmpty()) {
 						item {
 							Text(
-								"No Projects Found",
+								getString(MR.strings.project_select_project_list_empty),
 								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
 								style = MaterialTheme.typography.headlineSmall,
 								textAlign = TextAlign.Center,

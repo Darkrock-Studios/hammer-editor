@@ -10,6 +10,7 @@ val koin_version: String by extra
 val okio_version: String by extra
 val essenty_version: String by extra
 val mockk_version: String by extra
+val moko_resources_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
@@ -17,6 +18,7 @@ plugins {
 	id("com.android.library")
 	id("kotlin-parcelize")
 	id("org.jetbrains.kotlinx.kover")
+	id("dev.icerock.mobile.multiplatform-resources")
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -38,6 +40,7 @@ kotlin {
 				// This isn't working for some reason, once it is remove transitiveExport
 				export("com.arkivanov.essenty:lifecycle:$essenty_version")
 				export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				export("dev.icerock.moko:resources:$moko_resources_version")
 			}
 		}
 	}
@@ -60,6 +63,7 @@ kotlin {
 				implementation("com.akuleshov7:ktoml-core:0.4.1")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
 				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
+				api("dev.icerock.moko:resources:$moko_resources_version")
 			}
 		}
 		val commonTest by getting {
@@ -68,6 +72,7 @@ kotlin {
 				//implementation("io.insert-koin:koin-test:$koin_version")
 				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
 				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
+				implementation("dev.icerock.moko:resources-test:$moko_resources_version")
 			}
 		}
 		val androidMain by getting {
@@ -95,6 +100,7 @@ kotlin {
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
 				implementation("net.harawata:appdirs:1.2.1")
+				api("dev.icerock.moko:resources-compose:$moko_resources_version")
 			}
 		}
 		val desktopTest by getting {
@@ -107,13 +113,23 @@ kotlin {
 	}
 }
 
+multiplatformResources {
+	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer"
+}
+
 android {
 	namespace = "com.darkrockstudios.apps.hammer.common"
 	compileSdk = android_compile_sdk.toInt()
 	sourceSets {
 		named("main") {
 			manifest.srcFile("src/androidMain/AndroidManifest.xml")
-			res.srcDirs("resources", "src/androidMain/res", "src/commonMain/resources")
+			res.srcDirs(
+				"resources",
+				"src/androidMain/res",
+				"src/commonMain/resources",
+				// https://github.com/icerockdev/moko-resources/issues/353#issuecomment-1179713713
+				File(buildDir, "generated/moko/androidMain/res")
+			)
 		}
 	}
 	defaultConfig {

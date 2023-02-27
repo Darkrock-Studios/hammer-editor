@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <string name="app_name">Hammer</string>
+
+    <string name="project_select_list_header">Projects:</string>
+    <string name="project_select_project_list_empty">No Projects Found</string>
+</resources>
