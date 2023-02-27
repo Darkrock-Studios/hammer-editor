@@ -73,7 +73,7 @@ fun ProjectList(
 					if (state.projects.isEmpty()) {
 						item {
 							Text(
-								"No Projects Found",
+								MR.strings.project_select_project_list_empty.localized(),
 								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
 								style = MaterialTheme.typography.headlineSmall,
 								textAlign = TextAlign.Center,
