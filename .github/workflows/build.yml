@@ -23,7 +23,7 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
-      run: ./gradlew generateMRcommonMain generateMRandroidMain build
+      run: ./gradlew build
     - name: Run Kover
       run: ./gradlew koverMergedXmlReport
     - name: Upload coverage reports to Codecov
