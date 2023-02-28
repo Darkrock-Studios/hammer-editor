@@ -8,8 +8,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,7 +19,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 	MpDialog(
 		onCloseRequest = close,
 		visible = show,
-		title = "Create Project",
+		title = getString(MR.strings.create_project_title),
 		modifier = Modifier.padding(Ui.Padding.XL)
 	) {
 		var newProjectNameText by remember { mutableStateOf("") }
@@ -30,7 +32,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 				TextField(
 					value = newProjectNameText,
 					onValueChange = { newProjectNameText = it },
-					label = { Text("New Project Name") },
+					label = { Text(getString(MR.strings.create_project_heading)) },
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -40,7 +42,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 					newProjectNameText = ""
 					close()
 				}) {
-					Text("Create Project")
+					Text(getString(MR.strings.create_project_button))
 				}
 			}
 		}

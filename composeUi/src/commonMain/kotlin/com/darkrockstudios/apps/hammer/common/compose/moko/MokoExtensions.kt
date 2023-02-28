@@ -5,3 +5,6 @@ import dev.icerock.moko.resources.StringResource
 
 @Composable
 expect fun getString(id: StringResource): String
+
+@Composable
+expect fun getString(id: StringResource, vararg args: Any): String

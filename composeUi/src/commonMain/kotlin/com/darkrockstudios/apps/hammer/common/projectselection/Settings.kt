@@ -10,8 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import kotlinx.coroutines.launch
@@ -36,7 +38,7 @@ internal fun Settings(
 				.fillMaxSize()
 		) {
 			Text(
-				"\u2699 Settings",
+				getString(MR.strings.settings_heading),
 				style = MaterialTheme.typography.headlineLarge,
 				color = MaterialTheme.colorScheme.onBackground,
 				modifier = Modifier.padding(Ui.Padding.L)
@@ -48,7 +50,7 @@ internal fun Settings(
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 				Column(modifier = Modifier.padding(Ui.Padding.M)) {
 					Text(
-						"UI Theme",
+						getString(MR.strings.settings_theme_label),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground,
 					)
@@ -72,7 +74,7 @@ internal fun Settings(
 
 					Column(modifier = Modifier.padding(Ui.Padding.M)) {
 						Text(
-							"Projects Directory",
+							getString(MR.strings.settings_projects_directory),
 							style = MaterialTheme.typography.headlineSmall,
 							color = MaterialTheme.colorScheme.onBackground,
 						)
@@ -83,13 +85,19 @@ internal fun Settings(
 							value = projectsPathText,
 							onValueChange = { projectsPathText = it },
 							enabled = false,
-							label = { Text("Path to Projects Directory") }
+							label = {
+								Text(
+									getString(MR.strings.settings_projects_directory_hint)
+								)
+							}
 						)
 
 						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 						Button(onClick = { showDirectoryPicker = true }) {
-							Text("Select Dir")
+							Text(
+								getString(MR.strings.settings_projects_directory_button)
+							)
 						}
 					}
 				}
@@ -98,12 +106,12 @@ internal fun Settings(
 
 				Column(modifier = Modifier.padding(Ui.Padding.M)) {
 					Text(
-						"Example Project",
+						getString(MR.strings.settings_example_project_header),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground,
 					)
 					Text(
-						"Install an example project to see how different features are used.",
+						getString(MR.strings.settings_example_project_description),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onBackground,
 						fontStyle = FontStyle.Italic
@@ -111,13 +119,14 @@ internal fun Settings(
 
 					Spacer(modifier = Modifier.size(Ui.Padding.M))
 
+					val successMessage = getString(MR.strings.settings_example_project_success_message)
 					Button(onClick = {
 						scope.launch {
 							component.reinstallExampleProject()
-							snackbarHostState.showSnackbar("Example project created.")
+							snackbarHostState.showSnackbar(successMessage)
 						}
 					}) {
-						Text("Reinstall")
+						Text(getString(MR.strings.settings_example_project_button))
 					}
 				}
 			}

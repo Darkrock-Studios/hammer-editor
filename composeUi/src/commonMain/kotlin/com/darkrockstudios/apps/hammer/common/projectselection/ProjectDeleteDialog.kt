@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
 @ExperimentalMaterialApi
@@ -21,7 +23,7 @@ internal fun ProjectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean
 		onCloseRequest = {},
 		visible = true,
 		modifier = Modifier.padding(Ui.Padding.XL),
-		title = "Delete Project"
+		title = getString(MR.strings.delete_project_title)
 	) {
 		Box(modifier = Modifier.fillMaxWidth()) {
 			Column(
@@ -31,7 +33,7 @@ internal fun ProjectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean
 					.padding(Ui.Padding.XL)
 			) {
 				Text(
-					"Are you sure you want to delete this project:\n${projectDef.name}",
+					getString(MR.strings.delete_project_message, projectDef.name),
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.onSurface
 				)
@@ -43,10 +45,10 @@ internal fun ProjectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = { dismissDialog(true) }) {
-						Text("DELETE")
+						Text(getString(MR.strings.delete_project_confirm))
 					}
 					Button(onClick = { dismissDialog(false) }) {
-						Text("Dismiss")
+						Text(getString(MR.strings.delete_project_cancel))
 					}
 				}
 			}

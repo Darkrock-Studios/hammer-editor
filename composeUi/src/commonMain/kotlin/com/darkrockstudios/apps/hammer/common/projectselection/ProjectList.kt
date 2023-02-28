@@ -153,7 +153,7 @@ fun ProjectCard(
 				IconButton(onClick = { onProjectAltClick(projectData.definition) }) {
 					Icon(
 						imageVector = Icons.Filled.Delete,
-						contentDescription = "Delete",
+						contentDescription = getString(MR.strings.project_select_card_delete_button),
 						modifier = Modifier.size(24.dp),
 					)
 				}
