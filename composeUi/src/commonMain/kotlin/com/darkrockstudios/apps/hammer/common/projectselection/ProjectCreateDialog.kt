@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.getString
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,7 +19,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 	MpDialog(
 		onCloseRequest = close,
 		visible = show,
-		title = getString(MR.strings.create_project_title),
+		title = MR.strings.create_project_title.get(),
 		modifier = Modifier.padding(Ui.Padding.XL)
 	) {
 		var newProjectNameText by remember { mutableStateOf("") }
@@ -32,7 +32,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 				TextField(
 					value = newProjectNameText,
 					onValueChange = { newProjectNameText = it },
-					label = { Text(getString(MR.strings.create_project_heading)) },
+					label = { Text(MR.strings.create_project_heading.get()) },
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -42,7 +42,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () ->
 					newProjectNameText = ""
 					close()
 				}) {
-					Text(getString(MR.strings.create_project_button))
+					Text(MR.strings.create_project_button.get())
 				}
 			}
 		}

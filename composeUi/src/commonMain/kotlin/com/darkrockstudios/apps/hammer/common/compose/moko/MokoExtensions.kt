@@ -8,3 +8,9 @@ expect fun getString(id: StringResource): String
 
 @Composable
 expect fun getString(id: StringResource, vararg args: Any): String
+
+@Composable
+expect fun StringResource.get(): String
+
+@Composable
+expect fun StringResource.get(vararg args: Any): String

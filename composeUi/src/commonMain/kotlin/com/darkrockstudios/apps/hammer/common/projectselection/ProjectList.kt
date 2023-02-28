@@ -25,7 +25,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.getString
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.Instant
@@ -57,7 +57,7 @@ fun ProjectList(
 				)
 
 				Text(
-					getString(MR.strings.project_select_list_header),
+					MR.strings.project_select_list_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.padding(Ui.Padding.L)
@@ -75,7 +75,7 @@ fun ProjectList(
 					if (state.projects.isEmpty()) {
 						item {
 							Text(
-								getString(MR.strings.project_select_project_list_empty),
+								MR.strings.project_select_project_list_empty.get(),
 								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
 								style = MaterialTheme.typography.headlineSmall,
 								textAlign = TextAlign.Center,
@@ -153,7 +153,7 @@ fun ProjectCard(
 				IconButton(onClick = { onProjectAltClick(projectData.definition) }) {
 					Icon(
 						imageVector = Icons.Filled.Delete,
-						contentDescription = getString(MR.strings.project_select_card_delete_button),
+						contentDescription = MR.strings.project_select_card_delete_button.get(),
 						modifier = Modifier.size(24.dp),
 					)
 				}

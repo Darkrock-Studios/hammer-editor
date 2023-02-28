@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -23,7 +24,7 @@ internal fun ProjectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean
 		onCloseRequest = {},
 		visible = true,
 		modifier = Modifier.padding(Ui.Padding.XL),
-		title = getString(MR.strings.delete_project_title)
+		title = MR.strings.delete_project_title.get()
 	) {
 		Box(modifier = Modifier.fillMaxWidth()) {
 			Column(
@@ -45,10 +46,10 @@ internal fun ProjectDeleteDialog(projectDef: ProjectDef, dismissDialog: (Boolean
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = { dismissDialog(true) }) {
-						Text(getString(MR.strings.delete_project_confirm))
+						Text(MR.strings.delete_project_confirm.get())
 					}
 					Button(onClick = { dismissDialog(false) }) {
-						Text(getString(MR.strings.delete_project_cancel))
+						Text(MR.strings.delete_project_cancel.get())
 					}
 				}
 			}

@@ -10,3 +10,9 @@ actual fun getString(id: StringResource): String = id.localized()
 actual fun getString(id: StringResource, vararg args: Any): String {
     return id.localized(args = args)
 }
+
+@Composable
+actual fun StringResource.get(): String = localized()
+
+@Composable
+actual fun StringResource.get(vararg args: Any): String = localized(args = args)
