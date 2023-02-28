@@ -15,15 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.MenuBar
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.window.*
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
@@ -42,8 +40,6 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle) }
 	val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
-	LifecycleController(lifecycle, windowState)
-
 	val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
 
 	val component = remember<ProjectRoot> {
@@ -59,7 +55,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		)
 	}
 
-	val menu by app.menu.subscribeAsState()
+	LifecycleController(lifecycle, windowState)
 
 	Window(
 		title = "Hammer - ${projectDef.name}",
@@ -68,46 +64,9 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
 	) {
 		Column {
-			MenuBar {
-				Menu("File") {
-					Item("Close Project", onClick = {
-						onRequestClose(component, app, ApplicationState.CloseType.Project)
-					})
-					Item("Exit", onClick = {
-						onRequestClose(component, app, ApplicationState.CloseType.Application)
-					})
-				}
+			EditorMenuBar(component, app, ::onRequestClose)
 
-				menu.forEach { menuDescriptor ->
-					Menu(menuDescriptor.label) {
-						menuDescriptor.items.forEach { itemDescriptor ->
-							Item(
-								itemDescriptor.label,
-								onClick = { itemDescriptor.action(itemDescriptor.id) },
-								shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
-							)
-						}
-					}
-				}
-			}
-
-			val destinations = remember { ProjectRoot.DestinationTypes.values() }
-			val router by component.routerState.subscribeAsState()
-
-			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-					destinations.forEach { item ->
-						NavigationRailItem(
-							icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text) },
-							label = { Text(item.text) },
-							selected = router.active.instance.getLocationType() == item,
-							onClick = { component.showDestination(item) }
-						)
-					}
-				}
-
-				ProjectRootUi(component)
-			}
+			AppContent(component)
 		}
 
 		if (closeDialog.value != ApplicationState.CloseType.None) {
@@ -123,5 +82,58 @@ internal fun ApplicationScope.ProjectEditorWindow(
 				}
 			}
 		}
+	}
+}
+
+@Composable
+private fun FrameWindowScope.EditorMenuBar(
+	component: ProjectRoot,
+	app: ApplicationState,
+	onRequestClose: (AppCloseManager, ApplicationState, ApplicationState.CloseType) -> Unit
+) {
+	val menu by app.menu.subscribeAsState()
+
+	MenuBar {
+		Menu("File") {
+			Item("Close Project", onClick = {
+				onRequestClose(component, app, ApplicationState.CloseType.Project)
+			})
+			Item("Exit", onClick = {
+				onRequestClose(component, app, ApplicationState.CloseType.Application)
+			})
+		}
+
+		menu.forEach { menuDescriptor ->
+			Menu(menuDescriptor.label) {
+				menuDescriptor.items.forEach { itemDescriptor ->
+					Item(
+						itemDescriptor.label,
+						onClick = { itemDescriptor.action(itemDescriptor.id) },
+						shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun AppContent(component: ProjectRoot) {
+	val destinations = remember { ProjectRoot.DestinationTypes.values() }
+	val router by component.routerState.subscribeAsState()
+
+	Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+		NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+			destinations.forEach { item ->
+				NavigationRailItem(
+					icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text) },
+					label = { Text(item.text) },
+					selected = router.active.instance.getLocationType() == item,
+					onClick = { component.showDestination(item) }
+				)
+			}
+		}
+
+		ProjectRootUi(component)
 	}
 }
