@@ -54,27 +54,32 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 				ProjectSelection.State(
 					projectsDir = HPath("/asd/asd", "asd", true),
 					projects = listOf(
-						fakeProjectData(),
-						fakeProjectData(),
-						fakeProjectData(),
-						fakeProjectData(),
-					),
-					uiTheme = UiTheme.Dark
-				)
-			)
+                        fakeProjectData(),
+                        fakeProjectData(),
+                        fakeProjectData(),
+                        fakeProjectData(),
+                    ),
+                    uiTheme = UiTheme.Dark
+                )
+            )
 
-		override fun loadProjectList() {}
-		override fun setProjectsDir(path: String) {}
-		override fun selectProject(projectDef: ProjectDef) {}
-		override fun createProject(projectName: String) {}
-		override fun deleteProject(projectDef: ProjectDef) {}
-		override fun showLocation(location: ProjectSelection.Locations) {}
-		override fun setUiTheme(theme: UiTheme) {}
-		override suspend fun reinstallExampleProject() {}
-		override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
-			return null
-		}
-	}
+        override fun loadProjectList() {}
+        override fun setProjectsDir(path: String) {}
+        override fun selectProject(projectDef: ProjectDef) {}
+        override fun createProject(projectName: String) {}
+        override fun deleteProject(projectDef: ProjectDef) {}
+        override fun showLocation(location: ProjectSelection.Locations) {}
+        override fun setUiTheme(theme: UiTheme) {}
+        override suspend fun reinstallExampleProject() {}
+        override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
+            return null
+        }
+
+        override fun beginSetupServer() {}
+        override fun cancelServerSetup() {}
+        override suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean = true
+        override suspend fun authTest() {}
+    }
 }
 
 fun fakeProjectData() = ProjectData(

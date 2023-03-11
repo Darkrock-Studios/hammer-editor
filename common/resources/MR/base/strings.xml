@@ -20,6 +20,20 @@
     <string name="settings_example_project_button">Reinstall</string>
     <string name="settings_example_project_success_message">Example project created.</string>
 
+    <string name="settings_server_header">Server</string>
+    <string name="settings_server_description">Setup a server for syncing between devices.</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_setup_button">Setup</string>
+    <string name="settings_server_modify_button">Modify</string>
+
+    <string name="settings_server_setup_title">Setup Server</string>
+    <string name="settings_server_setup_url_hint">Server Url: https://myserver.com</string>
+    <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
+    <string name="settings_server_setup_password_hint">Password</string>
+    <string name="settings_server_setup_login_button">Login</string>
+    <string name="settings_server_setup_create_button">Create</string>
+    <string name="settings_server_setup_cancel_button">Cancel</string>
+
     <string name="delete_project_title">Delete Project</string>
     <string name="delete_project_message">Are you sure you want to delete this project: %s</string>
     <string name="delete_project_confirm">DELETE</string>

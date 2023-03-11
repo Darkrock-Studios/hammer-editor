@@ -1,0 +1,18 @@
+CREATE TABLE account(
+    email TEXT PRIMARY KEY NOT NULL,
+    salt TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL
+);
+
+selectAll:
+SELECT *
+FROM account;
+
+findAccount:
+SELECT *
+FROM account
+WHERE email = ?;
+
+createAccount:
+INSERT INTO account(email, salt, password_hash) VALUES (?, ?, ?);

@@ -20,12 +20,18 @@ interface ProjectSelection : HammerComponent {
 	fun setUiTheme(theme: UiTheme)
 	suspend fun reinstallExampleProject()
 	suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
+	fun beginSetupServer()
+	fun cancelServerSetup()
+	suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean
+    suspend fun authTest()
 
 	data class State(
 		val projectsDir: HPath,
 		val projects: List<ProjectData> = mutableListOf(),
 		val location: Locations = Locations.Projects,
-		val uiTheme: UiTheme
+		val uiTheme: UiTheme,
+		val serverSetup: Boolean = false,
+		val serverUrl: String? = null,
 	)
 
 	enum class Locations(val text: String) {

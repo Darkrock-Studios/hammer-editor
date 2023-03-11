@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -21,130 +22,185 @@ import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
-	componentContext: ComponentContext,
-	override val showProjectDirectory: Boolean = false,
-	private val onProjectSelected: (projectDef: ProjectDef) -> Unit
+    componentContext: ComponentContext,
+    override val showProjectDirectory: Boolean = false,
+    private val onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) : ProjectSelection, ComponentBase(componentContext) {
-	private val globalSettingsRepository by inject<GlobalSettingsRepository>()
-	private val projectsRepository by inject<ProjectsRepository>()
-	private val exampleProjectRepository by inject<ExampleProjectRepository>()
-	private var loadProjectsJob: Job? = null
 
-	private val _state = MutableValue(
-		ProjectSelection.State(
-			projectsDir = projectsRepository.getProjectsDirectory(),
-			projects = emptyList(),
-			uiTheme = globalSettingsRepository.globalSettings.uiTheme
-		)
-	)
-	override val state: Value<ProjectSelection.State> = _state
+    private val accountRepository: AccountRepository by inject()
+    private val globalSettingsRepository: GlobalSettingsRepository by inject()
+    private val projectsRepository: ProjectsRepository by inject()
+    private val exampleProjectRepository: ExampleProjectRepository by inject()
+    private var loadProjectsJob: Job? = null
 
-	init {
-		watchSettingsUpdates()
+    private val _state = MutableValue(
+        ProjectSelection.State(
+            projectsDir = projectsRepository.getProjectsDirectory(),
+            projects = emptyList(),
+            uiTheme = globalSettingsRepository.globalSettings.uiTheme
+        )
+    )
+    override val state: Value<ProjectSelection.State> = _state
 
-		if (exampleProjectRepository.shouldInstallFirstTime()) {
-			exampleProjectRepository.install()
-		}
-	}
+    init {
+        watchSettingsUpdates()
 
-	override fun onCreate() {
-		super.onCreate()
-		loadProjectList()
-	}
+        if (exampleProjectRepository.shouldInstallFirstTime()) {
+            exampleProjectRepository.install()
+        }
+    }
 
-	private fun watchSettingsUpdates() {
-		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-				withContext(dispatcherMain) {
-					_state.reduce {
-						val projectsPath = settings.projectsDirectory.toPath().toHPath()
-						it.copy(
-							projectsDir = projectsPath,
-							uiTheme = settings.uiTheme
-						)
-					}
-				}
-			}
-		}
-	}
+    override fun onCreate() {
+        super.onCreate()
+        loadProjectList()
+    }
 
-	override fun loadProjectList() {
-		loadProjectsJob?.cancel()
-		loadProjectsJob = scope.launch {
-			val projects = projectsRepository.getProjects(state.value.projectsDir)
-			val projectData = projects.mapNotNull { projectDef ->
-				val metadata = projectsRepository.loadMetadata(projectDef)
-				if (metadata != null) {
-					ProjectData(projectDef, metadata)
-				} else {
-					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
-					null
-				}
-			}
+    private fun watchSettingsUpdates() {
+        scope.launch {
+            globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+                withContext(dispatcherMain) {
+                    _state.reduce {
+                        val projectsPath = settings.projectsDirectory.toPath().toHPath()
+                        it.copy(
+                            projectsDir = projectsPath,
+                            uiTheme = settings.uiTheme
+                        )
+                    }
+                }
+            }
+        }
 
-			withContext(dispatcherMain) {
-				_state.reduce {
-					it.copy(projects = projectData)
-				}
-				loadProjectsJob = null
-			}
-		}
-	}
+        scope.launch {
+            globalSettingsRepository.serverSettingsUpdates.collect { settings ->
+                withContext(dispatcherMain) {
+                    _state.reduce {
+                        it.copy(
+                            serverUrl = settings?.url
+                        )
+                    }
+                }
+            }
+        }
+    }
 
-	override fun setProjectsDir(path: String) {
-		val hpath = HPath(
-			path = path,
-			name = "",
-			isAbsolute = true
-		)
+    override fun loadProjectList() {
+        loadProjectsJob?.cancel()
+        loadProjectsJob = scope.launch {
+            val projects = projectsRepository.getProjects(state.value.projectsDir)
+            val projectData = projects.mapNotNull { projectDef ->
+                val metadata = projectsRepository.loadMetadata(projectDef)
+                if (metadata != null) {
+                    ProjectData(projectDef, metadata)
+                } else {
+                    Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
+                    null
+                }
+            }
 
-		val curSettings = globalSettingsRepository.globalSettings
-		val updatedSettings = curSettings.copy(projectsDirectory = path)
-		globalSettingsRepository.updateSettings(updatedSettings)
+            withContext(dispatcherMain) {
+                _state.reduce {
+                    it.copy(projects = projectData)
+                }
+                loadProjectsJob = null
+            }
+        }
+    }
 
-		projectsRepository.getProjectsDirectory()
-		_state.reduce {
-			it.copy(projectsDir = hpath)
-		}
-		loadProjectList()
-	}
+    override fun setProjectsDir(path: String) {
+        val hpath = HPath(
+            path = path,
+            name = "",
+            isAbsolute = true
+        )
 
-	override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
+        val curSettings = globalSettingsRepository.globalSettings
+        val updatedSettings = curSettings.copy(projectsDirectory = path)
+        globalSettingsRepository.updateSettings(updatedSettings)
 
-	override fun createProject(projectName: String) {
-		if (projectsRepository.createProject(projectName)) {
-			Napier.i("Project created: $projectName")
-			loadProjectList()
-		} else {
-			Napier.e("Failed to create Project: $projectName")
-		}
-	}
+        projectsRepository.getProjectsDirectory()
+        _state.reduce {
+            it.copy(projectsDir = hpath)
+        }
+        loadProjectList()
+    }
 
-	override fun deleteProject(projectDef: ProjectDef) {
-		if (projectsRepository.deleteProject(projectDef)) {
-			loadProjectList()
-		}
-	}
+    override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
 
-	override fun showLocation(location: ProjectSelection.Locations) {
-		_state.reduce {
-			it.copy(location = location)
-		}
-	}
+    override fun createProject(projectName: String) {
+        if (projectsRepository.createProject(projectName)) {
+            Napier.i("Project created: $projectName")
+            loadProjectList()
+        } else {
+            Napier.e("Failed to create Project: $projectName")
+        }
+    }
 
-	override fun setUiTheme(theme: UiTheme) {
-		val settings = globalSettingsRepository.globalSettings.copy(
-			uiTheme = theme
-		)
-		globalSettingsRepository.updateSettings(settings)
-	}
+    override fun deleteProject(projectDef: ProjectDef) {
+        if (projectsRepository.deleteProject(projectDef)) {
+            loadProjectList()
+        }
+    }
 
-	override suspend fun reinstallExampleProject() {
-		exampleProjectRepository.install()
-		loadProjectList()
-	}
+    override fun showLocation(location: ProjectSelection.Locations) {
+        _state.reduce {
+            it.copy(location = location)
+        }
+    }
 
-	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
-		return projectsRepository.loadMetadata(projectDef)
-	}
+    override fun setUiTheme(theme: UiTheme) {
+        val settings = globalSettingsRepository.globalSettings.copy(
+            uiTheme = theme
+        )
+        globalSettingsRepository.updateSettings(settings)
+    }
+
+    override suspend fun reinstallExampleProject() {
+        exampleProjectRepository.install()
+        loadProjectList()
+    }
+
+    override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
+        return projectsRepository.loadMetadata(projectDef)
+    }
+
+    override fun beginSetupServer() {
+        _state.reduce {
+            it.copy(
+                serverSetup = true
+            )
+        }
+    }
+
+    override fun cancelServerSetup() {
+        _state.reduce {
+            it.copy(
+                serverSetup = false
+            )
+        }
+    }
+
+    override suspend fun authTest() {
+        accountRepository.testAuth()
+    }
+
+    override suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean {
+        val success = accountRepository.setupServer(url, email, password, create)
+        if (success) {
+            _state.reduce {
+                it.copy(
+                    serverUrl = url,
+                    serverSetup = false
+                )
+            }
+        } else {
+            _state.reduce {
+                it.copy(
+                    serverUrl = null,
+                    serverSetup = false
+                )
+            }
+        }
+
+        return success
+    }
 }

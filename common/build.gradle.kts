@@ -11,7 +11,9 @@ val okio_version: String by extra
 val essenty_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
+val datetime_version: String by extra
 val napier_version: String by extra
+val ktor_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
@@ -52,15 +54,22 @@ kotlin {
 			resources.srcDirs("resources")
 
 			dependencies {
+				implementation(project(":base"))
+
 				api("com.arkivanov.decompose:decompose:$decompose_version")
 				api("io.github.aakira:napier:$napier_version")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				api("io.insert-koin:koin-core:$koin_version")
 				api("com.squareup.okio:okio:$okio_version")
 
+				api("io.ktor:ktor-client-core:$ktor_version")
+				implementation("io.ktor:ktor-client-auth:$ktor_version")
+				implementation("io.ktor:ktor-client-logging:$ktor_version")
+				implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+				implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-				// This is being held back to 0.3.2 due to ios support not working in later versions
-				api("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
+				api("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 				implementation("com.akuleshov7:ktoml-core:0.4.1")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
@@ -83,12 +92,14 @@ kotlin {
 				api("androidx.core:core-ktx:1.9.0")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
 				api("io.insert-koin:koin-android:$koin_version")
+				implementation("io.ktor:ktor-client-okhttp:$ktor_version")
 			}
 		}
 		val iosMain by getting {
 			dependencies {
 				api("com.arkivanov.decompose:decompose:$decompose_version")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
+				implementation("io.ktor:ktor-client-darwin:$ktor_version")
 			}
 		}
 		val iosTest by getting
@@ -103,6 +114,8 @@ kotlin {
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
 				implementation("net.harawata:appdirs:1.2.1")
 				api("dev.icerock.moko:resources-compose:$moko_resources_version")
+				//implementation("io.ktor:ktor-client-curl:$ktor_version")
+				implementation("io.ktor:ktor-client-java:$ktor_version")
 			}
 		}
 		val desktopTest by getting {
@@ -142,6 +155,11 @@ android {
 		sourceCompatibility = JavaVersion.VERSION_1_8
 		targetCompatibility = JavaVersion.VERSION_1_8
 	}
+}
+dependencies {
+	implementation(project(mapOf("path" to ":base")))
+	implementation(project(mapOf("path" to ":base")))
+	implementation(project(mapOf("path" to ":base")))
 }
 
 kover {

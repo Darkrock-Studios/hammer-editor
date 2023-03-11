@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -22,6 +23,8 @@ import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepos
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
+import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.module.dsl.scopedOf
@@ -37,23 +40,28 @@ const val DISPATCHER_IO = "io-dispatcher"
 
 val mainModule = module {
 	includes(externalFileIoModule)
-	includes(exampleProjectModule)
+    includes(exampleProjectModule)
 
-	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
-	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
-	single(named(DISPATCHER_IO)) { platformIoDispatcher }
+    single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
+    single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
+    single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
-	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+    single { createHttpClient(get()) } bind HttpClient::class
+    singleOf(::ServerAccountApi)
 
-	singleOf(::getPlatformFilesystem) bind FileSystem::class
+    singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
+    singleOf(::AccountRepository)
 
-	singleOf(::createTomlSerializer) bind Toml::class
+    singleOf(::getPlatformFilesystem) bind FileSystem::class
 
-	singleOf(::createJsonSerializer) bind Json::class
+    singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
 
-	scope<ProjectDefScope> {
+    singleOf(::createTomlSerializer) bind Toml::class
+
+    singleOf(::createJsonSerializer) bind Json::class
+
+    scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
 		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class

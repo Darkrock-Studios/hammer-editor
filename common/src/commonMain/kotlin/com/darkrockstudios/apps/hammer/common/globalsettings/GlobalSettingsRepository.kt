@@ -1,28 +1,46 @@
 package com.darkrockstudios.apps.hammer.common.globalsettings
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import io.ktor.client.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path.Companion.toPath
+import org.koin.core.component.KoinComponent
 
 class GlobalSettingsRepository(
 	private val fileSystem: FileSystem,
-	private val toml: Toml
-) {
+	private val toml: Toml,
+) : KoinComponent {
+
 	var globalSettings: GlobalSettings
 		private set
 
 	private val _globalSettingsUpdates = MutableSharedFlow<GlobalSettings>(
 		extraBufferCapacity = 1,
+		replay = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
 	val globalSettingsUpdates: SharedFlow<GlobalSettings> = _globalSettingsUpdates
+
+	private val _serverSettingsUpdates = MutableSharedFlow<ServerSettings?>(
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	val serverSettingsUpdates: SharedFlow<ServerSettings?> = _serverSettingsUpdates
+
+	var serverSettings: ServerSettings?
+		private set
 
 	init {
 		if (!fileSystem.exists(CONFIG_PATH)) {
@@ -31,6 +49,8 @@ class GlobalSettingsRepository(
 		}
 
 		globalSettings = loadSettings()
+		serverSettings = loadServerSettings()
+		_serverSettingsUpdates.tryEmit(serverSettings)
 	}
 
 	fun updateSettings(settings: GlobalSettings) {
@@ -58,6 +78,46 @@ class GlobalSettingsRepository(
 		return settings
 	}
 
+	fun updateServerSettings(settings: ServerSettings) {
+		writeServerSettings(settings)
+		serverSettings = settings
+		_serverSettingsUpdates.tryEmit(settings)
+	}
+
+	private fun getServerSettingsPath(): HPath {
+		return (globalSettings.projectsDirectory.toPath() / SERVER_FILE_NAME).toHPath()
+	}
+
+	private fun loadServerSettings(): ServerSettings? {
+		var serverSettings: ServerSettings? = null
+
+		val path = getServerSettingsPath().toOkioPath()
+		if (fileSystem.exists(path)) {
+			lateinit var settingsText: String
+			fileSystem.read(path) {
+				settingsText = readUtf8()
+			}
+
+			serverSettings = toml.decodeFromString(settingsText)
+		}
+		return serverSettings
+	}
+
+	private fun writeServerSettings(settings: ServerSettings) {
+		val settingsText = toml.encodeToString(settings)
+
+		val path = getServerSettingsPath().toOkioPath()
+		fileSystem.createDirectories(path.parent!!)
+		fileSystem.write(path, false) {
+			writeUtf8(settingsText)
+		}
+	}
+
+	fun deleteServerSettings() {
+		val path = getServerSettingsPath().toOkioPath()
+		fileSystem.delete(path)
+	}
+
 	companion object {
 		private const val FILE_NAME = "global_settings.toml"
 		private val CONFIG_PATH = getConfigDirectory().toPath() / FILE_NAME
@@ -71,5 +131,7 @@ class GlobalSettingsRepository(
 				projectsDirectory = defaultProjectDir().toString()
 			)
 		}
+
+		private const val SERVER_FILE_NAME = "server.toml"
 	}
 }
