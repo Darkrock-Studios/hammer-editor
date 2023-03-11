@@ -18,9 +18,11 @@ struct app_iosApp: App {
     init() {
         Theme.navigationBarColors(background: .purple, titleColor: .white)
 
+        NapierProxyKt.debugBuild()
+        
         PlatformKt.initializeKoin()
     }
-        
+    
     var body: some SwiftUI.Scene {
             WindowGroup {
                 RootUi(rootHolder)
@@ -28,40 +30,4 @@ struct app_iosApp: App {
                     .onDisappear { LifecycleRegistryExtKt.stop(self.rootHolder.lifecycle) }
             }
         }
-}
-
-class RootState {
-    var projectSelected: ProjectDefinition? = nil
-    
-    init(_ project: ProjectDefinition?) {
-        self.projectSelected = project
-    }
-}
-
-class RootHolder : ObservableObject {
-    let lifecycle: LifecycleRegistry
-    var state: MutableValue<RootState>
-    
-    init() {
-        state = MutableValueBuilderKt.MutableValue(initialValue: RootState(nil)) as! MutableValue<RootState>
-        
-        lifecycle = LifecycleRegistryKt.LifecycleRegistry()
-        lifecycle.onCreate()
-    }
-    
-    func selectProject(project: ProjectDefinition) {
-        state.reduce { reducer in
-            RootState(project)
-        }
-    }
-    
-    func closeProject() {
-        state.reduce { reducer in
-            RootState(nil)
-        }
-    }
-    
-    deinit {
-        lifecycle.onDestroy()
-    }
 }

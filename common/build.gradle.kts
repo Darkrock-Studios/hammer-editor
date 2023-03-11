@@ -11,6 +11,7 @@ val okio_version: String by extra
 val essenty_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
+val napier_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
@@ -41,6 +42,7 @@ kotlin {
 				export("com.arkivanov.essenty:lifecycle:$essenty_version")
 				export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				export("dev.icerock.moko:resources:$moko_resources_version")
+				export("io.github.aakira:napier:$napier_version")
 			}
 		}
 	}
@@ -51,7 +53,7 @@ kotlin {
 
 			dependencies {
 				api("com.arkivanov.decompose:decompose:$decompose_version")
-				api("io.github.aakira:napier:2.6.1")
+				api("io.github.aakira:napier:$napier_version")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				api("io.insert-koin:koin-core:$koin_version")
 				api("com.squareup.okio:okio:$okio_version")

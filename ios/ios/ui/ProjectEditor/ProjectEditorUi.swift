@@ -15,45 +15,43 @@ private let detailsPaneWeight = CGFloat(0.6)
 
 struct ProjectEditorUi: View {
     
-    init(componentHolder: ComponentHolder<ProjectEditorComponent>, onBackPressed: @escaping () -> Void) {
-        self.holder = componentHolder
-        self.observedState = ObservableValue(componentHolder.component.state)
-        self.listRouterState = ObservableValue(componentHolder.component.listRouterState)
-        self.detailsRouterState = ObservableValue(componentHolder.component.detailsRouterState)
+    init(component: ProjectEditor, onBackPressed: @escaping () -> Void) {
+        self.component = component
+        self.observedState = ObservableValue(component.state)
+        self.listRouterState = ObservableValue(component.listRouterState)
+        self.detailsRouterState = ObservableValue(component.detailsRouterState)
         self.onBackPressed = onBackPressed
     }
     
     private var onBackPressed: () -> Void
     
     @State
-    private var holder: ComponentHolder<ProjectEditorComponent>
-    
-    private var component: ProjectEditor { holder.component }
+    private var component: ProjectEditor
     
     @ObservedObject
     private var observedState: ObservableValue<ProjectEditorState>
     
     @ObservedObject
-    private var listRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorChild.List>>
+    private var listRouterState: ObservableValue<ChildStack<AnyObject, ProjectEditorChildDestination.List>>
     
     @ObservedObject
-    private var detailsRouterState: ObservableValue<RouterState<AnyObject, ProjectEditorChild.Detail>>
+    private var detailsRouterState: ObservableValue<ChildStack<AnyObject, ProjectEditorChildDestination.Detail>>
     
     private var state: ProjectEditorState { observedState.value }
-    private var activeListChild: ProjectEditorChild.List { listRouterState.value.activeChild.instance }
-    private var activeDetailsChild: ProjectEditorChild.Detail { detailsRouterState.value.activeChild.instance }
+    private var activeListChild: ProjectEditorChildDestination.List { listRouterState.value.active.instance }
+    private var activeDetailsChild: ProjectEditorChildDestination.Detail { detailsRouterState.value.active.instance }
     
     var body: some View {
         NavigationView {
             ListPane(listChild: activeListChild, isMultiPane: state.isMultiPane)
                 .padding()
                 .navigationTitle(state.projectDef.name)
-                .navigationBarTitleDisplayMode(.inline)
+                //.navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(true)
-            DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane).onAppear { holder.component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
+            DetailsPane(detailsChild: activeDetailsChild, isMultiPane: state.isMultiPane).onAppear { component.setMultiPane(isMultiPane: deviceRequiresMultiPane()) }
                 .padding()
                 .navigationTitle("Scene")
-                .navigationBarTitleDisplayMode(.inline)
+                //.navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(true)
                 .toolbar(content: {
                     ToolbarItem (placement: .navigation)  {
@@ -70,6 +68,7 @@ struct ProjectEditorUi: View {
     }
 }
 
+/*
 struct ProjectEditorUi_Previews: PreviewProvider {
     static var previews: some View {
         ProjectEditorUi(
@@ -91,48 +90,50 @@ struct ProjectEditorUi_Previews: PreviewProvider {
         )
     }
 }
+*/
 
 struct ListPane: View {
-    let listChild: ProjectEditorChild.List
+    let listChild: ProjectEditorChildDestination.List
     let isMultiPane: Bool
     
     var body: some View {
         switch listChild {
-        case let list as ProjectEditorChild.ListScenes:
+        case let list as ProjectEditorChildDestination.ListScenes:
             GeometryReader { metrics in
                 HStack {
                     SceneListUi(component: list.component)
                         .frame(width: isMultiPane ? metrics.size.width * listPaneWeight : metrics.size.width)
-                    
+
                     if isMultiPane {
                         Spacer().frame(width: metrics.size.width * detailsPaneWeight)
                     }
                 }
             }
-            
+
         default: EmptyView()
         }
     }
 }
 
 struct DetailsPane: View {
-    let detailsChild: ProjectEditorChild.Detail
+    let detailsChild: ProjectEditorChildDestination.Detail
     let isMultiPane: Bool
     
     var body: some View {
+
         switch detailsChild {
-        case let details as ProjectEditorChild.DetailEditor:
+        case let details as ProjectEditorChildDestination.DetailEditorDestination:
             GeometryReader { metrics in
                 HStack {
                     if isMultiPane {
                         Spacer().frame(width: metrics.size.width * listPaneWeight)
                     }
-                    
+
                     SceneEditorUi(component: details.component)
                         .frame(width: isMultiPane ? metrics.size.width * detailsPaneWeight : metrics.size.width)
                 }
             }
-            
+
         default: EmptyView()
         }
     }

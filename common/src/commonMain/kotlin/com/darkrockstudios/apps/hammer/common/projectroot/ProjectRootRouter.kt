@@ -5,6 +5,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -20,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeComponent
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineComponent
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,17 +36,16 @@ internal class ProjectRootRouter(
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
 ) : Router {
+
 	private val navigation = StackNavigation<Config>()
 
-	private val stack = componentContext.childStack(
-		source = navigation,
-		initialConfiguration = Config.HomeConfig(projectDef),
-		key = "ProjectRootRouter",
-		childFactory = ::createChild
-	)
-
-	val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>>
-		get() = stack
+	val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>> =
+		componentContext.childStack(
+			source = navigation,
+			initialConfiguration = Config.HomeConfig(projectDef),
+			key = "ProjectRootRouter",
+			childFactory = ::createChild
+		)
 
 	private fun createChild(
 		config: Config,
@@ -92,6 +93,7 @@ internal class ProjectRootRouter(
 	}
 
 	private fun notes(config: Config.NotesConfig, componentContext: ComponentContext): Notes {
+		Napier.d("create notes")
 		return NotesComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
@@ -134,6 +136,7 @@ internal class ProjectRootRouter(
 
 	fun showNotes() {
 		navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
+		Napier.d("notes brought to front")
 	}
 
 	fun showEncyclopedia() {

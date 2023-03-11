@@ -1,0 +1,133 @@
+//
+//  StackView.swift
+//  ios
+//
+//  Created by Adam Brown on 3/3/23.
+//  Copyright © 2023 orgName. All rights reserved.
+//
+
+import SwiftUI
+import UIKit
+import Hammer
+
+struct StackView<T: AnyObject, Content: View>: View {
+    @ObservedObject
+    var stackValue: ObservableValue<ChildStack<AnyObject, T>>
+
+    var getTitle: (T) -> String
+    var onBack: () -> Void
+    
+    @ViewBuilder
+    var childContent: (T) -> Content
+    
+    var stack: [Child<AnyObject, T>] { stackValue.value.items }
+
+    var body: some View {
+        if #available(iOS 16, *) {
+            NavigationStack(path: Binding(get: { stack.dropFirst() }, set: { _ in onBack() })) {
+                childContent(stack.first!.instance!)
+                    .navigationDestination(for: Child<AnyObject, T>.self) {
+                        childContent($0.instance!)
+                    }
+            }
+        } else {
+            StackInteropView(
+                components: stack.map { $0.instance! },
+                getTitle: getTitle,
+                onBack: onBack,
+                childContent: childContent
+            )
+        }
+    }
+}
+
+private struct StackInteropView<T: AnyObject, Content: View>: UIViewControllerRepresentable {
+    var components: [T]
+    var getTitle: (T) -> String
+    var onBack: () -> Void
+    var childContent: (T) -> Content
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    func makeUIViewController(context: Context) -> UINavigationController {
+        context.coordinator.syncChanges(self)
+        let navigationController = UINavigationController(
+            rootViewController: context.coordinator.viewControllers.first!)
+        
+        return navigationController
+    }
+    
+    func updateUIViewController(_ navigationController: UINavigationController, context: Context) {
+        context.coordinator.syncChanges(self)
+        navigationController.setViewControllers(context.coordinator.viewControllers, animated: true)
+    }
+    
+    private func createViewController(_ component: T, _ coordinator: Coordinator) -> NavigationItemHostingController {
+        let controller = NavigationItemHostingController(rootView: childContent(component))
+        controller.coordinator = coordinator
+        controller.component = component
+        controller.onBack = onBack
+        controller.navigationItem.title = getTitle(component)
+        return controller
+    }
+    
+    class Coordinator: NSObject {
+        var parent: StackInteropView<T, Content>
+        var viewControllers = [NavigationItemHostingController]()
+        var preservedComponents = [T]()
+        
+        init(_ parent: StackInteropView<T, Content>) {
+            self.parent = parent
+        }
+        
+        func syncChanges(_ parent: StackInteropView<T, Content>) {
+            self.parent = parent
+            let count = max(preservedComponents.count, parent.components.count)
+            
+            for i in 0..<count {
+                if (i >= parent.components.count) {
+                    viewControllers.removeLast()
+                } else if (i >= preservedComponents.count) {
+                    viewControllers.append(parent.createViewController(parent.components[i], self))
+                } else if (parent.components[i] !== preservedComponents[i]) {
+                    viewControllers[i] = parent.createViewController(parent.components[i], self)
+                }
+            }
+            
+            preservedComponents = parent.components
+        }
+    }
+    
+    class NavigationItemHostingController: UIHostingController<Content> {
+        fileprivate(set) weak var coordinator: Coordinator?
+        fileprivate(set) var component: T?
+        fileprivate(set) var onBack: (() -> Void)?
+        
+        override func viewDidDisappear(_ animated: Bool) {
+            super.viewDidDisappear(animated)
+            
+            if isMovingFromParent && coordinator?.preservedComponents.last === component {
+                onBack?()
+            }
+        }
+    }
+}
+
+// stubs for XCode < 14:
+#if compiler(<5.7)
+private struct NavigationStack<Path, Root>: View {
+    var path: Path
+    @ViewBuilder var root: () -> Root
+    var body: some View {
+        EmptyView()
+    }
+}
+
+private extension View {
+    public func navigationDestination<D, C>(for data: D.Type, @ViewBuilder destination: @escaping (D) -> C) -> some View where D: Hashable, C: View {
+        EmptyView()
+    }
+}
+#endif

@@ -232,6 +232,9 @@ data class ImmutableTree<T>(
 			else -> false
 		}
 	}
+
+	// TODO we only need this for ios, is there a better way?
+	fun list() = toList()
 }
 
 data class NodeCoordinates(val globalIndex: Int, val parentIndex: Int, val childLocalIndex: Int) {

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,6 +11,9 @@
 		664E22EC284C281600CB8DBD /* ComponentHolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664E22EB284C281600CB8DBD /* ComponentHolder.swift */; };
 		664E22EE284D682800CB8DBD /* ObservableValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664E22ED284D682800CB8DBD /* ObservableValue.swift */; };
 		664E22F1284DABA300CB8DBD /* ProjectEditorUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664E22F0284DABA300CB8DBD /* ProjectEditorUi.swift */; };
+		665252BB29B1ADC20066BFCE /* ProjectRootUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665252BA29B1ADC20066BFCE /* ProjectRootUi.swift */; };
+		665252BD29B1E66B0066BFCE /* StackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665252BC29B1E66B0066BFCE /* StackView.swift */; };
+		665252BF29B6C5CD0066BFCE /* Root.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665252BE29B6C5CD0066BFCE /* Root.swift */; };
 		6689C2FD2853F29200760649 /* SceneEditorUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C2FC2853F29200760649 /* SceneEditorUi.swift */; };
 		6689C2FF2853F37200760649 /* SceneListUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C2FE2853F37200760649 /* SceneListUi.swift */; };
 		6689C3012854059500760649 /* MutableValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C3002854059500760649 /* MutableValue.swift */; };
@@ -59,6 +62,9 @@
 		664E22EB284C281600CB8DBD /* ComponentHolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentHolder.swift; sourceTree = "<group>"; };
 		664E22ED284D682800CB8DBD /* ObservableValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservableValue.swift; sourceTree = "<group>"; };
 		664E22F0284DABA300CB8DBD /* ProjectEditorUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectEditorUi.swift; sourceTree = "<group>"; };
+		665252BA29B1ADC20066BFCE /* ProjectRootUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectRootUi.swift; sourceTree = "<group>"; };
+		665252BC29B1E66B0066BFCE /* StackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackView.swift; sourceTree = "<group>"; };
+		665252BE29B6C5CD0066BFCE /* Root.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Root.swift; sourceTree = "<group>"; };
 		6689C2FC2853F29200760649 /* SceneEditorUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneEditorUi.swift; sourceTree = "<group>"; };
 		6689C2FE2853F37200760649 /* SceneListUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneListUi.swift; sourceTree = "<group>"; };
 		6689C3002854059500760649 /* MutableValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutableValue.swift; sourceTree = "<group>"; };
@@ -106,6 +112,7 @@
 		664E22E7284B617D00CB8DBD /* ui */ = {
 			isa = PBXGroup;
 			children = (
+				665252B929B1AD8C0066BFCE /* ProjectRoot */,
 				664E22EF284DAB9000CB8DBD /* ProjectEditor */,
 				664E22E8284B618E00CB8DBD /* ProjectSelection */,
 			);
@@ -128,6 +135,14 @@
 				6689C2FE2853F37200760649 /* SceneListUi.swift */,
 			);
 			path = ProjectEditor;
+			sourceTree = "<group>";
+		};
+		665252B929B1AD8C0066BFCE /* ProjectRoot */ = {
+			isa = PBXGroup;
+			children = (
+				665252BA29B1ADC20066BFCE /* ProjectRootUi.swift */,
+			);
+			path = ProjectRoot;
 			sourceTree = "<group>";
 		};
 		7555FF72242A565900829871 = {
@@ -165,6 +180,8 @@
 				6689C302285415AD00760649 /* Theme.swift */,
 				6689C30428544E5900760649 /* app_iosApp.swift */,
 				6689C3062854505A00760649 /* RootUi.swift */,
+				665252BC29B1E66B0066BFCE /* StackView.swift */,
+				665252BE29B6C5CD0066BFCE /* Root.swift */,
 			);
 			path = ios;
 			sourceTree = "<group>";
@@ -209,7 +226,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7555FFA5242A565B00829871 /* Build configuration list for PBXNativeTarget "ios" */;
 			buildPhases = (
-				7555FFB5242A651A00829871 /* ShellScript */,
+				7555FFB5242A651A00829871 /* Run Script */,
+				665252B829B06D8F0066BFCE /* ShellScript */,
 				7555FF77242A565900829871 /* Sources */,
 				7555FF78242A565900829871 /* Frameworks */,
 				7555FF79242A565900829871 /* Resources */,
@@ -331,7 +349,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		7555FFB5242A651A00829871 /* ShellScript */ = {
+		665252B829B06D8F0066BFCE /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -340,6 +358,25 @@
 			);
 			inputPaths = (
 			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/../gradlew\" -p \"$SRCROOT/../\" :common:generateMRiosX64Main :common:generateMRiosArmMain \\\n    -Pmoko.resources.PLATFORM_NAME=$PLATFORM_NAME \\\n    -Pmoko.resources.CONFIGURATION=$CONFIGURATION \\\n    -Pmoko.resources.BUILT_PRODUCTS_DIR=$BUILT_PRODUCTS_DIR \\\n    -Pmoko.resources.CONTENTS_FOLDER_PATH=$CONTENTS_FOLDER_PATH\n";
+		};
+		7555FFB5242A651A00829871 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -360,11 +397,14 @@
 				6689C3012854059500760649 /* MutableValue.swift in Sources */,
 				6689C30528544E5900760649 /* app_iosApp.swift in Sources */,
 				6689C3072854505A00760649 /* RootUi.swift in Sources */,
+				665252BB29B1ADC20066BFCE /* ProjectRootUi.swift in Sources */,
 				6689C303285415AD00760649 /* Theme.swift in Sources */,
 				664E22EE284D682800CB8DBD /* ObservableValue.swift in Sources */,
+				665252BF29B6C5CD0066BFCE /* Root.swift in Sources */,
 				664E22F1284DABA300CB8DBD /* ProjectEditorUi.swift in Sources */,
 				664E22EA284B61B700CB8DBD /* ProjectSelectionUi.swift in Sources */,
 				6689C2FF2853F37200760649 /* SceneListUi.swift in Sources */,
+				665252BD29B1E66B0066BFCE /* StackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -448,6 +488,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -509,6 +550,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -520,6 +562,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -531,8 +574,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"ios/Preview Content\"";
+				DEVELOPMENT_TEAM = BP75F4S5N3;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../common/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				INFOPLIST_FILE = ios/Info.plist;
@@ -547,6 +592,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = orgIdentifier.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -556,8 +602,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"ios/Preview Content\"";
+				DEVELOPMENT_TEAM = BP75F4S5N3;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../common/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)";
 				INFOPLIST_FILE = ios/Info.plist;
@@ -572,6 +620,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = orgIdentifier.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

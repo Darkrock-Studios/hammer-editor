@@ -11,14 +11,14 @@ import Hammer
 
 struct ProjectSelectionUi: View {
     
-    public init(componentHolder: ComponentHolder<ProjectSelectionComponent>) {
-        holder = componentHolder
-        observableState = ObservableValue(componentHolder.component.state)
+    public init(projectSelectionComponent: ProjectSelection) {
+        self.component = projectSelectionComponent
+        observableState = ObservableValue(projectSelectionComponent.state)
         
     }
     
     @State
-    private var holder: ComponentHolder<ProjectSelectionComponent>
+    private var component: ProjectSelection
     
     @ObservedObject
     private var observableState: ObservableValue<ProjectSelectionState>
@@ -30,26 +30,25 @@ struct ProjectSelectionUi: View {
     
     var body: some View {
         VStack() {
-            TextField(
-                "Projects Directory",
-                text: $directory
-            )
-            .onChange(of: directory) { newValue in //holder.component.setProjectsDir(path:newValue)
+            Button("Create Test Project") {
+                component.createProject(projectName: "test project")
             }
-            .textInputAutocapitalization(.never)
-            .disableAutocorrection(true)
-            .border(.secondary)
             
-            Button("Load") {
-                holder.component.loadProjectList()
+            Button("Delete Test Project") {
+                if(!state.projects.isEmpty) {
+                    let def = state.projects[0].definition
+                    component.deleteProject(projectDef: def)
+                }
             }
+            
+            Text(MR.strings().settings_projects_directory.desc().localized())
+            
             
             ScrollView {
                 LazyVStack() {
                     // This isn't working yet, need to subscribe to it some how
-                    ForEach(state.projectDefs,
-                            id: \.self) { value in
-                        ProjectItemUi(project: value, onProjectSelected: holder.component.selectProject)
+                    ForEach(state.projects, id: \.self) { value in
+                        ProjectItemUi(project: value, onProjectSelected: component.selectProject)
                     }
                 }
                 
@@ -60,34 +59,36 @@ struct ProjectSelectionUi: View {
     }
 }
 
-struct ProjectSelectionUi_Previews: PreviewProvider {
-    static var previews: some View {
-        ProjectSelectionUi(
-            componentHolder: ComponentHolder { context in
-                ProjectSelectionComponent(
-                    componentContext: context) { Project in
-                        print("Project selected: " + Project.name)
-                    }
-            }
-        )
-    }
-}
+//struct ProjectSelectionUi_Previews: PreviewProvider {
+//    static var previews: some View {
+//        ProjectSelectionUi(
+//            componentHolder: ComponentHolder { context in
+//                ProjectSelectionComponent(
+//                    componentContext: context) { Project in
+//                        print("Project selected: " + Project.name)
+//                    }
+//            }
+//        )
+//    }
+//}
 
 struct ProjectItemUi: View {
     
-    private var project: ProjectDefinition
+    private var project: ProjectData
     
     private var onProjectSelected: (ProjectDefinition) -> Void
     
-    init(project: ProjectDefinition, onProjectSelected: @escaping (ProjectDefinition) -> Void) {
+    init(project: ProjectData, onProjectSelected: @escaping (ProjectDefinition) -> Void) {
         self.project = project
         self.onProjectSelected = onProjectSelected
     }
     
     var body: some View {
-        Text("Row \(project)")
+        Text(project.definition.name)
             .onTapGesture {
-                onProjectSelected(project)
+                onProjectSelected(project.definition)
             }
+        
+        Text("Created " + project.metadata.info.created.formatLocal(format: "dd MMM `yy"))
     }
 }

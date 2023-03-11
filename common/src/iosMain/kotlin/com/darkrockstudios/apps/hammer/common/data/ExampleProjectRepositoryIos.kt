@@ -9,10 +9,15 @@ actual val exampleProjectModule = module {
 	singleOf(::ExampleProjectRepositoryiOs) bind ExampleProjectRepository::class
 }
 
-class ExampleProjectRepositoryiOs(
+private class ExampleProjectRepositoryiOs(
 	globalSettingsRepository: GlobalSettingsRepository,
 ) : ExampleProjectRepository(globalSettingsRepository) {
-	override fun install() {
-		TODO("Not yet implemented")
+
+	override fun removeExampleProject() {
+		// TODO("Not yet implemented")
+	}
+
+	override fun platformInstall() {
+		// TODO("Not yet implemented")
 	}
 }
