@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
@@ -19,9 +19,9 @@ import okio.IOException
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
-	private val fileSystem: FileSystem,
-	private val toml: Toml,
-	globalSettingsRepository: GlobalSettingsRepository,
+    private val fileSystem: FileSystem,
+    private val toml: Toml,
+    globalSettingsRepository: GlobalSettingsRepository,
 ) : ProjectsRepository() {
 
 	private var globalSettings = globalSettingsRepository.globalSettings

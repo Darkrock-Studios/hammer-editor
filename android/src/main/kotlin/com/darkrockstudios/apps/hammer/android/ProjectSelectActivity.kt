@@ -20,8 +20,8 @@ import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent

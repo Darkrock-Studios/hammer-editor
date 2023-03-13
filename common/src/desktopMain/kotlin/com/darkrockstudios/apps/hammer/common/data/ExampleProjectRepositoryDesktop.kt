@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.github.aakira.napier.Napier
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind

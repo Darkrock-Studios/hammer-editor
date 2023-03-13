@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import android.content.Context
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.github.aakira.napier.Napier
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -16,8 +16,8 @@ actual val exampleProjectModule = module {
 }
 
 class ExampleProjectRepositoryAndroid(
-	globalSettingsRepository: GlobalSettingsRepository,
-	private val context: Context
+    globalSettingsRepository: GlobalSettingsRepository,
+    private val context: Context
 ) : ExampleProjectRepository(globalSettingsRepository) {
 
 	private fun loadExampleProjectZip(platform: Any?): ByteArray {

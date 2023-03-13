@@ -4,7 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 
 interface ProjectSelection : HammerComponent {
@@ -26,12 +26,12 @@ interface ProjectSelection : HammerComponent {
     suspend fun authTest()
 
 	data class State(
-		val projectsDir: HPath,
-		val projects: List<ProjectData> = mutableListOf(),
-		val location: Locations = Locations.Projects,
-		val uiTheme: UiTheme,
-		val serverSetup: Boolean = false,
-		val serverUrl: String? = null,
+        val projectsDir: HPath,
+        val projects: List<ProjectData> = mutableListOf(),
+        val location: Locations = Locations.Projects,
+        val uiTheme: UiTheme,
+        val serverSetup: Boolean = false,
+        val serverUrl: String? = null,
 	)
 
 	enum class Locations(val text: String) {

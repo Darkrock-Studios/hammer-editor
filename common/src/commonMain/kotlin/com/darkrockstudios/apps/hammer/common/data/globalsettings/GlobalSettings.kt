@@ -1,12 +1,12 @@
-package com.darkrockstudios.apps.hammer.common.globalsettings
+package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class GlobalSettings(
-	val projectsDirectory: String,
-	val uiTheme: UiTheme = UiTheme.FollowSystem,
-	val nux: NewUserExperience = NewUserExperience()
+    val projectsDirectory: String,
+    val uiTheme: UiTheme = UiTheme.FollowSystem,
+    val nux: NewUserExperience = NewUserExperience()
 )
 
 @Serializable

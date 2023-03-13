@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.globalsettings
+package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory

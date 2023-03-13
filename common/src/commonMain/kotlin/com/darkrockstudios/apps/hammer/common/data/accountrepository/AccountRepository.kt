@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.common.data.accountrepository
 
 import com.benasher44.uuid.uuid4
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*

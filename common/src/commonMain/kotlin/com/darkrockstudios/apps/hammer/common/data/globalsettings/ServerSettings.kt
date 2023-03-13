@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.globalsettings
+package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import kotlinx.serialization.Serializable
 

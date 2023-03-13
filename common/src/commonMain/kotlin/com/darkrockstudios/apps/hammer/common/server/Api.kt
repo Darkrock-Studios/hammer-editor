@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.server
 
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
