@@ -12,13 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.rememberReorderableLazyListState
-import com.darkrockstudios.apps.hammer.common.tree.TreeValue
 import io.github.aakira.napier.Napier
 
 @OptIn(
@@ -86,19 +87,19 @@ fun SceneListUi(
 				modifier = Modifier.fillMaxSize(),
 				state = treeState,
 				itemUi = { node: TreeValue<SceneItem>,
-						   toggleExpanded: (nodeId: Int) -> Unit,
-						   collapsed: Boolean,
-						   draggable: Modifier ->
+                           toggleExpanded: (nodeId: Int) -> Unit,
+                           collapsed: Boolean,
+                           draggable: Modifier ->
 
-					SceneNode(
-						sceneNode = node,
-						draggableModifier = draggable,
-						state = state,
-						summary = treeState.summary,
-						component = component,
-						toggleExpand = toggleExpanded,
-						collapsed = collapsed,
-						sceneDefDeleteTarget = { deleteTarget ->
+                    SceneNode(
+                        sceneNode = node,
+                        draggableModifier = draggable,
+                        state = state,
+                        summary = treeState.summary,
+                        component = component,
+                        toggleExpand = toggleExpanded,
+                        collapsed = collapsed,
+                        sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
 						},
 						createScene = { parent -> showCreateSceneDialog = parent },
@@ -168,16 +169,16 @@ fun SceneListUi(
 @ExperimentalFoundationApi
 @Composable
 private fun SceneNode(
-	sceneNode: TreeValue<SceneItem>,
-	draggableModifier: Modifier,
-	state: SceneList.State,
-	summary: SceneSummary,
-	component: SceneList,
-	toggleExpand: (nodeId: Int) -> Unit,
-	collapsed: Boolean,
-	sceneDefDeleteTarget: (SceneItem) -> Unit,
-	createScene: (SceneItem) -> Unit,
-	createGroup: (SceneItem) -> Unit
+    sceneNode: TreeValue<SceneItem>,
+    draggableModifier: Modifier,
+    state: SceneList.State,
+    summary: SceneSummary,
+    component: SceneList,
+    toggleExpand: (nodeId: Int) -> Unit,
+    collapsed: Boolean,
+    sceneDefDeleteTarget: (SceneItem) -> Unit,
+    createScene: (SceneItem) -> Unit,
+    createGroup: (SceneItem) -> Unit
 ) {
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem

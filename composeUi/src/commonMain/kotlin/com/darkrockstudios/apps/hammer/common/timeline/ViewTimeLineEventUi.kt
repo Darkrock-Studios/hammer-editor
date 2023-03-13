@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
@@ -24,11 +25,11 @@ import kotlin.reflect.KFunction0
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewTimeLineEventUi(
-	component: ViewTimeLineEvent,
-	modifier: Modifier = Modifier,
-	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
-	closeEvent: KFunction0<Unit>
+    component: ViewTimeLineEvent,
+    modifier: Modifier = Modifier,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    closeEvent: KFunction0<Unit>
 ) {
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()

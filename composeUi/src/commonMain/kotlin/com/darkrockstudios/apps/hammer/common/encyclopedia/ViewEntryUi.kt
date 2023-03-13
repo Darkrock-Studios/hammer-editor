@@ -14,6 +14,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import kotlinx.coroutines.CoroutineScope
@@ -23,11 +24,11 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ViewEntryUi(
-	component: ViewEntry,
-	scope: CoroutineScope,
-	modifier: Modifier = Modifier,
-	snackbarHostState: SnackbarHostState,
-	closeEntry: () -> Unit,
+    component: ViewEntry,
+    scope: CoroutineScope,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState,
+    closeEntry: () -> Unit,
 ) {
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
@@ -227,9 +228,9 @@ internal fun ViewEntryUi(
 
 @Composable
 private fun Image(
-	modifier: Modifier = Modifier,
-	state: ViewEntry.State,
-	showDeleteImageDialog: () -> Unit
+    modifier: Modifier = Modifier,
+    state: ViewEntry.State,
+    showDeleteImageDialog: () -> Unit
 ) {
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
@@ -248,12 +249,12 @@ private fun Image(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Contents(
-	modifier: Modifier = Modifier,
-	state: ViewEntry.State,
-	editText: Boolean,
-	entryText: String,
-	setEntryText: (String) -> Unit,
-	beginEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+    state: ViewEntry.State,
+    editText: Boolean,
+    entryText: String,
+    setEntryText: (String) -> Unit,
+    beginEdit: () -> Unit,
 ) {
 	val content = state.content
 

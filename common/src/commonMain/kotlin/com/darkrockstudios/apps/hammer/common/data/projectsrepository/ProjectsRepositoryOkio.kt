@@ -1,14 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock

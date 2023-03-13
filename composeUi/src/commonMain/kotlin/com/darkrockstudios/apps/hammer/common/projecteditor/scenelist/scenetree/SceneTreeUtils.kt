@@ -5,16 +5,16 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 
 
 internal fun findInsertPosition(
-	dragOffset: Offset,
-	layouts: List<LazyListItemInfo>,
-	collapsedGroups: SnapshotStateMap<Int, Boolean>,
-	tree: ImmutableTree<SceneItem>,
-	selectedId: Int,
+    dragOffset: Offset,
+    layouts: List<LazyListItemInfo>,
+    collapsedGroups: SnapshotStateMap<Int, Boolean>,
+    tree: ImmutableTree<SceneItem>,
+    selectedId: Int,
 ): InsertPosition? {
 	val dragY = dragOffset.y
 

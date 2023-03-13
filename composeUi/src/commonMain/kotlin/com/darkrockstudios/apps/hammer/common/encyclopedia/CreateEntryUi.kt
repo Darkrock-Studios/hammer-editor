@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -27,11 +28,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateEntryUi(
-	component: CreateEntry,
-	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
-	modifier: Modifier,
-	close: () -> Unit
+    component: CreateEntry,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier,
+    close: () -> Unit
 ) {
 	var newEntryNameText by remember { mutableStateOf("") }
 	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }

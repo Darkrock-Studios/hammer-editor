@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -30,10 +31,10 @@ const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 
 @Composable
 fun TimeLineOverviewUi(
-	component: TimeLineOverview,
-	scope: CoroutineScope,
-	showCreate: () -> Unit,
-	viewEvent: (eventId: Int) -> Unit
+    component: TimeLineOverview,
+    scope: CoroutineScope,
+    showCreate: () -> Unit,
+    viewEvent: (eventId: Int) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
 

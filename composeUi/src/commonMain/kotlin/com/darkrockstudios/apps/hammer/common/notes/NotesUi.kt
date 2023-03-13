@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
@@ -90,9 +91,9 @@ fun NotesUi(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteItem(
-	note: NoteContent,
-	component: Notes,
-	modifier: Modifier = Modifier,
+    note: NoteContent,
+    component: Notes,
+    modifier: Modifier = Modifier,
 ) {
 	var isEditing by remember { mutableStateOf(false) }
 	var updatedNoteText by remember { mutableStateOf(note.content) }

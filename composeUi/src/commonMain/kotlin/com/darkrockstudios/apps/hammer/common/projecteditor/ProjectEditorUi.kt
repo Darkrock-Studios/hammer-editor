@@ -10,6 +10,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.*
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi

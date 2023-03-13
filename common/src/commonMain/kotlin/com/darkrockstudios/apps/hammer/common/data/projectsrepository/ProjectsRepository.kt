@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import org.koin.core.component.KoinComponent

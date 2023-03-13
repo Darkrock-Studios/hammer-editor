@@ -1,9 +1,9 @@
 package components.timeline
 
 import PROJECT_EMPTY_NAME
+import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.timeline.CreateTimeLineEventComponent
 import getProjectDef
 import io.mockk.coEvery
 import io.mockk.every

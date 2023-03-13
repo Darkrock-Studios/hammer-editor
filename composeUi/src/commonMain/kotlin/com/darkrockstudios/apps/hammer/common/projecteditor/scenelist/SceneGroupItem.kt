@@ -16,18 +16,18 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.bottomBorder
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
 @Composable
 internal fun SceneGroupItem(
-	sceneNode: TreeValue<SceneItem>,
-	draggable: Modifier,
-	hasDirtyBuffer: Set<Int>,
-	toggleExpand: (nodeId: Int) -> Unit,
-	collapsed: Boolean,
-	onSceneAltClick: (SceneItem) -> Unit,
-	onCreateSceneClick: (SceneItem) -> Unit,
-	onCreateGroupClick: (scene: SceneItem) -> Unit,
+    sceneNode: TreeValue<SceneItem>,
+    draggable: Modifier,
+    hasDirtyBuffer: Set<Int>,
+    toggleExpand: (nodeId: Int) -> Unit,
+    collapsed: Boolean,
+    onSceneAltClick: (SceneItem) -> Unit,
+    onCreateSceneClick: (SceneItem) -> Unit,
+    onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
 

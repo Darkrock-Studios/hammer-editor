@@ -3,14 +3,14 @@ package components.projectselection
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import getProjectsDirectory
 import io.mockk.*
 import io.mockk.InternalPlatformDsl.toStr

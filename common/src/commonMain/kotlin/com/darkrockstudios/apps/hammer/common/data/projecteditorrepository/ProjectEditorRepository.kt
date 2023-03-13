@@ -1,15 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.projecteditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.tree.Tree
-import com.darkrockstudios.apps.hammer.common.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import kotlinx.coroutines.*

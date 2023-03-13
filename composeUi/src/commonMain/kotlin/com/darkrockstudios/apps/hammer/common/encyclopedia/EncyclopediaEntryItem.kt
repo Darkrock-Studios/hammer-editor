@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -35,12 +36,12 @@ internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EncyclopediaEntryItem(
-	entryDef: EntryDef,
-	component: BrowseEntries,
-	viewEntry: (EntryDef) -> Unit,
-	scope: CoroutineScope,
-	modifier: Modifier = Modifier,
-	filterByType: (type: EntryType) -> Unit
+    entryDef: EntryDef,
+    component: BrowseEntries,
+    viewEntry: (EntryDef) -> Unit,
+    scope: CoroutineScope,
+    modifier: Modifier = Modifier,
+    filterByType: (type: EntryType) -> Unit
 ) {
 	val ioDispatcher = rememberIoDispatcher()
 	val mainDispatcher = rememberMainDispatcher()

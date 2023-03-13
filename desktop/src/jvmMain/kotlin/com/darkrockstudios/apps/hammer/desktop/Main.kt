@@ -22,11 +22,11 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
-import com.darkrockstudios.apps.hammer.common.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.globalsettings.UiTheme
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -109,13 +109,13 @@ fun main() {
 				LocalImageLoader provides imageLoader,
 			) {
 				when (val windowState = applicationState.windows.value) {
-					is WindowState.ProjectSectionWindow -> {
+					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectSectionWindow -> {
 						ProjectSelectionWindow { project ->
 							applicationState.openProject(project)
 						}
 					}
 
-					is WindowState.ProjectWindow -> {
+					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectWindow -> {
 						ProjectEditorWindow(applicationState, windowState.projectDef)
 					}
 				}

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.fileio.okio
 
-import com.darkrockstudios.apps.hammer.common.tree.Tree
-import com.darkrockstudios.apps.hammer.common.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import kotlin.test.*
 
 class TreeTest {

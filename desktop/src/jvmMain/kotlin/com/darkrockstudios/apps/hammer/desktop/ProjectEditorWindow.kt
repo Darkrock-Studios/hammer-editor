@@ -22,10 +22,10 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleC
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRoot
-import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 

@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import io.ktor.client.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +19,7 @@ import org.koin.core.component.KoinComponent
 class GlobalSettingsRepository(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
+	private val json: Json,
 ) : KoinComponent {
 
 	var globalSettings: GlobalSettings
@@ -98,13 +98,13 @@ class GlobalSettingsRepository(
 				settingsText = readUtf8()
 			}
 
-			serverSettings = toml.decodeFromString(settingsText)
+			serverSettings = json.decodeFromString(settingsText)
 		}
 		return serverSettings
 	}
 
 	private fun writeServerSettings(settings: ServerSettings) {
-		val settingsText = toml.encodeToString(settings)
+		val settingsText = json.encodeToString(settings)
 
 		val path = getServerSettingsPath().toOkioPath()
 		fileSystem.createDirectories(path.parent!!)
@@ -132,6 +132,6 @@ class GlobalSettingsRepository(
 			)
 		}
 
-		private const val SERVER_FILE_NAME = "server.toml"
+		private const val SERVER_FILE_NAME = "server.json"
 	}
 }

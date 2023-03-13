@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
@@ -14,9 +15,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateNoteDialog(
-	component: Notes,
-	snackbarHostState: SnackbarHostState,
-	scope: CoroutineScope,
+    component: Notes,
+    snackbarHostState: SnackbarHostState,
+    scope: CoroutineScope,
 ) {
 	MpDialog(
 		visible = true,

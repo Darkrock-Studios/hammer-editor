@@ -4,13 +4,13 @@ import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewComponent
 import getProjectDef
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
