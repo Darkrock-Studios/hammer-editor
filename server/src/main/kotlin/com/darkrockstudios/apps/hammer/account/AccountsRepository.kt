@@ -118,8 +118,8 @@ class AccountsRepository(
     fun validatePassword(password: String): PasswordResult {
         val trimmedInput = password.trim()
         return when {
-            trimmedInput.length <= MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
-            trimmedInput.length >= MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
+            trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
+            trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
             else -> PasswordResult.VALID
         }
     }

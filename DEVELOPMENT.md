@@ -1,4 +1,4 @@
-# Development
+t# Development
 
 ## Running the Desktop app
 
@@ -10,6 +10,10 @@ Our mocking library `mockk` does not yet support Kotlin/Native, thus we need to 
 write the tests for. We chose desktop:
 
 `gradlew desktopTest`
+
+And for the Server:
+
+`gradlew server:test`
 
 #### Checking code coverage
 

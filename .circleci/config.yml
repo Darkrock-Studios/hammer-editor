@@ -45,7 +45,7 @@ jobs:
       # run tests!
       - run:
           name: Run Tests
-          command: ./gradlew desktopTest
+          command: ./gradlew desktopTest server:test
       - run:
           name: Save test results
           command: |
