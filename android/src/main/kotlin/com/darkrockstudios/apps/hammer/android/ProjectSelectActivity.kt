@@ -17,14 +17,14 @@ import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.reduce
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelection
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.seiko.imageloader.ImageLoader
