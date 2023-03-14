@@ -79,7 +79,13 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 
         override fun beginSetupServer() {}
         override fun cancelServerSetup() {}
-        override suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean = true
+        override suspend fun setupServer(
+            url: String,
+            email: String,
+            password: String,
+            create: Boolean
+        ): Result<Boolean> = Result.success(true)
+
         override suspend fun authTest() {}
     }
 }

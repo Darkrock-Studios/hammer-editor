@@ -183,24 +183,67 @@ class ProjectSelectionComponent(
         accountRepository.testAuth()
     }
 
-    override suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean {
-        val success = accountRepository.setupServer(url, email, password, create)
-        if (success) {
+    override suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Result<Boolean> {
+        if (state.value.serverError != null) {
             _state.reduce {
                 it.copy(
-                    serverUrl = url,
-                    serverSetup = false
-                )
-            }
-        } else {
-            _state.reduce {
-                it.copy(
-                    serverUrl = null,
-                    serverSetup = false
+                    serverError = null
                 )
             }
         }
 
-        return success
+        val cleanUrl = cleanUpUrl(url)
+        return if (validateUrl(cleanUrl).not()) {
+            val message = "Invalid URL"
+            _state.reduce {
+                it.copy(
+                    serverUrl = null,
+                    serverError = message
+                )
+            }
+            Result.failure(Exception(message))
+        } else {
+            val result = accountRepository.setupServer(cleanUrl, email, password, create)
+            if (result.isSuccess) {
+                _state.reduce {
+                    it.copy(
+                        serverUrl = cleanUrl,
+                        serverSetup = false
+                    )
+                }
+            } else {
+                _state.reduce {
+                    it.copy(
+                        serverUrl = null,
+                        serverError = result.exceptionOrNull()?.message ?: "Unknown error"
+                    )
+                }
+            }
+
+            result
+        }
+    }
+
+    companion object {
+        // regex to validate url with port number
+        private val urlWithPortRegex =
+            Regex("""^https?://(?:w{1,3}\.)?[^\s.]+(?:\.[a-z]+)*(?::\d+)?(?![^<]*(?:</\w+>|/?>))$""")
+
+        fun validateUrl(url: String): Boolean {
+            return url.isNotBlank() && urlWithPortRegex.matches(url)
+        }
+
+        fun cleanUpUrl(url: String): String {
+            var cleanUrl: String = url.trim()
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                cleanUrl = "http://$cleanUrl"
+            }
+
+            if (url.endsWith("/")) {
+                cleanUrl = cleanUrl.removeSuffix("/")
+            }
+
+            return cleanUrl
+        }
     }
 }

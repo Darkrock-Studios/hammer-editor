@@ -1,9 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.accountrepository
 
 import com.benasher44.uuid.uuid4
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
@@ -13,7 +14,7 @@ class AccountRepository(
     private val accountApi: ServerAccountApi,
     private val httpClient: HttpClient
 ) {
-    suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Boolean {
+    suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Result<Boolean> {
         val newSettings = ServerSettings(
             email = email,
             url = url,
@@ -50,11 +51,12 @@ class AccountRepository(
             httpClient.updateCredentials(bearerTokens)
             globalSettingsRepository.updateServerSettings(authedSettings)
 
-            true
+            Result.success(true)
         } else {
             globalSettingsRepository.deleteServerSettings()
 
-            false
+            val message = (result.exceptionOrNull() as? HttpFailureException)?.error?.message ?: "Unknown error"
+            Result.failure(ServerSetupFailed(message))
         }
     }
 
@@ -62,3 +64,5 @@ class AccountRepository(
         accountApi.testAuth()
     }
 }
+
+class ServerSetupFailed(message: String) : Exception(message)

@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -75,16 +76,25 @@ fun ServerSetupDialog(
                 }
             )
 
+            state.serverError?.let { error ->
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = FontStyle.Italic
+                )
+            }
+
             Row {
                 Button(onClick = {
                     scope.launch {
-                        if (component.setupServer(
-                                url = urlValue,
-                                email = emailValue,
-                                password = passwordValue,
-                                create = false
-                            )
-                        ) {
+                        val result = component.setupServer(
+                            url = urlValue,
+                            email = emailValue,
+                            password = passwordValue,
+                            create = false
+                        )
+                        if (result.isSuccess) {
                             snackbarHostState.showSnackbar("Server setup complete!")
                         } else {
                             snackbarHostState.showSnackbar("Failed to setup server")
@@ -96,13 +106,13 @@ fun ServerSetupDialog(
 
                 Button(onClick = {
                     scope.launch {
-                        if (component.setupServer(
-                                url = urlValue,
-                                email = emailValue,
-                                password = passwordValue,
-                                create = true
-                            )
-                        ) {
+                        val result = component.setupServer(
+                            url = urlValue,
+                            email = emailValue,
+                            password = passwordValue,
+                            create = true
+                        )
+                        if (result.isSuccess) {
                             snackbarHostState.showSnackbar("Server setup complete!")
                         } else {
                             snackbarHostState.showSnackbar("Failed to setup server")

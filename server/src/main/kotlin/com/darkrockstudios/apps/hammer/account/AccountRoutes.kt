@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -36,7 +37,9 @@ private fun Route.createAccount() {
             val token = result.getOrThrow()
             call.respond(HttpStatusCode.Created, token)
         } else {
-            call.respondText("Failed to create account", status = HttpStatusCode.Conflict)
+            val message = result.exceptionOrNull()?.message
+            val response = HttpResponseError(error = "Failed to create account", message = message ?: "Unknown error")
+            call.respond(status = HttpStatusCode.Conflict, response)
         }
     }
 }
@@ -55,7 +58,9 @@ private fun Route.login() {
             val authToken = result.getOrThrow()
             call.respond(authToken)
         } else {
-            call.respondText("Failed to authenticate", status = HttpStatusCode.Unauthorized)
+            val message = result.exceptionOrNull()?.message
+            val response = HttpResponseError(error = "Failed to authenticate", message = message ?: "Unknown error")
+            call.respond(status = HttpStatusCode.Unauthorized, response)
         }
     }
 }

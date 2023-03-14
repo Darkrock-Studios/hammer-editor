@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.server
 
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -37,9 +39,11 @@ abstract class Api(
                 val value = parse(response)
                 Result.success(value)
             } else {
+                val error = response.body<HttpResponseError>()
                 Result.failure(
-                    IllegalStateException(
-                        "Request Failued: ${response.status} Message: ${response.bodyAsText()} Url: $path"
+                    HttpFailureException(
+                        statusCode = response.status,
+                        error = error
                     )
                 )
             }
@@ -91,3 +95,8 @@ abstract class Api(
             parse = parse
         )
 }
+
+class HttpFailureException(
+    val statusCode: HttpStatusCode,
+    val error: HttpResponseError
+) : Exception("HTTP Failure: $statusCode ${error.error}: ${error.message}")
