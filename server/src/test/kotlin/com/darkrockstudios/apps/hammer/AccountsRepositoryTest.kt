@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MAX_PASSWORD_LENGTH
+import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MIN_PASSWORD_LENGTH
+import com.darkrockstudios.apps.hammer.account.CreateFailed
+import com.darkrockstudios.apps.hammer.account.InvalidPassword
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
@@ -108,6 +112,53 @@ class AccountsRepositoryTest : BaseTest() {
 
         val result = accountsRepository.createAccount(email = email, deviceId = deviceId, password = password)
         assertTrue { result.isFailure }
+    }
+
+    @Test
+    fun `Create Account - Failure - Password Short`() = runTest {
+        coEvery { accountDao.findAccount(any()) } returns account
+        val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+
+        val result = accountsRepository.createAccount(
+            email = email,
+            deviceId = deviceId,
+            password = "x".repeat(MIN_PASSWORD_LENGTH - 1)
+        )
+        assertTrue { result.isFailure }
+        val exception = result.exceptionOrNull()
+        assertTrue { exception is InvalidPassword }
+        assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (exception as InvalidPassword).result)
+    }
+
+    @Test
+    fun `Create Account - Failure - Password Long`() = runTest {
+        coEvery { accountDao.findAccount(any()) } returns account
+        val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+
+        val result = accountsRepository.createAccount(
+            email = email,
+            deviceId = deviceId,
+            password = "x".repeat(MAX_PASSWORD_LENGTH + 1)
+        )
+        assertTrue { result.isFailure }
+        val exception = result.exceptionOrNull()
+        assertTrue { exception is InvalidPassword }
+        assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (exception as InvalidPassword).result)
+    }
+
+    @Test
+    fun `Create Account - Failure - Invalid Email`() = runTest {
+        coEvery { accountDao.findAccount(any()) } returns account
+        val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+
+        val result = accountsRepository.createAccount(
+            email = "notanemail",
+            deviceId = deviceId,
+            password = password
+        )
+        assertTrue { result.isFailure }
+        val exception = result.exceptionOrNull()
+        assertTrue { exception is CreateFailed }
     }
 
     @Test
