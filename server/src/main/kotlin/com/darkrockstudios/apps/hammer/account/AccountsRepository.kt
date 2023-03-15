@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utilities.RandomString
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.soywiz.krypto.sha256
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toInstant
@@ -17,12 +18,12 @@ class AccountsRepository(
 ) {
     private val tokenLifetime = 30.days
 
-    private val tokenGenerator = RandomString(Token.LENGTH)
+    private val tokenGenerator = SecureTokenGenerator(Token.LENGTH)
     private val saltGenerator = RandomString(5)
 
     private suspend fun createToken(email: String, deviceId: String): Token {
         val expires = Clock.System.now() + tokenLifetime
-        val token = Token(tokenGenerator.nextString(), tokenGenerator.nextString())
+        val token = Token(tokenGenerator.generateToken(), tokenGenerator.generateToken())
 
         authTokenDao.setToken(
             email = email,
