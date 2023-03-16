@@ -33,6 +33,8 @@ fun createHttpClient(
             json()
         }
 
+        installCompression()
+
         install(Auth) {
             bearer {
                 realm = AUTH_REALM
@@ -155,8 +157,6 @@ private class NapierHttpLogger : Logger {
     }
 }
 
-expect fun getHttpPlatformEngine(): HttpClientEngineFactory<*>
-
 fun HttpClient.updateCredentials(credentials: BearerTokens) {
     val authPlugin = plugin(Auth)
     authPlugin.providers.removeAll { true }
@@ -166,3 +166,7 @@ fun HttpClient.updateCredentials(credentials: BearerTokens) {
         }
     }
 }
+
+expect fun getHttpPlatformEngine(): HttpClientEngineFactory<*>
+
+expect fun <T : HttpClientEngineConfig> HttpClientConfig<T>.installCompression()
