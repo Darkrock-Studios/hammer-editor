@@ -12,12 +12,13 @@ data class Token(
         return when {
             auth.length != LENGTH -> false
             !auth.matches(characters) -> false
+            auth.isBlank() -> false
             else -> true
         }
     }
 
     companion object {
-        private val characters = Regex("[abcdefghijklmnopqrstuvwxyzABCDEFGJKLMNPRSTUVWXYZ0123456789]+")
+        private val characters = Regex("[a-zA-Z0-9+/=]+")
         const val LENGTH = 64
     }
 }
