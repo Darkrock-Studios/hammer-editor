@@ -157,11 +157,6 @@ android {
 		targetCompatibility = JavaVersion.VERSION_1_8
 	}
 }
-dependencies {
-	implementation(project(mapOf("path" to ":base")))
-	implementation(project(mapOf("path" to ":base")))
-	implementation(project(mapOf("path" to ":base")))
-}
 
 kover {
 	filters {
