@@ -26,7 +26,7 @@ class AccountsRepositoryTest : BaseTest() {
 
     private val userId = 1L
     private val email = "test@example.com"
-    private val installId = "installId123"
+    private val installId = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
     private val password = "power123"
     private val salt = "12345"
     private val bearerToken = "izWqAxTWhMU19TEJowrgXqPwzNmYDUEvJ4TB18wfUdj2LJcTtD30ZmNJj7TnET1A"
@@ -118,7 +118,7 @@ class AccountsRepositoryTest : BaseTest() {
 
     @Test
     fun `Create Account - Failure - Password Short`() = runTest {
-        coEvery { accountDao.findAccount(any()) } returns account
+        coEvery { accountDao.findAccount(any()) } returns null
         val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 
         val result = accountsRepository.createAccount(
@@ -134,7 +134,7 @@ class AccountsRepositoryTest : BaseTest() {
 
     @Test
     fun `Create Account - Failure - Password Long`() = runTest {
-        coEvery { accountDao.findAccount(any()) } returns account
+        coEvery { accountDao.findAccount(any()) } returns null
         val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 
         val result = accountsRepository.createAccount(
@@ -145,7 +145,7 @@ class AccountsRepositoryTest : BaseTest() {
         assertTrue { result.isFailure }
         val exception = result.exceptionOrNull()
         assertTrue { exception is InvalidPassword }
-        assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (exception as InvalidPassword).result)
+        assertEquals(AccountsRepository.Companion.PasswordResult.TOO_LONG, (exception as InvalidPassword).result)
     }
 
     @Test

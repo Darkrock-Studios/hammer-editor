@@ -81,5 +81,5 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
     testImplementation("io.mockk:mockk:$mockk_version")
     testImplementation("io.insert-koin:koin-test:$koin_version")
-    testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
+    //testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
 }
