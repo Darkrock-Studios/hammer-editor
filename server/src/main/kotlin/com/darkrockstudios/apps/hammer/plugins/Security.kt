@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
+import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import org.koin.ktor.ext.inject
@@ -17,11 +18,12 @@ fun Application.configureSecurity() {
         ) {
             realm = AUTH_REALM
             authenticate { tokenCredential ->
-                val result = accountRepo.checkToken(tokenCredential.token)
-                if (result.isSuccess) {
-                    val userEmail = result.getOrThrow()
-                    UserIdPrincipal(userEmail)
+                val userId = parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
 
+                val result = accountRepo.checkToken(userId, tokenCredential.token)
+                if (result.isSuccess) {
+                    val dbUserId = result.getOrThrow()
+                    ServerUserIdPrincipal(dbUserId)
                 } else {
                     null
                 }
@@ -29,3 +31,5 @@ fun Application.configureSecurity() {
         }
     }
 }
+
+data class ServerUserIdPrincipal(val id: Long) : Principal

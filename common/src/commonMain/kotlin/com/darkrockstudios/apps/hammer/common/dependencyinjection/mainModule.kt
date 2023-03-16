@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
@@ -64,14 +65,16 @@ val mainModule = module {
     scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
-		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
+        scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
 
-		scopedOf(::IdRepositoryOkio) bind IdRepository::class
+        scopedOf(::IdRepositoryOkio) bind IdRepository::class
 
-		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
+        scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
 
-		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
+        scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
 
-		scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
+        scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
+
+        scopedOf(::ProjectSynchronizer)
 	}
 }

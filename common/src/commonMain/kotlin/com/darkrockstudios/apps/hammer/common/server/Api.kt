@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.server
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -19,6 +20,12 @@ abstract class Api(
     private val baseUrl: String?
         get() = globalSettingsRepository.serverSettings?.url
 
+    protected val userId: Long?
+        get() = globalSettingsRepository.serverSettings?.userId
+
+    protected val installId: String?
+        get() = globalSettingsRepository.serverSettings?.installId
+
     private val ioDispatcher by injectIoDispatcher()
 
     private suspend fun <T> makeRequest(
@@ -32,8 +39,11 @@ abstract class Api(
     ): Result<T> = withContext(ioDispatcher) {
         val server = baseUrl ?: Result.failure<T>(IllegalStateException("Base URL not configured"))
         val url = "$server$path"
+
+        var outerResponse: HttpResponse? = null
         return@withContext try {
             val response = execute(url, builder)
+            outerResponse = response
 
             if (response.status.isSuccess()) {
                 val value = parse(response)
@@ -49,6 +59,17 @@ abstract class Api(
             }
         } catch (e: IOException) {
             Result.failure(e)
+        } catch (e: NoTransformationFoundException) {
+            Napier.e("Failed to parse error response", e)
+            Result.failure(
+                HttpFailureException(
+                    statusCode = outerResponse?.status ?: HttpStatusCode.InternalServerError,
+                    error = HttpResponseError(
+                        error = "Failed to parse error response",
+                        message = e.message ?: "Unknown"
+                    )
+                )
+            )
         }
     }
 

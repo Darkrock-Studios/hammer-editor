@@ -89,7 +89,7 @@ private suspend fun refreshToken(
             httpClient = client,
             baseUrl = baseUrl,
             refreshToken = refreshToken,
-            deviceId = "asd"
+            installId = "asd"
         )
 
         if (result.isSuccess) {
@@ -119,7 +119,7 @@ private suspend fun refreshTokenRequest(
     httpClient: HttpClient,
     baseUrl: String,
     refreshToken: String,
-    deviceId: String,
+    installId: String,
 ): Result<Token> {
     return try {
         val response = httpClient.post("$baseUrl/account/refresh_token/") {
@@ -127,7 +127,7 @@ private suspend fun refreshTokenRequest(
                 FormDataContent(
                     Parameters.build {
                         append("refreshToken", refreshToken)
-                        append("deviceId", deviceId)
+                        append("installId", installId)
                     }
                 )
             )

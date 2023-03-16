@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
+import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -30,9 +32,9 @@ private fun Route.createAccount() {
         val formParameters = call.receiveParameters()
         val email = formParameters["email"].toString()
         val password = formParameters["password"].toString()
-        val deviceId = formParameters["deviceId"].toString()
+        val installId = formParameters["installId"].toString()
 
-        val result = accountsRepository.createAccount(email = email, deviceId = deviceId, password = password)
+        val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
         if (result.isSuccess) {
             val token = result.getOrThrow()
             call.respond(HttpStatusCode.Created, token)
@@ -51,9 +53,9 @@ private fun Route.login() {
         val formParameters = call.receiveParameters()
         val email = formParameters["email"].toString()
         val password = formParameters["password"].toString()
-        val deviceId = formParameters["deviceId"].toString()
+        val installId = formParameters["installId"].toString()
 
-        val result = accountsRepository.login(email = email, password = password, deviceId = deviceId)
+        val result = accountsRepository.login(email = email, password = password, installId = installId)
         if (result.isSuccess) {
             val authToken = result.getOrThrow()
             call.respond(authToken)
@@ -68,12 +70,15 @@ private fun Route.login() {
 private fun Route.refreshToken() {
     val accountsRepository: AccountsRepository = get()
 
-    post("/refresh_token") {
+    post("/refresh_token/{userId}") {
+        val userId = call.parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
+
         val formParameters = call.receiveParameters()
-        val deviceId = formParameters["deviceId"].toString()
+        val installId = formParameters["installId"].toString()
         val refreshToken = formParameters["refreshToken"].toString()
 
-        val result = accountsRepository.refreshToken(deviceId = deviceId, refreshToken = refreshToken)
+        val result =
+            accountsRepository.refreshToken(userId = userId, installId = installId, refreshToken = refreshToken)
         if (result.isSuccess) {
             val token = result.getOrThrow()
             call.respond(token)
@@ -83,10 +88,9 @@ private fun Route.refreshToken() {
     }
 }
 
-
 private fun Route.testAuth() {
-    get("/test_auth") {
-        val principal = call.principal<UserIdPrincipal>()!!
-        call.respondText("Authenticated as ${principal.name}")
+    get("/test_auth/{userId}") {
+        val principal = call.principal<ServerUserIdPrincipal>()!!
+        call.respondText("Authenticated as ${principal.id}")
     }
 }

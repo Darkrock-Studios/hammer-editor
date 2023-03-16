@@ -4,9 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ServerSettings(
-    val email: String,
     val url: String,
-    val deviceId: String,
+    val userId: Long,
+    val installId: String,
     val bearerToken: String?,
     val refreshToken: String?,
 )

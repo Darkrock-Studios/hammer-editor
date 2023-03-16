@@ -16,7 +16,7 @@ class ServerAccountApi(
     suspend fun createAccount(
         email: String,
         password: String,
-        deviceId: String,
+        installId: String,
     ): Result<Token> {
         return post("/account/create", { it.body() }) {
             setBody(
@@ -24,7 +24,7 @@ class ServerAccountApi(
                     Parameters.build {
                         append("email", email)
                         append("password", password)
-                        append("deviceId", deviceId)
+                        append("installId", installId)
                     }
                 )
             )
@@ -34,7 +34,7 @@ class ServerAccountApi(
     suspend fun login(
         email: String,
         password: String,
-        deviceId: String,
+        installId: String,
     ): Result<Token> {
         return post("/account/login/", { it.body() }) {
             setBody(
@@ -42,7 +42,7 @@ class ServerAccountApi(
                     Parameters.build {
                         append("email", email)
                         append("password", password)
-                        append("deviceId", deviceId)
+                        append("installId", installId)
                     }
                 )
             )
@@ -50,6 +50,6 @@ class ServerAccountApi(
     }
 
     suspend fun testAuth(): Result<String> {
-        return get("/account/test_auth/")
+        return get("/account/test_auth/$userId")
     }
 }

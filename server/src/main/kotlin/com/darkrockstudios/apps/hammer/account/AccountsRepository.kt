@@ -21,13 +21,17 @@ class AccountsRepository(
     private val tokenGenerator = SecureTokenGenerator(Token.LENGTH)
     private val saltGenerator = RandomString(5)
 
-    private suspend fun createToken(email: String, deviceId: String): Token {
+    private suspend fun createToken(userId: Long, installId: String): Token {
         val expires = Clock.System.now() + tokenLifetime
-        val token = Token(tokenGenerator.generateToken(), tokenGenerator.generateToken())
+        val token = Token(
+            userId = userId,
+            auth = tokenGenerator.generateToken(),
+            refresh = tokenGenerator.generateToken()
+        )
 
         authTokenDao.setToken(
-            email = email,
-            deviceId = deviceId,
+            userId = userId,
+            installId = installId,
             token = token,
             expires = expires
         )
@@ -35,21 +39,21 @@ class AccountsRepository(
         return token
     }
 
-    private suspend fun getAuthToken(email: String, deviceId: String): Token {
-        val existingToken = authTokenDao.getTokenByDeviceId(deviceId)
+    private suspend fun getAuthToken(userId: Long, installId: String): Token {
+        val existingToken = authTokenDao.getTokenByInstallId(installId)
         return if (existingToken != null) {
             if (existingToken.isExpired()) {
                 // TODO eventually implement token refresh
-                createToken(email = email, deviceId = deviceId)
+                createToken(userId = userId, installId = installId)
             } else {
-                Token(existingToken.token, existingToken.refresh)
+                Token(existingToken.userId, existingToken.token, existingToken.refresh)
             }
         } else {
-            createToken(email = email, deviceId = deviceId)
+            createToken(userId = userId, installId = installId)
         }
     }
 
-    suspend fun createAccount(email: String, deviceId: String, password: String): Result<Token> {
+    suspend fun createAccount(email: String, installId: String, password: String): Result<Token> {
         val existingAccount = accountDao.findAccount(email)
         val passwordResult = validatePassword(password)
         return when {
@@ -60,13 +64,13 @@ class AccountsRepository(
                 val salt = saltGenerator.nextString()
                 val hashedPassword = hashPassword(password = password, salt = salt)
 
-                accountDao.createAccount(
+                val userId = accountDao.createAccount(
                     email = email,
                     salt = salt,
                     hashedPassword = hashedPassword
                 )
 
-                val token = createToken(email = email, deviceId = deviceId)
+                val token = createToken(userId = userId, installId = installId)
 
                 Result.success(token)
             }
@@ -78,7 +82,7 @@ class AccountsRepository(
         return hashedPassword == account.password_hash
     }
 
-    suspend fun login(email: String, password: String, deviceId: String): Result<Token> {
+    suspend fun login(email: String, password: String, installId: String): Result<Token> {
         val account = accountDao.findAccount(email)
 
         return if (account == null) {
@@ -86,25 +90,32 @@ class AccountsRepository(
         } else if (!checkPassword(account, password)) {
             Result.failure(LoginFailed("Incorrect password"))
         } else {
-            val token = getAuthToken(email, deviceId)
+            val token = getAuthToken(account.id, installId)
             Result.success(token)
         }
     }
 
-    suspend fun checkToken(token: String): Result<String> {
+    suspend fun checkToken(userId: Long, token: String): Result<Long> {
         val authToken = authTokenDao.getTokenByAuthToken(token)
-        return if (authToken != null && !authToken.isExpired()) {
-            Result.success(authToken.email)
+
+        return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
+            Result.success(authToken.userId)
         } else {
             Result.failure(LoginFailed("No valid token not found"))
         }
     }
 
-    suspend fun refreshToken(deviceId: String, refreshToken: String): Result<Token> {
-        val authToken = authTokenDao.getTokenByDeviceId(deviceId)
+    suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): Result<Token> {
+        val authToken = authTokenDao.getTokenByInstallId(installId)
         return if (authToken != null && authToken.refresh == refreshToken) {
-            val newToken = createToken(authToken.email, deviceId)
-            Result.success(Token(auth = newToken.auth, refresh = newToken.refresh))
+            val newToken = createToken(userId, installId)
+            Result.success(
+                Token(
+                    userId = userId,
+                    auth = newToken.auth,
+                    refresh = newToken.refresh
+                )
+            )
         } else {
             Result.failure(LoginFailed("No valid token not found"))
         }

@@ -1,28 +1,30 @@
 CREATE TABLE authToken(
-    email TEXT NOT NULL,
-    deviceId TEXT UNIQUE NOT NULL,
+    userId INTEGER NOT NULL,
+    installId TEXT UNIQUE NOT NULL,
     token TEXT PRIMARY KEY NOT NULL,
     refresh TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
-    expires TEXT NOT NULL
+    expires TEXT NOT NULL,
+    FOREIGN KEY(userId) REFERENCES account(id)
 );
 
-getTokensByEmail:
+
+getTokensByUserId:
 SELECT *
 FROM authToken
-WHERE email = ?;
+WHERE userId = ?;
 
 getTokenByToken:
 SELECT *
 FROM authToken
 WHERE token = ?;
 
-getTokenByDeviceId:
+getTokenByInstallId:
 SELECT *
 FROM authToken
-WHERE deviceId = ?;
+WHERE installId = ?;
 
 setToken:
 INSERT OR REPLACE INTO authToken(
-    email, deviceId, token, refresh, expires
+    userId, installId, token, refresh, expires
 ) VALUES (?, ?, ?, ?, ?);

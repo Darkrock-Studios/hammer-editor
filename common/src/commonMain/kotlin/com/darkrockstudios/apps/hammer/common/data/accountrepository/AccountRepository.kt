@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.accountrepository
 
 import com.benasher44.uuid.uuid4
+import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
@@ -16,9 +17,9 @@ class AccountRepository(
 ) {
     suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Result<Boolean> {
         val newSettings = ServerSettings(
-            email = email,
+            userId = -1,
             url = url,
-            deviceId = uuid4().toString(),
+            installId = uuid4().toString(),
             bearerToken = null,
             refreshToken = null,
         )
@@ -29,20 +30,21 @@ class AccountRepository(
             accountApi.createAccount(
                 email = email,
                 password = password,
-                deviceId = "asd"
+                installId = "asd"
             )
         } else {
             accountApi.login(
                 email = email,
                 password = password,
-                deviceId = "asd"
+                installId = "asd"
             )
         }
 
         return if (result.isSuccess) {
-            val token = result.getOrThrow()
+            val token: Token = result.getOrThrow()
 
             val authedSettings = newSettings.copy(
+                userId = token.userId,
                 bearerToken = token.auth,
                 refreshToken = token.refresh
             )
