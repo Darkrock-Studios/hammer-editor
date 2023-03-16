@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Change to the root directory of your project
+#cd /path/to/your/project/root
+
+# Run the Gradle test task
+./gradlew desktopTest server:test
+
+# Check the exit code of the test task
+if [ $? -ne 0 ]; then
+  echo "Error: tests failed. Please fix the failing tests before committing."
+  exit 1
+fi
+
+# If the tests pass, allow the commit to proceed
+exit 0

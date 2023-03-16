@@ -54,3 +54,22 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
+
+val GIT_TASK_NAME = "install-git-hooks"
+tasks.register<Copy>(GIT_TASK_NAME) {
+    from(layout.projectDirectory.file("../.gitHooks/pre-commit"))
+    into(layout.projectDirectory.dir("../.git/hooks"))
+
+    doLast {
+        val file = layout.projectDirectory.file("../.git/hooks")
+        file.asFile.setExecutable(true)
+    }
+}
+
+afterEvaluate {
+    val gitTask = tasks[GIT_TASK_NAME]
+    for (task in tasks) {
+        if (task != gitTask)
+            task.dependsOn(gitTask)
+    }
+}
