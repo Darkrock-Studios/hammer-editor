@@ -7,6 +7,7 @@ val coroutines_version: String by extra
 val mockk_version: String by extra
 val sqldelight_version: String by extra
 val datetime_version: String by extra
+val kotlinx_serialization_version: String by extra
 
 plugins {
     kotlin("jvm")
@@ -50,6 +51,7 @@ dependencies {
     implementation(project(":base"))
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")

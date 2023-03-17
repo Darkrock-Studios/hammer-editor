@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -15,7 +16,7 @@ class ProjectRepository(
     private val fileSystem: FileSystem,
     private val json: Json,
 ) {
-    fun getRootDirectory(): Path = System.getProperty("user.home").toPath() / DATA_DIRECTORY
+    fun getRootDirectory(): Path = getRootDataDirectory(fileSystem) / DATA_DIRECTORY
 
     fun getUserDirectory(userId: Long): Path {
         val dir = getRootDirectory()
@@ -65,14 +66,12 @@ class ProjectRepository(
     }
 
     companion object {
-        private const val DATA_DIRECTORY = "hammer_server_user_data"
+        private const val DATA_DIRECTORY = "user_data"
         private const val PROJECT_FILE = "projects.zip"
         private const val DATA_FILE = "data.json"
 
-        fun defaultData(userId: Long): UserData {
-            return UserData(
-                userId = userId,
-            )
+        fun defaultData(userId: Long): SyncData {
+            return SyncData()
         }
     }
 }

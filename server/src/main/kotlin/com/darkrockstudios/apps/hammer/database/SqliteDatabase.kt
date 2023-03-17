@@ -3,9 +3,10 @@ package com.darkrockstudios.apps.hammer.database
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.darkrockstudios.apps.hammer.ServerDatabase
-import java.io.File
+import com.darkrockstudios.apps.hammer.getRootDataDirectory
+import okio.FileSystem
 
-class SqliteDatabase : Database {
+class SqliteDatabase(fileSystem: FileSystem) : Database {
     private lateinit var driver: SqlDriver
 
     private lateinit var _serverDatabase: ServerDatabase
@@ -13,10 +14,13 @@ class SqliteDatabase : Database {
         get() = _serverDatabase
 
     private val DATABASE_FILE = "server.db"
-    private fun databasePath() = File(File(System.getProperty("user.home")), DATABASE_FILE)
+    private val databasePath = getRootDataDirectory(fileSystem) / DATABASE_FILE
 
     override fun initialize() {
-        val dbFile = databasePath()
+        val dbFile = databasePath.toFile()
+        if (!dbFile.parentFile.exists()) {
+            dbFile.parentFile.mkdirs()
+        }
         driver = JdbcSqliteDriver(url = "jdbc:sqlite:" + dbFile.absolutePath)
 
         if (!dbFile.exists()) {
