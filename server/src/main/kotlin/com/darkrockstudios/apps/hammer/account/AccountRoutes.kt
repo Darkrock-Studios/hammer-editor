@@ -87,7 +87,10 @@ private fun Route.refreshToken() {
             val token = result.getOrThrow()
             call.respond(token)
         } else {
-            call.respondText("Failed to refresh auth token", status = HttpStatusCode.Unauthorized)
+            call.respond(
+                status = HttpStatusCode.Unauthorized,
+                HttpResponseError(error = "Unauthorized", message = "Failed to refresh auth token")
+            )
         }
     }
 }

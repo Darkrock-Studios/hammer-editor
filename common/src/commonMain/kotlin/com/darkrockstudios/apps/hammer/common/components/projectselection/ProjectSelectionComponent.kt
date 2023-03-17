@@ -183,6 +183,10 @@ class ProjectSelectionComponent(
         accountRepository.testAuth()
     }
 
+    override fun removeServer() {
+        globalSettingsRepository.deleteServerSettings()
+    }
+
     override suspend fun setupServer(
         ssl: Boolean,
         url: String,

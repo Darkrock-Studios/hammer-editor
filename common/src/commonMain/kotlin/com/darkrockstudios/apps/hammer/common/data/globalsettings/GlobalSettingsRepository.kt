@@ -116,6 +116,9 @@ class GlobalSettingsRepository(
 	fun deleteServerSettings() {
 		val path = getServerSettingsPath().toOkioPath()
 		fileSystem.delete(path)
+
+		serverSettings = null
+		_serverSettingsUpdates.tryEmit(null)
 	}
 
 	companion object {

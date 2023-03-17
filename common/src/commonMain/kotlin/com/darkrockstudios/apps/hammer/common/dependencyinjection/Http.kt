@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -84,14 +85,13 @@ private suspend fun refreshToken(
 ): BearerTokens? {
 
     val refreshToken = globalSettingsRepository.serverSettings?.refreshToken
-    val baseUrl =
-        globalSettingsRepository.serverSettings?.url ?: throw IllegalStateException("No server URL")
+    val serverSettings =
+        globalSettingsRepository.serverSettings ?: throw IllegalStateException("No server URL")
     return if (refreshToken != null) {
         val result = refreshTokenRequest(
             httpClient = client,
-            baseUrl = baseUrl,
+            serverSettings = serverSettings,
             refreshToken = refreshToken,
-            installId = "asd"
         )
 
         if (result.isSuccess) {
@@ -117,27 +117,47 @@ private suspend fun refreshToken(
     }
 }
 
+fun HttpRequestBuilder.url(serverSettings: ServerSettings, path: String) {
+    val serverHost: String
+    val serverPort: Int?
+    if (serverSettings.url.contains(":")) {
+        serverHost = serverSettings.url.substringBefore(":")
+        serverPort = serverSettings.url.substringAfter(":").toInt()
+    } else {
+        serverHost = serverSettings.url
+        serverPort = null
+    }
+
+    url {
+        protocol = if (serverSettings.ssl) URLProtocol.HTTPS else URLProtocol.HTTP
+        host = serverHost
+        if (serverPort != null) {
+            port = serverPort
+        }
+        encodedPath = path
+    }
+}
+
 private suspend fun refreshTokenRequest(
     httpClient: HttpClient,
-    baseUrl: String,
+    serverSettings: ServerSettings,
     refreshToken: String,
-    installId: String,
 ): Result<Token> {
     return try {
-        val response = httpClient.post("$baseUrl/account/refresh_token/") {
+        val response = httpClient.post {
+            url(serverSettings, "/account/refresh_token/${serverSettings.userId}")
             setBody(
                 FormDataContent(
                     Parameters.build {
                         append("refreshToken", refreshToken)
-                        append("installId", installId)
+                        append("installId", serverSettings.installId)
                     }
                 )
             )
         }
 
-        val token: Token = response.body()
-
         if (response.status.isSuccess()) {
+            val token: Token = response.body()
             Result.success(token)
         } else {
             Result.failure(TokenRefreshFailed())

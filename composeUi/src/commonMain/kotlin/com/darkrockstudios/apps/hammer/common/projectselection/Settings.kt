@@ -165,15 +165,22 @@ internal fun Settings(
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontStyle = FontStyle.Italic
                             )
-
-                            Button(onClick = {
-                                scope.launch {
-                                    component.authTest()
-                                }
-                            }) {
-                                //Text(MR.strings.settings_server_modify_button.get())
-                                Text("Test Auth")
+                        }
+                        Button(onClick = {
+                            scope.launch {
+                                component.authTest()
                             }
+                        }) {
+                            //Text(MR.strings.settings_server_modify_button.get())
+                            Text("Test Auth")
+                        }
+                        Button(onClick = {
+                            scope.launch {
+                                component.removeServer()
+                            }
+                        }) {
+                            //Text(MR.strings.settings_server_modify_button.get())
+                            Text("Remove Server")
                         }
                     }
                 }

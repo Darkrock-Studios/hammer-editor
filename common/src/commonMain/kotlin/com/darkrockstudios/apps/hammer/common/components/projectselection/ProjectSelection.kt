@@ -12,35 +12,36 @@ interface ProjectSelection : HammerComponent {
 	val state: Value<State>
 
 	fun loadProjectList()
-    fun setProjectsDir(path: String)
-    fun selectProject(projectDef: ProjectDef)
-    fun createProject(projectName: String)
-    fun deleteProject(projectDef: ProjectDef)
-    fun showLocation(location: Locations)
-    fun setUiTheme(theme: UiTheme)
-    suspend fun reinstallExampleProject()
-    suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
-    fun beginSetupServer()
-    fun cancelServerSetup()
-    suspend fun setupServer(
-        ssl: Boolean,
-        url: String,
-        email: String,
-        password: String,
-        create: Boolean
-    ): Result<Boolean>
+	fun setProjectsDir(path: String)
+	fun selectProject(projectDef: ProjectDef)
+	fun createProject(projectName: String)
+	fun deleteProject(projectDef: ProjectDef)
+	fun showLocation(location: Locations)
+	fun setUiTheme(theme: UiTheme)
+	suspend fun reinstallExampleProject()
+	suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
+	fun beginSetupServer()
+	fun cancelServerSetup()
+	suspend fun setupServer(
+		ssl: Boolean,
+		url: String,
+		email: String,
+		password: String,
+		create: Boolean
+	): Result<Boolean>
 
-    suspend fun authTest()
+	suspend fun authTest()
+	fun removeServer()
 
-    data class State(
-        val projectsDir: HPath,
-        val projects: List<ProjectData> = mutableListOf(),
-        val location: Locations = Locations.Projects,
-        val uiTheme: UiTheme,
-        val serverSetup: Boolean = false,
-        val serverUrl: String? = null,
-        val serverError: String? = null,
-    )
+	data class State(
+		val projectsDir: HPath,
+		val projects: List<ProjectData> = mutableListOf(),
+		val location: Locations = Locations.Projects,
+		val uiTheme: UiTheme,
+		val serverSetup: Boolean = false,
+		val serverUrl: String? = null,
+		val serverError: String? = null,
+	)
 
 	enum class Locations(val text: String) {
 		Projects("Projects"),

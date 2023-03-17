@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.server
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -14,21 +15,11 @@ import okio.IOException
 import org.koin.core.component.KoinComponent
 
 abstract class Api(
-    protected val httpClient: HttpClient,
+    private val httpClient: HttpClient,
     private val globalSettingsRepository: GlobalSettingsRepository
 ) : KoinComponent {
-    private val baseUrl: String?
-        get() = globalSettingsRepository.serverSettings?.url
-
-    private val ssl: Boolean?
-        get() = globalSettingsRepository.serverSettings?.ssl
-
-
     protected val userId: Long?
         get() = globalSettingsRepository.serverSettings?.userId
-
-    protected val installId: String?
-        get() = globalSettingsRepository.serverSettings?.installId
 
     private val ioDispatcher by injectIoDispatcher()
 
@@ -38,17 +29,14 @@ abstract class Api(
         execute: suspend (block: HttpRequestBuilder.() -> Unit) -> HttpResponse,
         parse: suspend (HttpResponse) -> T
     ): Result<T> = withContext(ioDispatcher) {
-        val server = baseUrl ?: return@withContext Result.failure<T>(IllegalStateException("Base URL not configured"))
-        val secure = ssl ?: return@withContext Result.failure<T>(IllegalStateException("SSL not configured"))
+        val server = globalSettingsRepository.serverSettings ?: return@withContext Result.failure<T>(
+            IllegalStateException("Server not configured")
+        )
 
         var outerResponse: HttpResponse? = null
         return@withContext try {
             val response = execute {
-                url {
-                    protocol = if (secure) URLProtocol.HTTPS else URLProtocol.HTTP
-                    host = server
-                    path(path)
-                }
+                url(server, path)
                 builder()
             }
             outerResponse = response
@@ -65,8 +53,6 @@ abstract class Api(
                     )
                 )
             }
-        } catch (e: IOException) {
-            Result.failure(e)
         } catch (e: NoTransformationFoundException) {
             Napier.e("Failed to parse error response", e)
             Result.failure(
@@ -78,6 +64,8 @@ abstract class Api(
                     )
                 )
             )
+        } catch (e: IOException) {
+            Result.failure(e)
         }
     }
 
