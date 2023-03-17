@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -17,18 +17,18 @@ import kotlin.test.assertEquals
 class ApplicationTest : BaseTest() {
 
     private lateinit var accountsRepository: AccountsRepository
-    private lateinit var projectsRepository: ProjectsRepository
+    private lateinit var projectRepository: ProjectRepository
 
     @Before
     override fun setup() {
         super.setup()
 
         accountsRepository = mockk()
-        projectsRepository = mockk()
+        projectRepository = mockk()
 
         val testModule = module {
             single { accountsRepository }
-            single { projectsRepository }
+            single { projectRepository }
         }
         setupKoin(testModule)
 

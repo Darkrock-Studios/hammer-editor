@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -36,12 +37,21 @@ fun ServerSetupDialog(
         visible = state.serverSetup,
         title = MR.strings.settings_server_setup_title.get(),
     ) {
+        var sslValue by rememberSaveable { mutableStateOf(false) }
         var urlValue by rememberSaveable { mutableStateOf("") }
         var emailValue by rememberSaveable { mutableStateOf("") }
         var passwordValue by rememberSaveable { mutableStateOf("") }
         var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
         Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = sslValue,
+                    onCheckedChange = { sslValue = it },
+                )
+                Text(MR.strings.settings_server_setup_ssl_label.get())
+            }
+
             OutlinedTextField(
                 value = urlValue,
                 onValueChange = { urlValue = it },
@@ -89,6 +99,7 @@ fun ServerSetupDialog(
                 Button(onClick = {
                     scope.launch {
                         val result = component.setupServer(
+                            ssl = sslValue,
                             url = urlValue,
                             email = emailValue,
                             password = passwordValue,
@@ -107,6 +118,7 @@ fun ServerSetupDialog(
                 Button(onClick = {
                     scope.launch {
                         val result = component.setupServer(
+                            ssl = sslValue,
                             url = urlValue,
                             email = emailValue,
                             password = passwordValue,

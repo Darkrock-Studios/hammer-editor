@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.base.http.HasProjectResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -21,18 +22,17 @@ fun Application.projectRoutes() {
 }
 
 private fun Route.hasProject() {
-    val projectsRepository: ProjectsRepository = get()
+    val projectRepository: ProjectRepository = get()
 
-    get("/has_project") {
+    get("/has_project/{projectName}") {
         val principal = call.principal<ServerUserIdPrincipal>()!!
         val projectName = call.parameters["projectName"]
 
         if (projectName == null) {
             call.respondText("Missing Argument: projectName", status = HttpStatusCode.BadRequest)
         } else {
-            //projectsRepository.hasProject(principal.name, projectName)
-
-            call.respondText("Authenticated as ${principal.id}")
+            val exists = projectRepository.hasProject(principal.id, projectName)
+            call.respond(HasProjectResponse(exists))
         }
     }
 }

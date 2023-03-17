@@ -322,6 +322,12 @@ private fun Actions(
 		Button(onClick = component::beginProjectExport) {
 			Text("Export Story")
 		}
+		if (state.hasServer) {
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			Button(onClick = component::syncProject) {
+				Text("Sync Story")
+			}
+		}
 	}
 
 	DirectoryPicker(state.showExportDialog) { path ->

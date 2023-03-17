@@ -12,6 +12,7 @@ interface ProjectHome : Router, HammerComponent {
 	suspend fun exportProject(path: String)
 	fun beginProjectExport()
 	fun endProjectExport()
+	fun syncProject()
 
 	data class State(
 		val projectDef: ProjectDef,
@@ -20,6 +21,7 @@ interface ProjectHome : Router, HammerComponent {
 		val totalWords: Int = 0,
 		val wordsByChapter: Map<String, Int> = emptyMap(),
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
-		val showExportDialog: Boolean = false
+		val showExportDialog: Boolean = false,
+		val hasServer: Boolean = false,
 	)
 }

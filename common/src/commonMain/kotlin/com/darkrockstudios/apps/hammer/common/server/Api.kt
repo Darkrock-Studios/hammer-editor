@@ -20,6 +20,10 @@ abstract class Api(
     private val baseUrl: String?
         get() = globalSettingsRepository.serverSettings?.url
 
+    private val ssl: Boolean?
+        get() = globalSettingsRepository.serverSettings?.ssl
+
+
     protected val userId: Long?
         get() = globalSettingsRepository.serverSettings?.userId
 
@@ -31,18 +35,22 @@ abstract class Api(
     private suspend fun <T> makeRequest(
         path: String,
         builder: HttpRequestBuilder.() -> Unit = {},
-        execute: suspend (
-            urlString: String,
-            block: HttpRequestBuilder.() -> Unit
-        ) -> HttpResponse,
+        execute: suspend (block: HttpRequestBuilder.() -> Unit) -> HttpResponse,
         parse: suspend (HttpResponse) -> T
     ): Result<T> = withContext(ioDispatcher) {
-        val server = baseUrl ?: Result.failure<T>(IllegalStateException("Base URL not configured"))
-        val url = "$server$path"
+        val server = baseUrl ?: return@withContext Result.failure<T>(IllegalStateException("Base URL not configured"))
+        val secure = ssl ?: return@withContext Result.failure<T>(IllegalStateException("SSL not configured"))
 
         var outerResponse: HttpResponse? = null
         return@withContext try {
-            val response = execute(url, builder)
+            val response = execute {
+                url {
+                    protocol = if (secure) URLProtocol.HTTPS else URLProtocol.HTTP
+                    host = server
+                    path(path)
+                }
+                builder()
+            }
             outerResponse = response
 
             if (response.status.isSuccess()) {
@@ -66,7 +74,7 @@ abstract class Api(
                     statusCode = outerResponse?.status ?: HttpStatusCode.InternalServerError,
                     error = HttpResponseError(
                         error = "Failed to parse error response",
-                        message = e.message ?: "Unknown"
+                        message = "Unknown Error"
                     )
                 )
             )

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
+import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -27,6 +28,7 @@ fun Application.accountRoutes() {
 
 private fun Route.createAccount() {
     val accountsRepository: AccountsRepository = get()
+    val projectRepository: ProjectRepository = get()
 
     post("/create") {
         val formParameters = call.receiveParameters()
@@ -37,6 +39,8 @@ private fun Route.createAccount() {
         val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
         if (result.isSuccess) {
             val token = result.getOrThrow()
+            projectRepository.createUserData(token.userId)
+
             call.respond(HttpStatusCode.Created, token)
         } else {
             val message = result.exceptionOrNull()?.message

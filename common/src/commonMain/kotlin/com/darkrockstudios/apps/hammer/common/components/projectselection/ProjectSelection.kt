@@ -22,7 +22,14 @@ interface ProjectSelection : HammerComponent {
     suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
     fun beginSetupServer()
     fun cancelServerSetup()
-    suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Result<Boolean>
+    suspend fun setupServer(
+        ssl: Boolean,
+        url: String,
+        email: String,
+        password: String,
+        create: Boolean
+    ): Result<Boolean>
+
     suspend fun authTest()
 
     data class State(

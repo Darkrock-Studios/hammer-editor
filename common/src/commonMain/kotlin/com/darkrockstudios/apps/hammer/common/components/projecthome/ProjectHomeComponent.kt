@@ -11,13 +11,17 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class ProjectHomeComponent(
 	componentContext: ComponentContext,
@@ -26,8 +30,10 @@ class ProjectHomeComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
+	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val projectSynchronizer: ProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
 		ProjectHome.State(
@@ -51,6 +57,13 @@ class ProjectHomeComponent(
 			it.copy(
 				showExportDialog = false
 			)
+		}
+	}
+
+	override fun syncProject() {
+		scope.launch {
+			Napier.d("Syncing project")
+			projectSynchronizer.sync()
 		}
 	}
 
@@ -123,7 +136,8 @@ class ProjectHomeComponent(
 						numberOfScenes = numScenes,
 						totalWords = words,
 						wordsByChapter = wordsByChapter,
-						encyclopediaEntriesByType = entriesByType
+						encyclopediaEntriesByType = entriesByType,
+						hasServer = globalSettingsRepository.serverSettings != null
 					)
 				}
 			}

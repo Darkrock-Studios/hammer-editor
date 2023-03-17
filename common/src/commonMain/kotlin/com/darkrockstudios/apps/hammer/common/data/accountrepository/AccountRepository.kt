@@ -15,9 +15,16 @@ class AccountRepository(
     private val accountApi: ServerAccountApi,
     private val httpClient: HttpClient
 ) {
-    suspend fun setupServer(url: String, email: String, password: String, create: Boolean): Result<Boolean> {
+    suspend fun setupServer(
+        ssl: Boolean,
+        url: String,
+        email: String,
+        password: String,
+        create: Boolean
+    ): Result<Boolean> {
         val newSettings = ServerSettings(
             userId = -1,
+            ssl = ssl,
             url = url,
             installId = uuid4().toString(),
             bearerToken = null,

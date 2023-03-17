@@ -27,7 +27,8 @@
     <string name="settings_server_modify_button">Modify</string>
 
     <string name="settings_server_setup_title">Setup Server</string>
-    <string name="settings_server_setup_url_hint">Server Url: https://myserver.com</string>
+    <string name="settings_server_setup_ssl_label">HTTPS?</string>
+    <string name="settings_server_setup_url_hint">Server Url: myserver.com</string>
     <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
     <string name="settings_server_setup_password_hint">Password</string>
     <string name="settings_server_setup_login_button">Login</string>

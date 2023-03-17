@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -49,6 +50,7 @@ val mainModule = module {
 
     single { createHttpClient(get()) } bind HttpClient::class
     singleOf(::ServerAccountApi)
+    singleOf(::ServerProjectApi)
 
     singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
