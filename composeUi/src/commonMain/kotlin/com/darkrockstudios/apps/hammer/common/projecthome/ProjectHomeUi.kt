@@ -115,7 +115,6 @@ private fun Stats(
 			}
 		}
 
-		/*
 		item {
 			NumericStatsBlock("Scenes", state.numberOfScenes)
 		}
@@ -135,7 +134,6 @@ private fun Stats(
 				EncyclopediaChart(state = state)
 			}
 		}
-		*/
 
 		if (otherContent != null) {
 			item {
@@ -235,23 +233,25 @@ private fun EncyclopediaChart(
 	val values =
 		remember(state.encyclopediaEntriesByType) { state.encyclopediaEntriesByType.map { it.value.toFloat() } }
 
-	PieChart(
-		modifier = modifier.focusable(false),
-		values = values,
-		label = { index ->
-			Text(
-				entryTypes[index].text,
-				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.onSurface
-			)
-		},
-		labelConnector = { i ->
-			BezierLabelConnector(
-				connectorColor = colors[i],
-				connectorStroke = Stroke(width = 3f)
-			)
-		},
-	)
+	if (values.isNotEmpty() && values.sum() > 0f) {
+		PieChart(
+			modifier = modifier.focusable(false),
+			values = values,
+			label = { index ->
+				Text(
+					entryTypes[index].text,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onSurface
+				)
+			},
+			labelConnector = { i ->
+				BezierLabelConnector(
+					connectorColor = colors[i],
+					connectorStroke = Stroke(width = 3f)
+				)
+			},
+		)
+	}
 }
 
 @OptIn(ExperimentalKoalaPlotApi::class)
