@@ -11,6 +11,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 
@@ -25,7 +27,7 @@ fun EncyclopediaUi(component: Encyclopedia) {
 		Children(
 			stack = state,
 			modifier = Modifier,
-			//animation = stackAnimation { _, _, _ -> fade() },
+			animation = stackAnimation { _, _, _ -> fade() },
 		) {
 			when (val child = it.instance) {
 				is Encyclopedia.Destination.BrowseEntriesDestination -> {

@@ -97,7 +97,7 @@ private fun DetailsPane(
 	Children(
 		stack = state,
 		modifier = modifier,
-		//animation = stackAnimation { _, _, _ -> fade() }
+		animation = stackAnimation { _, _, _ -> fade() }
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.Detail.None -> Box {}
