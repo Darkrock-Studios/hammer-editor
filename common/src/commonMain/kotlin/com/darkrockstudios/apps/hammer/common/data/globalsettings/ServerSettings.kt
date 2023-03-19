@@ -12,6 +12,7 @@ data class ServerSettings(
     val refreshToken: String?,
 )
 
+/*
 @Serializable
 data class State(
     val nextId: Int,
@@ -23,3 +24,4 @@ data class EntityState(
     val id: Int,
     val originalHash: String
 )
+*/

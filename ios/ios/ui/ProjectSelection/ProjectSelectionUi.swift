@@ -17,7 +17,7 @@ struct ProjectSelectionUi: View {
         
     }
     
-    @SwiftUI.State
+    @State
     private var component: ProjectSelection
     
     @ObservedObject
@@ -25,7 +25,7 @@ struct ProjectSelectionUi: View {
     
     private var state: ProjectSelectionState { observableState.value }
     
-    @SwiftUI.State
+    @State
     private var directory: String = ""
     
     var body: some View {

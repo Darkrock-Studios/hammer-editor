@@ -25,7 +25,7 @@ struct ProjectEditorUi: View {
     
     private var onBackPressed: () -> Void
     
-    @SwiftUI.State
+    @State
     private var component: ProjectEditor
     
     @ObservedObject
