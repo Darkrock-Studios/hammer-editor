@@ -41,8 +41,12 @@ Again, most tests live in the `desktopTest` source set, but a few live in `commo
 Useful reference for UI
 testing: [Compose Test Cheatsheet](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/package-summary)
 
+## Overal Project Structure (modules)
+
+![Project Modules](readme/modules.png)
 
 ## Client Development
+
 ### Client Architecture
 
 ![Client Architecture Layers](readme/client-architecture-layers.png)
@@ -50,6 +54,7 @@ testing: [Compose Test Cheatsheet](https://developer.android.com/reference/kotli
 ### Coroutines
 
 ### Repository Layer
+
 Repositories will need to declare their own coroutine scope, there is no common base class to do so.
 ```kotlin
 	// The various dispatcher can be injected as such
