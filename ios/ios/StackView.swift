@@ -22,6 +22,7 @@ struct StackView<T: AnyObject, Content: View>: View {
     
     var stack: [Child<AnyObject, T>] { stackValue.value.items }
 
+    // TODO: If we just make 16.0 our min supported version, we don't need this interop/fallback view.
     var body: some View {
         if #available(iOS 16, *) {
             NavigationStack(path: Binding(get: { stack.dropFirst() }, set: { _ in onBack() })) {
