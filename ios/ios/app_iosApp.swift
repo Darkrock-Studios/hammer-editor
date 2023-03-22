@@ -29,5 +29,15 @@ struct app_iosApp: App {
                     .onAppear { LifecycleRegistryExtKt.resume(self.rootHolder.lifecycle) }
                     .onDisappear { LifecycleRegistryExtKt.stop(self.rootHolder.lifecycle) }
             }
-        }
+    }
 }
+
+struct Previews_app_iosApp_Previews: PreviewProvider {
+    static var previews: some View {
+        let rootHolder = RootHolder()
+            RootUi(rootHolder)
+                .onAppear { LifecycleRegistryExtKt.resume(rootHolder.lifecycle) }
+                .onDisappear { LifecycleRegistryExtKt.stop(rootHolder.lifecycle) }
+        }
+    }
+

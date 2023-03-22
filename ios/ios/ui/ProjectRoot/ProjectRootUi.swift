@@ -37,7 +37,7 @@ struct ProjectRootUi: View {
         case is ProjectRootDestinationEncyclopediaDestination:
             return "Encyclopedia"
         case is ProjectRootDestinationTimeLineDestination:
-            return "Time Line"
+            return "Timeline"
         case is ProjectRootDestinationHomeDestination:
             return "Home"
         default:
@@ -60,7 +60,7 @@ struct ProjectRootUi: View {
                         //Napier().d(message: "Switch to notes", throwable: nil, tag: "Hammer")
                         component.showNotes()
                     }
-                    Button("Time Line") {
+                    Button("Timeline") {
                         component.showTimeLine()
                     }
                     Button("Encyclopedia") {

@@ -33,15 +33,18 @@ struct ProjectSelectionUi: View {
             Button("Create Test Project") {
                 component.createProject(projectName: "test project")
             }
-            
+            .buttonStyle(SelectButton())
+           
             Button("Delete Test Project") {
                 if(!state.projects.isEmpty) {
                     let def = state.projects[0].definition
                     component.deleteProject(projectDef: def)
                 }
             }
+            .buttonStyle(SelectButton())
             
             Text(MR.strings().settings_projects_directory.desc().localized())
+                .padding()
             
             
             ScrollView {
@@ -50,28 +53,21 @@ struct ProjectSelectionUi: View {
                     ForEach(state.projects, id: \.self) { value in
                         ProjectItemUi(project: value, onProjectSelected: component.selectProject)
                     }
+                    .padding()
+                    .fontWeight(.semibold)
                 }
                 
             }
+            .background(.thinMaterial)
         }
         .frame(maxWidth: 300, alignment: Alignment.center)
         .padding()
     }
 }
 
-//struct ProjectSelectionUi_Previews: PreviewProvider {
-//    static var previews: some View {
-//        ProjectSelectionUi(
-//            componentHolder: ComponentHolder { context in
-//                ProjectSelectionComponent(
-//                    componentContext: context) { Project in
-//                        print("Project selected: " + Project.name)
-//                    }
-//            }
-//        )
-//    }
-//}
-
+/*
+View displaying the project names themselves
+*/
 struct ProjectItemUi: View {
     
     private var project: ProjectData
@@ -84,11 +80,19 @@ struct ProjectItemUi: View {
     }
     
     var body: some View {
-        Text(project.definition.name)
-            .onTapGesture {
-                onProjectSelected(project.definition)
-            }
-        
-        Text("Created " + project.metadata.info.created.formatLocal(format: "dd MMM `yy"))
+        Button(project.definition.name) {
+            onProjectSelected(project.definition)
+        }        
+//        Text("Created " + project.metadata.info.created.formatLocal(format: "dd MMM `yy"))
+    }
+}
+
+struct SelectButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .background(Color.purple.cornerRadius(8))
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .foregroundColor(.white)
     }
 }
