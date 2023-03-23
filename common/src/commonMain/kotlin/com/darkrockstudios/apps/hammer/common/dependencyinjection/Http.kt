@@ -134,7 +134,7 @@ fun HttpRequestBuilder.url(serverSettings: ServerSettings, path: String) {
         if (serverPort != null) {
             port = serverPort
         }
-        encodedPath = path
+        pathSegments = path.split("/")
     }
 }
 
