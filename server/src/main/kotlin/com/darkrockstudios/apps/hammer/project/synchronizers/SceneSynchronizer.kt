@@ -19,7 +19,7 @@ class SceneSynchronizer(
 		projectDef: ProjectDefinition,
 		sceneEntity: ProjectEntity.SceneEntity
 	): Result<Boolean> {
-		val path = getPath(userId, projectDef, sceneEntity)
+		val path = getPath(userId, projectDef, sceneEntity.id)
 
 		return try {
 			val jsonString: String = json.encodeToString(sceneEntity)
@@ -36,10 +36,29 @@ class SceneSynchronizer(
 		}
 	}
 
-	private fun getPath(userId: Long, projectDef: ProjectDefinition, sceneEntity: ProjectEntity.SceneEntity): Path {
+	private fun getPath(userId: Long, projectDef: ProjectDefinition, entityId: Int): Path {
 		val entityDir = ProjectRepository.getEntityDirectory(userId, projectDef, fileSystem)
-		val filename = "${sceneEntity.id}-$TYPE_STUB.json"
+		val filename = "$entityId-$TYPE_STUB.json"
 		return entityDir / filename
+	}
+
+	fun loadScene(userId: Long, projectDef: ProjectDefinition, entityId: Int): Result<ProjectEntity.SceneEntity> {
+		val path = getPath(userId, projectDef, entityId)
+
+		return try {
+			val jsonString = fileSystem.read(path) {
+				readUtf8()
+			}
+
+			val scene = json.decodeFromString(ProjectEntity.SceneEntity.serializer(), jsonString)
+			Result.success(scene)
+		} catch (e: SerializationException) {
+			Result.failure(e)
+		} catch (e: IllegalArgumentException) {
+			Result.failure(e)
+		} catch (e: IOException) {
+			Result.failure(e)
+		}
 	}
 
 	companion object {

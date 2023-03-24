@@ -2,20 +2,22 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.utilities.RandomString
+import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
-import java.io.File
-import java.io.FileOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 class ProjectRepository(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val sceneSynchronizer: SceneSynchronizer
+	private val sceneSynchronizer: SceneSynchronizer,
+	private val clock: Clock
 ) {
+	private val syncIdGenerator = RandomString(30)
+	private val synchronizationSessions = mutableMapOf<Long, ProjectSynchronizationSession>()
+
 	fun getRootDirectory(): Path = getRootDirectory(fileSystem)
 	fun getUserDirectory(userId: Long): Path = getUserDirectory(userId, fileSystem)
 	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
@@ -53,15 +55,58 @@ class ProjectRepository(
 		return fileSystem.exists(userDir)
 	}
 
-	fun hasProject(userId: Long, projectName: String): Boolean {
+	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<String> {
+		val newSyncId = syncIdGenerator.nextString()
+		synchronized(synchronizationSessions) {
+			return if (synchronizationSessions.containsKey(userId)) {
+				return Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+			} else {
+				val session = ProjectSynchronizationSession(
+					userId = userId,
+					projectDef = projectDef,
+					started = clock.now(),
+					syncId = newSyncId
+				)
+				synchronizationSessions[userId] = session
+				Result.success(newSyncId)
+			}
+		}
+	}
+
+	suspend fun endProjectSync(userId: Long, projectDef: ProjectDefinition, syncId: String): Result<Boolean> {
+		synchronized(synchronizationSessions) {
+			val session = synchronizationSessions[userId]
+			return if (session == null) {
+				Result.failure(IllegalStateException("User $userId does not have a synchronization session"))
+			} else {
+				if (session.syncId != syncId) {
+					Result.failure(IllegalStateException("Invalid sync id"))
+				} else {
+					synchronizationSessions.remove(userId)
+					Result.success(true)
+				}
+			}
+		}
+	}
+
+	fun hasProject(userId: Long, projectDef: ProjectDefinition, syncId: String): Boolean {
+		if (validateSyncId(userId, syncId).not()) return false
+
 		val userDir = getUserDirectory(userId)
-		val projectDir = userDir / projectName
+		val projectDir = userDir / projectDef.name
 
 		return fileSystem.exists(projectDir)
 	}
 
-	fun saveEntity(userId: Long, projectDef: ProjectDefinition, entity: ProjectEntity): Result<Boolean> {
-		ensureEntityDir(userId, projectDef, entity)
+	fun saveEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entity: ProjectEntity,
+		syncId: String
+	): Result<Boolean> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
 			is ProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity)
@@ -69,14 +114,45 @@ class ProjectRepository(
 		return result
 	}
 
-	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition, entity: ProjectEntity) {
+	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
 		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
 		fileSystem.createDirectories(entityDir)
 	}
 
+	fun loadEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		type: ProjectEntity.Type,
+		syncId: String
+	): Result<ProjectEntity> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		return when (type) {
+			ProjectEntity.Type.SCENE -> sceneSynchronizer.loadScene(userId, projectDef, entityId)
+		}
+	}
+
+	private fun validateSyncId(userId: Long, syncId: String): Boolean {
+		synchronized(synchronizationSessions) {
+			val session = synchronizationSessions[userId]
+			return if (session?.syncId == syncId) {
+				if (session.isExpired(clock).not()) {
+					session.updateLastAccessed(clock)
+					true
+				} else {
+					synchronizationSessions.remove(userId)
+					false
+				}
+			} else {
+				false
+			}
+		}
+	}
+
 	companion object {
 		private const val DATA_DIRECTORY = "user_data"
-		private const val DATA_FILE = "data.json"
+		const val DATA_FILE = "data.json"
 
 		const val ENTITY_DIR = "entities"
 
@@ -102,3 +178,5 @@ class ProjectRepository(
 		}
 	}
 }
+
+class InvalidSyncIdException : Exception("Invalid sync id")

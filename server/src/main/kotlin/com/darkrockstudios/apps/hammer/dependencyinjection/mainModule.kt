@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.module.dsl.singleOf
@@ -25,7 +26,8 @@ val mainModule = module {
     single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
     single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
-    single { Json } bind Json::class
+	single { Json } bind Json::class
+	single { Clock.System } bind Clock::class
 
     single { FileSystem.SYSTEM } bind FileSystem::class
     singleOf(::SqliteDatabase) bind Database::class

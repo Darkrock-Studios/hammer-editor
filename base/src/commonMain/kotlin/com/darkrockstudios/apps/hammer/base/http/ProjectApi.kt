@@ -11,3 +11,12 @@ data class HasProjectResponse(
 data class SaveSceneResponse(
     val saved: Boolean
 )
+
+@Serializable
+data class LoadSceneResponse(
+    val id: Int,
+    val order: Int,
+    val name: String,
+    val path: List<String>,
+    val content: String
+)
