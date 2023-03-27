@@ -63,6 +63,29 @@ class SceneDraftRepositoryOkio(
 		return path.toHPath()
 	}
 
+	override fun reIdScene(oldId: Int, newId: Int, projectDef: ProjectDef) {
+		val oldScene = createDummyScene(oldId, projectDef)
+		val newScene = createDummyScene(newId, projectDef)
+
+		findDrafts(projectDef, oldScene.id).forEach { draftDef ->
+			Napier.i { "Re-Iding draft: ${draftDef.draftName} Old ID: ${oldScene.id} New ID: ${newScene.id}" }
+			val oldPath = getDraftPath(oldScene, draftDef).toOkioPath()
+			val newPath = getDraftPath(newScene, draftDef).toOkioPath()
+
+			fileSystem.atomicMove(oldPath, newPath)
+		}
+	}
+
+	private fun createDummyScene(id: Int, projectDef: ProjectDef): SceneItem {
+		return SceneItem(
+			projectDef = projectDef,
+			id = id,
+			name = "",
+			order = 0,
+			type = SceneItem.Type.Scene
+		)
+	}
+
 	override fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
 		if (!validDraftName(draftName)) {
 			Napier.w { "saveDraft failed, draftName failed validation" }

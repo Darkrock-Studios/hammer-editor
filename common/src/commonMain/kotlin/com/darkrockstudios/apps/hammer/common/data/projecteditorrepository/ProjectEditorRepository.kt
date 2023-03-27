@@ -61,12 +61,14 @@ abstract class ProjectEditorRepository(
 	val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
 
 	protected val sceneTree = Tree<SceneItem>()
+	val rawTree: Tree<SceneItem>
+		get() = sceneTree
 
 	protected abstract fun loadSceneTree(): TreeNode<SceneItem>
 
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
-	private fun cleanupSceneOrder() {
+	fun cleanupSceneOrder() {
 		val groups = sceneTree.filter {
 			it.value.type == SceneItem.Type.Group ||
 					it.value.type == SceneItem.Type.Root
@@ -372,6 +374,9 @@ abstract class ProjectEditorRepository(
 			clearTempScene(it.scene)
 		}
 	}
+
+	abstract fun rationalizeTree()
+	abstract fun reIdScene(oldId: Int, newId: Int)
 
 	companion object {
 		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _']+)-(\d+)(\.md)?(?:\.temp)?""")

@@ -11,17 +11,3 @@ data class ServerSettings(
     val bearerToken: String?,
     val refreshToken: String?,
 )
-
-/*
-@Serializable
-data class State(
-    val nextId: Int,
-    val dirty: List<EntityState>
-)
-
-@Serializable
-data class EntityState(
-    val id: Int,
-    val originalHash: String
-)
-*/

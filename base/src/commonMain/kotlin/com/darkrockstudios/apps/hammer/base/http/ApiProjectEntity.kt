@@ -1,8 +1,8 @@
-package com.darkrockstudios.apps.hammer.project
+package com.darkrockstudios.apps.hammer.base.http
 
 import kotlinx.serialization.Serializable
 
-sealed interface ProjectEntity {
+sealed interface ApiProjectEntity {
 	val type: Type
 	val id: Int
 
@@ -10,13 +10,14 @@ sealed interface ProjectEntity {
 	data class SceneEntity(
 		override val type: Type = Type.SCENE,
 		override val id: Int,
+		val sceneType: ApiSceneType,
 		val order: Int,
 		val name: String,
-		val path: List<String>,
+		val path: List<Int>,
 		val content: String
-	) : ProjectEntity
+	) : ApiProjectEntity
 
 	enum class Type {
-		SCENE
+		SCENE,
 	}
 }

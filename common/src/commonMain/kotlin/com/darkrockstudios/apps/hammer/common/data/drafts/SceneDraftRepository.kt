@@ -27,6 +27,8 @@ abstract class SceneDraftRepository(
 		return "${draftDef.sceneId}-${draftDef.draftTimestamp.epochSeconds}-${draftDef.draftName}.md"
 	}
 
+	abstract fun reIdScene(oldId: Int, newId: Int, projectDef: ProjectDef)
+
 	companion object {
 		const val DRAFTS_DIR = ".drafts"
 		val DRAFT_FILENAME_PATTERN = Regex("""(\d+)-(\d+)-([\da-zA-Z _']+)\.md""")

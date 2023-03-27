@@ -72,6 +72,39 @@ class ProjectEditorRepositoryOkio(
 		return path.toHPath()
 	}
 
+	override fun rationalizeTree() {
+		sceneTree.forEach { node ->
+			val intendedPath = getSceneFilePath(node.value.id)
+
+			val allPaths = getAllScenePathsOkio()
+			val realPath = allPaths.map { it.toHPath() }.find { path ->
+				val scene = getSceneFromPath(path)
+				scene.id == node.value.id
+			}
+
+			if (realPath != null) {
+				if (realPath != intendedPath) {
+					Napier.i { "Moving scene to new path: $intendedPath" }
+					fileSystem.atomicMove(realPath.toOkioPath(), intendedPath.toOkioPath())
+				} else {
+					Napier.d { "Scene ${node.value.id} is in the correct location" }
+				}
+			} else {
+				Napier.e { "Scene ${node.value.id} is missing from the filesystem" }
+			}
+		}
+	}
+
+	override fun reIdScene(oldId: Int, newId: Int) {
+		val oldPath = getSceneFilePath(oldId)
+
+		val oldScene = getSceneItemFromId(oldId) ?: throw IOException("Scene $oldId does not exist")
+		val newScene = oldScene.copy(id = newId)
+		val newPath = getSceneFilePath(newScene)
+
+		fileSystem.atomicMove(oldPath.toOkioPath(), newPath.toOkioPath())
+	}
+
 	override fun getSceneDirectory() = getSceneDirectory(projectDef, fileSystem)
 
 	override fun getSceneBufferDirectory(): HPath {
@@ -289,7 +322,7 @@ class ProjectEditorRepositoryOkio(
 
 		// Moving from one parent to another
 		if (isMovingParents) {
-			// Move the file to it's new parent
+			// Move the file to its new parent
 			val toPath = getSceneFilePath(moveRequest.id)
 
 			val fromParentPath = getSceneFilePath(fromParentNode.value.id)
@@ -677,7 +710,7 @@ class ProjectEditorRepositoryOkio(
 			val metadataText = fileSystem.read(path) {
 				readUtf8()
 			}
-			toml.decodeFromString<ProjectMetadata>(metadataText)
+			toml.decodeFromString(metadataText)
 		} catch (e: IOException) {
 			Napier.e("Failed to project metadata")
 

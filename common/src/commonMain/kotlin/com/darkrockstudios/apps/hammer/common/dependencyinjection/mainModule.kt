@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOk
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -15,12 +16,12 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.SceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
@@ -67,16 +68,18 @@ val mainModule = module {
     scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
-        scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
+		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
 
-        scopedOf(::IdRepositoryOkio) bind IdRepository::class
+		scopedOf(::IdRepositoryOkio) bind IdRepository::class
 
-        scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
+		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
 
-        scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
+		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
 
-        scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
+		scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
 
-        scopedOf(::ProjectSynchronizer)
+		scopedOf(::ProjectSynchronizer)
+
+		scopedOf(::SceneSynchronizer)
 	}
 }

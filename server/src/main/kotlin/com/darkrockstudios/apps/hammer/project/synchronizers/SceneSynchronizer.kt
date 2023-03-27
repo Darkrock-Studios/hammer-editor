@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectEntity
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
@@ -17,7 +17,7 @@ class SceneSynchronizer(
 	fun saveScene(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		sceneEntity: ProjectEntity.SceneEntity
+		sceneEntity: ApiProjectEntity.SceneEntity
 	): Result<Boolean> {
 		val path = getPath(userId, projectDef, sceneEntity.id)
 
@@ -42,7 +42,7 @@ class SceneSynchronizer(
 		return entityDir / filename
 	}
 
-	fun loadScene(userId: Long, projectDef: ProjectDefinition, entityId: Int): Result<ProjectEntity.SceneEntity> {
+	fun loadScene(userId: Long, projectDef: ProjectDefinition, entityId: Int): Result<ApiProjectEntity.SceneEntity> {
 		val path = getPath(userId, projectDef, entityId)
 
 		return try {
@@ -50,7 +50,7 @@ class SceneSynchronizer(
 				readUtf8()
 			}
 
-			val scene = json.decodeFromString(ProjectEntity.SceneEntity.serializer(), jsonString)
+			val scene = json.decodeFromString(ApiProjectEntity.SceneEntity.serializer(), jsonString)
 			Result.success(scene)
 		} catch (e: SerializationException) {
 			Result.failure(e)

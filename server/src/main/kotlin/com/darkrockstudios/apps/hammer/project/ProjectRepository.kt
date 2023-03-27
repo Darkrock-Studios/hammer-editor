@@ -1,12 +1,17 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 class ProjectRepository(
@@ -22,6 +27,22 @@ class ProjectRepository(
 	fun getUserDirectory(userId: Long): Path = getUserDirectory(userId, fileSystem)
 	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
 		getEntityDirectory(userId, projectDef, fileSystem)
+
+	fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition): Path =
+		getProjectDirectory(userId, projectDef, fileSystem)
+
+	private fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition): Path {
+		val dir = getProjectDirectory(userId, projectDef)
+		return dir / SYNC_DATA_FILE
+	}
+
+	private fun getProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
+		val dir = getProjectSyncDataPath(userId, projectDef)
+		val dataJson = fileSystem.read(dir) {
+			readUtf8()
+		}
+		return json.decodeFromString(dataJson)
+	}
 
 	fun createUserData(userId: Long) {
 		val userDir = getUserDirectory(userId)
@@ -57,10 +78,16 @@ class ProjectRepository(
 
 	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<String> {
 		val newSyncId = syncIdGenerator.nextString()
+		val projectDir = getProjectDirectory(userId, projectDef)
+
 		synchronized(synchronizationSessions) {
 			return if (synchronizationSessions.containsKey(userId)) {
-				return Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+				Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+			} else if (!fileSystem.exists(projectDir)) {
+				Result.failure(IllegalStateException("Project does not exist"))
 			} else {
+				createProject(userId, projectDef)
+
 				val session = ProjectSynchronizationSession(
 					userId = userId,
 					projectDef = projectDef,
@@ -82,6 +109,14 @@ class ProjectRepository(
 				if (session.syncId != syncId) {
 					Result.failure(IllegalStateException("Invalid sync id"))
 				} else {
+					// Update last sync time
+					val synDataPath = getProjectSyncDataPath(userId, projectDef)
+					val syncData = getProjectSyncData(userId, projectDef)
+					val newSyncData = syncData.copy(lastSync = clock.now())
+					fileSystem.write(synDataPath) {
+						writeUtf8(json.encodeToString(newSyncData))
+					}
+
 					synchronizationSessions.remove(userId)
 					Result.success(true)
 				}
@@ -89,19 +124,50 @@ class ProjectRepository(
 		}
 	}
 
-	fun hasProject(userId: Long, projectDef: ProjectDefinition, syncId: String): Boolean {
-		if (validateSyncId(userId, syncId).not()) return false
+	fun getProjectLastSync(userId: Long, projectDef: ProjectDefinition, syncId: String): Result<ProjectServerState> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(IllegalStateException("Project does not exist"))
 
-		val userDir = getUserDirectory(userId)
-		val projectDir = userDir / projectDef.name
+		val projectDir = getProjectDirectory(userId, projectDef)
 
-		return fileSystem.exists(projectDir)
+		return if (fileSystem.exists(projectDir)) {
+			val projectSyncData = getProjectSyncData(userId, projectDef)
+			Result.success(
+				ProjectServerState(
+					lastSync = projectSyncData.lastSync,
+					lastId = projectSyncData.lastId
+				)
+			)
+		} else {
+			Result.failure(IllegalStateException("Project does not exist"))
+		}
+	}
+
+	fun setProjectSyncData(userId: Long, projectDef: ProjectDefinition, syncId: String, lastId: Int): Result<Boolean> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		val path = getProjectSyncDataPath(userId, projectDef)
+
+		return try {
+			fileSystem.write(path) {
+				val data = getProjectSyncData(userId, projectDef)
+				val newData = data.copy(lastId = lastId)
+				val syncDataStr = json.encodeToString(newData)
+				writeUtf8(syncDataStr)
+			}
+			Result.success(true)
+		} catch (e: IOException) {
+			return Result.failure(e)
+		} catch (e: SerializationException) {
+			return Result.failure(e)
+		} catch (e: IllegalArgumentException) {
+			return Result.failure(e)
+		}
 	}
 
 	fun saveEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		entity: ProjectEntity,
+		entity: ApiProjectEntity,
 		syncId: String
 	): Result<Boolean> {
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
@@ -109,9 +175,26 @@ class ProjectRepository(
 		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
-			is ProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity)
+			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity)
 		}
 		return result
+	}
+
+	private fun createProject(userId: Long, projectDef: ProjectDefinition) {
+		val projectDir = getProjectDirectory(userId, projectDef)
+		fileSystem.createDirectories(projectDir)
+
+		getProjectSyncDataPath(userId, projectDef).let { syncDataPath ->
+			if (fileSystem.exists(syncDataPath).not()) {
+				fileSystem.write(syncDataPath) {
+					val data = ProjectSyncData(
+						lastSync = Instant.DISTANT_PAST,
+						lastId = 0
+					)
+					writeUtf8(json.encodeToString(data))
+				}
+			}
+		}
 	}
 
 	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
@@ -123,13 +206,13 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entityId: Int,
-		type: ProjectEntity.Type,
+		type: ApiProjectEntity.Type,
 		syncId: String
-	): Result<ProjectEntity> {
+	): Result<ApiProjectEntity> {
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		return when (type) {
-			ProjectEntity.Type.SCENE -> sceneSynchronizer.loadScene(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadScene(userId, projectDef, entityId)
 		}
 	}
 
@@ -153,6 +236,7 @@ class ProjectRepository(
 	companion object {
 		private const val DATA_DIRECTORY = "user_data"
 		const val DATA_FILE = "data.json"
+		const val SYNC_DATA_FILE = "syncData.json"
 
 		const val ENTITY_DIR = "entities"
 
@@ -178,5 +262,7 @@ class ProjectRepository(
 		}
 	}
 }
+
+data class ProjectServerState(val lastSync: Instant, val lastId: Int)
 
 class InvalidSyncIdException : Exception("Invalid sync id")

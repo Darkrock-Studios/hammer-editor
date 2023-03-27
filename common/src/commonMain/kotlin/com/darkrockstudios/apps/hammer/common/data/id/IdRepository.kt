@@ -9,6 +9,9 @@ abstract class IdRepository(private val projectDef: ProjectDef) {
 	protected abstract val idHandlers: List<IdHandler>
 
 	private var nextId: Int = -1
+
+	fun peekNextId(): Int = nextId
+
 	fun findNextId() {
 		var lastId = -1
 

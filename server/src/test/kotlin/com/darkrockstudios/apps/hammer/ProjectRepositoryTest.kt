@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
 import io.mockk.every
@@ -109,7 +110,7 @@ class ProjectRepositoryTest : BaseTest() {
 
 			clock.advanceTime(ProjectSynchronizationSession.Companion.EXPIRATION_TIME + 1.minutes)
 
-			val result = loadEntity(userId, projectDefinition, 1, ProjectEntity.Type.SCENE, syncId)
+			val result = loadEntity(userId, projectDefinition, 1, ApiProjectEntity.Type.SCENE, syncId)
 			assertTrue(result.isFailure)
 
 			val exception = result.exceptionOrNull()
@@ -124,8 +125,8 @@ class ProjectRepositoryTest : BaseTest() {
 		createProjectDir()
 
 		ProjectRepository(fileSystem, Json, sceneSynchronizer, clock).apply {
-			val result = hasProject(userId, projectDefinition, "invalid-id")
-			assertFalse(result)
+			val result = getProjectLastSync(userId, projectDefinition, "invalid-id")
+			assertFalse(result.isSuccess)
 		}
 	}
 
@@ -138,8 +139,8 @@ class ProjectRepositoryTest : BaseTest() {
 
 			val syncId = beginResult.getOrThrow()
 
-			val result = hasProject(userId, projectDefinition, syncId)
-			assertFalse(result)
+			val result = getProjectLastSync(userId, projectDefinition, syncId)
+			assertFalse(result.isSuccess)
 		}
 	}
 
@@ -155,18 +156,19 @@ class ProjectRepositoryTest : BaseTest() {
 			val syncId = beginResult.getOrThrow()
 
 
-			val result = hasProject(userId, projectDefinition, syncId)
-			assertTrue(result)
+			val result = getProjectLastSync(userId, projectDefinition, syncId)
+			assertTrue(result.isSuccess)
 		}
 	}
 
-	private fun createSceneEntity(entityId: Int): ProjectEntity.SceneEntity {
-		return ProjectEntity.SceneEntity(
+	private fun createSceneEntity(entityId: Int): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
 			id = entityId,
+			sceneType = ApiProjectEntity.SceneEntity.SceneType.Scene,
 			name = "Test Scene",
 			order = 1,
 			path = emptyList(),
-			content = "Test Content"
+			content = "Test Content",
 		)
 	}
 
