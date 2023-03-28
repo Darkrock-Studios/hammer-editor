@@ -12,6 +12,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
+import kotlinx.datetime.Instant
 
 class ServerProjectApi(
 	httpClient: HttpClient,
@@ -39,7 +40,7 @@ class ServerProjectApi(
 
 	suspend fun getProjectLastSync(userId: Long, projectName: String, syncId: String): Result<HasProjectResponse> {
 		return get(
-			path = "/project/$userId/$projectName/has_project",
+			path = "/project/$userId/$projectName/last_sync",
 			parse = { it.body() },
 			builder = {
 				headers {
@@ -91,7 +92,7 @@ class ServerProjectApi(
 		)
 	}
 
-	suspend fun setSyncData(projectDef: ProjectDef, syncId: String, lastId: Int): Result<String> {
+	suspend fun setSyncData(projectDef: ProjectDef, syncId: String, lastId: Int, syncEnd: Instant): Result<String> {
 		val projectName = projectDef.name
 		return post(
 			path = "/project/$userId/$projectName/set_sync_data",
@@ -100,6 +101,7 @@ class ServerProjectApi(
 				setBody(
 					FormDataContent(
 						Parameters.build {
+							append("lastSync", syncEnd.toEpochMilliseconds().toString())
 							append("lastId", lastId.toString())
 						}
 					)

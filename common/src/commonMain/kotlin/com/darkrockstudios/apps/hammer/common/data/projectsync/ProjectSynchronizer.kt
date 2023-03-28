@@ -3,21 +3,22 @@ package com.darkrockstudios.apps.hammer.common.data.projectsync
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.HasProjectResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
 
 class ProjectSynchronizer(
 	private val projectDef: ProjectDef,
@@ -26,10 +27,11 @@ class ProjectSynchronizer(
 	private val serverProjectApi: ServerProjectApi,
 	private val fileSystem: FileSystem,
 	private val json: Json
-) : KoinComponent {
+) : ProjectScoped {
 
-	private val idRepository: IdRepository by inject { parametersOf(projectDef) }
-	private val sceneSynchronizer: SceneSynchronizer by inject { parametersOf(projectDef) }
+	override val projectScope = ProjectDefScope(projectDef)
+	private val idRepository: IdRepository by projectInject()
+	private val sceneSynchronizer: SceneSynchronizer by projectInject()
 
 	private val userId: Long
 		get() = globalSettingsRepository.serverSettings?.userId
@@ -39,7 +41,7 @@ class ProjectSynchronizer(
 
 	private fun loadSyncData(): SynchronizationData {
 		val path = getSyncDataPath()
-		return if (fileSystem.exists(path).not()) {
+		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
 				val syncDataJson = readUtf8()
 				json.decodeFromString(syncDataJson)
@@ -100,23 +102,39 @@ class ProjectSynchronizer(
 
 		// Transfer Entities
 		for (thisId in 1..maxId) {
+			Napier.d("Syncing ID $thisId")
+
 			val localIsDirty = clientSyncData.dirty.find { it.id == thisId }
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			if (localIsDirty != null || thisId > serverSyncData.lastId) {
+				Napier.d("Upload ID $thisId")
 				uploadEntity(thisId, syncId)
 			}
 			// Otherwise download the server's copy
 			else {
+				Napier.d("Download ID $thisId")
 				downloadEntry(thisId, syncId)
 			}
 		}
 
 		val newLastId = idRepository.peekNextId() - 1
-		serverProjectApi.setSyncData(projectDef, syncId, newLastId)
+		val syncFinishedAt = Clock.System.now()
+		serverProjectApi.setSyncData(projectDef, syncId, newLastId, syncFinishedAt)
 
 		finalizeSync()
 
 		val endSyncResult = serverProjectApi.endProjectSync(userId, projectDef.name, syncId)
+
+		if (endSyncResult.isFailure) {
+			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+		} else {
+			val finalSyncData = clientSyncData.copy(
+				currentSyncId = null,
+				lastId = newLastId,
+				lastSync = syncFinishedAt
+			)
+			saveSyncData(finalSyncData)
+		}
 	}
 
 	private suspend fun finalizeSync() {

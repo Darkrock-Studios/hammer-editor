@@ -133,7 +133,7 @@ private fun Route.getProjectLastSync() {
 private fun Route.uploadScene() {
     val projectRepository: ProjectRepository = get()
 
-    post("/upload_scene/entityId") {
+    post("/upload_scene/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val entityId = call.parameters["entityId"]?.toIntOrNull()

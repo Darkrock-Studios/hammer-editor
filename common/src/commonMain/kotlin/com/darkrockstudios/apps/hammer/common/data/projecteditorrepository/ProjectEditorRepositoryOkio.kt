@@ -74,6 +74,8 @@ class ProjectEditorRepositoryOkio(
 
 	override fun rationalizeTree() {
 		sceneTree.forEach { node ->
+			if (node.value.type == SceneItem.Type.Root) return@forEach
+
 			val intendedPath = getSceneFilePath(node.value.id)
 
 			val allPaths = getAllScenePathsOkio()

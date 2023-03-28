@@ -37,11 +37,26 @@ class ProjectRepository(
 	}
 
 	private fun getProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
-		val dir = getProjectSyncDataPath(userId, projectDef)
-		val dataJson = fileSystem.read(dir) {
-			readUtf8()
+		val file = getProjectSyncDataPath(userId, projectDef)
+
+		return if (fileSystem.exists(file)) {
+			val newData = ProjectSyncData(
+				lastId = -1,
+				lastSync = Instant.DISTANT_PAST,
+			)
+
+			fileSystem.write(file) {
+				val syncDataJson = json.encodeToString(newData)
+				writeUtf8(syncDataJson)
+			}
+
+			newData
+		} else {
+			val dataJson = fileSystem.read(file) {
+				readUtf8()
+			}
+			json.decodeFromString(dataJson)
 		}
-		return json.decodeFromString(dataJson)
 	}
 
 	fun createUserData(userId: Long) {
@@ -76,17 +91,29 @@ class ProjectRepository(
 		return fileSystem.exists(userDir)
 	}
 
+	private fun hasActiveSyncSession(userId: Long): Boolean {
+		synchronized(synchronizationSessions) {
+			val session = synchronizationSessions[userId]
+			return if (session == null || session.isExpired(clock)) {
+				synchronizationSessions.remove(userId)
+				false
+			} else {
+				true
+			}
+		}
+	}
+
 	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<String> {
 		val newSyncId = syncIdGenerator.nextString()
 		val projectDir = getProjectDirectory(userId, projectDef)
 
 		synchronized(synchronizationSessions) {
-			return if (synchronizationSessions.containsKey(userId)) {
+			return if (hasActiveSyncSession(userId)) {
 				Result.failure(IllegalStateException("User $userId already has a synchronization session"))
-			} else if (!fileSystem.exists(projectDir)) {
-				Result.failure(IllegalStateException("Project does not exist"))
 			} else {
-				createProject(userId, projectDef)
+				if (!fileSystem.exists(projectDir)) {
+					createProject(userId, projectDef)
+				}
 
 				val session = ProjectSynchronizationSession(
 					userId = userId,

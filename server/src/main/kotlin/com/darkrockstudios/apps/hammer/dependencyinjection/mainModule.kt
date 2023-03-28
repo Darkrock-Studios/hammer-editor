@@ -22,20 +22,20 @@ const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
 val mainModule = module {
-    single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Main }
-    single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
-    single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
+	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Main }
+	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
+	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
 	single { Json } bind Json::class
 	single { Clock.System } bind Clock::class
 
-    single { FileSystem.SYSTEM } bind FileSystem::class
-    singleOf(::SqliteDatabase) bind Database::class
-    singleOf(::AccountDao)
-    singleOf(::AuthTokenDao)
+	single { FileSystem.SYSTEM } bind FileSystem::class
+	singleOf(::SqliteDatabase) bind Database::class
+	singleOf(::AccountDao)
+	singleOf(::AuthTokenDao)
 
-    singleOf(::AccountsRepository)
-    singleOf(::ProjectRepository)
+	singleOf(::AccountsRepository)
+	singleOf(::ProjectRepository)
 
-    singleOf(::SceneSynchronizer)
+	singleOf(::SceneSynchronizer)
 }

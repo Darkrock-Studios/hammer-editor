@@ -27,7 +27,7 @@ fun createHttpClient(
 
         install(Logging) {
             logger = NapierHttpLogger()
-            level = LogLevel.HEADERS
+            level = LogLevel.INFO
         }
 
         install(ContentNegotiation) {
