@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -14,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
@@ -60,10 +62,92 @@ class ProjectHomeComponent(
 		}
 	}
 
+	private suspend fun updateSync(show: Boolean, progress: Float) {
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					isSyncing = show,
+					syncProgress = progress
+				)
+			}
+		}
+	}
+
 	override fun syncProject() {
 		scope.launch {
 			Napier.d("Syncing project")
-			projectSynchronizer.sync()
+			updateSync(true, 0f)
+			projectSynchronizer.sync(::onSyncProgress, ::onConflict, ::onSyncComplete)
+		}
+	}
+
+	override fun resolveConflict(resolvedEntity: ApiProjectEntity) {
+		projectSynchronizer.resolveConflict(resolvedEntity)
+	}
+
+	override fun endSync() {
+		scope.launch {
+			withContext(mainDispatcher) {
+				_state.reduce {
+					it.copy(
+						entityConflict = null,
+						isSyncing = false,
+						syncProgress = 0f
+					)
+				}
+			}
+		}
+	}
+
+	private suspend fun onSyncProgress(progress: Float) {
+		Napier.d("Sync progress: $progress")
+		updateSync(true, progress)
+	}
+
+	private suspend fun onConflict(serverEntity: ApiProjectEntity) {
+		Napier.d("Sync conflict")
+
+		when (serverEntity) {
+			is ApiProjectEntity.SceneEntity -> {
+				onSceneConflict(serverEntity)
+			}
+
+			else -> {
+				throw IllegalStateException("Unknown entity type: $serverEntity")
+			}
+		}
+	}
+
+	private suspend fun onSyncComplete() {
+		Napier.d("Sync complete")
+		updateSync(true, 1f)
+	}
+
+	private suspend fun onSceneConflict(serverEntity: ApiProjectEntity.SceneEntity) {
+		val local = projectEditorRepository.getSceneItemFromId(serverEntity.id)
+			?: throw IllegalStateException("Failed to get local scene")
+
+		val path = projectEditorRepository.getPathSegments(local)
+		val content = projectEditorRepository.loadSceneMarkdownRaw(local)
+
+		val localEntity = ApiProjectEntity.SceneEntity(
+			id = local.id,
+			sceneType = local.type.toApiType(),
+			name = local.name,
+			order = local.order,
+			content = content,
+			path = path
+		)
+
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					entityConflict = ProjectHome.EntityConflict.SceneConflict(
+						serverScene = serverEntity,
+						clientScene = localEntity
+					)
+				)
+			}
 		}
 	}
 

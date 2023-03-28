@@ -54,7 +54,7 @@ kotlin {
 			resources.srcDirs("resources")
 
 			dependencies {
-				implementation(project(":base"))
+				api(project(":base"))
 
 				api("com.arkivanov.decompose:decompose:$decompose_version")
 				api("io.github.aakira:napier:$napier_version")

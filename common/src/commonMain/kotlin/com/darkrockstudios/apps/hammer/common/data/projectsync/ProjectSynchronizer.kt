@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.HasProjectResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -9,9 +10,14 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.decodeFromString
@@ -29,9 +35,30 @@ class ProjectSynchronizer(
 	private val json: Json
 ) : ProjectScoped {
 
+	private val defaultDispatcher by injectDefaultDispatcher()
+
 	override val projectScope = ProjectDefScope(projectDef)
 	private val idRepository: IdRepository by projectInject()
 	private val sceneSynchronizer: SceneSynchronizer by projectInject()
+
+	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
+	private val conflictResolution = Channel<ApiProjectEntity>()
+
+	init {
+		scope.launch {
+			for (conflict in conflictResolution) {
+				when (conflict) {
+					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(conflict)
+				}
+			}
+		}
+	}
+
+	fun resolveConflict(entity: ApiProjectEntity) {
+		scope.launch {
+			conflictResolution.send(entity)
+		}
+	}
 
 	private val userId: Long
 		get() = globalSettingsRepository.serverSettings?.userId
@@ -89,13 +116,21 @@ class ProjectSynchronizer(
 		return maxId
 	}
 
-	suspend fun sync() {
+	suspend fun sync(
+		onProgress: suspend (Float) -> Unit,
+		onConflict: EntityConflictHandler<ApiProjectEntity>,
+		onComplete: suspend () -> Unit,
+	) {
 		val syncId = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
+
+		onProgress(0.1f)
 
 		val clientSyncData = loadSyncData().copy(currentSyncId = syncId)
 		saveSyncData(clientSyncData)
 
 		val serverSyncData = serverProjectApi.getProjectLastSync(userId, projectDef.name, syncId).getOrThrow()
+
+		onProgress(0.25f)
 
 		// Resolve ID conflicts
 		val maxId = handleIdConflicts(clientSyncData, serverSyncData)
@@ -108,7 +143,7 @@ class ProjectSynchronizer(
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			if (localIsDirty != null || thisId > serverSyncData.lastId) {
 				Napier.d("Upload ID $thisId")
-				uploadEntity(thisId, syncId)
+				uploadEntity(thisId, syncId, onConflict)
 			}
 			// Otherwise download the server's copy
 			else {
@@ -117,11 +152,15 @@ class ProjectSynchronizer(
 			}
 		}
 
+		onProgress(0.75f)
+
 		val newLastId = idRepository.peekNextId() - 1
 		val syncFinishedAt = Clock.System.now()
 		serverProjectApi.setSyncData(projectDef, syncId, newLastId, syncFinishedAt)
 
 		finalizeSync()
+
+		onProgress(0.9f)
 
 		val endSyncResult = serverProjectApi.endProjectSync(userId, projectDef.name, syncId)
 
@@ -135,6 +174,10 @@ class ProjectSynchronizer(
 			)
 			saveSyncData(finalSyncData)
 		}
+
+		onProgress(1f)
+
+		onComplete()
 	}
 
 	private suspend fun finalizeSync() {
@@ -150,10 +193,10 @@ class ProjectSynchronizer(
 		}
 	}
 
-	private suspend fun uploadEntity(id: Int, syncId: String) {
+	private suspend fun uploadEntity(id: Int, syncId: String, onConflict: EntityConflictHandler<ApiProjectEntity>) {
 		val type = findEntityType(id)
 		when (type) {
-			EntityType.Scene -> sceneSynchronizer.uploadScene(id, syncId)
+			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, onConflict)
 			else -> Napier.e("Unknown entity type $type")
 		}
 	}

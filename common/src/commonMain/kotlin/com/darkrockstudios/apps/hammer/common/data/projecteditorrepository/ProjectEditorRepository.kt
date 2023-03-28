@@ -375,6 +375,11 @@ abstract class ProjectEditorRepository(
 		}
 	}
 
+	fun getPathSegments(sceneItem: SceneItem): List<Int> {
+		val hpath = getSceneFilePath(sceneItem.id)
+		return getScenePathSegments(hpath).pathSegments
+	}
+
 	abstract fun rationalizeTree()
 	abstract fun reIdScene(oldId: Int, newId: Int)
 

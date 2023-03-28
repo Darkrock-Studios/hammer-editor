@@ -195,14 +195,15 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entity: ApiProjectEntity,
-		syncId: String
+		syncId: String,
+		force: Boolean
 	): Result<Boolean> {
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
-			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity)
+			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity, force)
 		}
 		return result
 	}

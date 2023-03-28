@@ -76,8 +76,6 @@ dependencies {
 
     implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
 
-    implementation("com.soywiz.korlibs.krypto:krypto:3.4.0")
-
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")

@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.server
 
-import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
-import com.darkrockstudios.apps.hammer.base.http.HasProjectResponse
-import com.darkrockstudios.apps.hammer.base.http.LoadSceneResponse
-import com.darkrockstudios.apps.hammer.base.http.SaveSceneResponse
+import com.darkrockstudios.apps.hammer.base.http.*
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -11,12 +9,16 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.datetime.Instant
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
 class ServerProjectApi(
 	httpClient: HttpClient,
-	globalSettingsRepository: GlobalSettingsRepository
+	globalSettingsRepository: GlobalSettingsRepository,
+	private val json: Json
 ) : Api(httpClient, globalSettingsRepository) {
 
 	suspend fun beginProjectSync(userId: Long, projectName: String): Result<String> {
@@ -54,7 +56,8 @@ class ServerProjectApi(
 		scene: SceneItem,
 		path: List<Int>,
 		content: String,
-		syncId: String
+		syncId: String,
+		force: Boolean = false
 	): Result<SaveSceneResponse> {
 		val projectName = scene.projectDef.name
 		return post(
@@ -69,12 +72,19 @@ class ServerProjectApi(
 							append("sceneType", scene.type.name)
 							append("sceneOrder", scene.order.toString())
 							append("scenePath", path.joinToString("/"))
+							append("force", force.toString())
 						}
 					)
 				)
 				headers {
 					append(HEADER_SYNC_ID, syncId)
 				}
+				etag()
+			},
+			failureHandler = { response ->
+				val jsonStr = response.bodyAsText()
+				val entity = json.decodeFromString<ApiProjectEntity.SceneEntity>(jsonStr)
+				EntityConflictException.SceneConflictException(entity)
 			}
 		)
 	}

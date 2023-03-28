@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.SceneHash
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.readJsonOrNull
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,22 +20,60 @@ class SceneSynchronizer(
 	fun saveScene(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		sceneEntity: ApiProjectEntity.SceneEntity
+		sceneEntity: ApiProjectEntity.SceneEntity,
+		force: Boolean
 	): Result<Boolean> {
-		val path = getPath(userId, projectDef, sceneEntity.id)
+		val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)
 
-		return try {
-			val jsonString: String = json.encodeToString(sceneEntity)
-			fileSystem.write(path) {
-				writeUtf8(jsonString)
+		val conflict = if (!force) {
+			val incomingHash = SceneHash.hashScene(
+				id = sceneEntity.id,
+				order = sceneEntity.order,
+				title = sceneEntity.name,
+				type = sceneEntity.sceneType,
+			)
+
+			if (fileSystem.exists(path)) {
+				val existingScene = fileSystem.readJsonOrNull<ApiProjectEntity.SceneEntity>(path, json)
+				if (existingScene != null) {
+					val existingHash = SceneHash.hashScene(
+						id = existingScene.id,
+						order = existingScene.order,
+						title = existingScene.name,
+						type = existingScene.sceneType,
+					)
+
+					if (existingHash != incomingHash) {
+						EntityConflictException.SceneConflictException(existingScene)
+					} else {
+						null
+					}
+				} else {
+					null
+				}
+			} else {
+				null
 			}
-			Result.success(true)
-		} catch (e: SerializationException) {
-			Result.failure(e)
-		} catch (e: IllegalArgumentException) {
-			Result.failure(e)
-		} catch (e: IOException) {
-			Result.failure(e)
+		} else {
+			null
+		}
+
+		return if (conflict == null) {
+			try {
+				val jsonString: String = json.encodeToString(sceneEntity)
+				fileSystem.write(path) {
+					writeUtf8(jsonString)
+				}
+				Result.success(true)
+			} catch (e: SerializationException) {
+				Result.failure(e)
+			} catch (e: IllegalArgumentException) {
+				Result.failure(e)
+			} catch (e: IOException) {
+				Result.failure(e)
+			}
+		} else {
+			Result.failure(conflict)
 		}
 	}
 

@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -8,30 +10,61 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.channels.Channel
 
 class SceneSynchronizer(
 	private val projectDef: ProjectDef,
 	private val projectEditorRepository: ProjectEditorRepository,
 	private val draftRepository: SceneDraftRepository,
 	private val serverProjectApi: ServerProjectApi
-) : EntitySynchronizer {
-	override suspend fun uploadScene(id: Int, syncId: String) {
+) : EntitySynchronizer<ApiProjectEntity.SceneEntity> {
+
+	val conflictResolution = Channel<ApiProjectEntity.SceneEntity>()
+
+	override suspend fun uploadEntity(
+		id: Int,
+		syncId: String,
+		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>
+	) {
 		Napier.d("Uploading Scene $id")
 
 		val scene =
 			projectEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
 		val contents = projectEditorRepository.loadSceneMarkdownRaw(scene)
-		val path = getPathSegments(scene)
+		val path = projectEditorRepository.getPathSegments(scene)
 
 		val result = serverProjectApi.uploadScene(scene, path, contents, syncId)
 		if (!result.isSuccess) {
 			result.exceptionOrNull()?.let { e -> Napier.e("Failed to upload scene", e) }
-		}
-	}
+		} else {
+			val exception = result.exceptionOrNull()
+			val conflictException = exception as? EntityConflictException.SceneConflictException
+			if (conflictException != null) {
+				Napier.w("Conflict for scene $id detected")
+				onConflict(conflictException.entity)
 
-	private fun getPathSegments(sceneItem: SceneItem): List<Int> {
-		val hpath = projectEditorRepository.getSceneFilePath(sceneItem.id)
-		return projectEditorRepository.getScenePathSegments(hpath).pathSegments
+				val resolvedEntity = conflictResolution.receive()
+				val resolvedScene = SceneItem(
+					projectDef = projectDef,
+					id = resolvedEntity.id,
+					name = resolvedEntity.name,
+					order = resolvedEntity.order,
+					type = resolvedEntity.sceneType.toSceneType(),
+				)
+
+				val resolvedPath = projectEditorRepository.getPathSegments(resolvedScene)
+				val resolvedContent = resolvedEntity.content
+				val resolveResult = serverProjectApi.uploadScene(scene, resolvedPath, resolvedContent, syncId, true)
+
+				if (!resolveResult.isSuccess) {
+					resolveResult.exceptionOrNull()?.let { e -> Napier.e("Failed to upload scene", e) }
+				} else {
+					Napier.d("Resolved conflict for scene $id")
+				}
+			} else {
+				Napier.e("Failed to upload scene", exception)
+			}
+		}
 	}
 
 	override suspend fun downloadEntity(id: Int, syncId: String) {
