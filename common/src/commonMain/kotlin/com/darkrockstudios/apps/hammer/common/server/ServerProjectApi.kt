@@ -58,7 +58,7 @@ class ServerProjectApi(
 		entity: ApiProjectEntity,
 		syncId: String,
 		force: Boolean = false
-	): Result<SaveSceneResponse> {
+	): Result<SaveEntityResponse> {
 		val projectName = projectDef.name
 		return post(
 			path = "/project/$userId/$projectName/upload_entity/${entity.id}",

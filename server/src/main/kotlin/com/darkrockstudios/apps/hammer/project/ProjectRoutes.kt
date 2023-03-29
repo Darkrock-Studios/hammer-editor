@@ -149,7 +149,7 @@ private fun Route.uploadEntity() {
 				val projectDef = ProjectDefinition(projectName)
 				val result = projectRepository.saveEntity(principal.id, projectDef, entity, syncId, force ?: false)
 				if (result.isSuccess) {
-					call.respond(SaveSceneResponse(result.getOrThrow()))
+					call.respond(SaveEntityResponse(result.getOrThrow()))
 				} else {
 					val e = result.exceptionOrNull()
 					if (e is EntityConflictException) {

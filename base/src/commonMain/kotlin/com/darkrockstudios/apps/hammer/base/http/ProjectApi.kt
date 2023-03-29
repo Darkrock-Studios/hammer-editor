@@ -4,13 +4,7 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class HasProjectResponse(
-	val lastSync: Instant,
-	val lastId: Int
-)
-
-@Serializable
-data class SaveSceneResponse(
+data class SaveEntityResponse(
 	val saved: Boolean
 )
 
