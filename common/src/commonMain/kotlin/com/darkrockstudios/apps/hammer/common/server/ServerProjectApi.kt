@@ -89,14 +89,43 @@ class ServerProjectApi(
 		)
 	}
 
-	suspend fun downloadScene(projectDef: ProjectDef, sceneId: Int, syncId: String): Result<LoadSceneResponse> {
+	suspend fun downloadEntity(
+		projectDef: ProjectDef,
+		entityId: Int,
+		localHash: String?,
+		syncId: String
+	): Result<LoadEntityResponse> {
 		val projectName = projectDef.name
-		return post(
-			path = "/project/$userId/$projectName/download_scene/$sceneId",
-			parse = { it.body() },
+		return get(
+			path = "/project/$userId/$projectName/download_entity/$entityId",
+			parse = { response ->
+				if (response.status == HttpStatusCode.NotModified) {
+					throw EntityNotModifiedException(entityId)
+				}
+				val type = response.headers[HEADER_ENTITY_TYPE]?.let { type ->
+					ApiProjectEntity.Type.fromString(type)
+				} ?: throw IllegalStateException("Missing entity-type header")
+
+				return@get when (type) {
+					ApiProjectEntity.Type.SCENE -> {
+						val entity = response.body<ApiProjectEntity.SceneEntity>()
+						LoadEntityResponse(entity)
+					}
+				}
+			},
+			failureHandler = { response ->
+				if (response.status == HttpStatusCode.NotModified) {
+					EntityNotModifiedException(entityId)
+				} else {
+					defaultFailureHandler(response)
+				}
+			},
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
+					if (localHash != null) {
+						append(HEADER_ENTITY_HASH, localHash)
+					}
 				}
 			}
 		)
@@ -123,3 +152,5 @@ class ServerProjectApi(
 		)
 	}
 }
+
+class EntityNotModifiedException(val entityId: Int) : Exception()

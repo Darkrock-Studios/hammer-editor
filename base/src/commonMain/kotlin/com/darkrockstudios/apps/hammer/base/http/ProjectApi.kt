@@ -15,14 +15,12 @@ data class SaveSceneResponse(
 )
 
 @Serializable
-data class LoadSceneResponse(
-	val id: Int,
-	val sceneType: ApiSceneType,
-	val order: Int,
-	val name: String,
-	val path: List<Int>,
-	val content: String
-)
+data class LoadEntityResponse(
+	val type: ApiProjectEntity.Type,
+	val entity: ApiProjectEntity
+) {
+	constructor(scene: ApiProjectEntity.SceneEntity) : this(ApiProjectEntity.Type.SCENE, scene)
+}
 
 enum class ApiSceneType {
 	Scene, Group;

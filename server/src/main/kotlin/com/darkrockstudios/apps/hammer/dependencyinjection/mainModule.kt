@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
@@ -26,7 +27,7 @@ val mainModule = module {
 	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
-	single { Json } bind Json::class
+	singleOf(::createJsonSerializer) bind Json::class
 	single { Clock.System } bind Clock::class
 
 	single { FileSystem.SYSTEM } bind FileSystem::class

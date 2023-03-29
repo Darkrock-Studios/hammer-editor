@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
 import io.ktor.http.*
@@ -20,7 +21,7 @@ fun Application.projectRoutes() {
 				endProjectSync()
 				getProjectLastSync()
 				uploadScene()
-				downloadScene()
+				downloadEntity()
 				setSyncData()
 			}
 		}
@@ -218,13 +219,14 @@ private fun Route.uploadScene() {
 	}
 }
 
-private fun Route.downloadScene() {
+private fun Route.downloadEntity() {
 	val projectRepository: ProjectRepository = get()
 
-	get("/download_scene/{entityId}") {
+	get("/download_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val entityId = call.parameters["entityId"]?.toIntOrNull()
+		val entityHash = call.request.headers[HEADER_ENTITY_HASH]
 		val syncId = call.request.headers[HEADER_SYNC_ID]
 
 		if (projectName == null) {
@@ -248,16 +250,25 @@ private fun Route.downloadScene() {
 			val result =
 				projectRepository.loadEntity(principal.id, projectDef, entityId, ApiProjectEntity.Type.SCENE, syncId)
 			if (result.isSuccess) {
-				val entity = result.getOrThrow() as ApiProjectEntity.SceneEntity
-				val response = LoadSceneResponse(
-					id = entity.id,
-					sceneType = entity.sceneType,
-					order = entity.order,
-					name = entity.name,
-					path = entity.path,
-					content = entity.content
-				)
-				call.respond(response)
+				val serverEntity = result.getOrThrow()
+				val serverEntityHash = when (serverEntity) {
+					is ApiProjectEntity.SceneEntity -> {
+						EntityHash.hashScene(
+							id = serverEntity.id,
+							name = serverEntity.name,
+							order = serverEntity.order,
+							type = serverEntity.sceneType,
+							content = serverEntity.content
+						)
+					}
+				}
+
+				if (entityHash != null && entityHash == serverEntityHash) {
+					call.respond(HttpStatusCode.NotModified)
+				} else {
+					call.response.headers.append(HEADER_ENTITY_TYPE, serverEntity.type.toString())
+					call.respond(serverEntity)
+				}
 			} else {
 				val e = result.exceptionOrNull()
 				call.respond(

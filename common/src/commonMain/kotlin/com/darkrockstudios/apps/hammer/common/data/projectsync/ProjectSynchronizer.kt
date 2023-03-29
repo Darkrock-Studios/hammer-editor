@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -185,8 +186,7 @@ class ProjectSynchronizer(
 	}
 
 	private fun findEntityType(id: Int): EntityType {
-		val scene = projectEditorRepository.getSceneItemFromId(id)
-		return if (scene != null) {
+		return if (sceneSynchronizer.ownsEntity(id)) {
 			EntityType.Scene
 		} else {
 			EntityType.Unknown
@@ -201,11 +201,35 @@ class ProjectSynchronizer(
 		}
 	}
 
-	private suspend fun downloadEntry(id: Int, syncId: String) {
+	private suspend fun getLocalEntityHash(id: Int): String? {
 		val type = findEntityType(id)
-		when (type) {
-			EntityType.Scene -> sceneSynchronizer.downloadEntity(id, syncId)
-			else -> Napier.e("Unknown entity type $type")
+		return when (type) {
+			EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
+			else -> null
+		}
+	}
+
+	private suspend fun downloadEntry(id: Int, syncId: String) {
+		val localEntityHash = getLocalEntityHash(id)
+		val entityResponse = serverProjectApi.downloadEntity(
+			projectDef = projectDef,
+			entityId = id,
+			syncId = syncId,
+			localHash = localEntityHash
+		)
+
+		if (entityResponse.isSuccess) {
+			val serverEntity = entityResponse.getOrThrow()
+			when (serverEntity.type) {
+				ApiProjectEntity.Type.SCENE -> sceneSynchronizer.storeEntity(serverEntity.entity, syncId)
+				else -> Napier.e("Unknown entity type ${serverEntity.type}")
+			}
+		} else {
+			if (entityResponse.exceptionOrNull() is EntityNotModifiedException) {
+				Napier.d("Entity $id not modified")
+			} else {
+				Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
+			}
 		}
 	}
 

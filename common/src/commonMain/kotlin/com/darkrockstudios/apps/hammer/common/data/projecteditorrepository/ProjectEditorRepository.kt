@@ -187,6 +187,11 @@ abstract class ProjectEditorRepository(
 	 * instead.
 	 */
 	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem): String
+
+	/**
+	 * This should only be used for server syncing
+	 */
+	abstract fun storeSceneMarkdownRaw(sceneItem: SceneContent): Boolean
 	abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
 	abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean

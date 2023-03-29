@@ -19,5 +19,23 @@ sealed interface ApiProjectEntity {
 
 	enum class Type {
 		SCENE,
+		/*
+		TIMELINE_EVENT,
+		NOTE,
+		ENCYCLOPEDIA_ENTRY,
+		*/;
+
+		companion object {
+			fun fromString(string: String): Type? {
+				return when (string.trim().uppercase()) {
+					"SCENE" -> SCENE
+					/*
+					"TIMELINE_EVENT" -> TIMELINE_EVENT,
+					"NOTE" -> NOTE,
+					"ENCYCLOPEDIA_ENTRY" -> ENCYCLOPEDIA_ENTRY,
+					*/ else -> null
+				}
+			}
+		}
 	}
 }

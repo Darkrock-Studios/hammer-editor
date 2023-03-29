@@ -86,7 +86,7 @@ class ProjectEditorRepositoryOkio(
 
 			if (realPath != null) {
 				if (realPath != intendedPath) {
-					Napier.i { "Moving scene to new path: $intendedPath" }
+					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
 					fileSystem.atomicMove(realPath.toOkioPath(), intendedPath.toOkioPath())
 				} else {
 					Napier.d { "Scene ${node.value.id} is in the correct location" }
@@ -578,6 +578,20 @@ class ProjectEditorRepositoryOkio(
 		}
 
 		return content
+	}
+
+	override fun storeSceneMarkdownRaw(sceneItem: SceneContent): Boolean {
+		sceneItem.markdown ?: return false
+		val scenePath = getSceneFilePath(sceneItem.scene).toOkioPath()
+		return try {
+			fileSystem.write(scenePath) {
+				writeUtf8(sceneItem.markdown)
+			}
+			true
+		} catch (e: IOException) {
+			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name})")
+			false
+		}
 	}
 
 	override fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {

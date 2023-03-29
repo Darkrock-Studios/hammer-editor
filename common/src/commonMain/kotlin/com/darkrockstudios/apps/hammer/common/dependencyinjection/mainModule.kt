@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio

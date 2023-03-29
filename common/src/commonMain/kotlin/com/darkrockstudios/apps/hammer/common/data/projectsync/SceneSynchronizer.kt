@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectsync
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -67,78 +68,96 @@ class SceneSynchronizer(
 		}
 	}
 
-	override suspend fun downloadEntity(id: Int, syncId: String) {
-		Napier.d("Downloading Scene $id")
+	override fun ownsEntity(id: Int): Boolean {
+		return projectEditorRepository.getSceneItemFromId(id) != null
+	}
 
+	override suspend fun getEntityHash(id: Int): String? {
+		val sceneItem = projectEditorRepository.getSceneItemFromId(id)
+		return if (sceneItem != null) {
+			val sceneContent = projectEditorRepository.loadSceneMarkdownRaw(sceneItem)
+			EntityHash.hashScene(
+				id = sceneItem.id,
+				name = sceneItem.name,
+				order = sceneItem.order,
+				type = sceneItem.type.toApiType(),
+				content = sceneContent
+			)
+		} else {
+			null
+		}
+	}
+
+	override suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String) {
+		Napier.d("Downloading Entity ${serverEntity.id}")
+		val id = serverEntity.id
 		val tree = projectEditorRepository.rawTree
 
-		val result = serverProjectApi.downloadScene(projectDef, id, syncId)
-		if (result.isSuccess) {
-			val apiScene = result.getOrNull() ?: throw IllegalStateException("Scene missing for ID $id")
+		val apiScene =
+			serverEntity as? ApiProjectEntity.SceneEntity ?: throw IllegalStateException("ApiScene was of wrong type")
 
-			val parentId = apiScene.path.lastOrNull()
-			val parent = if (parentId != null) {
-				projectEditorRepository.getSceneItemFromId(parentId)
+		val parentId = apiScene.path.lastOrNull()
+		val parent = if (parentId != null) {
+			projectEditorRepository.getSceneItemFromId(parentId)
+		} else {
+			null
+		}
+
+		if (apiScene.sceneType == ApiSceneType.Scene) {
+			Napier.d("Entity $id is a Scene")
+
+			val existingScene = projectEditorRepository.getSceneItemFromId(id)
+			val sceneItem = if (existingScene != null) {
+				val existingTreeNode = tree.find { it.id == id }
+				// Must move parents
+				if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
+					existingTreeNode.parent?.removeChild(existingTreeNode)
+
+					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
+					newParent.addChild(existingTreeNode)
+				}
+
+				existingScene
 			} else {
-				null
+				projectEditorRepository.createScene(parent = parent, sceneName = apiScene.name)
+					?: throw IllegalStateException("Failed to create scene")
 			}
 
-			if (apiScene.sceneType == ApiSceneType.Scene) {
-				Napier.d("Downloading Scene $id")
+			val treeNode = tree.find { it.id == id }
+			treeNode.value = sceneItem.copy(
+				name = apiScene.name,
+				order = apiScene.order
+			)
 
-				val existingScene = projectEditorRepository.getSceneItemFromId(id)
-				val sceneItem = if (existingScene != null) {
-					val existingTreeNode = tree.find { it.id == id }
-					// Must move parents
-					if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
-						existingTreeNode.parent?.removeChild(existingTreeNode)
-
-						val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
-						newParent.addChild(existingTreeNode)
-					}
-
-					existingScene
-				} else {
-					projectEditorRepository.createScene(parent = parent, sceneName = apiScene.name)
-						?: throw IllegalStateException("Failed to create scene")
-				}
-
-				val treeNode = tree.find { it.id == id }
-				treeNode.value = sceneItem.copy(
-					name = apiScene.name,
-					order = apiScene.order
-				)
-
-				val content = SceneContent(sceneItem, apiScene.content)
-				projectEditorRepository.onContentChanged(content)
-			} else {
-				Napier.d("Downloading Group $id")
-
-				val existingGroup = projectEditorRepository.getSceneItemFromId(id)
-				val sceneItem = if (existingGroup != null) {
-					val existingTreeNode = tree.find { it.id == id }
-					// Must move parents
-					if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
-						existingTreeNode.parent?.removeChild(existingTreeNode)
-
-						val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
-						newParent.addChild(existingTreeNode)
-					}
-
-					existingGroup
-				} else {
-					projectEditorRepository.createGroup(parent = parent, groupName = apiScene.name)
-						?: throw IllegalStateException("Failed to create scene")
-				}
-
-				val treeNode = tree.find { it.id == id }
-				treeNode.value = sceneItem.copy(
-					name = apiScene.name,
-					order = apiScene.order
-				)
+			val content = SceneContent(sceneItem, apiScene.content)
+			if (!projectEditorRepository.storeSceneMarkdownRaw(content)) {
+				Napier.e("Failed to save downloaded scene content for: $id")
 			}
 		} else {
-			result.exceptionOrNull()?.let { e -> Napier.e("Failed to download scene", e) }
+			Napier.d("Entity $id is a Scene Group")
+
+			val existingGroup = projectEditorRepository.getSceneItemFromId(id)
+			val sceneItem = if (existingGroup != null) {
+				val existingTreeNode = tree.find { it.id == id }
+				// Must move parents
+				if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
+					existingTreeNode.parent?.removeChild(existingTreeNode)
+
+					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
+					newParent.addChild(existingTreeNode)
+				}
+
+				existingGroup
+			} else {
+				projectEditorRepository.createGroup(parent = parent, groupName = apiScene.name)
+					?: throw IllegalStateException("Failed to create scene")
+			}
+
+			val treeNode = tree.find { it.id == id }
+			treeNode.value = sceneItem.copy(
+				name = apiScene.name,
+				order = apiScene.order
+			)
 		}
 	}
 

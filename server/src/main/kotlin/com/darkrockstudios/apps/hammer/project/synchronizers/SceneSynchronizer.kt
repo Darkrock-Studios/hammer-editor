@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.SceneHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.readJsonOrNull
@@ -17,30 +17,32 @@ class SceneSynchronizer(
 	private val fileSystem: FileSystem,
 	private val json: Json
 ) : EntitySynchronizer {
-	fun saveScene(
+	private fun checkForConflict(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		sceneEntity: ApiProjectEntity.SceneEntity,
 		force: Boolean
-	): Result<Boolean> {
+	): EntityConflictException? {
 		val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)
 
-		val conflict = if (!force) {
-			val incomingHash = SceneHash.hashScene(
+		return if (!force) {
+			val incomingHash = EntityHash.hashScene(
 				id = sceneEntity.id,
 				order = sceneEntity.order,
-				title = sceneEntity.name,
+				name = sceneEntity.name,
 				type = sceneEntity.sceneType,
+				content = sceneEntity.content
 			)
 
 			if (fileSystem.exists(path)) {
 				val existingScene = fileSystem.readJsonOrNull<ApiProjectEntity.SceneEntity>(path, json)
 				if (existingScene != null) {
-					val existingHash = SceneHash.hashScene(
+					val existingHash = EntityHash.hashScene(
 						id = existingScene.id,
 						order = existingScene.order,
-						title = existingScene.name,
+						name = existingScene.name,
 						type = existingScene.sceneType,
+						content = existingScene.content
 					)
 
 					if (existingHash != incomingHash) {
@@ -57,9 +59,18 @@ class SceneSynchronizer(
 		} else {
 			null
 		}
+	}
 
+	fun saveScene(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		sceneEntity: ApiProjectEntity.SceneEntity,
+		force: Boolean
+	): Result<Boolean> {
+		val conflict = checkForConflict(userId, projectDef, sceneEntity, force)
 		return if (conflict == null) {
 			try {
+				val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)
 				val jsonString: String = json.encodeToString(sceneEntity)
 				fileSystem.write(path) {
 					writeUtf8(jsonString)

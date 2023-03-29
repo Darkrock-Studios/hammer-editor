@@ -39,7 +39,7 @@ class ProjectRepository(
 	private fun getProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
 		val file = getProjectSyncDataPath(userId, projectDef)
 
-		return if (fileSystem.exists(file)) {
+		return if (fileSystem.exists(file).not()) {
 			val newData = ProjectSyncData(
 				lastId = -1,
 				lastSync = Instant.DISTANT_PAST,
@@ -140,8 +140,9 @@ class ProjectRepository(
 					val synDataPath = getProjectSyncDataPath(userId, projectDef)
 					val syncData = getProjectSyncData(userId, projectDef)
 					val newSyncData = syncData.copy(lastSync = clock.now())
+					val newSyncDataJson = json.encodeToString(newSyncData)
 					fileSystem.write(synDataPath) {
-						writeUtf8(json.encodeToString(newSyncData))
+						writeUtf8(newSyncDataJson)
 					}
 
 					synchronizationSessions.remove(userId)
@@ -175,10 +176,11 @@ class ProjectRepository(
 		val path = getProjectSyncDataPath(userId, projectDef)
 
 		return try {
+			val data = getProjectSyncData(userId, projectDef)
+			val newData = data.copy(lastId = lastId)
+			val syncDataStr = json.encodeToString(newData)
+
 			fileSystem.write(path) {
-				val data = getProjectSyncData(userId, projectDef)
-				val newData = data.copy(lastId = lastId)
-				val syncDataStr = json.encodeToString(newData)
 				writeUtf8(syncDataStr)
 			}
 			Result.success(true)
@@ -214,12 +216,14 @@ class ProjectRepository(
 
 		getProjectSyncDataPath(userId, projectDef).let { syncDataPath ->
 			if (fileSystem.exists(syncDataPath).not()) {
+				val data = ProjectSyncData(
+					lastSync = Instant.DISTANT_PAST,
+					lastId = 0
+				)
+				val dataJson = json.encodeToString(data)
+
 				fileSystem.write(syncDataPath) {
-					val data = ProjectSyncData(
-						lastSync = Instant.DISTANT_PAST,
-						lastId = 0
-					)
-					writeUtf8(json.encodeToString(data))
+					writeUtf8(dataJson)
 				}
 			}
 		}

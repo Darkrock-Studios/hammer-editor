@@ -3,10 +3,10 @@ package repositories
 import PROJECT_1_NAME
 import PROJECT_EMPTY_NAME
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
