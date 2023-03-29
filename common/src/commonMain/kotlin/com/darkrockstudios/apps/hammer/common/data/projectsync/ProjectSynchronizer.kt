@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectsync
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.HasProjectResponse
+import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -97,7 +97,7 @@ class ProjectSynchronizer(
 
 	private suspend fun handleIdConflicts(
 		clientSyncData: SynchronizationData,
-		serverSyncData: HasProjectResponse
+		serverSyncData: ProjectSynchronizationBegan
 	): Int {
 		var lastId = serverSyncData.lastId
 		val newIds = mutableListOf<Int>()
@@ -122,19 +122,17 @@ class ProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 	) {
-		val syncId = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
+		val syncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
 
 		onProgress(0.1f)
 
-		val clientSyncData = loadSyncData().copy(currentSyncId = syncId)
+		val clientSyncData = loadSyncData().copy(currentSyncId = syncData.syncId)
 		saveSyncData(clientSyncData)
-
-		val serverSyncData = serverProjectApi.getProjectLastSync(userId, projectDef.name, syncId).getOrThrow()
 
 		onProgress(0.25f)
 
 		// Resolve ID conflicts
-		val maxId = handleIdConflicts(clientSyncData, serverSyncData)
+		val maxId = handleIdConflicts(clientSyncData, syncData)
 
 		// Transfer Entities
 		for (thisId in 1..maxId) {
@@ -142,28 +140,27 @@ class ProjectSynchronizer(
 
 			val localIsDirty = clientSyncData.dirty.find { it.id == thisId }
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			if (localIsDirty != null || thisId > serverSyncData.lastId) {
+			if (localIsDirty != null || thisId > syncData.lastId) {
 				Napier.d("Upload ID $thisId")
-				uploadEntity(thisId, syncId, onConflict)
+				uploadEntity(thisId, syncData.syncId, onConflict)
 			}
 			// Otherwise download the server's copy
 			else {
 				Napier.d("Download ID $thisId")
-				downloadEntry(thisId, syncId)
+				downloadEntry(thisId, syncData.syncId)
 			}
 		}
 
 		onProgress(0.75f)
 
-		val newLastId = idRepository.peekNextId() - 1
-		val syncFinishedAt = Clock.System.now()
-		serverProjectApi.setSyncData(projectDef, syncId, newLastId, syncFinishedAt)
-
 		finalizeSync()
 
 		onProgress(0.9f)
 
-		val endSyncResult = serverProjectApi.endProjectSync(userId, projectDef.name, syncId)
+		val newLastId = idRepository.peekNextId() - 1
+		val syncFinishedAt = Clock.System.now()
+		val endSyncResult =
+			serverProjectApi.endProjectSync(userId, projectDef.name, syncData.syncId, newLastId, syncFinishedAt)
 
 		if (endSyncResult.isFailure) {
 			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())

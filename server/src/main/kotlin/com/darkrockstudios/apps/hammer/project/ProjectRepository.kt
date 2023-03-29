@@ -1,17 +1,16 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
-import okio.IOException
 import okio.Path
 
 class ProjectRepository(
@@ -103,7 +102,7 @@ class ProjectRepository(
 		}
 	}
 
-	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<String> {
+	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<ProjectSynchronizationBegan> {
 		val newSyncId = syncIdGenerator.nextString()
 		val projectDir = getProjectDirectory(userId, projectDef)
 
@@ -115,6 +114,8 @@ class ProjectRepository(
 					createProject(userId, projectDef)
 				}
 
+				val projectSyncData = getProjectSyncData(userId, projectDef)
+
 				val session = ProjectSynchronizationSession(
 					userId = userId,
 					projectDef = projectDef,
@@ -122,12 +123,24 @@ class ProjectRepository(
 					syncId = newSyncId
 				)
 				synchronizationSessions[userId] = session
-				Result.success(newSyncId)
+
+				val syncBegan = ProjectSynchronizationBegan(
+					syncId = newSyncId,
+					lastId = projectSyncData.lastId,
+					lastSync = projectSyncData.lastSync
+				)
+				Result.success(syncBegan)
 			}
 		}
 	}
 
-	suspend fun endProjectSync(userId: Long, projectDef: ProjectDefinition, syncId: String): Result<Boolean> {
+	suspend fun endProjectSync(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		syncId: String,
+		lastSyncMs: Long,
+		lastId: Int
+	): Result<Boolean> {
 		synchronized(synchronizationSessions) {
 			val session = synchronizationSessions[userId]
 			return if (session == null) {
@@ -136,10 +149,12 @@ class ProjectRepository(
 				if (session.syncId != syncId) {
 					Result.failure(IllegalStateException("Invalid sync id"))
 				} else {
-					// Update last sync time
+
+					val lastSync = Instant.fromEpochSeconds(lastSyncMs)
+					// Update sync data
 					val synDataPath = getProjectSyncDataPath(userId, projectDef)
 					val syncData = getProjectSyncData(userId, projectDef)
-					val newSyncData = syncData.copy(lastSync = clock.now())
+					val newSyncData = syncData.copy(lastSync = lastSync, lastId = lastId)
 					val newSyncDataJson = json.encodeToString(newSyncData)
 					fileSystem.write(synDataPath) {
 						writeUtf8(newSyncDataJson)
@@ -167,29 +182,6 @@ class ProjectRepository(
 			)
 		} else {
 			Result.failure(IllegalStateException("Project does not exist"))
-		}
-	}
-
-	fun setProjectSyncData(userId: Long, projectDef: ProjectDefinition, syncId: String, lastId: Int): Result<Boolean> {
-		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
-
-		val path = getProjectSyncDataPath(userId, projectDef)
-
-		return try {
-			val data = getProjectSyncData(userId, projectDef)
-			val newData = data.copy(lastId = lastId)
-			val syncDataStr = json.encodeToString(newData)
-
-			fileSystem.write(path) {
-				writeUtf8(syncDataStr)
-			}
-			Result.success(true)
-		} catch (e: IOException) {
-			return Result.failure(e)
-		} catch (e: SerializationException) {
-			return Result.failure(e)
-		} catch (e: IllegalArgumentException) {
-			return Result.failure(e)
 		}
 	}
 

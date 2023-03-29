@@ -11,7 +11,7 @@ data class HasProjectResponse(
 
 @Serializable
 data class SaveSceneResponse(
-    val saved: Boolean
+	val saved: Boolean
 )
 
 @Serializable
@@ -21,6 +21,13 @@ data class LoadEntityResponse(
 ) {
 	constructor(scene: ApiProjectEntity.SceneEntity) : this(ApiProjectEntity.Type.SCENE, scene)
 }
+
+@Serializable
+data class ProjectSynchronizationBegan(
+	val syncId: String,
+	val lastSync: Instant,
+	val lastId: Int
+)
 
 enum class ApiSceneType {
 	Scene, Group;

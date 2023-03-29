@@ -20,14 +20,20 @@ class ServerProjectApi(
 	private val json: Json
 ) : Api(httpClient, globalSettingsRepository) {
 
-	suspend fun beginProjectSync(userId: Long, projectName: String): Result<String> {
+	suspend fun beginProjectSync(userId: Long, projectName: String): Result<ProjectSynchronizationBegan> {
 		return get(
 			path = "/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
 		)
 	}
 
-	suspend fun endProjectSync(userId: Long, projectName: String, syncId: String): Result<String> {
+	suspend fun endProjectSync(
+		userId: Long,
+		projectName: String,
+		syncId: String,
+		lastId: Int,
+		syncEnd: Instant
+	): Result<String> {
 		return get(
 			path = "/project/$userId/$projectName/end_sync",
 			parse = { it.body() },
@@ -35,18 +41,14 @@ class ServerProjectApi(
 				headers {
 					append(HEADER_SYNC_ID, syncId)
 				}
-			}
-		)
-	}
-
-	suspend fun getProjectLastSync(userId: Long, projectName: String, syncId: String): Result<HasProjectResponse> {
-		return get(
-			path = "/project/$userId/$projectName/last_sync",
-			parse = { it.body() },
-			builder = {
-				headers {
-					append(HEADER_SYNC_ID, syncId)
-				}
+				setBody(
+					FormDataContent(
+						Parameters.build {
+							append("lastSync", syncEnd.toEpochMilliseconds().toString())
+							append("lastId", lastId.toString())
+						}
+					)
+				)
 			}
 		)
 	}
@@ -121,27 +123,6 @@ class ServerProjectApi(
 					if (localHash != null) {
 						append(HEADER_ENTITY_HASH, localHash)
 					}
-				}
-			}
-		)
-	}
-
-	suspend fun setSyncData(projectDef: ProjectDef, syncId: String, lastId: Int, syncEnd: Instant): Result<String> {
-		val projectName = projectDef.name
-		return post(
-			path = "/project/$userId/$projectName/set_sync_data",
-			parse = { it.body() },
-			builder = {
-				setBody(
-					FormDataContent(
-						Parameters.build {
-							append("lastSync", syncEnd.toEpochMilliseconds().toString())
-							append("lastId", lastId.toString())
-						}
-					)
-				)
-				headers {
-					append(HEADER_SYNC_ID, syncId)
 				}
 			}
 		)

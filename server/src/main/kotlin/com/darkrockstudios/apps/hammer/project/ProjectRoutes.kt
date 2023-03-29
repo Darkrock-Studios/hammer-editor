@@ -19,10 +19,8 @@ fun Application.projectRoutes() {
 			route("/project/{userId}/{projectName}") {
 				beginProjectSync()
 				endProjectSync()
-				getProjectLastSync()
 				uploadEntity()
 				downloadEntity()
-				setSyncData()
 			}
 		}
 	}
@@ -44,8 +42,8 @@ private fun Route.beginProjectSync() {
 			val projectDef = ProjectDefinition(projectName)
 			val result = projectRepository.beginProjectSync(principal.id, projectDef)
 			if (result.isSuccess) {
-				val syncId = result.getOrThrow()
-				call.respond(syncId)
+				val syncBegan = result.getOrThrow()
+				call.respond(syncBegan)
 			} else {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
@@ -67,6 +65,10 @@ private fun Route.endProjectSync() {
 		val projectName = call.parameters["projectName"]
 		val syncId = call.request.headers[HEADER_SYNC_ID]
 
+		val formParameters = call.receiveParameters()
+		val lastSync = formParameters["lastSync"].toString().toLongOrNull()
+		val lastId = formParameters["lastId"].toString().toIntOrNull()
+
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
@@ -77,53 +79,27 @@ private fun Route.endProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(error = "Missing Parameter", message = "syncId was missing")
 			)
+		} else if (lastSync == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Parameter", message = "lastSync was missing")
+			)
+		} else if (lastId == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Parameter", message = "lastId was missing")
+			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
-			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId)
+			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)
 			if (result.isSuccess) {
-				val syncId = result.getOrThrow()
-				call.respond(syncId)
+				val success = result.getOrThrow()
+				call.respond(success)
 			} else {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Failed to begin sync",
-						message = result.exceptionOrNull()?.message ?: "Unknown"
-					)
-				)
-			}
-		}
-	}
-}
-
-private fun Route.getProjectLastSync() {
-	val projectRepository: ProjectRepository = get()
-
-	get("/last_sync") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectName = call.parameters["projectName"]
-		val syncId = call.request.headers[HEADER_SYNC_ID]
-
-		if (projectName == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
-			)
-		} else if (syncId == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = "x-sync-id was missing")
-			)
-		} else {
-			val result = projectRepository.getProjectLastSync(principal.id, ProjectDefinition(projectName), syncId)
-			if (result.isSuccess) {
-				val syncData = result.getOrThrow()
-				call.respond(HasProjectResponse(lastSync = syncData.lastSync, lastId = syncData.lastId))
-			} else {
-				call.respond(
-					status = HttpStatusCode.BadRequest,
-					HttpResponseError(
-						error = "Failed to check if project exists",
 						message = result.exceptionOrNull()?.message ?: "Unknown"
 					)
 				)
@@ -248,56 +224,6 @@ private fun Route.downloadEntity() {
 				call.respond(
 					status = HttpStatusCode.Conflict,
 					HttpResponseError(error = "Save Error", message = e?.message ?: "Unknown failure")
-				)
-			}
-		}
-	}
-}
-
-private fun Route.setSyncData() {
-	val projectRepository: ProjectRepository = get()
-
-	post("/set_sync_data") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectName = call.parameters["projectName"]
-		val syncId = call.request.headers[HEADER_SYNC_ID]
-
-		val formParameters = call.receiveParameters()
-		val lastSync = formParameters["lastSync"].toString().toLongOrNull()
-		val lastId = formParameters["lastId"].toString().toIntOrNull()
-
-		if (projectName == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
-			)
-		} else if (syncId == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = "syncId was missing")
-			)
-		} else if (lastSync == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "lastSync was missing")
-			)
-		} else if (lastId == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "lastId was missing")
-			)
-		} else {
-			val projectDef = ProjectDefinition(projectName)
-			val result = projectRepository.setProjectSyncData(principal.id, projectDef, syncId, lastId)
-			if (result.isSuccess) {
-				call.respond(HttpStatusCode.OK)
-			} else {
-				call.respond(
-					status = HttpStatusCode.BadRequest,
-					HttpResponseError(
-						error = "Failed to set sync data",
-						message = result.exceptionOrNull()?.message ?: "Unknown"
-					)
 				)
 			}
 		}

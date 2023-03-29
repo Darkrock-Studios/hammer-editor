@@ -81,7 +81,7 @@ class ProjectRepositoryTest : BaseTest() {
 			assertTrue { beginResult.isSuccess }
 			val syncId = beginResult.getOrThrow()
 
-			val endResult = endProjectSync(userId, projectDefinition, syncId)
+			val endResult = endProjectSync(userId, projectDefinition, syncId, lastSync, lastId)
 			assertTrue { endResult.isSuccess }
 		}
 	}
@@ -90,7 +90,7 @@ class ProjectRepositoryTest : BaseTest() {
 	@Test
 	fun `End Project Sync - Invalid SyncId`() = runTest {
 		createProjectRepository().apply {
-			val endResult = endProjectSync(userId, projectDefinition, "invalid-id")
+			val endResult = endProjectSync(userId, projectDefinition, "invalid-id", lastSync, lastId)
 			assertFalse { endResult.isSuccess }
 		}
 	}
