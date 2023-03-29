@@ -24,15 +24,5 @@ data class ProjectSynchronizationBegan(
 )
 
 enum class ApiSceneType {
-	Scene, Group;
-
-	companion object {
-		fun fromString(string: String): ApiSceneType? {
-			return when (string) {
-				"Scene" -> Scene
-				"Group" -> Group
-				else -> null
-			}
-		}
-	}
+	Scene, Group
 }
