@@ -1,12 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -74,7 +76,38 @@ class ProjectEditorRepositoryOkio(
 		return path.toHPath()
 	}
 
+	// Used after a server sync
+	private fun correctSceneOrders() {
+		correctSceneOrders(sceneTree.root())
+	}
+
+	/**
+	 * Walks the scene tree and makes the order of the children
+	 * in the tree match their internal `order` property.
+	 *
+	 * This is only used when server syncing has changed orders.
+	 */
+	private fun correctSceneOrders(node: TreeNode<SceneItem>) {
+		val children = node.children()
+		val sortedChildren = children.sortedBy { it.value.order }
+
+		for (i in children.indices) {
+			val child = children.first()
+			node.removeChild(child)
+		}
+
+		sortedChildren.forEach { child -> node.addChild(child) }
+
+		children.forEach { child ->
+			if (child.numChildrenImmedate() > 0) {
+				correctSceneOrders(child)
+			}
+		}
+	}
+
 	override fun rationalizeTree() {
+		correctSceneOrders()
+
 		sceneTree.forEach { node ->
 			if (node.value.type == SceneItem.Type.Root) return@forEach
 
@@ -371,6 +404,15 @@ class ProjectEditorRepositoryOkio(
 		val parentPath = getSceneFilePath(parent.value.id)
 		val existingSceneFiles = getGroupChildPathsById(parentPath.toOkioPath())
 
+		// Must grab a copy of the children before they are modified
+		// we'll need this if we need to calculate their original hash
+		// down below for markForSynchronization()
+		val originalChildren = if (projectSynchronizer.isServerSynchronized()) {
+			parent.children().map { child -> child.value.copy() }
+		} else {
+			null
+		}
+
 		parent.children().forEachIndexed { index, childNode ->
 			childNode.value = childNode.value.copy(order = index)
 
@@ -380,12 +422,30 @@ class ProjectEditorRepositoryOkio(
 
 			if (existingPath != newPath) {
 				try {
-					markForSynchronization(childNode.value)
+					originalChildren?.find { it.id == childNode.value.id }?.let { originalChild ->
+						val realPath = getPathFromFilesystem(childNode.value)
+							?: throw IllegalStateException("Could not find Scene on filesystem: ${childNode.value.id}")
+						val content = loadSceneMarkdownRaw(childNode.value, realPath)
+						markForSynchronization(originalChild, content)
+					}
 					fileSystem.atomicMove(source = existingPath, target = newPath)
 				} catch (e: IOException) {
 					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e.message}")
 				}
 			}
+		}
+	}
+
+	private fun markForSynchronization(scene: SceneItem, content: String) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val hash = EntityHash.hashScene(
+				id = scene.id,
+				order = scene.order,
+				name = scene.name,
+				type = scene.type.toApiType(),
+				content = content
+			)
+			projectSynchronizer.markEntityAsDirty(scene.id, hash)
 		}
 	}
 
@@ -573,27 +633,37 @@ class ProjectEditorRepositoryOkio(
 		return getSceneFromPath(scenePath.toHPath())
 	}
 
-	override fun loadSceneMarkdownRaw(sceneItem: SceneItem): String {
-		val scenePath = getSceneFilePath(sceneItem).toOkioPath()
-		val content = try {
-			fileSystem.read(scenePath) {
-				readUtf8()
+	override fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath): String {
+		val content = if (sceneItem.type == SceneItem.Type.Scene) {
+			try {
+				fileSystem.read(scenePath.toOkioPath()) {
+					readUtf8()
+				}
+			} catch (e: IOException) {
+				Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+				""
 			}
-		} catch (e: IOException) {
-			Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+		} else {
 			""
 		}
 
 		return content
 	}
 
-	override fun storeSceneMarkdownRaw(sceneItem: SceneContent): Boolean {
+	override fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
+		return getAllScenePathsOkio()
+			.filterScenePathsOkio().firstOrNull { path ->
+				sceneItem.id == getSceneFromFilename(path.toHPath()).id
+			}?.toHPath() ?: return null
+	}
+
+	override fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
 		sceneItem.markdown ?: return false
-		val scenePath = getSceneFilePath(sceneItem.scene).toOkioPath()
+
 		return try {
 			markForSynchronization(sceneItem.scene)
 
-			fileSystem.write(scenePath) {
+			fileSystem.write(scenePath.toOkioPath()) {
 				writeUtf8(sceneItem.markdown)
 			}
 

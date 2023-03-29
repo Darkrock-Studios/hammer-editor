@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
-import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -16,7 +16,7 @@ import okio.Path
 class ProjectRepository(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val sceneSynchronizer: SceneSynchronizer,
+	private val sceneSynchronizer: ServerSceneSynchronizer,
 	private val clock: Clock
 ) {
 	private val syncIdGenerator = RandomString(30)
@@ -138,7 +138,7 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		syncId: String,
-		lastSyncMs: Long,
+		lastSync: Instant,
 		lastId: Int
 	): Result<Boolean> {
 		synchronized(synchronizationSessions) {
@@ -150,7 +150,6 @@ class ProjectRepository(
 					Result.failure(IllegalStateException("Invalid sync id"))
 				} else {
 
-					val lastSync = Instant.fromEpochSeconds(lastSyncMs)
 					// Update sync data
 					val synDataPath = getProjectSyncDataPath(userId, projectDef)
 					val syncData = getProjectSyncData(userId, projectDef)

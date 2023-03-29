@@ -27,7 +27,7 @@ abstract class ProjectEditorRepository(
 	val projectDef: ProjectDef,
 	private val projectsRepository: ProjectsRepository,
 	protected val idRepository: IdRepository,
-	private val projectSynchronizer: ProjectSynchronizer,
+	protected val projectSynchronizer: ProjectSynchronizer,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(
@@ -204,12 +204,25 @@ abstract class ProjectEditorRepository(
 	 * Anything that wishes to interact with scene content should use `loadSceneBuffer`
 	 * instead.
 	 */
-	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem): String
+	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath = getSceneFilePath(sceneItem)): String
 
 	/**
 	 * This should only be used for server syncing
 	 */
-	abstract fun storeSceneMarkdownRaw(sceneItem: SceneContent): Boolean
+	abstract fun storeSceneMarkdownRaw(
+		sceneItem: SceneContent,
+		scenePath: HPath = getSceneFilePath(sceneItem.scene)
+	): Boolean
+
+	abstract fun getPathFromFilesystem(sceneItem: SceneItem): HPath?
+
+	/**
+	 * This should only be used for server syncing
+	 */
+	internal fun forceSceneListReload() {
+		reloadScenes()
+	}
+
 	abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
 	abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean

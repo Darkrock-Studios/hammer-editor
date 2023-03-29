@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.project.*
-import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,7 +25,7 @@ class ProjectRepositoryTest : BaseTest() {
 	private val projectDefinition = ProjectDefinition("Test Project")
 
 	private lateinit var fileSystem: FileSystem
-	private lateinit var sceneSynchronizer: SceneSynchronizer
+	private lateinit var sceneSynchronizer: ServerSceneSynchronizer
 	private lateinit var clock: TestClock
 
 	@Before

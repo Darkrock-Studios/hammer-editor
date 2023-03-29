@@ -13,7 +13,7 @@ import okio.FileSystem
 import okio.Path
 import java.io.IOException
 
-class SceneSynchronizer(
+class ServerSceneSynchronizer(
 	private val fileSystem: FileSystem,
 	private val json: Json
 ) : EntitySynchronizer {

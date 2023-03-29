@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
-import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -38,5 +38,5 @@ val mainModule = module {
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectRepository)
 
-	singleOf(::SceneSynchronizer)
+	singleOf(::ServerSceneSynchronizer)
 }

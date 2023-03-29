@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictExce
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -13,7 +14,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 
-class SceneSynchronizer(
+class ClientSceneSynchronizer(
 	private val projectDef: ProjectDef,
 	private val projectEditorRepository: ProjectEditorRepository,
 	private val draftRepository: SceneDraftRepository,
@@ -25,8 +26,13 @@ class SceneSynchronizer(
 	private fun createSceneEntity(id: Int): ApiProjectEntity.SceneEntity {
 		val scene =
 			projectEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
-		val contents = projectEditorRepository.loadSceneMarkdownRaw(scene)
 		val path = projectEditorRepository.getPathSegments(scene)
+
+		val contents = if (scene.type == SceneItem.Type.Scene) {
+			projectEditorRepository.loadSceneMarkdownRaw(scene)
+		} else {
+			""
+		}
 
 		return ApiProjectEntity.SceneEntity(
 			id = id,
@@ -83,7 +89,10 @@ class SceneSynchronizer(
 	override suspend fun getEntityHash(id: Int): String? {
 		val sceneItem = projectEditorRepository.getSceneItemFromId(id)
 		return if (sceneItem != null) {
-			val sceneContent = projectEditorRepository.loadSceneMarkdownRaw(sceneItem)
+			val scenePath = projectEditorRepository.getPathFromFilesystem(sceneItem)
+				?: throw IllegalStateException("Scene $id has no path")
+
+			val sceneContent = projectEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
 			EntityHash.hashScene(
 				id = sceneItem.id,
 				name = sceneItem.name,
@@ -137,11 +146,16 @@ class SceneSynchronizer(
 				order = apiScene.order
 			)
 
-			val content = SceneContent(sceneItem, apiScene.content)
-			if (!projectEditorRepository.storeSceneMarkdownRaw(content)) {
-				Napier.e("Failed to save downloaded scene content for: $id")
-			} else {
-				projectEditorRepository.onContentChanged(content)
+			if (!sceneItem.type.isCollection) {
+				val scenePath = projectEditorRepository.getPathFromFilesystem(sceneItem)
+					?: throw IllegalStateException("Scene $id has no path")
+
+				val content = SceneContent(sceneItem, apiScene.content)
+				if (!projectEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
+					Napier.e("Failed to save downloaded scene content for: $id")
+				} else {
+					projectEditorRepository.onContentChanged(content)
+				}
 			}
 		} else {
 			Napier.d("Entity $id is a Scene Group")
@@ -190,6 +204,7 @@ class SceneSynchronizer(
 		// Wait for buffers to propagate before we save them
 		delay(ProjectEditorRepository.BUFFER_COOL_DOWN * 0.25)
 
+		projectEditorRepository.forceSceneListReload()
 		projectEditorRepository.storeAllBuffers()
 	}
 }

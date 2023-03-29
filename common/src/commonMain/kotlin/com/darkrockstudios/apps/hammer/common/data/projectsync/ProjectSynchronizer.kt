@@ -38,7 +38,7 @@ class ProjectSynchronizer(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val idRepository: IdRepository by projectInject()
-	private val sceneSynchronizer: SceneSynchronizer by projectInject()
+	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 
 	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
@@ -114,17 +114,16 @@ class ProjectSynchronizer(
 		clientSyncData: SynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan
 	): Int {
-		var lastId = serverSyncData.lastId
-		val newIds = mutableListOf<Int>()
+		var serverLastId = serverSyncData.lastId
+		val clientLastId = idRepository.peekNextId() - 1
 		for (id in clientSyncData.newIds) {
 			if (id <= serverSyncData.lastId) {
-				val newId = ++lastId
+				val newId = ++serverLastId
 				reIdEntry(id, newId)
-				newIds.add(newId)
 			}
 		}
 
-		val maxId = (newIds + clientSyncData.lastId + serverSyncData.lastId).max()
+		val maxId = (clientSyncData.newIds + clientSyncData.lastId + serverSyncData.lastId).max()
 
 		// Tell ID Repository to re-find the max ID
 		idRepository.findNextId()
@@ -144,20 +143,23 @@ class ProjectSynchronizer(
 		onProgress(0.1f)
 
 		val clientSyncData = loadSyncData().copy(currentSyncId = syncData.syncId)
+		val newClientIds = clientSyncData.newIds
 		saveSyncData(clientSyncData)
 
 		onProgress(0.25f)
 
 		// Resolve ID conflicts
 		val maxId = handleIdConflicts(clientSyncData, syncData)
+		val newIdsUnaltered = maxId > syncData.lastId
 
 		// Transfer Entities
 		for (thisId in 1..maxId) {
 			Napier.d("Syncing ID $thisId")
 
 			val localIsDirty = clientSyncData.dirty.find { it.id == thisId }
+			val isNewlyCreated = newClientIds.contains(thisId) && newIdsUnaltered
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			if (localIsDirty != null || thisId > syncData.lastId) {
+			if (isNewlyCreated || localIsDirty != null || thisId > syncData.lastId) {
 				Napier.d("Upload ID $thisId")
 				val originalHash = localIsDirty?.originalHash
 				uploadEntity(thisId, syncData.syncId, originalHash, onConflict)
@@ -187,7 +189,8 @@ class ProjectSynchronizer(
 				currentSyncId = null,
 				lastId = newLastId,
 				lastSync = syncFinishedAt,
-				dirty = emptyList()
+				dirty = emptyList(),
+				newIds = emptyList()
 			)
 			saveSyncData(finalSyncData)
 		}
@@ -264,6 +267,12 @@ class ProjectSynchronizer(
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			else -> Napier.e("Unknown entity type $type")
 		}
+	}
+
+	fun recordNewId(claimedId: Int) {
+		val syncData = loadSyncData()
+		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
+		saveSyncData(newSyncData)
 	}
 
 	companion object {

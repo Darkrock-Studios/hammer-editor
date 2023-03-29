@@ -44,7 +44,7 @@ class ServerProjectApi(
 				setBody(
 					FormDataContent(
 						Parameters.build {
-							append("lastSync", syncEnd.toEpochMilliseconds().toString())
+							append("lastSync", syncEnd.toString())
 							append("lastId", lastId.toString())
 						}
 					)

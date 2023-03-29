@@ -11,6 +11,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.Instant
 import org.koin.ktor.ext.get
 
 fun Application.projectRoutes() {
@@ -66,7 +67,11 @@ private fun Route.endProjectSync() {
 		val syncId = call.request.headers[HEADER_SYNC_ID]
 
 		val formParameters = call.receiveParameters()
-		val lastSync = formParameters["lastSync"].toString().toLongOrNull()
+		val lastSync = try {
+			Instant.parse(formParameters["lastSync"].toString())
+		} catch (e: IllegalArgumentException) {
+			null
+		}
 		val lastId = formParameters["lastId"].toString().toIntOrNull()
 
 		if (projectName == null) {
