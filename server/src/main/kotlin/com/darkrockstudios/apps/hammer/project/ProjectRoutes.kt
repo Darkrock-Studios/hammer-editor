@@ -20,7 +20,7 @@ fun Application.projectRoutes() {
 				beginProjectSync()
 				endProjectSync()
 				getProjectLastSync()
-				uploadScene()
+				uploadEntity()
 				downloadEntity()
 				setSyncData()
 			}
@@ -132,87 +132,61 @@ private fun Route.getProjectLastSync() {
 	}
 }
 
-private fun Route.uploadScene() {
+private fun Route.uploadEntity() {
 	val projectRepository: ProjectRepository = get()
 
-	post("/upload_scene/{entityId}") {
+	post("/upload_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val entityId = call.parameters["entityId"]?.toIntOrNull()
-
-		val formParameters = call.receiveParameters()
-		val sceneName = formParameters["sceneName"].toString()
-		val sceneContent = formParameters["sceneContent"].toString()
-		val sceneOrder = formParameters["sceneOrder"].toString().toIntOrNull()
-		val scenePath = formParameters["scenePath"].toString()
-		val sceneTypeName = formParameters["sceneType"].toString()
-		val force = formParameters["force"].toString().toBooleanStrictOrNull()
-		val path = scenePath.trim().split("/").map { it.toInt() }
 		val syncId = call.request.headers[HEADER_SYNC_ID]
+		val force = call.request.queryParameters["force"]?.toBooleanStrictOrNull()
 
-		val sceneType = ApiSceneType.fromString(sceneTypeName)
-
-		if (projectName == null) {
+		val entityTypeHeader = call.request.headers[HEADER_ENTITY_TYPE]
+		val type = ApiProjectEntity.Type.fromString(entityTypeHeader ?: "")
+		if (type == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
-			)
-		} else if (entityId == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "entityId was missing")
-			)
-		} else if (sceneContent.isBlank()) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "sceneContent was missing")
-			)
-		} else if (sceneOrder == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "sceneOrder was missing")
-			)
-		} else if (sceneType == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "sceneType was missing")
-			)
-		} else if (scenePath.isBlank()) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "scenePath was missing")
-			)
-		} else if (syncId.isNullOrBlank()) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "syncId was missing")
+				HttpResponseError(error = "Missing Header", message = "x-entity-type was missing")
 			)
 		} else {
-			val projectDef = ProjectDefinition(projectName)
-			val entity = ApiProjectEntity.SceneEntity(
-				id = entityId,
-				order = sceneOrder,
-				sceneType = sceneType,
-				name = sceneName,
-				path = path,
-				content = sceneContent
-			)
+			val entity = when (type) {
+				ApiProjectEntity.Type.SCENE -> call.receive<ApiProjectEntity.SceneEntity>()
+			}
 
-			val result = projectRepository.saveEntity(principal.id, projectDef, entity, syncId, force ?: false)
-			if (result.isSuccess) {
-				call.respond(SaveSceneResponse(result.getOrThrow()))
+			if (projectName == null) {
+				call.respond(
+					status = HttpStatusCode.BadRequest,
+					HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
+				)
+			} else if (entityId == null) {
+				call.respond(
+					status = HttpStatusCode.BadRequest,
+					HttpResponseError(error = "Missing Parameter", message = "entityId was missing")
+				)
+			} else if (syncId.isNullOrBlank()) {
+				call.respond(
+					status = HttpStatusCode.BadRequest,
+					HttpResponseError(error = "Missing Parameter", message = "syncId was missing")
+				)
 			} else {
-				val e = result.exceptionOrNull()
-				if (e is EntityConflictException) {
-					call.respond(status = HttpStatusCode.Conflict, e.entity)
+				val projectDef = ProjectDefinition(projectName)
+				val result = projectRepository.saveEntity(principal.id, projectDef, entity, syncId, force ?: false)
+				if (result.isSuccess) {
+					call.respond(SaveSceneResponse(result.getOrThrow()))
 				} else {
-					call.respond(
-						status = HttpStatusCode.ExpectationFailed,
-						HttpResponseError(
-							error = "Save Error",
-							message = e?.message ?: "Unknown failure",
+					val e = result.exceptionOrNull()
+					if (e is EntityConflictException) {
+						call.respond(status = HttpStatusCode.Conflict, e.entity)
+					} else {
+						call.respond(
+							status = HttpStatusCode.ExpectationFailed,
+							HttpResponseError(
+								error = "Save Error",
+								message = e?.message ?: "Unknown failure",
+							)
 						)
-					)
+					}
 				}
 			}
 		}

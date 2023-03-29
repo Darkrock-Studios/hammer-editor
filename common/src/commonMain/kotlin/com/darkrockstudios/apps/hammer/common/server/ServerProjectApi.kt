@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.server
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -52,39 +51,37 @@ class ServerProjectApi(
 		)
 	}
 
-	suspend fun uploadScene(
-		scene: SceneItem,
-		path: List<Int>,
-		content: String,
+	suspend fun uploadEntity(
+		projectDef: ProjectDef,
+		entity: ApiProjectEntity,
 		syncId: String,
 		force: Boolean = false
 	): Result<SaveSceneResponse> {
-		val projectName = scene.projectDef.name
+		val projectName = projectDef.name
 		return post(
-			path = "/project/$userId/$projectName/upload_scene/${scene.id}",
+			path = "/project/$userId/$projectName/upload_entity/${entity.id}",
 			parse = { it.body() },
 			builder = {
-				setBody(
-					FormDataContent(
-						Parameters.build {
-							append("sceneName", scene.name)
-							append("sceneContent", content)
-							append("sceneType", scene.type.name)
-							append("sceneOrder", scene.order.toString())
-							append("scenePath", path.joinToString("/"))
-							append("force", force.toString())
-						}
-					)
-				)
 				headers {
+					contentType(ContentType.Application.Json)
 					append(HEADER_SYNC_ID, syncId)
+					append(HEADER_ENTITY_TYPE, entity.type.name)
 				}
-				etag()
+				url {
+					parameters.append("force", force.toString())
+				}
+				when (entity) {
+					is ApiProjectEntity.SceneEntity -> setBody(entity)
+				}
 			},
 			failureHandler = { response ->
-				val jsonStr = response.bodyAsText()
-				val entity = json.decodeFromString<ApiProjectEntity.SceneEntity>(jsonStr)
-				EntityConflictException.SceneConflictException(entity)
+				if (response.status == HttpStatusCode.Conflict) {
+					val jsonStr = response.bodyAsText()
+					val serverEntity = json.decodeFromString<ApiProjectEntity.SceneEntity>(jsonStr)
+					EntityConflictException.SceneConflictException(serverEntity)
+				} else {
+					defaultFailureHandler(response)
+				}
 			}
 		)
 	}
@@ -106,12 +103,10 @@ class ServerProjectApi(
 					ApiProjectEntity.Type.fromString(type)
 				} ?: throw IllegalStateException("Missing entity-type header")
 
-				return@get when (type) {
-					ApiProjectEntity.Type.SCENE -> {
-						val entity = response.body<ApiProjectEntity.SceneEntity>()
-						LoadEntityResponse(entity)
-					}
+				val entity = when (type) {
+					ApiProjectEntity.Type.SCENE -> response.body<ApiProjectEntity.SceneEntity>()
 				}
+				return@get LoadEntityResponse(entity)
 			},
 			failureHandler = { response ->
 				if (response.status == HttpStatusCode.NotModified) {

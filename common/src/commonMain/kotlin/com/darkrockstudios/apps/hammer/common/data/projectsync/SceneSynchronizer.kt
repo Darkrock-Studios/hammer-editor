@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictExce
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -22,6 +21,22 @@ class SceneSynchronizer(
 
 	val conflictResolution = Channel<ApiProjectEntity.SceneEntity>()
 
+	private fun createSceneEntity(id: Int): ApiProjectEntity.SceneEntity {
+		val scene =
+			projectEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
+		val contents = projectEditorRepository.loadSceneMarkdownRaw(scene)
+		val path = projectEditorRepository.getPathSegments(scene)
+
+		return ApiProjectEntity.SceneEntity(
+			id = id,
+			name = scene.name,
+			order = scene.order,
+			sceneType = scene.type.toApiType(),
+			content = contents,
+			path = path,
+		)
+	}
+
 	override suspend fun uploadEntity(
 		id: Int,
 		syncId: String,
@@ -29,14 +44,10 @@ class SceneSynchronizer(
 	) {
 		Napier.d("Uploading Scene $id")
 
-		val scene =
-			projectEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
-		val contents = projectEditorRepository.loadSceneMarkdownRaw(scene)
-		val path = projectEditorRepository.getPathSegments(scene)
-
-		val result = serverProjectApi.uploadScene(scene, path, contents, syncId)
-		if (!result.isSuccess) {
-			result.exceptionOrNull()?.let { e -> Napier.e("Failed to upload scene", e) }
+		val entity = createSceneEntity(id)
+		val result = serverProjectApi.uploadEntity(projectDef, entity, syncId)
+		if (result.isSuccess) {
+			Napier.i("Uploaded Scene $id")
 		} else {
 			val exception = result.exceptionOrNull()
 			val conflictException = exception as? EntityConflictException.SceneConflictException
@@ -45,25 +56,16 @@ class SceneSynchronizer(
 				onConflict(conflictException.entity)
 
 				val resolvedEntity = conflictResolution.receive()
-				val resolvedScene = SceneItem(
-					projectDef = projectDef,
-					id = resolvedEntity.id,
-					name = resolvedEntity.name,
-					order = resolvedEntity.order,
-					type = resolvedEntity.sceneType.toSceneType(),
-				)
-
-				val resolvedPath = projectEditorRepository.getPathSegments(resolvedScene)
-				val resolvedContent = resolvedEntity.content
-				val resolveResult = serverProjectApi.uploadScene(scene, resolvedPath, resolvedContent, syncId, true)
+				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, syncId, true)
 
 				if (!resolveResult.isSuccess) {
-					resolveResult.exceptionOrNull()?.let { e -> Napier.e("Failed to upload scene", e) }
+					resolveResult.exceptionOrNull()
+						?.let { e -> Napier.e("Scene conflict resolution failed for $id", e) }
 				} else {
 					Napier.d("Resolved conflict for scene $id")
 				}
 			} else {
-				Napier.e("Failed to upload scene", exception)
+				Napier.e("Failed to upload scene $id", exception)
 			}
 		}
 	}
