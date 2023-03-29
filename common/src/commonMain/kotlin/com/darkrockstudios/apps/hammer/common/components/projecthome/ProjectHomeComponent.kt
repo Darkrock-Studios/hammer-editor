@@ -83,6 +83,12 @@ class ProjectHomeComponent(
 
 	override fun resolveConflict(resolvedEntity: ApiProjectEntity) {
 		projectSynchronizer.resolveConflict(resolvedEntity)
+
+		_state.reduce {
+			it.copy(
+				entityConflict = null
+			)
+		}
 	}
 
 	override fun endSync() {

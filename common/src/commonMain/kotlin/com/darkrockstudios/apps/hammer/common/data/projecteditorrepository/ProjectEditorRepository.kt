@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -23,7 +26,8 @@ import kotlin.time.Duration.Companion.milliseconds
 abstract class ProjectEditorRepository(
 	val projectDef: ProjectDef,
 	private val projectsRepository: ProjectsRepository,
-	protected val idRepository: IdRepository
+	protected val idRepository: IdRepository,
+	private val projectSynchronizer: ProjectSynchronizer,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(
@@ -65,6 +69,20 @@ abstract class ProjectEditorRepository(
 		get() = sceneTree
 
 	protected abstract fun loadSceneTree(): TreeNode<SceneItem>
+
+	protected fun markForSynchronization(scene: SceneItem) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val content = loadSceneMarkdownRaw(scene)
+			val hash = EntityHash.hashScene(
+				id = scene.id,
+				order = scene.order,
+				name = scene.name,
+				type = scene.type.toApiType(),
+				content = content
+			)
+			projectSynchronizer.markEntityAsDirty(scene.id, hash)
+		}
+	}
 
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
@@ -150,7 +168,7 @@ abstract class ProjectEditorRepository(
 		metadata = loadMetadata()
 
 		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescent(500.milliseconds).collect { content ->
+			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { content ->
 				if (updateSceneBufferContent(content)) {
 					launchSaveJob(content.scene)
 				}
@@ -394,6 +412,7 @@ abstract class ProjectEditorRepository(
 		const val SCENE_FILENAME_EXTENSION = ".md"
 		const val SCENE_DIRECTORY = "scenes"
 		const val BUFFER_DIRECTORY = ".buffers"
+		val BUFFER_COOL_DOWN = 500.milliseconds
 
 		fun getSceneIdFromFilename(fileName: String): Int {
 			val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)

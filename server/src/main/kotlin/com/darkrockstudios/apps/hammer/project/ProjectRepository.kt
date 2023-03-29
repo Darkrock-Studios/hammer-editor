@@ -189,6 +189,7 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entity: ApiProjectEntity,
+		originalHash: String?,
 		syncId: String,
 		force: Boolean
 	): Result<Boolean> {
@@ -197,7 +198,13 @@ class ProjectRepository(
 		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
-			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity, force)
+			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}

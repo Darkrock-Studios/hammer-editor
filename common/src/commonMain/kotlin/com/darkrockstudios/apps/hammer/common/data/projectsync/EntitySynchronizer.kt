@@ -5,9 +5,10 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 typealias EntityConflictHandler<T> = suspend (T) -> Unit
 
 interface EntitySynchronizer<T : ApiProjectEntity> {
+	suspend fun prepareForSync()
 	fun ownsEntity(id: Int): Boolean
 	suspend fun getEntityHash(id: Int): String?
-	suspend fun uploadEntity(id: Int, syncId: String, onConflict: EntityConflictHandler<T>)
+	suspend fun uploadEntity(id: Int, syncId: String, originalHash: String?, onConflict: EntityConflictHandler<T>)
 	suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String)
 	suspend fun reIdEntity(oldId: Int, newId: Int)
 	suspend fun finalizeSync()

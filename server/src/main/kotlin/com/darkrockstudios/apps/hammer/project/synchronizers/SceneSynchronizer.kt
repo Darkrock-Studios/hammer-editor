@@ -21,19 +21,12 @@ class SceneSynchronizer(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		sceneEntity: ApiProjectEntity.SceneEntity,
+		originalHash: String?,
 		force: Boolean
 	): EntityConflictException? {
 		val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)
 
 		return if (!force) {
-			val incomingHash = EntityHash.hashScene(
-				id = sceneEntity.id,
-				order = sceneEntity.order,
-				name = sceneEntity.name,
-				type = sceneEntity.sceneType,
-				content = sceneEntity.content
-			)
-
 			if (fileSystem.exists(path)) {
 				val existingScene = fileSystem.readJsonOrNull<ApiProjectEntity.SceneEntity>(path, json)
 				if (existingScene != null) {
@@ -45,7 +38,7 @@ class SceneSynchronizer(
 						content = existingScene.content
 					)
 
-					if (existingHash != incomingHash) {
+					if (originalHash != null && existingHash != originalHash) {
 						EntityConflictException.SceneConflictException(existingScene)
 					} else {
 						null
@@ -65,9 +58,10 @@ class SceneSynchronizer(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		sceneEntity: ApiProjectEntity.SceneEntity,
+		originalHash: String?,
 		force: Boolean
 	): Result<Boolean> {
-		val conflict = checkForConflict(userId, projectDef, sceneEntity, force)
+		val conflict = checkForConflict(userId, projectDef, sceneEntity, originalHash, force)
 		return if (conflict == null) {
 			try {
 				val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)

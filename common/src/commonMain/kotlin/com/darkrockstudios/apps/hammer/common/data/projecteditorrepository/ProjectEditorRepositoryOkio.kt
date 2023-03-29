@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -24,9 +25,10 @@ class ProjectEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	projectsRepository: ProjectsRepository,
 	idRepository: IdRepository,
+	projectSynchronizer: ProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : ProjectEditorRepository(projectDef, projectsRepository, idRepository) {
+) : ProjectEditorRepository(projectDef, projectsRepository, idRepository, projectSynchronizer) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -297,6 +299,8 @@ class ProjectEditorRepositoryOkio(
 			}
 		}
 
+		markForSynchronization(fromNode.value)
+
 		toParentNode.insertChild(finalIndex, fromNode)
 
 		/*
@@ -318,6 +322,8 @@ class ProjectEditorRepositoryOkio(
 		val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 
 		val isMovingParents = (fromParentNode != toParentNode)
+
+		markForSynchronization(fromNode.value)
 
 		// Perform move inside tree
 		updateSceneTreeForMove(moveRequest)
@@ -374,6 +380,7 @@ class ProjectEditorRepositoryOkio(
 
 			if (existingPath != newPath) {
 				try {
+					markForSynchronization(childNode.value)
 					fileSystem.atomicMove(source = existingPath, target = newPath)
 				} catch (e: IOException) {
 					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e.message}")
@@ -584,9 +591,12 @@ class ProjectEditorRepositoryOkio(
 		sceneItem.markdown ?: return false
 		val scenePath = getSceneFilePath(sceneItem.scene).toOkioPath()
 		return try {
+			markForSynchronization(sceneItem.scene)
+
 			fileSystem.write(scenePath) {
 				writeUtf8(sceneItem.markdown)
 			}
+
 			true
 		} catch (e: IOException) {
 			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name})")
@@ -631,6 +641,8 @@ class ProjectEditorRepositoryOkio(
 
 		return try {
 			val markdown = buffer.content.coerceMarkdown()
+
+			markForSynchronization(sceneItem)
 
 			fileSystem.write(scenePath) {
 				writeUtf8(markdown)
@@ -701,6 +713,8 @@ class ProjectEditorRepositoryOkio(
 	}
 
 	override fun renameScene(sceneItem: SceneItem, newName: String) {
+		markForSynchronization(sceneItem)
+
 		val cleanedNamed = newName.trim()
 
 		val oldPath = getSceneFilePath(sceneItem).toOkioPath()

@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -30,7 +29,6 @@ import okio.Path
 class ProjectSynchronizer(
 	private val projectDef: ProjectDef,
 	private val globalSettingsRepository: GlobalSettingsRepository,
-	private val projectEditorRepository: ProjectEditorRepository,
 	private val serverProjectApi: ServerProjectApi,
 	private val fileSystem: FileSystem,
 	private val json: Json
@@ -53,6 +51,23 @@ class ProjectSynchronizer(
 				}
 			}
 		}
+	}
+
+	fun isServerSynchronized(): Boolean {
+		return globalSettingsRepository.serverSettings != null
+	}
+
+	fun isEntityDirty(id: Int): Boolean {
+		val syncData = loadSyncData()
+		return syncData.dirty.any { it.id == id }
+	}
+
+	fun markEntityAsDirty(id: Int, oldHash: String) {
+		val syncData = loadSyncData()
+		val newSyncData = syncData.copy(
+			dirty = syncData.dirty + EntityState(id, oldHash)
+		)
+		saveSyncData(newSyncData)
 	}
 
 	fun resolveConflict(entity: ApiProjectEntity) {
@@ -122,6 +137,8 @@ class ProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 	) {
+		prepareForSync()
+
 		val syncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
 
 		onProgress(0.1f)
@@ -142,7 +159,8 @@ class ProjectSynchronizer(
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			if (localIsDirty != null || thisId > syncData.lastId) {
 				Napier.d("Upload ID $thisId")
-				uploadEntity(thisId, syncData.syncId, onConflict)
+				val originalHash = localIsDirty?.originalHash
+				uploadEntity(thisId, syncData.syncId, originalHash, onConflict)
 			}
 			// Otherwise download the server's copy
 			else {
@@ -168,7 +186,8 @@ class ProjectSynchronizer(
 			val finalSyncData = clientSyncData.copy(
 				currentSyncId = null,
 				lastId = newLastId,
-				lastSync = syncFinishedAt
+				lastSync = syncFinishedAt,
+				dirty = emptyList()
 			)
 			saveSyncData(finalSyncData)
 		}
@@ -176,6 +195,10 @@ class ProjectSynchronizer(
 		onProgress(1f)
 
 		onComplete()
+	}
+
+	private suspend fun prepareForSync() {
+		sceneSynchronizer.prepareForSync()
 	}
 
 	private suspend fun finalizeSync() {
@@ -190,10 +213,15 @@ class ProjectSynchronizer(
 		}
 	}
 
-	private suspend fun uploadEntity(id: Int, syncId: String, onConflict: EntityConflictHandler<ApiProjectEntity>) {
+	private suspend fun uploadEntity(
+		id: Int,
+		syncId: String,
+		originalHash: String?,
+		onConflict: EntityConflictHandler<ApiProjectEntity>
+	) {
 		val type = findEntityType(id)
 		when (type) {
-			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, onConflict)
+			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict)
 			else -> Napier.e("Unknown entity type $type")
 		}
 	}

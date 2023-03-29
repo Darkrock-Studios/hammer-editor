@@ -385,19 +385,19 @@ private fun SceneConflict(
 	Column {
 		Text("Scene Conflict")
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
-		Row {
-			Column {
+		Row(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.weight(1f)) {
 				Text("Local Scene: ${entityConflict.clientScene.name}")
 				Button(onClick = { component.resolveConflict(entityConflict.clientScene) }) {
 					Text("Use Local")
 				}
-				Text(entityConflict.serverScene.content)
+				Text(entityConflict.clientScene.content)
 			}
 
-			Column {
+			Column(modifier = Modifier.weight(1f)) {
 				Text("Remote Scene: ${entityConflict.serverScene.name}")
 				Button(onClick = { component.resolveConflict(entityConflict.serverScene) }) {
-					Text("Use Local")
+					Text("Use Remote")
 				}
 				Text(entityConflict.serverScene.content)
 			}

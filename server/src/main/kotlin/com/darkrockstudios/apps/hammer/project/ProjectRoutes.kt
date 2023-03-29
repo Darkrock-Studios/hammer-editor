@@ -116,6 +116,7 @@ private fun Route.uploadEntity() {
 		val projectName = call.parameters["projectName"]
 		val entityId = call.parameters["entityId"]?.toIntOrNull()
 		val syncId = call.request.headers[HEADER_SYNC_ID]
+		val originalHash = call.request.headers[HEADER_ORIGINAL_HASH]
 		val force = call.request.queryParameters["force"]?.toBooleanStrictOrNull()
 
 		val entityTypeHeader = call.request.headers[HEADER_ENTITY_TYPE]
@@ -147,13 +148,17 @@ private fun Route.uploadEntity() {
 				)
 			} else {
 				val projectDef = ProjectDefinition(projectName)
-				val result = projectRepository.saveEntity(principal.id, projectDef, entity, syncId, force ?: false)
+				val result =
+					projectRepository.saveEntity(principal.id, projectDef, entity, originalHash, syncId, force ?: false)
 				if (result.isSuccess) {
 					call.respond(SaveEntityResponse(result.getOrThrow()))
 				} else {
 					val e = result.exceptionOrNull()
 					if (e is EntityConflictException) {
-						call.respond(status = HttpStatusCode.Conflict, e.entity)
+						val entity = e.entity
+						when (entity) {
+							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
+						}
 					} else {
 						call.respond(
 							status = HttpStatusCode.ExpectationFailed,

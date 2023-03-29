@@ -56,6 +56,7 @@ class ServerProjectApi(
 	suspend fun uploadEntity(
 		projectDef: ProjectDef,
 		entity: ApiProjectEntity,
+		originalHash: String?,
 		syncId: String,
 		force: Boolean = false
 	): Result<SaveEntityResponse> {
@@ -68,6 +69,9 @@ class ServerProjectApi(
 					contentType(ContentType.Application.Json)
 					append(HEADER_SYNC_ID, syncId)
 					append(HEADER_ENTITY_TYPE, entity.type.name)
+					if (originalHash != null) {
+						append(HEADER_ORIGINAL_HASH, originalHash)
+					}
 				}
 				url {
 					parameters.append("force", force.toString())

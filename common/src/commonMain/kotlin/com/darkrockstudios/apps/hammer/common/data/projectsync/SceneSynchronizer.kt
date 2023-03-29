@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 
 class SceneSynchronizer(
 	private val projectDef: ProjectDef,
@@ -40,12 +41,13 @@ class SceneSynchronizer(
 	override suspend fun uploadEntity(
 		id: Int,
 		syncId: String,
+		originalHash: String?,
 		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>
 	) {
 		Napier.d("Uploading Scene $id")
 
 		val entity = createSceneEntity(id)
-		val result = serverProjectApi.uploadEntity(projectDef, entity, syncId)
+		val result = serverProjectApi.uploadEntity(projectDef, entity, originalHash, syncId)
 		if (result.isSuccess) {
 			Napier.i("Uploaded Scene $id")
 		} else {
@@ -56,18 +58,22 @@ class SceneSynchronizer(
 				onConflict(conflictException.entity)
 
 				val resolvedEntity = conflictResolution.receive()
-				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, syncId, true)
+				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, null, syncId, true)
 
-				if (!resolveResult.isSuccess) {
-					resolveResult.exceptionOrNull()
-						?.let { e -> Napier.e("Scene conflict resolution failed for $id", e) }
-				} else {
+				if (resolveResult.isSuccess) {
 					Napier.d("Resolved conflict for scene $id")
+					storeEntity(resolvedEntity, syncId)
+				} else {
+					Napier.e("Scene conflict resolution failed for $id", resolveResult.exceptionOrNull())
 				}
 			} else {
 				Napier.e("Failed to upload scene $id", exception)
 			}
 		}
+	}
+
+	override suspend fun prepareForSync() {
+		projectEditorRepository.storeAllBuffers()
 	}
 
 	override fun ownsEntity(id: Int): Boolean {
@@ -91,7 +97,7 @@ class SceneSynchronizer(
 	}
 
 	override suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String) {
-		Napier.d("Downloading Entity ${serverEntity.id}")
+		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = projectEditorRepository.rawTree
 
@@ -134,6 +140,8 @@ class SceneSynchronizer(
 			val content = SceneContent(sceneItem, apiScene.content)
 			if (!projectEditorRepository.storeSceneMarkdownRaw(content)) {
 				Napier.e("Failed to save downloaded scene content for: $id")
+			} else {
+				projectEditorRepository.onContentChanged(content)
 			}
 		} else {
 			Napier.d("Entity $id is a Scene Group")
@@ -178,6 +186,10 @@ class SceneSynchronizer(
 	override suspend fun finalizeSync() {
 		projectEditorRepository.rationalizeTree()
 		projectEditorRepository.cleanupSceneOrder()
+
+		// Wait for buffers to propagate before we save them
+		delay(ProjectEditorRepository.BUFFER_COOL_DOWN * 0.25)
+
 		projectEditorRepository.storeAllBuffers()
 	}
 }
