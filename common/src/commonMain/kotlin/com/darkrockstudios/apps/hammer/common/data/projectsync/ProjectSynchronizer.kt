@@ -112,12 +112,14 @@ class ProjectSynchronizer(
 
 	private suspend fun handleIdConflicts(
 		clientSyncData: SynchronizationData,
-		serverSyncData: ProjectSynchronizationBegan
+		serverSyncData: ProjectSynchronizationBegan,
+		onLog: suspend (String?) -> Unit
 	): Int {
 		var serverLastId = serverSyncData.lastId
 		val clientLastId = idRepository.peekNextId() - 1
 		for (id in clientSyncData.newIds) {
 			if (id <= serverSyncData.lastId) {
+				onLog("ID $id already exists on server, re-assigning")
 				val newId = ++serverLastId
 				reIdEntry(id, newId)
 			}
@@ -132,7 +134,8 @@ class ProjectSynchronizer(
 	}
 
 	suspend fun sync(
-		onProgress: suspend (Float) -> Unit,
+		onProgress: suspend (Float, String?) -> Unit,
+		onLog: suspend (String?) -> Unit,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 	) {
@@ -140,17 +143,19 @@ class ProjectSynchronizer(
 
 		val syncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
 
-		onProgress(0.1f)
+		onProgress(0.1f, "Server data received")
 
 		val clientSyncData = loadSyncData().copy(currentSyncId = syncData.syncId)
 		val newClientIds = clientSyncData.newIds
 		saveSyncData(clientSyncData)
 
-		onProgress(0.25f)
+		onProgress(0.25f, "Client data loaded")
 
 		// Resolve ID conflicts
-		val maxId = handleIdConflicts(clientSyncData, syncData)
+		val maxId = handleIdConflicts(clientSyncData, syncData, onLog)
 		val newIdsUnaltered = maxId > syncData.lastId
+
+		onProgress(0.25f, null)
 
 		// Transfer Entities
 		for (thisId in 1..maxId) {
@@ -162,20 +167,20 @@ class ProjectSynchronizer(
 			if (isNewlyCreated || localIsDirty != null || thisId > syncData.lastId) {
 				Napier.d("Upload ID $thisId")
 				val originalHash = localIsDirty?.originalHash
-				uploadEntity(thisId, syncData.syncId, originalHash, onConflict)
+				uploadEntity(thisId, syncData.syncId, originalHash, onConflict, onLog)
 			}
 			// Otherwise download the server's copy
 			else {
 				Napier.d("Download ID $thisId")
-				downloadEntry(thisId, syncData.syncId)
+				downloadEntry(thisId, syncData.syncId, onLog)
 			}
 		}
 
-		onProgress(0.75f)
+		onProgress(0.75f, "Entities transferred")
 
 		finalizeSync()
 
-		onProgress(0.9f)
+		onProgress(0.9f, "Sync finalized")
 
 		val newLastId = idRepository.peekNextId() - 1
 		val syncFinishedAt = Clock.System.now()
@@ -185,6 +190,8 @@ class ProjectSynchronizer(
 		if (endSyncResult.isFailure) {
 			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
 		} else {
+			onLog("Sync data saved")
+
 			val finalSyncData = clientSyncData.copy(
 				currentSyncId = null,
 				lastId = newLastId,
@@ -195,7 +202,7 @@ class ProjectSynchronizer(
 			saveSyncData(finalSyncData)
 		}
 
-		onProgress(1f)
+		onProgress(1f, null)
 
 		onComplete()
 	}
@@ -220,11 +227,12 @@ class ProjectSynchronizer(
 		id: Int,
 		syncId: String,
 		originalHash: String?,
-		onConflict: EntityConflictHandler<ApiProjectEntity>
+		onConflict: EntityConflictHandler<ApiProjectEntity>,
+		onLog: suspend (String?) -> Unit
 	) {
 		val type = findEntityType(id)
 		when (type) {
-			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict)
+			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 			else -> Napier.e("Unknown entity type $type")
 		}
 	}
@@ -237,7 +245,7 @@ class ProjectSynchronizer(
 		}
 	}
 
-	private suspend fun downloadEntry(id: Int, syncId: String) {
+	private suspend fun downloadEntry(id: Int, syncId: String, onLog: suspend (String?) -> Unit) {
 		val localEntityHash = getLocalEntityHash(id)
 		val entityResponse = serverProjectApi.downloadEntity(
 			projectDef = projectDef,
@@ -249,14 +257,16 @@ class ProjectSynchronizer(
 		if (entityResponse.isSuccess) {
 			val serverEntity = entityResponse.getOrThrow()
 			when (serverEntity.type) {
-				ApiProjectEntity.Type.SCENE -> sceneSynchronizer.storeEntity(serverEntity.entity, syncId)
+				ApiProjectEntity.Type.SCENE -> sceneSynchronizer.storeEntity(serverEntity.entity, syncId, onLog)
 				else -> Napier.e("Unknown entity type ${serverEntity.type}")
 			}
 		} else {
 			if (entityResponse.exceptionOrNull() is EntityNotModifiedException) {
 				Napier.d("Entity $id not modified")
+				onLog("Entity $id not modified")
 			} else {
 				Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
+				onLog("Failed to download entity $id")
 			}
 		}
 	}

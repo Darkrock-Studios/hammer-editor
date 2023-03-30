@@ -62,13 +62,43 @@ class ProjectHomeComponent(
 		}
 	}
 
-	private suspend fun updateSync(show: Boolean, progress: Float) {
+	private suspend fun updateSyncLog(log: String?) {
+		if (log != null) {
+			withContext(mainDispatcher) {
+				_state.reduce {
+					val existingLog = it.syncLog
+					if (existingLog == null) {
+						it.copy(
+							syncLog = listOf(log)
+						)
+					} else {
+						it.copy(
+							syncLog = existingLog + log
+						)
+					}
+				}
+			}
+		}
+	}
+
+	private suspend fun updateSync(show: Boolean, progress: Float, log: String? = null) {
+		updateSyncLog(log)
+
 		withContext(mainDispatcher) {
 			_state.reduce {
-				it.copy(
+				var copy = it.copy(
 					isSyncing = show,
 					syncProgress = progress
 				)
+
+				if (!show) {
+					copy = copy.copy(
+						entityConflict = null,
+						syncLog = null
+					)
+				}
+
+				copy
 			}
 		}
 	}
@@ -76,8 +106,8 @@ class ProjectHomeComponent(
 	override fun syncProject() {
 		scope.launch {
 			Napier.d("Syncing project")
-			updateSync(true, 0f)
-			projectSynchronizer.sync(::onSyncProgress, ::onConflict, ::onSyncComplete)
+			updateSync(true, 0f, "Project Sync Started")
+			projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
 		}
 	}
 
@@ -105,9 +135,9 @@ class ProjectHomeComponent(
 		}
 	}
 
-	private suspend fun onSyncProgress(progress: Float) {
+	private suspend fun onSyncProgress(progress: Float, log: String? = null) {
 		Napier.d("Sync progress: $progress")
-		updateSync(true, progress)
+		updateSync(true, progress, log)
 	}
 
 	private suspend fun onConflict(serverEntity: ApiProjectEntity) {
@@ -125,6 +155,7 @@ class ProjectHomeComponent(
 	}
 
 	private suspend fun onSyncComplete() {
+		updateSyncLog("Sync complete!")
 		Napier.d("Sync complete")
 		updateSync(true, 1f)
 	}

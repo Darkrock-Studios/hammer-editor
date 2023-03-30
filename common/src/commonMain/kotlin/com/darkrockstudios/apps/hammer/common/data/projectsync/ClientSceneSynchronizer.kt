@@ -48,18 +48,21 @@ class ClientSceneSynchronizer(
 		id: Int,
 		syncId: String,
 		originalHash: String?,
-		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>
+		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>,
+		onLog: suspend (String?) -> Unit
 	) {
 		Napier.d("Uploading Scene $id")
 
 		val entity = createSceneEntity(id)
 		val result = serverProjectApi.uploadEntity(projectDef, entity, originalHash, syncId)
 		if (result.isSuccess) {
+			onLog("Uploaded Scene $id")
 			Napier.i("Uploaded Scene $id")
 		} else {
 			val exception = result.exceptionOrNull()
 			val conflictException = exception as? EntityConflictException.SceneConflictException
 			if (conflictException != null) {
+				onLog("Conflict for scene $id detected")
 				Napier.w("Conflict for scene $id detected")
 				onConflict(conflictException.entity)
 
@@ -67,12 +70,15 @@ class ClientSceneSynchronizer(
 				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, null, syncId, true)
 
 				if (resolveResult.isSuccess) {
+					onLog("Resolved conflict for scene $id")
 					Napier.d("Resolved conflict for scene $id")
-					storeEntity(resolvedEntity, syncId)
+					storeEntity(resolvedEntity, syncId, onLog)
 				} else {
+					onLog("Scene conflict resolution failed for $id")
 					Napier.e("Scene conflict resolution failed for $id", resolveResult.exceptionOrNull())
 				}
 			} else {
+				onLog("Failed to upload scene $id")
 				Napier.e("Failed to upload scene $id", exception)
 			}
 		}
@@ -105,7 +111,7 @@ class ClientSceneSynchronizer(
 		}
 	}
 
-	override suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String) {
+	override suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String, onLog: suspend (String?) -> Unit) {
 		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = projectEditorRepository.rawTree
@@ -132,10 +138,12 @@ class ClientSceneSynchronizer(
 
 					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
+					onLog("Moved scene $id to new parent ${apiScene.path.lastOrNull()}")
 				}
 
 				existingScene
 			} else {
+				onLog("Creating new scene $id")
 				projectEditorRepository.createScene(parent = parent, sceneName = apiScene.name)
 					?: throw IllegalStateException("Failed to create scene")
 			}
@@ -146,16 +154,16 @@ class ClientSceneSynchronizer(
 				order = apiScene.order
 			)
 
-			if (!sceneItem.type.isCollection) {
-				val scenePath = projectEditorRepository.getPathFromFilesystem(sceneItem)
-					?: throw IllegalStateException("Scene $id has no path")
+			val scenePath = projectEditorRepository.getPathFromFilesystem(sceneItem)
+				?: throw IllegalStateException("Scene $id has no path")
 
-				val content = SceneContent(sceneItem, apiScene.content)
-				if (!projectEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-					Napier.e("Failed to save downloaded scene content for: $id")
-				} else {
-					projectEditorRepository.onContentChanged(content)
-				}
+			val content = SceneContent(sceneItem, apiScene.content)
+			if (!projectEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
+				Napier.e("Failed to save downloaded scene content for: $id")
+				onLog("Failed to save downloaded scene content for: $id")
+			} else {
+				onLog("Downloaded scene content for: $id")
+				projectEditorRepository.onContentChanged(content)
 			}
 		} else {
 			Napier.d("Entity $id is a Scene Group")
@@ -169,10 +177,12 @@ class ClientSceneSynchronizer(
 
 					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
+					onLog("Moved scene $id to new parent ${apiScene.path.lastOrNull()}")
 				}
 
 				existingGroup
 			} else {
+				onLog("Creating new group $id")
 				projectEditorRepository.createGroup(parent = parent, groupName = apiScene.name)
 					?: throw IllegalStateException("Failed to create scene")
 			}
@@ -182,6 +192,8 @@ class ClientSceneSynchronizer(
 				name = apiScene.name,
 				order = apiScene.order
 			)
+
+			onLog("Downloaded scene group for: $id")
 		}
 	}
 
