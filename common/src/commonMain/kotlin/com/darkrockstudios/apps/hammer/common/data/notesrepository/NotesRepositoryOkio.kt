@@ -5,9 +5,11 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.decodeFromString
@@ -18,9 +20,10 @@ import okio.Path
 class NotesRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
+	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : NotesRepository(projectDef, idRepository) {
+) : NotesRepository(projectDef, idRepository, projectSynchronizer) {
 
 	override fun getNotesDirectory() = getNotesDirectory(projectDef, fileSystem)
 
@@ -46,7 +49,6 @@ class NotesRepositoryOkio(
 		return if (result != NoteError.NONE) {
 			result
 		} else {
-
 			val newId = idRepository.claimNextId()
 			val newNote = NoteContainer(
 				NoteContent(
@@ -61,6 +63,11 @@ class NotesRepositoryOkio(
 			fileSystem.write(path, mustCreate = true) {
 				writeUtf8(noteToml)
 			}
+
+			markForSync(
+				id = newId,
+				""
+			)
 
 			NoteError.NONE
 		}
@@ -80,6 +87,8 @@ class NotesRepositoryOkio(
 		fileSystem.write(path, mustCreate = false) {
 			writeUtf8(noteToml)
 		}
+
+		markForSync(id = noteContent.id)
 	}
 
 	private fun loadNote(path: Path): NoteContainer {
@@ -89,6 +98,17 @@ class NotesRepositoryOkio(
 
 		val note: NoteContainer = toml.decodeFromString(noteToml)
 		return note
+	}
+
+	override fun reIdNote(oldId: Int, newId: Int) {
+		val oldPath = getNotePath(oldId).toOkioPath()
+		val newPath = getNotePath(newId).toOkioPath()
+
+		fileSystem.atomicMove(oldPath, newPath)
+	}
+
+	override suspend fun getNoteFromId(id: Int): NoteContainer? {
+		return notesListFlow.first().find { it.note.id == id }
 	}
 
 	companion object {

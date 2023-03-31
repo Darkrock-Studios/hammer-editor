@@ -134,6 +134,7 @@ private fun Route.uploadEntity() {
 		} else {
 			val entity = when (type) {
 				ApiProjectEntity.Type.SCENE -> call.receive<ApiProjectEntity.SceneEntity>()
+				ApiProjectEntity.Type.NOTE -> call.receive<ApiProjectEntity.NoteEntity>()
 			}
 
 			if (projectName == null) {
@@ -163,6 +164,7 @@ private fun Route.uploadEntity() {
 						val entity = e.entity
 						when (entity) {
 							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
+							is ApiProjectEntity.NoteEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
 						}
 					} else {
 						call.respond(
@@ -208,7 +210,7 @@ private fun Route.downloadEntity() {
 			val projectDef = ProjectDefinition(projectName)
 
 			val result =
-				projectRepository.loadEntity(principal.id, projectDef, entityId, ApiProjectEntity.Type.SCENE, syncId)
+				projectRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 			if (result.isSuccess) {
 				val serverEntity = result.getOrThrow()
 				val serverEntityHash = when (serverEntity) {
@@ -221,13 +223,23 @@ private fun Route.downloadEntity() {
 							content = serverEntity.content
 						)
 					}
+
+					is ApiProjectEntity.NoteEntity ->
+						EntityHash.hashNote(
+							id = serverEntity.id,
+							created = serverEntity.created,
+							content = serverEntity.content
+						)
 				}
 
 				if (entityHash != null && entityHash == serverEntityHash) {
 					call.respond(HttpStatusCode.NotModified)
 				} else {
 					call.response.headers.append(HEADER_ENTITY_TYPE, serverEntity.type.toString())
-					call.respond(serverEntity)
+					when (serverEntity) {
+						is ApiProjectEntity.SceneEntity -> call.respond(serverEntity)
+						is ApiProjectEntity.NoteEntity -> call.respond(serverEntity)
+					}
 				}
 			} else {
 				val e = result.exceptionOrNull()

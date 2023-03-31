@@ -26,7 +26,7 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 
-class ProjectSynchronizer(
+class ClientProjectSynchronizer(
 	private val projectDef: ProjectDef,
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val serverProjectApi: ServerProjectApi,
@@ -39,6 +39,7 @@ class ProjectSynchronizer(
 	override val projectScope = ProjectDefScope(projectDef)
 	private val idRepository: IdRepository by projectInject()
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
+	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
 
 	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
@@ -48,6 +49,7 @@ class ProjectSynchronizer(
 			for (conflict in conflictResolution) {
 				when (conflict) {
 					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(conflict)
+					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(conflict)
 				}
 			}
 		}
@@ -157,6 +159,7 @@ class ProjectSynchronizer(
 
 		onProgress(0.25f, null)
 
+		var allSuccess = true
 		// Transfer Entities
 		for (thisId in 1..maxId) {
 			Napier.d("Syncing ID $thisId")
@@ -167,12 +170,12 @@ class ProjectSynchronizer(
 			if (isNewlyCreated || localIsDirty != null || thisId > syncData.lastId) {
 				Napier.d("Upload ID $thisId")
 				val originalHash = localIsDirty?.originalHash
-				uploadEntity(thisId, syncData.syncId, originalHash, onConflict, onLog)
+				allSuccess = allSuccess && uploadEntity(thisId, syncData.syncId, originalHash, onConflict, onLog)
 			}
 			// Otherwise download the server's copy
 			else {
 				Napier.d("Download ID $thisId")
-				downloadEntry(thisId, syncData.syncId, onLog)
+				allSuccess = allSuccess && downloadEntry(thisId, syncData.syncId, onLog)
 			}
 		}
 
@@ -182,24 +185,37 @@ class ProjectSynchronizer(
 
 		onProgress(0.9f, "Sync finalized")
 
-		val newLastId = idRepository.peekNextId() - 1
-		val syncFinishedAt = Clock.System.now()
+		val newLastId: Int
+		val syncFinishedAt: Instant
+		// If we failed, send up the old data
+		if (allSuccess) {
+			newLastId = idRepository.peekNextId() - 1
+			syncFinishedAt = Clock.System.now()
+		} else {
+			newLastId = syncData.lastId
+			syncFinishedAt = syncData.lastSync
+		}
+
 		val endSyncResult =
 			serverProjectApi.endProjectSync(userId, projectDef.name, syncData.syncId, newLastId, syncFinishedAt)
 
 		if (endSyncResult.isFailure) {
 			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
 		} else {
-			onLog("Sync data saved")
+			if (allSuccess) {
+				onLog("Sync data saved")
 
-			val finalSyncData = clientSyncData.copy(
-				currentSyncId = null,
-				lastId = newLastId,
-				lastSync = syncFinishedAt,
-				dirty = emptyList(),
-				newIds = emptyList()
-			)
-			saveSyncData(finalSyncData)
+				val finalSyncData = clientSyncData.copy(
+					currentSyncId = null,
+					lastId = newLastId,
+					lastSync = syncFinishedAt,
+					dirty = emptyList(),
+					newIds = emptyList()
+				)
+				saveSyncData(finalSyncData)
+			} else {
+				onLog("Sync data not saved due to errors")
+			}
 		}
 
 		onProgress(1f, null)
@@ -209,17 +225,21 @@ class ProjectSynchronizer(
 
 	private suspend fun prepareForSync() {
 		sceneSynchronizer.prepareForSync()
+		noteSynchronizer.prepareForSync()
 	}
 
 	private suspend fun finalizeSync() {
 		sceneSynchronizer.finalizeSync()
+		noteSynchronizer.finalizeSync()
 	}
 
-	private fun findEntityType(id: Int): EntityType {
+	private suspend fun findEntityType(id: Int): EntityType {
 		return if (sceneSynchronizer.ownsEntity(id)) {
 			EntityType.Scene
+		} else if (noteSynchronizer.ownsEntity(id)) {
+			EntityType.Note
 		} else {
-			EntityType.Unknown
+			throw IllegalArgumentException("Unknown entity type for ID $id")
 		}
 	}
 
@@ -229,11 +249,11 @@ class ProjectSynchronizer(
 		originalHash: String?,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onLog: suspend (String?) -> Unit
-	) {
+	): Boolean {
 		val type = findEntityType(id)
-		when (type) {
+		return when (type) {
 			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
-			else -> Napier.e("Unknown entity type $type")
+			EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 		}
 	}
 
@@ -241,11 +261,11 @@ class ProjectSynchronizer(
 		val type = findEntityType(id)
 		return when (type) {
 			EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
-			else -> null
+			EntityType.Note -> noteSynchronizer.getEntityHash(id)
 		}
 	}
 
-	private suspend fun downloadEntry(id: Int, syncId: String, onLog: suspend (String?) -> Unit) {
+	private suspend fun downloadEntry(id: Int, syncId: String, onLog: suspend (String?) -> Unit): Boolean {
 		val localEntityHash = getLocalEntityHash(id)
 		val entityResponse = serverProjectApi.downloadEntity(
 			projectDef = projectDef,
@@ -254,19 +274,22 @@ class ProjectSynchronizer(
 			localHash = localEntityHash
 		)
 
-		if (entityResponse.isSuccess) {
-			val serverEntity = entityResponse.getOrThrow()
-			when (serverEntity.type) {
-				ApiProjectEntity.Type.SCENE -> sceneSynchronizer.storeEntity(serverEntity.entity, syncId, onLog)
-				else -> Napier.e("Unknown entity type ${serverEntity.type}")
+		return if (entityResponse.isSuccess) {
+			val serverEntity = entityResponse.getOrThrow().entity
+			when (serverEntity) {
+				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(serverEntity, syncId, onLog)
+				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(serverEntity, syncId, onLog)
 			}
+			onLog("Entity $id downloaded")
+			true
 		} else {
 			if (entityResponse.exceptionOrNull() is EntityNotModifiedException) {
-				Napier.d("Entity $id not modified")
 				onLog("Entity $id not modified")
+				true
 			} else {
 				Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
 				onLog("Failed to download entity $id")
+				false
 			}
 		}
 	}
@@ -275,7 +298,7 @@ class ProjectSynchronizer(
 		val type = findEntityType(oldId)
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
-			else -> Napier.e("Unknown entity type $type")
+			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
 	}
 

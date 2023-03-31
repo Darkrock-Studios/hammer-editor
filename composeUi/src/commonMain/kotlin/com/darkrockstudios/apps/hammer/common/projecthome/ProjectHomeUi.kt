@@ -341,5 +341,5 @@ private fun Actions(
 		}
 	}
 
-	ConflictResolution(state, component)
+	ProjectSynchronization(state, component)
 }

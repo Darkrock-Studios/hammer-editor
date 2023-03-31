@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -27,7 +27,7 @@ abstract class ProjectEditorRepository(
 	val projectDef: ProjectDef,
 	private val projectsRepository: ProjectsRepository,
 	protected val idRepository: IdRepository,
-	protected val projectSynchronizer: ProjectSynchronizer,
+	protected val projectSynchronizer: ClientProjectSynchronizer,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(

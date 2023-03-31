@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.base.http
 
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 sealed interface ApiProjectEntity {
@@ -17,22 +18,30 @@ sealed interface ApiProjectEntity {
 		val content: String
 	) : ApiProjectEntity
 
+	@Serializable
+	data class NoteEntity(
+		override val type: Type = Type.NOTE,
+		override val id: Int,
+		val content: String,
+		val created: Instant
+	) : ApiProjectEntity
+
 	enum class Type {
 		SCENE,
+		NOTE,
 		/*
 		TIMELINE_EVENT,
-		NOTE,
 		ENCYCLOPEDIA_ENTRY,
 		*/;
 
 		companion object {
 			fun fromString(string: String): Type? {
-				return when (string.trim().uppercase()) {
-					"SCENE" -> SCENE
+				return when (string.trim().lowercase()) {
+					"scene" -> SCENE
+					"note" -> NOTE
 					/*
-					"TIMELINE_EVENT" -> TIMELINE_EVENT,
-					"NOTE" -> NOTE,
-					"ENCYCLOPEDIA_ENTRY" -> ENCYCLOPEDIA_ENTRY,
+					"timeline_event" -> timeline_event,
+					"encyclopedia_entry" -> encyclopedia_entry,
 					*/ else -> null
 				}
 			}

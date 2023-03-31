@@ -99,7 +99,7 @@ class ProjectRepositoryTest : BaseTest() {
 	@Test
 	fun `loadEntity - Expired SyncId`() = runTest {
 		val entityId = 1
-		every { sceneSynchronizer.loadScene(userId, projectDefinition, entityId) } returns
+		every { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
 				Result.success(createSceneEntity(entityId))
 
 		createProjectRepository().apply {

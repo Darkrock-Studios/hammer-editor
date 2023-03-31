@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
@@ -17,6 +19,7 @@ class ProjectRepository(
 	private val fileSystem: FileSystem,
 	private val json: Json,
 	private val sceneSynchronizer: ServerSceneSynchronizer,
+	private val noteSynchronizer: ServerNoteSynchronizer,
 	private val clock: Clock
 ) {
 	private val syncIdGenerator = RandomString(30)
@@ -197,7 +200,15 @@ class ProjectRepository(
 		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
-			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(
+			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
+
+			is ApiProjectEntity.NoteEntity -> noteSynchronizer.saveEntity(
 				userId,
 				projectDef,
 				entity,
@@ -232,17 +243,20 @@ class ProjectRepository(
 		fileSystem.createDirectories(entityDir)
 	}
 
-	fun loadEntity(
+	suspend fun loadEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entityId: Int,
-		type: ApiProjectEntity.Type,
 		syncId: String
 	): Result<ApiProjectEntity> {
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
 
+		val type = findEntityType(entityId, userId, projectDef)
+			?: return Result.failure(IllegalStateException("Entity does not exist"))
+
 		return when (type) {
-			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadScene(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.NOTE -> noteSynchronizer.loadEntity(userId, projectDef, entityId)
 		}
 	}
 
@@ -261,6 +275,21 @@ class ProjectRepository(
 				false
 			}
 		}
+	}
+
+	private suspend fun findEntityType(
+		entityId: Int,
+		userId: Long,
+		projectDef: ProjectDefinition
+	): ApiProjectEntity.Type? {
+		val dir = getEntityDirectory(userId, projectDef)
+		fileSystem.list(dir).forEach { path ->
+			val def = ServerEntitySynchronizer.parseEntityFilename(path)
+			if (def?.id == entityId) {
+				return def.type
+			}
+		}
+		return null
 	}
 
 	companion object {

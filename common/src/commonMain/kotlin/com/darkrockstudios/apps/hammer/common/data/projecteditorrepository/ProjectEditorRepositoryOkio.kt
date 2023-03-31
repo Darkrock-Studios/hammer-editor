@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -27,7 +27,7 @@ class ProjectEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	projectsRepository: ProjectsRepository,
 	idRepository: IdRepository,
-	projectSynchronizer: ProjectSynchronizer,
+	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
 ) : ProjectEditorRepository(projectDef, projectsRepository, idRepository, projectSynchronizer) {

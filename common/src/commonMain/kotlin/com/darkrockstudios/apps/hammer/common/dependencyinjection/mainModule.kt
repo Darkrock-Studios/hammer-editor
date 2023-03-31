@@ -17,8 +17,9 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -79,8 +80,8 @@ val mainModule = module {
 
 		scopedOf(::TimeLineRepositoryOkio) bind TimeLineRepository::class
 
-		scopedOf(::ProjectSynchronizer)
-
+		scopedOf(::ClientProjectSynchronizer)
 		scopedOf(::ClientSceneSynchronizer)
+		scopedOf(::ClientNoteSynchronizer)
 	}
 }

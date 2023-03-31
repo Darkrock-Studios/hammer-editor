@@ -50,20 +50,19 @@ class ClientSceneSynchronizer(
 		originalHash: String?,
 		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>,
 		onLog: suspend (String?) -> Unit
-	) {
+	): Boolean {
 		Napier.d("Uploading Scene $id")
 
 		val entity = createSceneEntity(id)
 		val result = serverProjectApi.uploadEntity(projectDef, entity, originalHash, syncId)
-		if (result.isSuccess) {
+		return if (result.isSuccess) {
 			onLog("Uploaded Scene $id")
-			Napier.i("Uploaded Scene $id")
+			true
 		} else {
 			val exception = result.exceptionOrNull()
 			val conflictException = exception as? EntityConflictException.SceneConflictException
 			if (conflictException != null) {
 				onLog("Conflict for scene $id detected")
-				Napier.w("Conflict for scene $id detected")
 				onConflict(conflictException.entity)
 
 				val resolvedEntity = conflictResolution.receive()
@@ -71,15 +70,15 @@ class ClientSceneSynchronizer(
 
 				if (resolveResult.isSuccess) {
 					onLog("Resolved conflict for scene $id")
-					Napier.d("Resolved conflict for scene $id")
 					storeEntity(resolvedEntity, syncId, onLog)
+					true
 				} else {
 					onLog("Scene conflict resolution failed for $id")
-					Napier.e("Scene conflict resolution failed for $id", resolveResult.exceptionOrNull())
+					false
 				}
 			} else {
 				onLog("Failed to upload scene $id")
-				Napier.e("Failed to upload scene $id", exception)
+				false
 			}
 		}
 	}
@@ -88,7 +87,7 @@ class ClientSceneSynchronizer(
 		projectEditorRepository.storeAllBuffers()
 	}
 
-	override fun ownsEntity(id: Int): Boolean {
+	override suspend fun ownsEntity(id: Int): Boolean {
 		return projectEditorRepository.getSceneItemFromId(id) != null
 	}
 
@@ -111,55 +110,55 @@ class ClientSceneSynchronizer(
 		}
 	}
 
-	override suspend fun storeEntity(serverEntity: ApiProjectEntity, syncId: String, onLog: suspend (String?) -> Unit) {
+	override suspend fun storeEntity(
+		serverEntity: ApiProjectEntity.SceneEntity,
+		syncId: String,
+		onLog: suspend (String?) -> Unit
+	) {
 		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = projectEditorRepository.rawTree
 
-		val apiScene =
-			serverEntity as? ApiProjectEntity.SceneEntity ?: throw IllegalStateException("ApiScene was of wrong type")
-
-		val parentId = apiScene.path.lastOrNull()
+		val parentId = serverEntity.path.lastOrNull()
 		val parent = if (parentId != null) {
 			projectEditorRepository.getSceneItemFromId(parentId)
 		} else {
 			null
 		}
 
-		if (apiScene.sceneType == ApiSceneType.Scene) {
+		if (serverEntity.sceneType == ApiSceneType.Scene) {
 			Napier.d("Entity $id is a Scene")
 
 			val existingScene = projectEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingScene != null) {
 				val existingTreeNode = tree.find { it.id == id }
 				// Must move parents
-				if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
+				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
 					existingTreeNode.parent?.removeChild(existingTreeNode)
 
-					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
+					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
-					onLog("Moved scene $id to new parent ${apiScene.path.lastOrNull()}")
+					onLog("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}")
 				}
 
 				existingScene
 			} else {
 				onLog("Creating new scene $id")
-				projectEditorRepository.createScene(parent = parent, sceneName = apiScene.name)
+				projectEditorRepository.createScene(parent = parent, sceneName = serverEntity.name)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
 			val treeNode = tree.find { it.id == id }
 			treeNode.value = sceneItem.copy(
-				name = apiScene.name,
-				order = apiScene.order
+				name = serverEntity.name,
+				order = serverEntity.order
 			)
 
 			val scenePath = projectEditorRepository.getPathFromFilesystem(sceneItem)
 				?: throw IllegalStateException("Scene $id has no path")
 
-			val content = SceneContent(sceneItem, apiScene.content)
+			val content = SceneContent(sceneItem, serverEntity.content)
 			if (!projectEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-				Napier.e("Failed to save downloaded scene content for: $id")
 				onLog("Failed to save downloaded scene content for: $id")
 			} else {
 				onLog("Downloaded scene content for: $id")
@@ -172,25 +171,25 @@ class ClientSceneSynchronizer(
 			val sceneItem = if (existingGroup != null) {
 				val existingTreeNode = tree.find { it.id == id }
 				// Must move parents
-				if (existingTreeNode.parent?.value?.order != apiScene.path.lastOrNull()) {
+				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
 					existingTreeNode.parent?.removeChild(existingTreeNode)
 
-					val newParent = tree.find { it.id == apiScene.path.lastOrNull() }
+					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
-					onLog("Moved scene $id to new parent ${apiScene.path.lastOrNull()}")
+					onLog("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}")
 				}
 
 				existingGroup
 			} else {
 				onLog("Creating new group $id")
-				projectEditorRepository.createGroup(parent = parent, groupName = apiScene.name)
+				projectEditorRepository.createGroup(parent = parent, groupName = serverEntity.name)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
 			val treeNode = tree.find { it.id == id }
 			treeNode.value = sceneItem.copy(
-				name = apiScene.name,
-				order = apiScene.order
+				name = serverEntity.name,
+				order = serverEntity.order
 			)
 
 			onLog("Downloaded scene group for: $id")

@@ -16,9 +16,9 @@ import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 @Composable
-internal fun ConflictResolution(state: ProjectHome.State, component: ProjectHome) {
+internal fun ProjectSynchronization(state: ProjectHome.State, component: ProjectHome) {
 	MpDialog(
-		title = "Sync Conflict",
+		title = "Project Synchronization",
 		onCloseRequest = {},
 		visible = state.isSyncing,
 	) {
@@ -34,15 +34,17 @@ internal fun ConflictResolution(state: ProjectHome.State, component: ProjectHome
 					Text("Complete")
 				}
 			}
-			if (state.entityConflict != null) {
-				when (state.entityConflict) {
+			val conflict = state.entityConflict
+			if (conflict != null) {
+				when (conflict) {
 					is ProjectHome.EntityConflict.SceneConflict -> {
 						val sceneConflict = state.entityConflict as ProjectHome.EntityConflict.SceneConflict
 						SceneConflict(sceneConflict, component)
 					}
 
-					else -> {
-						Text("Unknown Conflict")
+					is ProjectHome.EntityConflict.NoteConflict -> {
+						val noteConflict = state.entityConflict as ProjectHome.EntityConflict.NoteConflict
+						NoteConflict(noteConflict, component)
 					}
 				}
 			} else {
@@ -81,19 +83,47 @@ internal fun SceneConflict(
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 		Row(modifier = Modifier.fillMaxSize()) {
 			Column(modifier = Modifier.weight(1f)) {
-				Text("Local Scene: ${entityConflict.clientScene.name}")
-				Button(onClick = { component.resolveConflict(entityConflict.clientScene) }) {
+				Text("Local Scene: ${entityConflict.clientEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
 					Text("Use Local")
 				}
-				Text(entityConflict.clientScene.content)
+				Text(entityConflict.clientEntity.content)
 			}
 
 			Column(modifier = Modifier.weight(1f)) {
-				Text("Remote Scene: ${entityConflict.serverScene.name}")
-				Button(onClick = { component.resolveConflict(entityConflict.serverScene) }) {
+				Text("Remote Scene: ${entityConflict.serverEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
 					Text("Use Remote")
 				}
-				Text(entityConflict.serverScene.content)
+				Text(entityConflict.serverEntity.content)
+			}
+		}
+	}
+}
+
+@Composable
+internal fun NoteConflict(
+	entityConflict: ProjectHome.EntityConflict.NoteConflict,
+	component: ProjectHome
+) {
+	Column {
+		Text("Note Conflict")
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+		Row(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Local Note: ${entityConflict.clientEntity.content}")
+				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+					Text("Use Local")
+				}
+				Text(entityConflict.clientEntity.content)
+			}
+
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Remote Note: ${entityConflict.serverEntity.content}")
+				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
+					Text("Use Remote")
+				}
+				Text(entityConflict.serverEntity.content)
 			}
 		}
 	}

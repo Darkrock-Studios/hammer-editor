@@ -28,17 +28,22 @@ interface ProjectHome : Router, HammerComponent {
 		val hasServer: Boolean = false,
 		val isSyncing: Boolean = false,
 		val syncProgress: Float = 0f,
-		val entityConflict: EntityConflict? = null,
+		val entityConflict: EntityConflict<*>? = null,
 		val syncLog: List<String>? = null,
 	)
 
-	sealed class EntityConflict(
-		val serverEntity: ApiProjectEntity,
-		val clientEntity: ApiProjectEntity
+	sealed class EntityConflict<T : ApiProjectEntity>(
+		val serverEntity: T,
+		val clientEntity: T
 	) {
 		class SceneConflict(
-			val serverScene: ApiProjectEntity.SceneEntity,
-			val clientScene: ApiProjectEntity.SceneEntity
-		) : EntityConflict(serverScene, clientScene)
+			serverScene: ApiProjectEntity.SceneEntity,
+			clientScene: ApiProjectEntity.SceneEntity
+		) : EntityConflict<ApiProjectEntity.SceneEntity>(serverScene, clientScene)
+
+		class NoteConflict(
+			serverNote: ApiProjectEntity.NoteEntity,
+			clientNote: ApiProjectEntity.NoteEntity
+		) : EntityConflict<ApiProjectEntity.NoteEntity>(serverNote, clientNote)
 	}
 }

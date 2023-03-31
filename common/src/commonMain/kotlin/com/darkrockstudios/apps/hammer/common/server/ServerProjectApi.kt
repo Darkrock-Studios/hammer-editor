@@ -78,13 +78,25 @@ class ServerProjectApi(
 				}
 				when (entity) {
 					is ApiProjectEntity.SceneEntity -> setBody(entity)
+					is ApiProjectEntity.NoteEntity -> setBody(entity)
 				}
 			},
 			failureHandler = { response ->
 				if (response.status == HttpStatusCode.Conflict) {
 					val jsonStr = response.bodyAsText()
-					val serverEntity = json.decodeFromString<ApiProjectEntity.SceneEntity>(jsonStr)
-					EntityConflictException.SceneConflictException(serverEntity)
+					when (entity.type) {
+						ApiProjectEntity.Type.SCENE -> EntityConflictException.SceneConflictException(
+							json.decodeFromString<ApiProjectEntity.SceneEntity>(
+								jsonStr
+							)
+						)
+
+						ApiProjectEntity.Type.NOTE -> EntityConflictException.NoteConflictException(
+							json.decodeFromString<ApiProjectEntity.NoteEntity>(
+								jsonStr
+							)
+						)
+					}
 				} else {
 					defaultFailureHandler(response)
 				}
@@ -109,10 +121,10 @@ class ServerProjectApi(
 					ApiProjectEntity.Type.fromString(type)
 				} ?: throw IllegalStateException("Missing entity-type header")
 
-				val entity = when (type) {
-					ApiProjectEntity.Type.SCENE -> response.body<ApiProjectEntity.SceneEntity>()
+				return@get when (type) {
+					ApiProjectEntity.Type.SCENE -> LoadEntityResponse(response.body<ApiProjectEntity.SceneEntity>())
+					ApiProjectEntity.Type.NOTE -> LoadEntityResponse(response.body<ApiProjectEntity.NoteEntity>())
 				}
-				return@get LoadEntityResponse(entity)
 			},
 			failureHandler = { response ->
 				if (response.status == HttpStatusCode.NotModified) {

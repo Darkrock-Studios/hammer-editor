@@ -14,6 +14,7 @@ data class LoadEntityResponse(
 	val entity: ApiProjectEntity
 ) {
 	constructor(scene: ApiProjectEntity.SceneEntity) : this(ApiProjectEntity.Type.SCENE, scene)
+	constructor(note: ApiProjectEntity.NoteEntity) : this(ApiProjectEntity.Type.NOTE, note)
 }
 
 @Serializable

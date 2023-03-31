@@ -12,9 +12,10 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -35,7 +36,8 @@ class ProjectHomeComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
-	private val projectSynchronizer: ProjectSynchronizer by projectInject()
+	private val notesRepository: NotesRepository by projectInject()
+	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
 		ProjectHome.State(
@@ -64,6 +66,7 @@ class ProjectHomeComponent(
 
 	private suspend fun updateSyncLog(log: String?) {
 		if (log != null) {
+			Napier.d(log)
 			withContext(mainDispatcher) {
 				_state.reduce {
 					val existingLog = it.syncLog
@@ -86,26 +89,16 @@ class ProjectHomeComponent(
 
 		withContext(mainDispatcher) {
 			_state.reduce {
-				var copy = it.copy(
+				it.copy(
 					isSyncing = show,
 					syncProgress = progress
 				)
-
-				if (!show) {
-					copy = copy.copy(
-						entityConflict = null,
-						syncLog = null
-					)
-				}
-
-				copy
 			}
 		}
 	}
 
 	override fun syncProject() {
 		scope.launch {
-			Napier.d("Syncing project")
 			updateSync(true, 0f, "Project Sync Started")
 			projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
 		}
@@ -128,7 +121,8 @@ class ProjectHomeComponent(
 					it.copy(
 						entityConflict = null,
 						isSyncing = false,
-						syncProgress = 0f
+						syncProgress = 0f,
+						syncLog = null
 					)
 				}
 			}
@@ -148,15 +142,36 @@ class ProjectHomeComponent(
 				onSceneConflict(serverEntity)
 			}
 
-			else -> {
-				throw IllegalStateException("Unknown entity type: $serverEntity")
+			is ApiProjectEntity.NoteEntity -> {
+				onNoteConflict(serverEntity)
+			}
+		}
+	}
+
+	private suspend fun onNoteConflict(serverEntity: ApiProjectEntity.NoteEntity) {
+		val local = notesRepository.getNoteFromId(serverEntity.id)?.note
+			?: throw IllegalStateException("Failed to get local note")
+
+		val localEntity = ApiProjectEntity.NoteEntity(
+			id = local.id,
+			created = local.created,
+			content = local.content
+		)
+
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					entityConflict = ProjectHome.EntityConflict.NoteConflict(
+						serverNote = serverEntity,
+						clientNote = localEntity
+					)
+				)
 			}
 		}
 	}
 
 	private suspend fun onSyncComplete() {
 		updateSyncLog("Sync complete!")
-		Napier.d("Sync complete")
 		updateSync(true, 1f)
 	}
 
