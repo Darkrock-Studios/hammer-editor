@@ -116,23 +116,33 @@ class ClientProjectSynchronizer(
 		clientSyncData: SynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
 		onLog: suspend (String?) -> Unit
-	): Int {
-		var serverLastId = serverSyncData.lastId
-		val clientLastId = idRepository.peekNextId() - 1
-		for (id in clientSyncData.newIds) {
-			if (id <= serverSyncData.lastId) {
-				onLog("ID $id already exists on server, re-assigning")
-				val newId = ++serverLastId
-				reIdEntry(id, newId)
+	): SynchronizationData {
+
+		return if (clientSyncData.newIds.isNotEmpty()) {
+			var serverLastId = serverSyncData.lastId
+			val updatedNewIds = clientSyncData.newIds.toMutableList()
+			for ((ii, id) in clientSyncData.newIds.withIndex()) {
+				if (id <= serverSyncData.lastId) {
+					onLog("ID $id already exists on server, re-assigning")
+					val newId = ++serverLastId
+					reIdEntry(id, newId)
+
+					updatedNewIds[ii] = newId
+				}
 			}
+
+			val updatedSyncData = clientSyncData.copy(
+				newIds = updatedNewIds,
+				lastId = updatedNewIds.max()
+			)
+
+			// Tell ID Repository to re-find the max ID
+			idRepository.findNextId()
+
+			updatedSyncData
+		} else {
+			clientSyncData
 		}
-
-		val maxId = (clientSyncData.newIds + clientSyncData.lastId + serverSyncData.lastId).max()
-
-		// Tell ID Repository to re-find the max ID
-		idRepository.findNextId()
-
-		return maxId
 	}
 
 	suspend fun sync(
@@ -143,19 +153,21 @@ class ClientProjectSynchronizer(
 	) {
 		prepareForSync()
 
-		val syncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
+		val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
 
 		onProgress(0.1f, "Server data received")
 
-		val clientSyncData = loadSyncData().copy(currentSyncId = syncData.syncId)
-		val newClientIds = clientSyncData.newIds
+		var clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
 		saveSyncData(clientSyncData)
 
 		onProgress(0.25f, "Client data loaded")
 
 		// Resolve ID conflicts
-		val maxId = handleIdConflicts(clientSyncData, syncData, onLog)
-		val newIdsUnaltered = maxId > syncData.lastId
+		clientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
+		val maxId = (clientSyncData.newIds + clientSyncData.lastId + serverSyncData.lastId).max()
+		val newClientIds = clientSyncData.newIds
+
+		val newIdsUnaltered = maxId > serverSyncData.lastId
 
 		onProgress(0.25f, null)
 
@@ -165,17 +177,17 @@ class ClientProjectSynchronizer(
 			Napier.d("Syncing ID $thisId")
 
 			val localIsDirty = clientSyncData.dirty.find { it.id == thisId }
-			val isNewlyCreated = newClientIds.contains(thisId) && newIdsUnaltered
+			val isNewlyCreated = newClientIds.contains(thisId)// && newIdsUnaltered
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			if (isNewlyCreated || localIsDirty != null || thisId > syncData.lastId) {
+			if (isNewlyCreated || localIsDirty != null || thisId > serverSyncData.lastId) {
 				Napier.d("Upload ID $thisId")
 				val originalHash = localIsDirty?.originalHash
-				allSuccess = allSuccess && uploadEntity(thisId, syncData.syncId, originalHash, onConflict, onLog)
+				allSuccess = allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
 			}
 			// Otherwise download the server's copy
 			else {
 				Napier.d("Download ID $thisId")
-				allSuccess = allSuccess && downloadEntry(thisId, syncData.syncId, onLog)
+				allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
 			}
 		}
 
@@ -192,12 +204,12 @@ class ClientProjectSynchronizer(
 			newLastId = idRepository.peekNextId() - 1
 			syncFinishedAt = Clock.System.now()
 		} else {
-			newLastId = syncData.lastId
-			syncFinishedAt = syncData.lastSync
+			newLastId = serverSyncData.lastId
+			syncFinishedAt = serverSyncData.lastSync
 		}
 
 		val endSyncResult =
-			serverProjectApi.endProjectSync(userId, projectDef.name, syncData.syncId, newLastId, syncFinishedAt)
+			serverProjectApi.endProjectSync(userId, projectDef.name, serverSyncData.syncId, newLastId, syncFinishedAt)
 
 		if (endSyncResult.isFailure) {
 			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
@@ -233,13 +245,13 @@ class ClientProjectSynchronizer(
 		noteSynchronizer.finalizeSync()
 	}
 
-	private suspend fun findEntityType(id: Int): EntityType {
+	private suspend fun findEntityType(id: Int): EntityType? {
 		return if (sceneSynchronizer.ownsEntity(id)) {
 			EntityType.Scene
 		} else if (noteSynchronizer.ownsEntity(id)) {
 			EntityType.Note
 		} else {
-			throw IllegalArgumentException("Unknown entity type for ID $id")
+			null
 		}
 	}
 
@@ -250,7 +262,7 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onLog: suspend (String?) -> Unit
 	): Boolean {
-		val type = findEntityType(id)
+		val type = findEntityType(id) ?: throw IllegalArgumentException("ID $id not found for upload")
 		return when (type) {
 			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 			EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
@@ -262,6 +274,7 @@ class ClientProjectSynchronizer(
 		return when (type) {
 			EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
 			EntityType.Note -> noteSynchronizer.getEntityHash(id)
+			else -> null
 		}
 	}
 
@@ -295,7 +308,7 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun reIdEntry(oldId: Int, newId: Int) {
-		val type = findEntityType(oldId)
+		val type = findEntityType(oldId) ?: throw IllegalArgumentException("Entity $oldId not found for reId")
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)

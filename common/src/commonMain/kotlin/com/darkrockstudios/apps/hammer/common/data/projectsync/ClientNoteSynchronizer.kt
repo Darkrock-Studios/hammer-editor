@@ -56,7 +56,8 @@ class ClientNoteSynchronizer(
 		)
 
 		notesRepository.updateNote(
-			noteContent = updatedNote
+			noteContent = updatedNote,
+			markForSync = false
 		)
 	}
 

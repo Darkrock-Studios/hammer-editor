@@ -69,8 +69,8 @@ abstract class NotesRepository(
 	abstract fun loadNotes()
 	abstract fun createNote(noteText: String): NoteError
 	abstract fun deleteNote(id: Int)
-	abstract fun updateNote(noteContent: NoteContent)
-	abstract fun reIdNote(oldId: Int, newId: Int)
+	abstract fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
+	abstract suspend fun reIdNote(oldId: Int, newId: Int)
 
 	fun validateNote(noteText: String): NoteError {
 		val trimmed = noteText.trim()

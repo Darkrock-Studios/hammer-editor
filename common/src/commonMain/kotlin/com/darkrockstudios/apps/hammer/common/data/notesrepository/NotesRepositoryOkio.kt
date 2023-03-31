@@ -78,17 +78,19 @@ class NotesRepositoryOkio(
 		fileSystem.delete(path, true)
 	}
 
-	override fun updateNote(noteContent: NoteContent) {
-		val note = NoteContainer(noteContent)
+	override fun updateNote(noteContent: NoteContent, markForSync: Boolean) {
+		val noteContainer = NoteContainer(noteContent)
 		val path = getNotePath(noteContent.id).toOkioPath()
 
-		val noteToml = toml.encodeToString(note)
+		val noteToml = toml.encodeToString(noteContainer)
 
 		fileSystem.write(path, mustCreate = false) {
 			writeUtf8(noteToml)
 		}
 
-		markForSync(id = noteContent.id)
+		if (markForSync) {
+			markForSync(id = noteContent.id)
+		}
 	}
 
 	private fun loadNote(path: Path): NoteContainer {
@@ -100,11 +102,24 @@ class NotesRepositoryOkio(
 		return note
 	}
 
-	override fun reIdNote(oldId: Int, newId: Int) {
+	override suspend fun reIdNote(oldId: Int, newId: Int) {
 		val oldPath = getNotePath(oldId).toOkioPath()
 		val newPath = getNotePath(newId).toOkioPath()
-
 		fileSystem.atomicMove(oldPath, newPath)
+
+		// Rewrite the file because the ID is contained in there
+		val noteContainer = loadNote(newPath)
+		val newNote = noteContainer.note.copy(id = newId)
+		fileSystem.write(newPath, mustCreate = false) {
+			writeUtf8(toml.encodeToString(NoteContainer(newNote)))
+		}
+
+		// Update the in-memory notes list
+		val updatedNotes = getNotes().toMutableList()
+		updatedNotes.indexOf(noteContainer).let { index ->
+			updatedNotes[index] = noteContainer.copy(note = newNote)
+		}
+		updateNotes(updatedNotes)
 	}
 
 	override suspend fun getNoteFromId(id: Int): NoteContainer? {
