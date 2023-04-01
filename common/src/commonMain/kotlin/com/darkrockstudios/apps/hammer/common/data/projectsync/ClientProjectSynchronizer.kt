@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
@@ -44,7 +45,15 @@ class ClientProjectSynchronizer(
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
 	private val timelineSynchronizer: ClientTimelineSynchronizer by projectInject()
-	private val entitySynchronizers by lazy { listOf(sceneSynchronizer, noteSynchronizer, timelineSynchronizer) }
+	private val encyclopediaSynchronizer: ClientEncyclopediaSynchronizer by projectInject()
+	private val entitySynchronizers by lazy {
+		listOf(
+			sceneSynchronizer,
+			noteSynchronizer,
+			timelineSynchronizer,
+			encyclopediaSynchronizer
+		)
+	}
 
 	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
@@ -56,6 +65,9 @@ class ClientProjectSynchronizer(
 					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(conflict)
 					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(conflict)
 					is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.conflictResolution.send(conflict)
+					is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.conflictResolution.send(
+						conflict
+					)
 				}
 			}
 		}
@@ -287,6 +299,13 @@ class ClientProjectSynchronizer(
 			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 			EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 			EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.uploadEntity(
+				id,
+				syncId,
+				originalHash,
+				onConflict,
+				onLog
+			)
 		}
 	}
 
@@ -299,6 +318,7 @@ class ClientProjectSynchronizer(
 				EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
 				EntityType.Note -> noteSynchronizer.getEntityHash(id)
 				EntityType.TimelineEvent -> timelineSynchronizer.getEntityHash(id)
+				EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.getEntityHash(id)
 			}
 		}
 	}
@@ -318,6 +338,11 @@ class ClientProjectSynchronizer(
 				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(serverEntity, syncId, onLog)
 				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(serverEntity, syncId, onLog)
 				is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.storeEntity(serverEntity, syncId, onLog)
+				is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.storeEntity(
+					serverEntity,
+					syncId,
+					onLog
+				)
 			}
 			onLog("Entity $id downloaded")
 			true
@@ -339,6 +364,7 @@ class ClientProjectSynchronizer(
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
 	}
 

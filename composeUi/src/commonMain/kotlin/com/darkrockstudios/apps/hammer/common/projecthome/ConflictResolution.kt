@@ -52,6 +52,12 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 							state.entityConflict as ProjectHome.EntityConflict.TimelineEventConflict
 						TimelineEventConflict(timelineEventConflict, component)
 					}
+
+					is ProjectHome.EntityConflict.EncyclopediaEntryConflict -> {
+						val encyclopediaEntryConflict =
+							state.entityConflict as ProjectHome.EntityConflict.EncyclopediaEntryConflict
+						EncyclopediaEntryConflict(encyclopediaEntryConflict, component)
+					}
 				}
 			} else {
 				SyncLog(state)
@@ -158,6 +164,34 @@ internal fun TimelineEventConflict(
 					Text("Use Remote")
 				}
 				Text(entityConflict.serverEntity.content)
+			}
+		}
+	}
+}
+
+@Composable
+internal fun EncyclopediaEntryConflict(
+	entityConflict: ProjectHome.EntityConflict.EncyclopediaEntryConflict,
+	component: ProjectHome
+) {
+	Column {
+		Text("Encyclopedia Entry Conflict")
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+		Row(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Local Event: ${entityConflict.clientEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+					Text("Use Local")
+				}
+				Text(entityConflict.clientEntity.text)
+			}
+
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Remote Event: ${entityConflict.serverEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
+					Text("Use Remote")
+				}
+				Text(entityConflict.serverEntity.text)
 			}
 		}
 	}

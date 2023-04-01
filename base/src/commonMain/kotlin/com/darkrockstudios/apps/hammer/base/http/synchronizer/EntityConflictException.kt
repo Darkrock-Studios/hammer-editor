@@ -17,12 +17,18 @@ sealed class EntityConflictException : Exception("Entity conflict") {
 		override val entity: ApiProjectEntity.TimelineEventEntity = scene
 	}
 
+	class EncyclopediaEntryConflictException(scene: ApiProjectEntity.EncyclopediaEntryEntity) :
+		EntityConflictException() {
+		override val entity: ApiProjectEntity.EncyclopediaEntryEntity = scene
+	}
+
 	companion object {
 		fun fromEntity(entity: ApiProjectEntity): EntityConflictException {
 			return when (entity) {
 				is ApiProjectEntity.SceneEntity -> SceneConflictException(entity)
 				is ApiProjectEntity.NoteEntity -> NoteConflictException(entity)
 				is ApiProjectEntity.TimelineEventEntity -> TimelineEventConflictException(entity)
+				is ApiProjectEntity.EncyclopediaEntryEntity -> EncyclopediaEntryConflictException(entity)
 			}
 		}
 	}

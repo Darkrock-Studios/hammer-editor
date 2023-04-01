@@ -3,10 +3,7 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -22,6 +19,7 @@ class ProjectRepository(
 	private val sceneSynchronizer: ServerSceneSynchronizer,
 	private val noteSynchronizer: ServerNoteSynchronizer,
 	private val timelineEventSynchronizer: ServerTimelineSynchronizer,
+	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer,
 	private val clock: Clock
 ) {
 	private val syncIdGenerator = RandomString(30)
@@ -227,6 +225,14 @@ class ProjectRepository(
 				originalHash,
 				force
 			)
+
+			is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}
@@ -270,6 +276,11 @@ class ProjectRepository(
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
 			ApiProjectEntity.Type.NOTE -> noteSynchronizer.loadEntity(userId, projectDef, entityId)
 			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
 		}
 	}
 

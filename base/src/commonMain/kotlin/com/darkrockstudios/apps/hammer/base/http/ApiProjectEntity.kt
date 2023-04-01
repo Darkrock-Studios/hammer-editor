@@ -35,13 +35,28 @@ sealed interface ApiProjectEntity {
 		val content: String
 	) : ApiProjectEntity
 
+	@Serializable
+	data class EncyclopediaEntryEntity(
+		override val type: Type = Type.ENCYCLOPEDIA_ENTRY,
+		override val id: Int,
+		val name: String,
+		val entryType: String,
+		val text: String,
+		val tags: List<String>,
+		val image: Image?,
+	) : ApiProjectEntity {
+		@Serializable
+		data class Image(
+			val base64: String,
+			val fileExtension: String,
+		)
+	}
+
 	enum class Type {
 		SCENE,
 		NOTE,
 		TIMELINE_EVENT,
-		/*
-		ENCYCLOPEDIA_ENTRY,
-		*/;
+		ENCYCLOPEDIA_ENTRY;
 
 		companion object {
 			fun fromString(string: String): Type? {
@@ -49,9 +64,8 @@ sealed interface ApiProjectEntity {
 					"scene" -> SCENE
 					"note" -> NOTE
 					"timeline_event" -> TIMELINE_EVENT
-					/*
-					"encyclopedia_entry" -> encyclopedia_entry,
-					*/ else -> null
+					"encyclopedia_entry" -> ENCYCLOPEDIA_ENTRY
+					else -> null
 				}
 			}
 		}

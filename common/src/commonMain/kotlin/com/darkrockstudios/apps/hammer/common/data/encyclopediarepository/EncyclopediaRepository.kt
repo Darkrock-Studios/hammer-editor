@@ -51,6 +51,8 @@ abstract class EncyclopediaRepository(
 
 	abstract fun loadEntry(entryDef: EntryDef): EntryContainer
 	abstract fun loadEntry(entryPath: HPath): EntryContainer
+	abstract fun loadEntry(id: Int): EntryContainer
+	abstract fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray
 	abstract fun createEntry(
 		name: String,
 		type: EntryType,
@@ -75,6 +77,8 @@ abstract class EncyclopediaRepository(
 		}
 	}
 
+	protected abstract fun markForSynchronization(entryDef: EntryDef)
+
 	override fun close() {
 		scope.cancel("Closing EncyclopediaRepository")
 	}
@@ -89,6 +93,8 @@ abstract class EncyclopediaRepository(
 		text: String,
 		tags: List<String>,
 	): EntryResult
+
+	abstract suspend fun reIdEntry(oldId: Int, newId: Int)
 
 	companion object {
 		val ENTRY_NAME_PATTERN = Regex("""([\da-zA-Z ]+)""")
@@ -165,6 +171,9 @@ abstract class EncyclopediaRepository(
 			}
 		}
 	}
+
+	abstract fun getEntryDef(id: Int): EntryDef
+	abstract suspend fun loadEntriesImperetive()
 }
 
 fun Sequence<HPath>.filterEntryPaths() = filter {

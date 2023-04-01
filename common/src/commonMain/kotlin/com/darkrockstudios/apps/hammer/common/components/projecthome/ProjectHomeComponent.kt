@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import com.soywiz.krypto.encoding.Base64
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -143,6 +144,7 @@ class ProjectHomeComponent(
 			is ApiProjectEntity.SceneEntity -> onSceneConflict(serverEntity)
 			is ApiProjectEntity.NoteEntity -> onNoteConflict(serverEntity)
 			is ApiProjectEntity.TimelineEventEntity -> onTimelineEventConflict(serverEntity)
+			is ApiProjectEntity.EncyclopediaEntryEntity -> onEncyclopediaEntryConflict(serverEntity)
 		}
 	}
 
@@ -185,6 +187,38 @@ class ProjectHomeComponent(
 					entityConflict = ProjectHome.EntityConflict.TimelineEventConflict(
 						serverEvent = serverEntity,
 						clientEvent = localEntity
+					)
+				)
+			}
+		}
+	}
+
+	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
+		val local = encyclopediaRepository.loadEntry(serverEntity.id).entry
+		val def = local.toDef(projectDef)
+		val image = if (encyclopediaRepository.hasEntryImage(def, "jpg")) {
+			val imageBytes = encyclopediaRepository.loadEntryImage(def, "jpg")
+			val imageBase64 = Base64.encode(imageBytes, url = true)
+			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, "jpg")
+		} else {
+			null
+		}
+
+		val localEntity = ApiProjectEntity.EncyclopediaEntryEntity(
+			id = local.id,
+			name = local.name,
+			entryType = local.type.name,
+			text = local.text,
+			tags = local.tags,
+			image = image
+		)
+
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					entityConflict = ProjectHome.EntityConflict.EncyclopediaEntryConflict(
+						serverEntry = serverEntity,
+						clientEntry = localEntity
 					)
 				)
 			}
