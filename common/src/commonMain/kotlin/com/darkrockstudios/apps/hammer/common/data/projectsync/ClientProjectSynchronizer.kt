@@ -121,28 +121,38 @@ class ClientProjectSynchronizer(
 		onLog: suspend (String?) -> Unit
 	): SynchronizationData {
 
-		return if (clientSyncData.newIds.isNotEmpty()) {
-			var serverLastId = serverSyncData.lastId
-			val updatedNewIds = clientSyncData.newIds.toMutableList()
-			for ((ii, id) in clientSyncData.newIds.withIndex()) {
-				if (id <= serverSyncData.lastId) {
-					onLog("ID $id already exists on server, re-assigning")
-					val newId = ++serverLastId
-					reIdEntry(id, newId)
+		return if (serverSyncData.lastId > clientSyncData.lastId) {
+			if (clientSyncData.newIds.isNotEmpty()) {
+				var serverLastId = serverSyncData.lastId
+				val updatedNewIds = clientSyncData.newIds.toMutableList()
+				val updatedDirty = clientSyncData.dirty.toMutableList()
 
-					updatedNewIds[ii] = newId
+				for ((ii, id) in clientSyncData.newIds.withIndex()) {
+					if (id <= serverSyncData.lastId) {
+						onLog("ID $id already exists on server, re-assigning")
+						val newId = ++serverLastId
+						reIdEntry(id, newId)
+						updatedNewIds[ii] = newId
+
+						// If we have a dirty record for this ID, update it
+						val dirtyIndex = clientSyncData.dirty.indexOfFirst { it.id == id }
+						if (dirtyIndex > -1) {
+							updatedDirty[dirtyIndex] = clientSyncData.dirty[dirtyIndex].copy(id = newId)
+						}
+					}
 				}
+
+				// Tell ID Repository to re-find the max ID
+				idRepository.findNextId()
+
+				clientSyncData.copy(
+					newIds = updatedNewIds,
+					lastId = updatedNewIds.max(),
+					dirty = updatedDirty
+				)
+			} else {
+				clientSyncData
 			}
-
-			val updatedSyncData = clientSyncData.copy(
-				newIds = updatedNewIds,
-				lastId = updatedNewIds.max()
-			)
-
-			// Tell ID Repository to re-find the max ID
-			idRepository.findNextId()
-
-			updatedSyncData
 		} else {
 			clientSyncData
 		}
@@ -160,30 +170,30 @@ class ClientProjectSynchronizer(
 
 		onProgress(0.1f, "Server data received")
 
-		var clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
+		val clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
 		saveSyncData(clientSyncData)
 
-		onProgress(0.25f, "Client data loaded")
+		onProgress(0.2f, "Client data loaded")
 
 		// Resolve ID conflicts
-		clientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
-		val maxId = (clientSyncData.newIds + clientSyncData.lastId + serverSyncData.lastId).max()
-		val newClientIds = clientSyncData.newIds
+		val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
+		val maxId = (resolvedClientSyncData.newIds + resolvedClientSyncData.lastId + serverSyncData.lastId).max()
+		val newClientIds = resolvedClientSyncData.newIds
 
-		// TODO hhmmm... do i want this?
-		//val newIdsUnaltered = maxId > serverSyncData.lastId
+		val ENTITY_START = 0.3f
+		val ENTITY_TOTAL = 0.5f
 
-		onProgress(0.25f, null)
+		onProgress(ENTITY_START, null)
 
 		var allSuccess = true
 		// Transfer Entities
 		for (thisId in 1..maxId) {
 			Napier.d("Syncing ID $thisId")
 
-			val localIsDirty = clientSyncData.dirty.find { it.id == thisId }
-			val isNewlyCreated = newClientIds.contains(thisId)// && newIdsUnaltered
+			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
+			val isNewlyCreated = newClientIds.contains(thisId)
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			if (isNewlyCreated || localIsDirty != null || thisId > serverSyncData.lastId) {
+			if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
 				Napier.d("Upload ID $thisId")
 				val originalHash = localIsDirty?.originalHash
 				allSuccess = allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
@@ -193,9 +203,11 @@ class ClientProjectSynchronizer(
 				Napier.d("Download ID $thisId")
 				allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
 			}
+			onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
 		}
 
-		onProgress(0.75f, "Entities transferred")
+		val ENTITY_END = ENTITY_START + ENTITY_TOTAL
+		onProgress(ENTITY_END, "Entities transferred")
 
 		finalizeSync()
 
