@@ -1,9 +1,10 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi

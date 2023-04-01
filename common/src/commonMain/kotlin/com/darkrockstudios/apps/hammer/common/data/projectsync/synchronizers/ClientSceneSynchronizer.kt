@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay

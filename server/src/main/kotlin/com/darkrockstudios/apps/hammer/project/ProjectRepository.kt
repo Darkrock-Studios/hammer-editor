@@ -143,8 +143,8 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		syncId: String,
-		lastSync: Instant,
-		lastId: Int
+		lastSync: Instant?,
+		lastId: Int?
 	): Result<Boolean> {
 		synchronized(synchronizationSessions) {
 			val session = synchronizationSessions[userId]
@@ -155,13 +155,15 @@ class ProjectRepository(
 					Result.failure(IllegalStateException("Invalid sync id"))
 				} else {
 
-					// Update sync data
-					val synDataPath = getProjectSyncDataPath(userId, projectDef)
-					val syncData = getProjectSyncData(userId, projectDef)
-					val newSyncData = syncData.copy(lastSync = lastSync, lastId = lastId)
-					val newSyncDataJson = json.encodeToString(newSyncData)
-					fileSystem.write(synDataPath) {
-						writeUtf8(newSyncDataJson)
+					// Update sync data if it was sent
+					if (lastSync != null && lastId != null) {
+						val synDataPath = getProjectSyncDataPath(userId, projectDef)
+						val syncData = getProjectSyncData(userId, projectDef)
+						val newSyncData = syncData.copy(lastSync = lastSync, lastId = lastId)
+						val newSyncDataJson = json.encodeToString(newSyncData)
+						fileSystem.write(synDataPath) {
+							writeUtf8(newSyncDataJson)
+						}
 					}
 
 					synchronizationSessions.remove(userId)

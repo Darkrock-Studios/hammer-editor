@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -213,15 +216,15 @@ class ClientProjectSynchronizer(
 
 		onProgress(0.9f, "Sync finalized")
 
-		val newLastId: Int
-		val syncFinishedAt: Instant
-		// If we failed, send up the old data
+		val newLastId: Int?
+		val syncFinishedAt: Instant?
+		// If we failed, send up nulls
 		if (allSuccess) {
 			newLastId = maxId
 			syncFinishedAt = Clock.System.now()
 		} else {
-			newLastId = serverSyncData.lastId
-			syncFinishedAt = serverSyncData.lastSync
+			newLastId = null
+			syncFinishedAt = null
 		}
 
 		val endSyncResult =
@@ -233,14 +236,18 @@ class ClientProjectSynchronizer(
 			if (allSuccess) {
 				onLog("Sync data saved")
 
-				val finalSyncData = clientSyncData.copy(
-					currentSyncId = null,
-					lastId = newLastId,
-					lastSync = syncFinishedAt,
-					dirty = emptyList(),
-					newIds = emptyList()
-				)
-				saveSyncData(finalSyncData)
+				if (newLastId != null && syncFinishedAt != null) {
+					val finalSyncData = clientSyncData.copy(
+						currentSyncId = null,
+						lastId = newLastId,
+						lastSync = syncFinishedAt,
+						dirty = emptyList(),
+						newIds = emptyList()
+					)
+					saveSyncData(finalSyncData)
+				} else {
+					onLog("Sync data not saved due to errors")
+				}
 			} else {
 				onLog("Sync data not saved due to errors")
 			}

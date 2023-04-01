@@ -17,10 +17,10 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule

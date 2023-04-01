@@ -31,8 +31,8 @@ class ServerProjectApi(
 		userId: Long,
 		projectName: String,
 		syncId: String,
-		lastId: Int,
-		syncEnd: Instant
+		lastId: Int?,
+		syncEnd: Instant?
 	): Result<String> {
 		return get(
 			path = "/project/$userId/$projectName/end_sync",
@@ -44,8 +44,8 @@ class ServerProjectApi(
 				setBody(
 					FormDataContent(
 						Parameters.build {
-							append("lastSync", syncEnd.toString())
-							append("lastId", lastId.toString())
+							if (syncEnd != null) append("lastSync", syncEnd.toString())
+							if (lastId != null) append("lastId", lastId.toString())
 						}
 					)
 				)

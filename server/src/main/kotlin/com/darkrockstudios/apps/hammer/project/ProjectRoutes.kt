@@ -84,16 +84,6 @@ private fun Route.endProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(error = "Missing Parameter", message = "syncId was missing")
 			)
-		} else if (lastSync == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "lastSync was missing")
-			)
-		} else if (lastId == null) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "lastId was missing")
-			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
 			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)

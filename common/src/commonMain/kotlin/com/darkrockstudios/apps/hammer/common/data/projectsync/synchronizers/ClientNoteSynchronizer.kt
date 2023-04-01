@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import kotlinx.coroutines.flow.first
