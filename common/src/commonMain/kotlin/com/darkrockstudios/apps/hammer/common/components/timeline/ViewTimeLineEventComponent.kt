@@ -65,18 +65,6 @@ class ViewTimeLineEventComponent(
 	}
 
 	override suspend fun updateEvent(event: TimeLineEvent): Boolean {
-		val timeline = timeLineRepository.loadTimeline()
-
-		val events = timeline.events.toMutableList()
-		val index = events.indexOfFirst { it.id == event.id }
-		events[index] = event
-
-		val updatedTimeline = timeline.copy(
-			events = events
-		)
-
-		timeLineRepository.storeTimeline(updatedTimeline)
-
-		return true
+		return timeLineRepository.updateEvent(event)
 	}
 }

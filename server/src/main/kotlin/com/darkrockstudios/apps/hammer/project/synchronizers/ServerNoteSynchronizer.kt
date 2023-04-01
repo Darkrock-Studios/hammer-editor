@@ -18,5 +18,5 @@ class ServerNoteSynchronizer(
 	}
 
 	override val entityClazz = ApiProjectEntity.NoteEntity::class
-	override val pathStub = "note"
+	override val pathStub = ApiProjectEntity.Type.NOTE.name.lowercase()
 }

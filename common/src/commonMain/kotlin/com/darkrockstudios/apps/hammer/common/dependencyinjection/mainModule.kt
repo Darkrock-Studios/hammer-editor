@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -83,5 +84,6 @@ val mainModule = module {
 		scopedOf(::ClientProjectSynchronizer)
 		scopedOf(::ClientSceneSynchronizer)
 		scopedOf(::ClientNoteSynchronizer)
+		scopedOf(::ClientTimelineSynchronizer)
 	}
 }

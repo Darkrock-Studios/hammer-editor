@@ -26,11 +26,20 @@ sealed interface ApiProjectEntity {
 		val created: Instant
 	) : ApiProjectEntity
 
+	@Serializable
+	data class TimelineEventEntity(
+		override val type: Type = Type.TIMELINE_EVENT,
+		override val id: Int,
+		val order: Int,
+		val date: String?,
+		val content: String
+	) : ApiProjectEntity
+
 	enum class Type {
 		SCENE,
 		NOTE,
-		/*
 		TIMELINE_EVENT,
+		/*
 		ENCYCLOPEDIA_ENTRY,
 		*/;
 
@@ -39,8 +48,8 @@ sealed interface ApiProjectEntity {
 				return when (string.trim().lowercase()) {
 					"scene" -> SCENE
 					"note" -> NOTE
+					"timeline_event" -> TIMELINE_EVENT
 					/*
-					"timeline_event" -> timeline_event,
 					"encyclopedia_entry" -> encyclopedia_entry,
 					*/ else -> null
 				}

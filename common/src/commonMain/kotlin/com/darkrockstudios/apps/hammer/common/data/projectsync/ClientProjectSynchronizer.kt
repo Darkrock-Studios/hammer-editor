@@ -40,6 +40,8 @@ class ClientProjectSynchronizer(
 	private val idRepository: IdRepository by projectInject()
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
+	private val timelineSynchronizer: ClientTimelineSynchronizer by projectInject()
+	private val entitySynchronizers by lazy { listOf(sceneSynchronizer, noteSynchronizer, timelineSynchronizer) }
 
 	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
@@ -50,6 +52,7 @@ class ClientProjectSynchronizer(
 				when (conflict) {
 					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(conflict)
 					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(conflict)
+					is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.conflictResolution.send(conflict)
 				}
 			}
 		}
@@ -167,7 +170,8 @@ class ClientProjectSynchronizer(
 		val maxId = (clientSyncData.newIds + clientSyncData.lastId + serverSyncData.lastId).max()
 		val newClientIds = clientSyncData.newIds
 
-		val newIdsUnaltered = maxId > serverSyncData.lastId
+		// TODO hhmmm... do i want this?
+		//val newIdsUnaltered = maxId > serverSyncData.lastId
 
 		onProgress(0.25f, null)
 
@@ -201,7 +205,7 @@ class ClientProjectSynchronizer(
 		val syncFinishedAt: Instant
 		// If we failed, send up the old data
 		if (allSuccess) {
-			newLastId = idRepository.peekNextId() - 1
+			newLastId = maxId
 			syncFinishedAt = Clock.System.now()
 		} else {
 			newLastId = serverSyncData.lastId
@@ -236,23 +240,20 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun prepareForSync() {
-		sceneSynchronizer.prepareForSync()
-		noteSynchronizer.prepareForSync()
+		entitySynchronizers.forEach { it.prepareForSync() }
 	}
 
 	private suspend fun finalizeSync() {
-		sceneSynchronizer.finalizeSync()
-		noteSynchronizer.finalizeSync()
+		entitySynchronizers.forEach { it.finalizeSync() }
 	}
 
 	private suspend fun findEntityType(id: Int): EntityType? {
-		return if (sceneSynchronizer.ownsEntity(id)) {
-			EntityType.Scene
-		} else if (noteSynchronizer.ownsEntity(id)) {
-			EntityType.Note
-		} else {
-			null
+		for (synchronizer in entitySynchronizers) {
+			if (synchronizer.ownsEntity(id)) {
+				return synchronizer.getEntityType()
+			}
 		}
+		return null
 	}
 
 	private suspend fun uploadEntity(
@@ -266,15 +267,20 @@ class ClientProjectSynchronizer(
 		return when (type) {
 			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 			EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+			EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 		}
 	}
 
 	private suspend fun getLocalEntityHash(id: Int): String? {
 		val type = findEntityType(id)
-		return when (type) {
-			EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
-			EntityType.Note -> noteSynchronizer.getEntityHash(id)
-			else -> null
+		return if (type == null) {
+			null
+		} else {
+			when (type) {
+				EntityType.Scene -> sceneSynchronizer.getEntityHash(id)
+				EntityType.Note -> noteSynchronizer.getEntityHash(id)
+				EntityType.TimelineEvent -> timelineSynchronizer.getEntityHash(id)
+			}
 		}
 	}
 
@@ -292,6 +298,7 @@ class ClientProjectSynchronizer(
 			when (serverEntity) {
 				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(serverEntity, syncId, onLog)
 				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(serverEntity, syncId, onLog)
+				is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.storeEntity(serverEntity, syncId, onLog)
 			}
 			onLog("Entity $id downloaded")
 			true
@@ -312,6 +319,7 @@ class ClientProjectSynchronizer(
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
 	}
 

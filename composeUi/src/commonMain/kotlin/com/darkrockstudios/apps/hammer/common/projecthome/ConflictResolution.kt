@@ -46,6 +46,12 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 						val noteConflict = state.entityConflict as ProjectHome.EntityConflict.NoteConflict
 						NoteConflict(noteConflict, component)
 					}
+
+					is ProjectHome.EntityConflict.TimelineEventConflict -> {
+						val timelineEventConflict =
+							state.entityConflict as ProjectHome.EntityConflict.TimelineEventConflict
+						TimelineEventConflict(timelineEventConflict, component)
+					}
 				}
 			} else {
 				SyncLog(state)
@@ -120,6 +126,34 @@ internal fun NoteConflict(
 
 			Column(modifier = Modifier.weight(1f)) {
 				Text("Remote Note: ${entityConflict.serverEntity.content}")
+				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
+					Text("Use Remote")
+				}
+				Text(entityConflict.serverEntity.content)
+			}
+		}
+	}
+}
+
+@Composable
+internal fun TimelineEventConflict(
+	entityConflict: ProjectHome.EntityConflict.TimelineEventConflict,
+	component: ProjectHome
+) {
+	Column {
+		Text("Timeline Event Conflict")
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+		Row(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Local Event: ${entityConflict.clientEntity.content}")
+				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+					Text("Use Local")
+				}
+				Text(entityConflict.clientEntity.content)
+			}
+
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Remote Event: ${entityConflict.serverEntity.content}")
 				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
 					Text("Use Remote")
 				}

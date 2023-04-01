@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -41,4 +42,5 @@ val mainModule = module {
 
 	singleOf(::ServerSceneSynchronizer)
 	singleOf(::ServerNoteSynchronizer)
+	singleOf(::ServerTimelineSynchronizer)
 }

@@ -45,5 +45,10 @@ interface ProjectHome : Router, HammerComponent {
 			serverNote: ApiProjectEntity.NoteEntity,
 			clientNote: ApiProjectEntity.NoteEntity
 		) : EntityConflict<ApiProjectEntity.NoteEntity>(serverNote, clientNote)
+
+		class TimelineEventConflict(
+			serverEvent: ApiProjectEntity.TimelineEventEntity,
+			clientEvent: ApiProjectEntity.TimelineEventEntity
+		) : EntityConflict<ApiProjectEntity.TimelineEventEntity>(serverEvent, clientEvent)
 	}
 }

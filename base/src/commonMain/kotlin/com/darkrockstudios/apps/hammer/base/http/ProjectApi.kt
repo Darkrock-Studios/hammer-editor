@@ -15,6 +15,7 @@ data class LoadEntityResponse(
 ) {
 	constructor(scene: ApiProjectEntity.SceneEntity) : this(ApiProjectEntity.Type.SCENE, scene)
 	constructor(note: ApiProjectEntity.NoteEntity) : this(ApiProjectEntity.Type.NOTE, note)
+	constructor(note: ApiProjectEntity.TimelineEventEntity) : this(ApiProjectEntity.Type.TIMELINE_EVENT, note)
 }
 
 @Serializable

@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectsync
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -11,19 +11,17 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 
 class ClientSceneSynchronizer(
-	private val projectDef: ProjectDef,
+	projectDef: ProjectDef,
 	private val projectEditorRepository: ProjectEditorRepository,
 	private val draftRepository: SceneDraftRepository,
-	private val serverProjectApi: ServerProjectApi
-) : EntitySynchronizer<ApiProjectEntity.SceneEntity> {
-
-	val conflictResolution = Channel<ApiProjectEntity.SceneEntity>()
-
-	private fun createSceneEntity(id: Int): ApiProjectEntity.SceneEntity {
+	serverProjectApi: ServerProjectApi
+) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
+	projectDef, serverProjectApi
+) {
+	override suspend fun createEntityForId(id: Int): ApiProjectEntity.SceneEntity {
 		val scene =
 			projectEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
 		val path = projectEditorRepository.getPathSegments(scene)
@@ -42,45 +40,6 @@ class ClientSceneSynchronizer(
 			content = contents,
 			path = path,
 		)
-	}
-
-	override suspend fun uploadEntity(
-		id: Int,
-		syncId: String,
-		originalHash: String?,
-		onConflict: EntityConflictHandler<ApiProjectEntity.SceneEntity>,
-		onLog: suspend (String?) -> Unit
-	): Boolean {
-		Napier.d("Uploading Scene $id")
-
-		val entity = createSceneEntity(id)
-		val result = serverProjectApi.uploadEntity(projectDef, entity, originalHash, syncId)
-		return if (result.isSuccess) {
-			onLog("Uploaded Scene $id")
-			true
-		} else {
-			val exception = result.exceptionOrNull()
-			val conflictException = exception as? EntityConflictException.SceneConflictException
-			if (conflictException != null) {
-				onLog("Conflict for scene $id detected")
-				onConflict(conflictException.entity)
-
-				val resolvedEntity = conflictResolution.receive()
-				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, null, syncId, true)
-
-				if (resolveResult.isSuccess) {
-					onLog("Resolved conflict for scene $id")
-					storeEntity(resolvedEntity, syncId, onLog)
-					true
-				} else {
-					onLog("Scene conflict resolution failed for $id")
-					false
-				}
-			} else {
-				onLog("Failed to upload scene $id")
-				false
-			}
-		}
 	}
 
 	override suspend fun prepareForSync() {
@@ -218,4 +177,6 @@ class ClientSceneSynchronizer(
 		projectEditorRepository.forceSceneListReload()
 		projectEditorRepository.storeAllBuffers()
 	}
+
+	override fun getEntityType() = EntityType.Scene
 }

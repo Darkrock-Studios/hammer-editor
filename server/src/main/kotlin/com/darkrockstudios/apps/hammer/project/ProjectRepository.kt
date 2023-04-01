@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -20,6 +21,7 @@ class ProjectRepository(
 	private val json: Json,
 	private val sceneSynchronizer: ServerSceneSynchronizer,
 	private val noteSynchronizer: ServerNoteSynchronizer,
+	private val timelineEventSynchronizer: ServerTimelineSynchronizer,
 	private val clock: Clock
 ) {
 	private val syncIdGenerator = RandomString(30)
@@ -215,6 +217,14 @@ class ProjectRepository(
 				originalHash,
 				force
 			)
+
+			is ApiProjectEntity.TimelineEventEntity -> timelineEventSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}
@@ -257,6 +267,7 @@ class ProjectRepository(
 		return when (type) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
 			ApiProjectEntity.Type.NOTE -> noteSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.loadEntity(userId, projectDef, entityId)
 		}
 	}
 

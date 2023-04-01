@@ -251,6 +251,8 @@ private fun EncyclopediaChart(
 				)
 			},
 		)
+	} else {
+		Spacer(modifier = Modifier.size(128.dp))
 	}
 }
 

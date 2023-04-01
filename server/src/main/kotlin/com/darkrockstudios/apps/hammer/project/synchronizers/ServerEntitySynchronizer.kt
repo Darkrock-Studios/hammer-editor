@@ -119,7 +119,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	}
 
 	companion object {
-		val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z]+).json$")
+		val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z_]+).json$")
 
 		fun parseEntityFilename(path: Path): EntityDefinition? {
 			val filename = path.name

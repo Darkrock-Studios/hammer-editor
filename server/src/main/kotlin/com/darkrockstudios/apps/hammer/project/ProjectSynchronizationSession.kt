@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 data class ProjectSynchronizationSession(
 	val userId: Long,
@@ -23,6 +23,6 @@ data class ProjectSynchronizationSession(
 	}
 
 	companion object {
-		val EXPIRATION_TIME = 30.seconds//5.minutes
+		val EXPIRATION_TIME = 2.minutes//30.seconds
 	}
 }

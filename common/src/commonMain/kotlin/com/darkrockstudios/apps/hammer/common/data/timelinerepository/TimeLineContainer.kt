@@ -10,6 +10,7 @@ data class TimeLineContainer(
 @Serializable
 data class TimeLineEvent(
 	val id: Int,
+	val order: Int,
 	val date: String? = null,
-	val content: String
+	val content: String,
 )

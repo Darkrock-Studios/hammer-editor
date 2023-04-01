@@ -12,4 +12,8 @@ object EntityHash {
 	fun hashNote(id: Int, created: Instant, content: String): String {
 		return "$id:$content:$created".encodeToByteArray().sha256().base64Url
 	}
+
+	fun hashTimelineEvent(id: Int, order: Int, content: String, date: String?): String {
+		return "$id:$order:$content:${date ?: "null"}".encodeToByteArray().sha256().base64Url
+	}
 }

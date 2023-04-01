@@ -79,6 +79,7 @@ class ServerProjectApi(
 				when (entity) {
 					is ApiProjectEntity.SceneEntity -> setBody(entity)
 					is ApiProjectEntity.NoteEntity -> setBody(entity)
+					is ApiProjectEntity.TimelineEventEntity -> setBody(entity)
 				}
 			},
 			failureHandler = { response ->
@@ -93,6 +94,12 @@ class ServerProjectApi(
 
 						ApiProjectEntity.Type.NOTE -> EntityConflictException.NoteConflictException(
 							json.decodeFromString<ApiProjectEntity.NoteEntity>(
+								jsonStr
+							)
+						)
+
+						ApiProjectEntity.Type.TIMELINE_EVENT -> EntityConflictException.TimelineEventConflictException(
+							json.decodeFromString<ApiProjectEntity.TimelineEventEntity>(
 								jsonStr
 							)
 						)
@@ -124,6 +131,7 @@ class ServerProjectApi(
 				return@get when (type) {
 					ApiProjectEntity.Type.SCENE -> LoadEntityResponse(response.body<ApiProjectEntity.SceneEntity>())
 					ApiProjectEntity.Type.NOTE -> LoadEntityResponse(response.body<ApiProjectEntity.NoteEntity>())
+					ApiProjectEntity.Type.TIMELINE_EVENT -> LoadEntityResponse(response.body<ApiProjectEntity.TimelineEventEntity>())
 				}
 			},
 			failureHandler = { response ->

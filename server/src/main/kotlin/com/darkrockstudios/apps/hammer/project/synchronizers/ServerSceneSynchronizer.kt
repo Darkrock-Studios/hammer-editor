@@ -21,5 +21,5 @@ class ServerSceneSynchronizer(
 	}
 
 	override val entityClazz = ApiProjectEntity.SceneEntity::class
-	override val pathStub = "scene"
+	override val pathStub = ApiProjectEntity.Type.SCENE.name.lowercase()
 }

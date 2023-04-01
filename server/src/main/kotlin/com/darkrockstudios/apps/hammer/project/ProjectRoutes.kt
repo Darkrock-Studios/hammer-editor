@@ -135,6 +135,7 @@ private fun Route.uploadEntity() {
 			val entity = when (type) {
 				ApiProjectEntity.Type.SCENE -> call.receive<ApiProjectEntity.SceneEntity>()
 				ApiProjectEntity.Type.NOTE -> call.receive<ApiProjectEntity.NoteEntity>()
+				ApiProjectEntity.Type.TIMELINE_EVENT -> call.receive<ApiProjectEntity.TimelineEventEntity>()
 			}
 
 			if (projectName == null) {
@@ -165,6 +166,10 @@ private fun Route.uploadEntity() {
 						when (entity) {
 							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
 							is ApiProjectEntity.NoteEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
+							is ApiProjectEntity.TimelineEventEntity -> call.respond(
+								status = HttpStatusCode.Conflict,
+								entity
+							)
 						}
 					} else {
 						call.respond(
@@ -230,6 +235,13 @@ private fun Route.downloadEntity() {
 							created = serverEntity.created,
 							content = serverEntity.content
 						)
+
+					is ApiProjectEntity.TimelineEventEntity -> EntityHash.hashTimelineEvent(
+						id = serverEntity.id,
+						order = serverEntity.order,
+						content = serverEntity.content,
+						date = serverEntity.date
+					)
 				}
 
 				if (entityHash != null && entityHash == serverEntityHash) {
@@ -239,14 +251,23 @@ private fun Route.downloadEntity() {
 					when (serverEntity) {
 						is ApiProjectEntity.SceneEntity -> call.respond(serverEntity)
 						is ApiProjectEntity.NoteEntity -> call.respond(serverEntity)
+						is ApiProjectEntity.TimelineEventEntity -> call.respond(serverEntity)
 					}
 				}
 			} else {
 				val e = result.exceptionOrNull()
-				call.respond(
-					status = HttpStatusCode.Conflict,
-					HttpResponseError(error = "Save Error", message = e?.message ?: "Unknown failure")
-				)
+				if (e is EntityConflictException) {
+					call.respond(
+						status = HttpStatusCode.Conflict,
+						HttpResponseError(error = "Save Error", message = e.message ?: "Unknown failure")
+					)
+				} else {
+					println("Entity Download failed for ID $entityId: " + e?.message)
+					call.respond(
+						status = HttpStatusCode.InternalServerError,
+						HttpResponseError(error = "Save Error", message = e?.message ?: "Unknown failure")
+					)
+				}
 			}
 		}
 	}

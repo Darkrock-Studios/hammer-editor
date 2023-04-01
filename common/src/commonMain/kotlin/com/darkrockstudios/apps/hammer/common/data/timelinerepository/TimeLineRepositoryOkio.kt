@@ -19,9 +19,62 @@ class TimeLineRepositoryOkio(
 	//private val toml: Toml,
 	private val json: Json,
 ) : TimeLineRepository(projectDef, idRepository) {
+
 	override suspend fun loadTimeline(): TimeLineContainer {
 		val path = getTimelineFile()
 		return loadTimeline(path, fileSystem, json)
+	}
+
+	override suspend fun createEvent(content: String, date: String?, id: Int?, order: Int?): TimeLineEvent {
+		val eventId = id ?: idRepository.claimNextId()
+		val timeline = loadTimeline()
+
+		val event = TimeLineEvent(
+			id = eventId,
+			order = order ?: timeline.events.size,
+			content = content,
+			date = date
+		)
+
+		val newTimeline = timeline.copy(
+			events = timeline.events.toMutableList() + event
+		)
+
+		storeTimeline(newTimeline)
+
+		if (id != null) {
+			val index = newTimeline.events.indexOf(event)
+			markForSynchronization(event, index)
+		}
+
+		return event
+	}
+
+	override suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean): Boolean {
+		val timeline = loadTimeline()
+
+		val events = timeline.events.toMutableList()
+		val originalIndex = events.indexOfFirst { it.id == event.id }
+
+		var oldEvent: TimeLineEvent? = null
+		if (originalIndex != -1) {
+			oldEvent = events[originalIndex]
+			events[originalIndex] = event
+		} else {
+			events.add(event)
+		}
+
+		val updatedTimeline = timeline.copy(
+			events = events
+		)
+
+		correctEventOrder(updatedTimeline)
+
+		if (markForSync) {
+			markForSynchronization(oldEvent ?: event, originalIndex)
+		}
+
+		return true
 	}
 
 	override fun storeTimeline(timeLine: TimeLineContainer) {
@@ -43,6 +96,26 @@ class TimeLineRepositoryOkio(
 			fileSystem.createDirectory(directory)
 		}
 		return getTimelineFile(projectDef)
+	}
+
+	override suspend fun reIdEvent(oldId: Int, newId: Int) {
+		val timeline = loadTimeline()
+
+		val events = timeline.events.toMutableList()
+		val index = events.indexOfFirst { it.id == oldId }
+		val oldEvent = events[index]
+
+		val newEvent = oldEvent.copy(
+			id = newId
+		)
+
+		events[index] = newEvent
+
+		val updatedTimeline = timeline.copy(
+			events = events
+		)
+
+		storeTimeline(updatedTimeline)
 	}
 
 	companion object {

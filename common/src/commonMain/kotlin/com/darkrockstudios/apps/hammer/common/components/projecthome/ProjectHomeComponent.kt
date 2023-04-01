@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
@@ -37,6 +38,7 @@ class ProjectHomeComponent(
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
+	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
@@ -138,13 +140,9 @@ class ProjectHomeComponent(
 		Napier.d("Sync conflict")
 
 		when (serverEntity) {
-			is ApiProjectEntity.SceneEntity -> {
-				onSceneConflict(serverEntity)
-			}
-
-			is ApiProjectEntity.NoteEntity -> {
-				onNoteConflict(serverEntity)
-			}
+			is ApiProjectEntity.SceneEntity -> onSceneConflict(serverEntity)
+			is ApiProjectEntity.NoteEntity -> onNoteConflict(serverEntity)
+			is ApiProjectEntity.TimelineEventEntity -> onTimelineEventConflict(serverEntity)
 		}
 	}
 
@@ -164,6 +162,29 @@ class ProjectHomeComponent(
 					entityConflict = ProjectHome.EntityConflict.NoteConflict(
 						serverNote = serverEntity,
 						clientNote = localEntity
+					)
+				)
+			}
+		}
+	}
+
+	private suspend fun onTimelineEventConflict(serverEntity: ApiProjectEntity.TimelineEventEntity) {
+		val local = timeLineRepository.getTimelineEvent(serverEntity.id)
+			?: throw IllegalStateException("Failed to get local note")
+
+		val localEntity = ApiProjectEntity.TimelineEventEntity(
+			id = local.id,
+			date = local.date,
+			content = local.content,
+			order = local.order
+		)
+
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					entityConflict = ProjectHome.EntityConflict.TimelineEventConflict(
+						serverEvent = serverEntity,
+						clientEvent = localEntity
 					)
 				)
 			}
