@@ -32,10 +32,7 @@ class DraftsListComponent(
 
 	override fun loadDrafts() {
 		scope.launch(dispatcherDefault) {
-			val drafts = draftsRepository.findDrafts(
-				sceneItem.projectDef,
-				sceneItem.id
-			)
+			val drafts = draftsRepository.findDrafts(sceneItem.id)
 
 			withContext(dispatcherMain) {
 				_state.reduce {

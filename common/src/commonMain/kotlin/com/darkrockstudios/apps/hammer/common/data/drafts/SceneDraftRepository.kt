@@ -8,14 +8,12 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.Instant
 
 abstract class SceneDraftRepository(
+	protected val projectDef: ProjectDef,
 	protected val projectEditorRepository: ProjectEditorRepository,
 ) {
-	abstract fun getDraftsDirectory(projectDef: ProjectDef): HPath
-	abstract fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath
-	abstract fun findDrafts(
-		projectDef: ProjectDef,
-		sceneId: Int
-	): List<DraftDef>
+	abstract fun getDraftsDirectory(): HPath
+	abstract fun getSceneDraftsDirectory(sceneId: Int): HPath
+	abstract fun findDrafts(sceneId: Int): List<DraftDef>
 
 	abstract fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
 

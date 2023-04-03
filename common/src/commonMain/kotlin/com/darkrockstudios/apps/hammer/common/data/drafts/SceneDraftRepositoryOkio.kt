@@ -14,11 +14,12 @@ import okio.IOException
 import okio.Path
 
 class SceneDraftRepositoryOkio(
+	projectDef: ProjectDef,
 	projectEditorRepository: ProjectEditorRepository,
 	private val fileSystem: FileSystem
-) : SceneDraftRepository(projectEditorRepository) {
+) : SceneDraftRepository(projectDef, projectEditorRepository) {
 
-	override fun getDraftsDirectory(projectDef: ProjectDef): HPath {
+	override fun getDraftsDirectory(): HPath {
 		val sceneDir = projectEditorRepository.getSceneDirectory().toOkioPath()
 
 		val path: Path = sceneDir / DRAFTS_DIR
@@ -27,17 +28,14 @@ class SceneDraftRepositoryOkio(
 		return path.toHPath()
 	}
 
-	override fun getSceneDraftsDirectory(projectDef: ProjectDef, sceneId: Int): HPath {
-		val draftsDir = getDraftsDirectory(projectDef).toOkioPath()
+	override fun getSceneDraftsDirectory(sceneId: Int): HPath {
+		val draftsDir = getDraftsDirectory().toOkioPath()
 		val sceneDrafts = draftsDir / sceneId.toString()
 		return sceneDrafts.toHPath()
 	}
 
-	override fun findDrafts(
-		projectDef: ProjectDef,
-		sceneId: Int
-	): List<DraftDef> {
-		val draftsDir = getSceneDraftsDirectory(projectDef, sceneId).toOkioPath()
+	override fun findDrafts(sceneId: Int): List<DraftDef> {
+		val draftsDir = getSceneDraftsDirectory(sceneId).toOkioPath()
 
 		val drafts = if (fileSystem.exists(draftsDir)) {
 			fileSystem.list(draftsDir).filter { path: Path ->
@@ -57,7 +55,7 @@ class SceneDraftRepositoryOkio(
 	}
 
 	override fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath {
-		val dir = getSceneDraftsDirectory(sceneItem.projectDef, sceneItem.id)
+		val dir = getSceneDraftsDirectory(sceneItem.id)
 		val filename = getFilename(draftDef)
 		val path = dir.toOkioPath() / filename
 		return path.toHPath()
@@ -67,7 +65,7 @@ class SceneDraftRepositoryOkio(
 		val oldScene = createDummyScene(oldId, projectDef)
 		val newScene = createDummyScene(newId, projectDef)
 
-		findDrafts(projectDef, oldScene.id).forEach { draftDef ->
+		findDrafts(oldScene.id).forEach { draftDef ->
 			Napier.i { "Re-Iding draft: ${draftDef.draftName} Old ID: ${oldScene.id} New ID: ${newScene.id}" }
 			val oldPath = getDraftPath(oldScene, draftDef).toOkioPath()
 			val newPath = getDraftPath(newScene, draftDef).toOkioPath()
