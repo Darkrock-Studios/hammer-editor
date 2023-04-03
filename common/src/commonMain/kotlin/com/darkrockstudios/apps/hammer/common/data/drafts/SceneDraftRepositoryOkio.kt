@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -18,6 +20,8 @@ class SceneDraftRepositoryOkio(
 	projectEditorRepository: ProjectEditorRepository,
 	private val fileSystem: FileSystem
 ) : SceneDraftRepository(projectDef, projectEditorRepository) {
+
+	private val idRepository: IdRepository by projectInject()
 
 	override fun getDraftsDirectory(): HPath {
 		val sceneDir = projectEditorRepository.getSceneDirectory().toOkioPath()
@@ -90,8 +94,10 @@ class SceneDraftRepositoryOkio(
 			return null
 		}
 
+		val newId = idRepository.claimNextId()
 		val newDraftTimestamp = Clock.System.now()
 		val newDef = DraftDef(
+			id = newId,
 			sceneId = sceneItem.id,
 			draftTimestamp = newDraftTimestamp,
 			draftName = draftName
