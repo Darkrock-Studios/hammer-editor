@@ -36,6 +36,10 @@ fun createHttpClient(
 
         installCompression()
 
+        install(HttpRequestRetry) {
+            retryOnExceptionOrServerErrors(3)
+        }
+
         install(Auth) {
             bearer {
                 realm = AUTH_REALM
