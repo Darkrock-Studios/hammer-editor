@@ -81,6 +81,7 @@ class ServerProjectApi(
 					is ApiProjectEntity.NoteEntity -> setBody(entity)
 					is ApiProjectEntity.TimelineEventEntity -> setBody(entity)
 					is ApiProjectEntity.EncyclopediaEntryEntity -> setBody(entity)
+					is ApiProjectEntity.SceneDraftEntity -> setBody(entity)
 				}
 			},
 			failureHandler = { response ->
@@ -107,6 +108,12 @@ class ServerProjectApi(
 
 						ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> EntityConflictException.EncyclopediaEntryConflictException(
 							json.decodeFromString<ApiProjectEntity.EncyclopediaEntryEntity>(
+								jsonStr
+							)
+						)
+
+						ApiProjectEntity.Type.SCENE_DRAFT -> EntityConflictException.SceneDraftConflictException(
+							json.decodeFromString<ApiProjectEntity.SceneDraftEntity>(
 								jsonStr
 							)
 						)
@@ -140,6 +147,7 @@ class ServerProjectApi(
 					ApiProjectEntity.Type.NOTE -> LoadEntityResponse(response.body<ApiProjectEntity.NoteEntity>())
 					ApiProjectEntity.Type.TIMELINE_EVENT -> LoadEntityResponse(response.body<ApiProjectEntity.TimelineEventEntity>())
 					ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> LoadEntityResponse(response.body<ApiProjectEntity.EncyclopediaEntryEntity>())
+					ApiProjectEntity.Type.SCENE_DRAFT -> LoadEntityResponse(response.body<ApiProjectEntity.SceneDraftEntity>())
 				}
 			},
 			failureHandler = { response ->

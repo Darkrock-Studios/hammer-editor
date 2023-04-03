@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -32,6 +33,29 @@ class SceneDraftRepositoryOkio(
 		return path.toHPath()
 	}
 
+	override fun getSceneIdsThatHaveDrafts(): List<Int> {
+		val dir = getDraftsDirectory().toOkioPath()
+		val sceneIds = fileSystem.list(dir).mapNotNull { path: Path ->
+			val possibleSceneId = path.name.toIntOrNull()
+			if (possibleSceneId != null && possibleSceneId > 0) {
+				possibleSceneId
+			} else {
+				Napier.w("Found non-numeric directory in Drafts directory: $path")
+				null
+			}
+		}
+		return sceneIds
+	}
+
+	override fun getDraftDef(draftId: Int): DraftDef? {
+		val drafts = getSceneIdsThatHaveDrafts().flatMap { sceneId: Int ->
+			findDrafts(sceneId)
+		}
+		return drafts.firstOrNull { draftDef: DraftDef ->
+			draftDef.id == draftId
+		}
+	}
+
 	override fun getSceneDraftsDirectory(sceneId: Int): HPath {
 		val draftsDir = getDraftsDirectory().toOkioPath()
 		val sceneDrafts = draftsDir / sceneId.toString()
@@ -58,34 +82,26 @@ class SceneDraftRepositoryOkio(
 		return drafts
 	}
 
-	override fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath {
-		val dir = getSceneDraftsDirectory(sceneItem.id)
+	override fun getDraftPath(draftDef: DraftDef): HPath {
+		val dir = getSceneDraftsDirectory(draftDef.sceneId)
 		val filename = getFilename(draftDef)
 		val path = dir.toOkioPath() / filename
 		return path.toHPath()
 	}
 
-	override fun reIdScene(oldId: Int, newId: Int, projectDef: ProjectDef) {
-		val oldScene = createDummyScene(oldId, projectDef)
-		val newScene = createDummyScene(newId, projectDef)
+	override suspend fun reIdDraft(oldId: Int, newId: Int) {
+		val draftDef = getDraftDef(oldId) ?: error("Draft not found: $oldId")
+		val oldPath = getDraftPath(draftDef).toOkioPath()
+		val newPath = getDraftPath(draftDef.copy(id = newId)).toOkioPath()
 
-		findDrafts(oldScene.id).forEach { draftDef ->
-			Napier.i { "Re-Iding draft: ${draftDef.draftName} Old ID: ${oldScene.id} New ID: ${newScene.id}" }
-			val oldPath = getDraftPath(oldScene, draftDef).toOkioPath()
-			val newPath = getDraftPath(newScene, draftDef).toOkioPath()
-
-			fileSystem.atomicMove(oldPath, newPath)
-		}
+		fileSystem.atomicMove(oldPath, newPath)
 	}
 
-	private fun createDummyScene(id: Int, projectDef: ProjectDef): SceneItem {
-		return SceneItem(
-			projectDef = projectDef,
-			id = id,
-			name = "",
-			order = 0,
-			type = SceneItem.Type.Scene
-		)
+	override suspend fun reIdScene(oldId: Int, newId: Int) {
+		val draftsDir = getSceneDraftsDirectory(oldId).toOkioPath()
+		val newDraftsDir = getSceneDraftsDirectory(newId).toOkioPath()
+
+		fileSystem.atomicMove(draftsDir, newDraftsDir)
 	}
 
 	override fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
@@ -102,7 +118,7 @@ class SceneDraftRepositoryOkio(
 			draftTimestamp = newDraftTimestamp,
 			draftName = draftName
 		)
-		val path = getDraftPath(sceneItem, newDef).toOkioPath()
+		val path = getDraftPath(newDef).toOkioPath()
 		val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
 		fileSystem.createDirectories(parentPath)
 
@@ -111,7 +127,7 @@ class SceneDraftRepositoryOkio(
 			return null
 		}
 
-		val existingBuffer = projectEditorRepository.getSceneBuffer(sceneItem)
+		val existingBuffer = projectEditorRepository.getSceneBuffer(sceneItem.id)
 		val content: String = if (existingBuffer != null) {
 			Napier.i { "Draft content loaded from memory" }
 			existingBuffer.content.coerceMarkdown()
@@ -130,8 +146,28 @@ class SceneDraftRepositoryOkio(
 		return newDef
 	}
 
+	override fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef? {
+		val draftDef = draftEntity.toDraftDef()
+		val path = getDraftPath(draftDef).toOkioPath()
+		val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
+		fileSystem.createDirectories(parentPath)
+
+		if (fileSystem.exists(path)) {
+			Napier.e("saveDraft failed: Draft file already exists: $path")
+			return null
+		}
+
+		fileSystem.write(path, true) {
+			writeUtf8(draftEntity.content)
+		}
+
+		Napier.i { "Draft Saved: $path" }
+
+		return draftDef
+	}
+
 	override fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent? {
-		val path = getDraftPath(sceneItem, draftDef).toOkioPath()
+		val path = getDraftPath(draftDef).toOkioPath()
 
 		if (!fileSystem.exists(path)) {
 			Napier.e("loadDraft failed: Draft file already exists: $path")
@@ -147,10 +183,39 @@ class SceneDraftRepositoryOkio(
 				)
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to load Scene (${sceneItem.name})")
+			Napier.e("Failed to load Draft ${draftDef.id} for scene Scene (${sceneItem.id})")
 			null
 		}
 
 		return sceneContent
 	}
+
+	override fun loadDraftRaw(draftDef: DraftDef): String? {
+		val path = getDraftPath(draftDef).toOkioPath()
+
+		if (!fileSystem.exists(path)) {
+			Napier.e("loadDraft failed: Draft file already exists: $path")
+			return null
+		}
+
+		val sceneContent: String? = try {
+			fileSystem.read(path) {
+				readUtf8()
+			}
+		} catch (e: IOException) {
+			Napier.e("Failed to load draft (${draftDef.id})")
+			null
+		}
+
+		return sceneContent
+	}
+}
+
+private fun ApiProjectEntity.SceneDraftEntity.toDraftDef(): DraftDef {
+	return DraftDef(
+		id = id,
+		sceneId = sceneId,
+		draftTimestamp = created,
+		draftName = name
+	)
 }

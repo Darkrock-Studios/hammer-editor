@@ -58,6 +58,12 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 							state.entityConflict as ProjectHome.EntityConflict.EncyclopediaEntryConflict
 						EncyclopediaEntryConflict(encyclopediaEntryConflict, component)
 					}
+
+					is ProjectHome.EntityConflict.SceneDraftConflict -> {
+						val sceneDraftConflict =
+							state.entityConflict as ProjectHome.EntityConflict.SceneDraftConflict
+						SceneDraftConflict(sceneDraftConflict, component)
+					}
 				}
 			} else {
 				SyncLog(state)
@@ -192,6 +198,34 @@ internal fun EncyclopediaEntryConflict(
 					Text("Use Remote")
 				}
 				Text(entityConflict.serverEntity.text)
+			}
+		}
+	}
+}
+
+@Composable
+internal fun SceneDraftConflict(
+	entityConflict: ProjectHome.EntityConflict.SceneDraftConflict,
+	component: ProjectHome
+) {
+	Column {
+		Text("Scene Draft Conflict")
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+		Row(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Local Draft: ${entityConflict.clientEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+					Text("Use Local")
+				}
+				Text(entityConflict.clientEntity.content)
+			}
+
+			Column(modifier = Modifier.weight(1f)) {
+				Text("Remote Draft: ${entityConflict.serverEntity.name}")
+				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
+					Text("Use Remote")
+				}
+				Text(entityConflict.serverEntity.content)
 			}
 		}
 	}

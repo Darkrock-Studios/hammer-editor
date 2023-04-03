@@ -268,12 +268,20 @@ abstract class ProjectEditorRepository(
 		_bufferUpdateFlow.tryEmit(newBuffer)
 	}
 
-	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
+	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
+	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffers[sceneId]
+
 	protected fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
-		sceneBuffers.containsKey(sceneDef.id)
+		hasSceneBuffer(sceneDef.id)
+
+	protected fun hasSceneBuffer(sceneId: Int): Boolean =
+		sceneBuffers.containsKey(sceneId)
 
 	protected fun hasDirtyBuffer(sceneDef: SceneItem): Boolean =
-		getSceneBuffer(sceneDef)?.dirty == true
+		hasDirtyBuffer(sceneDef.id)
+
+	protected fun hasDirtyBuffer(sceneId: Int): Boolean =
+		getSceneBuffer(sceneId)?.dirty == true
 
 	fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
 

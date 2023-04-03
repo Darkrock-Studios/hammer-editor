@@ -20,6 +20,7 @@ class ProjectRepository(
 	private val noteSynchronizer: ServerNoteSynchronizer,
 	private val timelineEventSynchronizer: ServerTimelineSynchronizer,
 	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer,
+	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
 	private val clock: Clock
 ) {
 	private val syncIdGenerator = RandomString(30)
@@ -233,6 +234,14 @@ class ProjectRepository(
 				originalHash,
 				force
 			)
+
+			is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}
@@ -281,6 +290,8 @@ class ProjectRepository(
 				projectDef,
 				entityId
 			)
+
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.loadEntity(userId, projectDef, entityId)
 		}
 	}
 

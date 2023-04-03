@@ -127,6 +127,7 @@ private fun Route.uploadEntity() {
 				ApiProjectEntity.Type.NOTE -> call.receive<ApiProjectEntity.NoteEntity>()
 				ApiProjectEntity.Type.TIMELINE_EVENT -> call.receive<ApiProjectEntity.TimelineEventEntity>()
 				ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> call.receive<ApiProjectEntity.EncyclopediaEntryEntity>()
+				ApiProjectEntity.Type.SCENE_DRAFT -> call.receive<ApiProjectEntity.SceneDraftEntity>()
 			}
 
 			if (projectName == null) {
@@ -163,6 +164,11 @@ private fun Route.uploadEntity() {
 							)
 
 							is ApiProjectEntity.EncyclopediaEntryEntity -> call.respond(
+								status = HttpStatusCode.Conflict,
+								entity
+							)
+
+							is ApiProjectEntity.SceneDraftEntity -> call.respond(
 								status = HttpStatusCode.Conflict,
 								entity
 							)
@@ -247,6 +253,13 @@ private fun Route.downloadEntity() {
 						tags = serverEntity.tags,
 						image = serverEntity.image,
 					)
+
+					is ApiProjectEntity.SceneDraftEntity -> EntityHash.hashSceneDraft(
+						id = serverEntity.id,
+						name = serverEntity.name,
+						created = serverEntity.created,
+						content = serverEntity.content
+					)
 				}
 
 				if (entityHash != null && entityHash == serverEntityHash) {
@@ -258,6 +271,7 @@ private fun Route.downloadEntity() {
 						is ApiProjectEntity.NoteEntity -> call.respond(serverEntity)
 						is ApiProjectEntity.TimelineEventEntity -> call.respond(serverEntity)
 						is ApiProjectEntity.EncyclopediaEntryEntity -> call.respond(serverEntity)
+						is ApiProjectEntity.SceneDraftEntity -> call.respond(serverEntity)
 					}
 				}
 			} else {

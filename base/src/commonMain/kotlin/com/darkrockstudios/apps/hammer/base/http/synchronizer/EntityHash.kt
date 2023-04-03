@@ -35,4 +35,8 @@ object EntityHash {
 
 		return "$id:$name:$entityType:$text:$tagsStr:$imagePart".encodeToByteArray().sha256().base64Url
 	}
+
+	fun hashSceneDraft(id: Int, created: Instant, name: String, content: String): String {
+		return "$id:$created:$name:$content".encodeToByteArray().sha256().base64Url
+	}
 }

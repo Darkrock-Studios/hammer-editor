@@ -55,5 +55,10 @@ interface ProjectHome : Router, HammerComponent {
 			serverEntry: ApiProjectEntity.EncyclopediaEntryEntity,
 			clientEntry: ApiProjectEntity.EncyclopediaEntryEntity
 		) : EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>(serverEntry, clientEntry)
+
+		class SceneDraftConflict(
+			serverEntry: ApiProjectEntity.SceneDraftEntity,
+			clientEntry: ApiProjectEntity.SceneDraftEntity
+		) : EntityConflict<ApiProjectEntity.SceneDraftEntity>(serverEntry, clientEntry)
 	}
 }

@@ -8,10 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -46,12 +43,14 @@ class ClientProjectSynchronizer(
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
 	private val timelineSynchronizer: ClientTimelineSynchronizer by projectInject()
 	private val encyclopediaSynchronizer: ClientEncyclopediaSynchronizer by projectInject()
+	private val sceneDraftSynchronizer: ClientSceneDraftSynchronizer by projectInject()
 	private val entitySynchronizers by lazy {
 		listOf(
 			sceneSynchronizer,
 			noteSynchronizer,
 			timelineSynchronizer,
-			encyclopediaSynchronizer
+			encyclopediaSynchronizer,
+			sceneDraftSynchronizer
 		)
 	}
 
@@ -68,6 +67,8 @@ class ClientProjectSynchronizer(
 					is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.conflictResolution.send(
 						conflict
 					)
+
+					is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.conflictResolution.send(conflict)
 				}
 			}
 		}
@@ -306,6 +307,8 @@ class ClientProjectSynchronizer(
 				onConflict,
 				onLog
 			)
+
+			EntityType.SceneDraft -> sceneDraftSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
 		}
 	}
 
@@ -319,6 +322,7 @@ class ClientProjectSynchronizer(
 				EntityType.Note -> noteSynchronizer.getEntityHash(id)
 				EntityType.TimelineEvent -> timelineSynchronizer.getEntityHash(id)
 				EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.getEntityHash(id)
+				EntityType.SceneDraft -> sceneDraftSynchronizer.getEntityHash(id)
 			}
 		}
 	}
@@ -343,6 +347,8 @@ class ClientProjectSynchronizer(
 					syncId,
 					onLog
 				)
+
+				is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.storeEntity(serverEntity, syncId, onLog)
 			}
 			onLog("Entity $id downloaded")
 			true
@@ -365,6 +371,7 @@ class ClientProjectSynchronizer(
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
 	}
 

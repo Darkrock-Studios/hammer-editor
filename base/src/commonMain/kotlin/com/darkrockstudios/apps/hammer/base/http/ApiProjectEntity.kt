@@ -52,11 +52,22 @@ sealed interface ApiProjectEntity {
 		)
 	}
 
+	@Serializable
+	data class SceneDraftEntity(
+		override val type: Type = Type.SCENE_DRAFT,
+		override val id: Int,
+		val sceneId: Int,
+		val created: Instant,
+		val name: String,
+		val content: String
+	) : ApiProjectEntity
+
 	enum class Type {
 		SCENE,
 		NOTE,
 		TIMELINE_EVENT,
-		ENCYCLOPEDIA_ENTRY;
+		ENCYCLOPEDIA_ENTRY,
+		SCENE_DRAFT;
 
 		companion object {
 			fun fromString(string: String): Type? {
@@ -65,6 +76,7 @@ sealed interface ApiProjectEntity {
 					"note" -> NOTE
 					"timeline_event" -> TIMELINE_EVENT
 					"encyclopedia_entry" -> ENCYCLOPEDIA_ENTRY
+					"scene_draft" -> SCENE_DRAFT
 					else -> null
 				}
 			}

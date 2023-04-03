@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -40,6 +41,7 @@ class ProjectHomeComponent(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
+	private val sceneDraftRepository: SceneDraftRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
@@ -145,6 +147,7 @@ class ProjectHomeComponent(
 			is ApiProjectEntity.NoteEntity -> onNoteConflict(serverEntity)
 			is ApiProjectEntity.TimelineEventEntity -> onTimelineEventConflict(serverEntity)
 			is ApiProjectEntity.EncyclopediaEntryEntity -> onEncyclopediaEntryConflict(serverEntity)
+			is ApiProjectEntity.SceneDraftEntity -> onSceneDraftConflict(serverEntity)
 		}
 	}
 
@@ -217,6 +220,32 @@ class ProjectHomeComponent(
 			_state.reduce {
 				it.copy(
 					entityConflict = ProjectHome.EntityConflict.EncyclopediaEntryConflict(
+						serverEntry = serverEntity,
+						clientEntry = localEntity
+					)
+				)
+			}
+		}
+	}
+
+	private suspend fun onSceneDraftConflict(serverEntity: ApiProjectEntity.SceneDraftEntity) {
+		val local = sceneDraftRepository.getDraftDef(serverEntity.id)
+			?: throw IllegalStateException("Failed to get local note")
+		val localContent = sceneDraftRepository.loadDraftRaw(local)
+			?: throw IllegalStateException("Failed to load local draft content")
+
+		val localEntity = ApiProjectEntity.SceneDraftEntity(
+			id = local.id,
+			name = local.draftName,
+			sceneId = local.sceneId,
+			created = local.draftTimestamp,
+			content = localContent
+		)
+
+		withContext(mainDispatcher) {
+			_state.reduce {
+				it.copy(
+					entityConflict = ProjectHome.EntityConflict.SceneDraftConflict(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					)

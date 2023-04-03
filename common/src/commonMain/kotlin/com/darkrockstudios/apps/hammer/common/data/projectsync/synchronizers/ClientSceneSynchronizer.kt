@@ -165,7 +165,6 @@ class ClientSceneSynchronizer(
 		draftRepository.reIdScene(
 			oldId = oldId,
 			newId = newId,
-			projectDef = projectDef
 		)
 	}
 

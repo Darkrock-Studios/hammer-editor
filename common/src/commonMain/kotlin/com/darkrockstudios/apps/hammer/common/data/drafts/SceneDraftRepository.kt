@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.Instant
@@ -15,7 +15,11 @@ abstract class SceneDraftRepository(
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
+	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+
 	abstract fun getDraftsDirectory(): HPath
+	abstract fun getSceneIdsThatHaveDrafts(): List<Int>
+	abstract fun getDraftDef(draftId: Int): DraftDef?
 	abstract fun getSceneDraftsDirectory(sceneId: Int): HPath
 	abstract fun findDrafts(sceneId: Int): List<DraftDef>
 
@@ -23,13 +27,29 @@ abstract class SceneDraftRepository(
 
 	abstract fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent?
 
-	abstract fun getDraftPath(sceneItem: SceneItem, draftDef: DraftDef): HPath
+	abstract fun loadDraftRaw(draftDef: DraftDef): String?
+
+	abstract fun getDraftPath(draftDef: DraftDef): HPath
+	abstract suspend fun reIdDraft(oldId: Int, newId: Int)
+	abstract suspend fun reIdScene(oldId: Int, newId: Int)
 
 	fun getFilename(draftDef: DraftDef): String {
 		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-${draftDef.draftTimestamp.epochSeconds}.md"
 	}
 
-	abstract fun reIdScene(oldId: Int, newId: Int, projectDef: ProjectDef)
+	abstract fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef?
+
+	protected fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {
+			val hash = EntityHash.hashSceneDraft(
+				id = originalDef.id,
+				created = originalDef.draftTimestamp,
+				name = originalDef.draftName,
+				content = originalContent,
+			)
+			projectSynchronizer.markEntityAsDirty(originalDef.id, hash)
+		}
+	}
 
 	companion object {
 		const val DRAFTS_DIR = ".drafts"
