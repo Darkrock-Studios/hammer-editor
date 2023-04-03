@@ -23,14 +23,32 @@ website-in-a-box, but instead using native client side technologies to provide t
 - ![badge-platform-ios]
 
 ## Offline first
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web
-Page in a box) which always seems to run into problems while being used offline for long periods of time.
+
+I was frustrated with most of the story writing software I was finding as they were using web technologies (_aka: Web
+Page in a box_) which always seems to run into problems while being used offline for long periods of time. Hammer is
+designed from the ground up to be entirely local, no internet connection required, ever.
 
 ## Transparent Data
 
 Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files,
 just using files and folders to define the project structure. You can open your OSes file browser and take a look for
 your self. If this program went away today you would be able to easily interact with your data.
+
+## Intelligent Syncing between devices
+
+Your data can be synchronized between devices allowing you to work on your story from anywhere, and have no fear of a
+change on one device, overwriting a change on another device.
+
+## Optional and Self hosted Syncing
+
+Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and
+sync your data between devices. You could even use some other service to sync your data, like Dropbox or Google Drive.
+It's all up to you.
+
+## UI For your OS
+
+Whether you are on a phone, tablet, or desktop, Hammer will make the best use of your screen space.
+It's not a web page in a box, it's a native application designed to be small, fast, and efficient.
 
 <!-- TAG_DEPENDENCIES -->
 
