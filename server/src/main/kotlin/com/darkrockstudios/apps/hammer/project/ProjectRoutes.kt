@@ -74,10 +74,6 @@ private fun Route.endProjectSync() {
 			null
 		}
 		val lastId = formParameters["lastId"].toString().toIntOrNull()
-		val deletedIds = formParameters["deletedIds"].toString()
-			.split(",")
-			.mapNotNull { it.toIntOrNull() }
-			.toSet()
 
 		if (projectName == null) {
 			call.respond(
@@ -91,8 +87,7 @@ private fun Route.endProjectSync() {
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
-			val result =
-				projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId, deletedIds)
+			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)
 			if (result.isSuccess) {
 				val success = result.getOrThrow()
 				call.respond(success)

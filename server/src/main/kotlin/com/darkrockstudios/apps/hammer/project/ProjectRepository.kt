@@ -146,7 +146,6 @@ class ProjectRepository(
 		syncId: String,
 		lastSync: Instant?,
 		lastId: Int?,
-		deletedIds: Set<Int>?
 	): Result<Boolean> {
 		synchronized(synchronizationSessions) {
 			val session = synchronizationSessions[userId]
@@ -156,19 +155,13 @@ class ProjectRepository(
 				if (session.syncId != syncId) {
 					Result.failure(IllegalStateException("Invalid sync id"))
 				} else {
-
 					// Update sync data if it was sent
-					if (lastSync != null && lastId != null && deletedIds != null) {
-						val synDataPath = getProjectSyncDataPath(userId, projectDef)
-						val syncData = getProjectSyncData(userId, projectDef)
-						val newSyncData = syncData.copy(
-							lastSync = lastSync,
-							lastId = lastId,
-							deletedIds = deletedIds
-						)
-						val newSyncDataJson = json.encodeToString(newSyncData)
-						fileSystem.write(synDataPath) {
-							writeUtf8(newSyncDataJson)
+					if (lastSync != null && lastId != null) {
+						updateSyncData(userId, projectDef) {
+							it.copy(
+								lastSync = lastSync,
+								lastId = lastId,
+							)
 						}
 					}
 
@@ -260,6 +253,12 @@ class ProjectRepository(
 		syncId: String,
 	): Result<Boolean> {
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		updateSyncData(userId, projectDef) {
+			it.copy(
+				deletedIds = it.deletedIds + entityId
+			)
+		}
 
 		val entityType: ApiProjectEntity.Type =
 			getEntityType(userId, projectDef, entityId) ?: return Result.failure(NoEntityTypeFound(entityId))
@@ -377,6 +376,20 @@ class ProjectRepository(
 			}
 		}
 		return null
+	}
+
+	private fun updateSyncData(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		action: (ProjectSyncData) -> ProjectSyncData
+	) {
+		val data = getProjectSyncData(userId, projectDef)
+		val updated = action(data)
+		val newSyncDataJson = json.encodeToString(updated)
+		val path = getProjectSyncDataPath(userId, projectDef)
+		fileSystem.write(path) {
+			writeUtf8(newSyncDataJson)
+		}
 	}
 
 	companion object {

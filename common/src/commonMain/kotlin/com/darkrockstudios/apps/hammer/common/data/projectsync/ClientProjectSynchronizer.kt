@@ -25,6 +25,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 class ClientProjectSynchronizer(
@@ -116,7 +117,7 @@ class ClientProjectSynchronizer(
 				newIds = emptyList(),
 				lastSync = Instant.DISTANT_PAST,
 				dirty = emptyList(),
-				newlyDeletedIds = emptySet()
+				deletedIds = emptySet()
 			)
 			saveSyncData(newData)
 
@@ -144,10 +145,14 @@ class ClientProjectSynchronizer(
 				val updatedNewIds = clientSyncData.newIds.toMutableList()
 				val updatedDirty = clientSyncData.dirty.toMutableList()
 
+				val localDeletedIds = clientSyncData.deletedIds.toMutableSet()
+
 				for ((ii, id) in clientSyncData.newIds.withIndex()) {
 					if (id <= serverSyncData.lastId) {
 						onLog("ID $id already exists on server, re-assigning")
 						val newId = ++serverLastId
+
+						// Re-ID this currently local only Entity
 						reIdEntry(id, newId)
 						updatedNewIds[ii] = newId
 
@@ -155,6 +160,12 @@ class ClientProjectSynchronizer(
 						val dirtyIndex = clientSyncData.dirty.indexOfFirst { it.id == id }
 						if (dirtyIndex > -1) {
 							updatedDirty[dirtyIndex] = clientSyncData.dirty[dirtyIndex].copy(id = newId)
+						}
+
+						// If this is a locally deleted ID, update it
+						if (localDeletedIds.contains(id)) {
+							localDeletedIds.remove(id)
+							localDeletedIds.add(newId)
 						}
 					}
 				}
@@ -165,7 +176,8 @@ class ClientProjectSynchronizer(
 				clientSyncData.copy(
 					newIds = updatedNewIds,
 					lastId = updatedNewIds.max(),
-					dirty = updatedDirty
+					dirty = updatedDirty,
+					deletedIds = localDeletedIds
 				)
 			} else {
 				clientSyncData
@@ -181,127 +193,157 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 	) {
-		prepareForSync()
+		try {
+			prepareForSync()
 
-		val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
+			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
 
-		onProgress(0.1f, "Server data received")
+			onProgress(0.1f, "Server data received")
 
-		val clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
-		saveSyncData(clientSyncData)
+			val clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
+			saveSyncData(clientSyncData)
 
-		val combinedDeletions = serverSyncData.deletedIds + clientSyncData.newlyDeletedIds
-		val serverDeletedIds =
-			serverSyncData.deletedIds.filter { clientSyncData.newlyDeletedIds.contains(it).not() }.toSet()
-		val newlyDeletedIds =
-			clientSyncData.newlyDeletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
+			val combinedDeletions = serverSyncData.deletedIds + clientSyncData.deletedIds
+			val serverDeletedIds =
+				serverSyncData.deletedIds.filter { clientSyncData.deletedIds.contains(it).not() }.toSet()
+			val newlyDeletedIds =
+				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
 
-		onProgress(0.2f, "Client data loaded")
+			onProgress(0.2f, "Client data loaded")
 
-		// Resolve ID conflicts
-		val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
-		val maxId = (resolvedClientSyncData.newIds + resolvedClientSyncData.lastId + serverSyncData.lastId).max()
-		val newClientIds = resolvedClientSyncData.newIds
+			// Resolve ID conflicts
+			val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
+			val maxId = (resolvedClientSyncData.newIds + resolvedClientSyncData.lastId + serverSyncData.lastId).max()
+			val newClientIds = resolvedClientSyncData.newIds
 
-		val ENTITY_START = 0.3f
-		val ENTITY_TOTAL = 0.5f
+			val ENTITY_START = 0.3f
+			val ENTITY_TOTAL = 0.5f
 
-		// Handle IDs newly deleted on server
-		for (id in serverDeletedIds) {
-			deleteEntityLocal(id, onLog)
-		}
-
-		val successfullyDeletedIds = mutableSetOf<Int>()
-		// Handle IDs newly deleted on client
-		for (id in newlyDeletedIds) {
-			if (deleteEntityRemote(id, serverSyncData.syncId, onLog)) {
-				successfullyDeletedIds.add(id)
+			// Handle IDs newly deleted on server
+			for (id in serverDeletedIds) {
+				deleteEntityLocal(id, onLog)
 			}
-		}
-		val failedDeletes = newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
 
-		onProgress(ENTITY_START, null)
-
-		var allSuccess = true
-		// Transfer Entities
-		for (thisId in 1..maxId) {
-			if (thisId in combinedDeletions) {
-				Napier.d("Skipping deleted ID $thisId")
-				continue
+			val successfullyDeletedIds = mutableSetOf<Int>()
+			// Handle IDs newly deleted on client
+			for (id in newlyDeletedIds) {
+				if (deleteEntityRemote(id, serverSyncData.syncId, onLog)) {
+					successfullyDeletedIds.add(id)
+				}
 			}
-			Napier.d("Syncing ID $thisId")
+			val failedDeletes = newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
 
-			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
-			val isNewlyCreated = newClientIds.contains(thisId)
-			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
-				Napier.d("Upload ID $thisId")
-				val originalHash = localIsDirty?.originalHash
-				allSuccess = allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+			onProgress(ENTITY_START, null)
+
+			var allSuccess = true
+			// Transfer Entities
+			for (thisId in 1..maxId) {
+				if (thisId in combinedDeletions) {
+					Napier.d("Skipping deleted ID $thisId")
+					continue
+				}
+				Napier.d("Syncing ID $thisId")
+
+				val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
+				val isNewlyCreated = newClientIds.contains(thisId)
+				// If our copy is dirty, or this ID hasn't been seen by the server yet
+				if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
+					Napier.d("Upload ID $thisId")
+					val originalHash = localIsDirty?.originalHash
+					allSuccess =
+						allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+				}
+				// Otherwise download the server's copy
+				else {
+					Napier.d("Download ID $thisId")
+					allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
+				}
+				onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
 			}
-			// Otherwise download the server's copy
-			else {
-				Napier.d("Download ID $thisId")
-				allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
-			}
-			onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
-		}
 
-		val ENTITY_END = ENTITY_START + ENTITY_TOTAL
-		onProgress(ENTITY_END, "Entities transferred")
+			val ENTITY_END = ENTITY_START + ENTITY_TOTAL
+			onProgress(ENTITY_END, "Entities transferred")
 
-		finalizeSync()
+			finalizeSync()
 
-		onProgress(0.9f, "Sync finalized")
+			onProgress(0.9f, "Sync finalized")
 
-		val newLastId: Int?
-		val syncFinishedAt: Instant?
-		// If we failed, send up nulls
-		if (allSuccess) {
-			newLastId = maxId
-			syncFinishedAt = Clock.System.now()
-		} else {
-			newLastId = null
-			syncFinishedAt = null
-		}
-
-		val newServerDeletedIds = serverDeletedIds + successfullyDeletedIds
-		val endSyncResult = serverProjectApi.endProjectSync(
-			userId,
-			projectDef.name,
-			serverSyncData.syncId,
-			newLastId,
-			syncFinishedAt,
-			newServerDeletedIds
-		)
-
-		if (endSyncResult.isFailure) {
-			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
-		} else {
+			val newLastId: Int?
+			val syncFinishedAt: Instant?
+			// If we failed, send up nulls
 			if (allSuccess) {
-				onLog("Sync data saved")
+				newLastId = maxId
+				syncFinishedAt = Clock.System.now()
+			} else {
+				newLastId = null
+				syncFinishedAt = null
+			}
 
-				if (newLastId != null && syncFinishedAt != null) {
-					val finalSyncData = clientSyncData.copy(
-						currentSyncId = null,
-						lastId = newLastId,
-						lastSync = syncFinishedAt,
-						dirty = emptyList(),
-						newIds = emptyList(),
-						newlyDeletedIds = failedDeletes
-					)
-					saveSyncData(finalSyncData)
+			val endSyncResult = serverProjectApi.endProjectSync(
+				userId,
+				projectDef.name,
+				serverSyncData.syncId,
+				newLastId,
+				syncFinishedAt,
+			)
+
+			if (endSyncResult.isFailure) {
+				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+			} else {
+				if (allSuccess) {
+					onLog("Sync data saved")
+
+					if (newLastId != null && syncFinishedAt != null) {
+						val finalSyncData = clientSyncData.copy(
+							currentSyncId = null,
+							lastId = newLastId,
+							lastSync = syncFinishedAt,
+							dirty = emptyList(),
+							newIds = emptyList(),
+							deletedIds = combinedDeletions
+						)
+						saveSyncData(finalSyncData)
+					} else {
+						onLog("Sync data not saved due to errors")
+					}
 				} else {
 					onLog("Sync data not saved due to errors")
 				}
-			} else {
-				onLog("Sync data not saved due to errors")
 			}
+
+			onProgress(1f, null)
+
+			onComplete()
+		} catch (e: Exception) {
+			onLog("Sync failed: ${e.message}")
+			endSync()
+			onComplete()
 		}
+	}
 
-		onProgress(1f, null)
+	private suspend fun endSync() {
+		try {
+			val syncId = loadSyncData().currentSyncId ?: throw IllegalStateException("No sync ID")
 
-		onComplete()
+			val endSyncResult = serverProjectApi.endProjectSync(
+				userId,
+				projectDef.name,
+				syncId,
+				null,
+				null
+			)
+
+			if (endSyncResult.isFailure) {
+				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+			} else {
+				val finalSyncData = loadSyncData().copy(currentSyncId = null)
+				saveSyncData(finalSyncData)
+			}
+		} catch (e: IOException) {
+			Napier.e("Sync failed", e)
+		} catch (e: IllegalStateException) {
+			Napier.e("Sync failed", e)
+		}
 	}
 
 	private suspend fun prepareForSync() {
@@ -442,8 +484,8 @@ class ClientProjectSynchronizer(
 		if (isServerSynchronized().not()) return
 
 		val syncData = loadSyncData()
-		val updated = syncData.newlyDeletedIds + deletedId
-		val newSyncData = syncData.copy(newlyDeletedIds = updated)
+		val updated = syncData.deletedIds + deletedId
+		val newSyncData = syncData.copy(deletedIds = updated)
 		saveSyncData(newSyncData)
 	}
 
