@@ -21,7 +21,7 @@ object EntityHash {
 	fun hashEncyclopediaEntry(
 		id: Int,
 		name: String,
-		entityType: String,
+		entryType: String,
 		text: String,
 		tags: List<String>,
 		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?
@@ -33,10 +33,10 @@ object EntityHash {
 			"null"
 		}
 
-		return "$id:$name:$entityType:$text:$tagsStr:$imagePart".encodeToByteArray().sha256().base64Url
+		return "$id:$name:${entryType.lowercase()}:$text:$tagsStr:$imagePart".encodeToByteArray().sha256().base64Url
 	}
 
 	fun hashSceneDraft(id: Int, created: Instant, name: String, content: String): String {
-		return "$id:$created:$name:$content".encodeToByteArray().sha256().base64Url
+		return "$id:${created.epochSeconds}:$name:$content".encodeToByteArray().sha256().base64Url
 	}
 }

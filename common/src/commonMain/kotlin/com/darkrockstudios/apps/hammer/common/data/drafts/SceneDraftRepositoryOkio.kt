@@ -152,12 +152,7 @@ class SceneDraftRepositoryOkio(
 		val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
 		fileSystem.createDirectories(parentPath)
 
-		if (fileSystem.exists(path)) {
-			Napier.e("saveDraft failed: Draft file already exists: $path")
-			return null
-		}
-
-		fileSystem.write(path, true) {
+		fileSystem.write(path, false) {
 			writeUtf8(draftEntity.content)
 		}
 

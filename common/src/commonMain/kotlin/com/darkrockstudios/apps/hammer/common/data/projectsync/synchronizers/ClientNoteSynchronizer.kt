@@ -79,5 +79,6 @@ class ClientNoteSynchronizer(
 
 	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
 		notesRepository.deleteNote(id)
+		onLog("Deleted note ID $id from client")
 	}
 }

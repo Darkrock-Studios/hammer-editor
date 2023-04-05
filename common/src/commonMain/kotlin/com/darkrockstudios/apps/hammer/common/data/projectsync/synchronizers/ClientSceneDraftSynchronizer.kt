@@ -77,7 +77,6 @@ class ClientSceneDraftSynchronizer(
 		onLog: suspend (String?) -> Unit
 	) {
 		sceneDraftRepository.insertSyncDraft(serverEntity)
-		onLog("Stored draft ${serverEntity.id} for scene ${serverEntity.sceneId}")
 	}
 
 	override suspend fun finalizeSync() {

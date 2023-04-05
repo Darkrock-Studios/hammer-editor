@@ -13,7 +13,7 @@ class ServerEncyclopediaSynchronizer(
 		return EntityHash.hashEncyclopediaEntry(
 			id = entity.id,
 			name = entity.name,
-			entityType = entity.entryType,
+			entryType = entity.entryType,
 			text = entity.text,
 			tags = entity.tags,
 			image = entity.image,

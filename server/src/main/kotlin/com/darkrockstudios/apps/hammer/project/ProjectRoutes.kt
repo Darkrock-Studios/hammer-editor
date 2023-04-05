@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
+import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -221,51 +221,12 @@ private fun Route.downloadEntity() {
 				projectRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 			if (result.isSuccess) {
 				val serverEntity = result.getOrThrow()
-				val serverEntityHash = when (serverEntity) {
-					is ApiProjectEntity.SceneEntity -> {
-						EntityHash.hashScene(
-							id = serverEntity.id,
-							name = serverEntity.name,
-							order = serverEntity.order,
-							type = serverEntity.sceneType,
-							content = serverEntity.content
-						)
-					}
-
-					is ApiProjectEntity.NoteEntity ->
-						EntityHash.hashNote(
-							id = serverEntity.id,
-							created = serverEntity.created,
-							content = serverEntity.content
-						)
-
-					is ApiProjectEntity.TimelineEventEntity -> EntityHash.hashTimelineEvent(
-						id = serverEntity.id,
-						order = serverEntity.order,
-						content = serverEntity.content,
-						date = serverEntity.date
-					)
-
-					is ApiProjectEntity.EncyclopediaEntryEntity -> EntityHash.hashEncyclopediaEntry(
-						id = serverEntity.id,
-						name = serverEntity.name,
-						entityType = serverEntity.entryType,
-						text = serverEntity.text,
-						tags = serverEntity.tags,
-						image = serverEntity.image,
-					)
-
-					is ApiProjectEntity.SceneDraftEntity -> EntityHash.hashSceneDraft(
-						id = serverEntity.id,
-						name = serverEntity.name,
-						created = serverEntity.created,
-						content = serverEntity.content
-					)
-				}
+				val serverEntityHash = serverEntityHash(serverEntity)
 
 				if (entityHash != null && entityHash == serverEntityHash) {
 					call.respond(HttpStatusCode.NotModified)
 				} else {
+					println("Entity Download for ID $entityId because hash mismatched:\nClient: $entityHash\nServer: $serverEntityHash")
 					call.response.headers.append(HEADER_ENTITY_TYPE, serverEntity.type.toString())
 					when (serverEntity) {
 						is ApiProjectEntity.SceneEntity -> call.respond(serverEntity)

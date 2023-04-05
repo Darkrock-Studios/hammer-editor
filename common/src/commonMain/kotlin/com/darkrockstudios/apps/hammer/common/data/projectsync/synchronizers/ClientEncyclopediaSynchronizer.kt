@@ -45,7 +45,7 @@ class ClientEncyclopediaSynchronizer(
 		return EntityHash.hashEncyclopediaEntry(
 			id = entity.id,
 			name = entity.name,
-			entityType = entity.type.name,
+			entryType = entity.entryType,
 			text = entity.text,
 			tags = entity.tags,
 			image = entity.image
@@ -72,7 +72,7 @@ class ClientEncyclopediaSynchronizer(
 		return ApiProjectEntity.EncyclopediaEntryEntity(
 			id = id,
 			name = entry.name,
-			entryType = entry.type.name,
+			entryType = entry.type.text,
 			text = entry.text,
 			tags = entry.tags,
 			image = image,
@@ -92,6 +92,8 @@ class ClientEncyclopediaSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
 		val def = encyclopediaRepository.getEntryDef(id)
 		encyclopediaRepository.deleteEntry(def)
+
+		onLog("Deleted Encyclopedia ID $id from client")
 	}
 
 	override suspend fun storeEntity(

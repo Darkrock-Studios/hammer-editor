@@ -211,7 +211,7 @@ class EncyclopediaRepositoryOkio(
 			val hash = EntityHash.hashEncyclopediaEntry(
 				id = entryDef.id,
 				name = entryDef.name,
-				entityType = entryDef.type.name,
+				entryType = entryDef.type.text,
 				text = entry.text,
 				tags = entry.tags,
 				image = image
