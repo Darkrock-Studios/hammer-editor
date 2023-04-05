@@ -2,12 +2,14 @@ package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -15,7 +17,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import okio.Closeable
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
@@ -24,7 +25,9 @@ abstract class NotesRepository(
 	protected val projectDef: ProjectDef,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer
-) : Closeable, KoinComponent {
+) : Closeable, ProjectScoped {
+
+	override val projectScope = ProjectDefScope(projectDef)
 
 	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	protected val notesScope = CoroutineScope(dispatcherDefault)

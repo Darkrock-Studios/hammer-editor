@@ -115,7 +115,8 @@ class ClientProjectSynchronizer(
 				lastId = 0,
 				newIds = emptyList(),
 				lastSync = Instant.DISTANT_PAST,
-				dirty = emptyList()
+				dirty = emptyList(),
+				newlyDeletedIds = emptySet()
 			)
 			saveSyncData(newData)
 
@@ -189,6 +190,12 @@ class ClientProjectSynchronizer(
 		val clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
 		saveSyncData(clientSyncData)
 
+		val combinedDeletions = serverSyncData.deletedIds + clientSyncData.newlyDeletedIds
+		val serverDeletedIds =
+			serverSyncData.deletedIds.filter { clientSyncData.newlyDeletedIds.contains(it).not() }.toSet()
+		val newlyDeletedIds =
+			clientSyncData.newlyDeletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
+
 		onProgress(0.2f, "Client data loaded")
 
 		// Resolve ID conflicts
@@ -199,11 +206,29 @@ class ClientProjectSynchronizer(
 		val ENTITY_START = 0.3f
 		val ENTITY_TOTAL = 0.5f
 
+		// Handle IDs newly deleted on server
+		for (id in serverDeletedIds) {
+			deleteEntityLocal(id, onLog)
+		}
+
+		val successfullyDeletedIds = mutableSetOf<Int>()
+		// Handle IDs newly deleted on client
+		for (id in newlyDeletedIds) {
+			if (deleteEntityRemote(id, serverSyncData.syncId, onLog)) {
+				successfullyDeletedIds.add(id)
+			}
+		}
+		val failedDeletes = newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
+
 		onProgress(ENTITY_START, null)
 
 		var allSuccess = true
 		// Transfer Entities
 		for (thisId in 1..maxId) {
+			if (thisId in combinedDeletions) {
+				Napier.d("Skipping deleted ID $thisId")
+				continue
+			}
 			Napier.d("Syncing ID $thisId")
 
 			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
@@ -240,8 +265,15 @@ class ClientProjectSynchronizer(
 			syncFinishedAt = null
 		}
 
-		val endSyncResult =
-			serverProjectApi.endProjectSync(userId, projectDef.name, serverSyncData.syncId, newLastId, syncFinishedAt)
+		val newServerDeletedIds = serverDeletedIds + successfullyDeletedIds
+		val endSyncResult = serverProjectApi.endProjectSync(
+			userId,
+			projectDef.name,
+			serverSyncData.syncId,
+			newLastId,
+			syncFinishedAt,
+			newServerDeletedIds
+		)
 
 		if (endSyncResult.isFailure) {
 			Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
@@ -255,7 +287,8 @@ class ClientProjectSynchronizer(
 						lastId = newLastId,
 						lastSync = syncFinishedAt,
 						dirty = emptyList(),
-						newIds = emptyList()
+						newIds = emptyList(),
+						newlyDeletedIds = failedDeletes
 					)
 					saveSyncData(finalSyncData)
 				} else {
@@ -287,6 +320,28 @@ class ClientProjectSynchronizer(
 		}
 		return null
 	}
+
+	private suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		for (synchronizer in entitySynchronizers) {
+			if (synchronizer.ownsEntity(id)) {
+				synchronizer.deleteEntityLocal(id, onLog)
+				return
+			}
+		}
+	}
+
+	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: suspend (String?) -> Unit): Boolean {
+		val result = serverProjectApi.deleteId(projectDef.name, id, syncId)
+		return if (result.isSuccess) {
+			onLog("Deleted ID $id on server")
+			true
+		} else {
+			val message = result.exceptionOrNull()?.message
+			onLog("Failed to delete ID $id on server: $message")
+			false
+		}
+	}
+
 
 	private suspend fun uploadEntity(
 		id: Int,
@@ -376,8 +431,19 @@ class ClientProjectSynchronizer(
 	}
 
 	fun recordNewId(claimedId: Int) {
+		if (isServerSynchronized().not()) return
+
 		val syncData = loadSyncData()
 		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
+		saveSyncData(newSyncData)
+	}
+
+	fun recordIdDeletion(deletedId: Int) {
+		if (isServerSynchronized().not()) return
+
+		val syncData = loadSyncData()
+		val updated = syncData.newlyDeletedIds + deletedId
+		val newSyncData = syncData.copy(newlyDeletedIds = updated)
 		saveSyncData(newSyncData)
 	}
 

@@ -227,6 +227,8 @@ class EncyclopediaRepositoryOkio(
 		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
 		fileSystem.delete(imagePath)
 
+		projectSynchronizer.recordIdDeletion(entryDef.id)
+
 		return true
 	}
 

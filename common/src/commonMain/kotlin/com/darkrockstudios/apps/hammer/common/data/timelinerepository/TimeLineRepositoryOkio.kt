@@ -89,6 +89,23 @@ class TimeLineRepositoryOkio(
 		}
 	}
 
+	override suspend fun deleteEvent(event: TimeLineEvent): Boolean {
+		val timeline = loadTimeline()
+
+		val events = timeline.events.toMutableList()
+		val index = events.indexOfFirst { it.id == event.id }
+		events.removeAt(index)
+		storeTimeline(
+			timeline.copy(
+				events = events
+			)
+		)
+
+		projectSynchronizer.recordIdDeletion(event.id)
+
+		return true
+	}
+
 	override fun getTimelineFile(): HPath {
 		val directory = getTimelineDir(projectDef).toOkioPath()
 

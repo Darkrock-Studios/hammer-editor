@@ -38,6 +38,7 @@ abstract class SceneDraftRepository(
 	}
 
 	abstract fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef?
+	abstract fun deleteDraft(id: Int): Boolean
 
 	protected fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {

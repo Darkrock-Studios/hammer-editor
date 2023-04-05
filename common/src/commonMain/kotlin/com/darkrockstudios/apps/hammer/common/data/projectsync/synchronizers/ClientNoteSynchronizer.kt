@@ -76,4 +76,8 @@ class ClientNoteSynchronizer(
 	}
 
 	override fun getEntityType() = EntityType.Note
+
+	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		notesRepository.deleteNote(id)
+	}
 }

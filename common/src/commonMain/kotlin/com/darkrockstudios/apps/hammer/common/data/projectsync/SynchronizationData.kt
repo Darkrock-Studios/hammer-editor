@@ -9,7 +9,8 @@ data class SynchronizationData(
 	val lastId: Int,
 	val newIds: List<Int>,
 	val lastSync: Instant,
-	val dirty: List<EntityState>
+	val dirty: List<EntityState>,
+	val newlyDeletedIds: Set<Int>,
 )
 
 @Serializable

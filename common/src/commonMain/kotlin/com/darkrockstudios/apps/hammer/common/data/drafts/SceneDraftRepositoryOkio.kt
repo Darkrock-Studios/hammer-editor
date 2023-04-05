@@ -166,6 +166,17 @@ class SceneDraftRepositoryOkio(
 		return draftDef
 	}
 
+	override fun deleteDraft(id: Int): Boolean {
+		val draftDef = getDraftDef(id)
+		return if (draftDef != null) {
+			val path = getDraftPath(draftDef).toOkioPath()
+			fileSystem.delete(path, false)
+			true
+		} else {
+			false
+		}
+	}
+
 	override fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent? {
 		val path = getDraftPath(draftDef).toOkioPath()
 

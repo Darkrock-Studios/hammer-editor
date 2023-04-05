@@ -64,4 +64,5 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	abstract suspend fun reIdEntity(oldId: Int, newId: Int)
 	abstract suspend fun finalizeSync()
 	abstract fun getEntityType(): EntityType
+	abstract suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit)
 }

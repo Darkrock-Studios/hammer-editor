@@ -28,7 +28,7 @@ abstract class TimeLineRepository(
 ) : Closeable, ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	protected val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	protected val scope = CoroutineScope(dispatcherDefault)
 
@@ -50,6 +50,7 @@ abstract class TimeLineRepository(
 	abstract suspend fun createEvent(content: String, date: String?, id: Int? = null, order: Int? = null): TimeLineEvent
 	abstract suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean
 	protected abstract fun storeTimeline(timeLine: TimeLineContainer)
+	abstract suspend fun deleteEvent(event: TimeLineEvent): Boolean
 	abstract fun getTimelineFile(): HPath
 
 	fun storeTimeline() {

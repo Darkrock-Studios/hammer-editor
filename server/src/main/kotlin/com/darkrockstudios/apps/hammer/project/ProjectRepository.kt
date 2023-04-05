@@ -46,6 +46,7 @@ class ProjectRepository(
 			val newData = ProjectSyncData(
 				lastId = -1,
 				lastSync = Instant.DISTANT_PAST,
+				deletedIds = emptySet(),
 			)
 
 			fileSystem.write(file) {
@@ -131,7 +132,8 @@ class ProjectRepository(
 				val syncBegan = ProjectSynchronizationBegan(
 					syncId = newSyncId,
 					lastId = projectSyncData.lastId,
-					lastSync = projectSyncData.lastSync
+					lastSync = projectSyncData.lastSync,
+					deletedIds = projectSyncData.deletedIds,
 				)
 				Result.success(syncBegan)
 			}
@@ -143,7 +145,8 @@ class ProjectRepository(
 		projectDef: ProjectDefinition,
 		syncId: String,
 		lastSync: Instant?,
-		lastId: Int?
+		lastId: Int?,
+		deletedIds: Set<Int>?
 	): Result<Boolean> {
 		synchronized(synchronizationSessions) {
 			val session = synchronizationSessions[userId]
@@ -155,10 +158,14 @@ class ProjectRepository(
 				} else {
 
 					// Update sync data if it was sent
-					if (lastSync != null && lastId != null) {
+					if (lastSync != null && lastId != null && deletedIds != null) {
 						val synDataPath = getProjectSyncDataPath(userId, projectDef)
 						val syncData = getProjectSyncData(userId, projectDef)
-						val newSyncData = syncData.copy(lastSync = lastSync, lastId = lastId)
+						val newSyncData = syncData.copy(
+							lastSync = lastSync,
+							lastId = lastId,
+							deletedIds = deletedIds
+						)
 						val newSyncDataJson = json.encodeToString(newSyncData)
 						fileSystem.write(synDataPath) {
 							writeUtf8(newSyncDataJson)
@@ -246,6 +253,50 @@ class ProjectRepository(
 		return result
 	}
 
+	fun deleteEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		syncId: String,
+	): Result<Boolean> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		val entityType: ApiProjectEntity.Type =
+			getEntityType(userId, projectDef, entityId) ?: return Result.failure(NoEntityTypeFound(entityId))
+
+		when (entityType) {
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.NOTE -> noteSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(userId, projectDef, entityId)
+		}
+
+		return Result.success(true)
+	}
+
+	private fun getEntityType(userId: Long, projectDef: ProjectDefinition, entityId: Int): ApiProjectEntity.Type? {
+		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
+		val files = fileSystem.list(entityDir)
+		for (entityPath in files) {
+			ServerEntitySynchronizer.ENTITY_FILENAME_REGEX.matchEntire(entityPath.name)?.let { match ->
+				val id = match.groupValues[1].toInt()
+				if (id == entityId) {
+					val typeStr = match.groupValues[2]
+					ApiProjectEntity.Type.fromString(typeStr)?.let { type ->
+						return type
+					}
+				}
+			}
+		}
+		return null
+	}
+
 	private fun createProject(userId: Long, projectDef: ProjectDefinition) {
 		val projectDir = getProjectDirectory(userId, projectDef)
 		fileSystem.createDirectories(projectDir)
@@ -254,7 +305,8 @@ class ProjectRepository(
 			if (fileSystem.exists(syncDataPath).not()) {
 				val data = ProjectSyncData(
 					lastSync = Instant.DISTANT_PAST,
-					lastId = 0
+					lastId = 0,
+					deletedIds = emptySet()
 				)
 				val dataJson = json.encodeToString(data)
 
@@ -360,3 +412,4 @@ class ProjectRepository(
 data class ProjectServerState(val lastSync: Instant, val lastId: Int)
 
 class InvalidSyncIdException : Exception("Invalid sync id")
+class NoEntityTypeFound(val id: Int) : Exception("Could not find Type for Entity ID: $id")

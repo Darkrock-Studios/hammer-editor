@@ -76,4 +76,17 @@ class ClientTimelineSynchronizer(
 	}
 
 	override fun getEntityType() = EntityType.TimelineEvent
+
+	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		val event = timeLineRepository.getTimelineEvent(id)
+		if (event != null) {
+			if (timeLineRepository.deleteEvent(event)) {
+				onLog("Deleted Timeline Event $id")
+			} else {
+				onLog("Failed to delete timeline event $id")
+			}
+		} else {
+			onLog("Timeline event $id not found")
+		}
+	}
 }

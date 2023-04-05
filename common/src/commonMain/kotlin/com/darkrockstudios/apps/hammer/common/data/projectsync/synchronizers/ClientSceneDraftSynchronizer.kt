@@ -85,4 +85,9 @@ class ClientSceneDraftSynchronizer(
 	}
 
 	override fun getEntityType() = EntityType.SceneDraft
+
+	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		sceneDraftRepository.deleteDraft(id)
+		onLog("Deleted draft $id")
+	}
 }

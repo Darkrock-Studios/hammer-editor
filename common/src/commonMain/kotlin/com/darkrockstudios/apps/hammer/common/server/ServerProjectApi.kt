@@ -32,7 +32,8 @@ class ServerProjectApi(
 		projectName: String,
 		syncId: String,
 		lastId: Int?,
-		syncEnd: Instant?
+		syncEnd: Instant?,
+		combinedDeletions: Set<Int>
 	): Result<String> {
 		return get(
 			path = "/project/$userId/$projectName/end_sync",
@@ -46,6 +47,7 @@ class ServerProjectApi(
 						Parameters.build {
 							if (syncEnd != null) append("lastSync", syncEnd.toString())
 							if (lastId != null) append("lastId", lastId.toString())
+							append("deletedIds", combinedDeletions.joinToString(","))
 						}
 					)
 				)
@@ -163,6 +165,18 @@ class ServerProjectApi(
 					if (localHash != null) {
 						append(HEADER_ENTITY_HASH, localHash)
 					}
+				}
+			}
+		)
+	}
+
+	suspend fun deleteId(projectName: String, id: Int, syncId: String): Result<DeleteIdsResponse> {
+		return get(
+			path = "/project/$userId/$projectName/delete_entity/$id",
+			parse = { it.body() },
+			builder = {
+				headers {
+					append(HEADER_SYNC_ID, syncId)
 				}
 			}
 		)

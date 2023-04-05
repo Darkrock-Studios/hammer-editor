@@ -89,6 +89,11 @@ class ClientEncyclopediaSynchronizer(
 
 	override fun getEntityType() = EntityType.EncyclopediaEntry
 
+	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		val def = encyclopediaRepository.getEntryDef(id)
+		encyclopediaRepository.deleteEntry(def)
+	}
+
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity,
 		syncId: String,

@@ -22,6 +22,7 @@ fun Application.projectRoutes() {
 				endProjectSync()
 				uploadEntity()
 				downloadEntity()
+				deleteEntity()
 			}
 		}
 	}
@@ -73,6 +74,10 @@ private fun Route.endProjectSync() {
 			null
 		}
 		val lastId = formParameters["lastId"].toString().toIntOrNull()
+		val deletedIds = formParameters["deletedIds"].toString()
+			.split(",")
+			.mapNotNull { it.toIntOrNull() }
+			.toSet()
 
 		if (projectName == null) {
 			call.respond(
@@ -86,7 +91,8 @@ private fun Route.endProjectSync() {
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
-			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)
+			val result =
+				projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId, deletedIds)
 			if (result.isSuccess) {
 				val success = result.getOrThrow()
 				call.respond(success)
@@ -286,6 +292,52 @@ private fun Route.downloadEntity() {
 					call.respond(
 						status = HttpStatusCode.InternalServerError,
 						HttpResponseError(error = "Save Error", message = e?.message ?: "Unknown failure")
+					)
+				}
+			}
+		}
+	}
+}
+
+private fun Route.deleteEntity() {
+	val projectRepository: ProjectRepository = get()
+
+	get("/delete_entity/{entityId}") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectName = call.parameters["projectName"]
+		val entityId = call.parameters["entityId"]?.toIntOrNull()
+		val syncId = call.request.headers[HEADER_SYNC_ID]
+
+		if (projectName == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
+			)
+		} else if (entityId == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Parameter", message = "entityId was missing")
+			)
+		} else if (syncId == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Header", message = "syncId was missing")
+			)
+		} else {
+			val projectDef = ProjectDefinition(projectName)
+			val result = projectRepository.deleteEntity(principal.id, projectDef, entityId, syncId)
+
+			if (result.isSuccess) {
+				call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))
+			} else {
+				val e = result.exceptionOrNull()
+				if (e is NoEntityTypeFound) {
+					call.respond(HttpStatusCode.OK, DeleteIdsResponse(false))
+				} else {
+					val message = result.exceptionOrNull()?.message ?: "Unknown failure"
+					call.respond(
+						status = HttpStatusCode.InternalServerError,
+						HttpResponseError(error = "Failed to delete Entity", message = message)
 					)
 				}
 			}

@@ -76,6 +76,7 @@ class NotesRepositoryOkio(
 	override fun deleteNote(id: Int) {
 		val path = getNotePath(id).toOkioPath()
 		fileSystem.delete(path, true)
+		projectSynchronizer.recordIdDeletion(id)
 	}
 
 	override fun updateNote(noteContent: NoteContent, markForSync: Boolean) {

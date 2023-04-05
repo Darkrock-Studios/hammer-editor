@@ -118,6 +118,11 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		return entityDir / filename
 	}
 
+	fun deleteEntity(userId: Long, projectDef: ProjectDefinition, entityId: Int) {
+		val path = getPath(userId, projectDef, entityId)
+		fileSystem.delete(path, false)
+	}
+
 	companion object {
 		val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z_]+).json$")
 

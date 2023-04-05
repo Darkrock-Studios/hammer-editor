@@ -24,7 +24,13 @@ data class LoadEntityResponse(
 data class ProjectSynchronizationBegan(
 	val syncId: String,
 	val lastSync: Instant,
-	val lastId: Int
+	val lastId: Int,
+	val deletedIds: Set<Int>
+)
+
+@Serializable
+data class DeleteIdsResponse(
+	val deleted: Boolean
 )
 
 enum class ApiSceneType {

@@ -180,4 +180,17 @@ class ClientSceneSynchronizer(
 	}
 
 	override fun getEntityType() = EntityType.Scene
+
+	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+		val sceneItem = projectEditorRepository.getSceneItemFromId(id)
+		if (sceneItem != null) {
+			if (projectEditorRepository.deleteScene(sceneItem)) {
+				onLog("Deleting scene $id")
+			} else {
+				onLog("Failed to delete scene $id")
+			}
+		} else {
+			onLog("Failed find scene to delete: $id")
+		}
+	}
 }
