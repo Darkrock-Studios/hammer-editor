@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
@@ -31,6 +32,7 @@ class ProjectSelectionComponent(
     private val globalSettingsRepository: GlobalSettingsRepository by inject()
     private val projectsRepository: ProjectsRepository by inject()
     private val exampleProjectRepository: ExampleProjectRepository by inject()
+    private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
     private var loadProjectsJob: Job? = null
 
     private val _state = MutableValue(
@@ -185,6 +187,13 @@ class ProjectSelectionComponent(
 
     override fun removeServer() {
         globalSettingsRepository.deleteServerSettings()
+    }
+
+    override fun syncProjects() {
+        scope.launch {
+            projectsSynchronizer.syncProjects()
+            loadProjectList()
+        }
     }
 
     override suspend fun setupServer(

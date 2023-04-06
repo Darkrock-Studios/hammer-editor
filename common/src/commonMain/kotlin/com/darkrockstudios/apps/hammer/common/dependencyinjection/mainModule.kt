@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
@@ -28,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -44,29 +46,32 @@ const val DISPATCHER_IO = "io-dispatcher"
 
 val mainModule = module {
 	includes(externalFileIoModule)
-    includes(exampleProjectModule)
+	includes(exampleProjectModule)
 
-    single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
-    single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
-    single(named(DISPATCHER_IO)) { platformIoDispatcher }
+	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
+	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
+	single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
-    single { createHttpClient(get()) } bind HttpClient::class
-    singleOf(::ServerAccountApi)
-    singleOf(::ServerProjectApi)
+	single { createHttpClient(get()) } bind HttpClient::class
+	singleOf(::ServerAccountApi)
+	singleOf(::ServerProjectApi)
+	singleOf(::ServerProjectsApi)
 
-    singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-    singleOf(::AccountRepository)
+	singleOf(::AccountRepository)
 
-    singleOf(::getPlatformFilesystem) bind FileSystem::class
+	singleOf(::getPlatformFilesystem) bind FileSystem::class
 
-    singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
+	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
 
-    singleOf(::createTomlSerializer) bind Toml::class
+	singleOf(::createTomlSerializer) bind Toml::class
 
-    singleOf(::createJsonSerializer) bind Json::class
+	singleOf(::createJsonSerializer) bind Json::class
 
-    scope<ProjectDefScope> {
+	singleOf(::ClientProjectsSynchronizer)
+
+	scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
 		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class

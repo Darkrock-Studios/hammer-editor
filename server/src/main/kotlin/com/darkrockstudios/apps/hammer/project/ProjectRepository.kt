@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
-import com.darkrockstudios.apps.hammer.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.getUserDirectory
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -26,7 +26,6 @@ class ProjectRepository(
 	private val syncIdGenerator = RandomString(30)
 	private val synchronizationSessions = mutableMapOf<Long, ProjectSynchronizationSession>()
 
-	fun getRootDirectory(): Path = getRootDirectory(fileSystem)
 	fun getUserDirectory(userId: Long): Path = getUserDirectory(userId, fileSystem)
 	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
 		getEntityDirectory(userId, projectDef, fileSystem)
@@ -393,7 +392,6 @@ class ProjectRepository(
 	}
 
 	companion object {
-		private const val DATA_DIRECTORY = "user_data"
 		const val DATA_FILE = "data.json"
 		const val SYNC_DATA_FILE = "syncData.json"
 
@@ -401,13 +399,6 @@ class ProjectRepository(
 
 		fun defaultData(userId: Long): SyncData {
 			return SyncData()
-		}
-
-		fun getRootDirectory(fileSystem: FileSystem): Path = getRootDataDirectory(fileSystem) / DATA_DIRECTORY
-
-		fun getUserDirectory(userId: Long, fileSystem: FileSystem): Path {
-			val dir = getRootDirectory(fileSystem)
-			return dir / userId.toString()
 		}
 
 		fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {

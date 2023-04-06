@@ -62,8 +62,14 @@ fun ProjectList(
 					MR.strings.project_select_list_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.padding(Ui.Padding.L)
+					modifier = Modifier.weight(1f).padding(Ui.Padding.L)
 				)
+
+				if (state.serverUrl != null) {
+					Button(onClick = { component.syncProjects() }) {
+						Text("Sync Projects")
+					}
+				}
 			}
 
 			Row(modifier = Modifier.fillMaxWidth()) {
