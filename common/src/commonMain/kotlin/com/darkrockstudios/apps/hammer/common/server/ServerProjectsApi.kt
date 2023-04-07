@@ -1,27 +1,54 @@
 package com.darkrockstudios.apps.hammer.common.server
 
-import com.darkrockstudios.apps.hammer.base.http.GetProjectsResponse
+import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
+import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.request.*
 
 class ServerProjectsApi(
 	httpClient: HttpClient,
 	globalSettingsRepository: GlobalSettingsRepository,
 ) : Api(httpClient, globalSettingsRepository) {
 
-	suspend fun getProjects(): Result<GetProjectsResponse> {
+	suspend fun beginProjectsSync(): Result<BeginProjectsSyncResponse> {
 		return get(
-			path = "/projects/$userId",
+			path = "/projects/$userId/begin_sync",
 			parse = { it.body() },
 		)
 	}
 
-	suspend fun deleteProject(projectName: String): Result<String> {
-		return get(path = "/projects/$userId/$projectName/delete")
+	suspend fun endProjectsSync(syncId: String): Result<String> {
+		return get(
+			path = "/projects/$userId/end_sync",
+			builder = {
+				headers {
+					append(HEADER_SYNC_ID, syncId)
+				}
+			}
+		)
 	}
 
-	suspend fun createProject(projectName: String): Result<String> {
-		return get(path = "/projects/$userId/$projectName/create")
+	suspend fun deleteProject(projectName: String, syncId: String): Result<String> {
+		return get(
+			path = "/projects/$userId/$projectName/delete",
+			builder = {
+				headers {
+					append(HEADER_SYNC_ID, syncId)
+				}
+			}
+		)
+	}
+
+	suspend fun createProject(projectName: String, syncId: String): Result<String> {
+		return get(
+			path = "/projects/$userId/$projectName/create",
+			builder = {
+				headers {
+					append(HEADER_SYNC_ID, syncId)
+				}
+			}
+		)
 	}
 }

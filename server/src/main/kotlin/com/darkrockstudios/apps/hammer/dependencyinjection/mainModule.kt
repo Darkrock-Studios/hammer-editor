@@ -7,8 +7,11 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -45,4 +48,15 @@ val mainModule = module {
 	singleOf(::ServerTimelineSynchronizer)
 	singleOf(::ServerEncyclopediaSynchronizer)
 	singleOf(::ServerSceneDraftSynchronizer)
+
+	single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+		SyncSessionManager(get())
+	}
+
+	single<SyncSessionManager<ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+		SyncSessionManager(get())
+	}
 }
+
+const val PROJECTS_SYNC_MANAGER = "projects_sync_manager"
+const val PROJECT_SYNC_MANAGER = "project_sync_manager"

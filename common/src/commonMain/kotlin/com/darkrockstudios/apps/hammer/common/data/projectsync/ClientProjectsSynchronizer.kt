@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
-import com.darkrockstudios.apps.hammer.base.http.GetProjectsResponse
+import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -11,6 +11,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 
@@ -35,25 +36,33 @@ class ClientProjectsSynchronizer(
 
 		performBackup()
 
-		val result = serverProjectsApi.getProjects()
-		if (result.isSuccess) {
-			val localProjects = projectsRepository.getProjects()
-			val serverSyncData = result.getOrThrow()
-			val clientSyncData = loadSyncData()
+		try {
+			val result = serverProjectsApi.beginProjectsSync()
+			if (result.isSuccess) {
+				val serverSyncData = result.getOrThrow()
+				val syncId = serverSyncData.syncId
 
-			syncDeletedProjects(clientSyncData, serverSyncData, localProjects)
-			syncCreatedProjects(clientSyncData, serverSyncData, localProjects)
+				val clientSyncData = loadSyncData()
+				val localProjects = projectsRepository.getProjects()
 
-			Napier.i("Sync complete")
-		} else {
-			Napier.w("Failed to sync projects: ${result.exceptionOrNull()?.message}")
+				syncDeletedProjects(clientSyncData, serverSyncData, localProjects)
+				syncCreatedProjects(clientSyncData, serverSyncData, localProjects)
+
+				serverProjectsApi.endProjectsSync(syncId)
+
+				Napier.i("Sync complete")
+			} else {
+				Napier.w("Failed to sync projects: ${result.exceptionOrNull()?.message}")
+			}
+		} catch (e: IOException) {
+			Napier.e("Projects sync failed", e)
 		}
 	}
 
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
-		serverSyncData: GetProjectsResponse,
-		localProjects: List<ProjectDef>
+		serverSyncData: BeginProjectsSyncResponse,
+		localProjects: List<ProjectDef>,
 	) {
 		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { projectName ->
 			clientSyncData.deletedProjects.contains(projectName).not() &&
@@ -62,7 +71,7 @@ class ClientProjectsSynchronizer(
 
 		// Delete projects on the server
 		clientSyncData.projectsToDelete.forEach { projectName ->
-			val result = serverProjectsApi.deleteProject(projectName)
+			val result = serverProjectsApi.deleteProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
 				updateSyncData { syncData ->
 					syncData.copy(
@@ -84,8 +93,8 @@ class ClientProjectsSynchronizer(
 
 	private suspend fun syncCreatedProjects(
 		clientSyncData: ProjectsSynchronizationData,
-		serverSyncData: GetProjectsResponse,
-		localProjects: List<ProjectDef>
+		serverSyncData: BeginProjectsSyncResponse,
+		localProjects: List<ProjectDef>,
 	) {
 		val serverProjects = serverSyncData.projects
 		val newServerProjects = serverProjects.filter { serverProject ->
@@ -99,7 +108,7 @@ class ClientProjectsSynchronizer(
 		val newLocalProjects = clientSyncData.projectsToCreate + localOnly
 		// Create projects on the server
 		newLocalProjects.forEach { projectName ->
-			val result = serverProjectsApi.createProject(projectName)
+			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
 				updateSyncData { syncData ->
 					syncData.copy(
