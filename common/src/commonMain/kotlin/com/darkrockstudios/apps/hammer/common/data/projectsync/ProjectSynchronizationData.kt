@@ -4,7 +4,14 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SynchronizationData(
+data class ProjectsSynchronizationData(
+	val deletedProjects: Set<String>,
+	val projectsToDelete: Set<String>,
+	val projectsToCreate: Set<String>,
+)
+
+@Serializable
+data class ProjectSynchronizationData(
 	val currentSyncId: String? = null,
 	val lastId: Int,
 	val newIds: List<Int>,

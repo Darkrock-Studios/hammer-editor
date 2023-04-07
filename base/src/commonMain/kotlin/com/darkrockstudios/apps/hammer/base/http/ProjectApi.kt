@@ -33,11 +33,6 @@ data class DeleteIdsResponse(
 	val deleted: Boolean
 )
 
-@Serializable
-data class GetProjectsResponse(
-	val projects: List<String>
-)
-
 enum class ApiSceneType {
 	Scene, Group
 }

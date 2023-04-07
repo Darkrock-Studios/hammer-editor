@@ -62,38 +62,6 @@ class ProjectRepository(
 		}
 	}
 
-	fun createUserData(userId: Long) {
-		val userDir = getUserDirectory(userId)
-
-		fileSystem.createDirectories(userDir)
-
-		val dataFile = userDir / DATA_FILE
-		val data = defaultData(userId)
-		val dataJson = json.encodeToString(data)
-		fileSystem.write(dataFile) {
-			writeUtf8(dataJson)
-		}
-
-		/*
-		val projectsFile = userDir / PROJECT_FILE
-		// Create the zip file with a place holder entry
-		//val zipFs = fileSystem.openZip(projectsFile)
-		val zipFile = File(projectsFile.toString())
-		val out = ZipOutputStream(FileOutputStream(zipFile))
-		val e = ZipEntry(".")
-		out.putNextEntry(e)
-		val placeHolderData = "\n".toByteArray()
-		out.write(placeHolderData, 0, placeHolderData.size)
-		out.closeEntry()
-		out.close()
-		*/
-	}
-
-	fun userDataExists(userId: Long): Boolean {
-		val userDir = getUserDirectory(userId)
-		return fileSystem.exists(userDir)
-	}
-
 	private fun hasActiveSyncSession(userId: Long): Boolean {
 		synchronized(synchronizationSessions) {
 			val session = synchronizationSessions[userId]
@@ -392,14 +360,8 @@ class ProjectRepository(
 	}
 
 	companion object {
-		const val DATA_FILE = "data.json"
 		const val SYNC_DATA_FILE = "syncData.json"
-
 		const val ENTITY_DIR = "entities"
-
-		fun defaultData(userId: Long): SyncData {
-			return SyncData()
-		}
 
 		fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
 			val dir = getUserDirectory(userId, fileSystem)

@@ -16,4 +16,12 @@ class ServerProjectsApi(
 			parse = { it.body() },
 		)
 	}
+
+	suspend fun deleteProject(projectName: String): Result<String> {
+		return get(path = "/projects/$userId/$projectName/delete")
+	}
+
+	suspend fun createProject(projectName: String): Result<String> {
+		return get(path = "/projects/$userId/$projectName/create")
+	}
 }

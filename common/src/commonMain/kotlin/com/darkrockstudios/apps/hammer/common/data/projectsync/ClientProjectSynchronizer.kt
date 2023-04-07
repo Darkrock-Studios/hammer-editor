@@ -104,7 +104,28 @@ class ClientProjectSynchronizer(
 
 	private fun getSyncDataPath(): Path = projectDef.path.toOkioPath() / SYNC_FILE_NAME
 
-	private fun loadSyncData(): SynchronizationData {
+	private suspend fun createSyncData(): ProjectSynchronizationData {
+		val lastId = idRepository.peekNextId() - 1
+		val missingIds = mutableSetOf<Int>()
+		for (id in 1..lastId) {
+			val entityType = findEntityType(id)
+			if (entityType == null) {
+				missingIds.add(id)
+			}
+		}
+
+		val newData = ProjectSynchronizationData(
+			lastId = lastId,
+			newIds = emptyList(),
+			lastSync = Instant.DISTANT_PAST,
+			dirty = emptyList(),
+			deletedIds = missingIds
+		)
+
+		return newData
+	}
+
+	private fun loadSyncData(): ProjectSynchronizationData {
 		val path = getSyncDataPath()
 		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
@@ -112,20 +133,11 @@ class ClientProjectSynchronizer(
 				json.decodeFromString(syncDataJson)
 			}
 		} else {
-			val newData = SynchronizationData(
-				lastId = 0,
-				newIds = emptyList(),
-				lastSync = Instant.DISTANT_PAST,
-				dirty = emptyList(),
-				deletedIds = emptySet()
-			)
-			saveSyncData(newData)
-
-			newData
+			throw IOException("Sync data missing")
 		}
 	}
 
-	private fun saveSyncData(data: SynchronizationData) {
+	private fun saveSyncData(data: ProjectSynchronizationData) {
 		val path = getSyncDataPath()
 		fileSystem.write(path) {
 			val syncDataJson = json.encodeToString(data)
@@ -134,10 +146,10 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun handleIdConflicts(
-		clientSyncData: SynchronizationData,
+		clientSyncData: ProjectSynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
 		onLog: suspend (String?) -> Unit
-	): SynchronizationData {
+	): ProjectSynchronizationData {
 
 		return if (serverSyncData.lastId > clientSyncData.lastId) {
 			if (clientSyncData.newIds.isNotEmpty()) {
@@ -347,6 +359,13 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun prepareForSync() {
+		// Create the sync data if it doesnt exist yet
+		val path = getSyncDataPath()
+		if (!fileSystem.exists(path)) {
+			val newData = createSyncData()
+			saveSyncData(newData)
+		}
+
 		entitySynchronizers.forEach { it.prepareForSync() }
 	}
 
@@ -392,20 +411,38 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onLog: suspend (String?) -> Unit
 	): Boolean {
-		val type = findEntityType(id) ?: throw IllegalArgumentException("ID $id not found for upload")
-		return when (type) {
-			EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
-			EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
-			EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
-			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.uploadEntity(
-				id,
-				syncId,
-				originalHash,
-				onConflict,
-				onLog
-			)
+		val type = findEntityType(id)
+		if (type != null) {
+			return when (type) {
+				EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+				EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+				EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(
+					id,
+					syncId,
+					originalHash,
+					onConflict,
+					onLog
+				)
 
-			EntityType.SceneDraft -> sceneDraftSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+				EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.uploadEntity(
+					id,
+					syncId,
+					originalHash,
+					onConflict,
+					onLog
+				)
+
+				EntityType.SceneDraft -> sceneDraftSynchronizer.uploadEntity(
+					id,
+					syncId,
+					originalHash,
+					onConflict,
+					onLog
+				)
+			}
+		} else {
+			onLog("Failed to upload entity $id: unknown type")
+			return false
 		}
 	}
 

@@ -27,7 +27,7 @@ class ClientNoteSynchronizer(
 	}
 
 	override suspend fun ownsEntity(id: Int): Boolean {
-		val notes = notesRepository.notesListFlow.first()
+		val notes = notesRepository.getNotes()
 		return notes.any { it.note.id == id }
 	}
 

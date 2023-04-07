@@ -130,6 +130,9 @@ class ProjectSelectionComponent(
 
     override fun createProject(projectName: String) {
         if (projectsRepository.createProject(projectName)) {
+            if (projectsSynchronizer.isServerSynchronized()) {
+                projectsSynchronizer.createProject(projectName)
+            }
             Napier.i("Project created: $projectName")
             loadProjectList()
         } else {
@@ -139,6 +142,11 @@ class ProjectSelectionComponent(
 
     override fun deleteProject(projectDef: ProjectDef) {
         if (projectsRepository.deleteProject(projectDef)) {
+            Napier.i("Project deleted: ${projectDef.name}")
+            if (projectsSynchronizer.isServerSynchronized()) {
+                projectsSynchronizer.deleteProject(projectDef)
+            }
+
             loadProjectList()
         }
     }

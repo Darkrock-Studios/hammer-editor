@@ -4,6 +4,7 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SyncData(
+data class ProjectsSyncData(
     val lastSync: Instant = Instant.DISTANT_PAST,
+    val deletedProjects: Set<String>,
 )
