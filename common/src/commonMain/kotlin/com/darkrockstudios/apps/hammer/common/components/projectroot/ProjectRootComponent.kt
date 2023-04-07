@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -22,7 +23,9 @@ class ProjectRootComponent(
 	private val notes: NotesRepository by projectInject()
 
 	init {
-		projectEditor.initializeProjectEditor()
+		scope.launch {
+			projectEditor.initializeProjectEditor()
+		}
 	}
 
 	private val _backEnabled = MutableValue(true)
@@ -79,7 +82,7 @@ class ProjectRootComponent(
 		return projectEditor.hasDirtyBuffers()
 	}
 
-	override fun storeDirtyBuffers() {
+	override suspend fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
 

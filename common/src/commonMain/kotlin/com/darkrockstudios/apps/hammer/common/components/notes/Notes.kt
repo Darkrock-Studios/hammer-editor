@@ -9,9 +9,9 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 interface Notes : HammerComponent {
 	val state: Value<State>
 
-	fun createNote(noteText: String): NoteError
-	fun deleteNote(id: Int)
-	fun updateNote(noteContent: NoteContent)
+	suspend fun createNote(noteText: String): NoteError
+	suspend fun deleteNote(id: Int)
+	suspend fun updateNote(noteContent: NoteContent)
 
 	fun confirmDelete(note: NoteContent)
 	fun dismissConfirmDelete()

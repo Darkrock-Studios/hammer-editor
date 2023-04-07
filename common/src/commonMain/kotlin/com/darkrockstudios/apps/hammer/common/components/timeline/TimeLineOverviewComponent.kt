@@ -58,7 +58,7 @@ class TimeLineOverviewComponent(
 		}
 	}
 
-	override fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
+	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		return timeLineRepository.moveEvent(event, toIndex, after)
 	}
 }

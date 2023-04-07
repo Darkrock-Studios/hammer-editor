@@ -104,7 +104,7 @@ class SceneDraftRepositoryOkio(
 		fileSystem.atomicMove(draftsDir, newDraftsDir)
 	}
 
-	override fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
+	override suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
 		if (!validDraftName(draftName)) {
 			Napier.w { "saveDraft failed, draftName failed validation" }
 			return null

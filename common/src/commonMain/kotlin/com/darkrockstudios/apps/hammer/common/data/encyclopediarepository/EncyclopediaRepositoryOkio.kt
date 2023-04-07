@@ -140,7 +140,7 @@ class EncyclopediaRepositoryOkio(
 		return entry
 	}
 
-	override fun createEntry(
+	override suspend fun createEntry(
 		name: String,
 		type: EntryType,
 		text: String,
@@ -179,7 +179,7 @@ class EncyclopediaRepositoryOkio(
 		return EntryResult(container, EntryError.NONE)
 	}
 
-	override fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+	override suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
 		markForSynchronization(entryDef)
 
 		val targetPath = getEntryImagePath(entryDef, "jpg").toOkioPath()
@@ -193,7 +193,7 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override fun markForSynchronization(entryDef: EntryDef) {
+	override suspend fun markForSynchronization(entryDef: EntryDef) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(entryDef.id)) {
 			val DEFAULT_EXTENSION = "jpg"
 			val entry = loadEntry(entryDef).entry
@@ -220,7 +220,7 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override fun deleteEntry(entryDef: EntryDef): Boolean {
+	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		val path = getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
 
@@ -232,7 +232,7 @@ class EncyclopediaRepositoryOkio(
 		return true
 	}
 
-	override fun removeEntryImage(entryDef: EntryDef): Boolean {
+	override suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
 		markForSynchronization(entryDef)
 
 		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
@@ -247,7 +247,7 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override fun updateEntry(
+	override suspend fun updateEntry(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,

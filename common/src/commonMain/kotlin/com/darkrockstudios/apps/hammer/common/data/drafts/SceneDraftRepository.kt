@@ -23,7 +23,7 @@ abstract class SceneDraftRepository(
 	abstract fun getSceneDraftsDirectory(sceneId: Int): HPath
 	abstract fun findDrafts(sceneId: Int): List<DraftDef>
 
-	abstract fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
+	abstract suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
 
 	abstract fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent?
 
@@ -40,7 +40,7 @@ abstract class SceneDraftRepository(
 	abstract fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef?
 	abstract fun deleteDraft(id: Int): Boolean
 
-	protected fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
+	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {
 			val hash = EntityHash.hashSceneDraft(
 				id = originalDef.id,

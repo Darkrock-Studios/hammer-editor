@@ -25,6 +25,10 @@ class NotesRepositoryOkio(
 	private val toml: Toml
 ) : NotesRepository(projectDef, idRepository, projectSynchronizer) {
 
+	init {
+		loadNotes()
+	}
+
 	override fun getNotesDirectory() = getNotesDirectory(projectDef, fileSystem)
 
 	override fun getNotePath(id: Int): HPath {
@@ -44,7 +48,7 @@ class NotesRepositoryOkio(
 		}
 	}
 
-	override fun createNote(noteText: String): NoteError {
+	override suspend fun createNote(noteText: String): NoteError {
 		val result = validateNote(noteText)
 		return if (result != NoteError.NONE) {
 			result
@@ -73,13 +77,13 @@ class NotesRepositoryOkio(
 		}
 	}
 
-	override fun deleteNote(id: Int) {
+	override suspend fun deleteNote(id: Int) {
 		val path = getNotePath(id).toOkioPath()
 		fileSystem.delete(path, true)
 		projectSynchronizer.recordIdDeletion(id)
 	}
 
-	override fun updateNote(noteContent: NoteContent, markForSync: Boolean) {
+	override suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean) {
 		val noteContainer = NoteContainer(noteContent)
 		val path = getNotePath(noteContent.id).toOkioPath()
 

@@ -71,7 +71,7 @@ abstract class TimeLineRepository(
 
 	abstract suspend fun reIdEvent(oldId: Int, newId: Int)
 
-	fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
+	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		val originalTimeline = timelineFlow.replayCache.first()
 
 		val originalEventOrder =
@@ -136,7 +136,7 @@ abstract class TimeLineRepository(
 		}
 	}
 
-	protected fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
+	protected suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalEvent.id)) {
 			val hash = EntityHash.hashTimelineEvent(
 				id = originalEvent.id,

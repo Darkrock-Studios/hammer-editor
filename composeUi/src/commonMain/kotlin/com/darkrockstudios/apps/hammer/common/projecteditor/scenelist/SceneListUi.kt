@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
@@ -21,6 +25,8 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.scenetree.rememberReorderableLazyListState
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -33,6 +39,8 @@ fun SceneListUi(
 	component: SceneList,
 	modifier: Modifier = Modifier
 ) {
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
 	val state by component.state.subscribeAsState()
 	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
 
@@ -42,7 +50,7 @@ fun SceneListUi(
 
 	val treeState = rememberReorderableLazyListState(
 		summary = emptySceneSummary(state.projectDef),
-		moveItem = component::moveScene
+		moveItem = { scope.launch { component.moveScene(it) } }
 	)
 	state.sceneSummary?.let { summary ->
 		treeState.updateSummary(summary)
@@ -87,19 +95,19 @@ fun SceneListUi(
 				modifier = Modifier.fillMaxSize(),
 				state = treeState,
 				itemUi = { node: TreeValue<SceneItem>,
-                           toggleExpanded: (nodeId: Int) -> Unit,
-                           collapsed: Boolean,
-                           draggable: Modifier ->
+						   toggleExpanded: (nodeId: Int) -> Unit,
+						   collapsed: Boolean,
+						   draggable: Modifier ->
 
-                    SceneNode(
-                        sceneNode = node,
-                        draggableModifier = draggable,
-                        state = state,
-                        summary = treeState.summary,
-                        component = component,
-                        toggleExpand = toggleExpanded,
-                        collapsed = collapsed,
-                        sceneDefDeleteTarget = { deleteTarget ->
+					SceneNode(
+						sceneNode = node,
+						draggableModifier = draggable,
+						state = state,
+						summary = treeState.summary,
+						component = component,
+						toggleExpand = toggleExpanded,
+						collapsed = collapsed,
+						sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
 						},
 						createScene = { parent -> showCreateSceneDialog = parent },
@@ -130,11 +138,15 @@ fun SceneListUi(
 		title = "Create Group",
 		textLabel = "Group Name"
 	) { groupName ->
-		Napier.d { "Create dialog close" }
-		if (groupName != null) {
-			component.createGroup(showCreateGroupDialog, groupName)
+		scope.launch {
+			Napier.d { "Create dialog close" }
+			if (groupName != null) {
+				component.createGroup(showCreateGroupDialog, groupName)
+			}
+			withContext(mainDispatcher) {
+				showCreateGroupDialog = null
+			}
 		}
-		showCreateGroupDialog = null
 	}
 
 	CreateDialog(
@@ -142,11 +154,15 @@ fun SceneListUi(
 		title = "Create Scene",
 		textLabel = "Scene Name"
 	) { sceneName ->
-		Napier.d { "Create dialog close" }
-		if (sceneName != null) {
-			component.createScene(showCreateSceneDialog, sceneName)
+		scope.launch {
+			Napier.d { "Create dialog close" }
+			if (sceneName != null) {
+				component.createScene(showCreateSceneDialog, sceneName)
+			}
+			withContext(mainDispatcher) {
+				showCreateSceneDialog = null
+			}
 		}
-		showCreateSceneDialog = null
 	}
 
 	sceneDefDeleteTarget?.let { scene ->
@@ -157,10 +173,14 @@ fun SceneListUi(
 			}
 		} else {
 			SceneDeleteDialog(scene) { deleteScene ->
-				if (deleteScene) {
-					component.deleteScene(scene)
+				scope.launch {
+					if (deleteScene) {
+						component.deleteScene(scene)
+					}
+					withContext(mainDispatcher) {
+						sceneDefDeleteTarget = null
+					}
 				}
-				sceneDefDeleteTarget = null
 			}
 		}
 	}
@@ -169,16 +189,16 @@ fun SceneListUi(
 @ExperimentalFoundationApi
 @Composable
 private fun SceneNode(
-    sceneNode: TreeValue<SceneItem>,
-    draggableModifier: Modifier,
-    state: SceneList.State,
-    summary: SceneSummary,
-    component: SceneList,
-    toggleExpand: (nodeId: Int) -> Unit,
-    collapsed: Boolean,
-    sceneDefDeleteTarget: (SceneItem) -> Unit,
-    createScene: (SceneItem) -> Unit,
-    createGroup: (SceneItem) -> Unit
+	sceneNode: TreeValue<SceneItem>,
+	draggableModifier: Modifier,
+	state: SceneList.State,
+	summary: SceneSummary,
+	component: SceneList,
+	toggleExpand: (nodeId: Int) -> Unit,
+	collapsed: Boolean,
+	sceneDefDeleteTarget: (SceneItem) -> Unit,
+	createScene: (SceneItem) -> Unit,
+	createGroup: (SceneItem) -> Unit
 ) {
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem

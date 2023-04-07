@@ -47,9 +47,11 @@ internal fun ConfirmDeleteDialog(
 				) {
 					Button(
 						onClick = {
-							component.deleteNote(note.id)
-							component.dismissConfirmDelete()
-							scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
+							scope.launch {
+								component.deleteNote(note.id)
+								component.dismissConfirmDelete()
+								scope.launch { snackbarHostState.showSnackbar("Note ${note.id} Deleted") }
+							}
 						}
 					) {
 						Text("Delete")

@@ -19,6 +19,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import okio.Closeable
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.milliseconds
@@ -38,8 +39,16 @@ abstract class ProjectEditorRepository(
 		order = 0
 	)
 
-	private lateinit var metadata: ProjectMetadata
-	fun getMetadata() = metadata
+	private val metadata = MutableSharedFlow<ProjectMetadata>(
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+
+	suspend fun getMetadata(): ProjectMetadata {
+		return metadata.first()
+	}
+
 
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
@@ -70,7 +79,7 @@ abstract class ProjectEditorRepository(
 
 	protected abstract fun loadSceneTree(): TreeNode<SceneItem>
 
-	protected fun markForSynchronization(scene: SceneItem) {
+	protected suspend fun markForSynchronization(scene: SceneItem) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
 			val content = loadSceneMarkdownRaw(scene)
 			val hash = EntityHash.hashScene(
@@ -86,7 +95,7 @@ abstract class ProjectEditorRepository(
 
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
-	fun cleanupSceneOrder() {
+	suspend fun cleanupSceneOrder() {
 		val groups = sceneTree.filter {
 			it.value.type == SceneItem.Type.Group ||
 					it.value.type == SceneItem.Type.Root
@@ -148,7 +157,7 @@ abstract class ProjectEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	fun initializeProjectEditor(): ProjectEditorRepository {
+	suspend fun initializeProjectEditor(): ProjectEditorRepository {
 		val root = loadSceneTree()
 		sceneTree.setRoot(root)
 
@@ -165,7 +174,8 @@ abstract class ProjectEditorRepository(
 
 		reloadScenes()
 
-		metadata = loadMetadata()
+		val newMetadata = loadMetadata()
+		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { content ->
@@ -186,10 +196,10 @@ abstract class ProjectEditorRepository(
 	abstract fun getSceneBufferDirectory(): HPath
 	abstract fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath
 	abstract fun getSceneBufferTempPath(sceneItem: SceneItem): HPath
-	abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
-	abstract fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
-	abstract fun deleteScene(scene: SceneItem): Boolean
-	abstract fun deleteGroup(scene: SceneItem): Boolean
+	abstract suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
+	abstract suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
+	abstract suspend fun deleteScene(scene: SceneItem): Boolean
+	abstract suspend fun deleteGroup(scene: SceneItem): Boolean
 	abstract fun getScenes(): List<SceneItem>
 	abstract fun getSceneTree(): ImmutableTree<SceneItem>
 	abstract fun getScenes(root: HPath): List<SceneItem>
@@ -209,7 +219,7 @@ abstract class ProjectEditorRepository(
 	/**
 	 * This should only be used for server syncing
 	 */
-	abstract fun storeSceneMarkdownRaw(
+	abstract suspend fun storeSceneMarkdownRaw(
 		sceneItem: SceneContent,
 		scenePath: HPath = getSceneFilePath(sceneItem.scene)
 	): Boolean
@@ -224,14 +234,14 @@ abstract class ProjectEditorRepository(
 	}
 
 	abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
-	abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
+	abstract suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun clearTempScene(sceneItem: SceneItem)
 	abstract fun getLastOrderNumber(parentId: Int?): Int
 	abstract fun getLastOrderNumber(parentPath: HPath): Int
-	abstract fun updateSceneOrder(parentId: Int)
-	abstract fun moveScene(moveRequest: MoveRequest)
-	abstract fun renameScene(sceneItem: SceneItem, newName: String)
+	abstract suspend fun updateSceneOrder(parentId: Int)
+	abstract suspend fun moveScene(moveRequest: MoveRequest)
+	abstract suspend fun renameScene(sceneItem: SceneItem, newName: String)
 
 	fun getSceneSummaries(): SceneSummary {
 		return SceneSummary(
@@ -285,7 +295,7 @@ abstract class ProjectEditorRepository(
 
 	fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
 
-	fun storeAllBuffers() {
+	suspend fun storeAllBuffers() {
 		val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
 		dirtyScenes.forEach { scene ->
 			storeSceneBuffer(scene)

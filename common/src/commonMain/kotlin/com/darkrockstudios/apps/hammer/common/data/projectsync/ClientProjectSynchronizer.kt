@@ -79,12 +79,12 @@ class ClientProjectSynchronizer(
 		return globalSettingsRepository.serverSettings != null
 	}
 
-	fun isEntityDirty(id: Int): Boolean {
+	suspend fun isEntityDirty(id: Int): Boolean {
 		val syncData = loadSyncData()
 		return syncData.dirty.any { it.id == id }
 	}
 
-	fun markEntityAsDirty(id: Int, oldHash: String) {
+	suspend fun markEntityAsDirty(id: Int, oldHash: String) {
 		val syncData = loadSyncData()
 		val newSyncData = syncData.copy(
 			dirty = syncData.dirty + EntityState(id, oldHash)
@@ -106,6 +106,7 @@ class ClientProjectSynchronizer(
 
 	private suspend fun createSyncData(): ProjectSynchronizationData {
 		val lastId = idRepository.peekNextId() - 1
+
 		val missingIds = mutableSetOf<Int>()
 		for (id in 1..lastId) {
 			val entityType = findEntityType(id)
@@ -125,7 +126,7 @@ class ClientProjectSynchronizer(
 		return newData
 	}
 
-	private fun loadSyncData(): ProjectSynchronizationData {
+	private suspend fun loadSyncData(): ProjectSynchronizationData {
 		val path = getSyncDataPath()
 		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
@@ -133,7 +134,9 @@ class ClientProjectSynchronizer(
 				json.decodeFromString(syncDataJson)
 			}
 		} else {
-			throw IOException("Sync data missing")
+			val newData = createSyncData()
+			saveSyncData(newData)
+			newData
 		}
 	}
 
@@ -509,7 +512,7 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	fun recordNewId(claimedId: Int) {
+	suspend fun recordNewId(claimedId: Int) {
 		if (isServerSynchronized().not()) return
 
 		val syncData = loadSyncData()
@@ -517,7 +520,7 @@ class ClientProjectSynchronizer(
 		saveSyncData(newSyncData)
 	}
 
-	fun recordIdDeletion(deletedId: Int) {
+	suspend fun recordIdDeletion(deletedId: Int) {
 		if (isServerSynchronized().not()) return
 
 		val syncData = loadSyncData()

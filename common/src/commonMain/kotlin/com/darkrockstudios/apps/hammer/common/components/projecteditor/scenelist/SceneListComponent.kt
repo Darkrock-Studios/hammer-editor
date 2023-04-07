@@ -53,7 +53,7 @@ class SceneListComponent(
 		}
 	}
 
-	override fun moveScene(moveRequest: MoveRequest) {
+	override suspend fun moveScene(moveRequest: MoveRequest) {
 		projectEditor.moveScene(moveRequest)
 	}
 
@@ -64,7 +64,7 @@ class SceneListComponent(
 		}
 	}
 
-	override fun createScene(parent: SceneItem?, sceneName: String) {
+	override suspend fun createScene(parent: SceneItem?, sceneName: String) {
 		val foundParent = if (parent?.isRootScene == true) {
 			null
 		} else {
@@ -80,7 +80,7 @@ class SceneListComponent(
 		}
 	}
 
-	override fun createGroup(parent: SceneItem?, groupName: String) {
+	override suspend fun createGroup(parent: SceneItem?, groupName: String) {
 		val foundParent = if (parent?.isRootScene == true) {
 			null
 		} else {
@@ -95,7 +95,7 @@ class SceneListComponent(
 		}
 	}
 
-	override fun deleteScene(scene: SceneItem) {
+	override suspend fun deleteScene(scene: SceneItem) {
 		when (scene.type) {
 			SceneItem.Type.Scene -> {
 				if (!projectEditor.deleteScene(scene)) {

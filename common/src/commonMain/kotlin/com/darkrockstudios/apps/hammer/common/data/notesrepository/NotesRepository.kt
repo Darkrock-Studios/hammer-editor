@@ -51,7 +51,7 @@ abstract class NotesRepository(
 		_notesListFlow.emit(notes)
 	}
 
-	protected fun markForSync(id: Int, originalHash: String? = null) {
+	protected suspend fun markForSync(id: Int, originalHash: String? = null) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(id)) {
 			val hash = if (originalHash != null) {
 				originalHash
@@ -70,9 +70,9 @@ abstract class NotesRepository(
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath
 	abstract fun loadNotes()
-	abstract fun createNote(noteText: String): NoteError
-	abstract fun deleteNote(id: Int)
-	abstract fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
+	abstract suspend fun createNote(noteText: String): NoteError
+	abstract suspend fun deleteNote(id: Int)
+	abstract suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
 	abstract suspend fun reIdNote(oldId: Int, newId: Int)
 
 	fun validateNote(noteText: String): NoteError {

@@ -41,12 +41,12 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun addEditorMenu() {}
 	override fun removeEditorMenu() {}
 	override fun loadSceneContent() {}
-	override fun storeSceneContent() = true
+	override suspend fun storeSceneContent() = true
 	override fun onContentChanged(content: PlatformRichText) {}
 	override fun beginSceneNameEdit() {}
 	override fun endSceneNameEdit() {}
-	override fun changeSceneName(newName: String) {}
+	override suspend fun changeSceneName(newName: String) {}
 	override fun beginSaveDraft() {}
 	override fun endSaveDraft() {}
-	override fun saveDraft(draftName: String) = true
+	override suspend fun saveDraft(draftName: String) = true
 }

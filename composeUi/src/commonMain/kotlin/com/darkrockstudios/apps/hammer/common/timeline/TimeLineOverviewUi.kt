@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
@@ -62,7 +63,7 @@ fun TimeLineOverviewUi(
 				key = { _, item -> item.id },
 				onMove = { from, to ->
 					state.timeLine?.events?.getOrNull(from)?.let { event ->
-						component.moveEvent(event, to, from < to)
+						scope.launch { component.moveEvent(event, to, from < to) }
 					}
 				},
 				modifier = Modifier.fillMaxSize().testTag(TIME_LINE_LIST_TAG)

@@ -8,9 +8,11 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +27,7 @@ internal fun CreateNoteDialog(
 		modifier = Modifier.padding(Ui.Padding.XL),
 		onCloseRequest = { component.dismissCreate() }
 	) {
+		val mainDispatcher = rememberMainDispatcher()
 		var newNoteText by remember { mutableStateOf("") }
 		var newNoteError by remember { mutableStateOf(false) }
 
@@ -54,14 +57,18 @@ internal fun CreateNoteDialog(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = {
-						val result = component.createNote(newNoteText)
-						newNoteError = !result.isSuccess
-						when (result) {
-							NoteError.TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Note was too long") }
-							NoteError.EMPTY -> scope.launch { snackbarHostState.showSnackbar("Note was empty") }
-							NoteError.NONE -> {
-								newNoteText = ""
-								scope.launch { snackbarHostState.showSnackbar("Note Created") }
+						scope.launch {
+							val result = component.createNote(newNoteText)
+							newNoteError = !result.isSuccess
+							when (result) {
+								NoteError.TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Note was too long") }
+								NoteError.EMPTY -> scope.launch { snackbarHostState.showSnackbar("Note was empty") }
+								NoteError.NONE -> {
+									withContext(mainDispatcher) {
+										newNoteText = ""
+									}
+									scope.launch { snackbarHostState.showSnackbar("Note Created") }
+								}
 							}
 						}
 					}) {

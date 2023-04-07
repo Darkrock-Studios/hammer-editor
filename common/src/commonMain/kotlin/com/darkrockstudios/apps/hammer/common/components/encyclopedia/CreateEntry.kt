@@ -13,5 +13,11 @@ interface CreateEntry {
 		val projectDef: ProjectDef
 	)
 
-	fun createEntry(name: String, type: EntryType, text: String, tags: List<String>, imagePath: String?): EntryResult
+	suspend fun createEntry(
+		name: String,
+		type: EntryType,
+		text: String,
+		tags: List<String>,
+		imagePath: String?
+	): EntryResult
 }

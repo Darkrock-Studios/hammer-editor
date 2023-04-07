@@ -45,7 +45,7 @@ class NotesComponent(
 		}
 	}
 
-	override fun createNote(noteText: String): NoteError {
+	override suspend fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)
 		if (result.isSuccess) {
 			dismissCreate()
@@ -55,12 +55,12 @@ class NotesComponent(
 		return result
 	}
 
-	override fun deleteNote(id: Int) {
+	override suspend fun deleteNote(id: Int) {
 		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
 	}
 
-	override fun updateNote(noteContent: NoteContent) {
+	override suspend fun updateNote(noteContent: NoteContent) {
 		notesRepository.updateNote(noteContent)
 		notesRepository.loadNotes()
 	}

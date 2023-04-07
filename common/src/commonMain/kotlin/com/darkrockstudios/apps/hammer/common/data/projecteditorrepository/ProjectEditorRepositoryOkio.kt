@@ -295,7 +295,7 @@ class ProjectEditorRepositoryOkio(
 		return sceneTree.indexOfFirst { it.value.id == sceneId }
 	}
 
-	private fun updateSceneTreeForMove(moveRequest: MoveRequest) {
+	private suspend fun updateSceneTreeForMove(moveRequest: MoveRequest) {
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 		val insertIndex = moveRequest.toPosition.coords.childLocalIndex
@@ -346,7 +346,7 @@ class ProjectEditorRepositoryOkio(
 		*/
 	}
 
-	override fun moveScene(moveRequest: MoveRequest) {
+	override suspend fun moveScene(moveRequest: MoveRequest) {
 
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val fromParentNode = fromNode.parent
@@ -397,7 +397,7 @@ class ProjectEditorRepositoryOkio(
 		reloadScenes(newSummary)
 	}
 
-	override fun updateSceneOrder(parentId: Int) {
+	override suspend fun updateSceneOrder(parentId: Int) {
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
@@ -436,7 +436,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	private fun markForSynchronization(scene: SceneItem, content: String) {
+	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
 			val hash = EntityHash.hashScene(
 				id = scene.id,
@@ -449,15 +449,15 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
+	override suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
 		return createSceneItem(parent, sceneName, false)
 	}
 
-	override fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
+	override suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
 		return createSceneItem(parent, groupName, true)
 	}
 
-	private fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
+	private suspend fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
 		val cleanedNamed = name.trim()
 
 		return if (!validateSceneName(cleanedNamed)) {
@@ -508,7 +508,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun deleteScene(scene: SceneItem): Boolean {
+	override suspend fun deleteScene(scene: SceneItem): Boolean {
 		val scenePath = getSceneFilePath(scene).toOkioPath()
 		return try {
 			if (!fileSystem.exists(scenePath)) {
@@ -546,7 +546,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun deleteGroup(scene: SceneItem): Boolean {
+	override suspend fun deleteGroup(scene: SceneItem): Boolean {
 		val scenePath = getSceneFilePath(scene).toOkioPath()
 		return try {
 			if (!fileSystem.exists(scenePath)) {
@@ -660,7 +660,7 @@ class ProjectEditorRepositoryOkio(
 			}?.toHPath() ?: return null
 	}
 
-	override fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
+	override suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
 		sceneItem.markdown ?: return false
 
 		return try {
@@ -703,7 +703,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
+	override suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
 		val buffer = getSceneBuffer(sceneItem)
 		if (buffer == null) {
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
@@ -785,7 +785,7 @@ class ProjectEditorRepositoryOkio(
 		return numScenes
 	}
 
-	override fun renameScene(sceneItem: SceneItem, newName: String) {
+	override suspend fun renameScene(sceneItem: SceneItem, newName: String) {
 		markForSynchronization(sceneItem)
 
 		val cleanedNamed = newName.trim()

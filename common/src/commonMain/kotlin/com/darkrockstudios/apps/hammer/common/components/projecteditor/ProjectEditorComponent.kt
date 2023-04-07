@@ -129,7 +129,7 @@ class ProjectEditorComponent(
 		return !isDetailShown()
 	}
 
-	override fun storeDirtyBuffers() {
+	override suspend fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
 

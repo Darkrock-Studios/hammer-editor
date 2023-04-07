@@ -21,7 +21,7 @@ class CreateEntryComponent(
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
-	override fun createEntry(
+	override suspend fun createEntry(
 		name: String,
 		type: EntryType,
 		text: String,

@@ -53,7 +53,7 @@ abstract class EncyclopediaRepository(
 	abstract fun loadEntry(entryPath: HPath): EntryContainer
 	abstract fun loadEntry(id: Int): EntryContainer
 	abstract fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray
-	abstract fun createEntry(
+	abstract suspend fun createEntry(
 		name: String,
 		type: EntryType,
 		text: String,
@@ -61,7 +61,7 @@ abstract class EncyclopediaRepository(
 		imagePath: String?
 	): EntryResult
 
-	abstract fun setEntryImage(entryDef: EntryDef, imagePath: String?)
+	abstract suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?)
 
 	fun validateEntry(
 		name: String,
@@ -77,17 +77,17 @@ abstract class EncyclopediaRepository(
 		}
 	}
 
-	protected abstract fun markForSynchronization(entryDef: EntryDef)
+	protected abstract suspend fun markForSynchronization(entryDef: EntryDef)
 
 	override fun close() {
 		scope.cancel("Closing EncyclopediaRepository")
 	}
 
-	abstract fun deleteEntry(entryDef: EntryDef): Boolean
+	abstract suspend fun deleteEntry(entryDef: EntryDef): Boolean
 
-	abstract fun removeEntryImage(entryDef: EntryDef): Boolean
+	abstract suspend fun removeEntryImage(entryDef: EntryDef): Boolean
 
-	abstract fun updateEntry(
+	abstract suspend fun updateEntry(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,

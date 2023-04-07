@@ -15,7 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.ImageItem
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -28,12 +30,13 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateEntryUi(
-    component: CreateEntry,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    modifier: Modifier,
-    close: () -> Unit
+	component: CreateEntry,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState,
+	modifier: Modifier,
+	close: () -> Unit
 ) {
+	val scope = rememberCoroutineScope()
 	var newEntryNameText by remember { mutableStateOf("") }
 	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
 	var newTagsText by remember { mutableStateOf("") }
@@ -136,26 +139,28 @@ internal fun CreateEntryUi(
 					Button(
 						modifier = Modifier.weight(1f).padding(PaddingValues(end = Ui.Padding.XL)),
 						onClick = {
-							val result = component.createEntry(
-								name = newEntryNameText,
-								type = selectedType,
-								text = newEntryContentText.text,
-								tags = newTagsText.splitToSequence(" ").toList(),
-								imagePath = imagePath
-							)
-							when (result.error) {
-								EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long. Max ${EncyclopediaRepository.MAX_NAME_SIZE}") }
-								EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
-									snackbarHostState.showSnackbar(
-										"Entry Name must be alpha-numeric"
-									)
-								}
+							scope.launch {
+								val result = component.createEntry(
+									name = newEntryNameText,
+									type = selectedType,
+									text = newEntryContentText.text,
+									tags = newTagsText.splitToSequence(" ").toList(),
+									imagePath = imagePath
+								)
+								when (result.error) {
+									EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long. Max ${EncyclopediaRepository.MAX_NAME_SIZE}") }
+									EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
+										snackbarHostState.showSnackbar(
+											"Entry Name must be alpha-numeric"
+										)
+									}
 
-								EntryError.TAG_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Tag is too long. Max ${EncyclopediaRepository.MAX_TAG_SIZE}") }
-								EntryError.NONE -> {
-									newEntryNameText = ""
-									close()
-									scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+									EntryError.TAG_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Tag is too long. Max ${EncyclopediaRepository.MAX_TAG_SIZE}") }
+									EntryError.NONE -> {
+										newEntryNameText = ""
+										close()
+										scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+									}
 								}
 							}
 						}
