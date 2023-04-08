@@ -32,7 +32,7 @@ interface ProjectSelection : HammerComponent {
 
 	suspend fun authTest()
 	fun removeServer()
-	fun syncProjects()
+	fun syncProjects(callback: (Boolean) -> Unit)
 
 	data class State(
 		val projectsDir: HPath,

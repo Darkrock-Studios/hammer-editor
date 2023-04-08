@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -41,8 +42,10 @@ fun ProjectList(
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	Box {
 		Column(
@@ -66,7 +69,17 @@ fun ProjectList(
 				)
 
 				if (state.serverUrl != null) {
-					Button(onClick = { component.syncProjects() }) {
+					Button(onClick = {
+						component.syncProjects { success ->
+							scope.launch {
+								if (success) {
+									snackbarHostState.showSnackbar("Projects synced")
+								} else {
+									snackbarHostState.showSnackbar("Failed to sync projects")
+								}
+							}
+						}
+					}) {
 						Text("Sync Projects")
 					}
 				}
@@ -114,6 +127,8 @@ fun ProjectList(
 		) {
 			Icon(imageVector = Icons.Filled.Create, "Create Project")
 		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 
 	ProjectCreateDialog(showProjectCreate, component) {

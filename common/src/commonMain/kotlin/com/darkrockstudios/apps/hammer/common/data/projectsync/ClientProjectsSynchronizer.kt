@@ -31,12 +31,12 @@ class ClientProjectsSynchronizer(
 		// TODO: Backup the projects
 	}
 
-	suspend fun syncProjects() {
+	suspend fun syncProjects(): Boolean {
 		Napier.i("Begin Sync")
 
 		performBackup()
 
-		try {
+		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
 				val serverSyncData = result.getOrThrow()
@@ -51,11 +51,14 @@ class ClientProjectsSynchronizer(
 				serverProjectsApi.endProjectsSync(syncId)
 
 				Napier.i("Sync complete")
+				true
 			} else {
 				Napier.w("Failed to sync projects: ${result.exceptionOrNull()?.message}")
+				false
 			}
 		} catch (e: IOException) {
 			Napier.e("Projects sync failed", e)
+			false
 		}
 	}
 

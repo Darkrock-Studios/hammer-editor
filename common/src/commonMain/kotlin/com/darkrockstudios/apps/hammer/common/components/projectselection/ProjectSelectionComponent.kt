@@ -197,9 +197,10 @@ class ProjectSelectionComponent(
         globalSettingsRepository.deleteServerSettings()
     }
 
-    override fun syncProjects() {
+    override fun syncProjects(callback: (Boolean) -> Unit) {
         scope.launch {
             projectsSynchronizer.syncProjects()
+            callback(true)
             loadProjectList()
         }
     }
