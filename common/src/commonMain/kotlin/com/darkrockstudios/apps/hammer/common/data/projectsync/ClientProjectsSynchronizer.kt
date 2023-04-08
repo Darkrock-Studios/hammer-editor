@@ -26,34 +26,36 @@ class ClientProjectsSynchronizer(
 		return globalSettingsRepository.serverSettings != null
 	}
 
-	private fun performBackup() {
-		Napier.i("Perform backup")
+	private suspend fun performBackup(onLog: suspend (String) -> Unit) {
+		onLog("Local backup complete")
 		// TODO: Backup the projects
 	}
 
-	suspend fun syncProjects(): Boolean {
-		Napier.i("Begin Sync")
+	suspend fun syncProjects(onLog: suspend (String) -> Unit): Boolean {
+		onLog("Begin Sync")
 
-		performBackup()
+		performBackup(onLog)
 
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
+				onLog("Got server data")
+
 				val serverSyncData = result.getOrThrow()
 				val syncId = serverSyncData.syncId
 
 				val clientSyncData = loadSyncData()
 				val localProjects = projectsRepository.getProjects()
 
-				syncDeletedProjects(clientSyncData, serverSyncData, localProjects)
-				syncCreatedProjects(clientSyncData, serverSyncData, localProjects)
+				syncDeletedProjects(clientSyncData, serverSyncData, localProjects, onLog)
+				syncCreatedProjects(clientSyncData, serverSyncData, localProjects, onLog)
 
 				serverProjectsApi.endProjectsSync(syncId)
 
-				Napier.i("Sync complete")
+				onLog("Sync complete")
 				true
 			} else {
-				Napier.w("Failed to sync projects: ${result.exceptionOrNull()?.message}")
+				onLog("Failed to sync projects: ${result.exceptionOrNull()?.message}")
 				false
 			}
 		} catch (e: IOException) {
@@ -66,6 +68,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		localProjects: List<ProjectDef>,
+		onLog: suspend (String) -> Unit,
 	) {
 		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { projectName ->
 			clientSyncData.deletedProjects.contains(projectName).not() &&
@@ -76,6 +79,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData.projectsToDelete.forEach { projectName ->
 			val result = serverProjectsApi.deleteProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
+				onLog("Deleting server project: $projectName")
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToDelete = syncData.projectsToDelete - projectName,
@@ -83,13 +87,13 @@ class ClientProjectsSynchronizer(
 					)
 				}
 			} else {
-				Napier.w("Failed to delete project on server: $projectName")
+				onLog("Failed to delete project on server: $projectName")
 			}
 		}
 
 		// Delete local projects from server
-		Napier.i("Deleted projects: ${newlyDeletedProjects.size}")
 		newlyDeletedProjects.forEach { projectName ->
+			onLog("Deleting local project: $projectName")
 			projectsRepository.deleteProject(projectName)
 		}
 	}
@@ -98,6 +102,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		localProjects: List<ProjectDef>,
+		onLog: suspend (String) -> Unit,
 	) {
 		val serverProjects = serverSyncData.projects
 		val newServerProjects = serverProjects.filter { serverProject ->
@@ -113,20 +118,21 @@ class ClientProjectsSynchronizer(
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
+				onLog("Created project on server: $projectName")
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToCreate = syncData.projectsToCreate - projectName,
 					)
 				}
 			} else {
-				Napier.w("Failed to create project on server: $projectName")
+				onLog("Failed to create project on server: $projectName")
 			}
 		}
 
 		// Create local projects from server
-		Napier.i("New projects: ${newServerProjects.size}")
 		newServerProjects.forEach { projectName ->
 			projectsRepository.createProject(projectName)
+			onLog("Created local project: $projectName")
 		}
 	}
 

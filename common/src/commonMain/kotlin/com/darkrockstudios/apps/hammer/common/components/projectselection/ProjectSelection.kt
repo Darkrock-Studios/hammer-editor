@@ -33,6 +33,8 @@ interface ProjectSelection : HammerComponent {
 	suspend fun authTest()
 	fun removeServer()
 	fun syncProjects(callback: (Boolean) -> Unit)
+	fun showProjectsSync()
+	fun hideProjectsSync()
 
 	data class State(
 		val projectsDir: HPath,
@@ -42,6 +44,13 @@ interface ProjectSelection : HammerComponent {
 		val serverSetup: Boolean = false,
 		val serverUrl: String? = null,
 		val serverError: String? = null,
+		val syncState: SycState = SycState()
+	)
+
+	data class SycState(
+		val showProjectSync: Boolean = false,
+		val syncComplete: Boolean = false,
+		val syncLog: List<String> = emptyList()
 	)
 
 	enum class Locations(val text: String) {

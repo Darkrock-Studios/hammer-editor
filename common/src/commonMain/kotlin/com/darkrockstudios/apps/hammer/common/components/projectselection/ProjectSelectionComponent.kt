@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
@@ -27,6 +28,8 @@ class ProjectSelectionComponent(
     override val showProjectDirectory: Boolean = false,
     private val onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) : ProjectSelection, ComponentBase(componentContext) {
+
+    private val mainDispatcher by injectMainDispatcher()
 
     private val accountRepository: AccountRepository by inject()
     private val globalSettingsRepository: GlobalSettingsRepository by inject()
@@ -197,11 +200,57 @@ class ProjectSelectionComponent(
         globalSettingsRepository.deleteServerSettings()
     }
 
+    private fun resetSync() {
+        _state.reduce {
+            it.copy(
+                syncState = ProjectSelection.SycState()
+            )
+        }
+    }
+
     override fun syncProjects(callback: (Boolean) -> Unit) {
         scope.launch {
-            projectsSynchronizer.syncProjects()
+            projectsSynchronizer.syncProjects(::onSyncLog)
             callback(true)
+
+            withContext(mainDispatcher) {
+                _state.reduce {
+                    it.copy(
+                        syncState = it.syncState.copy(
+                            syncComplete = true
+                        )
+                    )
+                }
+            }
+
             loadProjectList()
+        }
+    }
+
+    override fun hideProjectsSync() {
+        resetSync()
+    }
+
+    override fun showProjectsSync() {
+        _state.reduce {
+            it.copy(
+                syncState = it.syncState.copy(
+                    showProjectSync = true
+                ),
+            )
+        }
+    }
+
+    private suspend fun onSyncLog(message: String) {
+        Napier.i(message)
+        withContext(mainDispatcher) {
+            _state.reduce {
+                it.copy(
+                    syncState = it.syncState.copy(
+                        syncLog = it.syncState.syncLog + message
+                    ),
+                )
+            }
         }
     }
 

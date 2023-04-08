@@ -89,6 +89,9 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 
 		override suspend fun authTest() {}
 		override fun removeServer() {}
+		override fun syncProjects(callback: (Boolean) -> Unit) {}
+		override fun showProjectsSync() {}
+		override fun hideProjectsSync() {}
 	}
 }
 

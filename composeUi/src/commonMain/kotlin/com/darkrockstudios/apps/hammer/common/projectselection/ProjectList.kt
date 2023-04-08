@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +32,6 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -70,17 +71,9 @@ fun ProjectList(
 
 				if (state.serverUrl != null) {
 					Button(onClick = {
-						component.syncProjects { success ->
-							scope.launch {
-								if (success) {
-									snackbarHostState.showSnackbar("Projects synced")
-								} else {
-									snackbarHostState.showSnackbar("Failed to sync projects")
-								}
-							}
-						}
+						component.showProjectsSync()
 					}) {
-						Text("Sync Projects")
+						Image(Icons.Default.Refresh, "Sync Projects")
 					}
 				}
 			}
@@ -144,6 +137,8 @@ fun ProjectList(
 			projectDefDeleteTarget = null
 		}
 	}
+
+	ProjectsSyncDialog(component, snackbarHostState)
 }
 
 val ProjectCardTestTag = "project-card"
