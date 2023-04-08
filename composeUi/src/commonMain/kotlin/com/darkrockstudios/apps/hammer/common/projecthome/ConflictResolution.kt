@@ -2,18 +2,19 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun ProjectSynchronization(state: ProjectHome.State, component: ProjectHome) {
@@ -22,6 +23,8 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 		onCloseRequest = {},
 		visible = state.isSyncing,
 	) {
+		val scope = rememberCoroutineScope()
+
 		Column(modifier = Modifier.padding(Ui.Padding.L).fillMaxSize()) {
 			Text("Project Synchronizing...")
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -66,24 +69,31 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 					}
 				}
 			} else {
-				SyncLog(state)
+				SyncLog(state, scope)
 			}
 		}
 	}
 }
 
 @Composable
-internal fun SyncLog(state: ProjectHome.State) {
+internal fun SyncLog(state: ProjectHome.State, scope: CoroutineScope) {
 	var showLog by rememberSaveable { mutableStateOf(true) }
 	Column(modifier = Modifier.fillMaxWidth()) {
 		Button(onClick = { showLog = !showLog }) {
 			Text("Sync Log")
 		}
 		if (showLog) {
-			LazyColumn(modifier = Modifier.fillMaxWidth()) {
-				state.syncLog?.forEach { log ->
-					item {
-						Text(log)
+			val listState: LazyListState = rememberLazyListState()
+			LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
+				items(count = state.syncLog.size, key = { it }) { index ->
+					Text(state.syncLog[index])
+				}
+			}
+
+			LaunchedEffect(state.syncLog) {
+				if (state.syncLog.isNotEmpty()) {
+					scope.launch {
+						listState.animateScrollToItem(state.syncLog.size - 1)
 					}
 				}
 			}

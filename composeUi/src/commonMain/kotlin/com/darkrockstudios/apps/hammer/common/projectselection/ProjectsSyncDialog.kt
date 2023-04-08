@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -46,10 +48,19 @@ fun ProjectsSyncDialog(component: ProjectSelection, snackbarHostState: SnackbarH
 		Column {
 			Text("Syncing Projects")
 
-			LazyColumn {
+			val listState: LazyListState = rememberLazyListState()
+			LazyColumn(state = listState) {
 				val log = state.syncState.syncLog
-				items(count = log.size, key = { log[it].hashCode() }) { index ->
+				items(count = log.size, key = { it }) { index ->
 					Text(log[index])
+				}
+			}
+
+			LaunchedEffect(state.syncState.syncLog) {
+				if (state.syncState.syncLog.isNotEmpty()) {
+					scope.launch {
+						listState.animateScrollToItem(state.syncState.syncLog.size - 1)
+					}
 				}
 			}
 

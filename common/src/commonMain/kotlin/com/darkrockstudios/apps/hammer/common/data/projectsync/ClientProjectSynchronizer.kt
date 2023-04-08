@@ -207,8 +207,8 @@ class ClientProjectSynchronizer(
 		onLog: suspend (String?) -> Unit,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
-	) {
-		try {
+	): Boolean {
+		return try {
 			prepareForSync()
 
 			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
@@ -304,6 +304,7 @@ class ClientProjectSynchronizer(
 
 			if (endSyncResult.isFailure) {
 				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+				allSuccess = false
 			} else {
 				if (allSuccess) {
 					onLog("Sync data saved")
@@ -329,10 +330,14 @@ class ClientProjectSynchronizer(
 			onProgress(1f, null)
 
 			onComplete()
+
+			allSuccess
 		} catch (e: Exception) {
 			onLog("Sync failed: ${e.message}")
 			endSync()
 			onComplete()
+
+			false
 		}
 	}
 

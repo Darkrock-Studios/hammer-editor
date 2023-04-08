@@ -7,10 +7,9 @@ import kotlin.time.Duration.Companion.minutes
 abstract class SynchronizationSession(
 	open val userId: Long,
 	open val started: Instant,
-	open val syncId: String
-) {
+	open val syncId: String,
 	private var lastAccessed: Instant = started
-
+) {
 	fun updateLastAccessed(clock: Clock) {
 		lastAccessed = clock.now()
 	}

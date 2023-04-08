@@ -29,7 +29,7 @@ interface ProjectHome : Router, HammerComponent {
 		val isSyncing: Boolean = false,
 		val syncProgress: Float = 0f,
 		val entityConflict: EntityConflict<*>? = null,
-		val syncLog: List<String>? = null,
+		val syncLog: List<String> = emptyList(),
 	)
 
 	sealed class EntityConflict<T : ApiProjectEntity>(

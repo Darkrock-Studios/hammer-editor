@@ -127,7 +127,7 @@ class ProjectHomeComponent(
 						entityConflict = null,
 						isSyncing = false,
 						syncProgress = 0f,
-						syncLog = null
+						syncLog = emptyList()
 					)
 				}
 			}
