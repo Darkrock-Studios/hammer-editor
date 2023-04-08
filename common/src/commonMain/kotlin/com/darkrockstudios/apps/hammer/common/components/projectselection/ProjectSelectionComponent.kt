@@ -21,9 +21,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
+import io.ktor.utils.io.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import okio.Path.Companion.toPath
 import org.koin.core.component.get
 import org.koin.core.component.getScopeId
@@ -44,6 +46,7 @@ class ProjectSelectionComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
 	private var loadProjectsJob: Job? = null
+	private var syncProjectsJob: Job? = null
 
 	private val _state = MutableValue(
 		ProjectSelection.State(
@@ -245,14 +248,18 @@ class ProjectSelectionComponent(
 	}
 
 	override fun syncProjects(callback: (Boolean) -> Unit) {
-		scope.launch {
+		syncProjectsJob?.cancel(CancellationException("Started another sync"))
+		syncProjectsJob = scope.launch {
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
+
+			yield()
 
 			var allSuccess = success
 			if (success) {
 				val projects = projectsRepository.getProjects()
 				projects.forEach { projectName ->
 					allSuccess = allSuccess && syncProject(projectName, ::onSyncLog)
+					yield()
 				}
 			}
 
@@ -269,6 +276,23 @@ class ProjectSelectionComponent(
 			}
 
 			loadProjectList()
+		}
+	}
+
+	override fun cancelProjectsSync() {
+		syncProjectsJob?.cancel(CancellationException("User canceled sync"))
+		syncProjectsJob = null
+
+		scope.launch(mainDispatcher) {
+			withContext(mainDispatcher) {
+				_state.reduce {
+					it.copy(
+						syncState = it.syncState.copy(
+							syncComplete = true
+						),
+					)
+				}
+			}
 		}
 	}
 

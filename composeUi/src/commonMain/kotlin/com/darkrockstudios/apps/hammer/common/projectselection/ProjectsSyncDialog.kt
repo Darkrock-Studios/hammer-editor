@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -11,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
@@ -46,7 +50,21 @@ fun ProjectsSyncDialog(component: ProjectSelection, snackbarHostState: SnackbarH
 		}
 
 		Column {
-			Text("Syncing Projects")
+			Row(modifier = Modifier.fillMaxWidth()) {
+				Text("Syncing Projects")
+
+				Spacer(modifier = Modifier.weight(1f))
+
+				if (state.syncState.syncComplete) {
+					Button(onClick = { component.hideProjectsSync() }) {
+						Text("Complete")
+					}
+				} else {
+					Button(onClick = { component.cancelProjectsSync() }) {
+						Text("Cancel")
+					}
+				}
+			}
 
 			val listState: LazyListState = rememberLazyListState()
 			LazyColumn(state = listState) {
@@ -61,12 +79,6 @@ fun ProjectsSyncDialog(component: ProjectSelection, snackbarHostState: SnackbarH
 					scope.launch {
 						listState.animateScrollToItem(state.syncState.syncLog.size - 1)
 					}
-				}
-			}
-
-			if (state.syncState.syncComplete) {
-				Button(onClick = { component.hideProjectsSync() }) {
-					Text("Complete")
 				}
 			}
 		}

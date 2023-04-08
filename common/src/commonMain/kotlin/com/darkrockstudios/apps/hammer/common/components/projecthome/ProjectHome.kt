@@ -16,6 +16,7 @@ interface ProjectHome : Router, HammerComponent {
 	fun syncProject()
 	fun resolveConflict(resolvedEntity: ApiProjectEntity)
 	fun endSync()
+	fun cancelSync()
 
 	data class State(
 		val projectDef: ProjectDef,

@@ -24,6 +24,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
 import com.soywiz.krypto.encoding.Base64
 import io.github.aakira.napier.Napier
+import io.ktor.utils.io.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,6 +54,8 @@ class ProjectHomeComponent(
 		)
 	)
 	override val state: Value<ProjectHome.State> = _state
+
+	private var syncJob: Job? = null
 
 	override fun beginProjectExport() {
 		_state.reduce {
@@ -103,7 +107,8 @@ class ProjectHomeComponent(
 	}
 
 	override fun syncProject() {
-		scope.launch {
+		syncJob?.cancel(CancellationException("Starting another sync"))
+		syncJob = scope.launch {
 			updateSync(true, 0f, "Project Sync Started")
 			projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
 		}
@@ -121,6 +126,7 @@ class ProjectHomeComponent(
 
 	override fun endSync() {
 		scope.launch {
+			syncJob = null
 			withContext(mainDispatcher) {
 				_state.reduce {
 					it.copy(
@@ -128,6 +134,22 @@ class ProjectHomeComponent(
 						isSyncing = false,
 						syncProgress = 0f,
 						syncLog = emptyList()
+					)
+				}
+			}
+		}
+	}
+
+	override fun cancelSync() {
+		scope.launch {
+			syncJob?.cancel(CancellationException("User canceled sync"))
+			syncJob = null
+
+			withContext(mainDispatcher) {
+				_state.reduce {
+					it.copy(
+						entityConflict = null,
+						syncProgress = 1f,
 					)
 				}
 			}

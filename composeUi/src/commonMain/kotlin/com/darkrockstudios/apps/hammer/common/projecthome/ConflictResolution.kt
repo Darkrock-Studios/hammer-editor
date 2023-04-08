@@ -36,6 +36,10 @@ internal fun ProjectSynchronization(state: ProjectHome.State, component: Project
 				Button(onClick = component::endSync) {
 					Text("Complete")
 				}
+			} else {
+				Button(onClick = component::cancelSync) {
+					Text("Cancel")
+				}
 			}
 			val conflict = state.entityConflict
 			if (conflict != null) {

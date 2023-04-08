@@ -15,10 +15,12 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
+import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.decodeFromString
@@ -237,6 +239,7 @@ class ClientProjectSynchronizer(
 			// Handle IDs newly deleted on server
 			for (id in serverDeletedIds) {
 				deleteEntityLocal(id, onLog)
+				yield()
 			}
 
 			val successfullyDeletedIds = mutableSetOf<Int>()
@@ -274,12 +277,16 @@ class ClientProjectSynchronizer(
 					allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
 				}
 				onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
+
+				yield()
 			}
 
 			val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 			onProgress(ENTITY_END, "Entities transferred")
 
 			finalizeSync()
+
+			yield()
 
 			onProgress(0.9f, "Sync finalized")
 
@@ -301,6 +308,8 @@ class ClientProjectSynchronizer(
 				newLastId,
 				syncFinishedAt,
 			)
+
+			yield()
 
 			if (endSyncResult.isFailure) {
 				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
@@ -329,6 +338,8 @@ class ClientProjectSynchronizer(
 
 			onProgress(1f, null)
 
+			yield()
+
 			onComplete()
 
 			allSuccess
@@ -336,6 +347,8 @@ class ClientProjectSynchronizer(
 			onLog("Sync failed: ${e.message}")
 			endSync()
 			onComplete()
+
+			if (e is CancellationException) throw e
 
 			false
 		}

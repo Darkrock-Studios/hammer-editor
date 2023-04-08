@@ -35,6 +35,7 @@ interface ProjectSelection : HammerComponent {
 	fun syncProjects(callback: (Boolean) -> Unit)
 	fun showProjectsSync()
 	fun hideProjectsSync()
+	fun cancelProjectsSync()
 
 	data class State(
 		val projectsDir: HPath,

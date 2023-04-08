@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.yield
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -47,8 +48,15 @@ class ClientProjectsSynchronizer(
 				val clientSyncData = loadSyncData()
 				val localProjects = projectsRepository.getProjects()
 
+				yield()
+
 				syncDeletedProjects(clientSyncData, serverSyncData, localProjects, onLog)
+
+				yield()
+
 				syncCreatedProjects(clientSyncData, serverSyncData, localProjects, onLog)
+
+				yield()
 
 				serverProjectsApi.endProjectsSync(syncId)
 
