@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.createProjectBackup
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -31,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.ktor.client.*
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.module.dsl.scopedOf
@@ -52,6 +55,8 @@ val mainModule = module {
 	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
 	single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
+	single { Clock.System } bind Clock::class
+
 	single { createHttpClient(get()) } bind HttpClient::class
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)
@@ -70,6 +75,8 @@ val mainModule = module {
 	singleOf(::createJsonSerializer) bind Json::class
 
 	singleOf(::ClientProjectsSynchronizer)
+
+	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
 
 	scope<ProjectDefScope> {
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class

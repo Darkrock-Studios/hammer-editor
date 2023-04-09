@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -30,6 +32,7 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
@@ -72,6 +75,18 @@ class ProjectHomeComponent(
 	}
 
 	override fun startProjectSync() = showProjectSync()
+
+	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
+
+	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
+		scope.launch {
+			val backup = projectBackupRepository.createBackup(projectDef)
+
+			withContext(mainDispatcher) {
+				callback(backup)
+			}
+		}
+	}
 
 	override fun onCreate() {
 		super.onCreate()

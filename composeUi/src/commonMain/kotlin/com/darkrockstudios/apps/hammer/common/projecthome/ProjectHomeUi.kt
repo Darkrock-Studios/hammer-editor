@@ -330,6 +330,20 @@ private fun Actions(
 				Text("Sync Story")
 			}
 		}
+		if (component.supportsBackup()) {
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			Button(onClick = {
+				component.createBackup { backup ->
+					if (backup != null) {
+						scope.launch { snackbarHostState.showSnackbar("Backup Created: ${backup.path.name}") }
+					} else {
+						scope.launch { snackbarHostState.showSnackbar("Failed to create backup!") }
+					}
+				}
+			}) {
+				Text("Backup")
+			}
+		}
 	}
 
 	DirectoryPicker(state.showExportDialog) { path ->

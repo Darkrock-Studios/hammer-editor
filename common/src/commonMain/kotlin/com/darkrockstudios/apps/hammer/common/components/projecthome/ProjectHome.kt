@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface ProjectHome : Router, HammerComponent {
@@ -13,6 +14,8 @@ interface ProjectHome : Router, HammerComponent {
 	fun beginProjectExport()
 	fun endProjectExport()
 	fun startProjectSync()
+	fun supportsBackup(): Boolean
+	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 
 	data class State(
 		val projectDef: ProjectDef,

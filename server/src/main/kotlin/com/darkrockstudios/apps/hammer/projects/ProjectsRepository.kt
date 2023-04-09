@@ -100,6 +100,7 @@ class ProjectsRepository(
 		val projectsDir = getUserDirectory(userId)
 		return fileSystem.list(projectsDir)
 			.filter { fileSystem.metadata(it).isDirectory }
+			.filter { it.name.startsWith('.').not() }
 			.map { path -> ProjectDefinition(path.name) }
 			.toSet()
 	}
