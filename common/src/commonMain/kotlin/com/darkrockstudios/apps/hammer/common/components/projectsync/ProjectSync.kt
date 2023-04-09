@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 interface ProjectSync {
 	val state: Value<State>
 
-	fun syncProject()
+	fun syncProject(onComplete: (Boolean) -> Unit)
 	fun resolveConflict(resolvedEntity: ApiProjectEntity)
 	fun endSync()
 	fun cancelSync()

@@ -15,7 +15,10 @@ import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 @Composable
-internal fun ProjectSynchronization(component: ProjectSync) {
+internal fun ProjectSynchronization(
+	component: ProjectSync,
+	showSnackbar: (String) -> Unit
+) {
 	MpDialog(
 		title = "Project Synchronization",
 		onCloseRequest = {},
@@ -26,7 +29,13 @@ internal fun ProjectSynchronization(component: ProjectSync) {
 
 		LaunchedEffect(state.isSyncing) {
 			if (state.isSyncing.not()) {
-				component.syncProject()
+				component.syncProject { success ->
+					if (success) {
+						showSnackbar("Project Sync Complete")
+					} else {
+						showSnackbar("Project Sync Failed")
+					}
+				}
 			}
 		}
 

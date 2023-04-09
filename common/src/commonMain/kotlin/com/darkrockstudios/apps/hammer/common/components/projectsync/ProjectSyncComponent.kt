@@ -72,11 +72,16 @@ class ProjectSyncComponent(
 		}
 	}
 
-	override fun syncProject() {
+	override fun syncProject(onComplete: (Boolean) -> Unit) {
 		syncJob?.cancel(CancellationException("Starting another sync"))
 		syncJob = scope.launch {
 			updateSync(true, 0f, "Project Sync Started")
-			projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
+			val success = projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
+			// Auto-close dialog on success
+			if (success) {
+				endSync()
+			}
+			onComplete(success)
 		}
 	}
 
