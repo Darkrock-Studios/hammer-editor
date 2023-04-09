@@ -86,7 +86,7 @@ class SceneEditorComponent(
 			"scene-editor-save",
 			"Save",
 			"",
-			KeyShortcut(83L, ctrl = true)
+			KeyShortcut(83, ctrl = true)
 		) {
 			Napier.d("Scene save selected")
 			scope.launch { storeSceneContent() }
