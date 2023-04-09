@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.overlay.ChildOverlay
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -40,12 +41,21 @@ class ProjectRootComponent(
 		addMenu,
 		removeMenu,
 		::updateCloseConfirmRequirement,
+		::showProjectSync,
 		scope,
 		dispatcherMain
 	)
 
+	private val modalRouter = ProjectRootModalRouter(
+		componentContext,
+		projectDef
+	)
+
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
 		get() = router.state
+
+	override val modalRouterState: Value<ChildOverlay<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
+		get() = modalRouter.state
 
 	override fun showEditor() {
 		router.showEditor()
@@ -86,7 +96,11 @@ class ProjectRootComponent(
 		projectEditor.storeAllBuffers()
 	}
 
-	override fun isAtRoot() = router.isAtRoot()
+	override fun isAtRoot() = router.isAtRoot() && modalRouter.isAtRoot()
+
+	override fun showProjectSync() = modalRouter.showProjectSync()
+
+	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
 
 	private fun updateCloseConfirmRequirement() {
 		_shouldConfirmClose.value = hasUnsavedBuffers() && router.isAtRoot()

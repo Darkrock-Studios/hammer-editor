@@ -12,7 +12,6 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.arkivanov.decompose.router.stack.ChildStack
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
@@ -20,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
+import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.uiNeedsExplicitCloseButtons
 
@@ -41,8 +41,6 @@ fun ProjectRootUi(
 	drawableKlass: Any? = null
 ) {
 	BoxWithConstraints {
-		val routerState by component.routerState.subscribeAsState()
-
 		val isWide by remember(maxWidth) { derivedStateOf { maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD } }
 		CompositionLocalProvider(
 			LocalScreenCharacteristic provides ScreenCharacteristics(
@@ -50,18 +48,21 @@ fun ProjectRootUi(
 				uiNeedsExplicitCloseButtons()
 			)
 		) {
-			FeatureContent(Modifier.fillMaxSize(), routerState, isWide, drawableKlass)
+			FeatureContent(Modifier.fillMaxSize(), component, isWide, drawableKlass)
 		}
 	}
+
+	ModalContent(component)
 }
 
 @Composable
 fun FeatureContent(
 	modifier: Modifier,
-	routerState: ChildStack<*, ProjectRoot.Destination<*>>,
+	component: ProjectRoot,
 	isWide: Boolean,
 	drawableKlass: Any? = null
 ) {
+	val routerState by component.routerState.subscribeAsState()
 	Children(
 		modifier = modifier,
 		stack = routerState,
@@ -83,5 +84,19 @@ fun FeatureContent(
 			is ProjectRoot.Destination.HomeDestination ->
 				ProjectHomeUi(child.component)
 		}
+	}
+}
+
+@Composable
+fun ModalContent(component: ProjectRoot) {
+	val state by component.modalRouterState.subscribeAsState()
+	val overlay = state.overlay?.instance
+	when (overlay) {
+		ProjectRoot.ModalDestination.None -> {}
+		is ProjectRoot.ModalDestination.ProjectSync -> {
+			ProjectSynchronization(overlay.component)
+		}
+
+		null -> {}
 	}
 }

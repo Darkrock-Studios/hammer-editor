@@ -32,6 +32,7 @@ internal class ProjectRootRouter(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	private val updateShouldClose: () -> Unit,
+	private val showProjectSync: () -> Unit,
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
 ) : Router {
@@ -125,6 +126,7 @@ internal class ProjectRootRouter(
 		return ProjectHomeComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
+			showProjectSync = showProjectSync
 		)
 	}
 

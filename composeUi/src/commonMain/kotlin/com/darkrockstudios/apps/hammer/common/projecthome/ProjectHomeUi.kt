@@ -326,7 +326,7 @@ private fun Actions(
 		}
 		if (state.hasServer) {
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-			Button(onClick = component::syncProject) {
+			Button(onClick = component::startProjectSync) {
 				Text("Sync Story")
 			}
 		}
@@ -342,6 +342,4 @@ private fun Actions(
 			component.endProjectExport()
 		}
 	}
-
-	ProjectSynchronization(state, component)
 }
