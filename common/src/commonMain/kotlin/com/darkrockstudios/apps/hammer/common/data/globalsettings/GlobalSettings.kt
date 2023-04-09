@@ -4,9 +4,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GlobalSettings(
-    val projectsDirectory: String,
-    val uiTheme: UiTheme = UiTheme.FollowSystem,
-    val nux: NewUserExperience = NewUserExperience()
+	val projectsDirectory: String,
+	val uiTheme: UiTheme = UiTheme.FollowSystem,
+	val automaticSyncing: Boolean = true,
+	val nux: NewUserExperience = NewUserExperience()
 )
 
 @Serializable

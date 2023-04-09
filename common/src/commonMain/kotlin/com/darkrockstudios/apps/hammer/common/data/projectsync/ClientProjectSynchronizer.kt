@@ -81,6 +81,12 @@ class ClientProjectSynchronizer(
 		return globalSettingsRepository.serverSettings != null
 	}
 
+	suspend fun needsSync(): Boolean {
+		return loadSyncData().dirty.isNotEmpty()
+	}
+
+	fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing
+
 	suspend fun isEntityDirty(id: Int): Boolean {
 		val syncData = loadSyncData()
 		return syncData.dirty.any { it.id == id }
