@@ -23,6 +23,9 @@ class DesktopProjectBackupRepository(
 				directoryPath = projectDir.path,
 				zipFilePath = newBackupDef.path.path
 			)
+
+			cullBackups()
+
 			newBackupDef
 		} catch (e: IOException) {
 			null

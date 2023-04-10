@@ -1,21 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.format
+import io.github.aakira.napier.Napier
 import kotlinx.datetime.*
 import okio.FileSystem
 import okio.Path
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 abstract class ProjectBackupRepository(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
 	protected val clock: Clock
 ) : KoinComponent {
+
+	protected val globalSettingsRepository: GlobalSettingsRepository by inject()
 
 	fun getBackupsDirectory(): HPath {
 		val dir = (projectsRepository.getProjectsDirectory().toOkioPath() / BACKUP_DIRECTORY)
@@ -69,7 +74,37 @@ abstract class ProjectBackupRepository(
 		return "$backupName-$dateStr.zip"
 	}
 
-	protected fun getProjectBackupDef(path: Path): ProjectBackupDef? {
+	fun cullBackups() {
+		val settings = globalSettingsRepository.globalSettings
+
+		val collatedBackups = mutableMapOf<String, MutableList<ProjectBackupDef>>()
+		val allBackups = getBackups()
+		allBackups.forEach { backup ->
+			val backupList = collatedBackups[backup.projectDef.name] ?: mutableListOf()
+			backupList.add(backup)
+			collatedBackups[backup.projectDef.name] = backupList
+		}
+
+		// Oldest first
+		collatedBackups.values.forEach { backupList ->
+			backupList.sortBy { it.date }
+		}
+
+		// Delete the oldest backups to get under budget
+		collatedBackups.forEach { project ->
+			if (project.value.size > settings.maxBackups) {
+				val overBudget = project.value.size - settings.maxBackups
+				Napier.i("Project '${project.key}' is over it's backup budget by $overBudget backups.")
+				for (ii in 0 until overBudget) {
+					val oldBackup = project.value[ii]
+					fileSystem.delete(oldBackup.path.toOkioPath())
+					Napier.i("Deleted backup: ${oldBackup.path.name}")
+				}
+			}
+		}
+	}
+
+	private fun getProjectBackupDef(path: Path): ProjectBackupDef? {
 		val match = FILE_NAME_PATTERN.matchEntire(path.name)
 		return if (match != null) {
 			val backupName = match.groups[1]?.value
@@ -124,7 +159,7 @@ abstract class ProjectBackupRepository(
 
 	companion object {
 		const val BACKUP_DIRECTORY = ".backups"
-		val FILE_NAME_PATTERN = Regex("^([a-zA-Z0-9_]+)-(\\d{4}-[a-zA-Z]{3}-\\d{2}T\\d+Z)\\.zip\$")
+		val FILE_NAME_PATTERN = Regex("^([a-zA-Z0-9_]+)-(\\d{4}-\\d{2}-\\d{2}T\\d+Z)\\.zip$")
 		val DATE_PATTERN = Regex("^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$")
 	}
 }
