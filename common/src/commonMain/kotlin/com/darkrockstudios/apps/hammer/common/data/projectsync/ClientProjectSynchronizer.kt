@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
@@ -29,6 +30,7 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.IOException
 import okio.Path
+import org.koin.core.component.inject
 
 class ClientProjectSynchronizer(
 	private val projectDef: ProjectDef,
@@ -37,11 +39,12 @@ class ClientProjectSynchronizer(
 	private val fileSystem: FileSystem,
 	private val json: Json
 ) : ProjectScoped {
+	override val projectScope = ProjectDefScope(projectDef)
 
 	private val defaultDispatcher by injectDefaultDispatcher()
-
-	override val projectScope = ProjectDefScope(projectDef)
 	private val idRepository: IdRepository by projectInject()
+	private val backupRepository: ProjectBackupRepository by inject()
+
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
 	private val timelineSynchronizer: ClientTimelineSynchronizer by projectInject()
@@ -233,6 +236,20 @@ class ClientProjectSynchronizer(
 				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
 
 			onProgress(0.2f, "Client data loaded")
+
+			yield()
+
+			if (globalSettingsRepository.globalSettings.automaticBackups) {
+				val backupDef = backupRepository.createBackup(projectDef)
+
+				if (backupDef != null) {
+					onProgress(0.25f, "Local Backup made: ${backupDef.path.name}")
+				} else {
+					throw IllegalStateException("Failed to make local backup")
+				}
+
+				yield()
+			}
 
 			// Resolve ID conflicts
 			val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)

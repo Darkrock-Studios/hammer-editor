@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
@@ -22,6 +23,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class ProjectSyncComponent(
 	componentContext: ComponentContext,
@@ -31,6 +33,7 @@ class ProjectSyncComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
+	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
@@ -78,7 +81,7 @@ class ProjectSyncComponent(
 			updateSync(true, 0f, "Project Sync Started")
 			val success = projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
 			// Auto-close dialog on success
-			if (success) {
+			if (success && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
 				endSync()
 			}
 			onComplete(success)

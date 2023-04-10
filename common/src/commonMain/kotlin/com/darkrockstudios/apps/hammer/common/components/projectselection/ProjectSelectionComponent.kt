@@ -45,6 +45,7 @@ class ProjectSelectionComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
+
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
 
@@ -52,7 +53,11 @@ class ProjectSelectionComponent(
 		ProjectSelection.State(
 			projectsDir = projectsRepository.getProjectsDirectory(),
 			projects = emptyList(),
-			uiTheme = globalSettingsRepository.globalSettings.uiTheme
+			uiTheme = globalSettingsRepository.globalSettings.uiTheme,
+			syncAutomaticSync = globalSettingsRepository.globalSettings.automaticSyncing,
+			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
+			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
+			maxBackups = globalSettingsRepository.globalSettings.maxBackups
 		)
 	)
 	override val state: Value<ProjectSelection.State> = _state
@@ -128,15 +133,23 @@ class ProjectSelectionComponent(
 			isAbsolute = true
 		)
 
-		val curSettings = globalSettingsRepository.globalSettings
-		val updatedSettings = curSettings.copy(projectsDirectory = path)
-		globalSettingsRepository.updateSettings(updatedSettings)
+		scope.launch {
+			globalSettingsRepository.updateSettings {
+				it.copy(
+					projectsDirectory = path
+				)
+			}
 
-		projectsRepository.getProjectsDirectory()
-		_state.reduce {
-			it.copy(projectsDir = hpath)
+			projectsRepository.ensureProjectDirectory()
+
+			withContext(mainDispatcher) {
+				_state.reduce {
+					it.copy(projectsDir = hpath)
+				}
+			}
+
+			loadProjectList()
 		}
-		loadProjectList()
 	}
 
 	override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
@@ -171,10 +184,13 @@ class ProjectSelectionComponent(
 	}
 
 	override fun setUiTheme(theme: UiTheme) {
-		val settings = globalSettingsRepository.globalSettings.copy(
-			uiTheme = theme
-		)
-		globalSettingsRepository.updateSettings(settings)
+		scope.launch {
+			globalSettingsRepository.updateSettings {
+				it.copy(
+					uiTheme = theme
+				)
+			}
+		}
 	}
 
 	override suspend fun reinstallExampleProject() {
@@ -273,9 +289,13 @@ class ProjectSelectionComponent(
 						)
 					)
 				}
-			}
 
-			loadProjectList()
+				loadProjectList()
+
+				if (allSuccess && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
+					hideProjectsSync()
+				}
+			}
 		}
 	}
 
@@ -293,6 +313,38 @@ class ProjectSelectionComponent(
 					)
 				}
 			}
+		}
+	}
+
+	override suspend fun setAutomaticBackups(value: Boolean) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				automaticBackups = value
+			)
+		}
+	}
+
+	override suspend fun setAutoCloseDialogs(value: Boolean) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				autoCloseSyncDialog = value
+			)
+		}
+	}
+
+	override suspend fun setAutoSyncing(value: Boolean) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				automaticSyncing = value
+			)
+		}
+	}
+
+	override suspend fun setMaxBackups(value: Int) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				maxBackups = value
+			)
 		}
 	}
 

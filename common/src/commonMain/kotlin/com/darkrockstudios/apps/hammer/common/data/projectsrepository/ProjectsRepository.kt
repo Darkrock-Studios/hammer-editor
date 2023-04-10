@@ -22,6 +22,7 @@ abstract class ProjectsRepository : KoinComponent {
 	abstract fun createProject(projectName: String): Boolean
 	abstract fun deleteProject(projectDef: ProjectDef): Boolean
 	abstract suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata?
+	abstract fun ensureProjectDirectory()
 
 	fun validateFileName(fileName: String?): Boolean {
 		return if (fileName != null) {

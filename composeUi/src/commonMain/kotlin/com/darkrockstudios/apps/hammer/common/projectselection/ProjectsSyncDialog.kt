@@ -39,7 +39,6 @@ fun ProjectsSyncDialog(component: ProjectSelection, snackbarHostState: SnackbarH
 				component.syncProjects { success ->
 					scope.launch {
 						if (success) {
-							component.hideProjectsSync()
 							snackbarHostState.showSnackbar("Projects synced")
 						} else {
 							snackbarHostState.showSnackbar("Failed to sync projects")

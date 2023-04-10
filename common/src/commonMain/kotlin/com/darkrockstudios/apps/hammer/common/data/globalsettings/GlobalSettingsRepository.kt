@@ -9,6 +9,9 @@ import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -22,13 +25,15 @@ class GlobalSettingsRepository(
 	private val json: Json,
 ) : KoinComponent {
 
+	private val lock = Mutex()
+
 	var globalSettings: GlobalSettings
 		private set
 
 	private val _globalSettingsUpdates = MutableSharedFlow<GlobalSettings>(
 		extraBufferCapacity = 1,
 		replay = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
 	)
 	val globalSettingsUpdates: SharedFlow<GlobalSettings> = _globalSettingsUpdates
 
@@ -49,11 +54,21 @@ class GlobalSettingsRepository(
 		}
 
 		globalSettings = loadSettings()
+		_globalSettingsUpdates.tryEmit(globalSettings)
+
 		serverSettings = loadServerSettings()
 		_serverSettingsUpdates.tryEmit(serverSettings)
 	}
 
-	fun updateSettings(settings: GlobalSettings) {
+	suspend fun updateSettings(action: (GlobalSettings) -> GlobalSettings) {
+		val settings = globalSettingsUpdates.first()
+		lock.withLock {
+			val updated = action(settings)
+			dispatchSettingsUpdate(updated)
+		}
+	}
+
+	private fun dispatchSettingsUpdate(settings: GlobalSettings) {
 		writeSettings(settings)
 		globalSettings = settings
 		_globalSettingsUpdates.tryEmit(settings)
