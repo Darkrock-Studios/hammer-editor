@@ -116,6 +116,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val content = "test content"
 		val event = TimeLineEvent(
 			id = 0,
+			order = 0,
 			date = date,
 			content = content
 		)
@@ -141,6 +142,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val content = "test content"
 		val event = TimeLineEvent(
 			id = 0,
+			order = 0,
 			date = date,
 			content = content
 		)
@@ -162,6 +164,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val content = "test content"
 		val event = TimeLineEvent(
 			id = 0,
+			order = 0,
 			date = null,
 			content = content
 		)
@@ -183,6 +186,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val content = "x".repeat(EVENT_CARD_MAX_CONTENT_LENGTH + 1)
 		val event = TimeLineEvent(
 			id = 0,
+			order = 0,
 			date = null,
 			content = content
 		)

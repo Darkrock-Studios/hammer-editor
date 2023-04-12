@@ -24,7 +24,7 @@ import kotlin.coroutines.CoroutineContext
 @OptIn(ExperimentalCoroutinesApi::class)
 open class BaseTest : KoinTest {
 
-	protected val scope = TestScope()
+	protected lateinit var scope: TestScope
 
 	lateinit var mainTestDispatcher: TestDispatcher
 	lateinit var ioTestDispatcher: TestDispatcher
@@ -32,6 +32,7 @@ open class BaseTest : KoinTest {
 
 	@Before
 	open fun setup() {
+		scope = TestScope()
 		Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
 	}
 

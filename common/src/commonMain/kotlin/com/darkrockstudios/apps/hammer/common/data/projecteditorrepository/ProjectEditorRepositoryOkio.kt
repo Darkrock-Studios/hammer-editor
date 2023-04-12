@@ -530,7 +530,9 @@ class ProjectEditorRepositoryOkio(
 					updateSceneOrder(parentId)
 					Napier.w("Scene ${scene.id} deleted")
 
-					projectSynchronizer.recordIdDeletion(scene.id)
+					if (projectSynchronizer.isServerSynchronized()) {
+						projectSynchronizer.recordIdDeletion(scene.id)
+					}
 
 					reloadScenes()
 
@@ -560,7 +562,9 @@ class ProjectEditorRepositoryOkio(
 				false
 			} else {
 				fileSystem.delete(scenePath)
-				projectSynchronizer.recordIdDeletion(scene.id)
+				if (projectSynchronizer.isServerSynchronized()) {
+					projectSynchronizer.recordIdDeletion(scene.id)
+				}
 
 				val sceneNode = getSceneNodeFromId(scene.id)
 

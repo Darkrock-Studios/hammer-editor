@@ -5,6 +5,7 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
@@ -12,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.take
@@ -24,6 +26,7 @@ import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.junit.Test
+import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -35,6 +38,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var json: Json
+	lateinit var projectSynchronizer: ClientProjectSynchronizer
 
 	@Before
 	override fun setup() {
@@ -43,10 +47,13 @@ class TimeLineRepositoryTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		json = createJsonSerializer()
+		projectSynchronizer = mockk()
 
-		setupKoin()
+		val testModule = module {
+			single { projectSynchronizer }
+		}
+		setupKoin(testModule)
 	}
-
 
 	fun setupTimelne(
 		projDef: ProjectDef = getProjectDef(PROJECT_EMPTY_NAME),
@@ -135,9 +142,12 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline`() = runTest {
+		every { projectSynchronizer.isServerSynchronized() } returns false
+
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		setupTimelne(projDef)
+		val oldEvents = fakeEvents()
+		setupTimelne(projDef, oldEvents)
 
 		val idRepo = mockk<IdRepository>()
 		val repo = TimeLineRepositoryOkio(
@@ -154,16 +164,14 @@ class TimeLineRepositoryTest : BaseTest() {
 			}
 		}
 
-		val oldEvents = fakeEvents()
-		val updatedEvents = oldEvents.toMutableList()
-		val newEvent = TimeLineEvent(
-			id = 99,
-			date = "date",
-			content = "content"
+		val content = "content"
+		val date = "date"
+		val id = 99
+		val madeEvent = repo.createEvent(
+			id = id,
+			content = content,
+			date = date
 		)
-		updatedEvents.add(newEvent)
-		val updatedTimeline = TimeLineContainer(updatedEvents)
-		repo.storeTimeline(updatedTimeline)
 
 		advanceUntilIdle()
 
@@ -173,42 +181,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		collectedTimeline?.let {
 			assertEquals(oldEvents.size + 1, it.events.size, "Updated events wrong size")
-			assertEquals(newEvent, it.events.last(), "Last even was not correct")
-		}
-	}
-
-	@Test
-	fun `Remove all events from timeline`() = runTest {
-		createProject(ffs, PROJECT_EMPTY_NAME)
-		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		setupTimelne(projDef)
-
-		val idRepo = mockk<IdRepository>()
-		val repo = TimeLineRepositoryOkio(
-			projectDef = projDef,
-			idRepository = idRepo,
-			fileSystem = ffs,
-			json = json
-		)
-
-		var collectedTimeline: TimeLineContainer? = null
-		val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
-			repo.timelineFlow.take(2).collect { timeline ->
-				collectedTimeline = timeline
-			}
-		}
-
-		val updatedTimeline = TimeLineContainer(emptyList())
-		repo.storeTimeline(updatedTimeline)
-
-		advanceUntilIdle()
-
-		collectJob.join()
-
-		assertNotNull(collectedTimeline, "collectedTimeline was not set")
-
-		collectedTimeline?.let {
-			assertEquals(0, it.events.size, "Updated events was not empty")
+			assertEquals(madeEvent, it.events.last(), "Last even was not correct")
 		}
 	}
 }

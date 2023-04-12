@@ -7,14 +7,18 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -24,12 +28,14 @@ import utils.callPrivate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var scenesPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
@@ -84,8 +90,8 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 		nextId = -1
 		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers {}
+		coEvery { idRepository.claimNextId() } answers { claimId() }
+		coEvery { idRepository.findNextId() } answers {}
 
 		populateProject(ffs)
 
@@ -93,6 +99,9 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 			name = PROJ_NAME,
 			path = projectPath
 		)
+
+		projectSynchronizer = mockk()
+		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		setupKoin()
 	}
@@ -108,6 +117,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
 			toml = toml
@@ -124,6 +134,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
 			toml = toml
@@ -138,10 +149,11 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 	}
 
 	@Test
-	fun `Init Editor`() {
+	fun `Init Editor`() = runTest {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
 			toml = toml

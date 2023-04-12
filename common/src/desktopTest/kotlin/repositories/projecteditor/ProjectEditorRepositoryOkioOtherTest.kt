@@ -10,16 +10,20 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import com.darkrockstudios.apps.hammer.common.data.tree.Tree
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import createProject
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -30,11 +34,13 @@ import utils.callPrivate
 import utils.getPrivateProperty
 import kotlin.test.*
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: ProjectEditorRepository
 	private lateinit var idRepository: IdRepository
@@ -83,8 +89,12 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 		nextId = 8
 		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers { }
+		coEvery { idRepository.claimNextId() } answers { claimId() }
+		coEvery { idRepository.findNextId() } answers { }
+
+		projectSynchronizer = mockk()
+		every { projectSynchronizer.isServerSynchronized() } returns false
+		//coEvery { projectSynchronizer.recordIdDeletion(any()) } just Runs
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -114,6 +124,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 		repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			toml = toml,
 			idRepository = idRepository
@@ -125,7 +136,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	 * On `initializeProjectEditor()` the orders will be cleaned up
 	 */
 	@Test
-	fun `Cleanup Scene Order`() {
+	fun `Cleanup Scene Order`() = runTest {
 		configure(OUT_OF_ORDER_PROJECT_NAME)
 
 		val beforeSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
@@ -183,7 +194,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Scene, Invalid Scene Name`() {
+	fun `Create Scene, Invalid Scene Name`() = runTest {
 		configure(PROJECT_1_NAME)
 
 		every { projectsRepo.validateFileName(any()) } returns false
@@ -196,7 +207,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Scene, Under Root`() {
+	fun `Create Scene, Under Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
 		every { projectsRepo.validateFileName(any()) } returns true
@@ -217,7 +228,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Scene, In Group`() {
+	fun `Create Scene, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
 		every { projectsRepo.validateFileName(any()) } returns true
@@ -242,7 +253,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Group, In Root`() {
+	fun `Create Group, In Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
 		every { projectsRepo.validateFileName(any()) } returns true
@@ -261,7 +272,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Group, In Group`() {
+	fun `Create Group, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
 		every { projectsRepo.validateFileName(any()) } returns true
@@ -287,7 +298,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Delete Scene, In Root`() {
+	fun `Delete Scene, In Root`() = runTest {
 		configure(PROJECT_2_NAME)
 
 		repo.initializeProjectEditor()
@@ -310,7 +321,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Delete Scene, In Group`() {
+	fun `Delete Scene, In Group`() = runTest {
 		configure(PROJECT_2_NAME)
 
 		repo.initializeProjectEditor()
@@ -333,7 +344,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Delete Group, In Root, With Children`() {
+	fun `Delete Group, In Root, With Children`() = runTest {
 		configure(PROJECT_2_NAME)
 
 		repo.initializeProjectEditor()
@@ -356,7 +367,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	@Test
-	fun `Delete Group, In Root, No Children`() {
+	fun `Delete Group, In Root, No Children`() = runTest {
 		configure(PROJECT_2_NAME)
 
 		repo.initializeProjectEditor()

@@ -6,6 +6,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -16,6 +18,7 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -29,7 +32,6 @@ import org.koin.dsl.module
 import repositories.timeline.fakeEvents
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -39,13 +41,14 @@ class TimeLineOverviewComponentTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var json: Json
-	lateinit var timelineRepo: TimeLineRepository
 	lateinit var idRepo: IdRepository
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
-	lateinit var storeTimelineCapture: CapturingSlot<TimeLineContainer>
+	lateinit var timelineRepo: TimeLineRepository
+	lateinit var globalSettingsRepo: GlobalSettingsRepository
+	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
 	@Before
 	override fun setup() {
@@ -60,11 +63,16 @@ class TimeLineOverviewComponentTest : BaseTest() {
 		context = mockk()
 		lifecycle = mockk()
 
+		globalSettingsRepo = mockk()
+		globalSettingsFlow = mockk()
+		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
+
 		lifecycleCallbacks = mutableListOf()
 
 		val testModule = module {
 			single { timelineRepo } bind TimeLineRepository::class
 			single { idRepo } bind IdRepository::class
+			single { globalSettingsRepo }
 		}
 		setupKoin(testModule)
 
@@ -81,11 +89,33 @@ class TimeLineOverviewComponentTest : BaseTest() {
 
 		every { timelineRepo.timelineFlow } returns timelineFlow
 
-		storeTimelineCapture = slot<TimeLineContainer>()
-		every { timelineRepo.storeTimeline(capture(storeTimelineCapture)) } answers {
+		val eventContent = slot<String>()
+		val eventDate = slot<String>()
+		val eventId = slot<Int>()
+		val eventOrder = slot<Int>()
+		coEvery {
+			timelineRepo.createEvent(
+				capture(eventContent),
+				capture(eventDate),
+				capture(eventId),
+				capture(eventOrder),
+			)
+		} coAnswers {
+			val event = TimeLineEvent(
+				id = 0,
+				order = 0,
+				date = eventDate.captured,
+				content = eventContent.captured
+			)
+			val timeline = TimeLineContainer(
+				events = listOf(event)
+			)
+
 			scope.launch {
-				timelineRepoCollectCallback.captured.emit(storeTimelineCapture.captured)
+				timelineRepoCollectCallback.captured.emit(timeline)
 			}
+
+			event
 		}
 	}
 
@@ -102,6 +132,27 @@ class TimeLineOverviewComponentTest : BaseTest() {
 			}
 			assertEquals(event.id, expectedIds[index], "Timeline events out of order\n$info\n")
 		}
+	}
+
+	suspend fun TestScope.defaultTestComponent(
+		originalEvents: List<TimeLineEvent> = emptyList()
+	): TimeLineOverviewComponent {
+		coEvery { globalSettingsFlow.collect(any()) } just Awaits
+
+		val component = TimeLineOverviewComponent(
+			componentContext = context,
+			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+			addMenu = {},
+			removeMenu = {}
+		)
+		lifecycleCallbacks[1].onCreate()
+		advanceUntilIdle()
+
+		val timeline = TimeLineContainer(events = originalEvents)
+		timelineRepoCollectCallback.captured.emit(timeline)
+		advanceUntilIdle()
+
+		return component
 	}
 
 	@Test
@@ -151,173 +202,5 @@ class TimeLineOverviewComponentTest : BaseTest() {
 
 		// Component's state should now have that timeline
 		assertEquals(timeline, component.state.value.timeLine, "Timeline did not propogate")
-	}
-
-	suspend fun TestScope.defaultTestComponent(
-		originalEvents: List<TimeLineEvent> = emptyList()
-	): TimeLineOverviewComponent {
-		val component = TimeLineOverviewComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			addMenu = {},
-			removeMenu = {}
-		)
-		lifecycleCallbacks[1].onCreate()
-		advanceUntilIdle()
-
-		val timeline = TimeLineContainer(events = originalEvents)
-		timelineRepoCollectCallback.captured.emit(timeline)
-		advanceUntilIdle()
-
-		return component
-	}
-
-	@Test
-	fun `Move event and store to disk`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val first = originalEvents.first()
-		val moved = component.moveEvent(first, 4, false)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
-
-		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
-
-		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
-	}
-
-	@Test
-	fun `Move Fail 0-0`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val first = originalEvents.first()
-		val moved = component.moveEvent(first, 0, false)
-		assertFalse("Move should have failed") { moved }
-	}
-
-	@Test
-	fun `Move event- 0 to 4 before`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val first = originalEvents.first()
-		val moved = component.moveEvent(first, 4, false)
-		assertTrue("Move timeline event failed") { moved }
-
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-
-		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
-
-		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
-	}
-
-	@Test
-	fun `Move event- 0 to 4 after`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val first = originalEvents.first()
-		val moved = component.moveEvent(first, 4, true)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-		assertEquals(4, newEvents.indexOf(first), "Moved item was not at the correct position")
-
-		verifyEventSequence(newEvents, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9)
-	}
-
-	@Test
-	fun `Move event- 4 to 1 before`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val four = originalEvents[4]
-		val moved = component.moveEvent(four, 1, false)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-		assertEquals(1, newEvents.indexOf(four), "Moved item was not at the correct position")
-
-		verifyEventSequence(newEvents, 0, 4, 1, 2, 3, 5, 6, 7, 8, 9)
-	}
-
-	@Test
-	fun `Move event- 4 to 1 after`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val four = originalEvents[4]
-		val moved = component.moveEvent(four, 1, true)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-		assertEquals(2, newEvents.indexOf(four), "Moved item was not at the correct position")
-
-		verifyEventSequence(newEvents, 0, 1, 4, 2, 3, 5, 6, 7, 8, 9)
-	}
-
-	@Test
-	fun `Move event- 0 to 10 before`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val zero = originalEvents[0]
-		val moved = component.moveEvent(zero, 9, false)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-
-		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 0, 9)
-		assertEquals(8, newEvents.indexOf(zero), "Moved item was not at the correct position")
-	}
-
-	@Test
-	fun `Move event- 0 to 10 after`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val zero = originalEvents[0]
-		val moved = component.moveEvent(zero, 9, true)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-
-		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
-		assertEquals(9, newEvents.indexOf(zero), "Moved item was not at the correct position")
-	}
-
-	@Test
-	fun `Move event- 10 to 0 before`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val ten = originalEvents[9]
-		val moved = component.moveEvent(ten, 0, false)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-
-		verifyEventSequence(newEvents, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8)
-		assertEquals(0, newEvents.indexOf(ten), "Moved item was not at the correct position")
-	}
-
-	@Test
-	fun `Move event- 10 to 0 after`() = runTest {
-		val originalEvents = fakeEvents()
-		val component = defaultTestComponent(originalEvents)
-
-		val ten = originalEvents[9]
-		val moved = component.moveEvent(ten, 0, true)
-		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = component.state.value.timeLine?.events ?: error("Timeline state was null!")
-
-		verifyEventSequence(newEvents, 0, 9, 1, 2, 3, 4, 5, 6, 7, 8)
-		assertEquals(1, newEvents.indexOf(ten), "Moved item was not at the correct position")
 	}
 }

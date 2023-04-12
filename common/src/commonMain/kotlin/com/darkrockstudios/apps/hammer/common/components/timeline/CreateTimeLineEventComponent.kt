@@ -21,7 +21,7 @@ class CreateTimeLineEventComponent(
 
 	override suspend fun createEvent(dateText: String?, contentText: String): Boolean {
 		val date = if (dateText?.isNotBlank() == true) {
-			dateText
+			dateText.trim()
 		} else {
 			null
 		}
