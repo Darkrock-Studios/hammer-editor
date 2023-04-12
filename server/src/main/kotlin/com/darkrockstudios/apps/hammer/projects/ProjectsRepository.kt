@@ -177,5 +177,8 @@ class ProjectsRepository(
 			val dir = getRootDirectory(fileSystem)
 			return dir / userId.toString()
 		}
+
+		fun getSyncDataPath(userId: Long, fileSystem: FileSystem): Path =
+			getUserDirectory(userId, fileSystem) / DATA_FILE
 	}
 }

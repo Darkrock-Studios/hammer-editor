@@ -1,10 +1,22 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.project.*
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
@@ -13,6 +25,7 @@ import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.junit.Test
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import kotlin.test.assertFalse
@@ -25,8 +38,16 @@ class ProjectRepositoryTest : BaseTest() {
 	private val projectDefinition = ProjectDefinition("Test Project")
 
 	private lateinit var fileSystem: FileSystem
-	private lateinit var sceneSynchronizer: ServerSceneSynchronizer
 	private lateinit var clock: TestClock
+
+	private lateinit var projectsSessionManager: SyncSessionManager<ProjectsSynchronizationSession>
+	private lateinit var projectSessionManager: SyncSessionManager<ProjectSynchronizationSession>
+
+	private lateinit var sceneSynchronizer: ServerSceneSynchronizer
+	private lateinit var noteSynchronizer: ServerNoteSynchronizer
+	private lateinit var timelineEventSynchronizer: ServerTimelineSynchronizer
+	private lateinit var encyclopediaSynchronizer: ServerEncyclopediaSynchronizer
+	private lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
 
 	@Before
 	override fun setup() {
@@ -34,41 +55,62 @@ class ProjectRepositoryTest : BaseTest() {
 
 		fileSystem = FakeFileSystem()
 		clock = TestClock(Clock.System)
+
+		projectsSessionManager = mockk()
+		projectSessionManager = mockk()
+
 		sceneSynchronizer = mockk()
+		noteSynchronizer = mockk()
+		timelineEventSynchronizer = mockk()
+		encyclopediaSynchronizer = mockk()
+		sceneDraftSynchronizer = mockk()
 
 		val testModule = module {
 			single { fileSystem } bind FileSystem::class
 			single { Json } bind Json::class
 			single { sceneSynchronizer }
+			single { noteSynchronizer }
+			single { timelineEventSynchronizer }
+			single { encyclopediaSynchronizer }
+			single { sceneDraftSynchronizer }
 			single { clock } bind TestClock::class
+
+			single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+				projectsSessionManager
+			}
+
+			single<SyncSessionManager<ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+				projectSessionManager
+			}
 		}
 		setupKoin(testModule)
 	}
 
-	@Test
-	fun createUserData() {
-		createProjectRepository().apply {
-			createUserData(userId)
-
-			val userDir = getUserDirectory(userId)
-			assertTrue { fileSystem.exists(userDir) }
-
-			val dataFile = userDir / ProjectRepository.DATA_FILE
-			assertTrue { fileSystem.exists(dataFile) }
+	private fun mockCreateSession(syncId: String) {
+		val createSessionSlot = slot<(userId: Long, syncId: String) -> ProjectSynchronizationSession>()
+		coEvery { projectSessionManager.createNewSession(userId, capture(createSessionSlot)) } coAnswers {
+			val session = createSessionSlot.captured(userId, syncId)
+			session.syncId
 		}
 	}
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `Begin Project Sync`() = runTest {
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
+
+		val syncId = "sync-id"
+		mockCreateSession(syncId)
+
 		createProjectRepository().apply {
 			val result = beginProjectSync(userId, projectDefinition)
 
 			assertTrue { result.isSuccess }
 
-			val syncid = result.getOrNull()
-			assertNotNull(syncid)
-			assertTrue(syncid.isNotBlank())
+			val syncBegan = result.getOrNull()
+			assertNotNull(syncBegan)
+			assertTrue(syncBegan.syncId.isNotBlank())
 		}
 	}
 
@@ -76,12 +118,30 @@ class ProjectRepositoryTest : BaseTest() {
 	@Test
 	fun `End Project Sync`() = runTest {
 		createProjectRepository().apply {
+
+			coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+			coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
+			coEvery { projectSessionManager.terminateSession(userId) } returns true
+
+			val syncId = "sync-id"
+
+			mockCreateSession(syncId)
+
 			val beginResult = beginProjectSync(userId, projectDefinition)
 
 			assertTrue { beginResult.isSuccess }
-			val syncId = beginResult.getOrThrow()
+			val syncBegan = beginResult.getOrThrow()
 
-			val endResult = endProjectSync(userId, projectDefinition, syncId, lastSync, lastId)
+			val session = ProjectSynchronizationSession(userId, projectDefinition, clock.now(), syncBegan.syncId)
+			coEvery { projectSessionManager.findSession(any()) } returns session
+
+			val endResult = endProjectSync(
+				userId,
+				projectDefinition,
+				syncBegan.syncId,
+				syncBegan.lastSync,
+				syncBegan.lastId
+			)
 			assertTrue { endResult.isSuccess }
 		}
 	}
@@ -89,28 +149,39 @@ class ProjectRepositoryTest : BaseTest() {
 	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `End Project Sync - Invalid SyncId`() = runTest {
+		coEvery { projectSessionManager.findSession(any()) } returns null
+
 		createProjectRepository().apply {
-			val endResult = endProjectSync(userId, projectDefinition, "invalid-id", lastSync, lastId)
+			val endResult = endProjectSync(userId, projectDefinition, "invalid-id", null, null)
 			assertFalse { endResult.isSuccess }
 		}
 	}
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
+	// TODO should probably move this to a SyncSession test
 	fun `loadEntity - Expired SyncId`() = runTest {
 		val entityId = 1
+		val syncId = "sync-id"
+
+		mockCreateSession(syncId)
+
 		every { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
 				Result.success(createSceneEntity(entityId))
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any()) } returns false
 
 		createProjectRepository().apply {
 			val beginResult = beginProjectSync(userId, projectDefinition)
 			assertTrue(beginResult.isSuccess)
 
-			val syncId = beginResult.getOrThrow()
+			val syncBegan = beginResult.getOrThrow()
 
-			clock.advanceTime(ProjectSynchronizationSession.Companion.EXPIRATION_TIME + 1.minutes)
+			clock.advanceTime(SynchronizationSession.EXPIRATION_TIME + 1.minutes)
 
-			val result = loadEntity(userId, projectDefinition, 1, ApiProjectEntity.Type.SCENE, syncId)
+			val result = loadEntity(userId, projectDefinition, 1, syncBegan.syncId)
 			assertTrue(result.isFailure)
 
 			val exception = result.exceptionOrNull()
@@ -124,47 +195,19 @@ class ProjectRepositoryTest : BaseTest() {
 		// Project does indeed exist, but the syncId is invalid
 		createProjectDir()
 
-		ProjectRepository(fileSystem, Json, sceneSynchronizer, clock).apply {
-			val result = getProjectLastSync(userId, projectDefinition, "invalid-id")
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any()) } returns false
+
+		ProjectRepository(fileSystem, Json, clock).apply {
+			val result = getProjectSyncData(userId, projectDefinition, "invalid-id")
 			assertFalse(result.isSuccess)
-		}
-	}
-
-	@OptIn(ExperimentalCoroutinesApi::class)
-	@Test
-	fun `hasProject, no project`() = runTest {
-		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition)
-			assertTrue(beginResult.isSuccess)
-
-			val syncId = beginResult.getOrThrow()
-
-			val result = getProjectLastSync(userId, projectDefinition, syncId)
-			assertFalse(result.isSuccess)
-		}
-	}
-
-	@OptIn(ExperimentalCoroutinesApi::class)
-	@Test
-	fun `hasProject, project exists`() = runTest {
-		createProjectDir()
-
-		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition)
-			assertTrue(beginResult.isSuccess)
-
-			val syncId = beginResult.getOrThrow()
-
-
-			val result = getProjectLastSync(userId, projectDefinition, syncId)
-			assertTrue(result.isSuccess)
 		}
 	}
 
 	private fun createSceneEntity(entityId: Int): ApiProjectEntity.SceneEntity {
 		return ApiProjectEntity.SceneEntity(
 			id = entityId,
-			sceneType = ApiProjectEntity.SceneEntity.SceneType.Scene,
+			sceneType = ApiSceneType.Scene,
 			name = "Test Scene",
 			order = 1,
 			path = emptyList(),
@@ -173,11 +216,11 @@ class ProjectRepositoryTest : BaseTest() {
 	}
 
 	private fun createProjectRepository(): ProjectRepository {
-		return ProjectRepository(fileSystem, Json, sceneSynchronizer, clock)
+		return ProjectRepository(fileSystem, Json, clock)
 	}
 
 	private fun createProjectDir() {
-		val userDir = ProjectRepository.getUserDirectory(userId, fileSystem)
+		val userDir = ProjectsRepository.getUserDirectory(userId, fileSystem)
 		val projectDir = userDir / projectDefinition.name
 		fileSystem.createDirectories(projectDir)
 	}

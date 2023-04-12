@@ -15,19 +15,22 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 
 class ProjectRepository(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val sceneSynchronizer: ServerSceneSynchronizer,
-	private val noteSynchronizer: ServerNoteSynchronizer,
-	private val timelineEventSynchronizer: ServerTimelineSynchronizer,
-	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer,
-	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
 	private val clock: Clock
-) {
+) : KoinComponent {
+	private val sceneSynchronizer: ServerSceneSynchronizer by inject()
+	private val noteSynchronizer: ServerNoteSynchronizer by inject()
+	private val timelineEventSynchronizer: ServerTimelineSynchronizer by inject()
+	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer by inject()
+	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer by inject()
+
 	private val projectsSessions: SyncSessionManager<ProjectsSynchronizationSession> by KoinJavaComponent.inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
@@ -136,13 +139,13 @@ class ProjectRepository(
 		}
 	}
 
-	suspend fun getProjectLastSync(
+	suspend fun getProjectSyncData(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		syncId: String
 	): Result<ProjectServerState> {
 		if (validateSyncId(userId, syncId).not())
-			return Result.failure(IllegalStateException("Project does not exist"))
+			return Result.failure(IllegalStateException("Sync Id not valid"))
 
 		val projectDir = getProjectDirectory(userId, projectDef)
 
@@ -361,6 +364,11 @@ class ProjectRepository(
 		fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
 			val dir = getProjectDirectory(userId, projectDef, fileSystem)
 			return dir / ENTITY_DIR
+		}
+
+		fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
+			val dir = getProjectDirectory(userId, projectDef, fileSystem)
+			return dir / SYNC_DATA_FILE
 		}
 	}
 }
