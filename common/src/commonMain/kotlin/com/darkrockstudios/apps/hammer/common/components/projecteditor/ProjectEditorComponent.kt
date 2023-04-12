@@ -8,10 +8,10 @@ import com.arkivanov.decompose.value.observe
 import com.arkivanov.decompose.value.reduce
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -129,7 +129,7 @@ class ProjectEditorComponent(
 		return !isDetailShown()
 	}
 
-	override fun storeDirtyBuffers() {
+	override suspend fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
 

@@ -22,182 +22,250 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun Settings(
-    component: ProjectSelection,
-    modifier: Modifier = Modifier
+	component: ProjectSelection,
+	modifier: Modifier = Modifier
 ) {
-    val state by component.state.subscribeAsState()
+	val state by component.state.subscribeAsState()
 
-    var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
-    var showDirectoryPicker by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
+	var showDirectoryPicker by remember { mutableStateOf(false) }
+	val snackbarHostState = remember { SnackbarHostState() }
+	val scope = rememberCoroutineScope()
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = modifier
-                .padding(Ui.Padding.L)
-                .fillMaxSize()
-        ) {
-            Text(
-                MR.strings.settings_heading.get(),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(Ui.Padding.L)
-            )
+	Box(modifier = modifier.fillMaxSize()) {
+		Column(
+			modifier = modifier
+				.padding(Ui.Padding.L)
+				.fillMaxSize()
+		) {
+			Text(
+				MR.strings.settings_heading.get(),
+				style = MaterialTheme.typography.headlineLarge,
+				color = MaterialTheme.colorScheme.onBackground,
+				modifier = Modifier.padding(Ui.Padding.L)
+			)
 
-            Divider(modifier = Modifier.fillMaxWidth())
+			Divider(modifier = Modifier.fillMaxWidth())
 
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Spacer(modifier = Modifier.size(Ui.Padding.L))
-                Column(modifier = Modifier.padding(Ui.Padding.M)) {
-                    Text(
-                        MR.strings.settings_theme_label.get(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
+			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+				Column(modifier = Modifier.padding(Ui.Padding.M)) {
+					Text(
+						MR.strings.settings_theme_label.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
 
-                    Spacer(modifier = Modifier.size(Ui.Padding.M))
+					Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-                    val themeOptions = remember { UiTheme.values().toList() }
-                    ExposedDropDown(
-                        modifier = Modifier.defaultMinSize(minWidth = 256.dp),
-                        items = themeOptions,
-                        defaultIndex = themeOptions.indexOf(state.uiTheme)
-                    ) { selectedTheme ->
-                        if (selectedTheme != null) {
-                            component.setUiTheme(selectedTheme)
-                        }
-                    }
-                }
+					val themeOptions = remember { UiTheme.values().toList() }
+					ExposedDropDown(
+						modifier = Modifier.defaultMinSize(minWidth = 256.dp),
+						items = themeOptions,
+						defaultIndex = themeOptions.indexOf(state.uiTheme)
+					) { selectedTheme ->
+						if (selectedTheme != null) {
+							component.setUiTheme(selectedTheme)
+						}
+					}
+				}
 
-                if (component.showProjectDirectory) {
-                    Spacer(modifier = Modifier.size(Ui.Padding.XL))
+				if (component.showProjectDirectory) {
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-                    Column(modifier = Modifier.padding(Ui.Padding.M)) {
-                        Text(
-                            MR.strings.settings_projects_directory.get(),
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
+					Column(modifier = Modifier.padding(Ui.Padding.M)) {
+						Text(
+							MR.strings.settings_projects_directory.get(),
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onBackground,
+						)
 
-                        Spacer(modifier = Modifier.size(Ui.Padding.M))
+						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-                        TextField(
-                            value = projectsPathText,
-                            onValueChange = { projectsPathText = it },
-                            enabled = false,
-                            label = {
-                                Text(MR.strings.settings_projects_directory_hint.get())
-                            }
-                        )
+						TextField(
+							value = projectsPathText,
+							onValueChange = { projectsPathText = it },
+							enabled = false,
+							label = {
+								Text(MR.strings.settings_projects_directory_hint.get())
+							}
+						)
 
-                        Spacer(modifier = Modifier.size(Ui.Padding.M))
+						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-                        Button(onClick = { showDirectoryPicker = true }) {
-                            Text(MR.strings.settings_projects_directory_button.get())
-                        }
-                    }
-                }
+						Button(onClick = { showDirectoryPicker = true }) {
+							Text(MR.strings.settings_projects_directory_button.get())
+						}
+					}
+				}
 
-                Spacer(modifier = Modifier.size(Ui.Padding.XL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-                Column(modifier = Modifier.padding(Ui.Padding.M)) {
-                    Text(
-                        MR.strings.settings_example_project_header.get(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        MR.strings.settings_example_project_description.get(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontStyle = FontStyle.Italic
-                    )
+				Column(modifier = Modifier.padding(Ui.Padding.M)) {
+					Text(
+						MR.strings.settings_example_project_header.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
+					Text(
+						MR.strings.settings_example_project_description.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onBackground,
+						fontStyle = FontStyle.Italic
+					)
 
-                    Spacer(modifier = Modifier.size(Ui.Padding.M))
+					Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-                    val successMessage = MR.strings.settings_example_project_success_message.get()
-                    Button(onClick = {
-                        scope.launch {
-                            component.reinstallExampleProject()
-                            snackbarHostState.showSnackbar(successMessage)
-                        }
-                    }) {
-                        Text(MR.strings.settings_example_project_button.get())
-                    }
-                }
+					val successMessage = MR.strings.settings_example_project_success_message.get()
+					Button(onClick = {
+						scope.launch {
+							component.reinstallExampleProject()
+							snackbarHostState.showSnackbar(successMessage)
+						}
+					}) {
+						Text(MR.strings.settings_example_project_button.get())
+					}
+				}
 
-                Spacer(modifier = Modifier.size(Ui.Padding.XL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-                Column(modifier = Modifier.padding(Ui.Padding.M)) {
-                    Text(
-                        MR.strings.settings_server_header.get(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        MR.strings.settings_server_description.get(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontStyle = FontStyle.Italic
-                    )
+				Column(modifier = Modifier.padding(Ui.Padding.M)) {
+					Text(
+						MR.strings.settings_server_header.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
+					Text(
+						MR.strings.settings_server_description.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onBackground,
+						fontStyle = FontStyle.Italic
+					)
 
-                    val serverUrl = state.serverUrl
-                    if (serverUrl == null) {
-                        Button(onClick = {
-                            scope.launch {
-                                component.beginSetupServer()
-                            }
-                        }) {
-                            Text(MR.strings.settings_server_setup_button.get())
-                        }
-                    } else {
-                        Row {
-                            Text(
-                                MR.strings.settings_server_url_label.get(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
+					val serverUrl = state.serverUrl
+					if (serverUrl == null) {
+						Button(onClick = {
+							scope.launch {
+								component.beginSetupServer()
+							}
+						}) {
+							Text(MR.strings.settings_server_setup_button.get())
+						}
+					} else {
+						Row {
+							Text(
+								MR.strings.settings_server_url_label.get(),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onBackground,
+							)
 
-                            Text(
-                                serverUrl,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                fontStyle = FontStyle.Italic
-                            )
-                        }
-                        Button(onClick = {
-                            scope.launch {
-                                component.authTest()
-                            }
-                        }) {
-                            //Text(MR.strings.settings_server_modify_button.get())
-                            Text("Test Auth")
-                        }
-                        Button(onClick = {
-                            scope.launch {
-                                component.removeServer()
-                            }
-                        }) {
-                            //Text(MR.strings.settings_server_modify_button.get())
-                            Text("Remove Server")
-                        }
-                    }
-                }
-            }
-        }
+							Text(
+								serverUrl,
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onBackground,
+								fontStyle = FontStyle.Italic
+							)
+						}
 
-        SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
-    }
+						Row {
+							var autoBackupsValue by remember { mutableStateOf(state.syncAutomaticBackups) }
+							Checkbox(
+								checked = autoBackupsValue,
+								onCheckedChange = {
+									scope.launch { component.setAutomaticBackups(it) }
+									autoBackupsValue = it
+								}
+							)
+							Text(
+								"Backup on sync",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onBackground,
+								modifier = Modifier.align(Alignment.CenterVertically)
+							)
+						}
 
-    ServerSetupDialog(state, component, scope, snackbarHostState)
+						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-    DirectoryPicker(showDirectoryPicker) { path ->
-        showDirectoryPicker = false
+						Row {
+							var autoCloseValue by remember { mutableStateOf(state.syncAutoCloseDialog) }
+							Checkbox(
+								checked = autoCloseValue,
+								onCheckedChange = {
+									scope.launch { component.setAutoCloseDialogs(it) }
+									autoCloseValue = it
+								}
+							)
+							Text(
+								"Close Sync Dialogs on Success",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onBackground,
+								modifier = Modifier.align(Alignment.CenterVertically)
+							)
+						}
 
-        if (path != null) {
-            projectsPathText = path
-            component.setProjectsDir(projectsPathText)
-        }
-    }
+						/*
+						Row {
+							Checkbox(
+								checked = state.syncAutomaticSync,
+								onCheckedChange = { scope.launch { component.setAutoSyncing(it) } }
+							)
+							Text("Auto-Sync")
+						}
+						*/
+
+						Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+						var maxBackupsValue by remember { mutableStateOf("${state.maxBackups}") }
+						OutlinedTextField(
+							modifier = Modifier.width(128.dp),
+							value = maxBackupsValue,
+							onValueChange = {
+								val value = it.toIntOrNull()
+								if (value != null && value >= 0) {
+									maxBackupsValue = it
+									scope.launch { component.setMaxBackups(value) }
+								}
+							},
+							label = { Text("Max Backups per Project") },
+						)
+
+						Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+						Button(onClick = {
+							scope.launch {
+								component.authTest()
+							}
+						}) {
+							//Text(MR.strings.settings_server_modify_button.get())
+							Text("Test Auth")
+						}
+
+						Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+						Button(onClick = {
+							scope.launch {
+								component.removeServer()
+							}
+						}) {
+							//Text(MR.strings.settings_server_modify_button.get())
+							Text("Remove Server")
+						}
+					}
+				}
+			}
+		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+	}
+
+	ServerSetupDialog(state, component, scope, snackbarHostState)
+
+	DirectoryPicker(showDirectoryPicker) { path ->
+		showDirectoryPicker = false
+
+		if (path != null) {
+			projectsPathText = path
+			component.setProjectsDir(projectsPathText)
+		}
+	}
 }

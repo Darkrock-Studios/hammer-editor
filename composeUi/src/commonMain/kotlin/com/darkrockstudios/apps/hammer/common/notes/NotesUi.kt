@@ -18,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
 import com.darkrockstudios.apps.hammer.common.util.format
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -95,6 +98,8 @@ fun NoteItem(
     component: Notes,
     modifier: Modifier = Modifier,
 ) {
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
 	var isEditing by remember { mutableStateOf(false) }
 	var updatedNoteText by remember { mutableStateOf(note.content) }
 
@@ -110,8 +115,12 @@ fun NoteItem(
 					Column(modifier = Modifier.weight(1f)) {
 						Row {
 							IconButton(onClick = {
-								component.updateNote(note.copy(content = updatedNoteText))
-								isEditing = false
+								scope.launch {
+									component.updateNote(note.copy(content = updatedNoteText))
+									withContext(mainDispatcher) {
+										isEditing = false
+									}
+								}
 							}) {
 								Icon(
 									Icons.Filled.Check,

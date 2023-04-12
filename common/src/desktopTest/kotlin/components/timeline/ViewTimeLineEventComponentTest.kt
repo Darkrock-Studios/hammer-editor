@@ -5,19 +5,22 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import getProjectDef
 import io.mockk.coEvery
-import io.mockk.verify
+import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import repositories.timeline.TimeLineTestBase
 import repositories.timeline.fakeEvents
-import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ViewTimeLineEventComponentTest : TimeLineTestBase() {
+
 	@Test
 	fun `Update event`() = runTest {
+		coEvery { timelineRepo.updateEvent(any()) } returns true
+
 		val eventId = 0
 
 		val originalEvents = fakeEvents()
@@ -42,12 +45,10 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			date = date,
 			content = content
 		)
-		component.updateEvent(updatedEvent)
-		advanceUntilIdle()
-
-		assertEquals(updatedEvent, component.state.value.event, "Timeline did not propagate")
+		val success = component.updateEvent(updatedEvent)
+		assertTrue(success, "Update event failed")
 
 		// After the update, it should save back to repository
-		verify(exactly = 1) { timelineRepo.storeTimeline(any()) }
+		coVerify(exactly = 1) { timelineRepo.updateEvent(updatedEvent) }
 	}
 }

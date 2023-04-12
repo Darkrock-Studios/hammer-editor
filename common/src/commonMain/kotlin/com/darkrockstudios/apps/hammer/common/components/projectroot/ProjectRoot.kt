@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
+import com.arkivanov.decompose.router.overlay.ChildOverlay
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
@@ -7,11 +8,13 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
 	val routerState: Value<ChildStack<*, Destination<*>>>
+	val modalRouterState: Value<ChildOverlay<ProjectRootModalRouter.Config, ModalDestination>>
 	val shouldConfirmClose: Value<Boolean>
 	val backEnabled: Value<Boolean>
 
@@ -19,8 +22,12 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 	fun showNotes()
 	fun showEncyclopedia()
 	fun showHome()
+	fun showTimeLine()
 	fun showDestination(type: DestinationTypes)
 	fun isAtRoot(): Boolean
+
+	fun showProjectSync()
+	fun dismissProjectSync()
 
 	sealed class Destination<T> : Router {
 		abstract val component: T
@@ -50,6 +57,12 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 		}
 	}
 
+	sealed class ModalDestination {
+		object None : ModalDestination()
+
+		data class ProjectSync(val component: ProjectSyncComponent) : ModalDestination()
+	}
+
 	enum class DestinationTypes(val text: String) {
 		Home("Home"),
 		Editor("Editor"),
@@ -57,6 +70,4 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 		Encyclopedia("Encyclopedia"),
 		TimeLine("Time Line"),
 	}
-
-	fun showTimeLine()
 }

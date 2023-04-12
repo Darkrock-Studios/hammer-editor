@@ -56,28 +56,32 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 				ProjectSelection.State(
 					projectsDir = HPath("/asd/asd", "asd", true),
 					projects = listOf(
-                        fakeProjectData(),
-                        fakeProjectData(),
-                        fakeProjectData(),
-                        fakeProjectData(),
-                    ),
-                    uiTheme = UiTheme.Dark
-                )
-            )
+						fakeProjectData(),
+						fakeProjectData(),
+						fakeProjectData(),
+						fakeProjectData(),
+					),
+					uiTheme = UiTheme.Dark,
+					syncAutomaticSync = true,
+					syncAutomaticBackups = true,
+					syncAutoCloseDialog = true,
+					maxBackups = 5
+				)
+			)
 
-        override fun loadProjectList() {}
-        override fun setProjectsDir(path: String) {}
-        override fun selectProject(projectDef: ProjectDef) {}
-        override fun createProject(projectName: String) {}
-        override fun deleteProject(projectDef: ProjectDef) {}
-        override fun showLocation(location: ProjectSelection.Locations) {}
-        override fun setUiTheme(theme: UiTheme) {}
-        override suspend fun reinstallExampleProject() {}
-        override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
-            return null
-        }
+		override fun loadProjectList() {}
+		override fun setProjectsDir(path: String) {}
+		override fun selectProject(projectDef: ProjectDef) {}
+		override fun createProject(projectName: String) {}
+		override fun deleteProject(projectDef: ProjectDef) {}
+		override fun showLocation(location: ProjectSelection.Locations) {}
+		override fun setUiTheme(theme: UiTheme) {}
+		override suspend fun reinstallExampleProject() {}
+		override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
+			return null
+		}
 
-        override fun beginSetupServer() {}
+		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}
 		override suspend fun setupServer(
 			ssl: Boolean,
@@ -89,6 +93,14 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 
 		override suspend fun authTest() {}
 		override fun removeServer() {}
+		override fun syncProjects(callback: (Boolean) -> Unit) {}
+		override fun showProjectsSync() {}
+		override fun hideProjectsSync() {}
+		override fun cancelProjectsSync() {}
+		override suspend fun setAutomaticBackups(value: Boolean) {}
+		override suspend fun setAutoCloseDialogs(value: Boolean) {}
+		override suspend fun setAutoSyncing(value: Boolean) {}
+		override suspend fun setMaxBackups(value: Int) {}
 	}
 }
 

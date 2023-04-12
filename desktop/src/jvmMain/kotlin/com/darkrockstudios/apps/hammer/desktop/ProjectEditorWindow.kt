@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
@@ -25,9 +22,12 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @ExperimentalComposeApi
 @ExperimentalDecomposeApi
@@ -63,6 +63,9 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
 	) {
+		val scope = rememberCoroutineScope()
+		val mainDispatcher = rememberMainDispatcher()
+
 		Column {
 			EditorMenuBar(component, app, ::onRequestClose)
 
@@ -71,14 +74,18 @@ internal fun ApplicationScope.ProjectEditorWindow(
 
 		if (closeDialog.value != ApplicationState.CloseType.None) {
 			confirmCloseDialog(closeDialog.value) { result, closeType ->
-				if (result == ConfirmCloseResult.SaveAll) {
-					component.storeDirtyBuffers()
-				}
+				scope.launch {
+					if (result == ConfirmCloseResult.SaveAll) {
+						component.storeDirtyBuffers()
+					}
 
-				app.dismissConfirmProjectClose()
+					withContext(mainDispatcher) {
+						app.dismissConfirmProjectClose()
 
-				if (result != ConfirmCloseResult.Cancel) {
-					performClose(app, closeType)
+						if (result != ConfirmCloseResult.Cancel) {
+							performClose(app, closeType)
+						}
+					}
 				}
 			}
 		}

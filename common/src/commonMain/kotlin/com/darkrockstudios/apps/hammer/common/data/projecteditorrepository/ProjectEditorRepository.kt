@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -16,6 +19,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import okio.Closeable
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.milliseconds
@@ -23,7 +27,8 @@ import kotlin.time.Duration.Companion.milliseconds
 abstract class ProjectEditorRepository(
 	val projectDef: ProjectDef,
 	private val projectsRepository: ProjectsRepository,
-	protected val idRepository: IdRepository
+	protected val idRepository: IdRepository,
+	protected val projectSynchronizer: ClientProjectSynchronizer,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(
@@ -34,8 +39,16 @@ abstract class ProjectEditorRepository(
 		order = 0
 	)
 
-	private lateinit var metadata: ProjectMetadata
-	fun getMetadata() = metadata
+	private val metadata = MutableSharedFlow<ProjectMetadata>(
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+
+	suspend fun getMetadata(): ProjectMetadata {
+		return metadata.first()
+	}
+
 
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
@@ -61,12 +74,28 @@ abstract class ProjectEditorRepository(
 	val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
 
 	protected val sceneTree = Tree<SceneItem>()
+	val rawTree: Tree<SceneItem>
+		get() = sceneTree
 
 	protected abstract fun loadSceneTree(): TreeNode<SceneItem>
 
+	protected suspend fun markForSynchronization(scene: SceneItem) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val content = loadSceneMarkdownRaw(scene)
+			val hash = EntityHash.hashScene(
+				id = scene.id,
+				order = scene.order,
+				name = scene.name,
+				type = scene.type.toApiType(),
+				content = content
+			)
+			projectSynchronizer.markEntityAsDirty(scene.id, hash)
+		}
+	}
+
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
-	private fun cleanupSceneOrder() {
+	suspend fun cleanupSceneOrder() {
 		val groups = sceneTree.filter {
 			it.value.type == SceneItem.Type.Group ||
 					it.value.type == SceneItem.Type.Root
@@ -128,7 +157,7 @@ abstract class ProjectEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	fun initializeProjectEditor(): ProjectEditorRepository {
+	suspend fun initializeProjectEditor(): ProjectEditorRepository {
 		val root = loadSceneTree()
 		sceneTree.setRoot(root)
 
@@ -145,10 +174,11 @@ abstract class ProjectEditorRepository(
 
 		reloadScenes()
 
-		metadata = loadMetadata()
+		val newMetadata = loadMetadata()
+		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescent(500.milliseconds).collect { content ->
+			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { content ->
 				if (updateSceneBufferContent(content)) {
 					launchSaveJob(content.scene)
 				}
@@ -166,10 +196,10 @@ abstract class ProjectEditorRepository(
 	abstract fun getSceneBufferDirectory(): HPath
 	abstract fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath
 	abstract fun getSceneBufferTempPath(sceneItem: SceneItem): HPath
-	abstract fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
-	abstract fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
-	abstract fun deleteScene(scene: SceneItem): Boolean
-	abstract fun deleteGroup(scene: SceneItem): Boolean
+	abstract suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
+	abstract suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
+	abstract suspend fun deleteScene(scene: SceneItem): Boolean
+	abstract suspend fun deleteGroup(scene: SceneItem): Boolean
 	abstract fun getScenes(): List<SceneItem>
 	abstract fun getSceneTree(): ImmutableTree<SceneItem>
 	abstract fun getScenes(root: HPath): List<SceneItem>
@@ -184,16 +214,34 @@ abstract class ProjectEditorRepository(
 	 * Anything that wishes to interact with scene content should use `loadSceneBuffer`
 	 * instead.
 	 */
-	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem): String
+	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath = getSceneFilePath(sceneItem)): String
+
+	/**
+	 * This should only be used for server syncing
+	 */
+	abstract suspend fun storeSceneMarkdownRaw(
+		sceneItem: SceneContent,
+		scenePath: HPath = getSceneFilePath(sceneItem.scene)
+	): Boolean
+
+	abstract fun getPathFromFilesystem(sceneItem: SceneItem): HPath?
+
+	/**
+	 * This should only be used for server syncing
+	 */
+	internal fun forceSceneListReload() {
+		reloadScenes()
+	}
+
 	abstract fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer
-	abstract fun storeSceneBuffer(sceneItem: SceneItem): Boolean
+	abstract suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean
 	abstract fun clearTempScene(sceneItem: SceneItem)
 	abstract fun getLastOrderNumber(parentId: Int?): Int
 	abstract fun getLastOrderNumber(parentPath: HPath): Int
-	abstract fun updateSceneOrder(parentId: Int)
-	abstract fun moveScene(moveRequest: MoveRequest)
-	abstract fun renameScene(sceneItem: SceneItem, newName: String)
+	abstract suspend fun updateSceneOrder(parentId: Int)
+	abstract suspend fun moveScene(moveRequest: MoveRequest)
+	abstract suspend fun renameScene(sceneItem: SceneItem, newName: String)
 
 	fun getSceneSummaries(): SceneSummary {
 		return SceneSummary(
@@ -230,16 +278,24 @@ abstract class ProjectEditorRepository(
 		_bufferUpdateFlow.tryEmit(newBuffer)
 	}
 
-	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneBuffers[sceneDef.id]
+	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
+	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffers[sceneId]
+
 	protected fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
-		sceneBuffers.containsKey(sceneDef.id)
+		hasSceneBuffer(sceneDef.id)
+
+	protected fun hasSceneBuffer(sceneId: Int): Boolean =
+		sceneBuffers.containsKey(sceneId)
 
 	protected fun hasDirtyBuffer(sceneDef: SceneItem): Boolean =
-		getSceneBuffer(sceneDef)?.dirty == true
+		hasDirtyBuffer(sceneDef.id)
+
+	protected fun hasDirtyBuffer(sceneId: Int): Boolean =
+		getSceneBuffer(sceneId)?.dirty == true
 
 	fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
 
-	fun storeAllBuffers() {
+	suspend fun storeAllBuffers() {
 		val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
 		dirtyScenes.forEach { scene ->
 			storeSceneBuffer(scene)
@@ -373,12 +429,21 @@ abstract class ProjectEditorRepository(
 		}
 	}
 
+	fun getPathSegments(sceneItem: SceneItem): List<Int> {
+		val hpath = getSceneFilePath(sceneItem.id)
+		return getScenePathSegments(hpath).pathSegments
+	}
+
+	abstract fun rationalizeTree()
+	abstract fun reIdScene(oldId: Int, newId: Int)
+
 	companion object {
 		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _']+)-(\d+)(\.md)?(?:\.temp)?""")
 		val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
 		const val SCENE_FILENAME_EXTENSION = ".md"
 		const val SCENE_DIRECTORY = "scenes"
 		const val BUFFER_DIRECTORY = ".buffers"
+		val BUFFER_COOL_DOWN = 500.milliseconds
 
 		fun getSceneIdFromFilename(fileName: String): Int {
 			val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)

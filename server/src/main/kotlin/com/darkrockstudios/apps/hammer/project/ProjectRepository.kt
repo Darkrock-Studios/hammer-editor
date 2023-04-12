@@ -1,95 +1,360 @@
 package com.darkrockstudios.apps.hammer.project
 
-import com.darkrockstudios.apps.hammer.getRootDataDirectory
-import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.getUserDirectory
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
-import java.io.File
-import java.io.FileOutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent
 
 class ProjectRepository(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val sceneSynchronizer: SceneSynchronizer
-) {
-	fun getRootDirectory(): Path = getRootDirectory(fileSystem)
+	private val clock: Clock
+) : KoinComponent {
+	private val sceneSynchronizer: ServerSceneSynchronizer by inject()
+	private val noteSynchronizer: ServerNoteSynchronizer by inject()
+	private val timelineEventSynchronizer: ServerTimelineSynchronizer by inject()
+	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer by inject()
+	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer by inject()
+
+	private val projectsSessions: SyncSessionManager<ProjectsSynchronizationSession> by KoinJavaComponent.inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECTS_SYNC_MANAGER)
+	)
+
+	private val sessionManager: SyncSessionManager<ProjectSynchronizationSession> by KoinJavaComponent.inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECT_SYNC_MANAGER)
+	)
+
 	fun getUserDirectory(userId: Long): Path = getUserDirectory(userId, fileSystem)
 	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
 		getEntityDirectory(userId, projectDef, fileSystem)
 
-	fun createUserData(userId: Long) {
-		val userDir = getUserDirectory(userId)
+	fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition): Path =
+		getProjectDirectory(userId, projectDef, fileSystem)
 
-		fileSystem.createDirectories(userDir)
+	private fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition): Path {
+		val dir = getProjectDirectory(userId, projectDef)
+		return dir / SYNC_DATA_FILE
+	}
 
-		val dataFile = userDir / DATA_FILE
-		val data = defaultData(userId)
-		val dataJson = json.encodeToString(data)
-		fileSystem.write(dataFile) {
-			writeUtf8(dataJson)
+	private fun getProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
+		val file = getProjectSyncDataPath(userId, projectDef)
+
+		return if (fileSystem.exists(file).not()) {
+			val newData = ProjectSyncData(
+				lastId = -1,
+				lastSync = Instant.DISTANT_PAST,
+				deletedIds = emptySet(),
+			)
+
+			fileSystem.write(file) {
+				val syncDataJson = json.encodeToString(newData)
+				writeUtf8(syncDataJson)
+			}
+
+			newData
+		} else {
+			val dataJson = fileSystem.read(file) {
+				readUtf8()
+			}
+			json.decodeFromString(dataJson)
 		}
-
-		/*
-		val projectsFile = userDir / PROJECT_FILE
-		// Create the zip file with a place holder entry
-		//val zipFs = fileSystem.openZip(projectsFile)
-		val zipFile = File(projectsFile.toString())
-		val out = ZipOutputStream(FileOutputStream(zipFile))
-		val e = ZipEntry(".")
-		out.putNextEntry(e)
-		val placeHolderData = "\n".toByteArray()
-		out.write(placeHolderData, 0, placeHolderData.size)
-		out.closeEntry()
-		out.close()
-		*/
 	}
 
-	fun userDataExists(userId: Long): Boolean {
-		val userDir = getUserDirectory(userId)
-		return fileSystem.exists(userDir)
+	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<ProjectSynchronizationBegan> {
+
+		val projectDir = getProjectDirectory(userId, projectDef)
+
+		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(userId)) {
+			Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+		} else {
+			if (!fileSystem.exists(projectDir)) {
+				createProject(userId, projectDef)
+			}
+
+			val projectSyncData = getProjectSyncData(userId, projectDef)
+
+			val newSyncId = sessionManager.createNewSession(userId) { user: Long, sync: String ->
+				ProjectSynchronizationSession(
+					userId = user,
+					projectDef = projectDef,
+					started = clock.now(),
+					syncId = sync
+				)
+			}
+
+			val syncBegan = ProjectSynchronizationBegan(
+				syncId = newSyncId,
+				lastId = projectSyncData.lastId,
+				lastSync = projectSyncData.lastSync,
+				deletedIds = projectSyncData.deletedIds,
+			)
+			Result.success(syncBegan)
+		}
 	}
 
-	fun hasProject(userId: Long, projectName: String): Boolean {
-		val userDir = getUserDirectory(userId)
-		val projectDir = userDir / projectName
+	suspend fun endProjectSync(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		syncId: String,
+		lastSync: Instant?,
+		lastId: Int?,
+	): Result<Boolean> {
+		val session = sessionManager.findSession(userId)
+		return if (session == null) {
+			Result.failure(IllegalStateException("User $userId does not have a synchronization session"))
+		} else {
+			if (session.syncId != syncId) {
+				Result.failure(IllegalStateException("Invalid sync id"))
+			} else {
+				// Update sync data if it was sent
+				if (lastSync != null && lastId != null) {
+					updateSyncData(userId, projectDef) {
+						it.copy(
+							lastSync = lastSync,
+							lastId = lastId,
+						)
+					}
+				}
 
-		return fileSystem.exists(projectDir)
+				sessionManager.terminateSession(userId)
+				Result.success(true)
+			}
+		}
 	}
 
-	fun saveEntity(userId: Long, projectDef: ProjectDefinition, entity: ProjectEntity): Result<Boolean> {
-		ensureEntityDir(userId, projectDef, entity)
+	suspend fun getProjectSyncData(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		syncId: String
+	): Result<ProjectServerState> {
+		if (validateSyncId(userId, syncId).not())
+			return Result.failure(IllegalStateException("Sync Id not valid"))
+
+		val projectDir = getProjectDirectory(userId, projectDef)
+
+		return if (fileSystem.exists(projectDir)) {
+			val projectSyncData = getProjectSyncData(userId, projectDef)
+			Result.success(
+				ProjectServerState(
+					lastSync = projectSyncData.lastSync,
+					lastId = projectSyncData.lastId
+				)
+			)
+		} else {
+			Result.failure(IllegalStateException("Project does not exist"))
+		}
+	}
+
+	suspend fun saveEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entity: ApiProjectEntity,
+		originalHash: String?,
+		syncId: String,
+		force: Boolean
+	): Result<Boolean> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
-			is ProjectEntity.SceneEntity -> sceneSynchronizer.saveScene(userId, projectDef, entity)
+			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
+
+			is ApiProjectEntity.NoteEntity -> noteSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
+
+			is ApiProjectEntity.TimelineEventEntity -> timelineEventSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
+
+			is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
+
+			is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}
 
-	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition, entity: ProjectEntity) {
+	suspend fun deleteEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		syncId: String,
+	): Result<Boolean> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		updateSyncData(userId, projectDef) {
+			it.copy(
+				deletedIds = it.deletedIds + entityId
+			)
+		}
+
+		val entityType: ApiProjectEntity.Type =
+			getEntityType(userId, projectDef, entityId) ?: return Result.failure(NoEntityTypeFound(entityId))
+
+		when (entityType) {
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.NOTE -> noteSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(userId, projectDef, entityId)
+		}
+
+		return Result.success(true)
+	}
+
+	private fun getEntityType(userId: Long, projectDef: ProjectDefinition, entityId: Int): ApiProjectEntity.Type? {
+		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
+		val files = fileSystem.list(entityDir)
+		for (entityPath in files) {
+			ServerEntitySynchronizer.ENTITY_FILENAME_REGEX.matchEntire(entityPath.name)?.let { match ->
+				val id = match.groupValues[1].toInt()
+				if (id == entityId) {
+					val typeStr = match.groupValues[2]
+					ApiProjectEntity.Type.fromString(typeStr)?.let { type ->
+						return type
+					}
+				}
+			}
+		}
+		return null
+	}
+
+	private fun createProject(userId: Long, projectDef: ProjectDefinition) {
+		val projectDir = getProjectDirectory(userId, projectDef)
+		fileSystem.createDirectories(projectDir)
+
+		getProjectSyncDataPath(userId, projectDef).let { syncDataPath ->
+			if (fileSystem.exists(syncDataPath).not()) {
+				val data = ProjectSyncData(
+					lastSync = Instant.DISTANT_PAST,
+					lastId = 0,
+					deletedIds = emptySet()
+				)
+				val dataJson = json.encodeToString(data)
+
+				fileSystem.write(syncDataPath) {
+					writeUtf8(dataJson)
+				}
+			}
+		}
+	}
+
+	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
 		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
 		fileSystem.createDirectories(entityDir)
 	}
 
+	suspend fun loadEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		syncId: String
+	): Result<ApiProjectEntity> {
+		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+
+		val type = findEntityType(entityId, userId, projectDef)
+			?: return Result.failure(IllegalStateException("Entity does not exist"))
+
+		return when (type) {
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.NOTE -> noteSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.loadEntity(userId, projectDef, entityId)
+		}
+	}
+
+	private suspend fun findEntityType(
+		entityId: Int,
+		userId: Long,
+		projectDef: ProjectDefinition
+	): ApiProjectEntity.Type? {
+		val dir = getEntityDirectory(userId, projectDef)
+		fileSystem.list(dir).forEach { path ->
+			val def = ServerEntitySynchronizer.parseEntityFilename(path)
+			if (def?.id == entityId) {
+				return def.type
+			}
+		}
+		return null
+	}
+
+	private fun updateSyncData(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		action: (ProjectSyncData) -> ProjectSyncData
+	) {
+		val data = getProjectSyncData(userId, projectDef)
+		val updated = action(data)
+		val newSyncDataJson = json.encodeToString(updated)
+		val path = getProjectSyncDataPath(userId, projectDef)
+		fileSystem.write(path) {
+			writeUtf8(newSyncDataJson)
+		}
+	}
+
+	private suspend fun validateSyncId(userId: Long, syncId: String): Boolean {
+		return !projectsSessions.hasActiveSyncSession(userId) &&
+				sessionManager.validateSyncId(userId, syncId)
+	}
+
 	companion object {
-		private const val DATA_DIRECTORY = "user_data"
-		private const val DATA_FILE = "data.json"
-
+		const val SYNC_DATA_FILE = "syncData.json"
 		const val ENTITY_DIR = "entities"
-
-		fun defaultData(userId: Long): SyncData {
-			return SyncData()
-		}
-
-		fun getRootDirectory(fileSystem: FileSystem): Path = getRootDataDirectory(fileSystem) / DATA_DIRECTORY
-
-		fun getUserDirectory(userId: Long, fileSystem: FileSystem): Path {
-			val dir = getRootDirectory(fileSystem)
-			return dir / userId.toString()
-		}
 
 		fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
 			val dir = getUserDirectory(userId, fileSystem)
@@ -100,5 +365,15 @@ class ProjectRepository(
 			val dir = getProjectDirectory(userId, projectDef, fileSystem)
 			return dir / ENTITY_DIR
 		}
+
+		fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
+			val dir = getProjectDirectory(userId, projectDef, fileSystem)
+			return dir / SYNC_DATA_FILE
+		}
 	}
 }
+
+data class ProjectServerState(val lastSync: Instant, val lastId: Int)
+
+class InvalidSyncIdException : Exception("Invalid sync id")
+class NoEntityTypeFound(val id: Int) : Exception("Could not find Type for Entity ID: $id")

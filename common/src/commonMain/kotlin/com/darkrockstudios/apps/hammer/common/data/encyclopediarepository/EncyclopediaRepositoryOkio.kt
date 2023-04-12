@@ -1,16 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.soywiz.krypto.encoding.Base64
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
@@ -24,7 +28,9 @@ class EncyclopediaRepositoryOkio(
 	idRepository: IdRepository,
 	private val toml: Toml,
 	private val fileSystem: FileSystem,
-	private val externalFileIo: ExternalFileIo
+	private val externalFileIo: ExternalFileIo,
+	private val projectSynchronizer: ClientProjectSynchronizer
+
 ) : EncyclopediaRepository(projectDef, idRepository) {
 
 	override fun getTypeDirectory(type: EntryType): HPath {
@@ -85,13 +91,34 @@ class EncyclopediaRepositoryOkio(
 	}
 
 	override fun loadEntries() {
+		scope.launch {
+			loadEntriesImperetive()
+		}
+	}
+
+	override suspend fun loadEntriesImperetive() {
 		val dir = getEncyclopediaDirectory().toOkioPath()
 		val entryPaths = fileSystem.listRecursively(dir).filterEntryPathsOkio().toList()
 		val entryDefs = entryPaths.map { path -> getEntryDef(path.toHPath()) }
 
-		scope.launch {
-			updateEntries(entryDefs)
+		updateEntries(entryDefs)
+	}
+
+	override fun loadEntry(id: Int): EntryContainer {
+		val path = getEntryPath(id)
+		return loadEntry(path)
+	}
+
+	override fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray {
+		val imagePath = getEntryImagePath(entryDef, fileExtension)
+		fileSystem.read(imagePath.toOkioPath()) {
+			return readByteArray()
 		}
+	}
+
+	override fun getEntryDef(id: Int): EntryDef {
+		val path = getEntryPath(id)
+		return getEntryDefFromFilename(path.name, projectDef)
 	}
 
 	override fun getEntryDef(entryPath: HPath): EntryDef {
@@ -113,7 +140,7 @@ class EncyclopediaRepositoryOkio(
 		return entry
 	}
 
-	override fun createEntry(
+	override suspend fun createEntry(
 		name: String,
 		type: EntryType,
 		text: String,
@@ -142,14 +169,19 @@ class EncyclopediaRepositoryOkio(
 			writeUtf8(entryToml)
 		}
 
+		val newDef = entry.toDef(projectDef)
 		if (imagePath != null) {
-			setEntryImage(entry.toDef(projectDef), imagePath)
+			setEntryImage(newDef, imagePath)
 		}
+
+		markForSynchronization(newDef)
 
 		return EntryResult(container, EntryError.NONE)
 	}
 
-	override fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+	override suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+		markForSynchronization(entryDef)
+
 		val targetPath = getEntryImagePath(entryDef, "jpg").toOkioPath()
 		if (imagePath != null) {
 			val pixelData = externalFileIo.readExternalFile(imagePath)
@@ -161,17 +193,48 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override fun deleteEntry(entryDef: EntryDef): Boolean {
+	override suspend fun markForSynchronization(entryDef: EntryDef) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(entryDef.id)) {
+			val DEFAULT_EXTENSION = "jpg"
+			val entry = loadEntry(entryDef).entry
+			val image = if (hasEntryImage(entryDef, DEFAULT_EXTENSION)) {
+				val imageBytes = loadEntryImage(entryDef, DEFAULT_EXTENSION)
+				val imageBase64 = Base64.encode(imageBytes, url = true)
+
+				ApiProjectEntity.EncyclopediaEntryEntity.Image(
+					base64 = imageBase64,
+					fileExtension = DEFAULT_EXTENSION,
+				)
+			} else {
+				null
+			}
+			val hash = EntityHash.hashEncyclopediaEntry(
+				id = entryDef.id,
+				name = entryDef.name,
+				entryType = entryDef.type.text,
+				text = entry.text,
+				tags = entry.tags,
+				image = image
+			)
+			projectSynchronizer.markEntityAsDirty(entryDef.id, hash)
+		}
+	}
+
+	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		val path = getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
 
 		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
 		fileSystem.delete(imagePath)
 
+		projectSynchronizer.recordIdDeletion(entryDef.id)
+
 		return true
 	}
 
-	override fun removeEntryImage(entryDef: EntryDef): Boolean {
+	override suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
+		markForSynchronization(entryDef)
+
 		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
 
 		return try {
@@ -184,7 +247,7 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override fun updateEntry(
+	override suspend fun updateEntry(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,
@@ -193,6 +256,8 @@ class EncyclopediaRepositoryOkio(
 
 		val result = validateEntry(name, oldEntryDef.type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
+
+		markForSynchronization(oldEntryDef)
 
 		val cleanedTags = tags.map { it.trim() }
 
@@ -218,7 +283,23 @@ class EncyclopediaRepositoryOkio(
 		return EntryResult(container, EntryError.NONE)
 	}
 
+	override suspend fun reIdEntry(oldId: Int, newId: Int) {
+		val def = getEntryDef(oldId)
+		if (hasEntryImage(def, DEFAULT_IMAGE_EXT)) {
+			val oldImagePath = getEntryImagePath(def, DEFAULT_IMAGE_EXT).toOkioPath()
+			val newImagePath = getEntryImagePath(def.copy(id = newId), DEFAULT_IMAGE_EXT).toOkioPath()
+			fileSystem.atomicMove(oldImagePath, newImagePath)
+		}
+
+		val oldPath = getEntryPath(oldId).toOkioPath()
+		val newPath = getEntryPath(newId).toOkioPath()
+		fileSystem.atomicMove(oldPath, newPath)
+
+		loadEntriesImperetive()
+	}
+
 	companion object {
+		const val DEFAULT_IMAGE_EXT = "jpg"
 		fun getTypeDirectory(
 			projectDef: ProjectDef,
 			type: EntryType,

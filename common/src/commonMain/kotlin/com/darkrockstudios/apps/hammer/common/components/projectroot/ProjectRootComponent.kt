@@ -1,28 +1,38 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.overlay.ChildOverlay
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	addMenu: (menu: MenuDescriptor) -> Unit,
-	removeMenu: (id: String) -> Unit,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
+	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
+
+	private val synchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectEditor: ProjectEditorRepository by projectInject()
 	private val notes: NotesRepository by projectInject()
 
 	init {
-		projectEditor.initializeProjectEditor()
+		projectEditor.subscribeToBufferUpdates(null, scope) {
+			Napier.d { "subscribeToBufferUpdates" }
+			updateCloseConfirmRequirement()
+		}
+
+		scope.launch {
+			projectEditor.initializeProjectEditor()
+		}
 	}
 
 	private val _backEnabled = MutableValue(true)
@@ -37,12 +47,21 @@ class ProjectRootComponent(
 		addMenu,
 		removeMenu,
 		::updateCloseConfirmRequirement,
+		::showProjectSync,
 		scope,
 		dispatcherMain
 	)
 
+	private val modalRouter = ProjectRootModalRouter(
+		componentContext,
+		projectDef
+	)
+
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
 		get() = router.state
+
+	override val modalRouterState: Value<ChildOverlay<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
+		get() = modalRouter.state
 
 	override fun showEditor() {
 		router.showEditor()
@@ -79,11 +98,15 @@ class ProjectRootComponent(
 		return projectEditor.hasDirtyBuffers()
 	}
 
-	override fun storeDirtyBuffers() {
+	override suspend fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
 
-	override fun isAtRoot() = router.isAtRoot()
+	override fun isAtRoot() = router.isAtRoot() && modalRouter.isAtRoot()
+
+	override fun showProjectSync() = modalRouter.showProjectSync()
+
+	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
 
 	private fun updateCloseConfirmRequirement() {
 		_shouldConfirmClose.value = hasUnsavedBuffers() && router.isAtRoot()
@@ -98,10 +121,39 @@ class ProjectRootComponent(
 		projectScope.closeScope()
 	}
 
-	init {
-		projectEditor.subscribeToBufferUpdates(null, scope) {
-			Napier.d { "subscribeToBufferUpdates" }
-			updateCloseConfirmRequirement()
+	override fun onStart() {
+		super.onStart()
+		addMenuItems()
+	}
+
+	override fun onStop() {
+		super.onStop()
+		removeMenuItems()
+	}
+
+	private fun addMenuItems() {
+		if (synchronizer.isServerSynchronized()) {
+			addMenu(
+				MenuDescriptor(
+					id = "project-root-sync",
+					label = "Sync",
+					items = listOf(
+						MenuItemDescriptor(
+							id = "project-root-sync-start",
+							label = "Start",
+							icon = "",
+							shortcut = KeyShortcut(keyCode = 0x72),
+							action = { showProjectSync() }
+						)
+					)
+				)
+			)
+		}
+	}
+
+	private fun removeMenuItems() {
+		if (synchronizer.isServerSynchronized()) {
+			removeMenu("project-root-sync")
 		}
 	}
 }

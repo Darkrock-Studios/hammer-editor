@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.dependencyinjection
+package com.darkrockstudios.apps.hammer.base.http
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json

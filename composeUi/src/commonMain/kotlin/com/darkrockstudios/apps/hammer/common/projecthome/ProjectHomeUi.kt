@@ -251,6 +251,8 @@ private fun EncyclopediaChart(
 				)
 			},
 		)
+	} else {
+		Spacer(modifier = Modifier.size(128.dp))
 	}
 }
 
@@ -324,8 +326,22 @@ private fun Actions(
 		}
 		if (state.hasServer) {
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-			Button(onClick = component::syncProject) {
+			Button(onClick = component::startProjectSync) {
 				Text("Sync Story")
+			}
+		}
+		if (component.supportsBackup()) {
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			Button(onClick = {
+				component.createBackup { backup ->
+					if (backup != null) {
+						scope.launch { snackbarHostState.showSnackbar("Backup Created: ${backup.path.name}") }
+					} else {
+						scope.launch { snackbarHostState.showSnackbar("Failed to create backup!") }
+					}
+				}
+			}) {
+				Text("Backup")
 			}
 		}
 	}

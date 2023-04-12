@@ -24,16 +24,19 @@ fun DraftsListUiPreview() {
 				sceneItem = fakeSceneItem(),
 				drafts = listOf(
 					DraftDef(
+						id = 3,
 						sceneId = 0,
 						draftTimestamp = Clock.System.now(),
 						draftName = "Test Draft"
 					),
 					DraftDef(
+						id = 4,
 						sceneId = 1,
 						draftTimestamp = Clock.System.now(),
 						draftName = "Test Draft 2"
 					),
 					DraftDef(
+						id = 5,
 						sceneId = 2,
 						draftTimestamp = Clock.System.now(),
 						draftName = "Another Test Draft"

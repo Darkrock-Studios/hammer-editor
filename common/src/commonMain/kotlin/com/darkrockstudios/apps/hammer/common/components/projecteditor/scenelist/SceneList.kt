@@ -6,11 +6,11 @@ import com.darkrockstudios.apps.hammer.common.data.*
 interface SceneList {
 	val state: Value<State>
 	fun onSceneSelected(sceneDef: SceneItem)
-	fun moveScene(moveRequest: MoveRequest)
+	suspend fun moveScene(moveRequest: MoveRequest)
 	fun loadScenes()
-	fun createScene(parent: SceneItem?, sceneName: String)
-	fun createGroup(parent: SceneItem?, groupName: String)
-	fun deleteScene(scene: SceneItem)
+	suspend fun createScene(parent: SceneItem?, sceneName: String)
+	suspend fun createGroup(parent: SceneItem?, groupName: String)
+	suspend fun deleteScene(scene: SceneItem)
 
 	fun onSceneListUpdate(scenes: SceneSummary)
 	fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)

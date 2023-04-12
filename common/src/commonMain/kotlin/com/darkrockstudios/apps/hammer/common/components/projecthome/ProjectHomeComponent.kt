@@ -5,19 +5,19 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,14 +26,15 @@ import org.koin.core.component.inject
 class ProjectHomeComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
+	private val showProjectSync: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectHome {
 
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
-	private val projectSynchronizer: ProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
 		ProjectHome.State(
@@ -60,13 +61,6 @@ class ProjectHomeComponent(
 		}
 	}
 
-	override fun syncProject() {
-		scope.launch {
-			Napier.d("Syncing project")
-			projectSynchronizer.sync()
-		}
-	}
-
 	override suspend fun exportProject(path: String) {
 		val hpath = HPath(
 			path = path,
@@ -77,6 +71,20 @@ class ProjectHomeComponent(
 
 		withContext(mainDispatcher) {
 			endProjectExport()
+		}
+	}
+
+	override fun startProjectSync() = showProjectSync()
+
+	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
+
+	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
+		scope.launch {
+			val backup = projectBackupRepository.createBackup(projectDef)
+
+			withContext(mainDispatcher) {
+				callback(backup)
+			}
 		}
 	}
 

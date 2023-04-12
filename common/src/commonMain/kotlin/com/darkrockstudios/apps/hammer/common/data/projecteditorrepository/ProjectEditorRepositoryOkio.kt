@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -24,9 +27,10 @@ class ProjectEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	projectsRepository: ProjectsRepository,
 	idRepository: IdRepository,
+	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : ProjectEditorRepository(projectDef, projectsRepository, idRepository) {
+) : ProjectEditorRepository(projectDef, projectsRepository, idRepository, projectSynchronizer) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -70,6 +74,72 @@ class ProjectEditorRepositoryOkio(
 		}
 
 		return path.toHPath()
+	}
+
+	// Used after a server sync
+	private fun correctSceneOrders() {
+		correctSceneOrders(sceneTree.root())
+	}
+
+	/**
+	 * Walks the scene tree and makes the order of the children
+	 * in the tree match their internal `order` property.
+	 *
+	 * This is only used when server syncing has changed orders.
+	 */
+	private fun correctSceneOrders(node: TreeNode<SceneItem>) {
+		val children = node.children()
+		val sortedChildren = children.sortedBy { it.value.order }
+
+		for (i in children.indices) {
+			val child = children.first()
+			node.removeChild(child)
+		}
+
+		sortedChildren.forEach { child -> node.addChild(child) }
+
+		children.forEach { child ->
+			if (child.numChildrenImmedate() > 0) {
+				correctSceneOrders(child)
+			}
+		}
+	}
+
+	override fun rationalizeTree() {
+		correctSceneOrders()
+
+		sceneTree.forEach { node ->
+			if (node.value.type == SceneItem.Type.Root) return@forEach
+
+			val intendedPath = getSceneFilePath(node.value.id)
+
+			val allPaths = getAllScenePathsOkio()
+			val realPath = allPaths.map { it.toHPath() }.find { path ->
+				val scene = getSceneFromPath(path)
+				scene.id == node.value.id
+			}
+
+			if (realPath != null) {
+				if (realPath != intendedPath) {
+					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
+					fileSystem.atomicMove(realPath.toOkioPath(), intendedPath.toOkioPath())
+				} else {
+					Napier.d { "Scene ${node.value.id} is in the correct location" }
+				}
+			} else {
+				Napier.e { "Scene ${node.value.id} is missing from the filesystem" }
+			}
+		}
+	}
+
+	override fun reIdScene(oldId: Int, newId: Int) {
+		val oldPath = getSceneFilePath(oldId)
+
+		val oldScene = getSceneItemFromId(oldId) ?: throw IOException("Scene $oldId does not exist")
+		val newScene = oldScene.copy(id = newId)
+		val newPath = getSceneFilePath(newScene)
+
+		fileSystem.atomicMove(oldPath.toOkioPath(), newPath.toOkioPath())
 	}
 
 	override fun getSceneDirectory() = getSceneDirectory(projectDef, fileSystem)
@@ -225,7 +295,7 @@ class ProjectEditorRepositoryOkio(
 		return sceneTree.indexOfFirst { it.value.id == sceneId }
 	}
 
-	private fun updateSceneTreeForMove(moveRequest: MoveRequest) {
+	private suspend fun updateSceneTreeForMove(moveRequest: MoveRequest) {
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 		val insertIndex = moveRequest.toPosition.coords.childLocalIndex
@@ -262,6 +332,8 @@ class ProjectEditorRepositoryOkio(
 			}
 		}
 
+		markForSynchronization(fromNode.value)
+
 		toParentNode.insertChild(finalIndex, fromNode)
 
 		/*
@@ -274,7 +346,7 @@ class ProjectEditorRepositoryOkio(
 		*/
 	}
 
-	override fun moveScene(moveRequest: MoveRequest) {
+	override suspend fun moveScene(moveRequest: MoveRequest) {
 
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val fromParentNode = fromNode.parent
@@ -284,12 +356,14 @@ class ProjectEditorRepositoryOkio(
 
 		val isMovingParents = (fromParentNode != toParentNode)
 
+		markForSynchronization(fromNode.value)
+
 		// Perform move inside tree
 		updateSceneTreeForMove(moveRequest)
 
 		// Moving from one parent to another
 		if (isMovingParents) {
-			// Move the file to it's new parent
+			// Move the file to its new parent
 			val toPath = getSceneFilePath(moveRequest.id)
 
 			val fromParentPath = getSceneFilePath(fromParentNode.value.id)
@@ -323,12 +397,21 @@ class ProjectEditorRepositoryOkio(
 		reloadScenes(newSummary)
 	}
 
-	override fun updateSceneOrder(parentId: Int) {
+	override suspend fun updateSceneOrder(parentId: Int) {
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
 		val parentPath = getSceneFilePath(parent.value.id)
 		val existingSceneFiles = getGroupChildPathsById(parentPath.toOkioPath())
+
+		// Must grab a copy of the children before they are modified
+		// we'll need this if we need to calculate their original hash
+		// down below for markForSynchronization()
+		val originalChildren = if (projectSynchronizer.isServerSynchronized()) {
+			parent.children().map { child -> child.value.copy() }
+		} else {
+			null
+		}
 
 		parent.children().forEachIndexed { index, childNode ->
 			childNode.value = childNode.value.copy(order = index)
@@ -339,6 +422,12 @@ class ProjectEditorRepositoryOkio(
 
 			if (existingPath != newPath) {
 				try {
+					originalChildren?.find { it.id == childNode.value.id }?.let { originalChild ->
+						val realPath = getPathFromFilesystem(childNode.value)
+							?: throw IllegalStateException("Could not find Scene on filesystem: ${childNode.value.id}")
+						val content = loadSceneMarkdownRaw(childNode.value, realPath)
+						markForSynchronization(originalChild, content)
+					}
 					fileSystem.atomicMove(source = existingPath, target = newPath)
 				} catch (e: IOException) {
 					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e.message}")
@@ -347,15 +436,28 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
+	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val hash = EntityHash.hashScene(
+				id = scene.id,
+				order = scene.order,
+				name = scene.name,
+				type = scene.type.toApiType(),
+				content = content
+			)
+			projectSynchronizer.markEntityAsDirty(scene.id, hash)
+		}
+	}
+
+	override suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
 		return createSceneItem(parent, sceneName, false)
 	}
 
-	override fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
+	override suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
 		return createSceneItem(parent, groupName, true)
 	}
 
-	private fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
+	private suspend fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
 		val cleanedNamed = name.trim()
 
 		return if (!validateSceneName(cleanedNamed)) {
@@ -406,7 +508,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun deleteScene(scene: SceneItem): Boolean {
+	override suspend fun deleteScene(scene: SceneItem): Boolean {
 		val scenePath = getSceneFilePath(scene).toOkioPath()
 		return try {
 			if (!fileSystem.exists(scenePath)) {
@@ -428,6 +530,10 @@ class ProjectEditorRepositoryOkio(
 					updateSceneOrder(parentId)
 					Napier.w("Scene ${scene.id} deleted")
 
+					if (projectSynchronizer.isServerSynchronized()) {
+						projectSynchronizer.recordIdDeletion(scene.id)
+					}
+
 					reloadScenes()
 
 					true
@@ -442,7 +548,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun deleteGroup(scene: SceneItem): Boolean {
+	override suspend fun deleteGroup(scene: SceneItem): Boolean {
 		val scenePath = getSceneFilePath(scene).toOkioPath()
 		return try {
 			if (!fileSystem.exists(scenePath)) {
@@ -456,6 +562,9 @@ class ProjectEditorRepositoryOkio(
 				false
 			} else {
 				fileSystem.delete(scenePath)
+				if (projectSynchronizer.isServerSynchronized()) {
+					projectSynchronizer.recordIdDeletion(scene.id)
+				}
 
 				val sceneNode = getSceneNodeFromId(scene.id)
 
@@ -531,18 +640,45 @@ class ProjectEditorRepositoryOkio(
 		return getSceneFromPath(scenePath.toHPath())
 	}
 
-	override fun loadSceneMarkdownRaw(sceneItem: SceneItem): String {
-		val scenePath = getSceneFilePath(sceneItem).toOkioPath()
-		val content = try {
-			fileSystem.read(scenePath) {
-				readUtf8()
+	override fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath): String {
+		val content = if (sceneItem.type == SceneItem.Type.Scene) {
+			try {
+				fileSystem.read(scenePath.toOkioPath()) {
+					readUtf8()
+				}
+			} catch (e: IOException) {
+				Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+				""
 			}
-		} catch (e: IOException) {
-			Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+		} else {
 			""
 		}
 
 		return content
+	}
+
+	override fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
+		return getAllScenePathsOkio()
+			.filterScenePathsOkio().firstOrNull { path ->
+				sceneItem.id == getSceneFromFilename(path.toHPath()).id
+			}?.toHPath() ?: return null
+	}
+
+	override suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
+		sceneItem.markdown ?: return false
+
+		return try {
+			markForSynchronization(sceneItem.scene)
+
+			fileSystem.write(scenePath.toOkioPath()) {
+				writeUtf8(sceneItem.markdown)
+			}
+
+			true
+		} catch (e: IOException) {
+			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name})")
+			false
+		}
 	}
 
 	override fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
@@ -571,7 +707,7 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
+	override suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
 		val buffer = getSceneBuffer(sceneItem)
 		if (buffer == null) {
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
@@ -582,6 +718,8 @@ class ProjectEditorRepositoryOkio(
 
 		return try {
 			val markdown = buffer.content.coerceMarkdown()
+
+			markForSynchronization(sceneItem)
 
 			fileSystem.write(scenePath) {
 				writeUtf8(markdown)
@@ -651,7 +789,9 @@ class ProjectEditorRepositoryOkio(
 		return numScenes
 	}
 
-	override fun renameScene(sceneItem: SceneItem, newName: String) {
+	override suspend fun renameScene(sceneItem: SceneItem, newName: String) {
+		markForSynchronization(sceneItem)
+
 		val cleanedNamed = newName.trim()
 
 		val oldPath = getSceneFilePath(sceneItem).toOkioPath()
@@ -677,7 +817,7 @@ class ProjectEditorRepositoryOkio(
 			val metadataText = fileSystem.read(path) {
 				readUtf8()
 			}
-			toml.decodeFromString<ProjectMetadata>(metadataText)
+			toml.decodeFromString(metadataText)
 		} catch (e: IOException) {
 			Napier.e("Failed to project metadata")
 

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 interface TimeLineOverview {
 	val state: Value<State>
 
-	fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean
+	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean
 
 	data class State(
 		val timeLine: TimeLineContainer?

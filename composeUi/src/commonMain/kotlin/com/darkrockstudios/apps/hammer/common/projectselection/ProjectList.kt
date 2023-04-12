@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,8 +43,10 @@ fun ProjectList(
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	Box {
 		Column(
@@ -62,8 +66,16 @@ fun ProjectList(
 					MR.strings.project_select_list_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.padding(Ui.Padding.L)
+					modifier = Modifier.weight(1f).padding(Ui.Padding.L)
 				)
+
+				if (state.serverUrl != null) {
+					Button(onClick = {
+						component.showProjectsSync()
+					}) {
+						Image(Icons.Default.Refresh, "Sync Projects")
+					}
+				}
 			}
 
 			Row(modifier = Modifier.fillMaxWidth()) {
@@ -108,6 +120,8 @@ fun ProjectList(
 		) {
 			Icon(imageVector = Icons.Filled.Create, "Create Project")
 		}
+
+		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 
 	ProjectCreateDialog(showProjectCreate, component) {
@@ -123,6 +137,8 @@ fun ProjectList(
 			projectDefDeleteTarget = null
 		}
 	}
+
+	ProjectsSyncDialog(component, snackbarHostState)
 }
 
 val ProjectCardTestTag = "project-card"

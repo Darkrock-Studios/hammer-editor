@@ -14,7 +14,7 @@ data class KeyShortcut(
 	/**
 	 * Key that should be pressed to trigger an action
 	 */
-	val keyCode: Long,
+	val keyCode: Int,
 
 	/**
 	 * true if Ctrl modifier key should be pressed to trigger an action

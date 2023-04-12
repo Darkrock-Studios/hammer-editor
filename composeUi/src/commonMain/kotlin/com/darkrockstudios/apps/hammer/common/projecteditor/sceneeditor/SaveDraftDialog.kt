@@ -11,6 +11,9 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,6 +22,8 @@ internal fun SaveDraftDialog(
 	component: SceneEditor,
 	showSnackbar: (message: String) -> Unit
 ) {
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
 	var draftName by remember { mutableStateOf("") }
 
 	MpDialog(
@@ -50,10 +55,14 @@ internal fun SaveDraftDialog(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = {
-						if (component.saveDraft(draftName)) {
-							component.endSaveDraft()
-							draftName = ""
-							showSnackbar("Draft Saved")
+						scope.launch {
+							if (component.saveDraft(draftName)) {
+								component.endSaveDraft()
+								withContext(mainDispatcher) {
+									draftName = ""
+								}
+								showSnackbar("Draft Saved")
+							}
 						}
 					}) {
 						Text("Save")

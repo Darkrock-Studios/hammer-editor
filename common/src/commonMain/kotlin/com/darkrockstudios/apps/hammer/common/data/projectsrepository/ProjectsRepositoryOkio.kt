@@ -53,10 +53,15 @@ class ProjectsRepositoryOkio(
 		return projectsDir.toHPath()
 	}
 
+	override fun ensureProjectDirectory() {
+		getProjectsDirectory()
+	}
+
 	override fun getProjects(projectsDir: HPath): List<ProjectDef> {
 		val projPath = projectsDir.toOkioPath()
 		return fileSystem.list(projPath)
 			.filter { fileSystem.metadata(it).isDirectory }
+			.filter { it.name.startsWith('.').not() }
 			.map { path -> ProjectDef(path.name, path.toHPath()) }
 	}
 

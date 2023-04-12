@@ -5,12 +5,12 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -45,7 +45,7 @@ class NotesComponent(
 		}
 	}
 
-	override fun createNote(noteText: String): NoteError {
+	override suspend fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)
 		if (result.isSuccess) {
 			dismissCreate()
@@ -55,12 +55,12 @@ class NotesComponent(
 		return result
 	}
 
-	override fun deleteNote(id: Int) {
+	override suspend fun deleteNote(id: Int) {
 		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
 	}
 
-	override fun updateNote(noteContent: NoteContent) {
+	override suspend fun updateNote(noteContent: NoteContent) {
 		notesRepository.updateNote(noteContent)
 		notesRepository.loadNotes()
 	}

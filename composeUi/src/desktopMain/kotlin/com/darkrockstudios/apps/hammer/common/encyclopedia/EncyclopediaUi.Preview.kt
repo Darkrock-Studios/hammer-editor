@@ -106,7 +106,7 @@ private fun CreateEntryPreview() {
 				CreateEntry.State(fakeProjectDef())
 			)
 
-		override fun createEntry(
+		override suspend fun createEntry(
 			name: String,
 			type: EntryType,
 			text: String,

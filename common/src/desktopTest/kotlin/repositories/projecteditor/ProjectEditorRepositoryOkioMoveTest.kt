@@ -10,17 +10,22 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
-import com.darkrockstudios.apps.hammer.common.data.tree.Tree
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import createProject
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -33,11 +38,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
+	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: ProjectEditorRepository
 	private lateinit var idRepository: IdRepository
@@ -51,10 +58,10 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 	}
 
 	private fun verify(
-        node: TreeNode<SceneItem>,
-        ffs: FakeFileSystem,
-        print: Boolean, vararg ids: Int
-    ) {
+		node: TreeNode<SceneItem>,
+		ffs: FakeFileSystem,
+		print: Boolean, vararg ids: Int
+	) {
 		assertEquals(ids.size, node.children().size)
 
 		if (print) {
@@ -93,6 +100,9 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
+		projectSynchronizer = mockk()
+		every { projectSynchronizer.isServerSynchronized() } returns false
+
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
 				rootDir.toPath().div(PROJ_DIR).toHPath()
@@ -108,8 +118,8 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 
 		nextId = -1
 		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
-		every { idRepository.findNextId() } answers {}
+		coEvery { idRepository.claimNextId() } answers { claimId() }
+		coEvery { idRepository.findNextId() } answers {}
 
 		createProject(ffs, PROJECT_1_NAME)
 
@@ -118,12 +128,15 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 		repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			toml = toml,
 			idRepository = idRepository
 		)
 
-		repo.initializeProjectEditor()
+		runBlocking {
+			repo.initializeProjectEditor()
+		}
 	}
 
 	@After
@@ -149,7 +162,7 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 		leafToVerify: Int,
 		print: Boolean,
 		vararg ids: Int
-	) {
+	) = runTest {
 		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
 		verifyCoords(tree, request.toPosition.coords, targetPosId)
 		repo.moveScene(request)

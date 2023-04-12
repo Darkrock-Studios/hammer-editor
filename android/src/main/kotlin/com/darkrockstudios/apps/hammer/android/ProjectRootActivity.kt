@@ -191,8 +191,12 @@ class ProjectRootActivity : AppCompatActivity() {
 			.setNegativeButton("Discard and close") { _, _ -> finish() }
 			.setNeutralButton("Cancel") { dialog, _ -> dialog.dismiss() }
 			.setPositiveButton("Save and close") { _, _ ->
-				component.storeDirtyBuffers()
-				finish()
+				lifecycleScope.launch {
+					component.storeDirtyBuffers()
+					withContext(mainDispatcher) {
+						finish()
+					}
+				}
 			}
 			.create()
 			.show()

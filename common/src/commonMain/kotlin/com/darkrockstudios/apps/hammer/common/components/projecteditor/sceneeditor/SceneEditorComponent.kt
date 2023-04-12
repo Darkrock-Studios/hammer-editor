@@ -5,12 +5,12 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 
@@ -64,7 +64,7 @@ class SceneEditorComponent(
 		}
 	}
 
-	override fun storeSceneContent() =
+	override suspend fun storeSceneContent() =
 		projectEditor.storeSceneBuffer(sceneDef)
 
 	override fun onContentChanged(content: PlatformRichText) {
@@ -86,10 +86,10 @@ class SceneEditorComponent(
 			"scene-editor-save",
 			"Save",
 			"",
-			KeyShortcut(83L, ctrl = true)
+			KeyShortcut(83, ctrl = true)
 		) {
 			Napier.d("Scene save selected")
-			storeSceneContent()
+			scope.launch { storeSceneContent() }
 		}
 
 		val discardItem = MenuItemDescriptor(
@@ -149,7 +149,7 @@ class SceneEditorComponent(
 		_state.reduce { it.copy(isEditingName = false) }
 	}
 
-	override fun changeSceneName(newName: String) {
+	override suspend fun changeSceneName(newName: String) {
 		endSceneNameEdit()
 		projectEditor.renameScene(sceneDef, newName)
 
@@ -168,7 +168,7 @@ class SceneEditorComponent(
 		_state.reduce { it.copy(isSavingDraft = false) }
 	}
 
-	override fun saveDraft(draftName: String): Boolean {
+	override suspend fun saveDraft(draftName: String): Boolean {
 		return if (SceneDraftRepository.validDraftName(draftName)) {
 			val draftDef = draftsRepository.saveDraft(
 				sceneDef,

@@ -3,17 +3,21 @@ package components.projectselection
 import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import getProjectsDirectory
 import io.mockk.*
 import io.mockk.InternalPlatformDsl.toStr
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
@@ -33,8 +37,11 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 
 	lateinit var globalSettingsRepository: GlobalSettingsRepository
+	lateinit var globalSettingsUpdates: SharedFlow<GlobalSettings>
+	lateinit var serverSettingsUpdates: SharedFlow<ServerSettings?>
 	lateinit var projectsRepository: ProjectsRepository
 	lateinit var exampleProjectRepository: ExampleProjectRepository
+	lateinit var projectsSynchronizer: ClientProjectsSynchronizer
 
 	@Before
 	override fun setup() {
@@ -51,11 +58,15 @@ class ProjectSelectionComponentTest : BaseTest() {
 		globalSettingsRepository = mockk()
 		projectsRepository = mockk()
 		exampleProjectRepository = mockk()
+		projectsSynchronizer = mockk()
+
+		globalSettingsRepository = mockk()
 
 		val testModule = module {
 			single { globalSettingsRepository } bind GlobalSettingsRepository::class
 			single { projectsRepository } bind ProjectsRepository::class
 			single { exampleProjectRepository } bind ExampleProjectRepository::class
+			single { projectsSynchronizer }
 		}
 		setupKoin(testModule)
 
@@ -70,10 +81,22 @@ class ProjectSelectionComponentTest : BaseTest() {
 		every { projectsRepository.getProjectsDirectory() } returns projectsDir.toHPath()
 		ffs.createDirectories(projectsDir)
 
+		every { projectsSynchronizer.isServerSynchronized() } returns false
+
+		globalSettingsUpdates = mockk()
+		coEvery { globalSettingsUpdates.collect(any()) } just Awaits
+		every { globalSettingsRepository.globalSettingsUpdates } returns globalSettingsUpdates
 		val globalSettings = GlobalSettings(
 			projectsDirectory = projectsDir.toStr(),
 		)
 		every { globalSettingsRepository.globalSettings } returns globalSettings
+
+		serverSettingsUpdates = mockk()
+		coEvery { serverSettingsUpdates.collect(any()) } just Awaits
+		coEvery { serverSettingsUpdates.first() } returns null
+		every { globalSettingsRepository.serverSettingsUpdates } returns serverSettingsUpdates
+
+		every { projectsRepository.getProjects(any()) } returns emptyList()
 	}
 
 	@Test

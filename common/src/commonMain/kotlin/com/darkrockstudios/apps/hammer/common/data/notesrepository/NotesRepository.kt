@@ -1,11 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.InvalidSceneFilename
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -13,35 +17,63 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import okio.Closeable
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
 abstract class NotesRepository(
 	protected val projectDef: ProjectDef,
-	protected val idRepository: IdRepository
-) : Closeable, KoinComponent {
+	protected val idRepository: IdRepository,
+	protected val projectSynchronizer: ClientProjectSynchronizer
+) : Closeable, ProjectScoped {
+
+	override val projectScope = ProjectDefScope(projectDef)
 
 	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	protected val notesScope = CoroutineScope(dispatcherDefault)
 
+	private var _notes = mutableListOf<NoteContainer>()
+
+	/**
+	 * `notesListFlow` should be used instead of this property.
+	 */
+	fun getNotes(): List<NoteContainer> = _notes
+
 	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
 		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+		replay = 1
 	)
 	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
 
 	protected suspend fun updateNotes(notes: List<NoteContainer>) {
+		_notes = notes.toMutableList()
 		_notesListFlow.emit(notes)
+	}
+
+	protected suspend fun markForSync(id: Int, originalHash: String? = null) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(id)) {
+			val hash = if (originalHash != null) {
+				originalHash
+			} else {
+				val noteContainer = _notes.first { it.note.id == id }
+				EntityHash.hashNote(
+					id = noteContainer.note.id,
+					created = noteContainer.note.created,
+					content = noteContainer.note.content,
+				)
+			}
+			projectSynchronizer.markEntityAsDirty(id, hash)
+		}
 	}
 
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath
 	abstract fun loadNotes()
-	abstract fun createNote(noteText: String): NoteError
-	abstract fun deleteNote(id: Int)
-	abstract fun updateNote(noteContent: NoteContent)
+	abstract suspend fun createNote(noteText: String): NoteError
+	abstract suspend fun deleteNote(id: Int)
+	abstract suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
+	abstract suspend fun reIdNote(oldId: Int, newId: Int)
 
 	fun validateNote(noteText: String): NoteError {
 		val trimmed = noteText.trim()
@@ -53,6 +85,8 @@ abstract class NotesRepository(
 			NoteError.NONE
 		}
 	}
+
+	abstract suspend fun getNoteFromId(id: Int): NoteContainer?
 
 	override fun close() {
 		notesScope.cancel("Closing NotesRepository")

@@ -1,13 +1,19 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
-import com.darkrockstudios.apps.hammer.project.synchronizers.SceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.module.dsl.singleOf
@@ -21,19 +27,36 @@ const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
 val mainModule = module {
-    single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Main }
-    single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
-    single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
+	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Main }
+	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
+	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
-    single { Json } bind Json::class
+	singleOf(::createJsonSerializer) bind Json::class
+	single { Clock.System } bind Clock::class
 
-    single { FileSystem.SYSTEM } bind FileSystem::class
-    singleOf(::SqliteDatabase) bind Database::class
-    singleOf(::AccountDao)
-    singleOf(::AuthTokenDao)
+	single { FileSystem.SYSTEM } bind FileSystem::class
+	singleOf(::SqliteDatabase) bind Database::class
+	singleOf(::AccountDao)
+	singleOf(::AuthTokenDao)
 
-    singleOf(::AccountsRepository)
-    singleOf(::ProjectRepository)
+	singleOf(::AccountsRepository)
+	singleOf(::ProjectsRepository)
+	singleOf(::ProjectRepository)
 
-    singleOf(::SceneSynchronizer)
+	singleOf(::ServerSceneSynchronizer)
+	singleOf(::ServerNoteSynchronizer)
+	singleOf(::ServerTimelineSynchronizer)
+	singleOf(::ServerEncyclopediaSynchronizer)
+	singleOf(::ServerSceneDraftSynchronizer)
+
+	single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+		SyncSessionManager(get())
+	}
+
+	single<SyncSessionManager<ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+		SyncSessionManager(get())
+	}
 }
+
+const val PROJECTS_SYNC_MANAGER = "projects_sync_manager"
+const val PROJECT_SYNC_MANAGER = "project_sync_manager"

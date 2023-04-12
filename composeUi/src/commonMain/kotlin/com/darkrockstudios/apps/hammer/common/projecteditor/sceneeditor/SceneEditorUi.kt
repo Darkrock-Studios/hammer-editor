@@ -56,7 +56,7 @@ fun SceneEditorUi(
 						modifier = Modifier.padding(Ui.Padding.XL),
 						label = { Text("Scene Name") }
 					)
-					IconButton(onClick = { component.changeSceneName(editSceneNameValue) }) {
+					IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
 						Icon(
 							Icons.Filled.Check,
 							"Rename",
@@ -91,8 +91,10 @@ fun SceneEditorUi(
 						Spacer(modifier = Modifier.weight(1f))
 
 						IconButton(onClick = {
-							component.storeSceneContent()
-							scope.launch { snackbarHostState.showSnackbar("Saved") }
+							scope.launch {
+								component.storeSceneContent()
+								scope.launch { snackbarHostState.showSnackbar("Saved") }
+							}
 						}) {
 							Icon(
 								Icons.Filled.Save,

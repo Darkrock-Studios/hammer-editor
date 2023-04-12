@@ -101,11 +101,11 @@ private fun fakeGroup(id: Int, order: Int) = SceneItem(
 private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override val state: Value<SceneList.State> = MutableValue(state)
 	override fun onSceneSelected(sceneDef: SceneItem) {}
-	override fun moveScene(moveRequest: MoveRequest) {}
+	override suspend fun moveScene(moveRequest: MoveRequest) {}
 	override fun loadScenes() {}
-	override fun createScene(parent: SceneItem?, sceneName: String) {}
-	override fun createGroup(parent: SceneItem?, groupName: String) {}
-	override fun deleteScene(scene: SceneItem) {}
+	override suspend fun createScene(parent: SceneItem?, sceneName: String) {}
+	override suspend fun createGroup(parent: SceneItem?, groupName: String) {}
+	override suspend fun deleteScene(scene: SceneItem) {}
 	override fun onSceneListUpdate(scenes: SceneSummary) {}
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {}
 }

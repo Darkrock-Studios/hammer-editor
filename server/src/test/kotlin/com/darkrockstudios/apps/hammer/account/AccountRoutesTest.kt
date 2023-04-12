@@ -17,6 +17,7 @@ import kotlin.test.assertFalse
 class AccountRoutesTest : BaseTest() {
 	private lateinit var accountsRepository: AccountsRepository
 	private lateinit var projectRepository: ProjectRepository
+	private lateinit var projectsRepository: ProjectsRepository
 
 	@Before
 	override fun setup() {
@@ -24,10 +25,12 @@ class AccountRoutesTest : BaseTest() {
 
 		accountsRepository = mockk()
 		projectRepository = mockk()
+		projectsRepository = mockk()
 
 		val testModule = module {
 			single { accountsRepository }
 			single { projectRepository }
+			single { projectsRepository }
 		}
 		setupKoin(testModule)
 	}

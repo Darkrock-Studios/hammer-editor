@@ -5,9 +5,11 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.decodeFromString
@@ -18,9 +20,14 @@ import okio.Path
 class NotesRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
+	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : NotesRepository(projectDef, idRepository) {
+) : NotesRepository(projectDef, idRepository, projectSynchronizer) {
+
+	init {
+		loadNotes()
+	}
 
 	override fun getNotesDirectory() = getNotesDirectory(projectDef, fileSystem)
 
@@ -41,12 +48,11 @@ class NotesRepositoryOkio(
 		}
 	}
 
-	override fun createNote(noteText: String): NoteError {
+	override suspend fun createNote(noteText: String): NoteError {
 		val result = validateNote(noteText)
 		return if (result != NoteError.NONE) {
 			result
 		} else {
-
 			val newId = idRepository.claimNextId()
 			val newNote = NoteContainer(
 				NoteContent(
@@ -62,23 +68,33 @@ class NotesRepositoryOkio(
 				writeUtf8(noteToml)
 			}
 
+			markForSync(
+				id = newId,
+				""
+			)
+
 			NoteError.NONE
 		}
 	}
 
-	override fun deleteNote(id: Int) {
+	override suspend fun deleteNote(id: Int) {
 		val path = getNotePath(id).toOkioPath()
 		fileSystem.delete(path, true)
+		projectSynchronizer.recordIdDeletion(id)
 	}
 
-	override fun updateNote(noteContent: NoteContent) {
-		val note = NoteContainer(noteContent)
+	override suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean) {
+		val noteContainer = NoteContainer(noteContent)
 		val path = getNotePath(noteContent.id).toOkioPath()
 
-		val noteToml = toml.encodeToString(note)
+		val noteToml = toml.encodeToString(noteContainer)
 
 		fileSystem.write(path, mustCreate = false) {
 			writeUtf8(noteToml)
+		}
+
+		if (markForSync) {
+			markForSync(id = noteContent.id)
 		}
 	}
 
@@ -89,6 +105,30 @@ class NotesRepositoryOkio(
 
 		val note: NoteContainer = toml.decodeFromString(noteToml)
 		return note
+	}
+
+	override suspend fun reIdNote(oldId: Int, newId: Int) {
+		val oldPath = getNotePath(oldId).toOkioPath()
+		val newPath = getNotePath(newId).toOkioPath()
+		fileSystem.atomicMove(oldPath, newPath)
+
+		// Rewrite the file because the ID is contained in there
+		val noteContainer = loadNote(newPath)
+		val newNote = noteContainer.note.copy(id = newId)
+		fileSystem.write(newPath, mustCreate = false) {
+			writeUtf8(toml.encodeToString(NoteContainer(newNote)))
+		}
+
+		// Update the in-memory notes list
+		val updatedNotes = getNotes().toMutableList()
+		updatedNotes.indexOf(noteContainer).let { index ->
+			updatedNotes[index] = noteContainer.copy(note = newNote)
+		}
+		updateNotes(updatedNotes)
+	}
+
+	override suspend fun getNoteFromId(id: Int): NoteContainer? {
+		return notesListFlow.first().find { it.note.id == id }
 	}
 
 	companion object {

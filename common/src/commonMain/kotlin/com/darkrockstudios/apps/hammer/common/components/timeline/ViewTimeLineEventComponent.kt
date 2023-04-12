@@ -5,8 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.reduce
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projectInject
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -65,18 +65,6 @@ class ViewTimeLineEventComponent(
 	}
 
 	override suspend fun updateEvent(event: TimeLineEvent): Boolean {
-		val timeline = timeLineRepository.loadTimeline()
-
-		val events = timeline.events.toMutableList()
-		val index = events.indexOfFirst { it.id == event.id }
-		events[index] = event
-
-		val updatedTimeline = timeline.copy(
-			events = events
-		)
-
-		timeLineRepository.storeTimeline(updatedTimeline)
-
-		return true
+		return timeLineRepository.updateEvent(event)
 	}
 }

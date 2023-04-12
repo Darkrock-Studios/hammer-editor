@@ -51,7 +51,9 @@ abstract class EncyclopediaRepository(
 
 	abstract fun loadEntry(entryDef: EntryDef): EntryContainer
 	abstract fun loadEntry(entryPath: HPath): EntryContainer
-	abstract fun createEntry(
+	abstract fun loadEntry(id: Int): EntryContainer
+	abstract fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray
+	abstract suspend fun createEntry(
 		name: String,
 		type: EntryType,
 		text: String,
@@ -59,7 +61,7 @@ abstract class EncyclopediaRepository(
 		imagePath: String?
 	): EntryResult
 
-	abstract fun setEntryImage(entryDef: EntryDef, imagePath: String?)
+	abstract suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?)
 
 	fun validateEntry(
 		name: String,
@@ -75,20 +77,24 @@ abstract class EncyclopediaRepository(
 		}
 	}
 
+	protected abstract suspend fun markForSynchronization(entryDef: EntryDef)
+
 	override fun close() {
 		scope.cancel("Closing EncyclopediaRepository")
 	}
 
-	abstract fun deleteEntry(entryDef: EntryDef): Boolean
+	abstract suspend fun deleteEntry(entryDef: EntryDef): Boolean
 
-	abstract fun removeEntryImage(entryDef: EntryDef): Boolean
+	abstract suspend fun removeEntryImage(entryDef: EntryDef): Boolean
 
-	abstract fun updateEntry(
+	abstract suspend fun updateEntry(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,
 		tags: List<String>,
 	): EntryResult
+
+	abstract suspend fun reIdEntry(oldId: Int, newId: Int)
 
 	companion object {
 		val ENTRY_NAME_PATTERN = Regex("""([\da-zA-Z ]+)""")
@@ -165,6 +171,9 @@ abstract class EncyclopediaRepository(
 			}
 		}
 	}
+
+	abstract fun getEntryDef(id: Int): EntryDef
+	abstract suspend fun loadEntriesImperetive()
 }
 
 fun Sequence<HPath>.filterEntryPaths() = filter {

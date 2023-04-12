@@ -14,14 +14,14 @@ interface SceneEditor : HammerComponent {
 	fun addEditorMenu()
 	fun removeEditorMenu()
 	fun loadSceneContent()
-	fun storeSceneContent(): Boolean
+	suspend fun storeSceneContent(): Boolean
 	fun onContentChanged(content: PlatformRichText)
 	fun beginSceneNameEdit()
 	fun endSceneNameEdit()
-	fun changeSceneName(newName: String)
+	suspend fun changeSceneName(newName: String)
 	fun beginSaveDraft()
 	fun endSaveDraft()
-	fun saveDraft(draftName: String): Boolean
+	suspend fun saveDraft(draftName: String): Boolean
 
 	data class State(
 		val sceneItem: SceneItem,

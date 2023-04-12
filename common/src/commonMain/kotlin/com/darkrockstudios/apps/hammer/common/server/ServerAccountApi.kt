@@ -18,7 +18,7 @@ class ServerAccountApi(
         password: String,
         installId: String,
     ): Result<Token> {
-        return post("/account/create", { it.body() }) {
+        return post("/account/create", parse = { it.body() }) {
             setBody(
                 FormDataContent(
                     Parameters.build {
@@ -36,7 +36,7 @@ class ServerAccountApi(
         password: String,
         installId: String,
     ): Result<Token> {
-        return post("/account/login/", { it.body() }) {
+        return post("/account/login/", parse = { it.body() }) {
             setBody(
                 FormDataContent(
                     Parameters.build {

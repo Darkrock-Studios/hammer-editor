@@ -27,7 +27,7 @@ fun createHttpClient(
 
         install(Logging) {
             logger = NapierHttpLogger()
-            level = LogLevel.HEADERS
+            level = LogLevel.INFO
         }
 
         install(ContentNegotiation) {
@@ -35,6 +35,10 @@ fun createHttpClient(
         }
 
         installCompression()
+
+        install(HttpRequestRetry) {
+            retryOnExceptionOrServerErrors(3)
+        }
 
         install(Auth) {
             bearer {

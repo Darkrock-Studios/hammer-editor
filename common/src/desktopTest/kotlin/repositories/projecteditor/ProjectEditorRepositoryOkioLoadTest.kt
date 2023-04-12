@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -17,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import createProject
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import okio.Path.Companion.toPath
@@ -35,6 +37,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: ProjectEditorRepository
+	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -58,7 +61,10 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 
 		nextId = -1
 		idRepository = mockk()
-		every { idRepository.claimNextId() } answers { claimId() }
+		coEvery { idRepository.claimNextId() } answers { claimId() }
+
+		projectSynchronizer = mockk()
+		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -88,6 +94,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 		repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectsRepository = projectsRepo,
+			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
 			toml = toml
