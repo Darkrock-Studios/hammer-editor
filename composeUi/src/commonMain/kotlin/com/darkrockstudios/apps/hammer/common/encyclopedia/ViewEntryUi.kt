@@ -211,32 +211,28 @@ internal fun ViewEntryUi(
 	}
 
 	if (state.showDeleteImageDialog) {
-		ConfirmDialog(
+		SimpleConfirm(
 			title = "Delete Image?",
 			message = "This cannot be undone!",
-			confirmButton = "Delete"
-		) { shouldDelete ->
-			if (shouldDelete) {
-				scope.launch { component.removeEntryImage() }
-			}
+			onDismiss = { component.closeDeleteImageDialog() }
+		) {
+			scope.launch { component.removeEntryImage() }
 			component.closeDeleteImageDialog()
 		}
 	}
 
 	if (state.showDeleteEntryDialog) {
-		ConfirmDialog(
+		SimpleConfirm(
 			title = "Delete Entry?",
 			message = "This cannot be undone!",
-			confirmButton = "Delete"
-		) { shouldDelete ->
-			if (shouldDelete) {
-				scope.launch(dispatcherDefault) {
-					if (component.deleteEntry(state.entryDef)) {
-						withContext(dispatcherMain) {
-							closeEntry()
-						}
-						snackbarHostState.showSnackbar("Entry Deleted")
+			onDismiss = { component.closeDeleteEntryDialog() }
+		) {
+			scope.launch(dispatcherDefault) {
+				if (component.deleteEntry(state.entryDef)) {
+					withContext(dispatcherMain) {
+						closeEntry()
 					}
+					snackbarHostState.showSnackbar("Entry Deleted")
 				}
 			}
 			component.closeDeleteEntryDialog()
