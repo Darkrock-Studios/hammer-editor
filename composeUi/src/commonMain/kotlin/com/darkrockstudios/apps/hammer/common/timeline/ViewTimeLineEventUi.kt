@@ -7,42 +7,45 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.reflect.KFunction0
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewTimeLineEventUi(
-    component: ViewTimeLineEvent,
-    modifier: Modifier = Modifier,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    closeEvent: KFunction0<Unit>
+	component: ViewTimeLineEvent,
+	modifier: Modifier = Modifier,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState,
+	closeEvent: () -> Unit
 ) {
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	var editDate by remember { mutableStateOf(false) }
-	var eventDateText by remember(state.event) { mutableStateOf(state.event?.date ?: "") }
+	var editDate by rememberSaveable { mutableStateOf(false) }
+	var eventDateText by rememberSaveable(state.event) { mutableStateOf(state.event?.date ?: "") }
 
-	var editContent by remember { mutableStateOf(false) }
-	var eventText by remember(state.event) { mutableStateOf(state.event?.content ?: "") }
+	var editContent by rememberSaveable { mutableStateOf(false) }
+	var eventText by rememberSaveable(state.event) { mutableStateOf(state.event?.content ?: "") }
 
 	val screen = LocalScreenCharacteristic.current
 	val event = state.event
+
+	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var closeConfirm by rememberSaveable { mutableStateOf(false) }
 
 	Box(
 		modifier = modifier.fillMaxSize().padding(Ui.Padding.XL),
@@ -83,13 +86,7 @@ fun ViewTimeLineEventUi(
 
 					IconButton(onClick = {
 						scope.launch {
-							eventDateText = event.date ?: ""
-							eventText = event.content
-
-							withContext(dispatcherMain) {
-								editDate = false
-								editContent = false
-							}
+							discardConfirm = true
 						}
 					}) {
 						Icon(
@@ -110,11 +107,32 @@ fun ViewTimeLineEventUi(
 
 						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 					}
+
+					if (discardConfirm) {
+						SimpleConfirm(
+							title = "Discard Changes?",
+							message = "You will lose any changes you have made.",
+							onDismiss = { discardConfirm = false }
+						) {
+							eventDateText = event.date ?: ""
+							eventText = event.content
+							editDate = false
+							editContent = false
+
+							discardConfirm = false
+						}
+					}
 				}
 
 				if (screen.needsExplicitClose) {
 					IconButton(
-						onClick = closeEvent,
+						onClick = {
+							if (editDate || editContent) {
+								closeConfirm = true
+							} else {
+								closeEvent()
+							}
+						},
 					) {
 						Icon(
 							Icons.Filled.Close,
@@ -163,6 +181,17 @@ fun ViewTimeLineEventUi(
 					)
 				}
 			}
+		}
+	}
+
+	if (closeConfirm) {
+		SimpleConfirm(
+			title = "Discard Changes?",
+			message = "You will lose any changes you have made.",
+			onDismiss = { closeConfirm = false }
+		) {
+			closeConfirm = false
+			closeEvent()
 		}
 	}
 }

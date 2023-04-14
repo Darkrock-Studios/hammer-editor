@@ -12,11 +12,13 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -94,14 +96,15 @@ fun NotesUi(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteItem(
-    note: NoteContent,
-    component: Notes,
-    modifier: Modifier = Modifier,
+	note: NoteContent,
+	component: Notes,
+	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
-	var isEditing by remember { mutableStateOf(false) }
-	var updatedNoteText by remember { mutableStateOf(note.content) }
+	var isEditing by rememberSaveable { mutableStateOf(false) }
+	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var updatedNoteText by rememberSaveable(isEditing) { mutableStateOf(note.content) }
 
 	Card(
 		modifier = modifier.fillMaxWidth().padding(Ui.Padding.XL),
@@ -128,7 +131,9 @@ fun NoteItem(
 									tint = MaterialTheme.colorScheme.onSurface
 								)
 							}
-							IconButton(onClick = { isEditing = false }) {
+							IconButton(onClick = {
+								discardConfirm = true
+							}) {
 								Icon(
 									Icons.Filled.Cancel,
 									"Cancel",
@@ -170,6 +175,17 @@ fun NoteItem(
 				date,
 				style = MaterialTheme.typography.bodySmall
 			)
+		}
+	}
+
+	if (discardConfirm) {
+		SimpleConfirm(
+			title = "Discard Changes?",
+			message = "You will lose any changes you have made.",
+			onDismiss = { discardConfirm = false }
+		) {
+			isEditing = false
+			discardConfirm = false
 		}
 	}
 }

@@ -8,7 +8,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -36,15 +41,16 @@ internal fun CreateEntryUi(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
-	val scope = rememberCoroutineScope()
-	var newEntryNameText by remember { mutableStateOf("") }
-	var newEntryContentText by remember { mutableStateOf(TextFieldValue("")) }
-	var newTagsText by remember { mutableStateOf("") }
-	var selectedType by remember { mutableStateOf(EntryType.PERSON) }
-	val types = remember { EntryType.values().toList() }
+	var newEntryNameText by rememberSaveable { mutableStateOf("") }
+	var newEntryContentText by rememberSaveable { mutableStateOf(TextFieldValue("")) }
+	var newTagsText by rememberSaveable { mutableStateOf("") }
+	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
+	val types = rememberSaveable { EntryType.values().toList() }
 
-	var showFilePicker by remember { mutableStateOf(false) }
-	var imagePath by remember { mutableStateOf<String?>(null) }
+	var showFilePicker by rememberSaveable { mutableStateOf(false) }
+	var imagePath by rememberSaveable { mutableStateOf<String?>(null) }
+
+	var discardConfirm by rememberSaveable { mutableStateOf(false) }
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
@@ -55,7 +61,6 @@ internal fun CreateEntryUi(
 				modifier = modifier.padding(Ui.Padding.XL)
 					.widthIn(128.dp, 420.dp)
 			) {
-
 				Text(
 					"Create New Entry",
 					modifier = Modifier.padding(PaddingValues(bottom = Ui.Padding.XL)),
@@ -170,7 +175,7 @@ internal fun CreateEntryUi(
 
 					Button(
 						modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
-						onClick = { close() }
+						onClick = { discardConfirm = true }
 					) {
 						Text("Cancel")
 					}
@@ -186,5 +191,15 @@ internal fun CreateEntryUi(
 	) { path ->
 		imagePath = path
 		showFilePicker = false
+	}
+
+	if (discardConfirm) {
+		SimpleConfirm(
+			title = "Discard New Entry?",
+			onDismiss = { discardConfirm = false }
+		) {
+			discardConfirm = false
+			close()
+		}
 	}
 }

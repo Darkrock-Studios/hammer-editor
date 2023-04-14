@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -24,21 +27,24 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ViewEntryUi(
-    component: ViewEntry,
-    scope: CoroutineScope,
-    modifier: Modifier = Modifier,
-    snackbarHostState: SnackbarHostState,
-    closeEntry: () -> Unit,
+	component: ViewEntry,
+	scope: CoroutineScope,
+	modifier: Modifier = Modifier,
+	snackbarHostState: SnackbarHostState,
+	closeEntry: () -> Unit,
 ) {
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	var editName by remember { mutableStateOf(false) }
-	var entryNameText by remember { mutableStateOf(state.content?.name ?: "") }
+	var editName by rememberSaveable { mutableStateOf(false) }
+	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
 
-	var editText by remember { mutableStateOf(false) }
-	var entryText by remember { mutableStateOf(state.content?.text ?: "") }
+	var editText by rememberSaveable { mutableStateOf(false) }
+	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
+
+	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var closeConfirm by rememberSaveable { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
 	val content = state.content
@@ -86,17 +92,7 @@ internal fun ViewEntryUi(
 						)
 					}
 
-					IconButton(onClick = {
-						scope.launch {
-							entryNameText = content.name
-							entryText = content.text
-
-							withContext(dispatcherMain) {
-								editName = false
-								editText = false
-							}
-						}
-					}) {
+					IconButton(onClick = { discardConfirm = true }) {
 						Icon(
 							Icons.Filled.Cancel,
 							"Cancel",
@@ -115,11 +111,33 @@ internal fun ViewEntryUi(
 
 						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 					}
+
+					if (discardConfirm) {
+						SimpleConfirm(
+							title = "Discard Changes?",
+							message = "You will lose any changes you have made.",
+							onDismiss = { discardConfirm = false }
+						) {
+							entryNameText = content.name
+							entryText = content.text
+
+							editName = false
+							editText = false
+
+							discardConfirm = false
+						}
+					}
 				}
 
 				if (screen.needsExplicitClose) {
 					IconButton(
-						onClick = { closeEntry() },
+						onClick = {
+							if (editName || editText) {
+								closeConfirm = true
+							} else {
+								closeEntry()
+							}
+						},
 					) {
 						Icon(
 							Icons.Filled.Close,
@@ -224,13 +242,24 @@ internal fun ViewEntryUi(
 			component.closeDeleteEntryDialog()
 		}
 	}
+
+	if (closeConfirm) {
+		SimpleConfirm(
+			title = "Discard Changes?",
+			message = "You will lose any changes you have made.",
+			onDismiss = { closeConfirm = false }
+		) {
+			closeConfirm = false
+			closeEntry()
+		}
+	}
 }
 
 @Composable
 private fun Image(
-    modifier: Modifier = Modifier,
-    state: ViewEntry.State,
-    showDeleteImageDialog: () -> Unit
+	modifier: Modifier = Modifier,
+	state: ViewEntry.State,
+	showDeleteImageDialog: () -> Unit
 ) {
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
@@ -249,12 +278,12 @@ private fun Image(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Contents(
-    modifier: Modifier = Modifier,
-    state: ViewEntry.State,
-    editText: Boolean,
-    entryText: String,
-    setEntryText: (String) -> Unit,
-    beginEdit: () -> Unit,
+	modifier: Modifier = Modifier,
+	state: ViewEntry.State,
+	editText: Boolean,
+	entryText: String,
+	setEntryText: (String) -> Unit,
+	beginEdit: () -> Unit,
 ) {
 	val content = state.content
 
