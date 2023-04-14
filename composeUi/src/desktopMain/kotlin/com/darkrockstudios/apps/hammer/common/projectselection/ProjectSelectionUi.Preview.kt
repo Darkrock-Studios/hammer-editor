@@ -91,7 +91,7 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 			create: Boolean
 		): Result<Boolean> = Result.success(true)
 
-		override suspend fun authTest() {}
+		override suspend fun authTest() = true
 		override fun removeServer() {}
 		override fun syncProjects(callback: (Boolean) -> Unit) {}
 		override fun showProjectsSync() {}
