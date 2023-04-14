@@ -48,7 +48,7 @@ fun ImageItem(
 	Box(modifier, Alignment.Center) {
 		val painter = rememberAsyncImagePainter(request)
 		when (val requestState = painter.requestState) {
-			ImageRequestState.Loading -> {
+			is ImageRequestState.Loading -> {
 				CircularProgressIndicator()
 			}
 
@@ -56,7 +56,7 @@ fun ImageItem(
 				Text(requestState.error.message ?: "Image Error")
 			}
 
-			ImageRequestState.Success -> {
+			is ImageRequestState.Success -> {
 				Image(
 					painter = painter,
 					contentDescription = contentDescription,

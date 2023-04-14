@@ -49,8 +49,8 @@ kotlin {
 				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
 				api("com.darkrockstudios:richtexteditor:1.4.1")
 				api("com.darkrockstudios:mpfilepicker:1.0.0")
-				api("io.github.qdsfdhvh:image-loader:1.2.8")
-				implementation("io.github.koalaplot:koalaplot-core:0.2.1")
+				api("io.github.qdsfdhvh:image-loader:1.4.0")
+				implementation("io.github.koalaplot:koalaplot-core:0.3.0")
 				api("dev.icerock.moko:resources-compose:$moko_resources_version")
 			}
 		}
