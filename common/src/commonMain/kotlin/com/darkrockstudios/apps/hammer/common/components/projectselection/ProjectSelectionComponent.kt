@@ -218,8 +218,8 @@ class ProjectSelectionComponent(
 		}
 	}
 
-	override suspend fun authTest() {
-		accountRepository.testAuth()
+	override suspend fun authTest(): Boolean {
+		return accountRepository.testAuth()
 	}
 
 	override fun removeServer() {

@@ -47,7 +47,7 @@ internal fun Settings(
 
 			Divider(modifier = Modifier.fillMaxWidth())
 
-			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+			Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 				Column(modifier = Modifier.padding(Ui.Padding.M)) {
 					Text(
@@ -129,136 +129,12 @@ internal fun Settings(
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				Column(modifier = Modifier.padding(Ui.Padding.M)) {
-					Text(
-						MR.strings.settings_server_header.get(),
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground,
-					)
-					Text(
-						MR.strings.settings_server_description.get(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						fontStyle = FontStyle.Italic
-					)
-
-					val serverUrl = state.serverUrl
-					if (serverUrl == null) {
-						Button(onClick = {
-							scope.launch {
-								component.beginSetupServer()
-							}
-						}) {
-							Text(MR.strings.settings_server_setup_button.get())
-						}
-					} else {
-						Row {
-							Text(
-								MR.strings.settings_server_url_label.get(),
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onBackground,
-							)
-
-							Text(
-								serverUrl,
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onBackground,
-								fontStyle = FontStyle.Italic
-							)
-						}
-
-						Row {
-							var autoBackupsValue by remember { mutableStateOf(state.syncAutomaticBackups) }
-							Checkbox(
-								checked = autoBackupsValue,
-								onCheckedChange = {
-									scope.launch { component.setAutomaticBackups(it) }
-									autoBackupsValue = it
-								}
-							)
-							Text(
-								"Backup on sync",
-								style = MaterialTheme.typography.bodyMedium,
-								color = MaterialTheme.colorScheme.onBackground,
-								modifier = Modifier.align(Alignment.CenterVertically)
-							)
-						}
-
-						Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-						Row {
-							var autoCloseValue by remember { mutableStateOf(state.syncAutoCloseDialog) }
-							Checkbox(
-								checked = autoCloseValue,
-								onCheckedChange = {
-									scope.launch { component.setAutoCloseDialogs(it) }
-									autoCloseValue = it
-								}
-							)
-							Text(
-								"Close Sync Dialogs on Success",
-								style = MaterialTheme.typography.bodyMedium,
-								color = MaterialTheme.colorScheme.onBackground,
-								modifier = Modifier.align(Alignment.CenterVertically)
-							)
-						}
-
-						/*
-						Row {
-							Checkbox(
-								checked = state.syncAutomaticSync,
-								onCheckedChange = { scope.launch { component.setAutoSyncing(it) } }
-							)
-							Text("Auto-Sync")
-						}
-						*/
-
-						Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-						var maxBackupsValue by remember { mutableStateOf("${state.maxBackups}") }
-						OutlinedTextField(
-							modifier = Modifier.width(128.dp),
-							value = maxBackupsValue,
-							onValueChange = {
-								val value = it.toIntOrNull()
-								if (value != null && value >= 0) {
-									maxBackupsValue = it
-									scope.launch { component.setMaxBackups(value) }
-								}
-							},
-							label = { Text("Max Backups per Project") },
-						)
-
-						Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-						Button(onClick = {
-							scope.launch {
-								component.authTest()
-							}
-						}) {
-							//Text(MR.strings.settings_server_modify_button.get())
-							Text("Test Auth")
-						}
-
-						Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-						Button(onClick = {
-							scope.launch {
-								component.removeServer()
-							}
-						}) {
-							//Text(MR.strings.settings_server_modify_button.get())
-							Text("Remove Server")
-						}
-					}
-				}
+				ServerSettings(component, scope, snackbarHostState)
 			}
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
-
-	ServerSetupDialog(state, component, scope, snackbarHostState)
 
 	DirectoryPicker(showDirectoryPicker) { path ->
 		showDirectoryPicker = false

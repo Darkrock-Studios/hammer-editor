@@ -30,7 +30,7 @@ interface ProjectSelection : HammerComponent {
 		create: Boolean
 	): Result<Boolean>
 
-	suspend fun authTest()
+	suspend fun authTest(): Boolean
 	fun removeServer()
 	fun syncProjects(callback: (Boolean) -> Unit)
 	fun showProjectsSync()

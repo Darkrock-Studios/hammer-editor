@@ -117,7 +117,7 @@ fun AppTheme(
 
 	MaterialTheme(
 		colorScheme = colors,
-		shapes = shapes,
+		//shapes = shapes,
 		content = {
 			// TODO Can remove when this is solved https://github.com/KoalaPlot/koalaplot-core/issues/8
 			androidx.compose.material.MaterialTheme(

@@ -69,8 +69,8 @@ class AccountRepository(
         }
     }
 
-    suspend fun testAuth() {
-        accountApi.testAuth()
+    suspend fun testAuth(): Boolean {
+        return accountApi.testAuth().isSuccess
     }
 }
 
