@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -52,7 +52,7 @@ class ProjectSyncComponent(
 		if (log != null) {
 			Napier.d(log)
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					val existingLog = it.syncLog
 					it.copy(
 						syncLog = existingLog + log
@@ -66,7 +66,7 @@ class ProjectSyncComponent(
 		updateSyncLog(log)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					isSyncing = show,
 					syncProgress = progress
@@ -91,7 +91,7 @@ class ProjectSyncComponent(
 	override fun resolveConflict(resolvedEntity: ApiProjectEntity) {
 		projectSynchronizer.resolveConflict(resolvedEntity)
 
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				entityConflict = null
 			)
@@ -102,7 +102,7 @@ class ProjectSyncComponent(
 		scope.launch {
 			syncJob = null
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
 						isSyncing = false,
@@ -122,7 +122,7 @@ class ProjectSyncComponent(
 			syncJob = null
 
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
 						syncProgress = 1f,
@@ -160,7 +160,7 @@ class ProjectSyncComponent(
 		)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSync.EntityConflict.NoteConflict(
 						serverNote = serverEntity,
@@ -183,7 +183,7 @@ class ProjectSyncComponent(
 		)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSync.EntityConflict.TimelineEventConflict(
 						serverEvent = serverEntity,
@@ -215,7 +215,7 @@ class ProjectSyncComponent(
 		)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(
 						serverEntry = serverEntity,
@@ -241,7 +241,7 @@ class ProjectSyncComponent(
 		)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSync.EntityConflict.SceneDraftConflict(
 						serverEntry = serverEntity,
@@ -274,7 +274,7 @@ class ProjectSyncComponent(
 		)
 
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSync.EntityConflict.SceneConflict(
 						serverScene = serverEntity,

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -38,7 +38,7 @@ class ViewEntryComponent(
 			val entryImagePath = getImagePath(state.value.entryDef)
 			val content = loadEntryContent(state.value.entryDef)
 			withContext(dispatcherMain) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						entryImagePath = entryImagePath,
 						content = content
@@ -79,37 +79,37 @@ class ViewEntryComponent(
 	}
 
 	override fun showDeleteEntryDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showDeleteEntryDialog = true)
 		}
 	}
 
 	override fun closeDeleteEntryDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showDeleteEntryDialog = false)
 		}
 	}
 
 	override fun showDeleteImageDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showDeleteImageDialog = true)
 		}
 	}
 
 	override fun closeDeleteImageDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showDeleteImageDialog = false)
 		}
 	}
 
 	override fun showAddImageDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showAddImageDialog = true)
 		}
 	}
 
 	override fun closeAddImageDialog() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(showAddImageDialog = false)
 		}
 	}
@@ -121,7 +121,7 @@ class ViewEntryComponent(
 	): EntryResult {
 		val result = encyclopediaRepository.updateEntry(state.value.entryDef, name, text, tags)
 		if (result.instance != null && result.error == EntryError.NONE) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					entryDef = result.instance.toDef(projectDef)
 				)
@@ -144,7 +144,7 @@ class ViewEntryComponent(
 			"Add Image",
 			"",
 		) {
-			_state.reduce { it.copy(showAddImageDialog = true) }
+			_state.getAndUpdate { it.copy(showAddImageDialog = true) }
 		}
 
 		val removeImage = MenuItemDescriptor(
@@ -152,7 +152,7 @@ class ViewEntryComponent(
 			"Remove Image",
 			"",
 		) {
-			_state.reduce { it.copy(showDeleteImageDialog = true) }
+			_state.getAndUpdate { it.copy(showDeleteImageDialog = true) }
 		}
 
 		val deleteEntry = MenuItemDescriptor(
@@ -160,7 +160,7 @@ class ViewEntryComponent(
 			"Delete Entry",
 			"",
 		) {
-			_state.reduce { it.copy(showDeleteEntryDialog = true) }
+			_state.getAndUpdate { it.copy(showDeleteEntryDialog = true) }
 		}
 
 		val menu = MenuDescriptor(

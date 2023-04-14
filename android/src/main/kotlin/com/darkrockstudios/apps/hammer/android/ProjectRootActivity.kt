@@ -16,7 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
@@ -74,7 +74,7 @@ class ProjectRootActivity : AppCompatActivity() {
 		settingsUpdateJob = lifecycleScope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 				withContext(mainDispatcher) {
-					globalSettings.reduce { settings }
+					globalSettings.getAndUpdate { settings }
 				}
 			}
 		}

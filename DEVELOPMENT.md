@@ -78,7 +78,7 @@ You can inject the various contexts as such:
 	scope.launch {
         // Scope uses the default dispatcher, so make sure to switch contexts when necessary
         withContext(mainDispatcher) {
-			// Make sure you reduce all of your state variables on the main thread
+			// Make sure you update all of your state variables on the main thread
 		}
 	}
 ```

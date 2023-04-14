@@ -36,19 +36,19 @@ class RootHolder : ObservableObject {
         lifecycle = LifecycleRegistryKt.LifecycleRegistry()
         lifecycle.onCreate()
         
-        state.reduce { reducer in
+        state.getAndUpdate { reducer in
             RootState(self.createProjectSelect())
         }
     }
 
     func selectProject(project: ProjectDefinition) {
-        state.reduce { reducer in
+        state.getAndUpdate { reducer in
             RootState(self.createProjectRoot(project: project))
         }
     }
 
     func closeProject() {
-        state.reduce { reducer in
+        state.getAndUpdate { reducer in
             RootState(self.createProjectSelect())
         }
     }

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -40,7 +40,7 @@ class ViewTimeLineEventComponent(
 				withContext(mainDispatcher) {
 					val updatedEvent = timeLine.events.find { it.id == eventId }
 					if (updatedEvent != state.value.event) {
-						_state.reduce {
+						_state.getAndUpdate {
 							it.copy(event = updatedEvent)
 						}
 					}
@@ -55,7 +55,7 @@ class ViewTimeLineEventComponent(
 			val event = events.find { it.id == eventId }
 
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						event = event
 					)

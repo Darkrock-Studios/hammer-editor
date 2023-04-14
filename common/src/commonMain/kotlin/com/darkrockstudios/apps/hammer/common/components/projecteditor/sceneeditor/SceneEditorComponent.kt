@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneedi
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -52,13 +52,13 @@ class SceneEditorComponent(
 	}
 
 	private fun onBufferUpdate(sceneBuffer: SceneBuffer) {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(sceneBuffer = sceneBuffer)
 		}
 	}
 
 	override fun loadSceneContent() {
-		_state.reduce {
+		_state.getAndUpdate {
 			val buffer = projectEditor.loadSceneBuffer(sceneDef)
 			it.copy(sceneBuffer = buffer)
 		}
@@ -142,18 +142,18 @@ class SceneEditorComponent(
 	}
 
 	override fun beginSceneNameEdit() {
-		_state.reduce { it.copy(isEditingName = true) }
+		_state.getAndUpdate { it.copy(isEditingName = true) }
 	}
 
 	override fun endSceneNameEdit() {
-		_state.reduce { it.copy(isEditingName = false) }
+		_state.getAndUpdate { it.copy(isEditingName = false) }
 	}
 
 	override suspend fun changeSceneName(newName: String) {
 		endSceneNameEdit()
 		projectEditor.renameScene(sceneDef, newName)
 
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				sceneItem = it.sceneItem.copy(name = newName)
 			)
@@ -161,11 +161,11 @@ class SceneEditorComponent(
 	}
 
 	override fun beginSaveDraft() {
-		_state.reduce { it.copy(isSavingDraft = true) }
+		_state.getAndUpdate { it.copy(isSavingDraft = true) }
 	}
 
 	override fun endSaveDraft() {
-		_state.reduce { it.copy(isSavingDraft = false) }
+		_state.getAndUpdate { it.copy(isSavingDraft = false) }
 	}
 
 	override suspend fun saveDraft(draftName: String): Boolean {

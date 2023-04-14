@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.notes
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -37,7 +37,7 @@ class NotesComponent(
 			notesRepository.notesListFlow.collect { noteContainers ->
 				withContext(dispatcherMain) {
 					val notes = noteContainers.map { it.note }
-					_state.reduce {
+					_state.getAndUpdate {
 						it.copy(notes = notes)
 					}
 				}
@@ -66,18 +66,18 @@ class NotesComponent(
 	}
 
 	override fun confirmDelete(note: NoteContent) {
-		_state.reduce { it.copy(confirmDelete = note) }
+		_state.getAndUpdate { it.copy(confirmDelete = note) }
 	}
 
 	override fun dismissConfirmDelete() {
-		_state.reduce { it.copy(confirmDelete = null) }
+		_state.getAndUpdate { it.copy(confirmDelete = null) }
 	}
 
 	override fun showCreate() {
-		_state.reduce { it.copy(showCreate = true) }
+		_state.getAndUpdate { it.copy(showCreate = true) }
 	}
 
 	override fun dismissCreate() {
-		_state.reduce { it.copy(showCreate = false) }
+		_state.getAndUpdate { it.copy(showCreate = false) }
 	}
 }

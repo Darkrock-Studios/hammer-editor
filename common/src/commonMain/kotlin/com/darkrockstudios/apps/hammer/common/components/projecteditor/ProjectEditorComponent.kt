@@ -4,8 +4,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.observe
-import com.arkivanov.decompose.value.reduce
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -98,7 +98,7 @@ class ProjectEditorComponent(
 	}
 
 	override fun setMultiPane(isMultiPane: Boolean) {
-		_state.reduce { it.copy(isMultiPane = isMultiPane) }
+		_state.getAndUpdate { it.copy(isMultiPane = isMultiPane) }
 
 		if (isMultiPane) {
 			switchToMultiPane()

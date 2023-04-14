@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -41,7 +41,7 @@ class DraftCompareComponent(
 			val draftContent = draftsRepository.loadDraft(sceneItem, draftDef)
 
 			withContext(dispatcherMain) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						sceneContent = currentBuffer.content,
 						draftContent = draftContent

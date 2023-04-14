@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -46,7 +46,7 @@ class ProjectHomeComponent(
 	override val state: Value<ProjectHome.State> = _state
 
 	override fun beginProjectExport() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				showExportDialog = true
 			)
@@ -54,7 +54,7 @@ class ProjectHomeComponent(
 	}
 
 	override fun endProjectExport() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				showExportDialog = false
 			)
@@ -138,7 +138,7 @@ class ProjectHomeComponent(
 			}
 
 			withContext(dispatcherMain) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						created = created,
 						numberOfScenes = numScenes,

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -49,7 +49,7 @@ class TimeLineOverviewComponent(
 			timeLineRepository.timelineFlow.collect { timeLine ->
 				withContext(mainDispatcher) {
 					if (timeLine != state.value.timeLine) {
-						_state.reduce {
+						_state.getAndUpdate {
 							it.copy(timeLine = timeLine)
 						}
 					}

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelis
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
@@ -40,7 +40,7 @@ class SceneListComponent(
 			selectedSceneItem.collect { scene ->
 				withContext(dispatcherMain) {
 					Napier.d("Scene Selected: $scene")
-					_state.reduce { it.copy(selectedSceneItem = scene) }
+					_state.getAndUpdate { it.copy(selectedSceneItem = scene) }
 				}
 			}
 		}
@@ -48,7 +48,7 @@ class SceneListComponent(
 
 	override fun onSceneSelected(sceneDef: SceneItem) {
 		sceneSelected(sceneDef)
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(selectedSceneItem = sceneDef)
 		}
 	}
@@ -58,7 +58,7 @@ class SceneListComponent(
 	}
 
 	override fun loadScenes() {
-		_state.reduce {
+		_state.getAndUpdate {
 			val scenes = projectEditor.getSceneSummaries()
 			it.copy(sceneSummary = scenes)
 		}
@@ -114,7 +114,7 @@ class SceneListComponent(
 	}
 
 	override fun onSceneListUpdate(scenes: SceneSummary) {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				sceneSummary = scenes
 			)
@@ -123,7 +123,7 @@ class SceneListComponent(
 
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
 		val oldSummary = _state.value.sceneSummary ?: return
-		_state.reduce { oldState ->
+		_state.getAndUpdate { oldState ->
 			val updated = oldSummary.hasDirtyBuffer.toMutableSet()
 			if (sceneBuffer.dirty) {
 				updated.add(sceneBuffer.content.scene.id)

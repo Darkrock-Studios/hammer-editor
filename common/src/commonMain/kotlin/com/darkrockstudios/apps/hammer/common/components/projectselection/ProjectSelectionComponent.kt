@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
@@ -79,7 +79,7 @@ class ProjectSelectionComponent(
 		scope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
-					_state.reduce {
+					_state.getAndUpdate {
 						val projectsPath = settings.projectsDirectory.toPath().toHPath()
 						it.copy(
 							projectsDir = projectsPath,
@@ -93,7 +93,7 @@ class ProjectSelectionComponent(
 		scope.launch {
 			globalSettingsRepository.serverSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
-					_state.reduce {
+					_state.getAndUpdate {
 						it.copy(
 							serverUrl = settings?.url
 						)
@@ -118,7 +118,7 @@ class ProjectSelectionComponent(
 			}
 
 			withContext(dispatcherMain) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(projects = projectData)
 				}
 				loadProjectsJob = null
@@ -143,7 +143,7 @@ class ProjectSelectionComponent(
 			projectsRepository.ensureProjectDirectory()
 
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(projectsDir = hpath)
 				}
 			}
@@ -178,7 +178,7 @@ class ProjectSelectionComponent(
 	}
 
 	override fun showLocation(location: ProjectSelection.Locations) {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(location = location)
 		}
 	}
@@ -203,7 +203,7 @@ class ProjectSelectionComponent(
 	}
 
 	override fun beginSetupServer() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				serverSetup = true
 			)
@@ -211,7 +211,7 @@ class ProjectSelectionComponent(
 	}
 
 	override fun cancelServerSetup() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				serverSetup = false
 			)
@@ -227,7 +227,7 @@ class ProjectSelectionComponent(
 	}
 
 	private fun resetSync() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				syncState = ProjectSelection.SycState()
 			)
@@ -282,7 +282,7 @@ class ProjectSelectionComponent(
 			callback(allSuccess)
 
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						syncState = it.syncState.copy(
 							syncComplete = true
@@ -305,7 +305,7 @@ class ProjectSelectionComponent(
 
 		scope.launch(mainDispatcher) {
 			withContext(mainDispatcher) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						syncState = it.syncState.copy(
 							syncComplete = true
@@ -353,7 +353,7 @@ class ProjectSelectionComponent(
 	}
 
 	override fun showProjectsSync() {
-		_state.reduce {
+		_state.getAndUpdate {
 			it.copy(
 				syncState = it.syncState.copy(
 					showProjectSync = true
@@ -365,7 +365,7 @@ class ProjectSelectionComponent(
 	private suspend fun onSyncLog(message: String) {
 		Napier.i(message)
 		withContext(mainDispatcher) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					syncState = it.syncState.copy(
 						syncLog = it.syncState.syncLog + message
@@ -383,7 +383,7 @@ class ProjectSelectionComponent(
 		create: Boolean
 	): Result<Boolean> {
 		if (state.value.serverError != null) {
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					serverError = null
 				)
@@ -393,7 +393,7 @@ class ProjectSelectionComponent(
 		val cleanUrl = cleanUpUrl(url)
 		return if (validateUrl(cleanUrl).not()) {
 			val message = "Invalid URL"
-			_state.reduce {
+			_state.getAndUpdate {
 				it.copy(
 					serverUrl = null,
 					serverError = message
@@ -403,14 +403,14 @@ class ProjectSelectionComponent(
 		} else {
 			val result = accountRepository.setupServer(ssl, cleanUrl, email, password, create)
 			if (result.isSuccess) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						serverUrl = cleanUrl,
 						serverSetup = false
 					)
 				}
 			} else {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(
 						serverUrl = null,
 						serverError = result.exceptionOrNull()?.message ?: "Unknown error"

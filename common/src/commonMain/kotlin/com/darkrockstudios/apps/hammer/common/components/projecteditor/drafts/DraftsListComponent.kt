@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
@@ -35,7 +35,7 @@ class DraftsListComponent(
 			val drafts = draftsRepository.findDrafts(sceneItem.id)
 
 			withContext(dispatcherMain) {
-				_state.reduce {
+				_state.getAndUpdate {
 					it.copy(drafts = drafts)
 				}
 			}

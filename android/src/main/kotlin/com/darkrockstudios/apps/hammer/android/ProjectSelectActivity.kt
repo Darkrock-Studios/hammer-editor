@@ -16,7 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -75,7 +75,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 		settingsUpdateJob = lifecycleScope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 				withContext(platformMainDispatcher) {
-					globalSettings.reduce { settings }
+					globalSettings.getAndUpdate { settings }
 				}
 			}
 		}

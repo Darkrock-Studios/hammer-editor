@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -46,7 +46,7 @@ class BrowseEntriesComponent(
 				entryContentCache.invalidateAll()
 
 				withContext(dispatcherMain) {
-					_state.reduce { state ->
+					_state.getAndUpdate { state ->
 						state.copy(
 							entryDefs = entryDefs
 						)
@@ -57,7 +57,7 @@ class BrowseEntriesComponent(
 	}
 
 	override fun updateFilter(text: String?, type: EntryType?) {
-		_state.reduce { state ->
+		_state.getAndUpdate { state ->
 			state.copy(
 				filterText = text,
 				filterType = type

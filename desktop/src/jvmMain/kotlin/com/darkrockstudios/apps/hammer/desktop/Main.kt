@@ -16,7 +16,7 @@ import androidx.compose.ui.window.application
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.reduce
+import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
@@ -70,7 +70,7 @@ fun main() {
 	val settingsUpdateJob = scope.launch {
 		globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 			withContext(mainDispatcher) {
-				globalSettings.reduce { settings }
+				globalSettings.getAndUpdate { settings }
 			}
 		}
 	}
