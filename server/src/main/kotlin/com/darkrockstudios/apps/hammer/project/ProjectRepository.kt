@@ -362,8 +362,14 @@ class ProjectRepository(
 		}
 
 		fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
-			val dir = getProjectDirectory(userId, projectDef, fileSystem)
-			return dir / ENTITY_DIR
+			val projDir = getProjectDirectory(userId, projectDef, fileSystem)
+			val dir = projDir / ENTITY_DIR
+
+			if (fileSystem.exists(dir).not()) {
+				fileSystem.createDirectories(dir)
+			}
+
+			return dir
 		}
 
 		fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {

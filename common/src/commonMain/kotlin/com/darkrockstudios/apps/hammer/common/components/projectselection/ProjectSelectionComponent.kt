@@ -266,12 +266,14 @@ class ProjectSelectionComponent(
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
 		syncProjectsJob = scope.launch {
+			onSyncLog("Syncing Account...")
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
 			yield()
 
 			var allSuccess = success
 			if (success) {
+				onSyncLog("Syncing Projects...")
 				val projects = projectsRepository.getProjects()
 				projects.forEach { projectName ->
 					allSuccess = allSuccess && syncProject(projectName, ::onSyncLog)

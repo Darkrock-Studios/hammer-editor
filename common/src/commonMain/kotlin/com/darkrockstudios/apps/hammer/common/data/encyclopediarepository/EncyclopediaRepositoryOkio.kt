@@ -92,11 +92,11 @@ class EncyclopediaRepositoryOkio(
 
 	override fun loadEntries() {
 		scope.launch {
-			loadEntriesImperetive()
+			loadEntriesImperative()
 		}
 	}
 
-	override suspend fun loadEntriesImperetive() {
+	override suspend fun loadEntriesImperative() {
 		val dir = getEncyclopediaDirectory().toOkioPath()
 		val entryPaths = fileSystem.listRecursively(dir).filterEntryPathsOkio().toList()
 		val entryDefs = entryPaths.map { path -> getEntryDef(path.toHPath()) }
@@ -295,7 +295,7 @@ class EncyclopediaRepositoryOkio(
 		val newPath = getEntryPath(newId).toOkioPath()
 		fileSystem.atomicMove(oldPath, newPath)
 
-		loadEntriesImperetive()
+		loadEntriesImperative()
 	}
 
 	companion object {

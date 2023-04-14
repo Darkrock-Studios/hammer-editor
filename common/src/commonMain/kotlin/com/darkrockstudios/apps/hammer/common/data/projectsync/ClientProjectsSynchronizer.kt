@@ -60,7 +60,7 @@ class ClientProjectsSynchronizer(
 
 				serverProjectsApi.endProjectsSync(syncId)
 
-				onLog("Sync complete")
+				onLog("Account Sync complete")
 				true
 			} else {
 				onLog("Failed to sync projects: ${result.exceptionOrNull()?.message}")

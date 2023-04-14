@@ -403,14 +403,14 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun prepareForSync() {
+		entitySynchronizers.forEach { it.prepareForSync() }
+
 		// Create the sync data if it doesnt exist yet
 		val path = getSyncDataPath()
 		if (!fileSystem.exists(path)) {
 			val newData = createSyncData()
 			saveSyncData(newData)
 		}
-
-		entitySynchronizers.forEach { it.prepareForSync() }
 	}
 
 	private suspend fun finalizeSync() {

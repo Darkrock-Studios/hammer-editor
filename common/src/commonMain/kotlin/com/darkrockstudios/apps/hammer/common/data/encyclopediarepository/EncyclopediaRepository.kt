@@ -173,7 +173,7 @@ abstract class EncyclopediaRepository(
 	}
 
 	abstract fun getEntryDef(id: Int): EntryDef
-	abstract suspend fun loadEntriesImperetive()
+	abstract suspend fun loadEntriesImperative()
 }
 
 fun Sequence<HPath>.filterEntryPaths() = filter {

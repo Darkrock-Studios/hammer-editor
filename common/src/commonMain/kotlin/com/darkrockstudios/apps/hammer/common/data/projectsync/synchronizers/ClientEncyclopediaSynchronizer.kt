@@ -32,7 +32,7 @@ class ClientEncyclopediaSynchronizer(
 	}
 
 	override suspend fun prepareForSync() {
-		encyclopediaRepository.loadEntriesImperetive()
+		encyclopediaRepository.loadEntriesImperative()
 	}
 
 	override suspend fun ownsEntity(id: Int): Boolean {
@@ -84,7 +84,7 @@ class ClientEncyclopediaSynchronizer(
 	}
 
 	override suspend fun finalizeSync() {
-		encyclopediaRepository.loadEntriesImperetive()
+		encyclopediaRepository.loadEntriesImperative()
 	}
 
 	override fun getEntityType() = EntityType.EncyclopediaEntry
