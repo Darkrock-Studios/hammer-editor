@@ -28,8 +28,10 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.Instant
@@ -128,13 +130,15 @@ fun ProjectListUi(
 	}
 
 	projectDefDeleteTarget?.let { project ->
-		ProjectDeleteDialog(project) { deleteProject ->
-			if (deleteProject) {
+		SimpleConfirm(
+			title = MR.strings.delete_project_title.get(),
+			message = getString(MR.strings.delete_project_message, project.name),
+			onDismiss = { projectDefDeleteTarget = null },
+			onConfirm = {
 				component.deleteProject(project)
+				projectDefDeleteTarget = null
 			}
-
-			projectDefDeleteTarget = null
-		}
+		)
 	}
 
 	ProjectsSyncDialog(component, snackbarHostState)
