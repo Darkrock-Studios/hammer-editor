@@ -65,6 +65,11 @@ class GlobalSettingsRepository(
 		lock.withLock {
 			val updated = action(settings)
 			dispatchSettingsUpdate(updated)
+
+			if (settings.projectsDirectory != updated.projectsDirectory) {
+				val serverSettings = loadServerSettings()
+				_serverSettingsUpdates.tryEmit(serverSettings)
+			}
 		}
 	}
 

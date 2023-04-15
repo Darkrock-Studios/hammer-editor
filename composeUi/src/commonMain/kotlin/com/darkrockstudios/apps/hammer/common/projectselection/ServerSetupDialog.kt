@@ -20,8 +20,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import kotlinx.coroutines.CoroutineScope
@@ -30,11 +31,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerSetupDialog(
-    state: ProjectSelection.State,
-    component: ProjectSelection,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState
+	component: AccountSettings,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState
 ) {
+	val state by component.state.subscribeAsState()
     MpDialog(
         onCloseRequest = { component.cancelServerSetup() },
         visible = state.serverSetup,

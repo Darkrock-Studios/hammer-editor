@@ -26,9 +26,11 @@ fun ProjectSelectionUi(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier
 ) {
-	val state by component.state.subscribeAsState()
-	when (state.location) {
-		ProjectSelection.Locations.Projects -> ProjectList(component, modifier)
-		ProjectSelection.Locations.Sittings -> Settings(component, modifier)
+	val slot by component.slot.subscribeAsState()
+
+	when (val destination = slot.child?.instance) {
+		is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(destination.component, modifier)
+		is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(destination.component, modifier)
+		else -> throw IllegalArgumentException("Child cannot be null")
 	}
 }

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -38,12 +38,11 @@ import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
-fun ProjectList(
-	component: ProjectSelection,
+fun ProjectListUi(
+	component: ProjectsList,
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
-	val scope = rememberCoroutineScope()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }
 	val snackbarHostState = remember { SnackbarHostState() }
@@ -69,7 +68,7 @@ fun ProjectList(
 					modifier = Modifier.weight(1f).padding(Ui.Padding.L)
 				)
 
-				if (state.serverUrl != null) {
+				if (state.isServerSynced) {
 					Button(onClick = {
 						component.showProjectsSync()
 					}) {

@@ -16,12 +16,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProjectsSyncDialog(component: ProjectSelection, snackbarHostState: SnackbarHostState) {
+fun ProjectsSyncDialog(component: ProjectsList, snackbarHostState: SnackbarHostState) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 

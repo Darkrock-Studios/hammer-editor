@@ -92,7 +92,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 	private fun Content(component: ProjectSelectionComponent) {
 		val scope = rememberCoroutineScope()
 		val drawerState = rememberDrawerState(DrawerValue.Closed)
-		val state by component.state.subscribeAsState()
+		val slot by component.slot.subscribeAsState()
 
 		Scaffold(
 			modifier = Modifier
@@ -125,7 +125,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 								NavigationDrawerItem(
 									icon = { Icon(getLocationIcon(item), contentDescription = item.text) },
 									label = { Text(item.name) },
-									selected = item == state.location,
+									selected = item == slot.child?.configuration?.location,
 									onClick = {
 										scope.launch { drawerState.close() }
 										component.showLocation(item)

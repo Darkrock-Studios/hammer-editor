@@ -24,8 +24,7 @@ internal class DetailsRouter(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
-    private val navigation =
-        StackNavigation<Config>()
+    private val navigation = StackNavigation<Config>()
 
 	private val stack = componentContext.childStack(
         source = navigation,

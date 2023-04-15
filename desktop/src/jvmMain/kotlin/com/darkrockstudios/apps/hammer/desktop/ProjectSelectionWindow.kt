@@ -52,7 +52,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
 	) {
-		val state by component.state.subscribeAsState()
+		val slot by component.slot.subscribeAsState()
 
 		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
@@ -60,7 +60,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 					NavigationRailItem(
 						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text) },
 						label = { Text(item.text) },
-						selected = state.location == item,
+						selected = item == slot.child?.configuration?.location,
 						onClick = { component.showLocation(item) }
 					)
 				}

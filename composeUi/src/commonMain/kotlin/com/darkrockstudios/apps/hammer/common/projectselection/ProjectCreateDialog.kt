@@ -9,14 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProjectCreateDialog(show: Boolean, component: ProjectSelection, close: () -> Unit) {
+fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Unit) {
 	MpDialog(
 		onCloseRequest = close,
 		visible = show,

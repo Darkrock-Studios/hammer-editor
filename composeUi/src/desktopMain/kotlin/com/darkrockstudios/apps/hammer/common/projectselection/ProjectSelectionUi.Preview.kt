@@ -4,30 +4,22 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
 
-
+/*
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Preview
 @Composable
 private fun ProjectSelectionUiPreview() {
 	ProjectSelectionUi(fakeProjectSelectionComponent())
 }
+*/
 
 @Preview
 @Composable
@@ -48,6 +40,7 @@ private fun ProjectCardPreview() {
 	}
 }
 
+/*
 private fun fakeProjectSelectionComponent(): ProjectSelection {
 	return object : ProjectSelection {
 		override val showProjectDirectory = true
@@ -103,6 +96,7 @@ private fun fakeProjectSelectionComponent(): ProjectSelection {
 		override suspend fun setMaxBackups(value: Int) {}
 	}
 }
+*/
 
 fun fakeProjectData() = ProjectData(
 	fakeProjectDef(),
