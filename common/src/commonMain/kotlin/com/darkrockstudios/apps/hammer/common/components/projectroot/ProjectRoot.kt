@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
-import com.arkivanov.decompose.router.overlay.ChildOverlay
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
 	val routerState: Value<ChildStack<*, Destination<*>>>
-	val modalRouterState: Value<ChildOverlay<ProjectRootModalRouter.Config, ModalDestination>>
+	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val shouldConfirmClose: Value<Boolean>
 	val backEnabled: Value<Boolean>
 

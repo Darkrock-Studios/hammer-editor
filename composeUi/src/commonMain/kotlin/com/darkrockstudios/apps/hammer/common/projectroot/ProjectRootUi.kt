@@ -100,7 +100,7 @@ fun FeatureContent(
 @Composable
 fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 	val state by component.modalRouterState.subscribeAsState()
-	val overlay = state.overlay?.instance
+	val overlay = state.child?.instance
 	when (overlay) {
 		ProjectRoot.ModalDestination.None -> {}
 		is ProjectRoot.ModalDestination.ProjectSync -> {

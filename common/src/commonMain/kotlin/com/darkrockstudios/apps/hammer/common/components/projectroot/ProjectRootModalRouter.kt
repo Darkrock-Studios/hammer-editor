@@ -1,9 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.overlay.ChildOverlay
-import com.arkivanov.decompose.router.overlay.OverlayNavigation
-import com.arkivanov.decompose.router.overlay.childOverlay
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
@@ -14,10 +15,10 @@ class ProjectRootModalRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
 ) : Router {
-	private val navigation = OverlayNavigation<Config>()
+	private val navigation = SlotNavigation<Config>()
 
-	val state: Value<ChildOverlay<Config, ProjectRoot.ModalDestination>> =
-		componentContext.childOverlay(
+	val state: Value<ChildSlot<Config, ProjectRoot.ModalDestination>> =
+		componentContext.childSlot(
 			source = navigation,
 			initialConfiguration = { Config.None },
 			key = "ProjectRootModalRouter",
@@ -25,7 +26,7 @@ class ProjectRootModalRouter(
 		)
 
 	override fun isAtRoot(): Boolean {
-		return state.value.overlay?.instance is ProjectRoot.ModalDestination.None
+		return state.value.child?.instance is ProjectRoot.ModalDestination.None
 	}
 
 	private fun createChild(
@@ -40,25 +41,11 @@ class ProjectRootModalRouter(
 		}
 
 	fun showProjectSync() {
-		navigation.navigate(
-			transformer = { configuration ->
-				if (configuration is Config.ProjectSync)
-					throw IllegalStateException("Can't navigate to Project sync, already there")
-				Config.ProjectSync
-			},
-			onComplete = { _, _ -> }
-		)
+		navigation.activate(Config.ProjectSync)
 	}
 
 	fun dismissProjectSync() {
-		navigation.navigate(
-			transformer = { configuration ->
-				if (configuration is Config.None)
-					throw IllegalStateException("Can't dismiss Project sync, it isnt shown")
-				Config.None
-			},
-			onComplete = { _, _ -> }
-		)
+		navigation.activate(Config.None)
 	}
 
 	sealed class Config : Parcelable {

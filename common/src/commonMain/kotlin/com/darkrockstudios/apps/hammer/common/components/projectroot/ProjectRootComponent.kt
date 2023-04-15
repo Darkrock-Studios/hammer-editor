@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.overlay.ChildOverlay
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -60,7 +60,7 @@ class ProjectRootComponent(
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
 		get() = router.state
 
-	override val modalRouterState: Value<ChildOverlay<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
+	override val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
 		get() = modalRouter.state
 
 	override fun showEditor() {
