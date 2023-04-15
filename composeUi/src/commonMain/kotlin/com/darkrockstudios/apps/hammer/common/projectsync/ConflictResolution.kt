@@ -6,8 +6,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -16,25 +16,18 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun SyncLog(state: ProjectSync.State, scope: CoroutineScope) {
-	var showLog by rememberSaveable { mutableStateOf(true) }
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Button(onClick = { showLog = !showLog }) {
-			Text("Sync Log")
-		}
-		if (showLog) {
-			val listState: LazyListState = rememberLazyListState()
-			LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
-				items(count = state.syncLog.size, key = { it }) { index ->
-					Text(state.syncLog[index])
-				}
-			}
 
-			LaunchedEffect(state.syncLog) {
-				if (state.syncLog.isNotEmpty()) {
-					scope.launch {
-						listState.animateScrollToItem(state.syncLog.size - 1)
-					}
-				}
+	val listState: LazyListState = rememberLazyListState()
+	LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
+		items(count = state.syncLog.size, key = { it }) { index ->
+			Text(state.syncLog[index])
+		}
+	}
+
+	LaunchedEffect(state.syncLog) {
+		if (state.syncLog.isNotEmpty()) {
+			scope.launch {
+				listState.animateScrollToItem(state.syncLog.size - 1)
 			}
 		}
 	}

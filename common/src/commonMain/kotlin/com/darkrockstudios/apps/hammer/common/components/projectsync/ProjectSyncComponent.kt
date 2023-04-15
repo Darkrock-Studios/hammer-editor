@@ -62,13 +62,13 @@ class ProjectSyncComponent(
 		}
 	}
 
-	private suspend fun updateSync(show: Boolean, progress: Float, log: String? = null) {
+	private suspend fun updateSync(isSyncing: Boolean, progress: Float, log: String? = null) {
 		updateSyncLog(log)
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					isSyncing = show,
+					isSyncing = isSyncing,
 					syncProgress = progress
 				)
 			}
@@ -121,11 +121,13 @@ class ProjectSyncComponent(
 			syncJob?.cancel(CancellationException("User canceled sync"))
 			syncJob = null
 
+			updateSyncLog("User canceled project sync")
+
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
-						syncProgress = 1f,
+						isSyncing = false,
 					)
 				}
 			}
@@ -254,7 +256,7 @@ class ProjectSyncComponent(
 
 	private suspend fun onSyncComplete() {
 		updateSyncLog("Sync complete!")
-		updateSync(true, 1f)
+		updateSync(false, 1f)
 	}
 
 	private suspend fun onSceneConflict(serverEntity: ApiProjectEntity.SceneEntity) {

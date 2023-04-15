@@ -24,7 +24,6 @@ internal fun CreateNoteDialog(
 	MpDialog(
 		visible = true,
 		title = "Create Note",
-		modifier = Modifier.padding(Ui.Padding.XL),
 		onCloseRequest = { component.dismissCreate() }
 	) {
 		val mainDispatcher = rememberMainDispatcher()

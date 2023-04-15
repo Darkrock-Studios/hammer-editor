@@ -22,7 +22,6 @@ internal fun CreateDialog(
 	MpDialog(
 		visible = show,
 		title = title,
-		modifier = Modifier.padding(Ui.Padding.XL),
 		onCloseRequest = { onClose(null) }
 	) {
 		var nameText by remember { mutableStateOf("") }

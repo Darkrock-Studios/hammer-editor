@@ -29,13 +29,12 @@ internal fun SaveDraftDialog(
 	MpDialog(
 		visible = state.isSavingDraft,
 		title = "Save Draft:",
-		modifier = Modifier.padding(Ui.Padding.XL),
 		onCloseRequest = {
 			component.endSaveDraft()
 			draftName = ""
 		}
 	) {
-		Box(modifier = Modifier.fillMaxWidth()) {
+		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
 			Column(
 				modifier = Modifier
 					.width(IntrinsicSize.Max)

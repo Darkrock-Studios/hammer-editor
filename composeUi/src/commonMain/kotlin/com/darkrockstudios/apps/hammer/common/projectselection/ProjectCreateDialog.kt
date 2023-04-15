@@ -21,10 +21,9 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 		onCloseRequest = close,
 		visible = show,
 		title = MR.strings.create_project_title.get(),
-		modifier = Modifier.padding(Ui.Padding.XL)
 	) {
 		var newProjectNameText by remember { mutableStateOf("") }
-		Box(modifier = Modifier.fillMaxWidth()) {
+		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
 			Column(
 				modifier = Modifier
 					.width(IntrinsicSize.Max)

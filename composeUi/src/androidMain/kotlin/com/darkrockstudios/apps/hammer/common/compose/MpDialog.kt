@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.window.Dialog
 
 @Composable
@@ -15,10 +16,16 @@ actual fun MpDialog(
 	onCloseRequest: () -> Unit,
 	visible: Boolean,
 	title: String,
-	modifier: Modifier,
+	size: DpSize?,
 	content: @Composable () -> Unit
 ) {
 	if (visible) {
+		val modifier = if (size != null) {
+			Modifier.size(size)
+		} else {
+			Modifier
+		}
+
 		Dialog(
 			onDismissRequest = onCloseRequest,
 			content = {

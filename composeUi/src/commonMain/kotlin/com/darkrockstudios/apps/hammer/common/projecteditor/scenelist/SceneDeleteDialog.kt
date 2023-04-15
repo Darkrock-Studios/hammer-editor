@@ -20,10 +20,9 @@ internal fun SceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Uni
 	MpDialog(
 		onCloseRequest = {},
 		visible = true,
-		modifier = Modifier.padding(Ui.Padding.XL),
 		title = "Delete Scene"
 	) {
-		Box(modifier = Modifier.fillMaxWidth()) {
+		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.M)) {
 			Column(
 				modifier = Modifier
 					.width(IntrinsicSize.Max)

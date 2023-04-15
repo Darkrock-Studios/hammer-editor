@@ -239,7 +239,10 @@ class ClientProjectSynchronizer(
 
 			yield()
 
-			if (globalSettingsRepository.globalSettings.automaticBackups) {
+			if (
+				globalSettingsRepository.globalSettings.automaticBackups &&
+				backupRepository.supportsBackup()
+			) {
 				val backupDef = backupRepository.createBackup(projectDef)
 
 				if (backupDef != null) {

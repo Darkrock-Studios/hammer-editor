@@ -12,11 +12,10 @@ interface ProjectSync {
 	fun cancelSync()
 
 	data class State(
-		val isSyncing: Boolean = false,
 		val syncProgress: Float = 0f,
 		val entityConflict: EntityConflict<*>? = null,
 		val syncLog: List<String> = emptyList(),
-		val syncComplete: Boolean = false
+		val isSyncing: Boolean = false
 	)
 
 	sealed class EntityConflict<T : ApiProjectEntity>(
