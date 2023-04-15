@@ -156,7 +156,11 @@ class ProjectsListComponent(
 		return projectsRepository.loadMetadata(projectDef)
 	}
 
-	private suspend fun syncProject(projectDef: ProjectDef, onLog: suspend (String) -> Unit): Boolean {
+	private suspend fun syncProject(
+		projectDef: ProjectDef,
+		onLog: suspend (String) -> Unit,
+		onProgress: suspend (Float, String?) -> Unit
+	): Boolean {
 		onLog("Syncing Project: ${projectDef.name}")
 
 		val projScope = ProjectDefScope(projectDef)
@@ -168,7 +172,7 @@ class ProjectsListComponent(
 
 		val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
 		val success = synchronizer.sync(
-			onProgress = { percent, message -> message?.let { onLog(it) } },
+			onProgress = onProgress,
 			onLog = { message -> message?.let { onLog(it) } },
 			onConflict = {
 				onLog("There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it")
@@ -185,9 +189,47 @@ class ProjectsListComponent(
 		return success
 	}
 
+	private fun syncNewProjectStatus(projects: List<ProjectDef>) {
+		val newStatuses = mutableMapOf<String, ProjectsList.ProjectSyncStatus>()
+		projects.forEach { projDef ->
+			newStatuses[projDef.name] = ProjectsList.ProjectSyncStatus(projectName = projDef.name)
+		}
+
+		_state.getAndUpdate {
+			it.copy(
+				syncState = it.syncState.copy(
+					projectsStatus = newStatuses
+				)
+			)
+		}
+	}
+
+	private fun syncProgressStatus(projectName: String, status: ProjectsList.Status, progress: Float? = null) {
+		_state.getAndUpdate {
+			val projStatus = it.syncState.projectsStatus[projectName]!!
+
+			val map = it.syncState.projectsStatus.toMutableMap()
+			val updatedMap = projStatus.copy(
+				status = status,
+				progress = progress ?: projStatus.progress
+			)
+			map[projectName] = updatedMap
+
+			it.copy(
+				syncState = it.syncState.copy(
+					projectsStatus = map
+				)
+			)
+		}
+	}
+
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
 		syncProjectsJob = scope.launch {
+			val projects = projectsRepository.getProjects()
+
+			syncNewProjectStatus(projects)
+
 			onSyncLog("Syncing Account...")
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
@@ -196,9 +238,20 @@ class ProjectsListComponent(
 			var allSuccess = success
 			if (success) {
 				onSyncLog("Syncing Projects...")
-				val projects = projectsRepository.getProjects()
-				projects.forEach { projectName ->
-					allSuccess = allSuccess && syncProject(projectName, ::onSyncLog)
+				projects.forEach { projectDef ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+
+					suspend fun onProgress(progress: Float, message: String?) {
+						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+						if (message != null) onSyncLog(message)
+					}
+
+					val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
+					allSuccess = allSuccess && projectSuccess
+
+					val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+					syncProgressStatus(projectDef.name, newStatus)
+
 					yield()
 				}
 			}
@@ -228,11 +281,23 @@ class ProjectsListComponent(
 		syncProjectsJob = null
 
 		scope.launch(mainDispatcher) {
+			onSyncLog("Sync canceled by user")
+
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
+					val statuses = it.syncState.projectsStatus.toMutableMap()
+					it.syncState.projectsStatus.values.forEach { status ->
+						if (status.status == ProjectsList.Status.Syncing || status.status == ProjectsList.Status.Pending) {
+							statuses[status.projectName] = status.copy(
+								status = ProjectsList.Status.Canceled
+							)
+						}
+					}
+
 					it.copy(
 						syncState = it.syncState.copy(
-							syncComplete = true
+							syncComplete = true,
+							projectsStatus = statuses
 						),
 					)
 				}
@@ -270,7 +335,7 @@ class ProjectsListComponent(
 	private fun resetSync() {
 		_state.getAndUpdate {
 			it.copy(
-				syncState = ProjectsList.SycState()
+				syncState = ProjectsList.SyncState()
 			)
 		}
 	}

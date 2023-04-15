@@ -24,12 +24,27 @@ interface ProjectsList : HammerComponent {
 		val projects: List<ProjectData> = mutableListOf(),
 		val projectsPath: HPath,
 		val isServerSynced: Boolean = false,
-		val syncState: SycState = SycState(),
+		val syncState: SyncState = SyncState(),
 	)
 
-	data class SycState(
+	data class SyncState(
 		val showProjectSync: Boolean = false,
 		val syncComplete: Boolean = false,
-		val syncLog: List<String> = emptyList()
+		val syncLog: List<String> = emptyList(),
+		val projectsStatus: Map<String, ProjectSyncStatus> = emptyMap()
 	)
+
+	data class ProjectSyncStatus(
+		val projectName: String,
+		val progress: Float = 0f,
+		val status: Status = Status.Pending
+	)
+
+	enum class Status {
+		Pending,
+		Syncing,
+		Failed,
+		Complete,
+		Canceled
+	}
 }
