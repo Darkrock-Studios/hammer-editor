@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
@@ -218,7 +219,7 @@ class ClientProjectSynchronizer(
 		onLog: suspend (String?) -> Unit,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
-		noDownload: Boolean = false,
+		onlyNew: Boolean = false,
 	): Boolean {
 		return try {
 			prepareForSync()
@@ -235,6 +236,7 @@ class ClientProjectSynchronizer(
 				serverSyncData.deletedIds.filter { clientSyncData.deletedIds.contains(it).not() }.toSet()
 			val newlyDeletedIds =
 				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
+			val dirtyEntities = clientSyncData.dirty.toMutableList()
 
 			onProgress(0.2f, "Client data loaded")
 
@@ -260,9 +262,6 @@ class ClientProjectSynchronizer(
 			val maxId = (resolvedClientSyncData.newIds + resolvedClientSyncData.lastId + serverSyncData.lastId).max()
 			val newClientIds = resolvedClientSyncData.newIds
 
-			val ENTITY_START = 0.3f
-			val ENTITY_TOTAL = 0.5f
-
 			// Handle IDs newly deleted on server
 			for (id in serverDeletedIds) {
 				deleteEntityLocal(id, onLog)
@@ -280,35 +279,29 @@ class ClientProjectSynchronizer(
 
 			onProgress(ENTITY_START, null)
 
-			var allSuccess = true
 			// Transfer Entities
-			for (thisId in 1..maxId) {
-				if (thisId in combinedDeletions) {
-					Napier.d("Skipping deleted ID $thisId")
-					continue
-				}
-				//Napier.d("Syncing ID $thisId")
-
-				val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
-				val isNewlyCreated = newClientIds.contains(thisId)
-				// If our copy is dirty, or this ID hasn't been seen by the server yet
-				if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
-					Napier.d("Upload ID $thisId")
-					val originalHash = localIsDirty?.originalHash
-					allSuccess =
-						allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
-				}
-				// Otherwise download the server's copy
-				else if (noDownload.not()) {
-					Napier.d("Download ID $thisId")
-					allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
-				}
-				onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
-
-				yield()
+			var allSuccess = if (onlyNew) {
+				uploadNewEntities(
+					newClientIds,
+					serverSyncData,
+					dirtyEntities,
+					onProgress,
+					onLog
+				)
+			} else {
+				fullEntityTransfer(
+					maxId,
+					combinedDeletions,
+					resolvedClientSyncData,
+					serverSyncData,
+					newClientIds,
+					dirtyEntities,
+					onProgress,
+					onLog,
+					onConflict
+				)
 			}
 
-			val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 			onProgress(ENTITY_END, "Entities transferred")
 
 			finalizeSync()
@@ -350,7 +343,7 @@ class ClientProjectSynchronizer(
 							currentSyncId = null,
 							lastId = newLastId,
 							lastSync = syncFinishedAt,
-							dirty = emptyList(),
+							dirty = dirtyEntities,
 							newIds = emptyList(),
 							deletedIds = combinedDeletions
 						)
@@ -379,6 +372,86 @@ class ClientProjectSynchronizer(
 
 			false
 		}
+	}
+
+	private suspend fun uploadNewEntities(
+		newClientIds: List<Int>,
+		serverSyncData: ProjectSynchronizationBegan,
+		dirtyEntities: MutableList<EntityState>,
+		onProgress: suspend (Float, String?) -> Unit,
+		onLog: suspend (String?) -> Unit
+	): Boolean {
+		var allSuccess = true
+
+		suspend fun onConflict(entity: ApiProjectEntity) {
+			onLog("Encountered conflict for new Entity, this should not be possible!")
+			throw IllegalStateException("Encountered conflict for new Entity, this should not be possible!")
+		}
+
+		val total = newClientIds.size - 1
+
+		newClientIds.forEachIndexed { index, thisId ->
+			val success = uploadEntity(thisId, serverSyncData.syncId, null, ::onConflict, onLog)
+			if (success) {
+				dirtyEntities.find { it.id == thisId }?.let { dirty ->
+					dirtyEntities.remove(dirty)
+				}
+			}
+			allSuccess = allSuccess && success
+			onProgress(ENTITY_START + (ENTITY_TOTAL * (index / total.toFloat())), null)
+
+			yield()
+		}
+
+		return allSuccess
+	}
+
+	private suspend fun fullEntityTransfer(
+		maxId: Int,
+		combinedDeletions: Set<Int>,
+		resolvedClientSyncData: ProjectSynchronizationData,
+		serverSyncData: ProjectSynchronizationBegan,
+		newClientIds: List<Int>,
+		dirtyEntities: MutableList<EntityState>,
+		onProgress: suspend (Float, String?) -> Unit,
+		onLog: suspend (String?) -> Unit,
+		onConflict: EntityConflictHandler<ApiProjectEntity>
+	): Boolean {
+		var allSuccess = true
+		for (thisId in 1..maxId) {
+			if (thisId in combinedDeletions) {
+				Napier.d("Skipping deleted ID $thisId")
+				continue
+			}
+			//Napier.d("Syncing ID $thisId")
+
+			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
+			val isNewlyCreated = newClientIds.contains(thisId)
+			// If our copy is dirty, or this ID hasn't been seen by the server yet
+			allSuccess = if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
+				Napier.d("Upload ID $thisId")
+				val originalHash = localIsDirty?.originalHash
+				val success = uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+
+				if (success) {
+					dirtyEntities.find { it.id == thisId }?.let { dirty ->
+						dirtyEntities.remove(dirty)
+					}
+				}
+
+				allSuccess && success
+			}
+			// Otherwise download the server's copy
+			else {
+				Napier.d("Download ID $thisId")
+				allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
+			}
+			onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
+
+			yield()
+		}
+
+		return allSuccess
 	}
 
 	private suspend fun endSync() {
@@ -535,13 +608,22 @@ class ClientProjectSynchronizer(
 			onLog("Entity $id downloaded")
 			true
 		} else {
-			if (entityResponse.exceptionOrNull() is EntityNotModifiedException) {
-				onLog("Entity $id not modified")
-				true
-			} else {
-				Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
-				onLog("Failed to download entity $id")
-				false
+			when (entityResponse.exceptionOrNull()) {
+				is EntityNotModifiedException -> {
+					onLog("Entity $id not modified")
+					true
+				}
+
+				is EntityNotFoundException -> {
+					onLog("Entity $id not found on server")
+					true
+				}
+
+				else -> {
+					Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
+					onLog("Failed to download entity $id")
+					false
+				}
 			}
 		}
 	}
@@ -576,5 +658,8 @@ class ClientProjectSynchronizer(
 
 	companion object {
 		private const val SYNC_FILE_NAME = "sync.json"
+		private const val ENTITY_START = 0.3f
+		private const val ENTITY_TOTAL = 0.5f
+		private const val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 	}
 }
