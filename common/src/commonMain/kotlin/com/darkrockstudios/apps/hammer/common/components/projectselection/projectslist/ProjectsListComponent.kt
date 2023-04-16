@@ -231,6 +231,7 @@ class ProjectsListComponent(
 			syncNewProjectStatus(projects)
 
 			onSyncLog("Syncing Account...")
+
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
 			yield()
@@ -253,6 +254,10 @@ class ProjectsListComponent(
 					syncProgressStatus(projectDef.name, newStatus)
 
 					yield()
+				}
+			} else {
+				projects.forEach { projectDef ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
 				}
 			}
 

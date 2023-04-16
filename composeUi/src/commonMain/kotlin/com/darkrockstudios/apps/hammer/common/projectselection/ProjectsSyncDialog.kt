@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +34,7 @@ fun ProjectsSyncDialog(component: ProjectsList, snackbarHostState: SnackbarHostS
 			}
 		},
 		visible = state.syncState.showProjectSync,
-		title = "Synchronizing..."
+		title = "Synchronization"
 	) {
 		ProjectsSyncDialogContents(component, scope, snackbarHostState)
 	}
@@ -63,14 +64,17 @@ internal fun ProjectsSyncDialogContents(
 	}
 
 	Column(modifier = Modifier.padding(Ui.Padding.L)) {
-		Row(modifier = Modifier.fillMaxWidth()) {
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			verticalAlignment = CenterVertically
+		) {
 			Text(
 				"Account Sync",
 				style = MaterialTheme.typography.headlineSmall
 			)
 
 			Spacer(modifier = Modifier.weight(1f))
-
+			LocalScreenCharacteristic.current.needsExplicitClose
 			if (!state.syncState.syncComplete) {
 				Icon(
 					Icons.Default.Cancel,
@@ -78,6 +82,12 @@ internal fun ProjectsSyncDialogContents(
 					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelProjectsSync() },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
+			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+			if (state.syncState.syncComplete.not()) {
+				CircularProgressIndicator(modifier = Modifier.size(16.dp))
 			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.M))
@@ -97,6 +107,7 @@ internal fun ProjectsSyncDialogContents(
 
 		Box(modifier = Modifier.padding(Ui.Padding.M)) {
 			LazyColumn(
+				modifier = Modifier.heightIn(min = 128.dp),
 				state = projectListState,
 				contentPadding = PaddingValues(Ui.Padding.M)
 			) {
@@ -150,7 +161,7 @@ private fun SyncLog(component: ProjectsList, onClose: () -> Unit) {
 internal fun ProjectStatusUi(projectStatus: ProjectsList.ProjectSyncStatus) {
 	Card(
 		modifier = Modifier.fillMaxWidth().padding(bottom = Ui.Padding.M),
-		elevation = CardDefaults.elevatedCardElevation(2.dp),
+		elevation = CardDefaults.elevatedCardElevation(4.dp),
 	) {
 		Row(modifier = Modifier.padding(Ui.Padding.M)) {
 			ProjectStatusIcon(
