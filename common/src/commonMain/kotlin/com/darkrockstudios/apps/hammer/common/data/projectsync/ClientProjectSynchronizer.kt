@@ -277,6 +277,13 @@ class ClientProjectSynchronizer(
 			}
 			val failedDeletes = newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
 
+			// Remove any dirty that were deleted
+			combinedDeletions.forEach { deletedId ->
+				dirtyEntities.find { it.id == deletedId }?.let { deleted ->
+					dirtyEntities.remove(deleted)
+				}
+			}
+
 			onProgress(ENTITY_START, null)
 
 			// Transfer Entities
