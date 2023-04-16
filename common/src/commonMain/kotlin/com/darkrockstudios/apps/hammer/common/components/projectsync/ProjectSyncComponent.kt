@@ -80,10 +80,22 @@ class ProjectSyncComponent(
 		syncJob = scope.launch {
 			updateSync(true, 0f, "Project Sync Started")
 			val success = projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
+
+			_state.getAndUpdate {
+				it.copy(
+					failed = !success
+				)
+			}
+
 			// Auto-close dialog on success
 			if (success && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
 				endSync()
+			} else {
+				if (!success) {
+					showLog(true)
+				}
 			}
+
 			onComplete(success)
 		}
 	}
@@ -131,6 +143,14 @@ class ProjectSyncComponent(
 					)
 				}
 			}
+		}
+	}
+
+	override fun showLog(show: Boolean) {
+		_state.getAndUpdate {
+			it.copy(
+				showLog = show
+			)
 		}
 	}
 

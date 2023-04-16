@@ -10,10 +10,13 @@ interface ProjectSync {
 	fun resolveConflict(resolvedEntity: ApiProjectEntity)
 	fun endSync()
 	fun cancelSync()
+	fun showLog(show: Boolean)
 
 	data class State(
 		val syncProgress: Float = 0f,
 		val entityConflict: EntityConflict<*>? = null,
+		val showLog: Boolean = false,
+		val failed: Boolean = false,
 		val syncLog: List<String> = emptyList(),
 		val isSyncing: Boolean = false
 	)
