@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
@@ -123,7 +124,7 @@ class ClientSceneSynchronizer(
 				onLog("Failed to save downloaded scene content for: $id")
 			} else {
 				onLog("Downloaded scene content for: $id")
-				projectEditorRepository.onContentChanged(content)
+				projectEditorRepository.onContentChanged(content, UpdateSource.Sync)
 			}
 		} else {
 			Napier.d("Entity $id is a Scene Group")

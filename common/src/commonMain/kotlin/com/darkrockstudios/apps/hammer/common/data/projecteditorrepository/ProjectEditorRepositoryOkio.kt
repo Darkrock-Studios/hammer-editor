@@ -698,7 +698,8 @@ class ProjectEditorRepositoryOkio(
 			}
 
 			val newBuffer = SceneBuffer(
-				SceneContent(sceneItem, content)
+				SceneContent(sceneItem, content),
+				source = UpdateSource.Repository
 			)
 
 			updateSceneBuffer(newBuffer)

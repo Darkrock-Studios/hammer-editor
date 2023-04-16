@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 
 
@@ -29,7 +30,7 @@ class SceneEditorComponent(
 	private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
 	override val state: Value<SceneEditor.State> = _state
 
-	override var lastDiscarded = MutableValue<Long>(0)
+	override var lastForceUpdate = MutableValue<Long>(0)
 
 	private var bufferUpdateSubscription: Job? = null
 
@@ -51,9 +52,13 @@ class SceneEditorComponent(
 			projectEditor.subscribeToBufferUpdates(sceneDef, scope, ::onBufferUpdate)
 	}
 
-	private fun onBufferUpdate(sceneBuffer: SceneBuffer) {
+	private suspend fun onBufferUpdate(sceneBuffer: SceneBuffer) = withContext(dispatcherMain) {
 		_state.getAndUpdate {
 			it.copy(sceneBuffer = sceneBuffer)
+		}
+
+		if (sceneBuffer.source != UpdateSource.Editor) {
+			forceUpdate()
 		}
 	}
 
@@ -72,7 +77,8 @@ class SceneEditorComponent(
 			SceneContent(
 				scene = sceneDef,
 				platformRepresentation = content
-			)
+			),
+			UpdateSource.Editor
 		)
 	}
 
@@ -99,7 +105,7 @@ class SceneEditorComponent(
 		) {
 			Napier.d("Scene buffer discard selected")
 			projectEditor.discardSceneBuffer(sceneDef)
-			lastDiscarded.value = Clock.System.now().epochSeconds
+			forceUpdate()
 		}
 
 		val renameItem = MenuItemDescriptor(
@@ -135,6 +141,10 @@ class SceneEditorComponent(
 			listOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
 		)
 		addMenu(menu)
+	}
+
+	private fun forceUpdate() {
+		lastForceUpdate.value = Clock.System.now().epochSeconds
 	}
 
 	override fun removeEditorMenu() {

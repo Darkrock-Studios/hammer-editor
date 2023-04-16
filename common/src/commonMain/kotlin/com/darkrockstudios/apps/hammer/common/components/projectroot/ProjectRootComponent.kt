@@ -26,7 +26,6 @@ class ProjectRootComponent(
 
 	init {
 		projectEditor.subscribeToBufferUpdates(null, scope) {
-			Napier.d { "subscribeToBufferUpdates" }
 			updateCloseConfirmRequirement()
 		}
 

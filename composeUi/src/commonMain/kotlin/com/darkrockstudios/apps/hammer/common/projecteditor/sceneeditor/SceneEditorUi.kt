@@ -31,7 +31,7 @@ fun SceneEditorUi(
 ) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
-	val lastDiscarded by component.lastDiscarded.subscribeAsState()
+	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
 	val snackbarHostState = remember { SnackbarHostState() }
 	var sceneText by remember {
@@ -40,7 +40,7 @@ fun SceneEditorUi(
 		)
 	}
 
-	LaunchedEffect(lastDiscarded) {
+	LaunchedEffect(lastForceUpdate) {
 		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
 	}
 

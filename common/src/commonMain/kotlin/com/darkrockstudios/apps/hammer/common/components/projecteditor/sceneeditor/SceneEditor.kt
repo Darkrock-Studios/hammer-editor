@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 
 interface SceneEditor : HammerComponent {
 	val state: Value<State>
-	var lastDiscarded: MutableValue<Long>
+	var lastForceUpdate: MutableValue<Long>
 
 	fun addEditorMenu()
 	fun removeEditorMenu()

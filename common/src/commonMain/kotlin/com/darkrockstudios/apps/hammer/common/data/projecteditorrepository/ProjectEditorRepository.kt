@@ -54,10 +54,12 @@ abstract class ProjectEditorRepository(
 	protected val dispatcherDefault by injectDefaultDispatcher()
 	private val editorScope = CoroutineScope(dispatcherDefault)
 
-	private val _contentFlow = MutableSharedFlow<SceneContent>(
-		extraBufferCapacity = 1
+	private val _contentFlow = MutableSharedFlow<SceneContentUpdate>(
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
-	private val contentFlow: SharedFlow<SceneContent> = _contentFlow
+	private val contentFlow: SharedFlow<SceneContentUpdate> = _contentFlow
 	private var contentUpdateJob: Job? = null
 
 	private val _bufferUpdateFlow = MutableSharedFlow<SceneBuffer>(
@@ -109,7 +111,7 @@ abstract class ProjectEditorRepository(
 	fun subscribeToBufferUpdates(
 		sceneDef: SceneItem?,
 		scope: CoroutineScope,
-		onBufferUpdate: (SceneBuffer) -> Unit
+		onBufferUpdate: suspend (SceneBuffer) -> Unit
 	): Job {
 		return scope.launch {
 			bufferUpdateFlow.collect { newBuffer ->
@@ -168,7 +170,7 @@ abstract class ProjectEditorRepository(
 		// Load any existing temp scenes into buffers
 		val tempContent = getSceneTempBufferContents()
 		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true)
+			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
 			updateSceneBuffer(buffer)
 		}
 
@@ -178,9 +180,9 @@ abstract class ProjectEditorRepository(
 		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { content ->
-				if (updateSceneBufferContent(content)) {
-					launchSaveJob(content.scene)
+			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { contentUpdate ->
+				if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
+					launchSaveJob(contentUpdate.content.scene)
 				}
 			}
 		}
@@ -255,17 +257,18 @@ abstract class ProjectEditorRepository(
 		_sceneListChannel.tryEmit(scenes)
 	}
 
-	fun onContentChanged(content: SceneContent) {
+	fun onContentChanged(content: SceneContent, source: UpdateSource) {
 		editorScope.launch {
-			_contentFlow.emit(content)
+			val update = SceneContentUpdate(content, source)
+			_contentFlow.emit(update)
 		}
 	}
 
-	private fun updateSceneBufferContent(content: SceneContent): Boolean {
+	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
 		val oldBuffer = sceneBuffers[content.scene.id]
 		// Skip update if nothing is different
 		return if (content != oldBuffer?.content) {
-			val newBuffer = SceneBuffer(content, true)
+			val newBuffer = SceneBuffer(content, true, source)
 			updateSceneBuffer(newBuffer)
 			true
 		} else {

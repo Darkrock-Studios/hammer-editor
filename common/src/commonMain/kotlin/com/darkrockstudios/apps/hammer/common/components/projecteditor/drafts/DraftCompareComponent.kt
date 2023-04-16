@@ -5,9 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -51,19 +50,10 @@ class DraftCompareComponent(
 		}
 	}
 
-	override fun onContentChanged(content: PlatformRichText) {
-		projectEditor.onContentChanged(
-			SceneContent(
-				scene = sceneItem,
-				platformRepresentation = content
-			)
-		)
-	}
-
 	override fun pickMerged() {
 		val content = state.value.sceneContent
 		if (content != null) {
-			projectEditor.onContentChanged(content)
+			projectEditor.onContentChanged(content, UpdateSource.Drafts)
 			backToEditor()
 		} else {
 			Napier.e { "Cannot pick merged, merged content was NULL" }
@@ -73,7 +63,7 @@ class DraftCompareComponent(
 	override fun pickDraft() {
 		val content = state.value.draftContent
 		if (content != null) {
-			projectEditor.onContentChanged(content)
+			projectEditor.onContentChanged(content, UpdateSource.Drafts)
 			backToEditor()
 		} else {
 			Napier.e { "Cannot pick draft, draft content was NULL" }

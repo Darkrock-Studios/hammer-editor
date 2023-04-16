@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.getInitialEditorContent
@@ -97,7 +96,6 @@ private fun CurrentContent(
 				value = sceneText,
 				onValueChange = { rtv ->
 					sceneText = rtv
-					component.onContentChanged(ComposeRichText(rtv.getLastSnapshot()))
 				},
 				textFieldStyle = defaultRichTextFieldStyle().copy(
 					placeholder = "Begin writing your Scene here",

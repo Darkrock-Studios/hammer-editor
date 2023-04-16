@@ -36,7 +36,7 @@ private fun fakeComponent() = object : SceneEditor {
 				isEditingName = false
 			)
 		)
-	override var lastDiscarded = MutableValue(0L)
+	override var lastForceUpdate = MutableValue(0L)
 
 	override fun addEditorMenu() {}
 	override fun removeEditorMenu() {}
