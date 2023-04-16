@@ -13,14 +13,18 @@ A simple tool for building stories.
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a
 website-in-a-box, but instead using native client side technologies to provide the best experience possible.
 
-### Initial support will be for:
-- ![badge-platform-windows]
-- ![badge-platform-android] (*Phone & Tablet*)
-
 ### Will add support for more platforms in the future:
+
 - ![badge-platform-linux]
 - ![badge-platform-macos]
 - ![badge-platform-ios]
+
+## Multi-Screen
+
+Whether you are on a phone, tablet, or desktop, Hammer will make the best use of your screen space.
+Also supporting both light and dark modes.
+
+![Screen Shots](readme/preview.png)
 
 ## Offline first
 
@@ -44,11 +48,6 @@ change on one device, overwriting a change on another device.
 Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and
 sync your data between devices. You could even use some other service to sync your data, like Dropbox or Google Drive.
 It's all up to you.
-
-## UI For your OS
-
-Whether you are on a phone, tablet, or desktop, Hammer will make the best use of your screen space.
-It's not a web page in a box, it's a native application designed to be small, fast, and efficient.
 
 <!-- TAG_DEPENDENCIES -->
 
