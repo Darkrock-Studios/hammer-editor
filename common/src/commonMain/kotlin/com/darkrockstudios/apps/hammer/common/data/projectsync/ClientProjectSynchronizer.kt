@@ -218,6 +218,7 @@ class ClientProjectSynchronizer(
 		onLog: suspend (String?) -> Unit,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
+		noDownload: Boolean = false,
 	): Boolean {
 		return try {
 			prepareForSync()
@@ -286,7 +287,7 @@ class ClientProjectSynchronizer(
 					Napier.d("Skipping deleted ID $thisId")
 					continue
 				}
-				Napier.d("Syncing ID $thisId")
+				//Napier.d("Syncing ID $thisId")
 
 				val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
 				val isNewlyCreated = newClientIds.contains(thisId)
@@ -298,7 +299,7 @@ class ClientProjectSynchronizer(
 						allSuccess && uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
 				}
 				// Otherwise download the server's copy
-				else {
+				else if (noDownload.not()) {
 					Napier.d("Download ID $thisId")
 					allSuccess = allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
 				}
