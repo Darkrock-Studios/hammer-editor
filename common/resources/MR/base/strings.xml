@@ -36,7 +36,7 @@
     <string name="settings_server_setup_cancel_button">Cancel</string>
 
     <string name="delete_project_title">Delete Project</string>
-    <string name="delete_project_message">Are you sure you want to delete this project: %s</string>
+    <string name="delete_project_message">Are you sure you want to delete this project:\n%s</string>
     <string name="delete_project_confirm">DELETE</string>
     <string name="delete_project_cancel">Cancel</string>
 
