@@ -51,7 +51,7 @@ It's all up to you.
 
 <!-- TAG_DEPENDENCIES -->
 
-[badge-kotlin]: https://img.shields.io/badge/kotlin-1.8.0-blue.svg?logo=kotlin
+[badge-kotlin]: https://img.shields.io/badge/kotlin-1.8.20-blue.svg?logo=kotlin
 
 <!-- PLATFORMS -->
 
