@@ -237,18 +237,28 @@ private fun Route.downloadEntity() {
 					}
 				}
 			} else {
-				val e = result.exceptionOrNull()
-				if (e is EntityConflictException) {
-					call.respond(
-						status = HttpStatusCode.Conflict,
-						HttpResponseError(error = "Save Error", message = e.message ?: "Unknown failure")
-					)
-				} else {
-					println("Entity Download failed for ID $entityId: " + e?.message)
-					call.respond(
-						status = HttpStatusCode.InternalServerError,
-						HttpResponseError(error = "Save Error", message = e?.message ?: "Unknown failure")
-					)
+				when (val e = result.exceptionOrNull()) {
+					is EntityConflictException -> {
+						call.respond(
+							status = HttpStatusCode.Conflict,
+							HttpResponseError(error = "Download Error", message = e.message ?: "Unknown failure")
+						)
+					}
+
+					is EntityNotFound -> {
+						call.respond(
+							status = HttpStatusCode.NotFound,
+							HttpResponseError(error = "Download Error", message = e.message ?: "Unknown failure")
+						)
+					}
+
+					else -> {
+						println("Entity Download failed for ID $entityId: " + e?.message)
+						call.respond(
+							status = HttpStatusCode.InternalServerError,
+							HttpResponseError(error = "Download Error", message = e?.message ?: "Unknown failure")
+						)
+					}
 				}
 			}
 		}

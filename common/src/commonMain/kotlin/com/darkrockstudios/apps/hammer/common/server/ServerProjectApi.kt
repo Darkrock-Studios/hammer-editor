@@ -151,10 +151,10 @@ class ServerProjectApi(
 				}
 			},
 			failureHandler = { response ->
-				if (response.status == HttpStatusCode.NotModified) {
-					EntityNotModifiedException(entityId)
-				} else {
-					defaultFailureHandler(response)
+				when (response.status) {
+					HttpStatusCode.NotModified -> EntityNotModifiedException(entityId)
+					HttpStatusCode.NotFound -> EntityNotFoundException(entityId)
+					else -> defaultFailureHandler(response)
 				}
 			},
 			builder = {
@@ -182,3 +182,4 @@ class ServerProjectApi(
 }
 
 class EntityNotModifiedException(val entityId: Int) : Exception()
+class EntityNotFoundException(val entityId: Int) : Exception()

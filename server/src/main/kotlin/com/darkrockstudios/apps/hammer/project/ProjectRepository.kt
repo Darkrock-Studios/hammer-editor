@@ -302,7 +302,7 @@ class ProjectRepository(
 		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		val type = findEntityType(entityId, userId, projectDef)
-			?: return Result.failure(IllegalStateException("Entity does not exist"))
+			?: return Result.failure(EntityNotFound(entityId))
 
 		return when (type) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
@@ -383,3 +383,4 @@ data class ProjectServerState(val lastSync: Instant, val lastId: Int)
 
 class InvalidSyncIdException : Exception("Invalid sync id")
 class NoEntityTypeFound(val id: Int) : Exception("Could not find Type for Entity ID: $id")
+class EntityNotFound(val id: Int) : Exception("Entity $id not found on server")
