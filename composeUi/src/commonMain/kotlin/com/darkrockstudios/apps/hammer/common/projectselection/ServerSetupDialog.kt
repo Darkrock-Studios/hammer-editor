@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -20,10 +19,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -36,116 +38,130 @@ fun ServerSetupDialog(
 	snackbarHostState: SnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
-    MpDialog(
-        onCloseRequest = { component.cancelServerSetup() },
-        visible = state.serverSetup,
-        title = MR.strings.settings_server_setup_title.get(),
-    ) {
-        var sslValue by rememberSaveable { mutableStateOf(false) }
-        var urlValue by rememberSaveable { mutableStateOf("") }
-        var emailValue by rememberSaveable { mutableStateOf("") }
-        var passwordValue by rememberSaveable { mutableStateOf("") }
-        var passwordVisible by rememberSaveable { mutableStateOf(false) }
+	MpDialog(
+		onCloseRequest = { component.cancelServerSetup() },
+		visible = state.serverSetup,
+		title = MR.strings.settings_server_setup_title.get(),
+		size = DpSize(400.dp, 420.dp)
+	) {
+		var sslValue by rememberSaveable { mutableStateOf(false) }
+		var urlValue by rememberSaveable { mutableStateOf("") }
+		var emailValue by rememberSaveable { mutableStateOf("") }
+		var passwordValue by rememberSaveable { mutableStateOf("") }
+		var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = sslValue,
-                    onCheckedChange = { sslValue = it },
-                )
-                Text(MR.strings.settings_server_setup_ssl_label.get())
-            }
+		Box(contentAlignment = Alignment.Center) {
+			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+				Text(
+					"Configure Server",
+					style = MaterialTheme.typography.headlineMedium
+				)
 
-            OutlinedTextField(
-                value = urlValue,
-                onValueChange = { urlValue = it },
-                label = { Text(MR.strings.settings_server_setup_url_hint.get()) }
-            )
+				//Divider(modifier = Modifier.fillMaxWidth())
 
-            OutlinedTextField(
-                value = emailValue,
-                onValueChange = { emailValue = it },
-                label = { Text(MR.strings.settings_server_setup_email_hint.get()) }
-            )
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-            OutlinedTextField(
-                value = passwordValue,
-                onValueChange = { passwordValue = it },
-                label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
-                singleLine = true,
-                placeholder = { Text(MR.strings.settings_server_setup_password_hint.get()) },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = {
-                    val image = if (passwordVisible)
-                        Icons.Filled.Visibility
-                    else Icons.Filled.VisibilityOff
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Checkbox(
+						checked = sslValue,
+						onCheckedChange = { sslValue = it },
+					)
+					Text(MR.strings.settings_server_setup_ssl_label.get())
+				}
 
-                    // Please provide localized description for accessibility services
-                    val description = if (passwordVisible) "Hide password" else "Show password"
+				OutlinedTextField(
+					value = urlValue,
+					onValueChange = { urlValue = it },
+					label = { Text(MR.strings.settings_server_setup_url_hint.get()) }
+				)
 
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, description)
-                    }
-                }
-            )
+				OutlinedTextField(
+					value = emailValue,
+					onValueChange = { emailValue = it },
+					label = { Text(MR.strings.settings_server_setup_email_hint.get()) }
+				)
 
-            state.serverError?.let { error ->
-                Text(
-                    error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = FontStyle.Italic
-                )
-            }
+				OutlinedTextField(
+					value = passwordValue,
+					onValueChange = { passwordValue = it },
+					label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
+					singleLine = true,
+					placeholder = { Text(MR.strings.settings_server_setup_password_hint.get()) },
+					visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+					trailingIcon = {
+						val image = if (passwordVisible)
+							Icons.Filled.Visibility
+						else Icons.Filled.VisibilityOff
 
-            Row {
-                Button(onClick = {
-                    scope.launch {
-                        val result = component.setupServer(
-                            ssl = sslValue,
-                            url = urlValue,
-                            email = emailValue,
-                            password = passwordValue,
-                            create = false
-                        )
-                        if (result.isSuccess) {
-                            snackbarHostState.showSnackbar("Server setup complete!")
-                        } else {
-                            snackbarHostState.showSnackbar("Failed to setup server")
-                        }
-                    }
-                }) {
-                    Text(MR.strings.settings_server_setup_login_button.get())
-                }
+						// Please provide localized description for accessibility services
+						val description = if (passwordVisible) "Hide password" else "Show password"
 
-                Button(onClick = {
-                    scope.launch {
-                        val result = component.setupServer(
-                            ssl = sslValue,
-                            url = urlValue,
-                            email = emailValue,
-                            password = passwordValue,
-                            create = true
-                        )
-                        if (result.isSuccess) {
-                            snackbarHostState.showSnackbar("Server setup complete!")
-                        } else {
-                            snackbarHostState.showSnackbar("Failed to setup server")
-                        }
-                    }
-                }) {
-                    Text(MR.strings.settings_server_setup_create_button.get())
-                }
+						IconButton(onClick = { passwordVisible = !passwordVisible }) {
+							Icon(imageVector = image, description)
+						}
+					}
+				)
 
-                Button(onClick = {
-                    scope.launch {
-                        component.cancelServerSetup()
-                    }
-                }) {
-                    Text(MR.strings.settings_server_setup_cancel_button.get())
-                }
-            }
-        }
-    }
+				state.serverError?.let { error ->
+					Text(
+						error,
+						color = MaterialTheme.colorScheme.error,
+						style = MaterialTheme.typography.bodySmall,
+						fontStyle = FontStyle.Italic
+					)
+				}
+
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+				Row {
+					Button(onClick = {
+						scope.launch {
+							val result = component.setupServer(
+								ssl = sslValue,
+								url = urlValue,
+								email = emailValue,
+								password = passwordValue,
+								create = false
+							)
+							if (result.isSuccess) {
+								snackbarHostState.showSnackbar("Server setup complete!")
+							} else {
+								snackbarHostState.showSnackbar("Failed to setup server")
+							}
+						}
+					}) {
+						Text(MR.strings.settings_server_setup_login_button.get())
+					}
+
+					Button(onClick = {
+						scope.launch {
+							val result = component.setupServer(
+								ssl = sslValue,
+								url = urlValue,
+								email = emailValue,
+								password = passwordValue,
+								create = true
+							)
+							if (result.isSuccess) {
+								snackbarHostState.showSnackbar("Server setup complete!")
+							} else {
+								snackbarHostState.showSnackbar("Failed to setup server")
+							}
+						}
+					}) {
+						Text(MR.strings.settings_server_setup_create_button.get())
+					}
+
+					Button(onClick = {
+						scope.launch {
+							component.cancelServerSetup()
+						}
+					}) {
+						Text(MR.strings.settings_server_setup_cancel_button.get())
+					}
+				}
+			}
+		}
+	}
 }
