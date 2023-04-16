@@ -349,7 +349,7 @@ class ProjectRepository(
 
 	private suspend fun validateSyncId(userId: Long, syncId: String): Boolean {
 		return !projectsSessions.hasActiveSyncSession(userId) &&
-				sessionManager.validateSyncId(userId, syncId)
+				sessionManager.validateSyncId(userId, syncId, true)
 	}
 
 	companion object {

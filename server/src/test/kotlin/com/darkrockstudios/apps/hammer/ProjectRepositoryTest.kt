@@ -171,7 +171,7 @@ class ProjectRepositoryTest : BaseTest() {
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.validateSyncId(any(), any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectRepository().apply {
 			val beginResult = beginProjectSync(userId, projectDefinition)
@@ -196,7 +196,7 @@ class ProjectRepositoryTest : BaseTest() {
 		createProjectDir()
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.validateSyncId(any(), any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		ProjectRepository(fileSystem, Json, clock).apply {
 			val result = getProjectSyncData(userId, projectDefinition, "invalid-id")

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
@@ -140,7 +141,11 @@ class ProjectsRepository(
 
 	private fun getSyncDataPath(userId: Long): Path = getUserDirectory(userId) / DATA_FILE
 
-	fun deleteProject(userId: Long, projectName: String) {
+	suspend fun deleteProject(userId: Long, syncId: String, projectName: String): Result<Unit> {
+		if (syncSessionManager.validateSyncId(userId, syncId, true)
+				.not()
+		) return Result.failure(InvalidSyncIdException())
+
 		val projectDef = ProjectDefinition(projectName)
 		val projectDir = ProjectRepository.getProjectDirectory(userId, projectDef, fileSystem)
 		fileSystem.deleteRecursively(projectDir)
@@ -150,14 +155,22 @@ class ProjectsRepository(
 				deletedProjects = data.deletedProjects + projectName
 			)
 		}
+
+		return Result.success(Unit)
 	}
 
-	fun createProject(userId: Long, projectName: String) {
+	suspend fun createProject(userId: Long, syncId: String, projectName: String): Result<Unit> {
+		if (syncSessionManager.validateSyncId(userId, syncId, true)
+				.not()
+		) return Result.failure(InvalidSyncIdException())
+
 		updateSyncData(userId) { data ->
 			data.copy(
 				deletedProjects = data.deletedProjects - projectName
 			)
 		}
+
+		return Result.success(Unit)
 	}
 
 	companion object {

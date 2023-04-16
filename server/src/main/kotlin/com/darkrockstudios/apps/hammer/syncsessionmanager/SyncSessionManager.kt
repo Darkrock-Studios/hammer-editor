@@ -46,11 +46,11 @@ class SyncSessionManager<T : SynchronizationSession>(private val clock: Clock) {
 		}
 	}
 
-	suspend fun validateSyncId(userId: Long, syncId: String): Boolean {
+	suspend fun validateSyncId(userId: Long, syncId: String, allowExpired: Boolean): Boolean {
 		lock.withLock {
 			val session = findSession(userId)
 			return if (session?.syncId == syncId) {
-				if (session.isExpired(clock).not()) {
+				if (session.isExpired(clock).not() || allowExpired) {
 					session.updateLastAccessed(clock)
 					true
 				} else {

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
+import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -89,8 +90,26 @@ private fun Route.deleteProject() {
 				HttpResponseError(error = "Missing Header", message = "syncId was missing")
 			)
 		} else {
-			projectsRepository.deleteProject(principal.id, projectName)
-			call.respond("Success")
+			val result = projectsRepository.deleteProject(principal.id, syncId, projectName)
+			if (result.isSuccess) {
+				call.respond("Success")
+			} else {
+				when (val e = result.exceptionOrNull()) {
+					is InvalidSyncIdException -> {
+						call.respond(
+							status = HttpStatusCode.BadRequest,
+							HttpResponseError(error = "Error", message = "Invalid sync ID")
+						)
+					}
+
+					else -> {
+						call.respond(
+							status = HttpStatusCode.InternalServerError,
+							HttpResponseError(error = "Error", message = e?.message ?: "Unknown failure")
+						)
+					}
+				}
+			}
 		}
 	}
 }
@@ -114,8 +133,26 @@ private fun Route.createProject() {
 				HttpResponseError(error = "Missing Header", message = "syncId was missing")
 			)
 		} else {
-			projectsRepository.createProject(principal.id, projectName)
-			call.respond("Success")
+			val result = projectsRepository.createProject(principal.id, syncId, projectName)
+			if (result.isSuccess) {
+				call.respond("Success")
+			} else {
+				when (val e = result.exceptionOrNull()) {
+					is InvalidSyncIdException -> {
+						call.respond(
+							status = HttpStatusCode.BadRequest,
+							HttpResponseError(error = "Error", message = "Invalid sync ID")
+						)
+					}
+
+					else -> {
+						call.respond(
+							status = HttpStatusCode.InternalServerError,
+							HttpResponseError(error = "Error", message = e?.message ?: "Unknown failure")
+						)
+					}
+				}
+			}
 		}
 	}
 }
