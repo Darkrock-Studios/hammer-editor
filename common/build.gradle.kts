@@ -22,6 +22,7 @@ plugins {
 	kotlin("plugin.serialization")
 	id("com.android.library")
 	id("kotlin-parcelize")
+	//id("parcelize-darwin")
 	id("org.jetbrains.kotlinx.kover")
 	id("dev.icerock.mobile.multiplatform-resources")
 }
@@ -103,7 +104,8 @@ kotlin {
 			dependencies {
 				api("com.arkivanov.decompose:decompose:$decompose_version")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
-				implementation("io.ktor:ktor-client-darwin:$ktor_version")
+				api("dev.icerock.moko:resources:$moko_resources_version")
+				api("io.ktor:ktor-client-darwin:$ktor_version")
 			}
 		}
 		val iosTest by getting
