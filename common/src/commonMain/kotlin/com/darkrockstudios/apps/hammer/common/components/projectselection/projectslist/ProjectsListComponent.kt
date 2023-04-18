@@ -9,22 +9,19 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import okio.Path.Companion.toPath
-import org.koin.core.component.get
-import org.koin.core.component.getScopeId
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
+import kotlin.collections.set
 
 class ProjectsListComponent(
 	componentContext: ComponentContext,
@@ -163,28 +160,19 @@ class ProjectsListComponent(
 	): Boolean {
 		onLog("Syncing Project: ${projectDef.name}")
 
-		val projScope = ProjectDefScope(projectDef)
-
-		val projectEditor: ProjectEditorRepository = projScope.get { parametersOf(projectDef) }
-		projectEditor.initializeProjectEditor()
-
-		val notesEditor: NotesRepository = projScope.get { parametersOf(projectDef) }
-
-		val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
-		val success = synchronizer.sync(
-			onProgress = onProgress,
-			onLog = { message -> message?.let { onLog(it) } },
-			onConflict = {
-				onLog("There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it")
-				throw IllegalStateException("Entity conflict must be handled by Project sync")
-			},
-			onComplete = {}
-		)
-
-		projectEditor.close()
-		notesEditor.close()
-		projScope.closeScope()
-		getKoin().deleteScope(projScope.getScopeId())
+		var success = false
+		temporaryProjectTask(projectDef) { projScope ->
+			val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
+			success = synchronizer.sync(
+				onProgress = onProgress,
+				onLog = { message -> message?.let { onLog(it) } },
+				onConflict = {
+					onLog("There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it")
+					throw IllegalStateException("Entity conflict must be handled by Project sync")
+				},
+				onComplete = {}
+			)
+		}
 
 		return success
 	}

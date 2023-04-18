@@ -15,6 +15,7 @@ val datetime_version: String by extra
 val napier_version: String by extra
 val ktor_version: String by extra
 val json_version: String by extra
+val atomicfu_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
@@ -77,6 +78,7 @@ kotlin {
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
 				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
 				api("dev.icerock.moko:resources:$moko_resources_version")
+				implementation("org.jetbrains.kotlinx:atomicfu:$atomicfu_version")
 			}
 		}
 		val commonTest by getting {

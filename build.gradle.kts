@@ -9,8 +9,10 @@ buildscript {
     }
 
     val moko_resources_version: String by extra
+	val atomicfu_version: String by extra
     dependencies {
-        classpath("dev.icerock.moko:resources-generator:$moko_resources_version")
+		classpath("dev.icerock.moko:resources-generator:$moko_resources_version")
+		classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:$atomicfu_version")
     }
 }
 
@@ -25,20 +27,22 @@ allprojects {
 }
 
 plugins {
-    kotlin("multiplatform") apply false
-    kotlin("plugin.serialization") apply false
-    kotlin("android") apply false
-    id("com.android.application") apply false
-    id("com.android.library") apply false
-    id("org.jetbrains.compose") apply false
-    id("org.jetbrains.kotlinx.kover") version "0.6.1"
+	kotlin("multiplatform") apply false
+	kotlin("plugin.serialization") apply false
+	kotlin("android") apply false
+	id("com.android.application") apply false
+	id("com.android.library") apply false
+	id("org.jetbrains.compose") apply false
+	id("org.jetbrains.kotlinx.kover") version "0.6.1"
 }
 
+apply(plugin = "kotlinx-atomicfu")
+
 koverMerged {
-    enable()
-    filters {
-        projects {
-            excludes += listOf(":android", ":desktop", ":composeUi")
-        }
-    }
+	enable()
+	filters {
+		projects {
+			excludes += listOf(":android", ":desktop", ":composeUi")
+		}
+	}
 }

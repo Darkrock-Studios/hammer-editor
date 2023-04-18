@@ -39,11 +39,13 @@ abstract class TimeLineRepository(
 	)
 	val timelineFlow: SharedFlow<TimeLineContainer> = _timelineFlow
 
-	init {
+	fun initialize(): TimeLineRepository {
 		scope.launch {
 			val timeline = loadTimeline()
 			_timelineFlow.emit(timeline)
 		}
+
+		return this
 	}
 
 	abstract suspend fun loadTimeline(): TimeLineContainer
@@ -72,7 +74,7 @@ abstract class TimeLineRepository(
 	abstract suspend fun reIdEvent(oldId: Int, newId: Int)
 
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
-		val originalTimeline = timelineFlow.replayCache.first()
+		val originalTimeline = timelineFlow.first()
 
 		val originalEventOrder =
 			originalTimeline.events.mapIndexed { index, originalEvent -> Pair(originalEvent.id, index) }.toMap()
@@ -148,8 +150,8 @@ abstract class TimeLineRepository(
 		}
 	}
 
-	fun correctEventOrder(timeline: TimeLineContainer? = null) {
-		val originalTimeline = timeline ?: timelineFlow.replayCache.first()
+	suspend fun correctEventOrder(timeline: TimeLineContainer? = null) {
+		val originalTimeline = timeline ?: timelineFlow.first()
 
 		val events = originalTimeline.events.toMutableList()
 		val updatedEvents = events.sortedBy { it.order }

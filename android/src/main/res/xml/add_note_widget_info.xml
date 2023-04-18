@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+					android:description="@string/app_name"
+					android:minWidth="32dp"
+					android:minHeight="32dp"
+					android:resizeMode="none"
+					android:targetCellWidth="1"
+					android:targetCellHeight="1"
+					android:initialLayout="@layout/add_note_widget_loading"
+					android:previewLayout="@layout/add_note_widget_preview"
+					android:widgetCategory="home_screen"
+/>

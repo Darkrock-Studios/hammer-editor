@@ -86,7 +86,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			idRepository = idRepo,
 			fileSystem = ffs,
 			json = json
-		)
+		).initialize()
 
 		advanceUntilIdle()
 
@@ -105,7 +105,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			idRepository = idRepo,
 			fileSystem = ffs,
 			json = json
-		)
+		).initialize()
 
 		val timeline = repo.loadTimeline()
 		assertTrue("Events should have been empty") { timeline.events.isEmpty() }
@@ -123,7 +123,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			idRepository = idRepo,
 			fileSystem = ffs,
 			json = json
-		)
+		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null
 		repo.timelineFlow.take(1).collect { timeline ->
@@ -155,7 +155,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			idRepository = idRepo,
 			fileSystem = ffs,
 			json = json
-		)
+		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null
 		val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {

@@ -50,7 +50,10 @@ fun ServerSetupDialog(
 		var passwordValue by rememberSaveable { mutableStateOf("") }
 		var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-		Box(contentAlignment = Alignment.Center) {
+		Box(
+			modifier = Modifier.padding(Ui.Padding.XL),
+			contentAlignment = Alignment.Center
+		) {
 			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 				Text(
 					"Configure Server",

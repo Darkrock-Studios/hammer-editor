@@ -112,6 +112,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 			json = json,
 			idRepository = idRepo,
 		)
+		repo.initialize()
 
 		advanceUntilIdle()
 

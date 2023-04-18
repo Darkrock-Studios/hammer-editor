@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultD
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
+import kotlinx.coroutines.cancel
 
 abstract class ComponentBase(componentContext: ComponentContext) :
 	ComponentContext by componentContext, Lifecycle.Callbacks, HammerComponent {
@@ -18,6 +19,11 @@ abstract class ComponentBase(componentContext: ComponentContext) :
 
 	private fun setup() {
 		lifecycle.subscribe(this)
+	}
+
+	override fun onDestroy() {
+		super.onDestroy()
+		scope.cancel("Destroyed")
 	}
 
 	init {

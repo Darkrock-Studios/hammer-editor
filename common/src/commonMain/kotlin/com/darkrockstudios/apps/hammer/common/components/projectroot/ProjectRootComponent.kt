@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import org.koin.core.component.getScopeId
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -30,7 +31,7 @@ class ProjectRootComponent(
 		}
 
 		scope.launch {
-			projectEditor.initializeProjectEditor()
+			initializeProjectScope(projectDef)
 		}
 	}
 
@@ -115,9 +116,8 @@ class ProjectRootComponent(
 	override fun onDestroy() {
 		super.onDestroy()
 		Napier.i { "ProjectRootComponent closing Project Editor" }
-		projectEditor.close()
-		notes.close()
-		projectScope.closeScope()
+
+		closeProjectScope(getKoin().getScope(projectScope.getScopeId()), projectDef)
 	}
 
 	override fun onStart() {

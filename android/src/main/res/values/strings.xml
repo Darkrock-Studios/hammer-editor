@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hammer</string>
+	<string name="app_name">Hammer</string>
+	<string name="title_activity_add_note">Add Note</string>
+	<string name="loading">Loading...</string>
+	<string name="title_activity_configure_note_widget">Configure Widget</string>
 </resources>

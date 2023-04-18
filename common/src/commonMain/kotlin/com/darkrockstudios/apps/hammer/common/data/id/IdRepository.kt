@@ -6,9 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.id.handler.IdHandler
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlin.math.max
 
 abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
@@ -16,7 +15,7 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	protected abstract val idHandlers: List<IdHandler>
-	private val mutex = Mutex()
+	private val mutex = reentrantLock()
 
 	private var nextId: Int = -1
 
@@ -45,13 +44,12 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 		}
 	}
 
-	@OptIn(InternalCoroutinesApi::class)
 	suspend fun claimNextId(): Int {
-		mutex.withLock {
+		return mutex.withLock {
 			val newSceneId = nextId
 			recordNewId(newSceneId)
 			nextId += 1
-			return newSceneId
+			newSceneId
 		}
 	}
 }

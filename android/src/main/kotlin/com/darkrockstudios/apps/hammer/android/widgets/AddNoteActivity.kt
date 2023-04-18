@@ -1,0 +1,157 @@
+package com.darkrockstudios.apps.hammer.android.widgets
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Card
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment.Companion.End
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkManager
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class AddNoteActivity : ComponentActivity(), KoinComponent {
+
+	private val projectsRepository: ProjectsRepository by inject()
+
+	@OptIn(ExperimentalMaterial3Api::class)
+	override fun onCreate(savedInstanceState: Bundle?) {
+		super.onCreate(savedInstanceState)
+
+		window.setBackgroundDrawableResource(android.R.color.transparent)
+
+		val projects = projectsRepository.getProjects()
+		if (projects.isEmpty()) {
+			Toast.makeText(this, "No projects", Toast.LENGTH_SHORT).show()
+			finish()
+		} else {
+			setContent {
+				var noteText by rememberSaveable { mutableStateOf("") }
+				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
+
+				AppTheme {
+					Card(
+						elevation = 2.dp,
+						shape = RoundedCornerShape(20.dp)
+					) {
+						Column(
+							modifier = Modifier.padding(Ui.Padding.XL)
+						) {
+							Text(
+								"Add Note to:",
+								style = MaterialTheme.typography.headlineMedium,
+								color = MaterialTheme.colorScheme.onBackground
+							)
+							ProjectDropDown(projects) {
+								selectedProject = it
+							}
+							Spacer(modifier = Modifier.size(Ui.Padding.L))
+							OutlinedTextField(
+								value = noteText,
+								onValueChange = { noteText = it },
+								modifier = Modifier.heightIn(128.dp)
+							)
+							Spacer(modifier = Modifier.size(Ui.Padding.L))
+							Button(
+								modifier = Modifier.align(End),
+								onClick = {
+									if (noteText.isNotBlank()) {
+										saveNote(selectedProject, noteText)
+									}
+								}
+							) {
+								Text("Save")
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	@OptIn(ExperimentalMaterial3Api::class)
+	@Composable
+	private fun ProjectDropDown(projects: List<ProjectDef>, onProjectSelected: (ProjectDef) -> Unit) {
+		var expanded by remember { mutableStateOf(false) }
+		var selectedOptionText by remember {
+			mutableStateOf(
+				TextFieldValue(
+					text = projects.firstOrNull()?.name ?: ""
+				)
+			)
+		}
+
+		ExposedDropdownMenuBox(
+			expanded = expanded,
+			onExpandedChange = {
+				expanded = !expanded
+			}
+		) {
+			OutlinedTextField(
+				readOnly = true,
+				value = selectedOptionText,
+				onValueChange = { selectedOptionText = it },
+				label = { Text("Categories") },
+				trailingIcon = {
+					ExposedDropdownMenuDefaults.TrailingIcon(
+						expanded = expanded
+					)
+				},
+				colors = ExposedDropdownMenuDefaults.textFieldColors()
+			)
+			ExposedDropdownMenu(
+				expanded = expanded,
+				onDismissRequest = {
+					expanded = false
+				}
+			) {
+				projects.forEach { selectionOption ->
+					DropdownMenuItem(
+						text = { Text(selectionOption.name) },
+						onClick = {
+							selectedOptionText = TextFieldValue(selectionOption.name)
+							onProjectSelected(selectionOption)
+							expanded = false
+						}
+					)
+				}
+			}
+		}
+	}
+
+	private fun saveNote(project: ProjectDef, note: String) {
+		val data = Data.Builder()
+		data.putString(AddNoteWorker.DATA_PROJECT_NAME, project.name)
+		data.putString(AddNoteWorker.DATA_NOTE_TEXT, note)
+
+		val request = OneTimeWorkRequestBuilder<AddNoteWorker>()
+			.setInputData(data.build())
+			.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+			.build()
+
+		WorkManager.getInstance(this).enqueue(request)
+
+		Toast.makeText(this, "Note Added", Toast.LENGTH_SHORT).show()
+
+		finish()
+	}
+
+	companion object {
+		const val EXTRA_PROJECT_NAME = "project_name"
+	}
+}

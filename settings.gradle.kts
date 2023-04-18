@@ -17,7 +17,7 @@ pluginManagement {
         id("dev.icerock.mobile.multiplatform-resources").version(extra["moko_resources_version"] as String) apply false
         id("io.ktor.plugin") version extra["ktor_version"] as String apply false
         id("app.cash.sqldelight") version extra["sqldelight_version"] as String apply false
-    }
+	}
 }
 
 rootProject.name = "hammer"

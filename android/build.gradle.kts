@@ -24,8 +24,12 @@ repositories {
 
 dependencies {
     api(project(":composeUi"))
-	implementation("androidx.activity:activity-compose:1.6.1")
+	implementation("androidx.activity:activity-compose:1.7.0")
 	implementation("io.insert-koin:koin-android:$koin_version")
+	implementation("androidx.glance:glance-appwidget:1.0.0-alpha05")
+	implementation("androidx.work:work-runtime-ktx:2.8.1")
+	implementation("com.google.android.material:material:1.8.0")
+	implementation("androidx.appcompat:appcompat:1.6.1")
 }
 
 android {

@@ -37,6 +37,7 @@ class NotesComponent(
 			notesRepository.notesListFlow.collect { noteContainers ->
 				withContext(dispatcherMain) {
 					val notes = noteContainers.map { it.note }
+						.sortedByDescending { it.created }
 					_state.getAndUpdate {
 						it.copy(notes = notes)
 					}
