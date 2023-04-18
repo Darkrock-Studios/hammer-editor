@@ -13,7 +13,7 @@ struct ProjectSelectionUi: View {
     
     public init(projectSelectionComponent: ProjectSelection) {
         self.component = projectSelectionComponent
-        observableState = ObservableValue(projectSelectionComponent.state)
+        observableState = ObservableValue(projectSelectionComponent.slot)
         
     }
     
@@ -21,47 +21,20 @@ struct ProjectSelectionUi: View {
     private var component: ProjectSelection
     
     @ObservedObject
-    private var observableState: ObservableValue<ProjectSelectionState>
+    private var observableState: ObservableValue<ChildSlot<ProjectSelectionConfig, ProjectSelectionDestination>>
     
-    private var state: ProjectSelectionState { observableState.value }
-    
-    @State
-    private var directory: String = ""
+    private var slot: ChildSlot<ProjectSelectionConfig, ProjectSelectionDestination> { observableState.value }
     
     var body: some View {
-        VStack() {
-            Button("Create Test Project") {
-                component.createProject(projectName: "test project")
-            }
-            .buttonStyle(SelectButton())
-           
-            Button("Delete Test Project") {
-                if(!state.projects.isEmpty) {
-                    let def = state.projects[0].definition
-                    component.deleteProject(projectDef: def)
-                }
-            }
-            .buttonStyle(SelectButton())
-            
-            Text(MR.strings().settings_projects_directory.desc().localized())
-                .padding()
-            
-            
-            ScrollView {
-                LazyVStack() {
-                    // This isn't working yet, need to subscribe to it some how
-                    ForEach(state.projects, id: \.self) { value in
-                        ProjectItemUi(project: value, onProjectSelected: component.selectProject)
-                    }
-                    .padding()
-                    .fontWeight(.semibold)
-                }
-                
-            }
-            .background(.thinMaterial)
+        Text("")
+    
+        if let settings = slot.child?.instance as? ProjectSelectionDestination.AccountSettingsDestination {
+            AccountSettingsUi(component: settings.component)
+        } else if let projList = slot.child?.instance as? ProjectSelectionDestination.ProjectsListDestination {
+            ProjectsListUi(component: projList.component)
+        } else {
+            Text("error")
         }
-        .frame(maxWidth: 300, alignment: Alignment.center)
-        .padding()
     }
 }
 
