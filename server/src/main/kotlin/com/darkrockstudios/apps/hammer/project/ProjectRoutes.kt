@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
-import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
+import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -16,7 +16,7 @@ import org.koin.ktor.ext.get
 
 fun Application.projectRoutes() {
 	routing {
-		authenticate(USER_AUTH_NAME) {
+		authenticate(USER_AUTH) {
 			route("/project/{userId}/{projectName}") {
 				beginProjectSync()
 				endProjectSync()

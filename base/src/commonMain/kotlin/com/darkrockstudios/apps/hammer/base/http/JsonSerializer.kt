@@ -8,5 +8,6 @@ fun createJsonSerializer(): Json {
 	return Json {
 		prettyPrint = true
 		prettyPrintIndent = "\t"
+		encodeDefaults = true
 	}
 }

@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.database.AccountDao
-import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.database.Database
-import com.darkrockstudios.apps.hammer.database.SqliteDatabase
+import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
@@ -38,10 +38,15 @@ val mainModule = module {
 	singleOf(::SqliteDatabase) bind Database::class
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
+	singleOf(::WhiteListDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectRepository)
+	singleOf(::WhiteListRepository)
+
+	singleOf(::AdminComponent)
+	singleOf(::AccountsComponent)
 
 	singleOf(::ServerSceneSynchronizer)
 	singleOf(::ServerNoteSynchronizer)

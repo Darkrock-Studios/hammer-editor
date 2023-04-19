@@ -58,7 +58,8 @@ class AccountsRepositoryTest : BaseTest() {
             email = email,
             salt = salt,
             password_hash = hashedPassword,
-            created = (Clock.System.now() - 128.days).toISO8601()
+            created = (Clock.System.now() - 128.days).toISO8601(),
+            isAdmin = true
         )
     }
 
@@ -95,8 +96,9 @@ class AccountsRepositoryTest : BaseTest() {
 
     @Test
     fun `Create Account - Success`() = runTest {
+        coEvery { accountDao.numAccounts() } returns 1
         coEvery { accountDao.findAccount(any()) } returns null
-        coEvery { accountDao.createAccount(any(), any(), any()) } returns userId
+        coEvery { accountDao.createAccount(any(), any(), any(), any()) } returns userId
         coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
         val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 

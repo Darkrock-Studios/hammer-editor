@@ -3,9 +3,7 @@ package com.darkrockstudios.apps.hammer.account
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
-import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -19,17 +17,16 @@ fun Application.accountRoutes() {
         route("/account") {
             createAccount()
             login()
-            refreshToken()
-            authenticate(USER_AUTH_NAME) {
-                testAuth()
-            }
+			refreshToken()
+			authenticate(USER_AUTH) {
+				testAuth()
+			}
         }
     }
 }
 
 private fun Route.createAccount() {
-    val accountsRepository: AccountsRepository = get()
-    val projectsRepository: ProjectsRepository = get()
+	val accountsComponent: AccountsComponent = get()
 
     post("/create") {
         val formParameters = call.receiveParameters()
@@ -37,11 +34,9 @@ private fun Route.createAccount() {
         val password = formParameters["password"].toString()
         val installId = formParameters["installId"].toString()
 
-        val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
+		val result = accountsComponent.createAccount(email = email, installId = installId, password = password)
         if (result.isSuccess) {
             val token = result.getOrThrow()
-            projectsRepository.createUserData(token.userId)
-
             call.respond(HttpStatusCode.Created, token)
         } else {
             val message = result.exceptionOrNull()?.message
@@ -52,7 +47,7 @@ private fun Route.createAccount() {
 }
 
 private fun Route.login() {
-    val accountsRepository: AccountsRepository = get()
+	val accountsComponent: AccountsComponent = get()
 
     post("/login") {
         val formParameters = call.receiveParameters()
@@ -60,7 +55,7 @@ private fun Route.login() {
         val password = formParameters["password"].toString()
         val installId = formParameters["installId"].toString()
 
-        val result = accountsRepository.login(email = email, password = password, installId = installId)
+		val result = accountsComponent.login(email = email, password = password, installId = installId)
         if (result.isSuccess) {
             val authToken = result.getOrThrow()
             call.respond(authToken)
@@ -73,7 +68,7 @@ private fun Route.login() {
 }
 
 private fun Route.refreshToken() {
-    val accountsRepository: AccountsRepository = get()
+	val accountsComponent: AccountsComponent = get()
 
     post("/refresh_token/{userId}") {
         val userId = call.parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
@@ -83,7 +78,7 @@ private fun Route.refreshToken() {
         val refreshToken = formParameters["refreshToken"].toString()
 
         val result =
-            accountsRepository.refreshToken(userId = userId, installId = installId, refreshToken = refreshToken)
+			accountsComponent.refreshToken(userId = userId, installId = installId, refreshToken = refreshToken)
         if (result.isSuccess) {
             val token = result.getOrThrow()
             call.respond(token)

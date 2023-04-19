@@ -6,24 +6,30 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 
 class AccountDao(
-    database: Database,
+	database: Database,
 ) : KoinComponent {
 
-    private val ioDispatcher by injectIoDispatcher()
-    private val queries = database.serverDatabase.accountQueries
+	private val ioDispatcher by injectIoDispatcher()
+	private val queries = database.serverDatabase.accountQueries
 
-    suspend fun getAccount(id: Long): Account? = withContext(ioDispatcher) {
-        val query = queries.getAccount(id)
-        return@withContext query.executeAsOneOrNull()
-    }
+	suspend fun getAccount(id: Long): Account? = withContext(ioDispatcher) {
+		val query = queries.getAccount(id)
+		return@withContext query.executeAsOneOrNull()
+	}
 
-    suspend fun findAccount(email: String): Account? = withContext(ioDispatcher) {
-        val query = queries.findAccount(email)
-        return@withContext query.executeAsOneOrNull()
-    }
+	suspend fun findAccount(email: String): Account? = withContext(ioDispatcher) {
+		val query = queries.findAccount(email)
+		return@withContext query.executeAsOneOrNull()
+	}
 
-    suspend fun createAccount(email: String, salt: String, hashedPassword: String): Long = withContext(ioDispatcher) {
-        queries.createAccount(email = email, salt = salt, password_hash = hashedPassword)
-        return@withContext queries.lastInsertedRowId().executeAsOne()
-    }
+	suspend fun createAccount(email: String, salt: String, hashedPassword: String, isAdmin: Boolean): Long =
+		withContext(ioDispatcher) {
+			queries.createAccount(email = email, salt = salt, password_hash = hashedPassword, isAdmin = isAdmin)
+			return@withContext queries.lastInsertedRowId().executeAsOne()
+		}
+
+	suspend fun numAccounts(): Long = withContext(ioDispatcher) {
+		val query = queries.count()
+		return@withContext query.executeAsOne()
+	}
 }

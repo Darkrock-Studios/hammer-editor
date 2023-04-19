@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.ktor.client.*
@@ -61,6 +62,7 @@ val mainModule = module {
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)
 	singleOf(::ServerProjectsApi)
+	singleOf(::ServerAdminApi)
 
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 

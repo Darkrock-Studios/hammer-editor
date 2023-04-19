@@ -1,0 +1,20 @@
+CREATE TABLE whiteList(
+    email TEXT NOT NULL PRIMARY KEY
+);
+
+isWhiteListed:
+SELECT EXISTS
+(SELECT 1
+ FROM whiteList
+ WHERE email = ?);
+
+addToWhiteList:
+INSERT OR IGNORE
+INTO whiteList(email) VALUES (?);
+
+removeFromWhiteList:
+DELETE FROM whiteList
+WHERE email = ?;
+
+getAll:
+SELECT * FROM whiteList;

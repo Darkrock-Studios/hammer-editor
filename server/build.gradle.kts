@@ -30,6 +30,7 @@ sqldelight {
     databases {
         create("ServerDatabase") {
             packageName.set("com.darkrockstudios.apps.hammer")
+            //dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
         }
     }
 }
@@ -66,22 +67,23 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
 
-    implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("org.slf4j:slf4j-simple:2.0.6")
+	implementation("ch.qos.logback:logback-classic:$logback_version")
+	implementation("org.slf4j:slf4j-simple:2.0.6")
 
-    implementation("io.insert-koin:koin-core:$koin_version")
-    implementation("io.insert-koin:koin-logger-slf4j:3.3.1")
-    implementation("io.insert-koin:koin-ktor:3.3.1")
+	implementation("io.insert-koin:koin-core:$koin_version")
+	implementation("io.insert-koin:koin-logger-slf4j:3.3.1")
+	implementation("io.insert-koin:koin-ktor:3.3.1")
 
-    implementation("com.squareup.okio:okio:$okio_version")
+	implementation("com.squareup.okio:okio:$okio_version")
 
-    implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
+	implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
+	implementation("app.cash.sqldelight:primitive-adapters:$sqldelight_version")
 
-    testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
-    testImplementation("io.mockk:mockk:$mockk_version")
-    testImplementation("io.insert-koin:koin-test:$koin_version")
-    testImplementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
-    //testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
+	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
+	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
+	testImplementation("io.mockk:mockk:$mockk_version")
+	testImplementation("io.insert-koin:koin-test:$koin_version")
+	testImplementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+	//testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
 }

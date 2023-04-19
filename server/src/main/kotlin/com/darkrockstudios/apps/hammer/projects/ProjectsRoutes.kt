@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
-import com.darkrockstudios.apps.hammer.plugins.USER_AUTH_NAME
+import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -15,7 +15,7 @@ import org.koin.ktor.ext.get
 
 fun Application.projectsRoutes() {
 	routing {
-		authenticate(USER_AUTH_NAME) {
+		authenticate(USER_AUTH) {
 			route("/projects/{userId}") {
 				beginProjectsSync()
 				endProjectSync()

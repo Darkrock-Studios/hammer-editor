@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.BaseTest
+import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
@@ -18,6 +19,8 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var accountsRepository: AccountsRepository
 	private lateinit var projectRepository: ProjectRepository
 	private lateinit var projectsRepository: ProjectsRepository
+	private lateinit var accountsComponent: AccountsComponent
+	private lateinit var adminComponent: AdminComponent
 
 	@Before
 	override fun setup() {
@@ -26,11 +29,15 @@ class AccountRoutesTest : BaseTest() {
 		accountsRepository = mockk()
 		projectRepository = mockk()
 		projectsRepository = mockk()
+		accountsComponent = mockk()
+		adminComponent = mockk()
 
 		val testModule = module {
 			single { accountsRepository }
 			single { projectRepository }
 			single { projectsRepository }
+			single { accountsComponent }
+			single { adminComponent }
 		}
 		setupKoin(testModule)
 	}

@@ -119,6 +119,60 @@ abstract class Api(
 			parse = parse,
 			failureHandler = failureHandler
 		)
+
+	protected suspend fun put(
+		path: String,
+		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<String> =
+		makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::put,
+			parse = { it.bodyAsText() },
+			failureHandler = failureHandler
+		)
+
+	protected suspend fun <T> put(
+		path: String,
+		parse: suspend (HttpResponse) -> T,
+		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<T> =
+		makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::put,
+			parse = parse,
+			failureHandler = failureHandler
+		)
+
+	protected suspend fun delete(
+		path: String,
+		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<String> =
+		makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::delete,
+			parse = { it.bodyAsText() },
+			failureHandler = failureHandler
+		)
+
+	protected suspend fun <T> delete(
+		path: String,
+		parse: suspend (HttpResponse) -> T,
+		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<T> =
+		makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::delete,
+			parse = parse,
+			failureHandler = failureHandler
+		)
 }
 
 class HttpFailureException(

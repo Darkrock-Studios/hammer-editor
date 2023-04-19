@@ -61,16 +61,21 @@ class AccountsRepository(
             !validateEmail(email) -> Result.failure(CreateFailed("Invalid email"))
             passwordResult != PasswordResult.VALID -> Result.failure(InvalidPassword(passwordResult))
             else -> {
-                val salt = saltGenerator.nextString()
-                val hashedPassword = hashPassword(password = password, salt = salt)
+				val salt = saltGenerator.nextString()
+				val hashedPassword = hashPassword(password = password, salt = salt)
 
-                val userId = accountDao.createAccount(
-                    email = email,
-                    salt = salt,
-                    hashedPassword = hashedPassword
-                )
+				// First account on the server is automatically Admin
+				val numAccounts = accountDao.numAccounts()
+				val isAdmin = (numAccounts == 0L)
 
-                val token = createToken(userId = userId, installId = installId)
+				val userId = accountDao.createAccount(
+					email = email,
+					salt = salt,
+					hashedPassword = hashedPassword,
+					isAdmin = isAdmin
+				)
+
+				val token = createToken(userId = userId, installId = installId)
 
                 Result.success(token)
             }
@@ -121,41 +126,55 @@ class AccountsRepository(
         }
     }
 
-    fun validateEmail(email: String): Boolean {
-        val trimmedInput = email.trim()
-        // TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
-        return Regex("^[A-Za-z0-9+_.-]+@(.+)$").matches(trimmedInput)
-    }
+	fun validatePassword(password: String): PasswordResult {
+		val trimmedInput = password.trim()
+		return when {
+			trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
+			trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
+			else -> PasswordResult.VALID
+		}
+	}
 
-    fun validatePassword(password: String): PasswordResult {
-        val trimmedInput = password.trim()
-        return when {
-            trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
-            trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
-            else -> PasswordResult.VALID
-        }
-    }
+	suspend fun isAdmin(userId: Long): Boolean {
+		return accountDao.getAccount(userId)?.isAdmin == true
+	}
 
-    companion object {
-        const val MIN_PASSWORD_LENGTH = 8
-        const val MAX_PASSWORD_LENGTH = 64
+	suspend fun findAccount(email: String): Account? {
+		return accountDao.findAccount(email)
+	}
 
-        enum class PasswordResult {
-            VALID,
-            TOO_SHORT,
-            TOO_LONG,
-            NO_UPPERCASE,
-            NO_LOWERCASE,
-            NO_NUMBER,
-            NO_SPECIAL
-        }
+	suspend fun getAccount(userId: Long): Account {
+		return accountDao.getAccount(userId) ?: throw AccountNotFound(userId)
+	}
 
-        fun hashPassword(password: String, salt: String): String {
-            val saltedPassword = salt + password
-            val hashedPassword = saltedPassword.toByteArray().sha256().toString()
-            return hashedPassword
-        }
-    }
+	companion object {
+		const val MIN_PASSWORD_LENGTH = 8
+		const val MAX_PASSWORD_LENGTH = 64
+
+		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
+		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
+
+		enum class PasswordResult {
+			VALID,
+			TOO_SHORT,
+			TOO_LONG,
+			NO_UPPERCASE,
+			NO_LOWERCASE,
+			NO_NUMBER,
+			NO_SPECIAL
+		}
+
+		fun hashPassword(password: String, salt: String): String {
+			val saltedPassword = salt + password
+			val hashedPassword = saltedPassword.toByteArray().sha256().toString()
+			return hashedPassword
+		}
+
+		fun validateEmail(email: String): Boolean {
+			val trimmedInput = email.trim()
+			return emailPattern.matches(trimmedInput)
+		}
+	}
 }
 
 open class CreateFailed(message: String) : Exception(message)
@@ -165,17 +184,19 @@ class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) :
             AccountsRepository.Companion.PasswordResult.TOO_SHORT -> "Password too short"
             AccountsRepository.Companion.PasswordResult.TOO_LONG -> "Password too long"
             AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> "Password must contain at least one uppercase letter"
-            AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> "Password must contain at least one lowercase letter"
-            AccountsRepository.Companion.PasswordResult.NO_NUMBER -> "Password must contain at least one number"
-            AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> "Password must contain at least one special character"
-            else -> "Invalid password"
-        }
-    }
+			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> "Password must contain at least one lowercase letter"
+			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> "Password must contain at least one number"
+			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> "Password must contain at least one special character"
+			else -> "Invalid password"
+		}
+	}
 }
 
 class LoginFailed(message: String) : Exception(message)
 
+class AccountNotFound(userId: Long) : Exception("User ID ($userId) not found")
+
 
 fun AuthToken.isExpired(): Boolean {
-    return expires.toInstant() < Clock.System.now()
+	return expires.toInstant() < Clock.System.now()
 }
