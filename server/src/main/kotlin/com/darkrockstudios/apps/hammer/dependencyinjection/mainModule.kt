@@ -27,7 +27,7 @@ const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
 val mainModule = module {
-	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Main }
+	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Unconfined }
 	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 

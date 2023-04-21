@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.plugins.*
+import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -31,4 +32,5 @@ fun Application.appMain() {
     configureHTTP()
     configureSecurity()
     configureRouting()
+    configureKweb()
 }

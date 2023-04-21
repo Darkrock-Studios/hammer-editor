@@ -16,7 +16,7 @@ fun Application.configureRouting() {
 	projectRoutes()
 	adminRoutes()
 	teapot()
-	staticAssets()
+	//staticAssets()
 }
 
 private fun Application.staticAssets() {

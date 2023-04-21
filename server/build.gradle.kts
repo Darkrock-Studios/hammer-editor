@@ -51,18 +51,19 @@ repositories {
 dependencies {
     implementation(project(":base"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutines_version")
+	implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
+	implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
+	implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
 
-    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-default-headers-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-caching-headers-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
+	implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-default-headers-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-caching-headers-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
@@ -78,6 +79,9 @@ dependencies {
 
 	implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
 	implementation("app.cash.sqldelight:primitive-adapters:$sqldelight_version")
+
+	implementation("io.kweb:kweb-core:1.3.8")
+	implementation("io.ktor:ktor-server-websockets:$ktor_version")
 
 	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")

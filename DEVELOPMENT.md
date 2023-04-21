@@ -1,4 +1,4 @@
-t# Development
+# Development
 
 ## Running the Desktop app
 
