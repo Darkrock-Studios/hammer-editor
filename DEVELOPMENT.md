@@ -2,7 +2,11 @@
 
 ## Running the Desktop app
 
-`gradlew run`
+`gradlew desktop:run`
+
+### Running the Server
+
+`gradlew server:run`
 
 ## Running Tests
 
