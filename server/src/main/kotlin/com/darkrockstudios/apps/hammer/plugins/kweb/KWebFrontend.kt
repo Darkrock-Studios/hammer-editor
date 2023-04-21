@@ -3,17 +3,18 @@ package com.darkrockstudios.apps.hammer.plugins.kweb
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
+import com.darkrockstudios.apps.hammer.utilities.ResUtils
+import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.response.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kweb.Kweb
-import kweb.h1
-import kweb.installKwebOnRemainingRoutes
+import kweb.*
+import kweb.plugins.FaviconPlugin
 import kweb.plugins.fomanticUI.fomanticUIPlugin
 import kweb.plugins.staticFiles.ResourceFolder
 import kweb.plugins.staticFiles.StaticFilesPlugin
-import kweb.route
 import kweb.state.KVar
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
@@ -26,14 +27,25 @@ fun Application.configureKweb() {
 		timeout = Duration.ofSeconds(30)
 	}
 
+	val faviconPlugin = FaviconPlugin {
+		respondBytes(ResUtils.getResourceAsBytes("assets/favicon.ico"), ContentType.Image.Any)
+	}
+
 	install(Kweb) {
 		val staticFiles = StaticFilesPlugin(ResourceFolder("/assets"), "/assets")
-		plugins = listOf(fomanticUIPlugin, staticFiles)
+		plugins = listOf(fomanticUIPlugin, faviconPlugin, staticFiles)
 		kwebConfig = hammerKwebConfig
 		debug = false
 	}
 
 	installKwebOnRemainingRoutes {
+		doc.head {
+			title().text("Hammer")
+			meta(
+				name = "viewport",
+				content = "width=device-width, initial-scale=1.0, maximum-scale=1.0"
+			)
+		}
 		doc.body {
 			route {
 				val accountRepository: AccountsRepository by inject()
@@ -52,9 +64,7 @@ fun Application.configureKweb() {
 
 				adminPanelPage(accountRepository, authToken, whitListRepository, scope, ::goTo)
 
-				notFound {
-					h1().text("Not Found :(")
-				}
+				notFound(notFoundPage)
 			}
 		}
 	}

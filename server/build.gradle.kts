@@ -80,7 +80,7 @@ dependencies {
 	implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
 	implementation("app.cash.sqldelight:primitive-adapters:$sqldelight_version")
 
-	implementation("io.kweb:kweb-core:1.3.8")
+	implementation("io.kweb:kweb-core:1.4.0")
 	implementation("io.ktor:ktor-server-websockets:$ktor_version")
 
 	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")

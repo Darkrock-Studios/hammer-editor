@@ -20,7 +20,7 @@ fun RouteReceiver.adminLoginPage(
 		val emailText = KVar("test@test.com")
 		val passwordText = KVar("qweasdzxc")
 
-		div(fomantic.ui.middle.aligned.center.aligned.grid.padded.fluid) {
+		div(fomantic.ui.middle.aligned.center.aligned.grid.padded) {
 			div(fomantic.ui.card) {
 				div(fomantic.content) {
 					header()
