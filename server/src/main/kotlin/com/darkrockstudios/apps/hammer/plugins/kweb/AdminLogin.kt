@@ -17,8 +17,8 @@ fun RouteReceiver.adminLoginPage(
 ) {
 	path("/admin") {
 		val errorText = KVar("")
-		val emailText = KVar("test@test.com")
-		val passwordText = KVar("qweasdzxc")
+		val emailText = KVar("")
+		val passwordText = KVar("")
 
 		div(fomantic.ui.middle.aligned.center.aligned.grid) {
 			div(fomantic.center.aligned.column) {
