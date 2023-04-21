@@ -20,27 +20,28 @@ fun RouteReceiver.adminLoginPage(
 		val emailText = KVar("test@test.com")
 		val passwordText = KVar("qweasdzxc")
 
-		div(fomantic.ui.middle.aligned.center.aligned.grid.padded) {
-			div(fomantic.ui.card) {
-				div(fomantic.content) {
-					header()
+		div(fomantic.ui.middle.aligned.center.aligned.grid) {
+			div(fomantic.center.aligned.column) {
+				div(fomantic.ui.card) {
+					div(fomantic.content) {
+						header()
 
-					loginFields(emailText, passwordText, errorText)
+						loginFields(emailText, passwordText, errorText)
+					}
+
+					loginButton(
+						emailText,
+						passwordText,
+						authToken,
+						accountRepository,
+						scope,
+						{ errorText.value = it },
+						goTo
+					)
 				}
-
-				loginButton(
-					emailText,
-					passwordText,
-					authToken,
-					accountRepository,
-					scope,
-					{ errorText.value = it },
-					goTo
-				)
-			}
-		}
+			}.addClasses("medium-width")
+		}.addClasses("centered-container")
 	}
-
 }
 
 private fun Component.header() {

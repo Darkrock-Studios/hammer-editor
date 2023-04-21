@@ -10,12 +10,14 @@ import io.ktor.server.response.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.serialization.json.JsonPrimitive
 import kweb.*
 import kweb.plugins.FaviconPlugin
 import kweb.plugins.fomanticUI.fomanticUIPlugin
 import kweb.plugins.staticFiles.ResourceFolder
 import kweb.plugins.staticFiles.StaticFilesPlugin
 import kweb.state.KVar
+import kweb.util.json
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import java.time.Duration
@@ -45,6 +47,7 @@ fun Application.configureKweb() {
 				name = "viewport",
 				content = "width=device-width, initial-scale=1.0, maximum-scale=1.0"
 			)
+			rellink(LinkRelationship.stylesheet, "/assets/css/base.css")
 		}
 		doc.body {
 			route {
@@ -60,6 +63,8 @@ fun Application.configureKweb() {
 
 				val authToken = KVar<String?>(null)
 
+				homePage(scope, ::goTo)
+
 				adminLoginPage(accountRepository, authToken, scope, ::goTo)
 
 				adminPanelPage(accountRepository, authToken, whitListRepository, scope, ::goTo)
@@ -68,4 +73,21 @@ fun Application.configureKweb() {
 			}
 		}
 	}
+}
+
+fun ElementCreator<Element>.rellink(
+	rel: LinkRelationship,
+	href: String,
+	hreflang: String? = null,
+	attributes: Map<String, JsonPrimitive> = emptyMap(),
+): Element {
+	return LinkElement(
+		element(
+			"link",
+			attributes = attributes
+				.set("rel", rel.name.json)
+				.set("href", href.json)
+				.set("hreflang", JsonPrimitive(hreflang))
+		)
+	)
 }

@@ -31,9 +31,9 @@ fun RouteReceiver.adminPanelPage(
 			}
 		}
 
-		div(fomantic.ui.middle.aligned.center.aligned.grid.padded) {
+		div(fomantic.ui.middle.aligned.center.aligned.grid) {
 			adminCard(userId, authToken, accountRepository, whiteListRepository, scope, goTo)
-		}
+		}.addClasses("centered-container")
 	}
 }
 
@@ -65,15 +65,17 @@ private fun Component.adminCard(
 		initialUseWhiteList = whiteListRepository.useWhiteList()
 	}
 
-	div(fomantic.ui.card) {
-		panelHeader(account, authToken, goTo)
+	div(fomantic.center.aligned.column) {
+		div(fomantic.ui.card) {
+			panelHeader(account, authToken, goTo)
 
-		enableWhiteList(initialUseWhiteList, whiteListRepository, scope)
+			enableWhiteList(initialUseWhiteList, whiteListRepository, scope)
 
-		whiteList(list, whiteListRepository, scope, ::updateList)
+			whiteList(list, whiteListRepository, scope, ::updateList)
 
-		addToWhiteList(whiteListRepository, scope, ::updateList)
-	}
+			addToWhiteList(whiteListRepository, scope, ::updateList)
+		}
+	}.addClasses("medium-width")
 }
 
 private fun Component.panelHeader(account: KVar<Account?>, authToken: KVar<String?>, goTo: (String) -> Unit) {
