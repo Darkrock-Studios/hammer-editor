@@ -11,7 +11,8 @@ class AccountsComponent(
 	private val projectsRepository: ProjectsRepository,
 ) {
 	suspend fun createAccount(email: String, installId: String, password: String): Result<Token> {
-		if (whiteListRejected(email)) return Result.failure(WhiteListException())
+		// If we dont have users, skip whitelist check
+		if (accountsRepository.hasUsers() && whiteListRejected(email)) return Result.failure(WhiteListException())
 
 		val result = accountsRepository.createAccount(email, installId, password)
 		if (result.isSuccess) {
@@ -25,11 +26,7 @@ class AccountsComponent(
 	suspend fun login(email: String, password: String, installId: String): Result<Token> {
 		if (whiteListRejected(email)) return Result.failure(WhiteListException())
 
-		return if (whiteListRepository.useWhiteList().not() || whiteListRepository.isOnWhiteList(email)) {
-			accountsRepository.login(email, password, installId)
-		} else {
-			Result.failure(WhiteListException())
-		}
+		return accountsRepository.login(email, password, installId)
 	}
 
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): Result<Token> {
@@ -43,7 +40,7 @@ class AccountsComponent(
 		return if (account != null) {
 			whiteListRejected(account)
 		} else {
-			false
+			true
 		}
 	}
 

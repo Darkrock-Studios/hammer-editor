@@ -41,26 +41,27 @@ class AccountsRepository(
 
     private suspend fun getAuthToken(userId: Long, installId: String): Token {
         val existingToken = authTokenDao.getTokenByInstallId(installId)
-        return if (existingToken != null) {
-            if (existingToken.isExpired()) {
-                // TODO eventually implement token refresh
-                createToken(userId = userId, installId = installId)
-            } else {
-                Token(existingToken.userId, existingToken.token, existingToken.refresh)
-            }
-        } else {
-            createToken(userId = userId, installId = installId)
-        }
-    }
+		return if (existingToken != null) {
+			if (existingToken.isExpired()) {
+				createToken(userId = userId, installId = installId)
+			} else {
+				Token(existingToken.userId, existingToken.token, existingToken.refresh)
+			}
+		} else {
+			createToken(userId = userId, installId = installId)
+		}
+	}
 
-    suspend fun createAccount(email: String, installId: String, password: String): Result<Token> {
-        val existingAccount = accountDao.findAccount(email)
-        val passwordResult = validatePassword(password)
-        return when {
-            existingAccount != null -> Result.failure(CreateFailed("Account already exists"))
-            !validateEmail(email) -> Result.failure(CreateFailed("Invalid email"))
-            passwordResult != PasswordResult.VALID -> Result.failure(InvalidPassword(passwordResult))
-            else -> {
+	suspend fun hasUsers(): Boolean = accountDao.numAccounts() > 0
+
+	suspend fun createAccount(email: String, installId: String, password: String): Result<Token> {
+		val existingAccount = accountDao.findAccount(email)
+		val passwordResult = validatePassword(password)
+		return when {
+			existingAccount != null -> Result.failure(CreateFailed("Account already exists"))
+			!validateEmail(email) -> Result.failure(CreateFailed("Invalid email"))
+			passwordResult != PasswordResult.VALID -> Result.failure(InvalidPassword(passwordResult))
+			else -> {
 				val salt = saltGenerator.nextString()
 				val hashedPassword = hashPassword(password = password, salt = salt)
 

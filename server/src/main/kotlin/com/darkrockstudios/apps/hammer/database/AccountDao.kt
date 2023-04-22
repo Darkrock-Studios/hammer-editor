@@ -24,8 +24,14 @@ class AccountDao(
 
 	suspend fun createAccount(email: String, salt: String, hashedPassword: String, isAdmin: Boolean): Long =
 		withContext(ioDispatcher) {
-			queries.createAccount(email = email, salt = salt, password_hash = hashedPassword, isAdmin = isAdmin)
-			return@withContext queries.lastInsertedRowId().executeAsOne()
+			val newId = queries.transactionWithResult {
+				queries.createAccount(email = email, salt = salt, password_hash = hashedPassword, isAdmin = isAdmin)
+				val rowId = queries.lastInsertedRowId().executeAsOne()
+				val account = queries.getByRowId(rowId).executeAsOne()
+				account.id
+			}
+
+			return@withContext newId
 		}
 
 	suspend fun numAccounts(): Long = withContext(ioDispatcher) {

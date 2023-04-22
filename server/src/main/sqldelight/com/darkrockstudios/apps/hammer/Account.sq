@@ -16,6 +16,11 @@ SELECT *
 FROM account
 WHERE id = ?;
 
+getByRowId:
+SELECT *
+FROM account
+WHERE rowid = ?;
+
 findAccount:
 SELECT *
 FROM account

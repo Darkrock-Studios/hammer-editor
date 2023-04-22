@@ -38,18 +38,31 @@ fun ServerSetupDialog(
 	snackbarHostState: SnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
+
+	var sslValue by rememberSaveable { mutableStateOf(true) }
+	var urlValue by rememberSaveable { mutableStateOf("") }
+	var emailValue by rememberSaveable { mutableStateOf("") }
+	var passwordValue by rememberSaveable { mutableStateOf("") }
+	var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+	fun clearInput() {
+		sslValue = true
+		urlValue = ""
+		emailValue = ""
+		passwordValue = ""
+		passwordVisible = false
+	}
+
+
 	MpDialog(
-		onCloseRequest = { component.cancelServerSetup() },
+		onCloseRequest = {
+			clearInput()
+			component.cancelServerSetup()
+		},
 		visible = state.serverSetup,
 		title = MR.strings.settings_server_setup_title.get(),
 		size = DpSize(400.dp, 420.dp)
 	) {
-		var sslValue by rememberSaveable { mutableStateOf(false) }
-		var urlValue by rememberSaveable { mutableStateOf("") }
-		var emailValue by rememberSaveable { mutableStateOf("") }
-		var passwordValue by rememberSaveable { mutableStateOf("") }
-		var passwordVisible by rememberSaveable { mutableStateOf(false) }
-
 		Box(
 			modifier = Modifier.padding(Ui.Padding.XL),
 			contentAlignment = Alignment.Center
@@ -128,6 +141,7 @@ fun ServerSetupDialog(
 								create = false
 							)
 							if (result.isSuccess) {
+								clearInput()
 								snackbarHostState.showSnackbar("Server setup complete!")
 							} else {
 								snackbarHostState.showSnackbar("Failed to setup server")
@@ -147,6 +161,7 @@ fun ServerSetupDialog(
 								create = true
 							)
 							if (result.isSuccess) {
+								clearInput()
 								snackbarHostState.showSnackbar("Server setup complete!")
 							} else {
 								snackbarHostState.showSnackbar("Failed to setup server")
@@ -158,6 +173,7 @@ fun ServerSetupDialog(
 
 					Button(onClick = {
 						scope.launch {
+							clearInput()
 							component.cancelServerSetup()
 						}
 					}) {
