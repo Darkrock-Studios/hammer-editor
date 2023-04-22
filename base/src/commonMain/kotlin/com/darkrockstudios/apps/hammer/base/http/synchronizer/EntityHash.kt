@@ -1,21 +1,44 @@
 package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
+import com.appmattus.crypto.Algorithm
+import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.soywiz.krypto.sha256
+import com.soywiz.krypto.encoding.Base64
+import com.soywiz.krypto.encoding.base64Url
 import kotlinx.datetime.Instant
 
 object EntityHash {
+	private fun buff() = ByteArray(4)
+
 	fun hashScene(id: Int, order: Int, name: String, type: ApiSceneType, content: String): String {
-		return "$id:$order:$name:${type.name}:$content".encodeToByteArray().sha256().base64Url
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		d.update(order, buf)
+		d.update(name, buf)
+		d.update(type.ordinal, buf)
+		d.update(content, buf)
+		return d.digest().base64Url
 	}
 
 	fun hashNote(id: Int, created: Instant, content: String): String {
-		return "$id:$content:$created".encodeToByteArray().sha256().base64Url
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		d.update(created.epochSeconds, buf)
+		d.update(content, buf)
+		return d.digest().base64Url
 	}
 
 	fun hashTimelineEvent(id: Int, order: Int, content: String, date: String?): String {
-		return "$id:$order:$content:${date ?: "null"}".encodeToByteArray().sha256().base64Url
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		d.update(order, buf)
+		d.update(content, buf)
+		if (date != null) d.update(date, buf)
+		return d.digest().base64Url
 	}
 
 	fun hashEncyclopediaEntry(
@@ -26,17 +49,60 @@ object EntityHash {
 		tags: List<String>,
 		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?
 	): String {
-		val tagsStr = tags.joinToString(",")
-		val imagePart = if (image != null) {
-			"${image.base64}:${image.fileExtension}"
-		} else {
-			"null"
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		d.update(name, buf)
+		d.update(entryType, buf)
+		d.update(text, buf)
+
+		tags.forEach { tag ->
+			d.update(tag, buf)
 		}
 
-		return "$id:$name:${entryType.lowercase()}:$text:$tagsStr:$imagePart".encodeToByteArray().sha256().base64Url
+		if (image != null) {
+			d.update(Base64.decode(image.base64, url = true))
+			d.update(image.fileExtension, buf)
+		}
+
+		return d.digest().base64Url
 	}
 
 	fun hashSceneDraft(id: Int, created: Instant, name: String, content: String): String {
-		return "$id:${created.epochSeconds}:$name:$content".encodeToByteArray().sha256().base64Url
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		d.update(created.epochSeconds, buf)
+		d.update(name, buf)
+		d.update(content, buf)
+		return d.digest().base64Url
 	}
+}
+
+private fun Digest<*>.update(string: String, buf: ByteArray = ByteArray(4)) {
+	for (char in string) {
+		update(char.code, buf)
+	}
+}
+
+private fun Digest<*>.update(data: Int, buffer: ByteArray = ByteArray(4)) {
+	buffer[0] = (data shr 0).toByte()
+	buffer[1] = (data shr 8).toByte()
+	buffer[2] = (data shr 16).toByte()
+	buffer[3] = (data shr 24).toByte()
+	update(buffer)
+}
+
+private fun Digest<*>.update(data: Long, buffer: ByteArray = ByteArray(4)) {
+	buffer[0] = (data shr 0).toByte()
+	buffer[1] = (data shr 8).toByte()
+	buffer[2] = (data shr 16).toByte()
+	buffer[3] = (data shr 24).toByte()
+	update(buffer)
+
+	buffer[0] = (data shr 32).toByte()
+	buffer[1] = (data shr 40).toByte()
+	buffer[2] = (data shr 48).toByte()
+	buffer[3] = (data shr 56).toByte()
+	update(buffer)
 }

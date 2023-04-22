@@ -42,6 +42,7 @@ kotlin {
                 api("com.benasher44:uuid:0.7.0")
 				api("com.soywiz.korlibs.krypto:krypto:3.4.0")
                 //api("com.goncalossilva:murmurhash:0.4.0")
+                api("com.appmattus.crypto:cryptohash:0.10.1")
             }
         }
     }
