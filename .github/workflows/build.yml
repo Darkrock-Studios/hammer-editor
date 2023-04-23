@@ -2,9 +2,9 @@ name: Build CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "develop" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "develop" ]
 
 jobs:
   build:
@@ -12,19 +12,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-        cache: gradle
+      - uses: actions/checkout@v3
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
-    - name: Run Kover
-      run: ./gradlew koverMergedXmlReport
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew build
+      - name: Run Kover
+        run: ./gradlew koverMergedXmlReport
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3

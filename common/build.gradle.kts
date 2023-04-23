@@ -1,4 +1,5 @@
 val app_version: String by extra
+val jvm_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
@@ -34,7 +35,7 @@ kotlin {
 	android()
 	jvm("desktop") {
 		compilations.all {
-			kotlinOptions.jvmTarget = "11"
+			kotlinOptions.jvmTarget = jvm_version
 		}
 	}
 	ios {

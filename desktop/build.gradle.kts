@@ -1,6 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val app_version: String by extra
+val jvm_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -16,7 +17,7 @@ version = app_version
 kotlin {
     jvm {
         compilations.all {
-            kotlinOptions.jvmTarget = "11"
+            kotlinOptions.jvmTarget = jvm_version
         }
         withJava()
     }
