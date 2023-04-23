@@ -51,5 +51,10 @@ compose.desktop {
             }
         }
         jvmArgs("-Dcompose.application.configure.swing.globals=false")
+
+        buildTypes.release.proguard {
+            isEnabled.set(false)
+            configurationFiles.from("proguard-rules.pro")
+        }
     }
 }

@@ -7,23 +7,28 @@ val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
 val koin_version: String by extra
 
+val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
+val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
+val RELEASE_KEY_ALIAS = System.getenv("RELEASE_KEY_ALIAS") ?: ""
+val RELEASE_KEY_PASSWORD = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+
 plugins {
-    kotlin("android")
-    kotlin("plugin.serialization")
-    id("com.android.application")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlinx.kover")
+	kotlin("android")
+	kotlin("plugin.serialization")
+	id("com.android.application")
+	id("org.jetbrains.compose")
+	id("org.jetbrains.kotlinx.kover")
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = app_version
 
 repositories {
-    mavenCentral()
+	mavenCentral()
 }
 
 dependencies {
-    api(project(":composeUi"))
+	api(project(":composeUi"))
 	implementation("androidx.activity:activity-compose:1.7.0")
 	implementation("io.insert-koin:koin-android:$koin_version")
 	implementation("androidx.glance:glance-appwidget:1.0.0-alpha05")
@@ -33,34 +38,45 @@ dependencies {
 }
 
 android {
-    namespace = "com.darkrockstudios.apps.hammer.android"
-    compileSdk = android_compile_sdk.toInt()
-    defaultConfig {
-        applicationId = "com.darkrockstudios.apps.hammer.android"
-        minSdk = android_min_sdk.toInt()
-        targetSdk = android_target_sdk.toInt()
-        versionCode = 1
-        versionName = "1.0-SNAPSHOT"
-    }
-    buildFeatures {
-        compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+	namespace = "com.darkrockstudios.apps.hammer.android"
+	compileSdk = android_compile_sdk.toInt()
+	defaultConfig {
+		applicationId = "com.darkrockstudios.apps.hammer.android"
+		minSdk = android_min_sdk.toInt()
+		targetSdk = android_target_sdk.toInt()
+		versionCode = 1
+		versionName = "1.0-SNAPSHOT"
+	}
+	buildFeatures {
+		compose = true
+	}
+	composeOptions {
+		kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
+	}
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_1_8
+		targetCompatibility = JavaVersion.VERSION_1_8
+	}
+	signingConfigs {
+		create("release") {
+			keyAlias = RELEASE_KEY_ALIAS
+			keyPassword = RELEASE_KEY_PASSWORD
+			storeFile = file(RELEASE_STORE_FILE)
+			storePassword = RELEASE_STORE_PASSWORD
+		}
+	}
 
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                File("proguard-rules.pro")
-            )
-        }
-    }
+	buildTypes {
+		getByName("release") {
+			isMinifyEnabled = false
+			isShrinkResources = false
+
+			signingConfig = signingConfigs.getByName("release")
+
+			proguardFiles(
+				getDefaultProguardFile("proguard-android-optimize.txt"),
+				File("proguard-rules.pro")
+			)
+		}
+	}
 }

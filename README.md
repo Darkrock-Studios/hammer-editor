@@ -2,7 +2,7 @@
 
 ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/master)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/master/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor)
 
-![badge-platform-android] ![badge-platform-windows]
+![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux]
 
 ![badge-kotlin]
 
@@ -15,7 +15,6 @@ website-in-a-box, but instead using native client side technologies to provide t
 
 ### Will add support for more platforms in the future:
 
-- ![badge-platform-linux]
 - ![badge-platform-macos]
 - ![badge-platform-ios]
 
