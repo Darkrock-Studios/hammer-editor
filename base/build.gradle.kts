@@ -1,3 +1,4 @@
+val jvm_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
@@ -24,7 +25,7 @@ kotlin {
     android()
     jvm("desktop") {
         compilations.all {
-            kotlinOptions.jvmTarget = "11"
+            kotlinOptions.jvmTarget = jvm_version
         }
     }
     ios {
@@ -40,7 +41,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
                 //api("io.getstream:stream-result:1.1.0")
                 api("com.benasher44:uuid:0.7.0")
-				api("com.soywiz.korlibs.krypto:krypto:3.4.0")
+                api("com.soywiz.korlibs.krypto:krypto:3.4.0")
                 //api("com.goncalossilva:murmurhash:0.4.0")
                 api("com.appmattus.crypto:cryptohash:0.10.1")
             }
