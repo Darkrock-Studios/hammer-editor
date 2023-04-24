@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 val kotlin_version: String by project
 val ktor_version: String by project
 val logback_version: String by project
@@ -8,48 +10,53 @@ val mockk_version: String by extra
 val sqldelight_version: String by extra
 val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
+val jvm_version: String by extra
 
 plugins {
-    kotlin("jvm")
-    id("io.ktor.plugin")
-    id("org.jetbrains.kotlin.plugin.serialization")
-    id("app.cash.sqldelight")
-    id("org.jetbrains.kotlinx.kover")
+	kotlin("jvm")
+	id("io.ktor.plugin")
+	id("org.jetbrains.kotlin.plugin.serialization")
+	id("app.cash.sqldelight")
+	id("org.jetbrains.kotlinx.kover")
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = "0.0.1"
 application {
-    mainClass.set("com.darkrockstudios.apps.hammer.ApplicationKt")
+	mainClass.set("com.darkrockstudios.apps.hammer.ApplicationKt")
 
-    val isDevelopment: Boolean = project.ext.has("development")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+	val isDevelopment: Boolean = project.ext.has("development")
+	applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 sqldelight {
-    databases {
-        create("ServerDatabase") {
-            packageName.set("com.darkrockstudios.apps.hammer")
-            //dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
-        }
-    }
+	databases {
+		create("ServerDatabase") {
+			packageName.set("com.darkrockstudios.apps.hammer")
+			//dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
+		}
+	}
 }
 
 kover {
-    filters {
-        classes {
-            includes += "com.darkrockstudios.apps.hammer.*"
-        }
-    }
+	filters {
+		classes {
+			includes += "com.darkrockstudios.apps.hammer.*"
+		}
+	}
 }
 
 repositories {
-    google()
-    mavenCentral()
+	google()
+	mavenCentral()
+}
+
+tasks.withType<KotlinCompile> {
+	kotlinOptions.jvmTarget = jvm_version
 }
 
 dependencies {
-    implementation(project(":base"))
+	implementation(project(":base"))
 
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutines_version")
@@ -64,9 +71,9 @@ dependencies {
 	implementation("io.ktor:ktor-server-default-headers-jvm:$ktor_version")
 	implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
 	implementation("io.ktor:ktor-server-caching-headers-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
-    implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
-    implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
+	implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
+	implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
+	implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
 
 	implementation("ch.qos.logback:logback-classic:$logback_version")
 	implementation("org.slf4j:slf4j-simple:2.0.6")
