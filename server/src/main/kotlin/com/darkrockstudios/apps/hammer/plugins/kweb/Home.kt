@@ -43,7 +43,7 @@ fun RouteReceiver.homePage(
 			}
 
 			div(fomantic.ui.inverted.vertical.segment) {
-				div(fomantic.ui.center.aligned.container).innerHTML("TEST ALPHA Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.")
+				div(fomantic.ui.center.aligned.container).innerHTML("First Alpha Test Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.")
 			}.addClasses("footer")
 		}
 	}
