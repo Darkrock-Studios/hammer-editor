@@ -4,7 +4,7 @@
 
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux]
 
-![badge-kotlin]
+[![Discord badge](https://img.shields.io/discord/1100282852295327744)](https://discord.gg/GTmgjZcupk)
 
 A simple tool for building stories.
 
@@ -47,6 +47,8 @@ change on one device, overwriting a change on another device.
 Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and
 sync your data between devices. You could even use some other service to sync your data, like Dropbox or Google Drive.
 It's all up to you.
+
+![badge-kotlin]
 
 <!-- TAG_DEPENDENCIES -->
 
