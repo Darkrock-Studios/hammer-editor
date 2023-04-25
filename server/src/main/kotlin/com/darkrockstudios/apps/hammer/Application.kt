@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.plugins.*
 import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
-import io.ktor.server.netty.*
+import io.ktor.server.jetty.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import java.io.File
@@ -67,7 +67,7 @@ private fun startServer(httpPort: Int, keyStoreFile: File?, certPasswordArg: Str
 	}
 
 	embeddedServer(
-		Netty,
+		Jetty,
 		environment = environment
 	).start(wait = true)
 }
