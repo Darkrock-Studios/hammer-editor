@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.plugins.kweb
+package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import kotlinx.coroutines.CoroutineScope

@@ -11,6 +11,7 @@ val sqldelight_version: String by extra
 val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
 val jvm_version: String by extra
+val ktoml_version: String by extra
 
 plugins {
 	kotlin("jvm")
@@ -89,6 +90,8 @@ dependencies {
 
 	implementation("io.kweb:kweb-core:1.4.0")
 	implementation("io.ktor:ktor-server-websockets:$ktor_version")
+
+	implementation("com.akuleshov7:ktoml-core:$ktoml_version")
 
 	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
