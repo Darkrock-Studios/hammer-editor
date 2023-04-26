@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.akuleshov7.ktoml.Toml
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -60,6 +61,14 @@ inline fun <reified T> FileSystem.writeJson(path: Path, json: Json, obj: T) {
 	write(path) {
 		val jsonStr = json.encodeToString<T>(obj)
 		writeUtf8(jsonStr)
+	}
+}
+
+@OptIn(InternalSerializationApi::class)
+fun <T : Any> FileSystem.readToml(path: Path, toml: Toml, clazz: KClass<T>): T {
+	return read(path) {
+		val jsonStr = readUtf8()
+		toml.decodeFromString(clazz.serializer(), jsonStr)
 	}
 }
 

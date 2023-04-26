@@ -8,7 +8,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.jetty.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
-import kotlinx.serialization.decodeFromString
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import java.io.File
 import java.security.KeyStore
 
@@ -31,9 +32,7 @@ fun main(args: Array<String>) {
 }
 
 private fun loadConfig(path: String): ServerConfig {
-	val file = File(path)
-	val tomlStr = file.readUtf8()
-	return Toml.decodeFromString<ServerConfig>(tomlStr)
+	return FileSystem.SYSTEM.readToml(path.toPath(), Toml, ServerConfig::class)
 }
 
 private fun startServer(config: ServerConfig) {
