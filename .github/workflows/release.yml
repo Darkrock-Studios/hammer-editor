@@ -33,6 +33,24 @@ jobs:
       - name: Package Windows ".msi" distribution
         run: ./gradlew :desktop:packageReleaseMsi
 
+      - name: Rename Artifact
+        run: |
+          @echo off
+          setlocal EnableDelayedExpansion
+          
+          set "targetFile="
+          for %%f in (hammer-*.msi) do (
+          set "targetFile=%%f"
+          )
+          
+          if not defined targetFile (
+          echo Could not find file matching pattern "hammer-*.msi"
+          exit /b 1
+          )
+          
+          ren "!targetFile!" "hammer.msi"
+          echo Successfully renamed file to "hammer.msi"
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -42,7 +60,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\*.msi"
+          artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
 
   linux:
     runs-on: ubuntu-latest
@@ -69,6 +87,22 @@ jobs:
       - name: Package Linux ".deb" distribution
         run: ./gradlew :desktop:packageReleaseDeb
 
+      - name: Rename Artifact
+        run: |
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name 'hammer-*.deb' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.deb"
+          mv "$file" "${file/hammer-*/hammer}.deb"
+
+          echo "File renamed successfully."
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -78,7 +112,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/*.deb"
+          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb"
 
   server:
     runs-on: ubuntu-latest
@@ -104,6 +138,25 @@ jobs:
 
       - name: Package Server distributions
         run: ./gradlew :server:assembleDist
+
+      - name: Rename tar Artifact
+        run: |
+          file=$(find . -type f -name 'server-*.tar' -print -quit)
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+          mv "$file" "${file/server-*/server}.tar"
+          echo "File renamed successfully."
+      - name: Rename zip Artifact
+        run: |
+          file=$(find . -type f -name 'server-*.zip' -print -quit)
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+          mv "$file" "${file/server-*/server}.zip"
+          echo "File renamed successfully."
 
       - name: Create Release
         uses: ncipollo/release-action@v1

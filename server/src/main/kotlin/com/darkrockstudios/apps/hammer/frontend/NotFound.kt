@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.plugins.kweb
+package com.darkrockstudios.apps.hammer.frontend
 
 import kweb.div
 import kweb.h2

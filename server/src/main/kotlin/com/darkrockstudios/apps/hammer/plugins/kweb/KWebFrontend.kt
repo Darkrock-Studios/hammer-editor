@@ -1,8 +1,13 @@
 package com.darkrockstudios.apps.hammer.plugins.kweb
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
+import com.darkrockstudios.apps.hammer.frontend.adminLoginPage
+import com.darkrockstudios.apps.hammer.frontend.adminPanelPage
+import com.darkrockstudios.apps.hammer.frontend.homePage
+import com.darkrockstudios.apps.hammer.frontend.notFoundPage
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -10,20 +15,18 @@ import io.ktor.server.response.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.serialization.json.JsonPrimitive
 import kweb.*
 import kweb.plugins.FaviconPlugin
 import kweb.plugins.fomanticUI.fomanticUIPlugin
 import kweb.plugins.staticFiles.ResourceFolder
 import kweb.plugins.staticFiles.StaticFilesPlugin
 import kweb.state.KVar
-import kweb.util.json
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import java.time.Duration
 import kotlin.coroutines.CoroutineContext
 
-fun Application.configureKweb() {
+fun Application.configureKweb(config: ServerConfig) {
 	install(WebSockets) {
 		pingPeriod = Duration.ofSeconds(10)
 		timeout = Duration.ofSeconds(30)
@@ -63,7 +66,7 @@ fun Application.configureKweb() {
 
 				val authToken = KVar<String?>(null)
 
-				homePage(scope, ::goTo)
+				homePage(scope, config, whitListRepository, ::goTo)
 
 				adminLoginPage(accountRepository, authToken, scope, ::goTo)
 
@@ -73,21 +76,4 @@ fun Application.configureKweb() {
 			}
 		}
 	}
-}
-
-fun ElementCreator<Element>.rellink(
-	rel: LinkRelationship,
-	href: String,
-	hreflang: String? = null,
-	attributes: Map<String, JsonPrimitive> = emptyMap(),
-): Element {
-	return LinkElement(
-		element(
-			"link",
-			attributes = attributes
-				.set("rel", rel.name.json)
-				.set("href", href.json)
-				.set("hreflang", JsonPrimitive(hreflang))
-		)
-	)
 }

@@ -29,7 +29,7 @@ repositories {
 
 dependencies {
 	api(project(":composeUi"))
-	implementation("androidx.activity:activity-compose:1.7.0")
+	implementation("androidx.activity:activity-compose:1.7.1")
 	implementation("io.insert-koin:koin-android:$koin_version")
 	implementation("androidx.glance:glance-appwidget:1.0.0-alpha05")
 	implementation("androidx.work:work-runtime-ktx:2.8.1")
@@ -45,7 +45,7 @@ android {
 		minSdk = android_min_sdk.toInt()
 		targetSdk = android_target_sdk.toInt()
 		versionCode = 1
-		versionName = "1.0-SNAPSHOT"
+		versionName = app_version
 	}
 	buildFeatures {
 		compose = true

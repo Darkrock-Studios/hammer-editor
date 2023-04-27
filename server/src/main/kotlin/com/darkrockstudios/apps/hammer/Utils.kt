@@ -1,16 +1,16 @@
 package com.darkrockstudios.apps.hammer
 
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
+import com.akuleshov7.ktoml.Toml
+import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 import okio.FileSystem
 import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
+import java.io.File
+import java.io.FileInputStream
 import kotlin.reflect.KClass
+
 
 const val DATA_DIR = "hammer_data"
 
@@ -62,4 +62,25 @@ inline fun <reified T> FileSystem.writeJson(path: Path, json: Json, obj: T) {
 		val jsonStr = json.encodeToString<T>(obj)
 		writeUtf8(jsonStr)
 	}
+}
+
+@OptIn(InternalSerializationApi::class)
+fun <T : Any> FileSystem.readToml(path: Path, toml: Toml, clazz: KClass<T>): T {
+	return read(path) {
+		val jsonStr = readUtf8()
+		toml.decodeFromString(clazz.serializer(), jsonStr)
+	}
+}
+
+fun File.readUtf8(bufferSize: Int = 1024): String {
+	val fis = FileInputStream(this)
+	var buffer = ByteArray(bufferSize)
+	val sb = StringBuilder()
+	while (fis.read(buffer) != -1) {
+		sb.append(String(buffer))
+		buffer = ByteArray(bufferSize)
+	}
+	fis.close()
+
+	return sb.toString()
 }

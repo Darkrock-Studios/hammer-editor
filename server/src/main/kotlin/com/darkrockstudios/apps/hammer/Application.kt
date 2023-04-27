@@ -1,92 +1,83 @@
 package com.darkrockstudios.apps.hammer
 
+import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.plugins.*
 import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
-import io.ktor.server.netty.*
+import io.ktor.server.jetty.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import java.io.File
 import java.security.KeyStore
 
 fun main(args: Array<String>) {
 	val parser = ArgParser("server")
-	val portArg by parser.option(ArgType.Int, shortName = "p", fullName = "port", description = "Port")
-	val certPathArg by parser.option(
+	val configPathArg by parser.option(
 		ArgType.String,
 		shortName = "c",
-		fullName = "sslCert",
-		description = "SSL Cert Path"
-	)
-	val certPasswordArg by parser.option(
-		ArgType.String,
-		shortName = "x",
-		fullName = "sslPassword",
-		description = "SSL Cert Password"
-	)
-	val certAliasArg by parser.option(
-		ArgType.String,
-		shortName = "z",
-		fullName = "sslAlias",
-		description = "SSL Cert Key Alias"
+		fullName = "config",
+		description = "Server Config Path"
 	)
 
 	parser.parse(args)
 
-	val port = portArg ?: 8080
-	println(certPathArg)
-	val keyStoreFile: File? = certPathArg?.let { return@let File(it) }
+	val config: ServerConfig = configPathArg?.let {
+		loadConfig(it)
+	} ?: ServerConfig()
 
-	startServer(port, keyStoreFile, certPasswordArg, certAliasArg)
+	startServer(config)
 }
 
-private fun startServer(httpPort: Int, keyStoreFile: File?, certPasswordArg: String?, certAliasArg: String?) {
-	val password = certPasswordArg ?: ""
-	val keyStore = getKeyStore(keyStoreFile, certPasswordArg)
+private fun loadConfig(path: String): ServerConfig {
+	return FileSystem.SYSTEM.readToml(path.toPath(), Toml, ServerConfig::class)
+}
 
+private fun startServer(config: ServerConfig) {
 	val environment = applicationEngineEnvironment {
+		val bindHost = "0.0.0.0"
 		connector {
-			port = httpPort
-			host = "0.0.0.0"
+			port = config.port
+			host = bindHost
 		}
 
-		if (keyStore != null) {
+		config.sslCert?.apply {
 			sslConnector(
-				keyStore = keyStore,
-				keyAlias = certAliasArg ?: "",
-				keyStorePassword = { password.toCharArray() },
-				privateKeyPassword = { password.toCharArray() }) {
-				keyStorePath = keyStoreFile
-				host = "0.0.0.0"
+				keyStore = getKeyStore(this),
+				keyAlias = keyAlias ?: "",
+				keyStorePassword = { storePassword.toCharArray() },
+				privateKeyPassword = { (keyPassword ?: "").toCharArray() }) {
+				keyStorePath = File(path)
+				host = bindHost
 			}
 		}
 
-		module(Application::appMain)
+		module {
+			appMain(config)
+		}
 		watchPaths = listOf("classes")
 	}
 
 	embeddedServer(
-		Netty,
+		Jetty,
 		environment = environment
 	).start(wait = true)
 }
 
-private fun getKeyStore(certFile: File?, certPasswordArg: String?): KeyStore? {
-	return if (certFile != null) {
-		if (certFile.exists().not()) throw IllegalArgumentException("SSL Cert not found")
-		KeyStore.getInstance(certFile, certPasswordArg?.toCharArray())
-	} else {
-		null
-	}
+private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
+	val certFile = File(sslConfig.path)
+	if (certFile.exists().not()) throw IllegalArgumentException("SSL Cert not found")
+	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
 }
 
-fun Application.appMain() {
+fun Application.appMain(config: ServerConfig) {
 	configureDependencyInjection()
 	configureSerialization()
 	configureMonitoring()
-	configureHTTP()
+	configureHTTP(config)
 	configureSecurity()
 	configureRouting()
-	configureKweb()
+	configureKweb(config)
 }

@@ -11,6 +11,7 @@ val sqldelight_version: String by extra
 val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
 val jvm_version: String by extra
+val ktoml_version: String by extra
 
 plugins {
 	kotlin("jvm")
@@ -74,6 +75,7 @@ dependencies {
 	implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
 	implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
 	implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
+	implementation("io.ktor:ktor-server-http-redirect:$ktor_version")
 
 	implementation("ch.qos.logback:logback-classic:$logback_version")
 	implementation("org.slf4j:slf4j-simple:2.0.6")
@@ -89,6 +91,8 @@ dependencies {
 
 	implementation("io.kweb:kweb-core:1.4.0")
 	implementation("io.ktor:ktor-server-websockets:$ktor_version")
+
+	implementation("com.akuleshov7:ktoml-core:$ktoml_version")
 
 	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")

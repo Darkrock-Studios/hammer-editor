@@ -4,11 +4,6 @@ body {
     flex-direction: column;
 }
 
-.screen-height {
-    height: 100vh;
-    max-height: 640px;
-}
-
 .centered-container {
     height: 100vh;
     width: 100vw;
@@ -29,8 +24,10 @@ body {
 }
 
 .masthead.segment {
-    min-height: 700px;
     padding: 1em 0em;
+
+    height: 400px;
+    max-height: 100vh;
 }
 
 .masthead .logo.item img {
@@ -42,7 +39,7 @@ body {
 }
 
 .masthead h1.ui.header {
-    margin-top: 3em;
+    margin-top: 50px;
     margin-bottom: 0em;
     font-size: 4em;
     font-weight: normal;
@@ -54,7 +51,7 @@ body {
 }
 
 .ui.vertical.stripe {
-    padding: 8em 0em;
+    padding: 4em 0em;
 }
 
 .ui.vertical.stripe h3 {
@@ -82,9 +79,13 @@ body {
     padding: 0em;
 }
 
+.ui.container.row {
+    padding: 2em 0em;
+}
+
 .quote.stripe.segment .grid .column {
-    padding-top: 5em;
-    padding-bottom: 5em;
+    padding-top: 3em;
+    padding-bottom: 3em;
 }
 
 .footer.segment {
@@ -93,6 +94,18 @@ body {
 
 .secondary.pointing.menu .toc.item {
     display: none;
+}
+
+.padded {
+    padding: 14px;
+}
+
+.ui.container.padded {
+    padding: 14px;
+}
+
+.ui.padded {
+    padding: 5em;
 }
 
 @media only screen and (max-width: 700px) {

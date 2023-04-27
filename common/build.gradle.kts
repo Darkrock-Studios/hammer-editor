@@ -17,6 +17,7 @@ val napier_version: String by extra
 val ktor_version: String by extra
 val json_version: String by extra
 val atomicfu_version: String by extra
+val ktoml_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
@@ -76,7 +77,7 @@ kotlin {
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
 				api("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
-				implementation("com.akuleshov7:ktoml-core:0.4.1")
+				implementation("com.akuleshov7:ktoml-core:$ktoml_version")
 				api("com.arkivanov.essenty:lifecycle:$essenty_version")
 				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
 				api("dev.icerock.moko:resources:$moko_resources_version")
