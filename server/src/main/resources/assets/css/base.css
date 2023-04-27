@@ -96,6 +96,14 @@ body {
     display: none;
 }
 
+.padded {
+    padding: 14px;
+}
+
+.ui.container.padded {
+    padding: 14px;
+}
+
 .ui.padded {
     padding: 5em;
 }
