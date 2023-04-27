@@ -46,7 +46,7 @@ change on one device, overwriting a change on another device.
 
 Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and
 sync your data between devices. You could even use some other service to sync your data, like Dropbox or Google Drive.
-It's all up to you.
+It's all up to you. Instructions can be found [here](server/HOW-TO-RUN-A-SERVER.md).
 
 ![badge-kotlin]
 
