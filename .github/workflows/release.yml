@@ -34,21 +34,27 @@ jobs:
         run: ./gradlew :desktop:packageReleaseMsi
 
       - name: Rename Artifact
+        shell: cmd
         run: |
-          @echo off
-          setlocal EnableDelayedExpansion
+          setlocal enabledelayedexpansion
           
-          set "targetFile="
-          for %%f in (hammer-*.msi) do (
-          set "targetFile=%%f"
+          set "pattern=hammer-*.msi"
+          set "newName=hammer.msi"
+          set "foundFile="
+          
+          for /r %%i in (%pattern%) do (
+            set "foundFile=%%i"
           )
           
-          if not defined targetFile (
-          echo Could not find file matching pattern "hammer-*.msi"
-          exit /b 1
+          if defined foundFile (
+          echo Renaming !foundFile! to %newName%
+            ren "!foundFile!" "%newName%"
+          ) else (
+            echo No file matching pattern found.
           )
           
-          ren "!targetFile!" "hammer.msi"
+          endlocal
+          
           echo Successfully renamed file to "hammer.msi"
 
       - name: Create Release
@@ -89,8 +95,9 @@ jobs:
 
       - name: Rename Artifact
         run: |
+          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/
           # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer-*.deb' -print -quit)
+          file=$(find . -type f -name 'hammer_*.deb' -print -quit)
 
           # if no file was found, exit with an error message
           if [ -z "$file" ]; then
@@ -99,7 +106,7 @@ jobs:
           fi
 
           # rename the file to "hammer.deb"
-          mv "$file" "${file/hammer-*/hammer}.deb"
+          mv "$file" "${file/hammer_*/hammer}.deb"
 
           echo "File renamed successfully."
 
