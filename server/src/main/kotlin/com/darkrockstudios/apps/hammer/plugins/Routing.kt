@@ -16,22 +16,12 @@ fun Application.configureRouting() {
 	projectRoutes()
 	adminRoutes()
 	teapot()
-	//staticAssets()
-}
-
-private fun Application.staticAssets() {
-    routing {
-        static("/") {
-            staticBasePackage = "assets"
-            resources(".")
-        }
-    }
 }
 
 private fun Application.teapot() {
-    routing {
-        get("/teapot") {
-            call.respondText("I'm a little Tea Pot", status = HttpStatusCode.fromValue(418))
-        }
-    }
+	routing {
+		get("/teapot") {
+			call.respondText("I'm a little Tea Pot", status = HttpStatusCode.fromValue(418))
+		}
+	}
 }

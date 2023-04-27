@@ -54,7 +54,7 @@ private fun startServer(config: ServerConfig) {
 			}
 		}
 
-		module{
+		module {
 			appMain(config)
 		}
 		watchPaths = listOf("classes")
@@ -76,7 +76,7 @@ fun Application.appMain(config: ServerConfig) {
 	configureDependencyInjection()
 	configureSerialization()
 	configureMonitoring()
-	configureHTTP()
+	configureHTTP(config)
 	configureSecurity()
 	configureRouting()
 	configureKweb(config)
