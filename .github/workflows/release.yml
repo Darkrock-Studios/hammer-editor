@@ -35,7 +35,6 @@ jobs:
 
       - name: Rename Artifact
         run: |
-          @echo off
           setlocal EnableDelayedExpansion
           
           set "targetFile="
@@ -99,7 +98,7 @@ jobs:
           fi
 
           # rename the file to "hammer.deb"
-          mv "$file" "${file/hammer-*/hammer}.deb"
+          mv "$file" "${file/hammer_*/hammer}.deb"
 
           echo "File renamed successfully."
 
