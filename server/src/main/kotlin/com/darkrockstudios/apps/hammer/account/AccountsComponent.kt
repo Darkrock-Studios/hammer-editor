@@ -40,7 +40,7 @@ class AccountsComponent(
 		return if (account != null) {
 			whiteListRejected(account)
 		} else {
-			true
+			whiteListRepository.useWhiteList()
 		}
 	}
 
