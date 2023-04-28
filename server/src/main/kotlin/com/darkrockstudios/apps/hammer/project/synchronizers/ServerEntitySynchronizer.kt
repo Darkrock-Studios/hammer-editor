@@ -18,6 +18,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	protected val fileSystem: FileSystem,
 	protected val json: Json
 ) {
+	abstract val entityType: ApiProjectEntity.Type
 	abstract fun hashEntity(entity: T): String
 	protected abstract val entityClazz: KClass<T>
 	protected abstract val pathStub: String
@@ -121,6 +122,19 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	fun deleteEntity(userId: Long, projectDef: ProjectDefinition, entityId: Int) {
 		val path = getPath(userId, projectDef, entityId)
 		fileSystem.delete(path, false)
+	}
+
+	protected fun getEntityDefs(userId: Long, projectDef: ProjectDefinition): List<EntityDefinition> {
+		val entityDir = ProjectRepository.getEntityDirectory(userId, projectDef, fileSystem)
+		val entities = fileSystem.list(entityDir).mapNotNull{
+			parseEntityFilename(it)
+		}.filter { it.type == entityType }
+		return entities
+	}
+
+	open fun getUpdateSequence(userId: Long, projectDef: ProjectDefinition): List<Int> {
+		val entities = getEntityDefs(userId, projectDef)
+		return entities.map { it.id }
 	}
 
 	companion object {

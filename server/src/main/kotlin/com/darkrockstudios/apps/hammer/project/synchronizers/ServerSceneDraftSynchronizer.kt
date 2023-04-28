@@ -18,6 +18,7 @@ class ServerSceneDraftSynchronizer(
 		)
 	}
 
+	override val entityType = ApiProjectEntity.Type.SCENE_DRAFT
 	override val entityClazz = ApiProjectEntity.SceneDraftEntity::class
 	override val pathStub = ApiProjectEntity.Type.SCENE_DRAFT.name.lowercase()
 }

@@ -425,7 +425,17 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>
 	): Boolean {
 		var allSuccess = true
-		for (thisId in 1..maxId) {
+
+		val maxServerId = serverSyncData.idSequence.max()
+		// Add local IDs on top of server sequence
+		val combinedSequence = if(maxId > maxServerId) {
+			val localIds = (maxServerId+1 .. maxId).toList()
+			serverSyncData.idSequence + localIds
+		} else {
+			serverSyncData.idSequence
+		}
+
+		for (thisId in combinedSequence) {
 			if (thisId in combinedDeletions) {
 				Napier.d("Skipping deleted ID $thisId")
 				continue

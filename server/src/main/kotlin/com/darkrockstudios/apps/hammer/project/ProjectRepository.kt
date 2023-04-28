@@ -99,10 +99,12 @@ class ProjectRepository(
 				)
 			}
 
+			val updateSequence = getUpdateSequence(userId, projectDef)
 			val syncBegan = ProjectSynchronizationBegan(
 				syncId = newSyncId,
 				lastId = projectSyncData.lastId,
 				lastSync = projectSyncData.lastSync,
+				idSequence = updateSequence,
 				deletedIds = projectSyncData.deletedIds,
 			)
 			Result.success(syncBegan)
@@ -350,6 +352,17 @@ class ProjectRepository(
 	private suspend fun validateSyncId(userId: Long, syncId: String): Boolean {
 		return !projectsSessions.hasActiveSyncSession(userId) &&
 				sessionManager.validateSyncId(userId, syncId, true)
+	}
+
+	private suspend fun getUpdateSequence(userId: Long, projectDef: ProjectDefinition): List<Int> {
+		val updateSequence = mutableSetOf<Int>()
+		updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef)
+		updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef)
+		updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef)
+		updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef)
+		updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef)
+
+		return updateSequence.toList()
 	}
 
 	companion object {

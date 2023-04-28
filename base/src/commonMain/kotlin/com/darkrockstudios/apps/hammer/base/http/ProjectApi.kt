@@ -25,6 +25,7 @@ data class ProjectSynchronizationBegan(
 	val syncId: String,
 	val lastSync: Instant,
 	val lastId: Int,
+	val idSequence: List<Int>,
 	val deletedIds: Set<Int>
 )
 

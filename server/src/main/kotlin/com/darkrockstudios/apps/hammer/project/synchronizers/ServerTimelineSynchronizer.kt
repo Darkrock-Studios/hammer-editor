@@ -18,6 +18,7 @@ class ServerTimelineSynchronizer(
 		)
 	}
 
+	override val entityType = ApiProjectEntity.Type.TIMELINE_EVENT
 	override val entityClazz = ApiProjectEntity.TimelineEventEntity::class
 	override val pathStub = ApiProjectEntity.Type.TIMELINE_EVENT.name.lowercase()
 }

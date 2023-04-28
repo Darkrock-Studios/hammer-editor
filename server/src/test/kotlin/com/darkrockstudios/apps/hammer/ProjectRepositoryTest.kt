@@ -65,6 +65,12 @@ class ProjectRepositoryTest : BaseTest() {
 		encyclopediaSynchronizer = mockk()
 		sceneDraftSynchronizer = mockk()
 
+		coEvery { sceneSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+		coEvery { noteSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+		coEvery { timelineEventSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+		coEvery { encyclopediaSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+		coEvery { sceneDraftSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+
 		val testModule = module {
 			single { fileSystem } bind FileSystem::class
 			single { Json } bind Json::class

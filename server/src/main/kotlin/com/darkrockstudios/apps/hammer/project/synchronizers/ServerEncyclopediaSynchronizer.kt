@@ -20,6 +20,7 @@ class ServerEncyclopediaSynchronizer(
 		)
 	}
 
+	override val entityType = ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY
 	override val entityClazz = ApiProjectEntity.EncyclopediaEntryEntity::class
 	override val pathStub = ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY.name.lowercase()
 }
