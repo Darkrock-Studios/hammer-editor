@@ -449,15 +449,15 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem? {
-		return createSceneItem(parent, sceneName, false)
+	override suspend fun createScene(parent: SceneItem?, sceneName: String, forceId: Int?): SceneItem? {
+		return createSceneItem(parent, sceneName, false, forceId)
 	}
 
-	override suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem? {
-		return createSceneItem(parent, groupName, true)
+	override suspend fun createGroup(parent: SceneItem?, groupName: String, forceId: Int?): SceneItem? {
+		return createSceneItem(parent, groupName, true, forceId)
 	}
 
-	private suspend fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean): SceneItem? {
+	private suspend fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean, forceId: Int?): SceneItem? {
 		val cleanedNamed = name.trim()
 
 		return if (!validateSceneName(cleanedNamed)) {
@@ -466,7 +466,7 @@ class ProjectEditorRepositoryOkio(
 		} else {
 			val lastOrder = getLastOrderNumber(parent?.id)
 			val nextOrder = lastOrder + 1
-			val sceneId = idRepository.claimNextId()
+			val sceneId = forceId ?: idRepository.claimNextId()
 			val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
 			val newSceneItem = SceneItem(

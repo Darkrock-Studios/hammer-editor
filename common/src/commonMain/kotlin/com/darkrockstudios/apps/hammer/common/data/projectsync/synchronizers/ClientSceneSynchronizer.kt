@@ -106,7 +106,7 @@ class ClientSceneSynchronizer(
 				existingScene
 			} else {
 				onLog("Creating new scene $id")
-				projectEditorRepository.createScene(parent = parent, sceneName = serverEntity.name)
+				projectEditorRepository.createScene(parent = parent, sceneName = serverEntity.name, forceId = serverEntity.id)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
@@ -144,7 +144,7 @@ class ClientSceneSynchronizer(
 				existingGroup
 			} else {
 				onLog("Creating new group $id")
-				projectEditorRepository.createGroup(parent = parent, groupName = serverEntity.name)
+				projectEditorRepository.createGroup(parent = parent, groupName = serverEntity.name, forceId = serverEntity.id)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 

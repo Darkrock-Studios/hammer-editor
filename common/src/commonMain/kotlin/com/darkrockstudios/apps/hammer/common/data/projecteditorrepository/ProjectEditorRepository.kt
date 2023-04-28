@@ -198,8 +198,8 @@ abstract class ProjectEditorRepository(
 	abstract fun getSceneBufferDirectory(): HPath
 	abstract fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath
 	abstract fun getSceneBufferTempPath(sceneItem: SceneItem): HPath
-	abstract suspend fun createScene(parent: SceneItem?, sceneName: String): SceneItem?
-	abstract suspend fun createGroup(parent: SceneItem?, groupName: String): SceneItem?
+	abstract suspend fun createScene(parent: SceneItem?, sceneName: String, forceId: Int? = null): SceneItem?
+	abstract suspend fun createGroup(parent: SceneItem?, groupName: String, forceId: Int? = null): SceneItem?
 	abstract suspend fun deleteScene(scene: SceneItem): Boolean
 	abstract suspend fun deleteGroup(scene: SceneItem): Boolean
 	abstract fun getScenes(): List<SceneItem>

@@ -56,6 +56,10 @@ class EncyclopediaRepositoryOkio(
 	}
 
 	override fun getEntryPath(id: Int): HPath {
+		return findEntryPath(id) ?: throw EntryNotFound(id)
+	}
+
+	override fun findEntryPath(id: Int): HPath? {
 		var path: HPath? = null
 
 		val types = EntryType.values()
@@ -75,7 +79,7 @@ class EncyclopediaRepositoryOkio(
 			if (path != null) break
 		}
 
-		return path ?: throw EntryNotFound(id)
+		return path
 	}
 
 	override fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath {
@@ -123,6 +127,15 @@ class EncyclopediaRepositoryOkio(
 
 	override fun getEntryDef(entryPath: HPath): EntryDef {
 		return getEntryDefFromFilename(entryPath.name, projectDef)
+	}
+
+	override fun findEntryDef(id: Int): EntryDef? {
+		val path = findEntryPath(id)
+		return if(path != null) {
+			getEntryDefFromFilename(path.name, projectDef)
+		} else {
+			null
+		}
 	}
 
 	override fun loadEntry(entryDef: EntryDef): EntryContainer {

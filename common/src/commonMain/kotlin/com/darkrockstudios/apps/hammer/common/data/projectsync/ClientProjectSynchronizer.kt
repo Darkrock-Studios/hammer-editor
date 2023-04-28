@@ -426,7 +426,7 @@ class ClientProjectSynchronizer(
 	): Boolean {
 		var allSuccess = true
 
-		val maxServerId = serverSyncData.idSequence.max()
+		val maxServerId = serverSyncData.idSequence.maxOrNull() ?: IdRepository.FIRST_ID
 		// Add local IDs on top of server sequence
 		val combinedSequence = if(maxId > maxServerId) {
 			val localIds = (maxServerId+1 .. maxId).toList()

@@ -173,6 +173,8 @@ abstract class EncyclopediaRepository(
 	}
 
 	abstract fun getEntryDef(id: Int): EntryDef
+	abstract fun findEntryDef(id: Int): EntryDef?
+	abstract fun findEntryPath(id: Int): HPath?
 	abstract suspend fun loadEntriesImperative()
 }
 

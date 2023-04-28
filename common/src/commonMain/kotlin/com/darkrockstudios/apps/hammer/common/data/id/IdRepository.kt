@@ -52,4 +52,8 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 			newSceneId
 		}
 	}
+
+	companion object {
+		const val FIRST_ID = 1
+	}
 }

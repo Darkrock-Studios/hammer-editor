@@ -27,7 +27,7 @@ class ServerSceneSynchronizer(
 		// Sort by SceneType, we want directories first
 		val entityIds = entities.mapNotNull { def ->
 			val entityResult = loadEntity(userId, projectDef, def.id)
-			return@mapNotNull if (entityResult.isSuccess) {
+			if (entityResult.isSuccess) {
 				val entity = entityResult.getOrThrow()
 				Pair(def.id, entity.sceneType)
 			} else {

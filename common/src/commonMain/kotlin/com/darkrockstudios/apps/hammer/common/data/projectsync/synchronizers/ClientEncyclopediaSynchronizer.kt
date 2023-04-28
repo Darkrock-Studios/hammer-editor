@@ -101,7 +101,13 @@ class ClientEncyclopediaSynchronizer(
 		syncId: String,
 		onLog: suspend (String?) -> Unit
 	) {
-		val oldDef = encyclopediaRepository.getEntryDef(serverEntity.id)
+		val oldDef = encyclopediaRepository.findEntryDef(serverEntity.id)
+		// Delete the old image, if there is a new one it'll get written regardless
+		if(oldDef != null) {
+			val oldImagePath = encyclopediaRepository.getEntryImagePath(oldDef, "jpg")
+			fileSystem.delete(oldImagePath.toOkioPath(), false)
+		}
+
 		val serverDef = EntryDef(
 			projectDef = projectDef,
 			id = serverEntity.id,
@@ -109,9 +115,7 @@ class ClientEncyclopediaSynchronizer(
 			type = EntryType.fromString(serverEntity.entryType),
 		)
 
-		val oldImagePath = encyclopediaRepository.getEntryImagePath(oldDef, "jpg")
-		fileSystem.delete(oldImagePath.toOkioPath(), false)
-
+		// Write the new image
 		val image = serverEntity.image
 		if (image != null) {
 			val imageBytes = Base64.decode(image.base64, url = true)
@@ -121,8 +125,7 @@ class ClientEncyclopediaSynchronizer(
 			}
 		}
 
-		val entryPath = encyclopediaRepository.getEntryPath(serverEntity.id)
-		if (fileSystem.exists(entryPath.toOkioPath())) {
+		if (oldDef != null) {
 			encyclopediaRepository.updateEntry(
 				oldEntryDef = oldDef,
 				name = serverEntity.name,
