@@ -58,7 +58,8 @@ abstract class EncyclopediaRepository(
 		type: EntryType,
 		text: String,
 		tags: List<String>,
-		imagePath: String?
+		imagePath: String?,
+		forceId: Int? = null
 	): EntryResult
 
 	abstract suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?)

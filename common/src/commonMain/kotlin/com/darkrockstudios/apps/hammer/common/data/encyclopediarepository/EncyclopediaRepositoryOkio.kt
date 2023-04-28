@@ -158,7 +158,8 @@ class EncyclopediaRepositoryOkio(
 		type: EntryType,
 		text: String,
 		tags: List<String>,
-		imagePath: String?
+		imagePath: String?,
+		forceId: Int?
 	): EntryResult {
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)

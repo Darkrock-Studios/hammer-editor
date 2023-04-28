@@ -144,6 +144,7 @@ class ClientEncyclopediaSynchronizer(
 				tags = serverEntity.tags,
 				type = EntryType.fromString(serverEntity.entryType),
 				imagePath = imagePath,
+				forceId = serverEntity.id
 			)
 		}
 	}

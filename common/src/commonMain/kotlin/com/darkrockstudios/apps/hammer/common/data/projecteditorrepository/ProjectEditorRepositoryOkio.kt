@@ -430,7 +430,7 @@ class ProjectEditorRepositoryOkio(
 					}
 					fileSystem.atomicMove(source = existingPath, target = newPath)
 				} catch (e: IOException) {
-					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e.message}")
+					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
 				}
 			}
 		}
