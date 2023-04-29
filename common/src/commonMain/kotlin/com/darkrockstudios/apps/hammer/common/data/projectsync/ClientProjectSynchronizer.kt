@@ -434,7 +434,11 @@ class ClientProjectSynchronizer(
 			serverSyncData.idSequence
 		}
 
+		val totalIds = combinedSequence.size
+		var currentIndex = 0
+
 		for (thisId in combinedSequence) {
+			++currentIndex
 			if (thisId in combinedDeletions) {
 				Napier.d("Skipping deleted ID $thisId")
 				continue
@@ -462,7 +466,7 @@ class ClientProjectSynchronizer(
 				Napier.d("Download ID $thisId")
 				allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
 			}
-			onProgress(ENTITY_START + (ENTITY_TOTAL * (thisId / maxId.toFloat())), null)
+			onProgress(ENTITY_START + (ENTITY_TOTAL * (currentIndex / totalIds.toFloat())), null)
 
 			yield()
 		}
@@ -539,7 +543,6 @@ class ClientProjectSynchronizer(
 			false
 		}
 	}
-
 
 	private suspend fun uploadEntity(
 		id: Int,
