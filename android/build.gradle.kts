@@ -6,6 +6,7 @@ val android_min_sdk: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
 val koin_version: String by extra
+val android_version_code: String by extra
 
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
@@ -44,7 +45,7 @@ android {
 		applicationId = "com.darkrockstudios.apps.hammer.android"
 		minSdk = android_min_sdk.toInt()
 		targetSdk = android_target_sdk.toInt()
-		versionCode = 1
+		versionCode = android_version_code.toInt()
 		versionName = app_version
 	}
 	buildFeatures {

@@ -12,6 +12,7 @@ val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
 val jvm_version: String by extra
 val ktoml_version: String by extra
+val app_version: String by extra
 
 plugins {
 	kotlin("jvm")
@@ -22,7 +23,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = "0.0.1"
+version = app_version
 application {
 	mainClass.set("com.darkrockstudios.apps.hammer.ApplicationKt")
 
