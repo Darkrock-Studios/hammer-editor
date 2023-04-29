@@ -102,12 +102,6 @@ class ClientEncyclopediaSynchronizer(
 		onLog: suspend (String?) -> Unit
 	) {
 		val oldDef = encyclopediaRepository.findEntryDef(serverEntity.id)
-		// Delete the old image, if there is a new one it'll get written regardless
-		if(oldDef != null) {
-			val oldImagePath = encyclopediaRepository.getEntryImagePath(oldDef, "jpg")
-			fileSystem.delete(oldImagePath.toOkioPath(), false)
-		}
-
 		val serverDef = EntryDef(
 			projectDef = projectDef,
 			id = serverEntity.id,
@@ -115,15 +109,7 @@ class ClientEncyclopediaSynchronizer(
 			type = EntryType.fromString(serverEntity.entryType),
 		)
 
-		// Write the new image
-		val image = serverEntity.image
-		if (image != null) {
-			val imageBytes = Base64.decode(image.base64, url = true)
-			val imagePath = encyclopediaRepository.getEntryImagePath(serverDef, image.fileExtension)
-			fileSystem.write(imagePath.toOkioPath()) {
-				write(imageBytes)
-			}
-		}
+		handleImage(oldDef, serverDef, serverEntity)
 
 		if (oldDef != null) {
 			encyclopediaRepository.updateEntry(
@@ -133,19 +119,36 @@ class ClientEncyclopediaSynchronizer(
 				tags = serverEntity.tags,
 			)
 		} else {
-			val imagePath = if (image != null) {
-				encyclopediaRepository.getEntryImagePath(serverDef, image.fileExtension).path
-			} else {
-				null
-			}
 			encyclopediaRepository.createEntry(
 				name = serverEntity.name,
 				text = serverEntity.text,
 				tags = serverEntity.tags,
 				type = EntryType.fromString(serverEntity.entryType),
-				imagePath = imagePath,
+				imagePath = null, // Always pass null here, we wrote the image our selves
 				forceId = serverEntity.id
 			)
+		}
+	}
+
+	private fun handleImage(
+		oldDef: EntryDef?,
+		serverDef: EntryDef,
+		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity
+	) {
+		// Write the new image
+		val image = serverEntity.image
+		if (image != null) {
+			val imageBytes = Base64.decode(image.base64, url = true)
+			val imagePath = encyclopediaRepository.getEntryImagePath(serverDef, image.fileExtension)
+			fileSystem.write(imagePath.toOkioPath()) {
+				write(imageBytes)
+			}
+		} else {
+			// Delete the old image, if there is a new one it'll get written regardless
+			if (oldDef != null) {
+				val oldImagePath = encyclopediaRepository.getEntryImagePath(oldDef, "jpg")
+				fileSystem.delete(oldImagePath.toOkioPath(), false)
+			}
 		}
 	}
 }

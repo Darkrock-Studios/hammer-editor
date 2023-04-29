@@ -166,7 +166,7 @@ class EncyclopediaRepositoryOkio(
 
 		val cleanedTags = tags.map { it.trim() }.filter { it.isNotEmpty() }
 
-		val newId = idRepository.claimNextId()
+		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(
 			id = newId,
 			name = name.trim(),
@@ -188,7 +188,7 @@ class EncyclopediaRepositoryOkio(
 			setEntryImage(newDef, imagePath)
 		}
 
-		markForSynchronization(newDef)
+		if (forceId == null) markForSynchronization(newDef)
 
 		return EntryResult(container, EntryError.NONE)
 	}
