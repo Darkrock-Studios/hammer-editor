@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SceneConflict(
 	entityConflict: ProjectSync.EntityConflict.SceneConflict,
@@ -45,11 +46,11 @@ internal fun SceneConflict(
 			}
 		}
 
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
+		//Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 		Row(modifier = Modifier.fillMaxSize()) {
-			Column(modifier = Modifier.padding(Ui.Padding.L).weight(1f)) {
-				Row(
+			Column(modifier = Modifier.padding(Ui.Padding.M).weight(1f)) {
+				FlowRow(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
@@ -77,7 +78,7 @@ internal fun SceneConflict(
 			}
 
 			Column(modifier = Modifier.padding(Ui.Padding.L).weight(1f)) {
-				Row(
+				FlowRow(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
