@@ -103,6 +103,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			}
 		) {
 			OutlinedTextField(
+				modifier = Modifier.menuAnchor(),
 				readOnly = true,
 				value = selectedOptionText,
 				onValueChange = { selectedOptionText = it },
