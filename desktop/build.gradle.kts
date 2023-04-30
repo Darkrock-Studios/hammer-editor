@@ -24,6 +24,7 @@ kotlin {
     sourceSets {
         val jvmMain by getting {
             dependencies {
+                implementation(project(":base"))
                 implementation(project(":common"))
                 implementation(project(":composeUi"))
                 implementation(compose.preview)

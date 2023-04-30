@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -17,6 +18,7 @@ import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -133,6 +135,16 @@ class ProjectSelectActivity : AppCompatActivity() {
 									modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
 								)
 							}
+
+							Spacer(modifier = Modifier.weight(1f))
+
+							Text(
+								"v${BuildMetadata.APP_VERSION}",
+								modifier = Modifier
+									.padding(Ui.Padding.L)
+									.align(End),
+								style = MaterialTheme.typography.labelSmall,
+							)
 						}
 					},
 					content = {

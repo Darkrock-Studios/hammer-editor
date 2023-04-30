@@ -34,6 +34,7 @@ plugins {
 	id("com.android.library") apply false
 	id("org.jetbrains.compose") apply false
 	id("org.jetbrains.kotlinx.kover") version "0.6.1"
+	id("com.github.gmazzo.buildconfig") version "4.0.2" apply false
 }
 
 apply(plugin = "kotlinx-atomicfu")

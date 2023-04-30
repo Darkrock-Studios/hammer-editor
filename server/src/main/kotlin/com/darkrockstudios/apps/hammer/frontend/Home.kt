@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
@@ -207,6 +208,8 @@ private fun Component.footer() {
 					i(fomantic.icon).addClasses("discord")
 					span().text("Discord")
 				}
+
+				p().text("v${BuildMetadata.APP_VERSION}")
 			}
 		}
 	}.addClasses("footer")
