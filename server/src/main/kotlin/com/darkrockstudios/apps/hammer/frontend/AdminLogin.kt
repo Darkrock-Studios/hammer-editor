@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import io.ktor.util.logging.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kweb.*
@@ -11,6 +12,7 @@ import kweb.state.KVar
 
 fun RouteReceiver.adminLoginPage(
 	accountRepository: AccountsRepository,
+	log: Logger,
 	authToken: KVar<String?>,
 	scope: CoroutineScope,
 	goTo: (String) -> Unit
@@ -34,6 +36,7 @@ fun RouteReceiver.adminLoginPage(
 						passwordText,
 						authToken,
 						accountRepository,
+						log,
 						scope,
 						{ errorText.value = it },
 						goTo
@@ -73,6 +76,7 @@ private fun Component.loginButton(
 	passwordText: KVar<String>,
 	authToken: KVar<String?>,
 	accountRepository: AccountsRepository,
+	log: Logger,
 	scope: CoroutineScope,
 	setError: (String) -> Unit,
 	goTo: (String) -> Unit
@@ -88,7 +92,7 @@ private fun Component.loginButton(
 						installId = "web"
 					)
 					if (result.isSuccess) {
-						println("login success!")
+						log.info("login success!")
 						val token = result.getOrThrow()
 						authToken.value = token.auth
 						goTo("/admin/${token.userId}")

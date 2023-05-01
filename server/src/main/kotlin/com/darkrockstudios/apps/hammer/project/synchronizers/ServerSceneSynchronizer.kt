@@ -9,6 +9,7 @@ import okio.FileSystem
 class ServerSceneSynchronizer(
 	fileSystem: FileSystem,
 	json: Json,
+	private val log: io.ktor.util.logging.Logger
 ) : ServerEntitySynchronizer<ApiProjectEntity.SceneEntity>(fileSystem, json) {
 
 	override fun hashEntity(entity: ApiProjectEntity.SceneEntity): String {
@@ -31,7 +32,7 @@ class ServerSceneSynchronizer(
 				val entity = entityResult.getOrThrow()
 				Pair(def.id, entity.sceneType)
 			} else {
-				println("Failed to get entity $def.id: ${entityResult.exceptionOrNull()?.message}")
+				log.error("Failed to get entity $def.id: ${entityResult.exceptionOrNull()?.message}")
 				null
 			}
 		}

@@ -10,9 +10,12 @@ import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
 fun Application.configureDependencyInjection() {
+	val logger = log
+
 	install(Koin) {
 		slf4jLogger()
-		modules(mainModule)
+
+		modules(mainModule(logger))
 	}
 
 	val db: Database = get()

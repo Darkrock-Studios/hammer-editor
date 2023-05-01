@@ -11,17 +11,22 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.logging.*
 import kotlinx.datetime.Instant
 import org.koin.ktor.ext.get
+import kotlin.IllegalArgumentException
+import kotlin.getOrThrow
+import kotlin.toString
 
 fun Application.projectRoutes() {
+	val logger = log
 	routing {
 		authenticate(USER_AUTH) {
 			route("/project/{userId}/{projectName}") {
 				beginProjectSync()
 				endProjectSync()
 				uploadEntity()
-				downloadEntity()
+				downloadEntity(logger)
 				deleteEntity()
 			}
 		}
@@ -189,7 +194,7 @@ private fun Route.uploadEntity() {
 	}
 }
 
-private fun Route.downloadEntity() {
+private fun Route.downloadEntity(log: Logger) {
 	val projectRepository: ProjectRepository = get()
 
 	get("/download_entity/{entityId}") {
@@ -226,7 +231,7 @@ private fun Route.downloadEntity() {
 				if (entityHash != null && entityHash == serverEntityHash) {
 					call.respond(HttpStatusCode.NotModified)
 				} else {
-					println("Entity Download for ID $entityId because hash mismatched:\nClient: $entityHash\nServer: $serverEntityHash")
+					log.info("Entity Download for ID $entityId because hash mismatched:\nClient: $entityHash\nServer: $serverEntityHash")
 					call.response.headers.append(HEADER_ENTITY_TYPE, serverEntity.type.toString())
 					when (serverEntity) {
 						is ApiProjectEntity.SceneEntity -> call.respond(serverEntity)
@@ -253,7 +258,7 @@ private fun Route.downloadEntity() {
 					}
 
 					else -> {
-						println("Entity Download failed for ID $entityId: " + e?.message)
+						log.error("Entity Download failed for ID $entityId: " + e?.message)
 						call.respond(
 							status = HttpStatusCode.InternalServerError,
 							HttpResponseError(error = "Download Error", message = e?.message ?: "Unknown failure")

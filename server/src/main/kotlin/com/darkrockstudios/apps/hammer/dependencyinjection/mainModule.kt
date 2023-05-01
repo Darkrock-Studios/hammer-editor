@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import io.ktor.util.logging.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -26,10 +27,12 @@ const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
-val mainModule = module {
+fun mainModule(logger: Logger) = module {
 	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Unconfined }
 	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
+
+	single { logger }
 
 	singleOf(::createJsonSerializer) bind Json::class
 	single { Clock.System } bind Clock::class

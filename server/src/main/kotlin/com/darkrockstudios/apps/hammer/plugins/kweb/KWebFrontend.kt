@@ -68,7 +68,7 @@ fun Application.configureKweb(config: ServerConfig) {
 
 				homePage(scope, config, whitListRepository, ::goTo)
 
-				adminLoginPage(accountRepository, authToken, scope, ::goTo)
+				adminLoginPage(accountRepository, log, authToken, scope, ::goTo)
 
 				adminPanelPage(accountRepository, authToken, whitListRepository, scope, ::goTo)
 
