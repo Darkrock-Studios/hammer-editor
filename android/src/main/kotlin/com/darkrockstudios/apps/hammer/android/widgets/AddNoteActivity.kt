@@ -88,7 +88,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 	@Composable
 	private fun ProjectDropDown(projects: List<ProjectDef>, onProjectSelected: (ProjectDef) -> Unit) {
 		var expanded by remember { mutableStateOf(false) }
-		var selectedOptionText by remember {
+		var selectedOptionText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
 			mutableStateOf(
 				TextFieldValue(
 					text = projects.firstOrNull()?.name ?: ""

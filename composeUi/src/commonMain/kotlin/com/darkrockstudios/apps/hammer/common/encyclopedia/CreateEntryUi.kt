@@ -42,7 +42,9 @@ internal fun CreateEntryUi(
 	close: () -> Unit
 ) {
 	var newEntryNameText by rememberSaveable { mutableStateOf("") }
-	var newEntryContentText by rememberSaveable { mutableStateOf(TextFieldValue("")) }
+	var newEntryContentText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+		mutableStateOf(TextFieldValue(""))
+	}
 	var newTagsText by rememberSaveable { mutableStateOf("") }
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 	val types = rememberSaveable { EntryType.values().toList() }
