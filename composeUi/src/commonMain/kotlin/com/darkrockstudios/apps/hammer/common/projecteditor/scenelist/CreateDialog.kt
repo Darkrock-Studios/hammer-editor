@@ -5,7 +5,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
@@ -19,12 +23,17 @@ internal fun CreateDialog(
 	textLabel: String,
 	onClose: (name: String?) -> Unit
 ) {
+	var nameText by rememberSaveable { mutableStateOf("") }
+	fun close(text: String?) {
+		onClose(text)
+		nameText = ""
+	}
+
 	MpDialog(
 		visible = show,
 		title = title,
-		onCloseRequest = { onClose(null) }
+		onCloseRequest = { close(null) }
 	) {
-		var nameText by remember { mutableStateOf("") }
 		Box(modifier = Modifier.fillMaxWidth()) {
 			Column(
 				modifier = Modifier
@@ -43,11 +52,11 @@ internal fun CreateDialog(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
-					Button(onClick = { onClose(nameText) }) {
+					Button(onClick = { close(nameText) }) {
 						Text("Create")
 					}
 
-					Button(onClick = { onClose(null) }) {
+					Button(onClick = { close(null) }) {
 						Text("Cancel")
 					}
 				}
