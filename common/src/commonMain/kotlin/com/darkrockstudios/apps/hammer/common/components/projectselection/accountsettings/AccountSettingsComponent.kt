@@ -194,7 +194,7 @@ class AccountSettingsComponent(
 			}
 			Result.failure(Exception(message))
 		} else {
-			val result = accountRepository.setupServer(ssl, cleanUrl, email, password, create)
+			val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
 			if (result.isSuccess) {
 				_state.getAndUpdate {
 					it.copy(
