@@ -10,6 +10,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.mockk
+import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.koin.dsl.module
 import kotlin.test.Test
@@ -21,6 +22,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var accountsComponent: AccountsComponent
 	private lateinit var adminComponent: AdminComponent
+	private lateinit var json: Json
 
 	@Before
 	override fun setup() {
@@ -31,6 +33,7 @@ class AccountRoutesTest : BaseTest() {
 		projectsRepository = mockk()
 		accountsComponent = mockk()
 		adminComponent = mockk()
+		json = mockk()
 
 		val testModule = module {
 			single { accountsRepository }
@@ -38,6 +41,7 @@ class AccountRoutesTest : BaseTest() {
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
+			single { json }
 		}
 		setupKoin(testModule)
 	}

@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 
 fun serverEntityHash(serverEntity: ApiProjectEntity): String {
 	return when (serverEntity) {
 		is ApiProjectEntity.SceneEntity -> {
-			EntityHash.hashScene(
+			EntityHasher.hashScene(
 				id = serverEntity.id,
 				name = serverEntity.name,
 				order = serverEntity.order,
@@ -16,20 +16,20 @@ fun serverEntityHash(serverEntity: ApiProjectEntity): String {
 		}
 
 		is ApiProjectEntity.NoteEntity ->
-			EntityHash.hashNote(
+			EntityHasher.hashNote(
 				id = serverEntity.id,
 				created = serverEntity.created,
 				content = serverEntity.content
 			)
 
-		is ApiProjectEntity.TimelineEventEntity -> EntityHash.hashTimelineEvent(
+		is ApiProjectEntity.TimelineEventEntity -> EntityHasher.hashTimelineEvent(
 			id = serverEntity.id,
 			order = serverEntity.order,
 			content = serverEntity.content,
 			date = serverEntity.date
 		)
 
-		is ApiProjectEntity.EncyclopediaEntryEntity -> EntityHash.hashEncyclopediaEntry(
+		is ApiProjectEntity.EncyclopediaEntryEntity -> EntityHasher.hashEncyclopediaEntry(
 			id = serverEntity.id,
 			name = serverEntity.name,
 			entryType = serverEntity.entryType,
@@ -38,7 +38,7 @@ fun serverEntityHash(serverEntity: ApiProjectEntity): String {
 			image = serverEntity.image,
 		)
 
-		is ApiProjectEntity.SceneDraftEntity -> EntityHash.hashSceneDraft(
+		is ApiProjectEntity.SceneDraftEntity -> EntityHasher.hashSceneDraft(
 			id = serverEntity.id,
 			name = serverEntity.name,
 			created = serverEntity.created,

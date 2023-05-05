@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -65,4 +66,5 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	abstract suspend fun finalizeSync()
 	abstract fun getEntityType(): EntityType
 	abstract suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit)
+	abstract suspend fun hashEntities(newIds: List<Int>): Set<EntityHash>
 }

@@ -2,9 +2,12 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
+import com.soywiz.korio.compression.deflate.GZIP
+import com.soywiz.korio.compression.uncompress
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,11 +15,13 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
-import kotlin.IllegalArgumentException
-import kotlin.getOrThrow
-import kotlin.toString
+import kotlin.coroutines.CoroutineContext
 
 fun Application.projectRoutes() {
 	val logger = log
@@ -35,10 +40,22 @@ fun Application.projectRoutes() {
 
 private fun Route.beginProjectSync() {
 	val projectRepository: ProjectRepository = get()
+	val json: Json = get()
+	val ioDispatcher: CoroutineContext = get(named(DISPATCHER_IO))
 
 	get("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
+
+		val clientState: ClientEntityState? = withContext(ioDispatcher) {
+			val compressed = call.receiveStream().readAllBytes()
+			if (compressed.isNotEmpty()) {
+				val jsonStr = String(compressed.uncompress(GZIP))
+				json.decodeFromString<ClientEntityState>(jsonStr)
+			} else {
+				null
+			}
+		}
 
 		if (projectName == null) {
 			call.respond(
@@ -47,7 +64,7 @@ private fun Route.beginProjectSync() {
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
-			val result = projectRepository.beginProjectSync(principal.id, projectDef)
+			val result = projectRepository.beginProjectSync(principal.id, projectDef, clientState)
 			if (result.isSuccess) {
 				val syncBegan = result.getOrThrow()
 				call.respond(syncBegan)

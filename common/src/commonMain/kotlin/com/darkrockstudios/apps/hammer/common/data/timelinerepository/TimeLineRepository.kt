@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -140,7 +140,7 @@ abstract class TimeLineRepository(
 
 	protected suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalEvent.id)) {
-			val hash = EntityHash.hashTimelineEvent(
+			val hash = EntityHasher.hashTimelineEvent(
 				id = originalEvent.id,
 				order = originalOrder,
 				content = originalEvent.content,

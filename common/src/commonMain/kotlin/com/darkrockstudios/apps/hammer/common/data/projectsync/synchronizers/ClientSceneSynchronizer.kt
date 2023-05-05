@@ -2,8 +2,9 @@ package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -60,7 +61,7 @@ class ClientSceneSynchronizer(
 				?: throw IllegalStateException("Scene $id has no path")
 
 			val sceneContent = projectEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
-			EntityHash.hashScene(
+			EntityHasher.hashScene(
 				id = sceneItem.id,
 				name = sceneItem.name,
 				order = sceneItem.order,
@@ -106,7 +107,11 @@ class ClientSceneSynchronizer(
 				existingScene
 			} else {
 				onLog("Creating new scene $id")
-				projectEditorRepository.createScene(parent = parent, sceneName = serverEntity.name, forceId = serverEntity.id)
+				projectEditorRepository.createScene(
+					parent = parent,
+					sceneName = serverEntity.name,
+					forceId = serverEntity.id
+				)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
@@ -144,7 +149,11 @@ class ClientSceneSynchronizer(
 				existingGroup
 			} else {
 				onLog("Creating new group $id")
-				projectEditorRepository.createGroup(parent = parent, groupName = serverEntity.name, forceId = serverEntity.id)
+				projectEditorRepository.createGroup(
+					parent = parent,
+					groupName = serverEntity.name,
+					forceId = serverEntity.id
+				)
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
@@ -193,5 +202,19 @@ class ClientSceneSynchronizer(
 		} else {
 			onLog("Failed find scene to delete: $id")
 		}
+	}
+
+	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
+		return projectEditorRepository.rawTree.root()
+			.filter { newIds.contains(it.value.id).not() }
+			.mapNotNull { node ->
+				if (!node.value.isRootScene) {
+					getEntityHash(node.value.id)?.let { hash ->
+						EntityHash(node.value.id, hash)
+					}
+				} else {
+					null
+				}
+			}.toSet()
 	}
 }

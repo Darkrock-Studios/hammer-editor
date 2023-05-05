@@ -7,6 +7,7 @@ val kotlinx_serialization_version: String by extra
 val datetime_version: String by extra
 val coroutines_version: String by extra
 val json_version: String by extra
+val korio_version: String by extra
 
 plugins {
     kotlin("multiplatform")
@@ -37,16 +38,17 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
-                //api("io.getstream:stream-result:1.1.0")
-                api("com.benasher44:uuid:0.7.0")
-                api("com.soywiz.korlibs.krypto:krypto:3.4.0")
-                //api("com.goncalossilva:murmurhash:0.4.0")
-                api("com.appmattus.crypto:cryptohash:0.10.1")
-            }
+				implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
+				implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
+				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
+				//api("io.getstream:stream-result:1.1.0")
+				api("com.benasher44:uuid:0.7.0")
+				api("com.soywiz.korlibs.krypto:krypto:3.4.0")
+				//api("com.goncalossilva:murmurhash:0.4.0")
+				api("com.appmattus.crypto:cryptohash:0.10.1")
+				api("com.soywiz.korlibs.korio:korio:$korio_version")
+			}
         }
     }
 }

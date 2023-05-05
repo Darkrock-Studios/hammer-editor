@@ -8,7 +8,7 @@ import com.soywiz.krypto.encoding.Base64
 import com.soywiz.krypto.encoding.base64Url
 import kotlinx.datetime.Instant
 
-object EntityHash {
+object EntityHasher {
 	private fun buff() = ByteArray(4)
 
 	fun hashScene(id: Int, order: Int, name: String, type: ApiSceneType, content: String): String {

@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -222,7 +222,7 @@ class EncyclopediaRepositoryOkio(
 			} else {
 				null
 			}
-			val hash = EntityHash.hashEncyclopediaEntry(
+			val hash = EntityHasher.hashEncyclopediaEntry(
 				id = entryDef.id,
 				name = entryDef.name,
 				entryType = entryDef.type.text,

@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -29,7 +30,7 @@ class ClientTimelineSynchronizer(
 	override suspend fun getEntityHash(id: Int): String? {
 		val event = timeLineRepository.getTimelineEvent(id)
 		return if (event != null) {
-			EntityHash.hashTimelineEvent(
+			EntityHasher.hashTimelineEvent(
 				id = event.id,
 				order = event.order,
 				date = event.date,
@@ -88,5 +89,16 @@ class ClientTimelineSynchronizer(
 		} else {
 			onLog("Timeline event $id not found")
 		}
+	}
+
+	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
+		return timeLineRepository.timelineFlow.first().events
+			.filter { newIds.contains(it.id).not() }
+			.mapNotNull { event ->
+				getEntityHash(event.id)?.let { hash ->
+					EntityHash(event.id, hash)
+				}
+			}
+			.toSet()
 	}
 }

@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -42,7 +43,7 @@ class ClientEncyclopediaSynchronizer(
 	override suspend fun getEntityHash(id: Int): String {
 		val entity = createEntityForId(id)
 
-		return EntityHash.hashEncyclopediaEntry(
+		return EntityHasher.hashEncyclopediaEntry(
 			id = entity.id,
 			name = entity.name,
 			entryType = entity.entryType,
@@ -94,6 +95,16 @@ class ClientEncyclopediaSynchronizer(
 		encyclopediaRepository.deleteEntry(def)
 
 		onLog("Deleted Encyclopedia ID $id from client")
+	}
+
+	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
+		return encyclopediaRepository.entryListFlow.first()
+			.filter { newIds.contains(it.id).not() }
+			.map { entry ->
+				val hash = getEntityHash(entry.id)
+				EntityHash(entry.id, hash)
+			}
+			.toSet()
 	}
 
 	override suspend fun storeEntity(

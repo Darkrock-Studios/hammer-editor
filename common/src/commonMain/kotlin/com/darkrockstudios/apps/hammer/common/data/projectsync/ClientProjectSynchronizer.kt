@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -99,7 +100,7 @@ class ClientProjectSynchronizer(
 	suspend fun markEntityAsDirty(id: Int, oldHash: String) {
 		val syncData = loadSyncData()
 		val newSyncData = syncData.copy(
-			dirty = syncData.dirty + EntityState(id, oldHash)
+			dirty = syncData.dirty + EntityOriginalState(id, oldHash)
 		)
 		saveSyncData(newSyncData)
 	}
@@ -214,6 +215,14 @@ class ClientProjectSynchronizer(
 		}
 	}
 
+	private suspend fun getEntityState(clientSyncData: ProjectSynchronizationData): ClientEntityState {
+		val entities = entitySynchronizers.flatMap { syncher ->
+			syncher.hashEntities(clientSyncData.newIds)
+		}.toSet()
+
+		return ClientEntityState(entities)
+	}
+
 	suspend fun sync(
 		onProgress: suspend (Float, String?) -> Unit,
 		onLog: suspend (String?) -> Unit,
@@ -224,11 +233,14 @@ class ClientProjectSynchronizer(
 		return try {
 			prepareForSync()
 
-			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name).getOrThrow()
+			var clientSyncData = loadSyncData()
+			val entityState = getEntityState(clientSyncData)
+
+			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name, entityState).getOrThrow()
 
 			onProgress(0.1f, "Server data received")
 
-			val clientSyncData = loadSyncData().copy(currentSyncId = serverSyncData.syncId)
+			clientSyncData = clientSyncData.copy(currentSyncId = serverSyncData.syncId)
 			saveSyncData(clientSyncData)
 
 			val combinedDeletions = serverSyncData.deletedIds + clientSyncData.deletedIds
@@ -384,7 +396,7 @@ class ClientProjectSynchronizer(
 	private suspend fun uploadNewEntities(
 		newClientIds: List<Int>,
 		serverSyncData: ProjectSynchronizationBegan,
-		dirtyEntities: MutableList<EntityState>,
+		dirtyEntities: MutableList<EntityOriginalState>,
 		onProgress: suspend (Float, String?) -> Unit,
 		onLog: suspend (String?) -> Unit
 	): Boolean {
@@ -419,7 +431,7 @@ class ClientProjectSynchronizer(
 		resolvedClientSyncData: ProjectSynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
 		newClientIds: List<Int>,
-		dirtyEntities: MutableList<EntityState>,
+		dirtyEntities: MutableList<EntityOriginalState>,
 		onProgress: suspend (Float, String?) -> Unit,
 		onLog: suspend (String?) -> Unit,
 		onConflict: EntityConflictHandler<ApiProjectEntity>

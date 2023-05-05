@@ -4,6 +4,9 @@ import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.soywiz.korio.compression.compress
+import com.soywiz.korio.compression.deflate.GZIP
+import com.soywiz.korio.lang.toByteArray
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -12,6 +15,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class ServerProjectApi(
@@ -20,11 +24,20 @@ class ServerProjectApi(
 	private val json: Json
 ) : Api(httpClient, globalSettingsRepository) {
 
-	suspend fun beginProjectSync(userId: Long, projectName: String): Result<ProjectSynchronizationBegan> {
+	suspend fun beginProjectSync(
+		userId: Long,
+		projectName: String,
+		clientState: ClientEntityState
+	): Result<ProjectSynchronizationBegan> {
+		val json = json.encodeToString(clientState)
+		val compressed = json.toByteArray().compress(GZIP)
+
 		return get(
 			path = "/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
-		)
+		) {
+			setBody(compressed)
+		}
 	}
 
 	suspend fun endProjectSync(

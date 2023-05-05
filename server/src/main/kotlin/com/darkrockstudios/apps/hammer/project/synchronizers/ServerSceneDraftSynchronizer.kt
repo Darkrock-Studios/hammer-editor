@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 
@@ -10,7 +10,7 @@ class ServerSceneDraftSynchronizer(
 	json: Json,
 ) : ServerEntitySynchronizer<ApiProjectEntity.SceneDraftEntity>(fileSystem, json) {
 	override fun hashEntity(entity: ApiProjectEntity.SceneDraftEntity): String {
-		return EntityHash.hashSceneDraft(
+		return EntityHasher.hashSceneDraft(
 			id = entity.id,
 			created = entity.created,
 			name = entity.name,

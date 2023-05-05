@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
@@ -23,14 +24,29 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	protected abstract val entityClazz: KClass<T>
 	protected abstract val pathStub: String
 
+	private fun hashEntity(userId: Long, projectDef: ProjectDefinition, entityId: Int): String? {
+		val path = getPath(userId = userId, projectDef = projectDef, entityId = entityId)
+
+		return if (fileSystem.exists(path)) {
+			val existingEntity = fileSystem.readJsonOrNull(path, json, entityClazz)
+			if (existingEntity != null) {
+				hashEntity(existingEntity)
+			} else {
+				null
+			}
+		} else {
+			null
+		}
+	}
+
 	protected fun checkForConflict(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		sceneEntity: T,
+		entity: T,
 		originalHash: String?,
 		force: Boolean,
 	): EntityConflictException? {
-		val path = getPath(userId = userId, projectDef = projectDef, entityId = sceneEntity.id)
+		val path = getPath(userId = userId, projectDef = projectDef, entityId = entity.id)
 
 		return if (!force) {
 			if (fileSystem.exists(path)) {
@@ -126,14 +142,28 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 
 	protected fun getEntityDefs(userId: Long, projectDef: ProjectDefinition): List<EntityDefinition> {
 		val entityDir = ProjectRepository.getEntityDirectory(userId, projectDef, fileSystem)
-		val entities = fileSystem.list(entityDir).mapNotNull{
+		val entities = fileSystem.list(entityDir).mapNotNull {
 			parseEntityFilename(it)
 		}.filter { it.type == entityType }
 		return entities
 	}
 
-	open fun getUpdateSequence(userId: Long, projectDef: ProjectDefinition): List<Int> {
+	open fun getUpdateSequence(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		clientState: ClientEntityState?
+	): List<Int> {
 		val entities = getEntityDefs(userId, projectDef)
+			.filter { def ->
+				val clientEntityState = clientState?.entities?.find { it.id == def.id }
+				if (clientEntityState != null) {
+					val serverHash = hashEntity(userId, projectDef, def.id)
+					clientEntityState.hash != serverHash
+				} else {
+					true
+				}
+			}
+
 		return entities.map { it.id }
 	}
 

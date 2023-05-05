@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
@@ -77,7 +78,11 @@ class ProjectRepository(
 		}
 	}
 
-	suspend fun beginProjectSync(userId: Long, projectDef: ProjectDefinition): Result<ProjectSynchronizationBegan> {
+	suspend fun beginProjectSync(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		clientState: ClientEntityState?
+	): Result<ProjectSynchronizationBegan> {
 
 		val projectDir = getProjectDirectory(userId, projectDef)
 
@@ -99,7 +104,7 @@ class ProjectRepository(
 				)
 			}
 
-			val updateSequence = getUpdateSequence(userId, projectDef)
+			val updateSequence = getUpdateSequence(userId, projectDef, clientState)
 			val syncBegan = ProjectSynchronizationBegan(
 				syncId = newSyncId,
 				lastId = projectSyncData.lastId,
@@ -354,13 +359,17 @@ class ProjectRepository(
 				sessionManager.validateSyncId(userId, syncId, true)
 	}
 
-	private suspend fun getUpdateSequence(userId: Long, projectDef: ProjectDefinition): List<Int> {
+	private suspend fun getUpdateSequence(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		clientState: ClientEntityState?
+	): List<Int> {
 		val updateSequence = mutableSetOf<Int>()
-		updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef)
-		updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef)
-		updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef)
-		updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef)
-		updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef)
+		updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef, clientState)
 
 		return updateSequence.toList()
 	}

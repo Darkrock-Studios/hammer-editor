@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
 import com.akuleshov7.ktoml.Toml
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -438,7 +438,7 @@ class ProjectEditorRepositoryOkio(
 
 	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
-			val hash = EntityHash.hashScene(
+			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
 				name = scene.name,

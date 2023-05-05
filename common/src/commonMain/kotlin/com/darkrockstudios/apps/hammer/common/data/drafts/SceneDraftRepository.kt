@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -39,10 +39,11 @@ abstract class SceneDraftRepository(
 
 	abstract fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef?
 	abstract fun deleteDraft(id: Int): Boolean
+	abstract suspend fun getAllDrafts(): Set<DraftDef>
 
 	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {
-			val hash = EntityHash.hashSceneDraft(
+			val hash = EntityHasher.hashSceneDraft(
 				id = originalDef.id,
 				created = originalDef.draftTimestamp,
 				name = originalDef.draftName,

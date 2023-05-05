@@ -82,6 +82,16 @@ class SceneDraftRepositoryOkio(
 		return drafts
 	}
 
+	override suspend fun getAllDrafts(): Set<DraftDef> {
+		val parentDir = getDraftsDirectory().toOkioPath()
+		val drafts = fileSystem.list(parentDir)
+			.mapNotNull { dir -> dir.name.toIntOrNull() }
+			.flatMap { id -> findDrafts(id) }
+			.toSet()
+
+		return drafts
+	}
+
 	override fun getDraftPath(draftDef: DraftDef): HPath {
 		val dir = getSceneDraftsDirectory(draftDef.sceneId)
 		val filename = getFilename(draftDef)

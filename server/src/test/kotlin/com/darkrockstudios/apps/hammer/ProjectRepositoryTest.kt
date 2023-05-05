@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
@@ -49,6 +50,8 @@ class ProjectRepositoryTest : BaseTest() {
 	private lateinit var encyclopediaSynchronizer: ServerEncyclopediaSynchronizer
 	private lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
 
+	private lateinit var clientState: ClientEntityState
+
 	@Before
 	override fun setup() {
 		super.setup()
@@ -65,11 +68,25 @@ class ProjectRepositoryTest : BaseTest() {
 		encyclopediaSynchronizer = mockk()
 		sceneDraftSynchronizer = mockk()
 
-		coEvery { sceneSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
-		coEvery { noteSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
-		coEvery { timelineEventSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
-		coEvery { encyclopediaSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
-		coEvery { sceneDraftSynchronizer.getUpdateSequence(userId, projectDefinition) } returns emptyList()
+		clientState = mockk()
+
+		coEvery { sceneSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
+		coEvery { noteSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
+		coEvery {
+			timelineEventSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
+		coEvery {
+			encyclopediaSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
+		coEvery { sceneDraftSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
 
 		val testModule = module {
 			single { fileSystem } bind FileSystem::class
@@ -110,7 +127,7 @@ class ProjectRepositoryTest : BaseTest() {
 		mockCreateSession(syncId)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(userId, projectDefinition)
+			val result = beginProjectSync(userId, projectDefinition, clientState)
 
 			assertTrue { result.isSuccess }
 
@@ -133,7 +150,7 @@ class ProjectRepositoryTest : BaseTest() {
 
 			mockCreateSession(syncId)
 
-			val beginResult = beginProjectSync(userId, projectDefinition)
+			val beginResult = beginProjectSync(userId, projectDefinition, clientState)
 
 			assertTrue { beginResult.isSuccess }
 			val syncBegan = beginResult.getOrThrow()
@@ -180,7 +197,7 @@ class ProjectRepositoryTest : BaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition)
+			val beginResult = beginProjectSync(userId, projectDefinition, clientState)
 			assertTrue(beginResult.isSuccess)
 
 			val syncBegan = beginResult.getOrThrow()

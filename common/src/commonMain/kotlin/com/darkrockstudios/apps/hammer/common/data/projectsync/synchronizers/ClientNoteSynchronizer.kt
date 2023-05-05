@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -34,7 +35,7 @@ class ClientNoteSynchronizer(
 	override suspend fun getEntityHash(id: Int): String {
 		val notes = notesRepository.getNotes()
 		val noteContainer = notes.firstOrNull { it.note.id == id } ?: throw IllegalStateException("Note $id not found")
-		return EntityHash.hashNote(
+		return EntityHasher.hashNote(
 			id = noteContainer.note.id,
 			created = noteContainer.note.created,
 			content = noteContainer.note.content,
@@ -80,5 +81,14 @@ class ClientNoteSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
 		notesRepository.deleteNote(id)
 		onLog("Deleted note ID $id from client")
+	}
+
+	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
+		return notesRepository.getNotes()
+			.filter { newIds.contains(it.note.id).not() }
+			.map { note ->
+				val hash = getEntityHash(note.note.id)
+				EntityHash(note.note.id, hash)
+			}.toSet()
 	}
 }

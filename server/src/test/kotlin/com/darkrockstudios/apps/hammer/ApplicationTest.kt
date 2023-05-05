@@ -12,6 +12,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.mockk
+import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.koin.dsl.module
 import kotlin.test.Test
@@ -41,6 +42,7 @@ class ApplicationTest : BaseTest() {
             single { projectsRepository }
             single { accountsComponent }
             single { adminComponent }
+            single { mockk<Json>() }
         }
         setupKoin(testModule)
 

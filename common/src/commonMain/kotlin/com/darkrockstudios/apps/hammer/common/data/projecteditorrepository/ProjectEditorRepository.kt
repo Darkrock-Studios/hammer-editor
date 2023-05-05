@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -84,7 +84,7 @@ abstract class ProjectEditorRepository(
 	protected suspend fun markForSynchronization(scene: SceneItem) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
 			val content = loadSceneMarkdownRaw(scene)
-			val hash = EntityHash.hashScene(
+			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
 				name = scene.name,

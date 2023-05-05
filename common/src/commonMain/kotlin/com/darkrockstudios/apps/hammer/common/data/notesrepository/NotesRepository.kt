@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -57,7 +57,7 @@ abstract class NotesRepository(
 				originalHash
 			} else {
 				val noteContainer = _notes.first { it.note.id == id }
-				EntityHash.hashNote(
+				EntityHasher.hashNote(
 					id = noteContainer.note.id,
 					created = noteContainer.note.created,
 					content = noteContainer.note.content,

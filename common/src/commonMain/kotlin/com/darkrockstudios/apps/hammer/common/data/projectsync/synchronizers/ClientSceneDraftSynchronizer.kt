@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -36,7 +37,7 @@ class ClientSceneDraftSynchronizer(
 				Napier.e("Failed to load draft content for draft ${draftDef.id}")
 			}
 
-			EntityHash.hashSceneDraft(
+			EntityHasher.hashSceneDraft(
 				id = draftDef.id,
 				created = draftDef.draftTimestamp,
 				name = draftDef.draftName,
@@ -88,5 +89,16 @@ class ClientSceneDraftSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
 		sceneDraftRepository.deleteDraft(id)
 		onLog("Deleted draft $id")
+	}
+
+	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
+		return sceneDraftRepository.getAllDrafts()
+			.filter { newIds.contains(it.id).not() }
+			.mapNotNull { draft ->
+				getEntityHash(draft.id)?.let { hash ->
+					EntityHash(draft.id, hash)
+				}
+			}
+			.toSet()
 	}
 }

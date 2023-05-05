@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -13,7 +14,7 @@ class ServerSceneSynchronizer(
 ) : ServerEntitySynchronizer<ApiProjectEntity.SceneEntity>(fileSystem, json) {
 
 	override fun hashEntity(entity: ApiProjectEntity.SceneEntity): String {
-		return EntityHash.hashScene(
+		return EntityHasher.hashScene(
 			id = entity.id,
 			order = entity.order,
 			name = entity.name,
@@ -22,7 +23,11 @@ class ServerSceneSynchronizer(
 		)
 	}
 
-	override fun getUpdateSequence(userId: Long, projectDef: ProjectDefinition): List<Int> {
+	override fun getUpdateSequence(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		clientState: ClientEntityState?
+	): List<Int> {
 		val entities = getEntityDefs(userId, projectDef)
 
 		// Sort by SceneType, we want directories first
@@ -38,6 +43,17 @@ class ServerSceneSynchronizer(
 		}
 			.sortedByDescending { it.second.ordinal }
 			.map { it.first }
+			.filter { entityId ->
+				if (clientState != null) {
+					val hash = loadEntity(userId, projectDef, entityId).getOrNull()?.let {
+						hashEntity(it)
+					}
+					val clientEntityState = clientState.entities.find { it.id == entityId }
+					hash == null || clientEntityState?.hash != hash
+				} else {
+					true
+				}
+			}
 
 		return entityIds
 	}

@@ -16,12 +16,12 @@ data class ProjectSynchronizationData(
 	val lastId: Int,
 	val newIds: List<Int>,
 	val lastSync: Instant,
-	val dirty: List<EntityState>,
+	val dirty: List<EntityOriginalState>,
 	val deletedIds: Set<Int>,
 )
 
 @Serializable
-data class EntityState(
+data class EntityOriginalState(
 	val id: Int,
 	val originalHash: String
 )
