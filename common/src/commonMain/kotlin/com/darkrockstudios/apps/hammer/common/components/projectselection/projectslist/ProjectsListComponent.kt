@@ -82,6 +82,11 @@ class ProjectsListComponent(
 		super.onCreate()
 		watchSettingsUpdates()
 		loadProjectList()
+
+		if (projectsSynchronizer.isServerSynchronized() && projectsSynchronizer.initialSync.not()) {
+			projectsSynchronizer.initialSync = true
+			showProjectsSync()
+		}
 	}
 
 	override fun onStart() {

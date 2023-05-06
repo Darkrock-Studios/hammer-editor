@@ -23,6 +23,8 @@ class ClientProjectsSynchronizer(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val json: Json
 ) {
+	var initialSync = false
+
 	fun isServerSynchronized(): Boolean {
 		return globalSettingsRepository.serverSettings != null
 	}
