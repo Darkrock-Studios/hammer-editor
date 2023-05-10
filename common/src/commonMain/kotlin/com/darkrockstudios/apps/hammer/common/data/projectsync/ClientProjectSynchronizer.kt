@@ -22,6 +22,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
@@ -111,9 +112,10 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	private val userId: Long
-		get() = globalSettingsRepository.serverSettings?.userId
+	private suspend fun userId(): Long {
+		return globalSettingsRepository.serverSettingsUpdates.first()?.userId
 			?: throw IllegalStateException("Server settings missing")
+	}
 
 	private fun getSyncDataPath(): Path = projectDef.path.toOkioPath() / SYNC_FILE_NAME
 
@@ -240,8 +242,12 @@ class ClientProjectSynchronizer(
 				getEntityState(clientSyncData)
 			}
 
+			yield()
+
+			onProgress(0.05f, "Client Entity data calculated")
+
 			val serverSyncData =
-				serverProjectApi.beginProjectSync(userId, projectDef.name, entityState, onlyNew).getOrThrow()
+				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew).getOrThrow()
 
 			onProgress(0.1f, "Server data received")
 
@@ -346,7 +352,7 @@ class ClientProjectSynchronizer(
 			}
 
 			val endSyncResult = serverProjectApi.endProjectSync(
-				userId,
+				userId(),
 				projectDef.name,
 				serverSyncData.syncId,
 				newLastId,
@@ -496,7 +502,7 @@ class ClientProjectSynchronizer(
 			val syncId = loadSyncData().currentSyncId ?: throw IllegalStateException("No sync ID")
 
 			val endSyncResult = serverProjectApi.endProjectSync(
-				userId,
+				userId(),
 				projectDef.name,
 				syncId,
 				null,

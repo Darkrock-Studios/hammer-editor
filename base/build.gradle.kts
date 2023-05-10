@@ -42,6 +42,7 @@ kotlin {
 				implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
+                implementation("org.kotlincrypto.endians:endians:0.1.0")
 				//api("io.getstream:stream-result:1.1.0")
 				api("com.benasher44:uuid:0.7.0")
                 api("com.soywiz.korlibs.krypto:krypto:$korio_version")

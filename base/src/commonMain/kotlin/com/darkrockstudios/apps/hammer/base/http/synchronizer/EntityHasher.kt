@@ -4,9 +4,11 @@ import com.appmattus.crypto.Algorithm
 import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.soywiz.kmem.Platform.Companion.isLittleEndian
 import com.soywiz.krypto.encoding.Base64
 import com.soywiz.krypto.encoding.base64Url
 import kotlinx.datetime.Instant
+import org.kotlincrypto.endians.BigEndian.Companion.toBigEndian
 
 object EntityHasher {
 	private fun buff() = ByteArray(4)
@@ -86,23 +88,40 @@ private fun Digest<*>.update(string: String, buf: ByteArray = ByteArray(4)) {
 }
 
 private fun Digest<*>.update(data: Int, buffer: ByteArray = ByteArray(4)) {
-	buffer[0] = (data shr 0).toByte()
-	buffer[1] = (data shr 8).toByte()
-	buffer[2] = (data shr 16).toByte()
-	buffer[3] = (data shr 24).toByte()
+	buffer[0] = (data shr 0).toBigEndianByte()
+	buffer[1] = (data shr 8).toBigEndianByte()
+	buffer[2] = (data shr 16).toBigEndianByte()
+	buffer[3] = (data shr 24).toBigEndianByte()
+
 	update(buffer)
 }
 
 private fun Digest<*>.update(data: Long, buffer: ByteArray = ByteArray(4)) {
-	buffer[0] = (data shr 0).toByte()
-	buffer[1] = (data shr 8).toByte()
-	buffer[2] = (data shr 16).toByte()
-	buffer[3] = (data shr 24).toByte()
+	buffer[0] = (data shr 0).toBigEndianByte()
+	buffer[1] = (data shr 8).toBigEndianByte()
+	buffer[2] = (data shr 16).toBigEndianByte()
+	buffer[3] = (data shr 24).toBigEndianByte()
 	update(buffer)
 
-	buffer[0] = (data shr 32).toByte()
-	buffer[1] = (data shr 40).toByte()
-	buffer[2] = (data shr 48).toByte()
-	buffer[3] = (data shr 56).toByte()
+	buffer[0] = (data shr 32).toBigEndianByte()
+	buffer[1] = (data shr 40).toBigEndianByte()
+	buffer[2] = (data shr 48).toBigEndianByte()
+	buffer[3] = (data shr 56).toBigEndianByte()
 	update(buffer)
+}
+
+private inline fun Int.toBigEndianByte(): Byte {
+	return if (isLittleEndian) {
+		toBigEndian().toByte()
+	} else {
+		toByte()
+	}
+}
+
+private inline fun Long.toBigEndianByte(): Byte {
+	return if (isLittleEndian) {
+		toBigEndian().toByte()
+	} else {
+		toByte()
+	}
 }
