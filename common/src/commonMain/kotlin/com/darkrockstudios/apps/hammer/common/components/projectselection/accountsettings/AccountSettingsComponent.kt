@@ -219,9 +219,10 @@ class AccountSettingsComponent(
 		// regex to validate url with port number
 		private val urlWithPortRegex =
 			Regex("""^(?:w{1,3}\.)?[^\s.]+(?:\.[a-z]+)*(?::\d+)?(?![^<]*(?:</\w+>|/?>))$""")
+		private val ipWithPortRegex = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$""")
 
 		fun validateUrl(url: String): Boolean {
-			return url.isNotBlank() && urlWithPortRegex.matches(url)
+			return url.isNotBlank() && (urlWithPortRegex.matches(url) || ipWithPortRegex.matches(url))
 		}
 
 		fun cleanUpUrl(url: String): String {
