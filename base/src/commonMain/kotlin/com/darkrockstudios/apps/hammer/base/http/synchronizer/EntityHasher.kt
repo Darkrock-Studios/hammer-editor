@@ -88,28 +88,29 @@ private fun Digest<*>.update(string: String, buf: ByteArray = ByteArray(4)) {
 }
 
 private fun Digest<*>.update(data: Int, buffer: ByteArray = ByteArray(4)) {
-	buffer[0] = (data shr 0).toBigEndianByte()
-	buffer[1] = (data shr 8).toBigEndianByte()
-	buffer[2] = (data shr 16).toBigEndianByte()
-	buffer[3] = (data shr 24).toBigEndianByte()
+	buffer[0] = (data shr 0).toByte()//.toBigEndianByte()
+	buffer[1] = (data shr 8).toByte()//.toBigEndianByte()
+	buffer[2] = (data shr 16).toByte()//.toBigEndianByte()
+	buffer[3] = (data shr 24).toByte()//.toBigEndianByte()
 
 	update(buffer)
 }
 
 private fun Digest<*>.update(data: Long, buffer: ByteArray = ByteArray(4)) {
-	buffer[0] = (data shr 0).toBigEndianByte()
-	buffer[1] = (data shr 8).toBigEndianByte()
-	buffer[2] = (data shr 16).toBigEndianByte()
-	buffer[3] = (data shr 24).toBigEndianByte()
+	buffer[0] = (data shr 0).toByte()//.toBigEndianByte()
+	buffer[1] = (data shr 8).toByte()//.toBigEndianByte()
+	buffer[2] = (data shr 16).toByte()//.toBigEndianByte()
+	buffer[3] = (data shr 24).toByte()//.toBigEndianByte()
 	update(buffer)
 
-	buffer[0] = (data shr 32).toBigEndianByte()
-	buffer[1] = (data shr 40).toBigEndianByte()
-	buffer[2] = (data shr 48).toBigEndianByte()
-	buffer[3] = (data shr 56).toBigEndianByte()
+	buffer[0] = (data shr 32).toByte()//.toBigEndianByte()
+	buffer[1] = (data shr 40).toByte()//.toBigEndianByte()
+	buffer[2] = (data shr 48).toByte()//.toBigEndianByte()
+	buffer[3] = (data shr 56).toByte()//.toBigEndianByte()
 	update(buffer)
 }
 
+// TODO I dont think we need these, can we remove the library?
 private inline fun Int.toBigEndianByte(): Byte {
 	return if (isLittleEndian) {
 		toBigEndian().toByte()

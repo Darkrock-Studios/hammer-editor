@@ -36,6 +36,14 @@ dependencies {
 	implementation("androidx.work:work-runtime-ktx:2.8.1")
 	implementation("com.google.android.material:material:1.8.0")
 	implementation("androidx.appcompat:appcompat:1.6.1")
+
+	androidTestImplementation("androidx.test.ext:junit:1.1.5")
+	androidTestImplementation("androidx.test.ext:junit-ktx:1.1.5")
+	androidTestImplementation("androidx.test:core:1.5.0")
+	androidTestImplementation("androidx.test:core-ktx:1.5.0")
+	androidTestImplementation("androidx.test:runner:1.5.2")
+	androidTestUtil("androidx.test:orchestrator:1.4.2")
+	androidTestImplementation("androidx.test:runner:1.5.2")
 }
 
 android {
@@ -47,6 +55,8 @@ android {
 		targetSdk = android_target_sdk.toInt()
 		versionCode = android_version_code.toInt()
 		versionName = app_version
+
+		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}
 	buildFeatures {
 		compose = true
