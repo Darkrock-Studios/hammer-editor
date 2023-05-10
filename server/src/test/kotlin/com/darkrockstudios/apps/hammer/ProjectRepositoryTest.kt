@@ -127,7 +127,7 @@ class ProjectRepositoryTest : BaseTest() {
 		mockCreateSession(syncId)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(userId, projectDefinition, clientState)
+			val result = beginProjectSync(userId, projectDefinition, clientState, false)
 
 			assertTrue { result.isSuccess }
 
@@ -150,7 +150,7 @@ class ProjectRepositoryTest : BaseTest() {
 
 			mockCreateSession(syncId)
 
-			val beginResult = beginProjectSync(userId, projectDefinition, clientState)
+			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
 
 			assertTrue { beginResult.isSuccess }
 			val syncBegan = beginResult.getOrThrow()
@@ -197,7 +197,7 @@ class ProjectRepositoryTest : BaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition, clientState)
+			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
 			assertTrue(beginResult.isSuccess)
 
 			val syncBegan = beginResult.getOrThrow()

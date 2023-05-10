@@ -81,7 +81,8 @@ class ProjectRepository(
 	suspend fun beginProjectSync(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		clientState: ClientEntityState?
+		clientState: ClientEntityState?,
+		lite: Boolean
 	): Result<ProjectSynchronizationBegan> {
 
 		val projectDir = getProjectDirectory(userId, projectDef)
@@ -109,7 +110,7 @@ class ProjectRepository(
 				)
 			}
 
-			val updateSequence = getUpdateSequence(userId, projectDef, clientState)
+			val updateSequence = getUpdateSequence(userId, projectDef, clientState, lite)
 			val syncBegan = ProjectSynchronizationBegan(
 				syncId = newSyncId,
 				lastId = projectSyncData.lastId,
@@ -377,10 +378,11 @@ class ProjectRepository(
 	private suspend fun getUpdateSequence(
 		userId: Long,
 		projectDef: ProjectDefinition,
-		clientState: ClientEntityState?
+		clientState: ClientEntityState?,
+		lite: Boolean
 	): List<Int> {
 		val updateSequence = mutableSetOf<Int>()
-		if (clientState != null) {
+		if (lite.not()) {
 			updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
 			updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef, clientState)
 			updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)

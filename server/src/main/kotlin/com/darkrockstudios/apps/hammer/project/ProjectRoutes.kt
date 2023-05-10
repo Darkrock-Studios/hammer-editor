@@ -46,6 +46,7 @@ private fun Route.beginProjectSync() {
 	get("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
+		val lite = call.parameters["lite"]?.toBoolean() ?: false
 
 		val clientState: ClientEntityState? = withContext(ioDispatcher) {
 			val compressed = call.receiveStream().readAllBytes()
@@ -64,7 +65,7 @@ private fun Route.beginProjectSync() {
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
-			val result = projectRepository.beginProjectSync(principal.id, projectDef, clientState)
+			val result = projectRepository.beginProjectSync(principal.id, projectDef, clientState, lite)
 			if (result.isSuccess) {
 				val syncBegan = result.getOrThrow()
 				call.respond(syncBegan)

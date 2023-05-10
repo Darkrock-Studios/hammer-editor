@@ -29,15 +29,8 @@ class ClientProjectsSynchronizer(
 		return globalSettingsRepository.serverSettings != null
 	}
 
-	private suspend fun performBackup(onLog: suspend (String) -> Unit) {
-		onLog("Local backup complete")
-		// TODO: Backup the projects
-	}
-
 	suspend fun syncProjects(onLog: suspend (String) -> Unit): Boolean {
 		onLog("Begin Sync")
-
-		performBackup(onLog)
 
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()

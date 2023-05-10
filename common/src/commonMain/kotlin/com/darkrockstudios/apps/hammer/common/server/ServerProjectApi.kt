@@ -27,7 +27,8 @@ class ServerProjectApi(
 	suspend fun beginProjectSync(
 		userId: Long,
 		projectName: String,
-		clientState: ClientEntityState?
+		clientState: ClientEntityState?,
+		lite: Boolean
 	): Result<ProjectSynchronizationBegan> {
 		val compressed = clientState?.let {
 			val json = json.encodeToString(clientState)
@@ -38,6 +39,11 @@ class ServerProjectApi(
 			path = "/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
 		) {
+			if (lite) {
+				url {
+					parameters.append("lite", lite.toString())
+				}
+			}
 			if (compressed != null) {
 				setBody(compressed)
 			}

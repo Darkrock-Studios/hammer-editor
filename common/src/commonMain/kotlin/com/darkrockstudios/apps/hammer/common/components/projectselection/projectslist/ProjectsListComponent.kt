@@ -225,8 +225,7 @@ class ProjectsListComponent(
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
 		syncProjectsJob = scope.launch {
-			val projects = projectsRepository.getProjects()
-
+			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
 			onSyncLog("Syncing Account...")
@@ -238,6 +237,10 @@ class ProjectsListComponent(
 			var allSuccess = success
 			if (success) {
 				onSyncLog("Syncing Projects...")
+
+				projects = projectsRepository.getProjects()
+				syncNewProjectStatus(projects)
+
 				projects.forEach { projectDef ->
 					syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 

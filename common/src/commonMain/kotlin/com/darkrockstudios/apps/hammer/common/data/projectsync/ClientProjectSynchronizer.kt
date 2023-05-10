@@ -240,7 +240,8 @@ class ClientProjectSynchronizer(
 				getEntityState(clientSyncData)
 			}
 
-			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name, entityState).getOrThrow()
+			val serverSyncData =
+				serverProjectApi.beginProjectSync(userId, projectDef.name, entityState, onlyNew).getOrThrow()
 
 			onProgress(0.1f, "Server data received")
 
