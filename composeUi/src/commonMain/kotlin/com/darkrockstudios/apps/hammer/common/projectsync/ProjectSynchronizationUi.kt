@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.List
@@ -144,7 +145,9 @@ internal fun SyncLog(state: ProjectSync.State, scope: CoroutineScope) {
 	val listState: LazyListState = rememberLazyListState()
 	LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
 		items(count = state.syncLog.size, key = { it }) { index ->
-			Text(state.syncLog[index])
+			SelectionContainer {
+				Text(state.syncLog[index])
+			}
 		}
 	}
 

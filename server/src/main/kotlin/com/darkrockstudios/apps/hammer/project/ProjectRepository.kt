@@ -93,7 +93,12 @@ class ProjectRepository(
 				createProject(userId, projectDef)
 			}
 
-			val projectSyncData = getProjectSyncData(userId, projectDef)
+			var projectSyncData = getProjectSyncData(userId, projectDef)
+
+			if (projectSyncData.lastId < 0) {
+				val lastId = findLastId(userId, projectDef)
+				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
+			}
 
 			val newSyncId = sessionManager.createNewSession(userId) { user: Long, sync: String ->
 				ProjectSynchronizationSession(
@@ -340,6 +345,16 @@ class ProjectRepository(
 		return null
 	}
 
+	private suspend fun findLastId(
+		userId: Long,
+		projectDef: ProjectDefinition
+	): Int? {
+		val dir = getEntityDirectory(userId, projectDef)
+		return fileSystem.list(dir)
+			.mapNotNull { path -> ServerEntitySynchronizer.parseEntityFilename(path) }
+			.maxByOrNull { def -> def.id }?.id
+	}
+
 	private fun updateSyncData(
 		userId: Long,
 		projectDef: ProjectDefinition,
@@ -365,11 +380,13 @@ class ProjectRepository(
 		clientState: ClientEntityState?
 	): List<Int> {
 		val updateSequence = mutableSetOf<Int>()
-		updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-		updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-		updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-		updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-		updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		if (clientState != null) {
+			updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+		}
 
 		return updateSequence.toList()
 	}

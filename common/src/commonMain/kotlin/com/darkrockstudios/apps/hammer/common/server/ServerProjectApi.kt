@@ -27,16 +27,20 @@ class ServerProjectApi(
 	suspend fun beginProjectSync(
 		userId: Long,
 		projectName: String,
-		clientState: ClientEntityState
+		clientState: ClientEntityState?
 	): Result<ProjectSynchronizationBegan> {
-		val json = json.encodeToString(clientState)
-		val compressed = json.toByteArray().compress(GZIP)
+		val compressed = clientState?.let {
+			val json = json.encodeToString(clientState)
+			json.toByteArray().compress(GZIP)
+		}
 
 		return get(
 			path = "/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
 		) {
-			setBody(compressed)
+			if (compressed != null) {
+				setBody(compressed)
+			}
 		}
 	}
 

@@ -234,7 +234,11 @@ class ClientProjectSynchronizer(
 			prepareForSync()
 
 			var clientSyncData = loadSyncData()
-			val entityState = getEntityState(clientSyncData)
+			val entityState = if (onlyNew) {
+				null
+			} else {
+				getEntityState(clientSyncData)
+			}
 
 			val serverSyncData = serverProjectApi.beginProjectSync(userId, projectDef.name, entityState).getOrThrow()
 
@@ -593,7 +597,7 @@ class ClientProjectSynchronizer(
 				)
 			}
 		} else {
-			onLog("Failed to upload entity $id: unknown type")
+			onLog("Failed to upload entity $id: type not owned by anything")
 			return false
 		}
 	}
