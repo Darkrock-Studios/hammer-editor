@@ -43,7 +43,7 @@ private fun Route.beginProjectSync() {
 	val json: Json = get()
 	val ioDispatcher: CoroutineContext = get(named(DISPATCHER_IO))
 
-	get("/begin_sync") {
+	post("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val lite = call.parameters["lite"]?.toBoolean() ?: false

@@ -35,7 +35,7 @@ class ServerProjectApi(
 			json.toByteArray().compress(GZIP)
 		}
 
-		return get(
+		return post(
 			path = "/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
 		) {
@@ -44,6 +44,7 @@ class ServerProjectApi(
 					parameters.append("lite", lite.toString())
 				}
 			}
+
 			if (compressed != null) {
 				setBody(compressed)
 			}
