@@ -12,8 +12,8 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
-import okio.IOException
 import okio.Path
+import kotlin.coroutines.cancellation.CancellationException
 
 
 class ClientProjectsSynchronizer(
@@ -32,13 +32,14 @@ class ClientProjectsSynchronizer(
 	suspend fun syncProjects(onLog: suspend (String) -> Unit): Boolean {
 		onLog("Begin Sync")
 
+		var syncId: String? = null
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
 				onLog("Got server data")
 
 				val serverSyncData = result.getOrThrow()
-				val syncId = serverSyncData.syncId
+				syncId = serverSyncData.syncId
 
 				val clientSyncData = loadSyncData()
 				val localProjects = projectsRepository.getProjects()
@@ -61,8 +62,15 @@ class ClientProjectsSynchronizer(
 				onLog("Failed to sync projects: ${result.exceptionOrNull()?.message}")
 				false
 			}
-		} catch (e: IOException) {
+		} catch (e: Exception) {
 			Napier.e("Projects sync failed", e)
+
+			syncId?.let {
+				serverProjectsApi.endProjectsSync(syncId)
+			}
+
+			if (e is CancellationException) throw e
+
 			false
 		}
 	}
