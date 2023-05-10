@@ -19,13 +19,11 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProjectsSyncDialog(component: ProjectsList, snackbarHostState: SnackbarHostState) {
+fun ProjectsSyncDialog(component: ProjectsList) {
 	val state by component.state.subscribeAsState()
-	val scope = rememberCoroutineScope()
 
 	MpDialog(
 		onCloseRequest = {
@@ -36,32 +34,16 @@ fun ProjectsSyncDialog(component: ProjectsList, snackbarHostState: SnackbarHostS
 		visible = state.syncState.showProjectSync,
 		title = "Synchronization"
 	) {
-		ProjectsSyncDialogContents(component, scope, snackbarHostState)
+		ProjectsSyncDialogContents(component)
 	}
 }
 
 @Composable
 internal fun ProjectsSyncDialogContents(
 	component: ProjectsList,
-	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
 	var showLog by rememberSaveable { mutableStateOf(false) }
-
-	LaunchedEffect(state.syncState.showProjectSync) {
-		if (state.syncState.showProjectSync) {
-			component.syncProjects { success ->
-				scope.launch {
-					if (success) {
-						snackbarHostState.showSnackbar("Projects synced")
-					} else {
-						snackbarHostState.showSnackbar("Failed to sync projects")
-					}
-				}
-			}
-		}
-	}
 
 	Column(modifier = Modifier.padding(Ui.Padding.L)) {
 		Row(

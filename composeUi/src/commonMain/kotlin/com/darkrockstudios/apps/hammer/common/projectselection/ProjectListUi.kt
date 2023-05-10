@@ -33,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
+import com.soywiz.korio.async.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -42,10 +43,20 @@ fun ProjectListUi(
 	component: ProjectsList,
 	modifier: Modifier = Modifier
 ) {
+	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	var showProjectCreate by remember { mutableStateOf(false) }
 	val snackbarHostState = remember { SnackbarHostState() }
+
+	LaunchedEffect(state.toast) {
+		scope.launch {
+			val message = state.toast
+			if (message?.isNotEmpty() == true) {
+				snackbarHostState.showSnackbar(message)
+			}
+		}
+	}
 
 	Box {
 		Column(
@@ -139,7 +150,7 @@ fun ProjectListUi(
 		)
 	}
 
-	ProjectsSyncDialog(component, snackbarHostState)
+	ProjectsSyncDialog(component)
 }
 
 val ProjectCardTestTag = "project-card"

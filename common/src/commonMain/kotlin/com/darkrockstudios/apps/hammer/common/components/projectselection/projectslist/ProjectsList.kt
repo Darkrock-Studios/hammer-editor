@@ -25,6 +25,7 @@ interface ProjectsList : HammerComponent {
 		val projectsPath: HPath,
 		val isServerSynced: Boolean = false,
 		val syncState: SyncState = SyncState(),
+		val toast: String? = null
 	)
 
 	data class SyncState(

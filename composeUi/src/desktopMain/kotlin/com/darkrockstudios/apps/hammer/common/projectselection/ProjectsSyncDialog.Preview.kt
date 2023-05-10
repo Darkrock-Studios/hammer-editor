@@ -4,15 +4,13 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -20,24 +18,17 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 @Preview
 @Composable
-private fun ProjectsSyncDialogPreview() {
-	val snackbarHostState = remember { SnackbarHostState() }
-	val scope = rememberCoroutineScope()
-
-	Box(
-		modifier = Modifier.padding(32.dp).border(1.dp, Color.Black),
-	) {
-		Box(modifier = Modifier.padding(16.dp)) {
-			ProjectsSyncDialogContents(
-				component = fakeProjectsList, scope = scope, snackbarHostState = snackbarHostState
-			)
-		}
+private fun ProjectsSyncDialogPreview() = Padded {
+	Box(modifier = Modifier.border(1.dp, Color.Black).padding(16.dp)) {
+		ProjectsSyncDialogContents(
+			component = fakeProjectsList
+		)
 	}
 }
 
 @Preview
 @Composable
-private fun ProjectStatusUiPreview() {
+private fun ProjectStatusUiPreview() = Padded {
 	val notStarted = ProjectsList.ProjectSyncStatus("Test Project 1")
 	ProjectStatusUi(notStarted)
 }

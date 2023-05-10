@@ -46,6 +46,12 @@ class ProjectsListComponent(
 	)
 	override val state: Value<ProjectsList.State> = _state
 
+	private fun showToast(message: String) {
+		_state.getAndUpdate {
+			it.copy(toast = message)
+		}
+	}
+
 	private fun watchSettingsUpdates() {
 		scope.launch {
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
@@ -314,6 +320,16 @@ class ProjectsListComponent(
 					showProjectSync = true
 				),
 			)
+		}
+
+		scope.launch {
+			syncProjects { success ->
+				if (success) {
+					showToast("Projects synced")
+				} else {
+					showToast("Failed to sync projects")
+				}
+			}
 		}
 	}
 
