@@ -470,18 +470,21 @@ class ClientProjectSynchronizer(
 
 			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
 			val isNewlyCreated = newClientIds.contains(thisId)
-			// If our copy is dirty, or this ID hasn't been seen by the server yet
-			allSuccess = if (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId)) {
-				Napier.d("Upload ID $thisId")
-				val originalHash = localIsDirty?.originalHash
-				val success = uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+			val clientHasEntity = clientHasEntity(thisId)
 
-				if (success) {
-					dirtyEntities.find { it.id == thisId }?.let { dirty ->
-						dirtyEntities.remove(dirty)
-					}
-				} else {
-					Napier.d("Upload failed for ID $thisId")
+			// If our copy is dirty, or this ID hasn't been seen by the server yet
+			allSuccess =
+				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId))) {
+					Napier.d("Upload ID $thisId")
+					val originalHash = localIsDirty?.originalHash
+					val success = uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+
+					if (success) {
+						dirtyEntities.find { it.id == thisId }?.let { dirty ->
+							dirtyEntities.remove(dirty)
+						}
+					} else {
+						Napier.d("Upload failed for ID $thisId")
 				}
 
 				allSuccess && success
@@ -541,6 +544,10 @@ class ClientProjectSynchronizer(
 
 	private suspend fun finalizeSync() {
 		entitySynchronizers.forEach { it.finalizeSync() }
+	}
+
+	private suspend fun clientHasEntity(id: Int): Boolean {
+		return findEntityType(id) != null
 	}
 
 	private suspend fun findEntityType(id: Int): EntityType? {
