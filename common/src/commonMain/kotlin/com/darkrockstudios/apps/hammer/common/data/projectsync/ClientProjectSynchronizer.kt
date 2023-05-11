@@ -480,6 +480,8 @@ class ClientProjectSynchronizer(
 					dirtyEntities.find { it.id == thisId }?.let { dirty ->
 						dirtyEntities.remove(dirty)
 					}
+				} else {
+					Napier.d("Upload failed for ID $thisId")
 				}
 
 				allSuccess && success
@@ -487,7 +489,11 @@ class ClientProjectSynchronizer(
 			// Otherwise download the server's copy
 			else {
 				Napier.d("Download ID $thisId")
-				allSuccess && downloadEntry(thisId, serverSyncData.syncId, onLog)
+				val downloadSuccess = downloadEntry(thisId, serverSyncData.syncId, onLog)
+				if (downloadSuccess.not()) {
+					Napier.d("Download failed for ID $thisId")
+				}
+				allSuccess && downloadSuccess
 			}
 			onProgress(ENTITY_START + (ENTITY_TOTAL * (currentIndex / totalIds.toFloat())), null)
 
@@ -604,8 +610,8 @@ class ClientProjectSynchronizer(
 				)
 			}
 		} else {
-			onLog("Failed to upload entity $id: type not owned by anything")
-			return false
+			onLog("Failed to upload entity $id: type not owned by anything, probably deleted")
+			return true
 		}
 	}
 
