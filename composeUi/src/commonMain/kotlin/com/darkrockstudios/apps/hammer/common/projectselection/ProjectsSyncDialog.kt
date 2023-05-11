@@ -13,6 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
@@ -32,6 +33,7 @@ fun ProjectsSyncDialog(component: ProjectsList) {
 			}
 		},
 		visible = state.syncState.showProjectSync,
+		size = DpSize(400.dp, 400.dp),
 		title = "Synchronization"
 	) {
 		ProjectsSyncDialogContents(component)
