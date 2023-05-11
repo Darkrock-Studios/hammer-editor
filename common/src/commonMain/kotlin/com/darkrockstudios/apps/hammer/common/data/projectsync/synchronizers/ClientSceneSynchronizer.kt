@@ -110,7 +110,8 @@ class ClientSceneSynchronizer(
 				projectEditorRepository.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
-					forceId = serverEntity.id
+					forceId = serverEntity.id,
+					forceOrder = serverEntity.order
 				)
 					?: throw IllegalStateException("Failed to create scene")
 			}
@@ -152,7 +153,8 @@ class ClientSceneSynchronizer(
 				projectEditorRepository.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
-					forceId = serverEntity.id
+					forceId = serverEntity.id,
+					forceOrder = serverEntity.order
 				)
 					?: throw IllegalStateException("Failed to create scene")
 			}

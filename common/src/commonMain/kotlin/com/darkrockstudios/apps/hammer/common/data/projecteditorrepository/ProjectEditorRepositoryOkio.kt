@@ -157,7 +157,7 @@ class ProjectEditorRepositoryOkio(
 	override fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean): HPath {
 		val scenePathSegment = getSceneDirectory().toOkioPath()
 
-		val pathSegments = sceneTree.getBranch(true) { it.id == sceneItem.id }
+		val pathSegments: MutableList<String> = sceneTree.getBranch(true) { it.id == sceneItem.id }
 			.map { node -> node.value }
 			.filter { scene -> !scene.isRootScene }
 			.map { scene -> getSceneFileName(scene) }
@@ -425,9 +425,36 @@ class ProjectEditorRepositoryOkio(
 					originalChildren?.find { it.id == childNode.value.id }?.let { originalChild ->
 						val realPath = getPathFromFilesystem(childNode.value)
 							?: throw IllegalStateException("Could not find Scene on filesystem: ${childNode.value.id}")
+
 						val content = loadSceneMarkdownRaw(childNode.value, realPath)
 						markForSynchronization(originalChild, content)
 					}
+					fileSystem.atomicMove(source = existingPath, target = newPath)
+				} catch (e: IOException) {
+					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
+				}
+			}
+		}
+	}
+
+	override suspend fun updateSceneOrderMagnitudeOnly(parentId: Int) {
+		Napier.d("updateSceneOrderMagnitudeOnly for parentId: $parentId")
+
+		val parent = sceneTree.find { it.id == parentId }
+		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
+
+		val parentPath = getSceneFilePath(parent.value.id)
+		val existingSceneFiles = getGroupChildPathsById(parentPath.toOkioPath())
+
+		parent.children().forEach { childNode ->
+			val existingPath = existingSceneFiles[childNode.value.id]
+				?: throw IllegalStateException("Scene wasn't present in directory")
+			val newPath = getSceneFilePath(childNode.value.id).toOkioPath()
+
+			if (existingPath != newPath) {
+				try {
+					Napier.d("Renaming from: \"${existingPath.name}\" to: \"${newPath.name}\"")
+
 					fileSystem.atomicMove(source = existingPath, target = newPath)
 				} catch (e: IOException) {
 					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
@@ -449,15 +476,31 @@ class ProjectEditorRepositoryOkio(
 		}
 	}
 
-	override suspend fun createScene(parent: SceneItem?, sceneName: String, forceId: Int?): SceneItem? {
-		return createSceneItem(parent, sceneName, false, forceId)
+	override suspend fun createScene(
+		parent: SceneItem?,
+		sceneName: String,
+		forceId: Int?,
+		forceOrder: Int?
+	): SceneItem? {
+		return createSceneItem(parent, sceneName, false, forceId, forceOrder)
 	}
 
-	override suspend fun createGroup(parent: SceneItem?, groupName: String, forceId: Int?): SceneItem? {
-		return createSceneItem(parent, groupName, true, forceId)
+	override suspend fun createGroup(
+		parent: SceneItem?,
+		groupName: String,
+		forceId: Int?,
+		forceOrder: Int?
+	): SceneItem? {
+		return createSceneItem(parent, groupName, true, forceId, forceOrder)
 	}
 
-	private suspend fun createSceneItem(parent: SceneItem?, name: String, isGroup: Boolean, forceId: Int?): SceneItem? {
+	private suspend fun createSceneItem(
+		parent: SceneItem?,
+		name: String,
+		isGroup: Boolean,
+		forceId: Int?,
+		forceOrder: Int?
+	): SceneItem? {
 		val cleanedNamed = name.trim()
 
 		return if (!validateSceneName(cleanedNamed)) {
@@ -465,7 +508,7 @@ class ProjectEditorRepositoryOkio(
 			null
 		} else {
 			val lastOrder = getLastOrderNumber(parent?.id)
-			val nextOrder = lastOrder + 1
+			val nextOrder = forceOrder ?: (lastOrder + 1)
 			val sceneId = forceId ?: idRepository.claimNextId()
 			val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
@@ -495,8 +538,12 @@ class ProjectEditorRepositoryOkio(
 				SceneItem.Type.Root -> throw IllegalArgumentException("Cannot create Root")
 			}
 
+			// Correct order digit paddings when injecting a new scene/group
+			if (forceOrder != null) {
+				updateSceneOrderMagnitudeOnly(parent?.id ?: SceneItem.ROOT_ID)
+			}
 			// If we need to increase the padding digits, update the file names
-			if (lastOrder.numDigits() < nextOrder.numDigits()) {
+			else if (lastOrder.numDigits() < nextOrder.numDigits()) {
 				updateSceneOrder(parent?.id ?: SceneItem.ROOT_ID)
 			}
 
