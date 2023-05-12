@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
+import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -179,7 +179,7 @@ abstract class ProjectEditorRepository(
 		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescent(BUFFER_COOL_DOWN).collect { contentUpdate ->
+			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN).collect { contentUpdate ->
 				if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
 					launchSaveJob(contentUpdate.content.scene)
 				}

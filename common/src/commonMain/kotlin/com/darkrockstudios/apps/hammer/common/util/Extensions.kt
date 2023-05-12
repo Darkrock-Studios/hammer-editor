@@ -26,6 +26,20 @@ fun <T> Flow<T>.debounceUntilQuiescent(duration: Duration): Flow<T> = channelFlo
 	}
 }
 
+fun <T> Flow<T>.debounceUntilQuiescentBy(by: (T) -> Any, duration: Duration): Flow<T> = channelFlow {
+	val jobs = mutableMapOf<Any, Job>()
+	collect { value ->
+		val id = by(value)
+
+		jobs[id]?.cancel()
+		jobs[id] = launch {
+			delay(duration)
+			send(value)
+			jobs.remove(id)
+		}
+	}
+}
+
 fun Int.formatDecimalSeparator(): String {
 	return toString()
 		.reversed()
