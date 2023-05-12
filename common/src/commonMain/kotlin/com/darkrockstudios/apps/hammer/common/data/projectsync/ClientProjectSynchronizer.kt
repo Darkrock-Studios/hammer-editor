@@ -66,6 +66,8 @@ class ClientProjectSynchronizer(
 	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
 
+	val syncCompleteEvent = Channel<Boolean>()
+
 	init {
 		scope.launch {
 			for (conflict in conflictResolution) {
@@ -232,6 +234,7 @@ class ClientProjectSynchronizer(
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
 	): Boolean {
+		var allSuccess = false
 		return try {
 			prepareForSync()
 
@@ -310,7 +313,7 @@ class ClientProjectSynchronizer(
 			onProgress(ENTITY_START, null)
 
 			// Transfer Entities
-			var allSuccess = if (onlyNew) {
+			allSuccess = if (onlyNew) {
 				uploadNewEntities(
 					newClientIds,
 					serverSyncData,
@@ -401,6 +404,8 @@ class ClientProjectSynchronizer(
 			if (e is CancellationException) throw e
 
 			false
+		} finally {
+			syncCompleteEvent.trySend(allSuccess)
 		}
 	}
 

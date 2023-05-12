@@ -15,9 +15,11 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,6 +37,7 @@ class ProjectHomeComponent(
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val projectEditorRepository: ProjectEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	private val _state = MutableValue(
 		ProjectHome.State(
@@ -92,6 +95,18 @@ class ProjectHomeComponent(
 		super.onCreate()
 
 		loadData()
+
+		listenForSyncEvents()
+	}
+
+	private fun listenForSyncEvents() {
+		scope.launch {
+			projectSynchronizer.syncCompleteEvent.receiveAsFlow().collect { success ->
+				if (success) {
+					loadData()
+				}
+			}
+		}
 	}
 
 	private fun loadData() {
