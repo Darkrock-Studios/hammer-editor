@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -57,11 +58,11 @@ fun mainModule(logger: Logger) = module {
 	singleOf(::ServerEncyclopediaSynchronizer)
 	singleOf(::ServerSceneDraftSynchronizer)
 
-	single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+	single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 		SyncSessionManager(get())
 	}
 
-	single<SyncSessionManager<ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+	single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
 		SyncSessionManager(get())
 	}
 }

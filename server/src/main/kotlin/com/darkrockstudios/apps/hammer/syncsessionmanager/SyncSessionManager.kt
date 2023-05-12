@@ -5,28 +5,28 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 
-class SyncSessionManager<T : SynchronizationSession>(private val clock: Clock) {
+class SyncSessionManager<K, T : SynchronizationSession>(private val clock: Clock) {
 	val lock = Mutex()
 	private val syncIdGenerator = RandomString(30)
-	private val synchronizationSessions = mutableMapOf<Long, T>()
+	private val synchronizationSessions = mutableMapOf<K, T>()
 
-	fun findSession(userId: Long): T? = synchronizationSessions[userId]
-	fun terminateSession(userId: Long): Boolean = synchronizationSessions.remove(userId) != null
+	fun findSession(key: K): T? = synchronizationSessions[key]
+	fun terminateSession(key: K): Boolean = synchronizationSessions.remove(key) != null
 
-	suspend fun createNewSession(userId: Long, createSession: (userId: Long, syncId: String) -> T): String {
+	suspend fun createNewSession(key: K, createSession: (key: K, syncId: String) -> T): String {
 		lock.withLock {
 			val newSyncId = syncIdGenerator.nextString()
-			val newSession = createSession(userId, newSyncId)
-			synchronizationSessions[userId] = newSession
+			val newSession = createSession(key, newSyncId)
+			synchronizationSessions[key] = newSession
 			return newSyncId
 		}
 	}
 
-	suspend fun hasActiveSyncSession(userId: Long): Boolean {
+	suspend fun hasActiveSyncSession(key: K): Boolean {
 		lock.withLock {
-			val session = synchronizationSessions[userId]
+			val session = synchronizationSessions[key]
 			return if (session == null || session.isExpired(clock)) {
-				synchronizationSessions.remove(userId)
+				synchronizationSessions.remove(key)
 				false
 			} else {
 				true
@@ -34,11 +34,11 @@ class SyncSessionManager<T : SynchronizationSession>(private val clock: Clock) {
 		}
 	}
 
-	suspend fun getActiveSyncSession(userId: Long): T? {
+	suspend fun getActiveSyncSession(key: K): T? {
 		lock.withLock {
-			val session = synchronizationSessions[userId]
+			val session = synchronizationSessions[key]
 			return if (session == null || session.isExpired(clock)) {
-				synchronizationSessions.remove(userId)
+				synchronizationSessions.remove(key)
 				null
 			} else {
 				session
@@ -46,15 +46,15 @@ class SyncSessionManager<T : SynchronizationSession>(private val clock: Clock) {
 		}
 	}
 
-	suspend fun validateSyncId(userId: Long, syncId: String, allowExpired: Boolean): Boolean {
+	suspend fun validateSyncId(key: K, syncId: String, allowExpired: Boolean): Boolean {
 		lock.withLock {
-			val session = findSession(userId)
+			val session = findSession(key)
 			return if (session?.syncId == syncId) {
 				if (session.isExpired(clock).not() || allowExpired) {
 					session.updateLastAccessed(clock)
 					true
 				} else {
-					terminateSession(userId)
+					terminateSession(key)
 					false
 				}
 			} else {

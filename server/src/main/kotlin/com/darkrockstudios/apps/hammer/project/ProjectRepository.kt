@@ -32,12 +32,12 @@ class ProjectRepository(
 	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer by inject()
 	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer by inject()
 
-	private val projectsSessions: SyncSessionManager<ProjectsSynchronizationSession> by KoinJavaComponent.inject(
+	private val projectsSessions: SyncSessionManager<Long, ProjectsSynchronizationSession> by KoinJavaComponent.inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
 	)
 
-	private val sessionManager: SyncSessionManager<ProjectSynchronizationSession> by KoinJavaComponent.inject(
+	private val sessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by KoinJavaComponent.inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECT_SYNC_MANAGER)
 	)
@@ -86,8 +86,9 @@ class ProjectRepository(
 	): Result<ProjectSynchronizationBegan> {
 
 		val projectDir = getProjectDirectory(userId, projectDef)
+		val syncKey = ProjectSyncKey(userId, projectDef)
 
-		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(userId)) {
+		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(syncKey)) {
 			Result.failure(IllegalStateException("User $userId already has a synchronization session"))
 		} else {
 			if (!fileSystem.exists(projectDir)) {
@@ -101,10 +102,10 @@ class ProjectRepository(
 				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
 			}
 
-			val newSyncId = sessionManager.createNewSession(userId) { user: Long, sync: String ->
+			val newSyncId = sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
 				ProjectSynchronizationSession(
-					userId = user,
-					projectDef = projectDef,
+					userId = key.userId,
+					projectDef = key.projectDef,
 					started = clock.now(),
 					syncId = sync
 				)
@@ -129,7 +130,8 @@ class ProjectRepository(
 		lastSync: Instant?,
 		lastId: Int?,
 	): Result<Boolean> {
-		val session = sessionManager.findSession(userId)
+		val syncKey = ProjectSyncKey(userId, projectDef)
+		val session = sessionManager.findSession(syncKey)
 		return if (session == null) {
 			Result.failure(IllegalStateException("User $userId does not have a synchronization session"))
 		} else {
@@ -146,7 +148,7 @@ class ProjectRepository(
 					}
 				}
 
-				sessionManager.terminateSession(userId)
+				sessionManager.terminateSession(syncKey)
 				Result.success(true)
 			}
 		}
@@ -157,7 +159,7 @@ class ProjectRepository(
 		projectDef: ProjectDefinition,
 		syncId: String
 	): Result<ProjectServerState> {
-		if (validateSyncId(userId, syncId).not())
+		if (validateSyncId(userId, projectDef, syncId).not())
 			return Result.failure(IllegalStateException("Sync Id not valid"))
 
 		val projectDir = getProjectDirectory(userId, projectDef)
@@ -183,7 +185,7 @@ class ProjectRepository(
 		syncId: String,
 		force: Boolean
 	): Result<Boolean> {
-		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		ensureEntityDir(userId, projectDef)
 
@@ -237,7 +239,7 @@ class ProjectRepository(
 		entityId: Int,
 		syncId: String,
 	): Result<Boolean> {
-		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		updateSyncData(userId, projectDef) {
 			it.copy(
@@ -312,7 +314,7 @@ class ProjectRepository(
 		entityId: Int,
 		syncId: String
 	): Result<ApiProjectEntity> {
-		if (validateSyncId(userId, syncId).not()) return Result.failure(InvalidSyncIdException())
+		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
 
 		val type = findEntityType(entityId, userId, projectDef)
 			?: return Result.failure(EntityNotFound(entityId))
@@ -370,9 +372,10 @@ class ProjectRepository(
 		}
 	}
 
-	private suspend fun validateSyncId(userId: Long, syncId: String): Boolean {
+	private suspend fun validateSyncId(userId: Long, projectDef: ProjectDefinition, syncId: String): Boolean {
+		val syncKey = ProjectSyncKey(userId, projectDef)
 		return !projectsSessions.hasActiveSyncSession(userId) &&
-				sessionManager.validateSyncId(userId, syncId, true)
+				sessionManager.validateSyncId(syncKey, syncId, true)
 	}
 
 	private suspend fun getUpdateSequence(

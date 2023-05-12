@@ -23,7 +23,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	private lateinit var fileSystem: FileSystem
 	private lateinit var clock: TestClock
 
-	private lateinit var projectsSessionManager: SyncSessionManager<ProjectsSynchronizationSession>
+	private lateinit var projectsSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession>
 
 	private fun createProjectsRepository(): ProjectsRepository {
 		return ProjectsRepository(fileSystem, Json, clock)
@@ -43,7 +43,7 @@ class ProjectsRepositoryTest : BaseTest() {
 			single { Json } bind Json::class
 			single { clock } bind TestClock::class
 
-			single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 				projectsSessionManager
 			}
 		}

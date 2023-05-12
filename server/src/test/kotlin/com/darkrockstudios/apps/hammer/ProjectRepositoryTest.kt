@@ -5,10 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
-import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
-import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
@@ -41,8 +38,8 @@ class ProjectRepositoryTest : BaseTest() {
 	private lateinit var fileSystem: FileSystem
 	private lateinit var clock: TestClock
 
-	private lateinit var projectsSessionManager: SyncSessionManager<ProjectsSynchronizationSession>
-	private lateinit var projectSessionManager: SyncSessionManager<ProjectSynchronizationSession>
+	private lateinit var projectsSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession>
+	private lateinit var projectSessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>
 
 	private lateinit var sceneSynchronizer: ServerSceneSynchronizer
 	private lateinit var noteSynchronizer: ServerNoteSynchronizer
@@ -98,11 +95,11 @@ class ProjectRepositoryTest : BaseTest() {
 			single { sceneDraftSynchronizer }
 			single { clock } bind TestClock::class
 
-			single<SyncSessionManager<ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 				projectsSessionManager
 			}
 
-			single<SyncSessionManager<ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+			single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
 				projectSessionManager
 			}
 		}
@@ -110,9 +107,10 @@ class ProjectRepositoryTest : BaseTest() {
 	}
 
 	private fun mockCreateSession(syncId: String) {
-		val createSessionSlot = slot<(userId: Long, syncId: String) -> ProjectSynchronizationSession>()
-		coEvery { projectSessionManager.createNewSession(userId, capture(createSessionSlot)) } coAnswers {
-			val session = createSessionSlot.captured(userId, syncId)
+		val createSessionSlot = slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
+		val key = ProjectSyncKey(userId, projectDefinition)
+		coEvery { projectSessionManager.createNewSession(key, capture(createSessionSlot)) } coAnswers {
+			val session = createSessionSlot.captured(key, syncId)
 			session.syncId
 		}
 	}
@@ -144,7 +142,7 @@ class ProjectRepositoryTest : BaseTest() {
 
 			coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 			coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
-			coEvery { projectSessionManager.terminateSession(userId) } returns true
+			coEvery { projectSessionManager.terminateSession(any()) } returns true
 
 			val syncId = "sync-id"
 

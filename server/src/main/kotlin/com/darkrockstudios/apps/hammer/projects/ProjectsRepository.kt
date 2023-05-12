@@ -22,7 +22,7 @@ class ProjectsRepository(
 	private val json: Json,
 	private val clock: Clock
 ) {
-	private val syncSessionManager: SyncSessionManager<ProjectsSynchronizationSession> by inject(
+	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
 	)
