@@ -49,7 +49,6 @@ abstract class ProjectEditorRepository(
 		return metadata.first()
 	}
 
-
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
 	private val editorScope = CoroutineScope(dispatcherDefault)
@@ -280,7 +279,7 @@ abstract class ProjectEditorRepository(
 		val oldBuffer = sceneBuffers[content.scene.id]
 		// Skip update if nothing is different
 		return if (content != oldBuffer?.content) {
-			val newBuffer = SceneBuffer(content, true, source)
+			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
 			updateSceneBuffer(newBuffer)
 			true
 		} else {
