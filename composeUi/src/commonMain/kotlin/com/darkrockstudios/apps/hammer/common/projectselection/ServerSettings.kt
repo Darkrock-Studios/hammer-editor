@@ -63,6 +63,25 @@ fun ServerSettings(component: AccountSettings, scope: CoroutineScope, snackbarHo
 			}
 
 			Row {
+				var autoSyncValue by remember { mutableStateOf(state.syncAutomaticSync) }
+				Checkbox(
+					checked = autoSyncValue,
+					onCheckedChange = {
+						scope.launch { component.setAutoSyncing(it) }
+						autoSyncValue = it
+					}
+				)
+				Text(
+					"Auto-Sync",
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.align(Alignment.CenterVertically)
+				)
+			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+			Row {
 				var autoBackupsValue by remember { mutableStateOf(state.syncAutomaticBackups) }
 				Checkbox(
 					checked = autoBackupsValue,

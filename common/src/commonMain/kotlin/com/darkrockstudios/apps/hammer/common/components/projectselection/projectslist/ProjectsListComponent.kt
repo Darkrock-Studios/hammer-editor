@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -88,10 +89,21 @@ class ProjectsListComponent(
 		super.onCreate()
 		watchSettingsUpdates()
 		loadProjectList()
+		initialProjectSync()
+	}
 
-		if (projectsSynchronizer.isServerSynchronized() && projectsSynchronizer.initialSync.not()) {
-			projectsSynchronizer.initialSync = true
-			showProjectsSync()
+	private fun initialProjectSync() {
+		scope.launch {
+			globalSettingsRepository.globalSettingsUpdates.first().let { settings ->
+				if (
+					projectsSynchronizer.isServerSynchronized() &&
+					settings.automaticSyncing &&
+					projectsSynchronizer.initialSync.not()
+				) {
+					projectsSynchronizer.initialSync = true
+					showProjectsSync()
+				}
+			}
 		}
 	}
 
