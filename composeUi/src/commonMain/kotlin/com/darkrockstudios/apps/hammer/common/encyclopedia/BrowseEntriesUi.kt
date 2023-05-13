@@ -4,17 +4,22 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
@@ -45,14 +50,29 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			modifier = Modifier.padding(Ui.Padding.XL),
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			TextField(
+			OutlinedTextField(
 				value = searchText,
 				onValueChange = {
 					searchText = it
 					component.updateFilter(searchText, selectedType)
 				},
+				label = { Text("Search by Name") },
+				singleLine = true,
 				placeholder = { Text("Search by Name") },
-				modifier = Modifier.weight(1f)
+				modifier = Modifier.moveFocusOnTab().weight(1f),
+				keyboardOptions = KeyboardOptions(
+					autoCorrect = false,
+					imeAction = ImeAction.Done,
+					keyboardType = KeyboardType.Password
+				),
+				trailingIcon = {
+					IconButton(onClick = {
+						searchText = ""
+						component.updateFilter(searchText, selectedType)
+					}) {
+						Icon(imageVector = Icons.Filled.Clear, "Clear")
+					}
+				},
 			)
 
 			Spacer(Modifier.width(Ui.Padding.XL))
