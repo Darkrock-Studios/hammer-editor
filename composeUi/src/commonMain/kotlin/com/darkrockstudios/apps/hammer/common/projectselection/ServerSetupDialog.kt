@@ -9,11 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -44,6 +41,8 @@ fun ServerSetupDialog(
 ) {
 	val state by component.state.subscribeAsState()
 
+	val focusManager = LocalFocusManager.current
+
 	var sslValue by rememberSaveable { mutableStateOf(true) }
 	var urlValue by rememberSaveable { mutableStateOf("") }
 	var emailValue by rememberSaveable { mutableStateOf("") }
@@ -67,12 +66,28 @@ fun ServerSetupDialog(
 		title = MR.strings.settings_server_setup_title.get(),
 		size = DpSize(400.dp, 460.dp)
 	) {
-		val focusManager = LocalFocusManager.current
+		DisposableEffect(Unit) {
+			onDispose {
+				clearInput()
+			}
+		}
+
+		LaunchedEffect(state.toast) {
+			if (state.toast != null) {
+				snackbarHostState.showSnackbar("Failed to setup server")
+			}
+		}
 
 		Box(
 			modifier = Modifier.padding(Ui.Padding.XL),
 			contentAlignment = Alignment.Center
 		) {
+			if (state.serverWorking) {
+				CircularProgressIndicator(
+					modifier = Modifier.align(Alignment.Center).size(128.dp)
+				)
+			}
+
 			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 				Text(
 					"Configure Server",
@@ -87,6 +102,7 @@ fun ServerSetupDialog(
 					Checkbox(
 						checked = sslValue,
 						onCheckedChange = { sslValue = it },
+						enabled = state.serverWorking.not()
 					)
 					Text(MR.strings.settings_server_setup_ssl_label.get())
 				}
@@ -103,7 +119,8 @@ fun ServerSetupDialog(
 					),
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
-					)
+					),
+					enabled = state.serverWorking.not()
 				)
 
 				OutlinedTextField(
@@ -118,7 +135,8 @@ fun ServerSetupDialog(
 					),
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
-					)
+					),
+					enabled = state.serverWorking.not()
 				)
 
 				OutlinedTextField(
@@ -148,7 +166,8 @@ fun ServerSetupDialog(
 						IconButton(onClick = { passwordVisible = !passwordVisible }) {
 							Icon(imageVector = image, description)
 						}
-					}
+					},
+					enabled = state.serverWorking.not()
 				)
 
 				state.serverError?.let { error ->
@@ -163,52 +182,45 @@ fun ServerSetupDialog(
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 				Row {
-					Button(onClick = {
-						scope.launch {
-							val result = component.setupServer(
+					Button(
+						onClick = {
+							component.setupServer(
 								ssl = sslValue,
 								url = urlValue,
 								email = emailValue,
 								password = passwordValue,
 								create = false
 							)
-							if (result.isSuccess) {
-								clearInput()
-								snackbarHostState.showSnackbar("Server setup complete!")
-							} else {
-								snackbarHostState.showSnackbar("Failed to setup server")
-							}
-						}
-					}) {
+						},
+						enabled = state.serverWorking.not()
+					) {
 						Text(MR.strings.settings_server_setup_login_button.get())
 					}
 
-					Button(onClick = {
-						scope.launch {
-							val result = component.setupServer(
+					Button(
+						onClick = {
+							component.setupServer(
 								ssl = sslValue,
 								url = urlValue,
 								email = emailValue,
 								password = passwordValue,
 								create = true
 							)
-							if (result.isSuccess) {
-								clearInput()
-								snackbarHostState.showSnackbar("Server setup complete!")
-							} else {
-								snackbarHostState.showSnackbar("Failed to setup server")
-							}
-						}
-					}) {
+						},
+						enabled = state.serverWorking.not()
+					) {
 						Text(MR.strings.settings_server_setup_create_button.get())
 					}
 
-					Button(onClick = {
-						scope.launch {
-							clearInput()
-							component.cancelServerSetup()
-						}
-					}) {
+					Button(
+						onClick = {
+							scope.launch {
+								clearInput()
+								component.cancelServerSetup()
+							}
+						},
+						enabled = state.serverWorking.not()
+					) {
 						Text(MR.strings.settings_server_setup_cancel_button.get())
 					}
 				}

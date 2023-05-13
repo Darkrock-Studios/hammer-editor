@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
 		ProjectSelection.Locations.Projects -> Icons.Filled.LibraryBooks
-		ProjectSelection.Locations.Sittings -> Icons.Filled.Settings
+		ProjectSelection.Locations.Settings -> Icons.Filled.Settings
 	}
 }
 

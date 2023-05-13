@@ -14,13 +14,13 @@ interface AccountSettings {
 	suspend fun reinstallExampleProject()
 	fun beginSetupServer()
 	fun cancelServerSetup()
-	suspend fun setupServer(
+	fun setupServer(
 		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
 		create: Boolean
-	): Result<Boolean>
+	)
 
 	suspend fun authTest(): Boolean
 	fun removeServer()
@@ -35,11 +35,15 @@ interface AccountSettings {
 		val location: ProjectSelection.Locations = ProjectSelection.Locations.Projects,
 		val uiTheme: UiTheme,
 		val serverSetup: Boolean = false,
+		val serverIsLoggedIn: Boolean = false,
 		val serverUrl: String? = null,
+		val serverEmail: String? = null,
 		val serverError: String? = null,
+		val serverWorking: Boolean = false,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
-		val maxBackups: Int
+		val maxBackups: Int,
+		val toast: String? = null
 	)
 }

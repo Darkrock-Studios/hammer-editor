@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class ServerSettings(
     val ssl: Boolean,
     val url: String,
+    val email: String,
     val userId: Long,
     val installId: String,
     val bearerToken: String?,

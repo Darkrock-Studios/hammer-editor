@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServerSettings(component: AccountSettings, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
+fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
 
@@ -37,8 +37,7 @@ fun ServerSettings(component: AccountSettings, scope: CoroutineScope, snackbarHo
 			fontStyle = FontStyle.Italic
 		)
 
-		val serverUrl = state.serverUrl
-		if (serverUrl == null) {
+		if (state.serverIsLoggedIn.not()) {
 			Button(onClick = {
 				scope.launch {
 					component.beginSetupServer()
@@ -55,7 +54,22 @@ fun ServerSettings(component: AccountSettings, scope: CoroutineScope, snackbarHo
 				)
 
 				Text(
-					serverUrl,
+					state.serverUrl ?: "error",
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onBackground,
+					fontStyle = FontStyle.Italic
+				)
+			}
+
+			Row {
+				Text(
+					MR.strings.settings_server_email_label.get(),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onBackground,
+				)
+
+				Text(
+					state.serverEmail ?: "error",
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onBackground,
 					fontStyle = FontStyle.Italic
@@ -116,16 +130,6 @@ fun ServerSettings(component: AccountSettings, scope: CoroutineScope, snackbarHo
 					modifier = Modifier.align(Alignment.CenterVertically)
 				)
 			}
-
-			/*
-			Row {
-				Checkbox(
-					checked = state.syncAutomaticSync,
-					onCheckedChange = { scope.launch { component.setAutoSyncing(it) } }
-				)
-				Text("Auto-Sync")
-			}
-			*/
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 

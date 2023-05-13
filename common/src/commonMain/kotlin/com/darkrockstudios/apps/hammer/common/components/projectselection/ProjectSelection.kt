@@ -17,7 +17,7 @@ interface ProjectSelection : HammerComponent {
 
 	enum class Locations(val text: String) {
 		Projects("Projects"),
-		Sittings("Settings")
+		Settings("Settings")
 	}
 
 	sealed class Config(val location: Locations) : Parcelable {
@@ -25,7 +25,7 @@ interface ProjectSelection : HammerComponent {
 		object ProjectsList : Config(Locations.Projects)
 
 		@Parcelize
-		object AccountSettings : Config(Locations.Sittings)
+		object AccountSettings : Config(Locations.Settings)
 	}
 
 	sealed class Destination {

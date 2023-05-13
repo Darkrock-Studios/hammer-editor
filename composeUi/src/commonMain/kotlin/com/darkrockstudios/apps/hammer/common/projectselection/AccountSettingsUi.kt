@@ -129,7 +129,7 @@ internal fun AccountSettingsUi(
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				ServerSettings(component, scope, snackbarHostState)
+				ServerSettingsUi(component, scope, snackbarHostState)
 			}
 		}
 

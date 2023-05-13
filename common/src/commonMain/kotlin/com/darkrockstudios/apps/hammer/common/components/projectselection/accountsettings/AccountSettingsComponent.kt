@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
@@ -30,6 +31,8 @@ class AccountSettingsComponent(
 	private val accountRepository: AccountRepository by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 
+	private var serverSetupJob: Job? = null
+
 	private val _state = MutableValue(
 		AccountSettings.State(
 			projectsDir = projectsRepository.getProjectsDirectory(),
@@ -44,6 +47,12 @@ class AccountSettingsComponent(
 
 	init {
 		watchSettingsUpdates()
+	}
+
+	private fun cancelSetupJob() {
+		serverSetupJob?.cancel()
+		serverSetupJob = null
+		_state.getAndUpdate { it.copy(serverUrl = null) }
 	}
 
 	private fun watchSettingsUpdates() {
@@ -66,7 +75,9 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
-							serverUrl = settings?.url
+							serverUrl = settings?.url,
+							serverEmail = settings?.email,
+							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true
 						)
 					}
 				}
@@ -121,9 +132,12 @@ class AccountSettingsComponent(
 	}
 
 	override fun cancelServerSetup() {
+		cancelSetupJob()
 		_state.getAndUpdate {
 			it.copy(
-				serverSetup = false
+				serverSetup = false,
+				serverError = null,
+				serverWorking = false,
 			)
 		}
 	}
@@ -168,50 +182,65 @@ class AccountSettingsComponent(
 		}
 	}
 
-	override suspend fun setupServer(
+	override fun setupServer(
 		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
 		create: Boolean
-	): Result<Boolean> {
-		if (state.value.serverError != null) {
-			_state.getAndUpdate {
-				it.copy(
-					serverError = null
-				)
-			}
-		}
-
-		val cleanUrl = cleanUpUrl(url)
-		return if (validateUrl(cleanUrl).not()) {
-			val message = "Invalid URL"
-			_state.getAndUpdate {
-				it.copy(
-					serverUrl = null,
-					serverError = message
-				)
-			}
-			Result.failure(Exception(message))
-		} else {
-			val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
-			if (result.isSuccess) {
+	) {
+		cancelSetupJob()
+		serverSetupJob = scope.launch {
+			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
-						serverUrl = cleanUrl,
-						serverSetup = false
+						serverError = null,
+						serverWorking = true,
 					)
+				}
+			}
+
+			val cleanUrl = cleanUpUrl(url)
+			if (validateUrl(cleanUrl).not()) {
+				val message = "Invalid URL"
+				withContext(mainDispatcher) {
+					_state.getAndUpdate {
+						it.copy(
+							serverUrl = null,
+							serverError = message,
+							serverWorking = false,
+						)
+					}
+				}
+
+				withContext(mainDispatcher) {
+					_state.getAndUpdate { it.copy(toast = "Server setup Failed: $message") }
 				}
 			} else {
-				_state.getAndUpdate {
-					it.copy(
-						serverUrl = null,
-						serverError = result.exceptionOrNull()?.message ?: "Unknown error"
-					)
+				val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
+				withContext(mainDispatcher) {
+					if (result.isSuccess) {
+						_state.getAndUpdate {
+							it.copy(
+								serverUrl = cleanUrl,
+								serverSetup = false,
+								serverWorking = false,
+								toast = "Server setup successfully!"
+							)
+						}
+					} else {
+						_state.getAndUpdate {
+							val message = result.exceptionOrNull()?.message ?: "Unknown error"
+							it.copy(
+								serverUrl = null,
+								serverError = message,
+								serverWorking = false,
+								toast = "Server setup failed: $message"
+							)
+						}
+					}
 				}
 			}
-
-			result
 		}
 	}
 

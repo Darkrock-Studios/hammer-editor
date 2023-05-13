@@ -26,6 +26,7 @@ class AccountRepository(
             userId = -1,
             ssl = ssl,
             url = url,
+            email = email,
             installId = uuid4().toString(),
             bearerToken = null,
             refreshToken = null,

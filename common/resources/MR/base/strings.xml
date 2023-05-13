@@ -23,6 +23,7 @@
     <string name="settings_server_header">Server</string>
     <string name="settings_server_description">Setup a server for syncing between devices.</string>
     <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_email_label">Email:</string>
     <string name="settings_server_setup_button">Setup</string>
     <string name="settings_server_modify_button">Modify</string>
 

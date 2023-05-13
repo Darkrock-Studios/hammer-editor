@@ -61,7 +61,7 @@ class ProjectSelectionComponent(
 	override fun showLocation(location: ProjectSelection.Locations) {
 		when (location) {
 			ProjectSelection.Locations.Projects -> navigation.activate(ProjectSelection.Config.ProjectsList)
-			ProjectSelection.Locations.Sittings -> navigation.activate(ProjectSelection.Config.AccountSettings)
+			ProjectSelection.Locations.Settings -> navigation.activate(ProjectSelection.Config.AccountSettings)
 		}
 	}
 }
