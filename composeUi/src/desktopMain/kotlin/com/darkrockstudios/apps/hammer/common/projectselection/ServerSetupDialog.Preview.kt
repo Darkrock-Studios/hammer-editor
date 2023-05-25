@@ -17,6 +17,5 @@ private fun ServerSetupDialogPreview() {
 	ServerSetupDialog(
 		accountSettingsComponent(),
 		scope,
-		snackbar
 	)
 }

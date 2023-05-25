@@ -35,7 +35,8 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 			url: String,
 			email: String,
 			password: String,
-			create: Boolean
+			create: Boolean,
+			removeLocalContent: Boolean
 		) {
 		}
 
@@ -45,4 +46,5 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override suspend fun setAutoCloseDialogs(value: Boolean) {}
 		override suspend fun setAutoSyncing(value: Boolean) {}
 		override suspend fun setMaxBackups(value: Int) {}
+		override fun reauthenticate() {}
 	}

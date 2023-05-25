@@ -161,6 +161,10 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 				//Text(MR.strings.settings_server_modify_button.get())
 				Text("Test Auth")
 			}
+			Button(onClick = { component.reauthenticate() }) {
+				//Text(MR.strings.settings_server_modify_button.get())
+				Text("Re-Auth")
+			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
@@ -187,5 +191,9 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 		)
 	}
 
-	ServerSetupDialog(component, scope, snackbarHostState)
+	LaunchedEffect(state.toast) {
+		state.toast?.let { snackbarHostState.showSnackbar(it) }
+	}
+
+	ServerSetupDialog(component, scope)
 }
