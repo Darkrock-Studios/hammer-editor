@@ -6,12 +6,14 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -89,12 +91,18 @@ class GlobalSettingsRepository(
 	}
 
 	private fun loadSettings(): GlobalSettings {
-		lateinit var settingsText: String
-		fileSystem.read(CONFIG_PATH) {
-			settingsText = readUtf8()
+		val settingsText: String = fileSystem.read(CONFIG_PATH) {
+			readUtf8()
 		}
 
-		val settings: GlobalSettings = toml.decodeFromString(settingsText)
+		val settings: GlobalSettings = try {
+			json.decodeFromString(settingsText)
+		} catch (e: SerializationException) {
+			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
+			fileSystem.delete(CONFIG_PATH)
+
+			createDefault()
+		}
 		return settings
 	}
 
@@ -109,18 +117,22 @@ class GlobalSettingsRepository(
 	}
 
 	private fun loadServerSettings(): ServerSettings? {
-		var serverSettings: ServerSettings? = null
-
 		val path = getServerSettingsPath().toOkioPath()
-		if (fileSystem.exists(path)) {
-			lateinit var settingsText: String
-			fileSystem.read(path) {
-				settingsText = readUtf8()
+		return if (fileSystem.exists(path)) {
+			val settingsText: String = fileSystem.read(path) {
+				readUtf8()
 			}
 
-			serverSettings = json.decodeFromString(settingsText)
+			try {
+				json.decodeFromString(settingsText)
+			} catch (e: SerializationException) {
+				Napier.e("Failed to load Server Settings, removing invalid file.", e)
+				fileSystem.delete(path)
+				null
+			}
+		} else {
+			null
 		}
-		return serverSettings
 	}
 
 	private fun writeServerSettings(settings: ServerSettings) {

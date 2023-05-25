@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -148,13 +149,21 @@ class ClientProjectSynchronizer(
 		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
 				val syncDataJson = readUtf8()
-				json.decodeFromString(syncDataJson)
+				try {
+					json.decodeFromString(syncDataJson)
+				} catch (e: SerializationException) {
+					createAndSaveSyncData()
+				}
 			}
 		} else {
-			val newData = createSyncData()
-			saveSyncData(newData)
-			newData
+			createAndSaveSyncData()
 		}
+	}
+
+	private suspend fun createAndSaveSyncData(): ProjectSynchronizationData {
+		val newData = createSyncData()
+		saveSyncData(newData)
+		return newData
 	}
 
 	private fun saveSyncData(data: ProjectSynchronizationData) {

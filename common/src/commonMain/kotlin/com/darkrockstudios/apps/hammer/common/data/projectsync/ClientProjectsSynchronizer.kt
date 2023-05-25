@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -173,18 +174,26 @@ class ClientProjectsSynchronizer(
 		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
 				val syncDataJson = readUtf8()
-				json.decodeFromString(syncDataJson)
+				try {
+					json.decodeFromString(syncDataJson)
+				} catch (e: SerializationException) {
+					createAndSaveSyncData()
+				}
 			}
 		} else {
-			val newData = ProjectsSynchronizationData(
-				deletedProjects = emptySet(),
-				projectsToDelete = emptySet(),
-				projectsToCreate = emptySet(),
-			)
-			saveSyncData(newData)
-
-			newData
+			createAndSaveSyncData()
 		}
+	}
+
+	private fun createAndSaveSyncData(): ProjectsSynchronizationData {
+		val newData = ProjectsSynchronizationData(
+			deletedProjects = emptySet(),
+			projectsToDelete = emptySet(),
+			projectsToCreate = emptySet(),
+		)
+		saveSyncData(newData)
+
+		return newData
 	}
 
 	private fun saveSyncData(data: ProjectsSynchronizationData) {
