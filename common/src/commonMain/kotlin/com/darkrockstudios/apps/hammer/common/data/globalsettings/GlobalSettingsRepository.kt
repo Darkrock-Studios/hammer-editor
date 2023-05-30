@@ -96,11 +96,14 @@ class GlobalSettingsRepository(
 		}
 
 		val settings: GlobalSettings = try {
-			json.decodeFromString(settingsText)
+			toml.decodeFromString(settingsText)
+		} catch (e: NumberFormatException) {
+			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
+			fileSystem.delete(CONFIG_PATH)
+			createDefault()
 		} catch (e: SerializationException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
 			fileSystem.delete(CONFIG_PATH)
-
 			createDefault()
 		}
 		return settings
