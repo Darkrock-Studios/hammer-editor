@@ -27,6 +27,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.getDataVersion
+import com.darkrockstudios.apps.hammer.common.setDataVersion
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -35,6 +37,9 @@ import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,11 +47,27 @@ import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
 
+private fun handleArguments(args: Array<String>) {
+	val parser = ArgParser("hammer")
+
+	val dataVersion by parser.option(
+		ArgType.String,
+		shortName = "d",
+		fullName = "dataVersion",
+		description = "Data version"
+	).default(getDataVersion())
+
+	parser.parse(args)
+
+	setDataVersion(dataVersion)
+}
 
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
-fun main() {
+fun main(args: Array<String>) {
+	handleArguments(args)
+
 	Napier.base(DebugAntilog())
 
 	GlobalContext.startKoin {

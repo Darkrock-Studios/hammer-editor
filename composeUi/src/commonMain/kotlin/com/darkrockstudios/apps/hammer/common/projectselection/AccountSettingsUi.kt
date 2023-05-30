@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import kotlinx.coroutines.launch
 
@@ -68,6 +69,12 @@ internal fun AccountSettingsUi(
 							component.setUiTheme(selectedTheme)
 						}
 					}
+
+					Text(
+						"Data: v${getDataVersion()}",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
 				}
 
 				if (component.showProjectDirectory) {
