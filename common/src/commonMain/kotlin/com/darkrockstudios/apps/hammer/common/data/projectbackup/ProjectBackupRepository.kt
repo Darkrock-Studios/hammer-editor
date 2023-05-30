@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.format
 import io.github.aakira.napier.Napier
 import kotlinx.datetime.*
+import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 import org.koin.core.component.KoinComponent
@@ -32,16 +33,23 @@ abstract class ProjectBackupRepository(
 		return dir.toHPath()
 	}
 
-	fun getBackups(): List<ProjectBackupDef> {
+	fun getBackups(projectDef: ProjectDef): List<ProjectBackupDef> {
 		val dir = getBackupsDirectory().toOkioPath()
 		return fileSystem.list(dir)
-			.filter { fileSystem.metadata(it).isRegularFile }
+			.filter {
+				try {
+					fileSystem.metadata(it).isRegularFile
+				} catch (_: FileNotFoundException) {
+					false
+				}
+			}
 			.mapNotNull { path -> getProjectBackupDef(path) }
+			.filter { it.projectDef == projectDef }
 			.sortedBy { it.date }
 	}
 
 	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> {
-		return getBackups().filter { backup -> backup.projectDef == projectDef }
+		return getBackups(projectDef).filter { backup -> backup.projectDef == projectDef }
 	}
 
 	private fun backupNameToProjectName(backupName: String): String {
@@ -74,32 +82,22 @@ abstract class ProjectBackupRepository(
 		return "$backupName-$dateStr.zip"
 	}
 
-	fun cullBackups() {
+	fun cullBackups(project: ProjectDef) {
 		val settings = globalSettingsRepository.globalSettings
 
-		val collatedBackups = mutableMapOf<String, MutableList<ProjectBackupDef>>()
-		val allBackups = getBackups()
-		allBackups.forEach { backup ->
-			val backupList = collatedBackups[backup.projectDef.name] ?: mutableListOf()
-			backupList.add(backup)
-			collatedBackups[backup.projectDef.name] = backupList
-		}
+		val backups = getBackups(project).toMutableList()
 
 		// Oldest first
-		collatedBackups.values.forEach { backupList ->
-			backupList.sortBy { it.date }
-		}
+		backups.sortBy { it.date }
 
 		// Delete the oldest backups to get under budget
-		collatedBackups.forEach { project ->
-			if (project.value.size > settings.maxBackups) {
-				val overBudget = project.value.size - settings.maxBackups
-				Napier.i("Project '${project.key}' is over it's backup budget by $overBudget backups.")
-				for (ii in 0 until overBudget) {
-					val oldBackup = project.value[ii]
-					fileSystem.delete(oldBackup.path.toOkioPath())
-					Napier.i("Deleted backup: ${oldBackup.path.name}")
-				}
+		if (backups.size > settings.maxBackups) {
+			val overBudget = backups.size - settings.maxBackups
+			Napier.i("Project '${project.name}' is over it's backup budget by $overBudget backups.")
+			for (ii in 0 until overBudget) {
+				val oldBackup = backups[ii]
+				fileSystem.delete(oldBackup.path.toOkioPath())
+				Napier.i("Deleted backup: ${oldBackup.path.name}")
 			}
 		}
 	}
