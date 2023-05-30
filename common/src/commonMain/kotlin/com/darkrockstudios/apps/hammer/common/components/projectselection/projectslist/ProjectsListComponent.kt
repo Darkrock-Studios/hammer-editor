@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.soywiz.kds.iterators.parallelMap
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -258,24 +259,22 @@ class ProjectsListComponent(
 				syncNewProjectStatus(projects)
 
 				// TODO doing this in parallel some times causes 1 project sync to fail?
-				//parallelMap
-				projects.forEach { projectDef ->
-					syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+				projects.parallelMap { projectDef ->
+					scope.launch {
+						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
-					suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
-						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
-						if (message != null) onSyncLog(message)
+						suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
+							syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+							if (message != null) onSyncLog(message)
+						}
+
+						val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
+						allSuccess = allSuccess && projectSuccess
+
+						val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+						syncProgressStatus(projectDef.name, newStatus)
 					}
-
-					val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
-					allSuccess = allSuccess && projectSuccess
-
-					val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
-					syncProgressStatus(projectDef.name, newStatus)
-
-					yield()
-				}
-				//.joinAll()
+				}.joinAll()
 			} else {
 				projects.forEach { projectDef ->
 					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)

@@ -152,7 +152,7 @@ internal fun SyncLog(state: ProjectSync.State, scope: CoroutineScope) {
 	LaunchedEffect(state.syncLog) {
 		if (state.syncLog.isNotEmpty()) {
 			scope.launch {
-				listState.animateScrollToItem(state.syncLog.size - 1)
+				listState.animateScrollToItem(state.syncLog.lastIndex)
 			}
 		}
 	}
