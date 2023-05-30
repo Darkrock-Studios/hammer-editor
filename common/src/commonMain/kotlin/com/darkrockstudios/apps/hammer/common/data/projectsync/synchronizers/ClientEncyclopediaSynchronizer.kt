@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -90,11 +92,11 @@ class ClientEncyclopediaSynchronizer(
 
 	override fun getEntityType() = EntityType.EncyclopediaEntry
 
-	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val def = encyclopediaRepository.getEntryDef(id)
 		encyclopediaRepository.deleteEntry(def)
 
-		onLog("Deleted Encyclopedia ID $id from client")
+		onLog(syncLogI("Deleted Encyclopedia ID $id from client", def.projectDef.name))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
@@ -110,7 +112,7 @@ class ClientEncyclopediaSynchronizer(
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity,
 		syncId: String,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	) {
 		val oldDef = encyclopediaRepository.findEntryDef(serverEntity.id)
 		val serverDef = EntryDef(

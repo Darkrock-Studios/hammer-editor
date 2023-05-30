@@ -30,14 +30,14 @@ class ClientProjectsSynchronizer(
 		return globalSettingsRepository.serverSettings != null
 	}
 
-	suspend fun syncProjects(onLog: suspend (String) -> Unit): Boolean {
-		onLog("Begin Sync")
+	suspend fun syncProjects(onLog: OnSyncLog): Boolean {
+		onLog(syncAccLogI("Begin Sync"))
 
 		var syncId: String? = null
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
-				onLog("Got server data")
+				onLog(syncAccLogI("Got server data"))
 
 				val serverSyncData = result.getOrThrow()
 				syncId = serverSyncData.syncId
@@ -57,10 +57,10 @@ class ClientProjectsSynchronizer(
 
 				serverProjectsApi.endProjectsSync(syncId)
 
-				onLog("Account Sync complete")
+				onLog(syncAccLogI("Account Sync complete"))
 				true
 			} else {
-				onLog("Failed to sync projects: ${result.exceptionOrNull()?.message}")
+				onLog(syncAccLogE("Failed to sync projects: ${result.exceptionOrNull()?.message}"))
 				false
 			}
 		} catch (e: Exception) {
@@ -80,7 +80,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		localProjects: List<ProjectDef>,
-		onLog: suspend (String) -> Unit,
+		onLog: OnSyncLog,
 	) {
 		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { projectName ->
 			clientSyncData.deletedProjects.contains(projectName).not() &&
@@ -91,7 +91,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData.projectsToDelete.forEach { projectName ->
 			val result = serverProjectsApi.deleteProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
-				onLog("Deleting server project: $projectName")
+				onLog(syncAccLogI("Deleting server project: $projectName"))
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToDelete = syncData.projectsToDelete - projectName,
@@ -99,13 +99,13 @@ class ClientProjectsSynchronizer(
 					)
 				}
 			} else {
-				onLog("Failed to delete project on server: $projectName")
+				onLog(syncAccLogE("Failed to delete project on server: $projectName"))
 			}
 		}
 
 		// Delete local projects from server
 		newlyDeletedProjects.forEach { projectName ->
-			onLog("Deleting local project: $projectName")
+			onLog(syncAccLogI("Deleting local project: $projectName"))
 			projectsRepository.deleteProject(projectName)
 		}
 	}
@@ -114,7 +114,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		localProjects: List<ProjectDef>,
-		onLog: suspend (String) -> Unit,
+		onLog: OnSyncLog,
 	) {
 		val serverProjects = serverSyncData.projects
 		val newServerProjects = serverProjects.filter { serverProject ->
@@ -130,21 +130,21 @@ class ClientProjectsSynchronizer(
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
-				onLog("Created project on server: $projectName")
+				onLog(syncAccLogI("Created project on server: $projectName"))
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToCreate = syncData.projectsToCreate - projectName,
 					)
 				}
 			} else {
-				onLog("Failed to create project on server: $projectName")
+				onLog(syncAccLogE("Failed to create project on server: $projectName"))
 			}
 		}
 
 		// Create local projects from server
 		newServerProjects.forEach { projectName ->
 			projectsRepository.createProject(projectName)
-			onLog("Created local project: $projectName")
+			onLog(syncAccLogI("Created local project: $projectName"))
 		}
 	}
 

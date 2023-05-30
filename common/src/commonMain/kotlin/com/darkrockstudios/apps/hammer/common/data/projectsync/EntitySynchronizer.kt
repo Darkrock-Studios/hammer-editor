@@ -27,44 +27,44 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		syncId: String,
 		originalHash: String?,
 		onConflict: EntityConflictHandler<T>,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(projectDef, entity, originalHash, syncId)
 		return if (result.isSuccess) {
-			onLog("Uploaded Scene $id")
+			onLog(syncLogI("Uploaded Scene $id", projectDef))
 			true
 		} else {
 			val exception = result.exceptionOrNull()
 			val conflictException = exception as? EntityConflictException
 			if (conflictException != null) {
-				onLog("Conflict for scene $id detected")
+				onLog(syncLogW("Conflict for scene $id detected", projectDef))
 				onConflict(conflictException.entity as T)
 
 				val resolvedEntity = conflictResolution.receive()
 				val resolveResult = serverProjectApi.uploadEntity(projectDef, resolvedEntity, null, syncId, true)
 
 				if (resolveResult.isSuccess) {
-					onLog("Resolved conflict for scene $id")
+					onLog(syncLogI("Resolved conflict for scene $id", projectDef))
 					storeEntity(resolvedEntity, syncId, onLog)
 					true
 				} else {
-					onLog("Scene conflict resolution failed for $id")
+					onLog(syncLogE("Scene conflict resolution failed for $id", projectDef))
 					false
 				}
 			} else {
-				onLog("Failed to upload scene $id")
+				onLog(syncLogE("Failed to upload scene $id", projectDef))
 				false
 			}
 		}
 	}
 
-	abstract suspend fun storeEntity(serverEntity: T, syncId: String, onLog: suspend (String?) -> Unit)
+	abstract suspend fun storeEntity(serverEntity: T, syncId: String, onLog: OnSyncLog)
 	abstract suspend fun reIdEntity(oldId: Int, newId: Int)
 	abstract suspend fun finalizeSync()
 	abstract fun getEntityType(): EntityType
-	abstract suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit)
+	abstract suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog)
 	abstract suspend fun hashEntities(newIds: List<Int>): Set<EntityHash>
 }

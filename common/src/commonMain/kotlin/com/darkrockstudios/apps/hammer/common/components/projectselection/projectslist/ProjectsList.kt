@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
@@ -31,7 +32,7 @@ interface ProjectsList : HammerComponent {
 	data class SyncState(
 		val showProjectSync: Boolean = false,
 		val syncComplete: Boolean = false,
-		val syncLog: List<String> = emptyList(),
+		val syncLog: List<SyncLogMessage> = emptyList(),
 		val projectsStatus: Map<String, ProjectSyncStatus> = emptyMap()
 	)
 

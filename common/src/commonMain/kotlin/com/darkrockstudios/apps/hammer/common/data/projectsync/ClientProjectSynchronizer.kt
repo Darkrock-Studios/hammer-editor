@@ -177,7 +177,7 @@ class ClientProjectSynchronizer(
 	private suspend fun handleIdConflicts(
 		clientSyncData: ProjectSynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	): ProjectSynchronizationData {
 
 		return if (serverSyncData.lastId > clientSyncData.lastId) {
@@ -190,7 +190,7 @@ class ClientProjectSynchronizer(
 
 				for ((ii, id) in clientSyncData.newIds.withIndex()) {
 					if (id <= serverSyncData.lastId) {
-						onLog("ID $id already exists on server, re-assigning")
+						onLog(syncLogI("ID $id already exists on server, re-assigning", projectDef.name))
 						val newId = ++serverLastId
 
 						// Re-ID this currently local only Entity
@@ -237,8 +237,8 @@ class ClientProjectSynchronizer(
 	}
 
 	suspend fun sync(
-		onProgress: suspend (Float, String?) -> Unit,
-		onLog: suspend (String?) -> Unit,
+		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
+		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
@@ -256,12 +256,12 @@ class ClientProjectSynchronizer(
 
 			yield()
 
-			onProgress(0.05f, "Client Entity data calculated")
+			onProgress(0.05f, syncLogI("Client Entity data calculated", projectDef))
 
 			val serverSyncData =
 				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew).getOrThrow()
 
-			onProgress(0.1f, "Server data received")
+			onProgress(0.1f, syncLogI("Server data received", projectDef))
 
 			clientSyncData = clientSyncData.copy(currentSyncId = serverSyncData.syncId)
 			saveSyncData(clientSyncData)
@@ -273,7 +273,7 @@ class ClientProjectSynchronizer(
 				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
 			val dirtyEntities = clientSyncData.dirty.toMutableList()
 
-			onProgress(0.2f, "Client data loaded")
+			onProgress(0.2f, syncLogI("Client data loaded", projectDef))
 
 			yield()
 
@@ -284,7 +284,7 @@ class ClientProjectSynchronizer(
 				val backupDef = backupRepository.createBackup(projectDef)
 
 				if (backupDef != null) {
-					onProgress(0.25f, "Local Backup made: ${backupDef.path.name}")
+					onProgress(0.25f, syncLogI("Local Backup made: ${backupDef.path.name}", projectDef))
 				} else {
 					throw IllegalStateException("Failed to make local backup")
 				}
@@ -344,13 +344,13 @@ class ClientProjectSynchronizer(
 				)
 			}
 
-			onProgress(ENTITY_END, "Entities transferred")
+			onProgress(ENTITY_END, syncLogI("Entities transferred", projectDef))
 
 			finalizeSync()
 
 			yield()
 
-			onProgress(0.9f, "Sync finalized")
+			onProgress(0.9f, syncLogI("Sync finalized", projectDef))
 
 			val newLastId: Int?
 			val syncFinishedAt: Instant?
@@ -378,7 +378,7 @@ class ClientProjectSynchronizer(
 				allSuccess = false
 			} else {
 				if (allSuccess) {
-					onLog("Sync data saved")
+					onLog(syncLogI("Sync data saved", projectDef))
 
 					if (newLastId != null && syncFinishedAt != null) {
 						val finalSyncData = clientSyncData.copy(
@@ -391,10 +391,10 @@ class ClientProjectSynchronizer(
 						)
 						saveSyncData(finalSyncData)
 					} else {
-						onLog("Sync data not saved due to errors")
+						onLog(syncLogE("Sync data not saved due to errors", projectDef))
 					}
 				} else {
-					onLog("Sync data not saved due to errors")
+					onLog(syncLogE("Sync data not saved due to errors", projectDef))
 				}
 			}
 
@@ -406,7 +406,7 @@ class ClientProjectSynchronizer(
 
 			allSuccess
 		} catch (e: Exception) {
-			onLog("Sync failed: ${e.message}")
+			onLog(syncLogE("Sync failed: ${e.message}", projectDef))
 			endSync()
 			onComplete()
 
@@ -422,14 +422,16 @@ class ClientProjectSynchronizer(
 		newClientIds: List<Int>,
 		serverSyncData: ProjectSynchronizationBegan,
 		dirtyEntities: MutableList<EntityOriginalState>,
-		onProgress: suspend (Float, String?) -> Unit,
-		onLog: suspend (String?) -> Unit
+		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
+		onLog: OnSyncLog
 	): Boolean {
 		var allSuccess = true
 
 		suspend fun onConflict(entity: ApiProjectEntity) {
-			onLog("Encountered conflict for new Entity, this should not be possible!")
-			throw IllegalStateException("Encountered conflict for new Entity, this should not be possible!")
+			val message =
+				"Encountered conflict for new Entity, this should not be possible! ID: ${entity.id} TYPE: ${entity.type}"
+			onLog(syncLogE(message, projectDef))
+			throw IllegalStateException(message)
 		}
 
 		val total = newClientIds.size - 1
@@ -457,8 +459,8 @@ class ClientProjectSynchronizer(
 		serverSyncData: ProjectSynchronizationBegan,
 		newClientIds: List<Int>,
 		dirtyEntities: MutableList<EntityOriginalState>,
-		onProgress: suspend (Float, String?) -> Unit,
-		onLog: suspend (String?) -> Unit,
+		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
+		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>
 	): Boolean {
 		var allSuccess = true
@@ -499,19 +501,19 @@ class ClientProjectSynchronizer(
 						}
 					} else {
 						Napier.d("Upload failed for ID $thisId")
-				}
+					}
 
-				allSuccess && success
-			}
-			// Otherwise download the server's copy
-			else {
-				Napier.d("Download ID $thisId")
-				val downloadSuccess = downloadEntry(thisId, serverSyncData.syncId, onLog)
-				if (downloadSuccess.not()) {
-					Napier.d("Download failed for ID $thisId")
+					allSuccess && success
 				}
-				allSuccess && downloadSuccess
-			}
+				// Otherwise download the server's copy
+				else {
+					Napier.d("Download ID $thisId")
+					val downloadSuccess = downloadEntry(thisId, serverSyncData.syncId, onLog)
+					if (downloadSuccess.not()) {
+						Napier.d("Download failed for ID $thisId")
+					}
+					allSuccess && downloadSuccess
+				}
 			onProgress(ENTITY_START + (ENTITY_TOTAL * (currentIndex / totalIds.toFloat())), null)
 
 			yield()
@@ -573,7 +575,7 @@ class ClientProjectSynchronizer(
 		return null
 	}
 
-	private suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	private suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		for (synchronizer in entitySynchronizers) {
 			if (synchronizer.ownsEntity(id)) {
 				synchronizer.deleteEntityLocal(id, onLog)
@@ -582,14 +584,14 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: suspend (String?) -> Unit): Boolean {
+	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
 		val result = serverProjectApi.deleteId(projectDef.name, id, syncId)
 		return if (result.isSuccess) {
-			onLog("Deleted ID $id on server")
+			onLog(syncLogI("Deleted ID $id on server", projectDef))
 			true
 		} else {
 			val message = result.exceptionOrNull()?.message
-			onLog("Failed to delete ID $id on server: $message")
+			onLog(syncLogE("Failed to delete ID $id on server: $message", projectDef))
 			false
 		}
 	}
@@ -599,7 +601,7 @@ class ClientProjectSynchronizer(
 		syncId: String,
 		originalHash: String?,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	): Boolean {
 		val type = findEntityType(id)
 		if (type != null) {
@@ -631,7 +633,7 @@ class ClientProjectSynchronizer(
 				)
 			}
 		} else {
-			onLog("Failed to upload entity $id: type not owned by anything, probably deleted")
+			onLog(syncLogW("Failed to upload entity $id: type not owned by anything, probably deleted", projectDef))
 			return true
 		}
 	}
@@ -651,7 +653,7 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	private suspend fun downloadEntry(id: Int, syncId: String, onLog: suspend (String?) -> Unit): Boolean {
+	private suspend fun downloadEntry(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
 		val localEntityHash = getLocalEntityHash(id)
 		val entityResponse = serverProjectApi.downloadEntity(
 			projectDef = projectDef,
@@ -674,23 +676,24 @@ class ClientProjectSynchronizer(
 
 				is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.storeEntity(serverEntity, syncId, onLog)
 			}
-			onLog("Entity $id downloaded")
+			onLog(syncLogI("Entity $id downloaded", projectDef))
 			true
 		} else {
 			when (entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
-					onLog("Entity $id not modified")
+					onLog(syncLogI("Entity $id not modified", projectDef))
 					true
 				}
 
 				is EntityNotFoundException -> {
-					onLog("Entity $id not found on server")
+					onLog(syncLogW("Entity $id not found on server", projectDef))
 					true
 				}
 
 				else -> {
-					Napier.e("Failed to download entity $id", entityResponse.exceptionOrNull())
-					onLog("Failed to download entity $id")
+					val message = "Failed to download entity $id"
+					Napier.e(message, entityResponse.exceptionOrNull())
+					onLog(syncLogE(message, projectDef))
 					false
 				}
 			}

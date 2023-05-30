@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 @Preview
@@ -23,6 +24,14 @@ private fun ProjectsSyncDialogPreview() = Padded {
 		ProjectsSyncDialogContents(
 			component = fakeProjectsList
 		)
+	}
+}
+
+@Preview
+@Composable
+private fun ProjectsSyncLogPreview() = Padded {
+	Box(modifier = Modifier.border(1.dp, Color.Black).padding(16.dp)) {
+		SyncLogContents(component = fakeProjectsList)
 	}
 }
 
@@ -50,10 +59,11 @@ private val fakeProjectsList = object : ProjectsList {
 					),
 
 					), syncLog = listOf(
-					"Log 1 asd qwe zxc dasd qwe",
-					"Log 2 asd qwe zxc dasd qwe",
-					"Log 3 asd qwe zxc dasd qwe",
-					"Log 4 asd qwe zxc dasd qwe",
+					syncLogI("Log 1 asd qwe zxc dasd qwe", "Project1"),
+					syncLogW("Log 2 asd qwe zxc dasd qwe", "Project1"),
+					syncLogE("Log 3 asd qwe zxc dasd qwe", "Project1"),
+					syncLogD("Log 4 asd qwe zxc dasd qwe", "Project1"),
+					syncAccLogD("Log 4 asd qwe zxc dasd qwe"),
 				)
 			)
 		)

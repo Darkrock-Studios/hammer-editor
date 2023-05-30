@@ -6,6 +6,9 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -60,7 +63,7 @@ class ClientTimelineSynchronizer(
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.TimelineEventEntity,
 		syncId: String,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	) {
 		val event = TimeLineEvent(
 			id = serverEntity.id,
@@ -78,16 +81,16 @@ class ClientTimelineSynchronizer(
 
 	override fun getEntityType() = EntityType.TimelineEvent
 
-	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val event = timeLineRepository.getTimelineEvent(id)
 		if (event != null) {
 			if (timeLineRepository.deleteEvent(event)) {
-				onLog("Deleted Timeline Event $id")
+				onLog(syncLogI("Deleted Timeline Event $id", projectDef))
 			} else {
-				onLog("Failed to delete timeline event $id")
+				onLog(syncLogE("Failed to delete timeline event $id", projectDef))
 			}
 		} else {
-			onLog("Timeline event $id not found")
+			onLog(syncLogE("Timeline event $id not found", projectDef))
 		}
 	}
 

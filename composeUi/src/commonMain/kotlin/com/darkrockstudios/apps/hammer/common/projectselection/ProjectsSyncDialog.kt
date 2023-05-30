@@ -109,33 +109,40 @@ internal fun ProjectsSyncDialogContents(
 }
 
 @Composable
-private fun SyncLog(component: ProjectsList, onClose: () -> Unit) {
-	val state by component.state.subscribeAsState()
-	val scope = rememberCoroutineScope()
-
+fun SyncLog(component: ProjectsList, onClose: () -> Unit) {
 	MpDialog(
 		onCloseRequest = onClose,
 		visible = true,
 		title = "Sync Log",
 	) {
-		val logListState: LazyListState = rememberLazyListState()
-		Box(modifier = Modifier.padding(Ui.Padding.L).fillMaxSize()) {
-			LazyColumn(
-				state = logListState,
-				modifier = Modifier.fillMaxWidth()
-			) {
-				val log = state.syncState.syncLog
-				items(count = log.size, key = { it }) { index ->
-					Text(log[index])
-				}
+		SyncLogContents(component)
+	}
+}
+
+@Composable
+fun SyncLogContents(component: ProjectsList) {
+	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
+
+	val logListState: LazyListState = rememberLazyListState()
+	Box(modifier = Modifier.padding(Ui.Padding.L).fillMaxSize()) {
+		LazyColumn(
+			state = logListState,
+			contentPadding = PaddingValues(4.dp),
+			modifier = Modifier.fillMaxWidth()
+		) {
+			val log = state.syncState.syncLog
+			items(count = log.size, key = { it }) { index ->
+				val logMsg = log[index]
+				SyncLogMessageUi(logMsg)
 			}
 		}
+	}
 
-		LaunchedEffect(state.syncState.syncLog) {
-			if (state.syncState.syncLog.isNotEmpty()) {
-				scope.launch {
-					logListState.animateScrollToItem(state.syncState.syncLog.size - 1)
-				}
+	LaunchedEffect(state.syncState.syncLog) {
+		if (state.syncState.syncLog.isNotEmpty()) {
+			scope.launch {
+				logListState.animateScrollToItem(state.syncState.syncLog.size - 1)
 			}
 		}
 	}
