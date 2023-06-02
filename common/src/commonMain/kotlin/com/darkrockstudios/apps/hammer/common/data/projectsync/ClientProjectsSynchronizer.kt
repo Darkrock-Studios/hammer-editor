@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
@@ -22,6 +23,7 @@ class ClientProjectsSynchronizer(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
+	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json
 ) {
 	var initialSync = false
@@ -29,6 +31,9 @@ class ClientProjectsSynchronizer(
 	fun isServerSynchronized(): Boolean {
 		return globalSettingsRepository.serverSettings != null
 	}
+
+	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing &&
+			networkConnectivity.hasActiveConnection()
 
 	suspend fun syncProjects(onLog: OnSyncLog): Boolean {
 		onLog(syncAccLogI("Begin Sync"))

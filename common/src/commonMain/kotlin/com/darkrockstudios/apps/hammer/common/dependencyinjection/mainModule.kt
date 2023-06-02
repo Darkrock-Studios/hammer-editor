@@ -47,7 +47,9 @@ const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
-
+/**
+ * This is the main module containing most of the DI objects
+ */
 val mainModule = module {
 	includes(externalFileIoModule)
 	includes(exampleProjectModule)
@@ -57,6 +59,8 @@ val mainModule = module {
 	single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
 	single { Clock.System } bind Clock::class
+
+	includes(platformModule)
 
 	single { createHttpClient(get()) } bind HttpClient::class
 	singleOf(::ServerAccountApi)

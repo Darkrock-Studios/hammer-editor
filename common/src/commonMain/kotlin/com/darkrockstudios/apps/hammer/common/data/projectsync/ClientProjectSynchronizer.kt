@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import io.github.aakira.napier.Napier
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,7 @@ class ClientProjectSynchronizer(
 	private val defaultDispatcher by injectDefaultDispatcher()
 	private val idRepository: IdRepository by projectInject()
 	private val backupRepository: ProjectBackupRepository by inject()
+	private val networkConnectivity: NetworkConnectivity by inject()
 
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
@@ -94,7 +96,8 @@ class ClientProjectSynchronizer(
 		return loadSyncData().dirty.isNotEmpty()
 	}
 
-	fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing
+	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing &&
+			networkConnectivity.hasActiveConnection()
 
 	suspend fun isEntityDirty(id: Int): Boolean {
 		val syncData = loadSyncData()

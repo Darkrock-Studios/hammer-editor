@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.soywiz.kds.iterators.parallelMap
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -34,6 +35,7 @@ class ProjectsListComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
+	private val networkConnectivity: NetworkConnectivity by inject()
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
@@ -98,6 +100,7 @@ class ProjectsListComponent(
 				if (
 					projectsSynchronizer.isServerSynchronized() &&
 					settings.automaticSyncing &&
+					networkConnectivity.hasActiveConnection() &&
 					projectsSynchronizer.initialSync.not()
 				) {
 					projectsSynchronizer.initialSync = true

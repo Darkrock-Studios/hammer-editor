@@ -51,6 +51,7 @@ compose.desktop {
             windows.apply {
                 menuGroup = "Hammer"
                 shortcut = true
+                console = true
             }
         }
         jvmArgs("-Dcompose.application.configure.swing.globals=false")
