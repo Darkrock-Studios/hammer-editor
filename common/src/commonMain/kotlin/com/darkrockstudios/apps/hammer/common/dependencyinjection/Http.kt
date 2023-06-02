@@ -37,7 +37,7 @@ fun createHttpClient(
         installCompression()
 
         install(HttpRequestRetry) {
-            retryOnExceptionOrServerErrors(3)
+            retryOnException(2)
         }
 
         install(Auth) {
