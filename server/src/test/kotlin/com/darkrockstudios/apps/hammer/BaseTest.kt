@@ -24,54 +24,54 @@ import kotlin.coroutines.CoroutineContext
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class BaseTest : KoinTest {
 
-    protected val scope = TestScope()
+	protected val scope = TestScope()
 
-    lateinit var mainTestDispatcher: TestDispatcher
-    lateinit var ioTestDispatcher: TestDispatcher
-    lateinit var defaultTestDispatcher: TestDispatcher
+	lateinit var mainTestDispatcher: TestDispatcher
+	lateinit var ioTestDispatcher: TestDispatcher
+	lateinit var defaultTestDispatcher: TestDispatcher
 
-    @Before
-    open fun setup() {
-        Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
-    }
+	@Before
+	open fun setup() {
+		Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
+	}
 
-    @After
-    open fun tearDown() {
-        scope.cancel()
-        stopKoin()
-    }
+	@After
+	open fun tearDown() {
+		scope.cancel()
+		stopKoin()
+	}
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun setupKoin(vararg modules: Module) {
-        val scheduler = scope.testScheduler
-        GlobalContext.startKoin {
-            modules(
-                module {
-                    single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "Default dispatcher"
-                        )
-                    }
-                    single<CoroutineContext>(named(DISPATCHER_IO)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "IO dispatcher"
-                        )
-                    }
-                    single<CoroutineContext>(named(DISPATCHER_MAIN)) {
-                        StandardTestDispatcher(
-                            scheduler,
-                            name = "Main dispatcher"
-                        )
-                    }
-                },
-                *modules
-            )
-        }
+	@OptIn(ExperimentalCoroutinesApi::class)
+	fun setupKoin(vararg modules: Module) {
+		val scheduler = scope.testScheduler
+		GlobalContext.startKoin {
+			modules(
+				module {
+					single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "Default dispatcher"
+						)
+					}
+					single<CoroutineContext>(named(DISPATCHER_IO)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "IO dispatcher"
+						)
+					}
+					single<CoroutineContext>(named(DISPATCHER_MAIN)) {
+						StandardTestDispatcher(
+							scheduler,
+							name = "Main dispatcher"
+						)
+					}
+				},
+				*modules
+			)
+		}
 
-        mainTestDispatcher = get<CoroutineContext>(named(DISPATCHER_MAIN)) as TestDispatcher
-        ioTestDispatcher = get<CoroutineContext>(named(DISPATCHER_IO)) as TestDispatcher
-        defaultTestDispatcher = get<CoroutineContext>(named(DISPATCHER_DEFAULT)) as TestDispatcher
-    }
+		mainTestDispatcher = get<CoroutineContext>(named(DISPATCHER_MAIN)) as TestDispatcher
+		ioTestDispatcher = get<CoroutineContext>(named(DISPATCHER_IO)) as TestDispatcher
+		defaultTestDispatcher = get<CoroutineContext>(named(DISPATCHER_DEFAULT)) as TestDispatcher
+	}
 }

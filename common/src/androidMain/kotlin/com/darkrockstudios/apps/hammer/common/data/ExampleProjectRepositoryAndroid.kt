@@ -16,8 +16,8 @@ actual val exampleProjectModule = module {
 }
 
 class ExampleProjectRepositoryAndroid(
-    globalSettingsRepository: GlobalSettingsRepository,
-    private val context: Context
+	globalSettingsRepository: GlobalSettingsRepository,
+	private val context: Context
 ) : ExampleProjectRepository(globalSettingsRepository) {
 
 	private fun loadExampleProjectZip(platform: Any?): ByteArray {

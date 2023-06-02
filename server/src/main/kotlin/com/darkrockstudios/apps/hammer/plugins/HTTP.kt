@@ -27,7 +27,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 		}
 	}
 
-	if(config.sslCert?.forceHttps == true) {
+	if (config.sslCert?.forceHttps == true) {
 		install(HttpsRedirect)
 	}
 }

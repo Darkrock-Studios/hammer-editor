@@ -34,9 +34,9 @@ interface TreeData<T> : Iterable<TreeNode<T>> {
 }
 
 data class TreeNode<T>(
-    var value: T,
-    var parent: TreeNode<T>? = null,
-    private val children: MutableList<TreeNode<T>> = mutableListOf()
+	var value: T,
+	var parent: TreeNode<T>? = null,
+	private val children: MutableList<TreeNode<T>> = mutableListOf()
 ) : TreeData<T> {
 
 	operator fun get(index: Int): TreeNode<T> {

@@ -4,8 +4,8 @@ import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
 data class SceneSummary(
-    val sceneTree: ImmutableTree<SceneItem>,
-    val hasDirtyBuffer: Set<Int>
+	val sceneTree: ImmutableTree<SceneItem>,
+	val hasDirtyBuffer: Set<Int>
 )
 
 fun emptySceneSummary(projectDef: ProjectDef) = SceneSummary(

@@ -36,12 +36,12 @@ internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EncyclopediaEntryItem(
-    entryDef: EntryDef,
-    component: BrowseEntries,
-    viewEntry: (EntryDef) -> Unit,
-    scope: CoroutineScope,
-    modifier: Modifier = Modifier,
-    filterByType: (type: EntryType) -> Unit
+	entryDef: EntryDef,
+	component: BrowseEntries,
+	viewEntry: (EntryDef) -> Unit,
+	scope: CoroutineScope,
+	modifier: Modifier = Modifier,
+	filterByType: (type: EntryType) -> Unit
 ) {
 	val ioDispatcher = rememberIoDispatcher()
 	val mainDispatcher = rememberMainDispatcher()

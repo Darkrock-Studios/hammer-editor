@@ -32,10 +32,10 @@ const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 
 @Composable
 fun TimeLineOverviewUi(
-    component: TimeLineOverview,
-    scope: CoroutineScope,
-    showCreate: () -> Unit,
-    viewEvent: (eventId: Int) -> Unit
+	component: TimeLineOverview,
+	scope: CoroutineScope,
+	showCreate: () -> Unit,
+	viewEvent: (eventId: Int) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
 

@@ -20,43 +20,43 @@ import kotlin.test.assertEquals
 
 class ApplicationTest : BaseTest() {
 
-    private lateinit var accountsRepository: AccountsRepository
-    private lateinit var projectRepository: ProjectRepository
-    private lateinit var projectsRepository: ProjectsRepository
-    private lateinit var accountsComponent: AccountsComponent
-    private lateinit var adminComponent: AdminComponent
+	private lateinit var accountsRepository: AccountsRepository
+	private lateinit var projectRepository: ProjectRepository
+	private lateinit var projectsRepository: ProjectsRepository
+	private lateinit var accountsComponent: AccountsComponent
+	private lateinit var adminComponent: AdminComponent
 
-    @Before
-    override fun setup() {
-        super.setup()
+	@Before
+	override fun setup() {
+		super.setup()
 
-        accountsRepository = mockk()
-        projectRepository = mockk()
-        projectsRepository = mockk()
-        accountsComponent = mockk()
-        adminComponent = mockk()
+		accountsRepository = mockk()
+		projectRepository = mockk()
+		projectsRepository = mockk()
+		accountsComponent = mockk()
+		adminComponent = mockk()
 
-        val testModule = module {
-            single { accountsRepository }
-            single { projectRepository }
-            single { projectsRepository }
-            single { accountsComponent }
-            single { adminComponent }
-            single { mockk<Json>() }
-        }
-        setupKoin(testModule)
+		val testModule = module {
+			single { accountsRepository }
+			single { projectRepository }
+			single { projectsRepository }
+			single { accountsComponent }
+			single { adminComponent }
+			single { mockk<Json>() }
+		}
+		setupKoin(testModule)
 
-    }
+	}
 
-    @Test
-    fun testRoot() = testApplication {
-        application {
-            configureSecurity()
-            configureRouting()
-        }
-        client.get("/teapot").apply {
-            assertEquals(HttpStatusCode.fromValue(418), status)
-            assertEquals("I'm a little Tea Pot", bodyAsText())
-        }
-    }
+	@Test
+	fun testRoot() = testApplication {
+		application {
+			configureSecurity()
+			configureRouting()
+		}
+		client.get("/teapot").apply {
+			assertEquals(HttpStatusCode.fromValue(418), status)
+			assertEquals("I'm a little Tea Pot", bodyAsText())
+		}
+	}
 }

@@ -131,7 +131,7 @@ class EncyclopediaRepositoryOkio(
 
 	override fun findEntryDef(id: Int): EntryDef? {
 		val path = findEntryPath(id)
-		return if(path != null) {
+		return if (path != null) {
 			getEntryDefFromFilename(path.name, projectDef)
 		} else {
 			null

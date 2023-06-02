@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.ServerDatabase
 
 interface Database {
-    val serverDatabase: ServerDatabase
+	val serverDatabase: ServerDatabase
 
-    fun initialize()
-    fun close()
+	fun initialize()
+	fun close()
 }
