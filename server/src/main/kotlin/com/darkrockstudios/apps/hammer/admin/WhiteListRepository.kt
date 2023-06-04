@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.readJson
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.writeJson
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path

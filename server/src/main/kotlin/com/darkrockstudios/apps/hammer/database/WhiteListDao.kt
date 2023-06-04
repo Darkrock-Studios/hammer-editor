@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.database
 
-import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent

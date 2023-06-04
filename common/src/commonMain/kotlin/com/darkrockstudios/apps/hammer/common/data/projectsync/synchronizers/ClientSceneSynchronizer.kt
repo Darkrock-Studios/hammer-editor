@@ -11,8 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
@@ -76,7 +75,7 @@ class ClientSceneSynchronizer(
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.SceneEntity,
 		syncId: String,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	) {
 		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
@@ -101,12 +100,12 @@ class ClientSceneSynchronizer(
 
 					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
-					onLog("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}")
+					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
 				}
 
 				existingScene
 			} else {
-				onLog("Creating new scene $id")
+				onLog(syncLogI("Creating new scene $id", projectDef))
 				projectEditorRepository.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
@@ -127,9 +126,9 @@ class ClientSceneSynchronizer(
 
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (!projectEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-				onLog("Failed to save downloaded scene content for: $id")
+				onLog(syncLogE("Failed to save downloaded scene content for: $id", projectDef))
 			} else {
-				onLog("Downloaded scene content for: $id")
+				onLog(syncLogI("Downloaded scene content for: $id", projectDef))
 				projectEditorRepository.onContentChanged(content, UpdateSource.Sync)
 			}
 		} else {
@@ -144,12 +143,12 @@ class ClientSceneSynchronizer(
 
 					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
-					onLog("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}")
+					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
 				}
 
 				existingGroup
 			} else {
-				onLog("Creating new group $id")
+				onLog(syncLogI("Creating new group $id", projectDef))
 				projectEditorRepository.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
@@ -165,7 +164,7 @@ class ClientSceneSynchronizer(
 				order = serverEntity.order
 			)
 
-			onLog("Downloaded scene group for: $id")
+			onLog(syncLogI("Downloaded scene group for: $id", projectDef))
 		}
 	}
 
@@ -193,16 +192,16 @@ class ClientSceneSynchronizer(
 
 	override fun getEntityType() = EntityType.Scene
 
-	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val sceneItem = projectEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
 			if (projectEditorRepository.deleteScene(sceneItem)) {
-				onLog("Deleting scene $id")
+				onLog(syncLogI("Deleting scene $id", projectDef))
 			} else {
-				onLog("Failed to delete scene $id")
+				onLog(syncLogE("Failed to delete scene $id", projectDef))
 			}
 		} else {
-			onLog("Failed find scene to delete: $id")
+			onLog(syncLogE("Failed find scene to delete: $id", projectDef))
 		}
 	}
 

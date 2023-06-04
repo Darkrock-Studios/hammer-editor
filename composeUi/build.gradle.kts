@@ -13,11 +13,11 @@ val koin_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
-    id("org.jetbrains.compose")
-    id("com.android.library")
-    id("kotlin-parcelize")
+	kotlin("multiplatform")
+	kotlin("plugin.serialization")
+	id("org.jetbrains.compose")
+	id("com.android.library")
+	id("kotlin-parcelize")
 	id("org.jetbrains.kotlinx.kover")
 }
 
@@ -25,18 +25,18 @@ group = "com.darkrockstudios.apps.hammer.composeui"
 version = app_version
 
 kotlin {
-    android()
-    jvm("desktop") {
-        compilations.all {
+	android()
+	jvm("desktop") {
+		compilations.all {
 			kotlinOptions.jvmTarget = jvm_version
-        }
-    }
+		}
+	}
 
-    sourceSets {
-        val commonMain by getting {
-            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-            dependencies {
-                api(project(":common"))
+	sourceSets {
+		val commonMain by getting {
+			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+			dependencies {
+				api(project(":common"))
 				api(compose.runtime)
 				api(compose.uiTooling)
 				api(compose.preview)
@@ -80,18 +80,18 @@ kotlin {
 				implementation("io.mockk:mockk:$mockk_version")
 			}
 		}
-    }
+	}
 }
 android {
-    namespace = "com.darkrockstudios.apps.hammer.composeui"
-    compileSdk = android_compile_sdk.toInt()
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
-    defaultConfig {
-        minSdk = android_min_sdk.toInt()
-        targetSdk = android_target_sdk.toInt()
-    }
-    buildFeatures {
+	namespace = "com.darkrockstudios.apps.hammer.composeui"
+	compileSdk = android_compile_sdk.toInt()
+	sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+	sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
+	defaultConfig {
+		minSdk = android_min_sdk.toInt()
+		targetSdk = android_target_sdk.toInt()
+	}
+	buildFeatures {
 		compose = true
 	}
 	composeOptions {

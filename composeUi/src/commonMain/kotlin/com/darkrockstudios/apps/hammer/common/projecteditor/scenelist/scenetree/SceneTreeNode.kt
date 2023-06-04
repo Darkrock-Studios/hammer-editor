@@ -13,13 +13,13 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
  */
 @Composable
 fun SceneTreeNode(
-    node: TreeValue<SceneItem>,
-    collapsed: Boolean,
-    nodeCollapsesChildren: Boolean,
-    selectedId: Int,
-    itemUi: ItemUi,
-    toggleExpanded: (nodeId: Int) -> Unit,
-    modifier: Modifier
+	node: TreeValue<SceneItem>,
+	collapsed: Boolean,
+	nodeCollapsesChildren: Boolean,
+	selectedId: Int,
+	itemUi: ItemUi,
+	toggleExpanded: (nodeId: Int) -> Unit,
+	modifier: Modifier
 ) {
 	AnimatedVisibility(visible = !collapsed, modifier = modifier) {
 		val itemModifier = Modifier.alpha(if (node.value.id == selectedId) 0.5f else 1f)

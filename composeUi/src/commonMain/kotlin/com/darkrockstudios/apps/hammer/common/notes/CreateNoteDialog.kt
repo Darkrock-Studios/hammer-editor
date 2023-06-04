@@ -17,9 +17,9 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateNoteDialog(
-    component: Notes,
-    snackbarHostState: SnackbarHostState,
-    scope: CoroutineScope,
+	component: Notes,
+	snackbarHostState: SnackbarHostState,
+	scope: CoroutineScope,
 ) {
 	MpDialog(
 		visible = true,

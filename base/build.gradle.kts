@@ -1,5 +1,6 @@
 val jvm_version: String by extra
 val app_version: String by extra
+val data_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
@@ -72,6 +73,7 @@ buildConfig {
     useKotlinOutput { internalVisibility = false }
 
     buildConfigField("String", "APP_VERSION", "\"$app_version\"")
+    buildConfigField("String", "DATA_VERSION", "\"$data_version\"")
 }
 
 val GIT_TASK_NAME = "install-git-hooks"

@@ -19,7 +19,8 @@ interface AccountSettings {
 		url: String,
 		email: String,
 		password: String,
-		create: Boolean
+		create: Boolean,
+		removeLocalContent: Boolean
 	)
 
 	suspend fun authTest(): Boolean
@@ -29,6 +30,7 @@ interface AccountSettings {
 	suspend fun setAutoCloseDialogs(value: Boolean)
 	suspend fun setAutoSyncing(value: Boolean)
 	suspend fun setMaxBackups(value: Int)
+	fun reauthenticate()
 
 	data class State(
 		val projectsDir: HPath,
@@ -36,6 +38,7 @@ interface AccountSettings {
 		val uiTheme: UiTheme,
 		val serverSetup: Boolean = false,
 		val serverIsLoggedIn: Boolean = false,
+		val serverSsl: Boolean? = null,
 		val serverUrl: String? = null,
 		val serverEmail: String? = null,
 		val serverError: String? = null,

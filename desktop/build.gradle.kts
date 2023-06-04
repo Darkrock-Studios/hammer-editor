@@ -1,6 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val app_version: String by extra
+val data_version: String by extra
 val jvm_version: String by extra
 
 plugins {
@@ -30,6 +31,7 @@ kotlin {
                 implementation(compose.preview)
                 implementation(compose.desktop.currentOs)
                 implementation("com.github.weisj:darklaf-core:3.0.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
             }
         }
         val jvmTest by getting
@@ -49,6 +51,7 @@ compose.desktop {
             windows.apply {
                 menuGroup = "Hammer"
                 shortcut = true
+                console = true
             }
         }
         jvmArgs("-Dcompose.application.configure.swing.globals=false")

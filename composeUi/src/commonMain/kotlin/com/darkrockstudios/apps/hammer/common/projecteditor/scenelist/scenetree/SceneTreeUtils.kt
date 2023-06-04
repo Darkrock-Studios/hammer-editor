@@ -10,11 +10,11 @@ import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 
 
 internal fun findInsertPosition(
-    dragOffset: Offset,
-    layouts: List<LazyListItemInfo>,
-    collapsedGroups: SnapshotStateMap<Int, Boolean>,
-    tree: ImmutableTree<SceneItem>,
-    selectedId: Int,
+	dragOffset: Offset,
+	layouts: List<LazyListItemInfo>,
+	collapsedGroups: SnapshotStateMap<Int, Boolean>,
+	tree: ImmutableTree<SceneItem>,
+	selectedId: Int,
 ): InsertPosition? {
 	val dragY = dragOffset.y
 

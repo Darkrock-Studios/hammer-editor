@@ -4,14 +4,14 @@ package com.darkrockstudios.apps.hammer.common.data.tree
  * A simplified immutable representation of a tree node
  */
 data class TreeValue<T>(
-    val value: T,
-    /** Global tree index */
-    val index: Int,
-    /** Parent's global tree index */
-    val parent: Int,
-    val children: List<TreeValue<T>>,
-    val depth: Int,
-    val totalChildren: Int
+	val value: T,
+	/** Global tree index */
+	val index: Int,
+	/** Parent's global tree index */
+	val parent: Int,
+	val children: List<TreeValue<T>>,
+	val depth: Int,
+	val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
 	override fun iterator(): Iterator<TreeValue<T>> = NodeIterator(this)
 
@@ -86,8 +86,8 @@ data class TreeValue<T>(
 }
 
 data class ImmutableTree<T>(
-    val root: TreeValue<T>,
-    val totalChildren: Int
+	val root: TreeValue<T>,
+	val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
 	private val nodeIndex: HashMap<Int, TreeValue<T>>
 
@@ -180,7 +180,7 @@ data class ImmutableTree<T>(
 
 	fun getCoordinatesFor(node: TreeValue<T>): NodeCoordinates {
 		return if (node == root) {
-            NodeCoordinates.Root
+			NodeCoordinates.Root
 		} else {
 			val parent = this[node.parent]
 			val childIndex = parent.children.indexOf(node)

@@ -29,27 +29,27 @@ class TimeLineComponent(
 	override val stack: Value<ChildStack<TimeLine.Config, TimeLine.Destination>> = _stack
 
 	private fun createChild(
-        config: TimeLine.Config,
-        componentContext: ComponentContext
-    ): TimeLine.Destination =
+		config: TimeLine.Config,
+		componentContext: ComponentContext
+	): TimeLine.Destination =
 		when (config) {
 			is TimeLine.Config.TimeLineOverviewConfig -> TimeLine.Destination.TimeLineOverviewDestination(
-                createOverview(config, componentContext)
-            )
+				createOverview(config, componentContext)
+			)
 
 			is TimeLine.Config.ViewEventConfig -> TimeLine.Destination.ViewEventDestination(
-                createViewEvent(config, componentContext)
-            )
+				createViewEvent(config, componentContext)
+			)
 
 			is TimeLine.Config.CreateEventConfig -> TimeLine.Destination.CreateEventDestination(
-                createCreateEvent(config, componentContext)
-            )
+				createCreateEvent(config, componentContext)
+			)
 		}
 
 	private fun createOverview(
-        config: TimeLine.Config.TimeLineOverviewConfig,
-        componentContext: ComponentContext
-    ): TimeLineOverview {
+		config: TimeLine.Config.TimeLineOverviewConfig,
+		componentContext: ComponentContext
+	): TimeLineOverview {
 		return TimeLineOverviewComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
@@ -59,9 +59,9 @@ class TimeLineComponent(
 	}
 
 	private fun createViewEvent(
-        config: TimeLine.Config.ViewEventConfig,
-        componentContext: ComponentContext
-    ): ViewTimeLineEvent {
+		config: TimeLine.Config.ViewEventConfig,
+		componentContext: ComponentContext
+	): ViewTimeLineEvent {
 		return ViewTimeLineEventComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
@@ -70,9 +70,9 @@ class TimeLineComponent(
 	}
 
 	private fun createCreateEvent(
-        config: TimeLine.Config.CreateEventConfig,
-        componentContext: ComponentContext
-    ): CreateTimeLineEvent {
+		config: TimeLine.Config.CreateEventConfig,
+		componentContext: ComponentContext
+	): CreateTimeLineEvent {
 		return CreateTimeLineEventComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef

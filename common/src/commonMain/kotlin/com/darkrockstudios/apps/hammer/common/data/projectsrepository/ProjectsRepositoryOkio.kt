@@ -19,9 +19,9 @@ import okio.IOException
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
-    private val fileSystem: FileSystem,
-    private val toml: Toml,
-    globalSettingsRepository: GlobalSettingsRepository,
+	private val fileSystem: FileSystem,
+	private val toml: Toml,
+	globalSettingsRepository: GlobalSettingsRepository,
 ) : ProjectsRepository() {
 
 	private var globalSettings = globalSettingsRepository.globalSettings
@@ -29,11 +29,11 @@ class ProjectsRepositoryOkio(
 	init {
 		watchSettings(globalSettingsRepository)
 
-        val projectsDir = getProjectsDirectory().toOkioPath()
-        if (!fileSystem.exists(projectsDir)) {
-            fileSystem.createDirectory(projectsDir)
-        }
-    }
+		val projectsDir = getProjectsDirectory().toOkioPath()
+		if (!fileSystem.exists(projectsDir)) {
+			fileSystem.createDirectory(projectsDir)
+		}
+	}
 
 	private fun watchSettings(globalSettingsRepository: GlobalSettingsRepository) {
 		projectsScope.launch {

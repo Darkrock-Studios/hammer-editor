@@ -7,11 +7,13 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import io.github.aakira.napier.Napier
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -81,9 +83,20 @@ class BrowseEntriesComponent(
 		return if (cachedEntry != null) {
 			cachedEntry.entry
 		} else {
-			val container = encyclopediaRepository.loadEntry(entryDef)
-			entryContentCache.put(entryDef.id, container)
-			container.entry
+			try {
+				val container = encyclopediaRepository.loadEntry(entryDef)
+				entryContentCache.put(entryDef.id, container)
+				container.entry
+			} catch (e: EntryLoadError) {
+				Napier.w("Failed to load encyclopedia entry: ${entryDef.id} - ${entryDef.name}")
+				EntryContent(
+					id = entryDef.id,
+					name = entryDef.name,
+					type = entryDef.type,
+					text = "ERROR",
+					tags = emptyList()
+				)
+			}
 		}
 	}
 

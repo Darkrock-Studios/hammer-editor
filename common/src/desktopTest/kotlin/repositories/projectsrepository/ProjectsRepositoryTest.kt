@@ -2,14 +2,14 @@ package repositories.projectsrepository
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.mockk.*
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle

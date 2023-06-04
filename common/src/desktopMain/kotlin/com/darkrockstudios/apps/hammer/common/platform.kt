@@ -14,7 +14,6 @@ actual fun getPlatformName(): String {
 	return "Desktop"
 }
 
-private val DATA_VERSION = "1.0"
 private val AUTHOR = "DarkrockStudios"
 
 actual fun getHomeDirectory(): String = System.getProperty("user.home")

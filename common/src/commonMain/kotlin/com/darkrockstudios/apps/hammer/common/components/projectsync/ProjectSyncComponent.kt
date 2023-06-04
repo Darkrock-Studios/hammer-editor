@@ -13,8 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.soywiz.krypto.encoding.Base64
@@ -48,9 +47,9 @@ class ProjectSyncComponent(
 	)
 	override val state: Value<ProjectSync.State> = _state
 
-	private suspend fun updateSyncLog(log: String?) {
+	private suspend fun updateSyncLog(log: SyncLogMessage?) {
 		if (log != null) {
-			Napier.d(log)
+			Napier.log(log.level.toNapierLevel(), "ProjectSync", null, "${log.projectName} - ${log.message}")
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					val existingLog = it.syncLog
@@ -62,7 +61,7 @@ class ProjectSyncComponent(
 		}
 	}
 
-	private suspend fun updateSync(isSyncing: Boolean, progress: Float, log: String? = null) {
+	private suspend fun updateSync(isSyncing: Boolean, progress: Float, log: SyncLogMessage? = null) {
 		updateSyncLog(log)
 
 		withContext(mainDispatcher) {
@@ -78,7 +77,7 @@ class ProjectSyncComponent(
 	override fun syncProject(onComplete: (Boolean) -> Unit) {
 		syncJob?.cancel(CancellationException("Starting another sync"))
 		syncJob = scope.launch {
-			updateSync(true, 0f, "Project Sync Started")
+			updateSync(true, 0f, syncLogI("Project Sync Started", projectDef))
 			val success = projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
 
 			_state.getAndUpdate {
@@ -133,7 +132,7 @@ class ProjectSyncComponent(
 			syncJob?.cancel(CancellationException("User canceled sync"))
 			syncJob = null
 
-			updateSyncLog("User canceled project sync")
+			updateSyncLog(syncLogW("User canceled project sync", projectDef))
 
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
@@ -154,7 +153,7 @@ class ProjectSyncComponent(
 		}
 	}
 
-	private suspend fun onSyncProgress(progress: Float, log: String? = null) {
+	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
 		Napier.d("Sync progress: $progress")
 		updateSync(true, progress, log)
 	}
@@ -275,7 +274,7 @@ class ProjectSyncComponent(
 	}
 
 	private suspend fun onSyncComplete() {
-		updateSyncLog("Sync complete!")
+		updateSyncLog(syncLogI("Sync complete!", projectDef))
 		updateSync(false, 1f)
 	}
 

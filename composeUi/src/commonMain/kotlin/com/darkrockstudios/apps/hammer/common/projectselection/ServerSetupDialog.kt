@@ -26,6 +26,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
@@ -37,22 +38,22 @@ import kotlinx.coroutines.launch
 fun ServerSetupDialog(
 	component: AccountSettings,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
 
 	val focusManager = LocalFocusManager.current
 
-	var sslValue by rememberSaveable { mutableStateOf(true) }
-	var urlValue by rememberSaveable { mutableStateOf("") }
-	var emailValue by rememberSaveable { mutableStateOf("") }
-	var passwordValue by rememberSaveable { mutableStateOf("") }
-	var passwordVisible by rememberSaveable { mutableStateOf(false) }
+	var sslValue by rememberSaveable(state.serverSsl) { mutableStateOf(state.serverSsl ?: true) }
+	var urlValue by rememberSaveable(state.serverUrl) { mutableStateOf(state.serverUrl ?: "") }
+	var emailValue by rememberSaveable(state.serverEmail) { mutableStateOf(state.serverEmail ?: "") }
+	var passwordValue by rememberSaveable(state.serverSetup) { mutableStateOf("") }
+	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
+	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
 
 	fun clearInput() {
-		sslValue = true
-		urlValue = ""
-		emailValue = ""
+		sslValue = state.serverSsl ?: true
+		urlValue = state.serverUrl ?: ""
+		emailValue = state.serverEmail ?: ""
 		passwordValue = ""
 		passwordVisible = false
 	}
@@ -69,12 +70,6 @@ fun ServerSetupDialog(
 		DisposableEffect(Unit) {
 			onDispose {
 				clearInput()
-			}
-		}
-
-		LaunchedEffect(state.toast) {
-			if (state.toast != null) {
-				snackbarHostState.showSnackbar("Failed to setup server")
 			}
 		}
 
@@ -102,7 +97,7 @@ fun ServerSetupDialog(
 					Checkbox(
 						checked = sslValue,
 						onCheckedChange = { sslValue = it },
-						enabled = state.serverWorking.not()
+						enabled = state.serverWorking.not() && (state.serverSsl == null)
 					)
 					Text(MR.strings.settings_server_setup_ssl_label.get())
 				}
@@ -120,7 +115,7 @@ fun ServerSetupDialog(
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
 					),
-					enabled = state.serverWorking.not()
+					enabled = state.serverWorking.not() && (state.serverUrl == null)
 				)
 
 				OutlinedTextField(
@@ -136,7 +131,7 @@ fun ServerSetupDialog(
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
 					),
-					enabled = state.serverWorking.not()
+					enabled = state.serverWorking.not() && (state.serverEmail == null)
 				)
 
 				OutlinedTextField(
@@ -181,35 +176,36 @@ fun ServerSetupDialog(
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-				Row {
+				Row(
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
 					Button(
 						onClick = {
-							component.setupServer(
-								ssl = sslValue,
-								url = urlValue,
-								email = emailValue,
-								password = passwordValue,
-								create = false
-							)
+							if (state.serverIsLoggedIn.not()) {
+								confirmDeleteLocal = false
+							} else {
+								component.setupServer(
+									ssl = sslValue,
+									url = urlValue,
+									email = emailValue,
+									password = passwordValue,
+									create = false,
+									removeLocalContent = false
+								)
+							}
 						},
 						enabled = state.serverWorking.not()
 					) {
 						Text(MR.strings.settings_server_setup_login_button.get())
 					}
 
-					Button(
-						onClick = {
-							component.setupServer(
-								ssl = sslValue,
-								url = urlValue,
-								email = emailValue,
-								password = passwordValue,
-								create = true
-							)
-						},
-						enabled = state.serverWorking.not()
-					) {
-						Text(MR.strings.settings_server_setup_create_button.get())
+					if (state.serverIsLoggedIn.not()) {
+						Button(
+							onClick = { confirmDeleteLocal = true },
+							enabled = state.serverWorking.not()
+						) {
+							Text(MR.strings.settings_server_setup_create_button.get())
+						}
 					}
 
 					Button(
@@ -225,6 +221,33 @@ fun ServerSetupDialog(
 					}
 				}
 			}
+		}
+
+		confirmDeleteLocal?.let { create ->
+			fun setupServer(create: Boolean, removeLocal: Boolean) {
+				component.setupServer(
+					ssl = sslValue,
+					url = urlValue,
+					email = emailValue,
+					password = passwordValue,
+					create = create,
+					removeLocalContent = removeLocal
+				)
+			}
+
+			SimpleConfirm(
+				title = "Remove Local Content?",
+				message = "Should we remove your current local content before syncing? If not, we will attempt to merge your local content with the server content. If the content is unrelated, it could cause problems.",
+				implicitCancel = false,
+				onDismiss = {
+					setupServer(create, false)
+					confirmDeleteLocal = null
+				},
+				onConfirm = {
+					setupServer(create, true)
+					confirmDeleteLocal = null
+				}
+			)
 		}
 	}
 }

@@ -13,34 +13,34 @@ import kotlinx.datetime.toInstant
 import kotlin.time.Duration.Companion.days
 
 class AccountsRepository(
-    private val accountDao: AccountDao,
-    private val authTokenDao: AuthTokenDao
+	private val accountDao: AccountDao,
+	private val authTokenDao: AuthTokenDao
 ) {
-    private val tokenLifetime = 30.days
+	private val tokenLifetime = 30.days
 
-    private val tokenGenerator = SecureTokenGenerator(Token.LENGTH)
-    private val saltGenerator = RandomString(5)
+	private val tokenGenerator = SecureTokenGenerator(Token.LENGTH)
+	private val saltGenerator = RandomString(5)
 
-    private suspend fun createToken(userId: Long, installId: String): Token {
-        val expires = Clock.System.now() + tokenLifetime
-        val token = Token(
-            userId = userId,
-            auth = tokenGenerator.generateToken(),
-            refresh = tokenGenerator.generateToken()
-        )
+	private suspend fun createToken(userId: Long, installId: String): Token {
+		val expires = Clock.System.now() + tokenLifetime
+		val token = Token(
+			userId = userId,
+			auth = tokenGenerator.generateToken(),
+			refresh = tokenGenerator.generateToken()
+		)
 
-        authTokenDao.setToken(
-            userId = userId,
-            installId = installId,
-            token = token,
-            expires = expires
-        )
+		authTokenDao.setToken(
+			userId = userId,
+			installId = installId,
+			token = token,
+			expires = expires
+		)
 
-        return token
-    }
+		return token
+	}
 
-    private suspend fun getAuthToken(userId: Long, installId: String): Token {
-        val existingToken = authTokenDao.getTokenByInstallId(installId)
+	private suspend fun getAuthToken(userId: Long, installId: String): Token {
+		val existingToken = authTokenDao.getTokenByInstallId(installId)
 		return if (existingToken != null) {
 			if (existingToken.isExpired()) {
 				createToken(userId = userId, installId = installId)
@@ -78,54 +78,54 @@ class AccountsRepository(
 
 				val token = createToken(userId = userId, installId = installId)
 
-                Result.success(token)
-            }
-        }
-    }
+				Result.success(token)
+			}
+		}
+	}
 
-    private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
-        val hashedPassword = hashPassword(password = plainTextPassword, salt = account.salt)
-        return hashedPassword == account.password_hash
-    }
+	private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
+		val hashedPassword = hashPassword(password = plainTextPassword, salt = account.salt)
+		return hashedPassword == account.password_hash
+	}
 
-    suspend fun login(email: String, password: String, installId: String): Result<Token> {
-        val account = accountDao.findAccount(email)
+	suspend fun login(email: String, password: String, installId: String): Result<Token> {
+		val account = accountDao.findAccount(email)
 
-        return if (account == null) {
-            Result.failure(LoginFailed("Account not found"))
-        } else if (!checkPassword(account, password)) {
-            Result.failure(LoginFailed("Incorrect password"))
-        } else {
-            val token = getAuthToken(account.id, installId)
-            Result.success(token)
-        }
-    }
+		return if (account == null) {
+			Result.failure(LoginFailed("Account not found"))
+		} else if (!checkPassword(account, password)) {
+			Result.failure(LoginFailed("Incorrect password"))
+		} else {
+			val token = getAuthToken(account.id, installId)
+			Result.success(token)
+		}
+	}
 
-    suspend fun checkToken(userId: Long, token: String): Result<Long> {
-        val authToken = authTokenDao.getTokenByAuthToken(token)
+	suspend fun checkToken(userId: Long, token: String): Result<Long> {
+		val authToken = authTokenDao.getTokenByAuthToken(token)
 
-        return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
-            Result.success(authToken.userId)
-        } else {
-            Result.failure(LoginFailed("No valid token not found"))
-        }
-    }
+		return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
+			Result.success(authToken.userId)
+		} else {
+			Result.failure(LoginFailed("No valid token not found"))
+		}
+	}
 
-    suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): Result<Token> {
-        val authToken = authTokenDao.getTokenByInstallId(installId)
-        return if (authToken != null && authToken.refresh == refreshToken) {
-            val newToken = createToken(userId, installId)
-            Result.success(
-                Token(
-                    userId = userId,
-                    auth = newToken.auth,
-                    refresh = newToken.refresh
-                )
-            )
-        } else {
-            Result.failure(LoginFailed("No valid token not found"))
-        }
-    }
+	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): Result<Token> {
+		val authToken = authTokenDao.getTokenByInstallId(installId)
+		return if (authToken != null && authToken.refresh == refreshToken) {
+			val newToken = createToken(userId, installId)
+			Result.success(
+				Token(
+					userId = userId,
+					auth = newToken.auth,
+					refresh = newToken.refresh
+				)
+			)
+		} else {
+			Result.failure(LoginFailed("No valid token not found"))
+		}
+	}
 
 	fun validatePassword(password: String): PasswordResult {
 		val trimmedInput = password.trim()
@@ -180,11 +180,11 @@ class AccountsRepository(
 
 open class CreateFailed(message: String) : Exception(message)
 class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) : CreateFailed(getMessage(result)) {
-    companion object {
-        private fun getMessage(result: AccountsRepository.Companion.PasswordResult) = when (result) {
-            AccountsRepository.Companion.PasswordResult.TOO_SHORT -> "Password too short"
-            AccountsRepository.Companion.PasswordResult.TOO_LONG -> "Password too long"
-            AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> "Password must contain at least one uppercase letter"
+	companion object {
+		private fun getMessage(result: AccountsRepository.Companion.PasswordResult) = when (result) {
+			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> "Password too short"
+			AccountsRepository.Companion.PasswordResult.TOO_LONG -> "Password too long"
+			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> "Password must contain at least one uppercase letter"
 			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> "Password must contain at least one lowercase letter"
 			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> "Password must contain at least one number"
 			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> "Password must contain at least one special character"

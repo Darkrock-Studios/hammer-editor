@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
@@ -75,7 +77,7 @@ class ClientSceneDraftSynchronizer(
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.SceneDraftEntity,
 		syncId: String,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	) {
 		sceneDraftRepository.insertSyncDraft(serverEntity)
 	}
@@ -86,9 +88,9 @@ class ClientSceneDraftSynchronizer(
 
 	override fun getEntityType() = EntityType.SceneDraft
 
-	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		sceneDraftRepository.deleteDraft(id)
-		onLog("Deleted draft $id")
+		onLog(syncLogI("Deleted draft $id", projectDef))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {

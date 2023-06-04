@@ -36,14 +36,14 @@ class ProjectEditorComponent(
 	)
 	override val shouldCloseRoot = _shouldCloseRoot
 
-    private val detailsRouter =
-        DetailsRouter(
-            componentContext = this,
-            selectedSceneItem = selectedSceneItemFlow,
-            addMenu = addMenu,
-            closeDetails = ::closeDetails,
-            removeMenu = removeMenu
-        )
+	private val detailsRouter =
+		DetailsRouter(
+			componentContext = this,
+			selectedSceneItem = selectedSceneItemFlow,
+			addMenu = addMenu,
+			closeDetails = ::closeDetails,
+			removeMenu = removeMenu
+		)
 
 	private val listRouter =
 		ListRouter(
@@ -147,9 +147,9 @@ class ProjectEditorComponent(
 		backHandler.register(backButtonHandler)
 
 		detailsRouter.state.observe(lifecycle) {
-            (it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
-                selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
-            }
+			(it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
+				selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
+			}
 			backButtonHandler.isEnabled = isDetailShown()
 
 			_shouldCloseRoot.tryEmit(!isDetailShown())

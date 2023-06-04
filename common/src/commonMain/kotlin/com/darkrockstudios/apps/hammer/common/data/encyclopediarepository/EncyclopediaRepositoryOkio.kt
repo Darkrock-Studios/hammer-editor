@@ -131,7 +131,7 @@ class EncyclopediaRepositoryOkio(
 
 	override fun findEntryDef(id: Int): EntryDef? {
 		val path = findEntryPath(id)
-		return if(path != null) {
+		return if (path != null) {
 			getEntryDefFromFilename(path.name, projectDef)
 		} else {
 			null
@@ -144,13 +144,17 @@ class EncyclopediaRepositoryOkio(
 	}
 
 	override fun loadEntry(entryPath: HPath): EntryContainer {
-		val path = entryPath.toOkioPath()
-		val contentToml: String = fileSystem.read(path) {
-			readUtf8()
-		}
+		try {
+			val path = entryPath.toOkioPath()
+			val contentToml: String = fileSystem.read(path) {
+				readUtf8()
+			}
 
-		val entry: EntryContainer = toml.decodeFromString(contentToml)
-		return entry
+			val entry: EntryContainer = toml.decodeFromString(contentToml)
+			return entry
+		} catch (e: Exception) {
+			throw EntryLoadError(entryPath, e)
+		}
 	}
 
 	override suspend fun createEntry(

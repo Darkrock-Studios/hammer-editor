@@ -10,12 +10,13 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.soywiz.kds.iterators.parallelMap
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -34,6 +35,7 @@ class ProjectsListComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
+	private val networkConnectivity: NetworkConnectivity by inject()
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
@@ -98,6 +100,7 @@ class ProjectsListComponent(
 				if (
 					projectsSynchronizer.isServerSynchronized() &&
 					settings.automaticSyncing &&
+					networkConnectivity.hasActiveConnection() &&
 					projectsSynchronizer.initialSync.not()
 				) {
 					projectsSynchronizer.initialSync = true
@@ -178,19 +181,24 @@ class ProjectsListComponent(
 
 	private suspend fun syncProject(
 		projectDef: ProjectDef,
-		onLog: suspend (String) -> Unit,
-		onProgress: suspend (Float, String?) -> Unit
+		onLog: OnSyncLog,
+		onProgress: suspend (Float, SyncLogMessage?) -> Unit
 	): Boolean {
-		onLog("Syncing Project: ${projectDef.name}")
+		onLog(syncLogI("Syncing Project: ${projectDef.name}", projectDef))
 
 		var success = false
 		temporaryProjectTask(projectDef) { projScope ->
 			val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
 			success = synchronizer.sync(
 				onProgress = onProgress,
-				onLog = { message -> message?.let { onLog(it) } },
+				onLog = { message -> onLog(message) },
 				onConflict = {
-					onLog("There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it")
+					onLog(
+						syncLogW(
+							"There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it",
+							projectDef
+						)
+					)
 					throw IllegalStateException("Entity conflict must be handled by Project sync")
 				},
 				onComplete = {}
@@ -240,7 +248,7 @@ class ProjectsListComponent(
 			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
-			onSyncLog("Syncing Account...")
+			onSyncLog(syncAccLogI("Syncing Account..."))
 
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
@@ -248,30 +256,28 @@ class ProjectsListComponent(
 
 			var allSuccess = success
 			if (success) {
-				onSyncLog("Syncing Projects...")
+				onSyncLog(syncAccLogI("Syncing Projects..."))
 
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
 
 				// TODO doing this in parallel some times causes 1 project sync to fail?
-				//parallelMap
-				projects.forEach { projectDef ->
-					syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+				projects.parallelMap { projectDef ->
+					scope.launch {
+						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
-					suspend fun onProgress(progress: Float, message: String?) {
-						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
-						if (message != null) onSyncLog(message)
+						suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
+							syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+							if (message != null) onSyncLog(message)
+						}
+
+						val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
+						allSuccess = allSuccess && projectSuccess
+
+						val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+						syncProgressStatus(projectDef.name, newStatus)
 					}
-
-					val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
-					allSuccess = allSuccess && projectSuccess
-
-					val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
-					syncProgressStatus(projectDef.name, newStatus)
-
-					yield()
-				}
-				//.joinAll()
+				}.joinAll()
 			} else {
 				projects.forEach { projectDef ->
 					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
@@ -303,7 +309,7 @@ class ProjectsListComponent(
 		syncProjectsJob = null
 
 		scope.launch(mainDispatcher) {
-			onSyncLog("Sync canceled by user")
+			onSyncLog(syncAccLogW("Sync canceled by user"))
 
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
@@ -351,13 +357,13 @@ class ProjectsListComponent(
 		}
 	}
 
-	private suspend fun onSyncLog(message: String) {
-		Napier.i(message)
+	private suspend fun onSyncLog(syncLog: SyncLogMessage) {
+		Napier.i(syncLog.message)
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
 					syncState = it.syncState.copy(
-						syncLog = it.syncState.syncLog + message
+						syncLog = it.syncState.syncLog + syncLog
 					),
 				)
 			}

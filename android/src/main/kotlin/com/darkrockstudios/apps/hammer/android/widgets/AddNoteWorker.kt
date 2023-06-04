@@ -50,9 +50,23 @@ class AddNoteWorker(
 					val synchronizer: ClientProjectSynchronizer = projectScope.get()
 					if (synchronizer.isServerSynchronized()) {
 						val success = synchronizer.sync(
-							onProgress = { _, message -> message?.let { Napier.i { message } } },
-							onLog = { message ->
-								message?.let { Napier.i { it } }
+							onProgress = { _, log ->
+								log?.let {
+									Napier.log(
+										log.level.toNapierLevel(),
+										"ProjectSync",
+										null,
+										"${log.projectName} - ${log.message}"
+									)
+								}
+							},
+							onLog = { log ->
+								Napier.log(
+									log.level.toNapierLevel(),
+									"ProjectSync",
+									null,
+									"${log.projectName} - ${log.message}"
+								)
 							},
 							onConflict = { _ -> Napier.e { "Error: Conflict on new only sync" } },
 							onComplete = { Napier.d { "Sync Complete for Project: ${projectDef.name}" } },

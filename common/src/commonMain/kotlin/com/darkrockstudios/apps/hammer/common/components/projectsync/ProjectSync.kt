@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 
 interface ProjectSync {
 	val state: Value<State>
@@ -17,7 +18,7 @@ interface ProjectSync {
 		val entityConflict: EntityConflict<*>? = null,
 		val showLog: Boolean = false,
 		val failed: Boolean = false,
-		val syncLog: List<String> = emptyList(),
+		val syncLog: List<SyncLogMessage> = emptyList(),
 		val isSyncing: Boolean = false
 	)
 

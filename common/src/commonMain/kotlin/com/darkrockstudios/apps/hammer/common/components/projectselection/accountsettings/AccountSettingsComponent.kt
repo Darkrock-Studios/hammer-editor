@@ -52,7 +52,6 @@ class AccountSettingsComponent(
 	private fun cancelSetupJob() {
 		serverSetupJob?.cancel()
 		serverSetupJob = null
-		_state.getAndUpdate { it.copy(serverUrl = null) }
 	}
 
 	private fun watchSettingsUpdates() {
@@ -75,6 +74,7 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
+							serverSsl = settings?.ssl,
 							serverUrl = settings?.url,
 							serverEmail = settings?.email,
 							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true
@@ -182,14 +182,25 @@ class AccountSettingsComponent(
 		}
 	}
 
+	override fun reauthenticate() {
+		_state.getAndUpdate {
+			it.copy(
+				serverSetup = true
+			)
+		}
+	}
+
 	override fun setupServer(
 		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
-		create: Boolean
+		create: Boolean,
+		shouldRemoveLocalContent: Boolean
 	) {
 		cancelSetupJob()
+		_state.getAndUpdate { it.copy(toast = null) }
+
 		serverSetupJob = scope.launch {
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
@@ -217,6 +228,10 @@ class AccountSettingsComponent(
 					_state.getAndUpdate { it.copy(toast = "Server setup Failed: $message") }
 				}
 			} else {
+				if (shouldRemoveLocalContent) {
+					removeLocalContent()
+				}
+
 				val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
 				withContext(mainDispatcher) {
 					if (result.isSuccess) {
@@ -241,6 +256,12 @@ class AccountSettingsComponent(
 					}
 				}
 			}
+		}
+	}
+
+	private suspend fun removeLocalContent() {
+		projectsRepository.getProjects().forEach { projectDef ->
+			projectsRepository.deleteProject(projectDef)
 		}
 	}
 

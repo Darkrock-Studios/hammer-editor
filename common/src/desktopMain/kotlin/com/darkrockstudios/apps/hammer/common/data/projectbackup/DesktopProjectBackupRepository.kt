@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import io.github.aakira.napier.Napier
 import kotlinx.datetime.Clock
 import okio.FileSystem
 import java.io.IOException
@@ -24,10 +25,11 @@ class DesktopProjectBackupRepository(
 				zipFilePath = newBackupDef.path.path
 			)
 
-			cullBackups()
+			cullBackups(projectDef)
 
 			newBackupDef
 		} catch (e: IOException) {
+			Napier.e("Failed to make backup for project: ${projectDef.name}", e)
 			null
 		}
 	}

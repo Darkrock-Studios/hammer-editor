@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import kotlinx.coroutines.flow.first
@@ -54,7 +56,7 @@ class ClientNoteSynchronizer(
 	override suspend fun storeEntity(
 		serverEntity: ApiProjectEntity.NoteEntity,
 		syncId: String,
-		onLog: suspend (String?) -> Unit
+		onLog: OnSyncLog
 	) {
 		val updatedNote = NoteContent(
 			id = serverEntity.id,
@@ -78,9 +80,9 @@ class ClientNoteSynchronizer(
 
 	override fun getEntityType() = EntityType.Note
 
-	override suspend fun deleteEntityLocal(id: Int, onLog: suspend (String?) -> Unit) {
+	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		notesRepository.deleteNote(id)
-		onLog("Deleted note ID $id from client")
+		onLog(syncLogI("Deleted note ID $id from client", projectDef))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {

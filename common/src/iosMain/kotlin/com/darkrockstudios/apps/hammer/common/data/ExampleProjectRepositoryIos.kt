@@ -10,7 +10,7 @@ actual val exampleProjectModule = module {
 }
 
 private class ExampleProjectRepositoryiOs(
-    globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsRepository: GlobalSettingsRepository,
 ) : ExampleProjectRepository(globalSettingsRepository) {
 
 	override fun removeExampleProject() {

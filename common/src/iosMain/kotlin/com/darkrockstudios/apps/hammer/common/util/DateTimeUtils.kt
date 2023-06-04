@@ -12,14 +12,14 @@ actual fun Instant.formatLocal(format: String): String {
 }
 
 actual fun LocalDateTime.format(format: String): String {
-    val dateFormatter = NSDateFormatter()
-    dateFormatter.dateFormat = format
-    return dateFormatter.stringFromDate(
-        toNSDate(NSCalendar.currentCalendar)
-            ?: throw IllegalStateException("Could not convert kotlin date to NSDate $this")
-    )
+	val dateFormatter = NSDateFormatter()
+	dateFormatter.dateFormat = format
+	return dateFormatter.stringFromDate(
+		toNSDate(NSCalendar.currentCalendar)
+			?: throw IllegalStateException("Could not convert kotlin date to NSDate $this")
+	)
 }
 
 fun toNSDate(currentCalendar: NSCalendar): NSDate? {
-    return NSDate.new()
+	return NSDate.new()
 }

@@ -31,21 +31,21 @@ class EncyclopediaComponent(
 		get() = _stack
 
 	private fun createChild(
-        config: Encyclopedia.Config,
-        componentContext: ComponentContext
-    ): Encyclopedia.Destination =
+		config: Encyclopedia.Config,
+		componentContext: ComponentContext
+	): Encyclopedia.Destination =
 		when (config) {
 			is Encyclopedia.Config.BrowseEntriesConfig -> Encyclopedia.Destination.BrowseEntriesDestination(
-                createBrowseEntries(config, componentContext)
-            )
+				createBrowseEntries(config, componentContext)
+			)
 
 			is Encyclopedia.Config.ViewEntryConfig -> Encyclopedia.Destination.ViewEntryDestination(
-                createViewEntry(config, componentContext)
-            )
+				createViewEntry(config, componentContext)
+			)
 
 			is Encyclopedia.Config.CreateEntryConfig -> Encyclopedia.Destination.CreateEntryDestination(
-                createCreateEntry(config, componentContext)
-            )
+				createCreateEntry(config, componentContext)
+			)
 		}
 
 	override fun showBrowse() {
@@ -65,9 +65,9 @@ class EncyclopediaComponent(
 	}
 
 	private fun createBrowseEntries(
-        config: Encyclopedia.Config.BrowseEntriesConfig,
-        componentContext: ComponentContext
-    ): BrowseEntries {
+		config: Encyclopedia.Config.BrowseEntriesConfig,
+		componentContext: ComponentContext
+	): BrowseEntries {
 		return BrowseEntriesComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef
@@ -75,9 +75,9 @@ class EncyclopediaComponent(
 	}
 
 	private fun createViewEntry(
-        config: Encyclopedia.Config.ViewEntryConfig,
-        componentContext: ComponentContext
-    ): ViewEntry {
+		config: Encyclopedia.Config.ViewEntryConfig,
+		componentContext: ComponentContext
+	): ViewEntry {
 		return ViewEntryComponent(
 			componentContext = componentContext,
 			entryDef = config.entryDef,
@@ -87,9 +87,9 @@ class EncyclopediaComponent(
 	}
 
 	private fun createCreateEntry(
-        config: Encyclopedia.Config.CreateEntryConfig,
-        componentContext: ComponentContext
-    ): CreateEntry {
+		config: Encyclopedia.Config.CreateEntryConfig,
+		componentContext: ComponentContext
+	): CreateEntry {
 		return CreateEntryComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef

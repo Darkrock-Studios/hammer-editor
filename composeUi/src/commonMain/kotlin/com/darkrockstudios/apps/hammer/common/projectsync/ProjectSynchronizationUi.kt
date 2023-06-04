@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.List
@@ -24,6 +23,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -145,16 +145,14 @@ internal fun SyncLog(state: ProjectSync.State, scope: CoroutineScope) {
 	val listState: LazyListState = rememberLazyListState()
 	LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
 		items(count = state.syncLog.size, key = { it }) { index ->
-			SelectionContainer {
-				Text(state.syncLog[index])
-			}
+			SyncLogMessageUi(state.syncLog[index], false)
 		}
 	}
 
 	LaunchedEffect(state.syncLog) {
 		if (state.syncLog.isNotEmpty()) {
 			scope.launch {
-				listState.animateScrollToItem(state.syncLog.size - 1)
+				listState.animateScrollToItem(state.syncLog.lastIndex)
 			}
 		}
 	}
