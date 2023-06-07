@@ -300,6 +300,12 @@ private fun Contents(
 
 		if (content != null) {
 			Column {
+				LaunchedEffect(entryText) {
+					if (entryText.isBlank()) {
+						beginEdit()
+					}
+				}
+
 				if (editText) {
 					OutlinedTextField(
 						value = entryText,
@@ -309,8 +315,11 @@ private fun Contents(
 						maxLines = 10,
 					)
 				} else {
+					val text = entryText.ifBlank {
+						"Click to enter description"
+					}
 					Text(
-						entryText,
+						text,
 						modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,
