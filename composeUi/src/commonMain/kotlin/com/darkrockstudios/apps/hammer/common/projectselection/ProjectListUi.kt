@@ -33,7 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.soywiz.korio.async.launch
-import dev.icerock.moko.resources.format
+import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -141,7 +141,7 @@ fun ProjectListUi(
 	projectDefDeleteTarget?.let { project ->
 		SimpleConfirm(
 			title = MR.strings.delete_project_title.get(),
-			message = MR.strings.delete_project_message.format(project.name).localized(),
+			message = stringResource(MR.strings.delete_project_message, project.name),
 			onDismiss = { projectDefDeleteTarget = null },
 			onConfirm = {
 				component.deleteProject(project)

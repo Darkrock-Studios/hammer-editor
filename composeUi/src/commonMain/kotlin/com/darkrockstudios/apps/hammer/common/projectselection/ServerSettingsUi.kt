@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
+	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
 
@@ -152,9 +154,9 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 			Button(onClick = {
 				scope.launch {
 					if (component.authTest()) {
-						snackbarHostState.showSnackbar(MR.strings.settings_server_authtest_toast_success.localized())
+						snackbarHostState.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_success))
 					} else {
-						snackbarHostState.showSnackbar(MR.strings.settings_server_authtest_toast_failure.localized())
+						snackbarHostState.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_failure))
 					}
 				}
 			}) {

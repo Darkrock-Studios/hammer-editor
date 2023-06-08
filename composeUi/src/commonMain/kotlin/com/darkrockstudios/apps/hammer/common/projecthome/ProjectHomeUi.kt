@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
-import dev.icerock.moko.resources.format
+import dev.icerock.moko.resources.compose.stringResource
 import io.github.koalaplot.core.bar.DefaultBarChartEntry
 import io.github.koalaplot.core.bar.VerticalBarChart
 import io.github.koalaplot.core.pie.BezierLabelConnector
@@ -104,7 +104,7 @@ private fun Stats(
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
-					MR.strings.project_home_stat_created.format(state.created).localized(),
+					stringResource(MR.strings.project_home_stat_created, state.created),
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
@@ -314,8 +314,22 @@ private fun Actions(
 	scope: CoroutineScope,
 	snackbarHostState: SnackbarHostState
 ) {
+	val strRes = rememberStrRes()
+
 	val defaultDispatcher = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
+
+	var toastMessage: String? = remember { null }
+
+	LaunchedEffect(toastMessage) {
+		toastMessage?.let { message ->
+			if (message.isNotBlank()) {
+				scope.launch {
+					snackbarHostState.showSnackbar(message)
+				}
+			}
+		}
+	}
 
 	Column(modifier = modifier.padding(Ui.Padding.XL)) {
 		Text(
@@ -337,16 +351,10 @@ private fun Actions(
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 			Button(onClick = {
 				component.createBackup { backup ->
-					if (backup != null) {
-						scope.launch {
-							snackbarHostState.showSnackbar(
-								MR.strings.project_home_action_backup_toast_success.format(
-									backup.path.name
-								).localized()
-							)
-						}
+					toastMessage = if (backup != null) {
+						strRes.get(MR.strings.project_home_action_backup_toast_success, backup.path.name)
 					} else {
-						scope.launch { snackbarHostState.showSnackbar(MR.strings.project_home_action_backup_toast_failure.localized()) }
+						strRes.get(MR.strings.project_home_action_backup_toast_failure)
 					}
 				}
 			}) {
