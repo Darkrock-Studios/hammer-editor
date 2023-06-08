@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import dev.icerock.moko.resources.StringResource
 
 interface ProjectsList : HammerComponent {
 	val state: Value<State>
@@ -26,7 +27,7 @@ interface ProjectsList : HammerComponent {
 		val projectsPath: HPath,
 		val isServerSynced: Boolean = false,
 		val syncState: SyncState = SyncState(),
-		val toast: String? = null
+		val toast: StringResource? = null
 	)
 
 	data class SyncState(

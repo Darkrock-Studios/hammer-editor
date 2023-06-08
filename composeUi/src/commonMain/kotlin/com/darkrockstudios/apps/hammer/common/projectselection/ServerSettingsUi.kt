@@ -54,7 +54,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 				)
 
 				Text(
-					state.serverUrl ?: "error",
+					state.serverUrl ?: MR.strings.settings_server_unknown_error.get(),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onBackground,
 					fontStyle = FontStyle.Italic
@@ -69,7 +69,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 				)
 
 				Text(
-					state.serverEmail ?: "error",
+					state.serverEmail ?: MR.strings.settings_server_unknown_error.get(),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onBackground,
 					fontStyle = FontStyle.Italic
@@ -86,7 +86,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 					}
 				)
 				Text(
-					"Auto-Sync",
+					MR.strings.settings_server_auto_sync.get(),
 					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.align(Alignment.CenterVertically)
@@ -105,7 +105,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 					}
 				)
 				Text(
-					"Backup on sync",
+					MR.strings.settings_server_sync_backup.get(),
 					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.align(Alignment.CenterVertically)
@@ -124,7 +124,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 					}
 				)
 				Text(
-					"Close Sync Dialogs on Success",
+					MR.strings.settings_server_sync_auto_close.get(),
 					style = MaterialTheme.typography.bodyMedium,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.align(Alignment.CenterVertically)
@@ -144,7 +144,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 						scope.launch { component.setMaxBackups(value) }
 					}
 				},
-				label = { Text("Max Backups per Project") },
+				label = { Text(MR.strings.settings_server_max_backups.get()) },
 			)
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -152,18 +152,16 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 			Button(onClick = {
 				scope.launch {
 					if (component.authTest()) {
-						snackbarHostState.showSnackbar("Auth Test Successful")
+						snackbarHostState.showSnackbar(MR.strings.settings_server_authtest_toast_success.localized())
 					} else {
-						snackbarHostState.showSnackbar("Auth Test Failed")
+						snackbarHostState.showSnackbar(MR.strings.settings_server_authtest_toast_failure.localized())
 					}
 				}
 			}) {
-				//Text(MR.strings.settings_server_modify_button.get())
-				Text("Test Auth")
+				Text(MR.strings.settings_server_test_auth_button.get())
 			}
 			Button(onClick = { component.reauthenticate() }) {
-				//Text(MR.strings.settings_server_modify_button.get())
-				Text("Re-Auth")
+				Text(MR.strings.settings_server_reauth_button.get())
 			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -171,16 +169,15 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 			Button(onClick = {
 				showConfirmRemoveServer = true
 			}) {
-				//Text(MR.strings.settings_server_modify_button.get())
-				Text("Remove Server")
+				Text(MR.strings.settings_server_remove_server_button.get())
 			}
 		}
 	}
 
 	if (showConfirmRemoveServer) {
 		SimpleConfirm(
-			title = "Remove Server",
-			message = "Are you sure you want to remove the server?",
+			title = MR.strings.settings_remove_server_dialog_title.get(),
+			message = MR.strings.settings_remove_server_dialog_message.get(),
 			onDismiss = { showConfirmRemoveServer = false },
 			onConfirm = {
 				scope.launch {

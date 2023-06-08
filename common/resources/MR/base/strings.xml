@@ -7,6 +7,20 @@
 
     <string name="project_select_card_delete_button">Delete</string>
 
+    <string name="projects_list_sync_button">Sync Projects</string>
+    <string name="projects_list_create_button">Create Project</string>
+    <string name="projects_list_toast_sync_complete">Projects synced</string>
+    <string name="projects_list_toast_sync_failed">Failed to sync projects</string>
+
+    <string name="account_sync_dialog_title">Synchronization</string>
+    <string name="account_sync_dialog_header">Account Sync</string>
+    <string name="account_sync_dialog_cancel_button">Cancel</string>
+    <string name="account_sync_log_title">Sync Log</string>
+    <string name="account_sync_dialog_status_pending">Pending</string>
+    <string name="account_sync_dialog_status_error">Error</string>
+    <string name="account_sync_dialog_status_complete">Sync Complete</string>
+    <string name="account_sync_dialog_status_canceled">Canceled</string>
+
     <string name="settings_heading">⚙ Settings</string>
     <string name="settings_theme_label">UI Theme</string>
     <string name="settings_projects_directory">Projects Directory</string>
@@ -20,28 +34,70 @@
     <string name="settings_example_project_button">Reinstall</string>
     <string name="settings_example_project_success_message">Example project created.</string>
 
+    <string name="settings_data_version">Data: v%1$s</string>
+
     <string name="settings_server_header">Server</string>
     <string name="settings_server_description">Setup a server for syncing between devices.</string>
     <string name="settings_server_url_label">URL:</string>
     <string name="settings_server_email_label">Email:</string>
     <string name="settings_server_setup_button">Setup</string>
     <string name="settings_server_modify_button">Modify</string>
+    <string name="settings_server_unknown_error">error</string>
+    <string name="settings_server_auto_sync">Auto-Sync</string>
+    <string name="settings_server_sync_backup">Backup on sync</string>
+    <string name="settings_server_sync_auto_close">Close Sync Dialogs on Success</string>
+    <string name="settings_server_max_backups">Max Backups per Project</string>
+    <string name="settings_server_test_auth_button">Test Auth</string>
+    <string name="settings_server_reauth_button">Re-Auth</string>
+    <string name="settings_server_remove_server_button">Remove Auth</string>
+
+    <string name="settings_server_authtest_toast_success">Auth Test Successful</string>
+    <string name="settings_server_authtest_toast_failure">Auth Test Failed</string>
+
+    <string name="settings_remove_server_dialog_title">Remove Server</string>
+    <string name="settings_remove_server_dialog_message">Are you sure you want to remove the server?</string>
 
     <string name="settings_server_setup_title">Setup Server</string>
+    <string name="settings_server_setup_header">Configure Server</string>
     <string name="settings_server_setup_ssl_label">HTTPS?</string>
     <string name="settings_server_setup_url_hint">Server Url: myserver.com</string>
     <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
     <string name="settings_server_setup_password_hint">Password</string>
+    <string name="settings_server_setup_password_show">Show password</string>
+    <string name="settings_server_setup_password_hide">Hide password</string>
     <string name="settings_server_setup_login_button">Login</string>
     <string name="settings_server_setup_create_button">Create</string>
     <string name="settings_server_setup_cancel_button">Cancel</string>
 
+    <string name="remove_local_dialog_title">Remove Local Content?</string>
+    <string name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we
+        will attempt to merge your local content with the server content. If the content is unrelated, it could cause
+        problems.
+    </string>
+
     <string name="delete_project_title">Delete Project</string>
-    <string name="delete_project_message">Are you sure you want to delete this project:\n%s</string>
+    <string name="delete_project_message">Are you sure you want to delete this project:\n%1$s</string>
     <string name="delete_project_confirm">DELETE</string>
     <string name="delete_project_cancel">Cancel</string>
 
     <string name="create_project_title">Create Project</string>
     <string name="create_project_heading">New Project Name</string>
     <string name="create_project_button">Create Project</string>
+
+    <string name="project_home_stat_header">Stats:</string>
+    <string name="project_home_stat_created">Created: %1$s</string>
+    <string name="project_home_stat_num_scenes">Scenes</string>
+    <string name="project_home_stat_total_words">Total Words</string>
+    <string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>
+
+    <string name="project_home_stat_chapter_words">Words in Chapters</string>
+    <string name="project_home_stat_chapter_words_x_axis">Chapter</string>
+    <string name="project_home_stat_chapter_words_y_axis">Words</string>
+
+    <string name="project_home_actions_header">Actions:</string>
+    <string name="project_home_action_export">Export Story</string>
+    <string name="project_home_action_sync">Sync Story</string>
+    <string name="project_home_action_backup">Backup</string>
+    <string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Backup Failed</string>
 </resources>

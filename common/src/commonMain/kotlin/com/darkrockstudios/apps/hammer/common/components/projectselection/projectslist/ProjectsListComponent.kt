@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
@@ -17,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.soywiz.kds.iterators.parallelMap
+import dev.icerock.moko.resources.StringResource
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -49,7 +51,7 @@ class ProjectsListComponent(
 	)
 	override val state: Value<ProjectsList.State> = _state
 
-	private fun showToast(message: String) {
+	private fun showToast(message: StringResource) {
 		_state.getAndUpdate {
 			it.copy(toast = message)
 		}
@@ -349,9 +351,9 @@ class ProjectsListComponent(
 		scope.launch {
 			syncProjects { success ->
 				if (success) {
-					showToast("Projects synced")
+					showToast(MR.strings.projects_list_toast_sync_complete)
 				} else {
-					showToast("Failed to sync projects")
+					showToast(MR.strings.projects_list_toast_sync_failed)
 				}
 			}
 		}

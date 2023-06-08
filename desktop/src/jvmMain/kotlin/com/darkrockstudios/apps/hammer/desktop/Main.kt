@@ -130,13 +130,13 @@ fun main(args: Array<String>) {
 				LocalImageLoader provides imageLoader,
 			) {
 				when (val windowState = applicationState.windows.value) {
-					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectSectionWindow -> {
+					is WindowState.ProjectSectionWindow -> {
 						ProjectSelectionWindow { project ->
 							applicationState.openProject(project)
 						}
 					}
 
-					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectWindow -> {
+					is WindowState.ProjectWindow -> {
 						ProjectEditorWindow(applicationState, windowState.projectDef)
 					}
 				}

@@ -7,9 +7,11 @@ A simple tool for building stories.
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux]
 
 [![Discord badge](https://img.shields.io/discord/1100282852295327744)](https://discord.gg/GTmgjZcupk)
+[![Localization badge](https://hosted.weblate.org/widgets/hammer/-/clients/svg-badge.svg)](https://hosted.weblate.org/engage/hammer/)
 
-### _**Note:** This is currently Alpha quality software, users
-beware!_ Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
+### _**Note:** This is currently Alpha quality software, users beware!_
+
+Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
 
 ## Multi-platform
 
