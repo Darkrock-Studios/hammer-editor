@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
@@ -58,7 +59,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	LifecycleController(lifecycle, windowState)
 
 	Window(
-		title = "Hammer - ${projectDef.name}",
+		title = DR.strings.project_window_title.get(projectDef.name),
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
@@ -101,11 +102,11 @@ private fun FrameWindowScope.EditorMenuBar(
 	val menu by app.menu.subscribeAsState()
 
 	MenuBar {
-		Menu("File") {
-			Item("Close Project", onClick = {
+		Menu(DR.strings.project_window_menu_file.get()) {
+			Item(DR.strings.project_window_menu_item_close.get(), onClick = {
 				onRequestClose(component, app, ApplicationState.CloseType.Project)
 			})
-			Item("Exit", onClick = {
+			Item(DR.strings.project_window_menu_item_exit.get(), onClick = {
 				onRequestClose(component, app, ApplicationState.CloseType.Application)
 			})
 		}

@@ -3,12 +3,14 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 val app_version: String by extra
 val data_version: String by extra
 val jvm_version: String by extra
+val moko_resources_version: String by extra
 
 plugins {
 	kotlin("multiplatform")
 	kotlin("plugin.serialization")
 	id("org.jetbrains.compose")
 	id("org.jetbrains.kotlinx.kover")
+	id("dev.icerock.mobile.multiplatform-resources")
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
@@ -23,6 +25,12 @@ kotlin {
 		withJava()
 	}
 	sourceSets {
+		val commonMain by getting {
+			resources.srcDirs("resources")
+			dependencies {
+				implementation("dev.icerock.moko:resources:$moko_resources_version")
+			}
+		}
 		val jvmMain by getting {
 			dependencies {
 				implementation(project(":base"))
@@ -72,4 +80,10 @@ compose.desktop {
 			configurationFiles.from("proguard-rules.pro")
 		}
 	}
+}
+
+multiplatformResources {
+	multiplatformResourcesClassName = "DR"
+	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer.desktop"
+	multiplatformResourcesSourceSet = "commonMain"
 }
