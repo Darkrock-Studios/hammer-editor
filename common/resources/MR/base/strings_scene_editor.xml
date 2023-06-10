@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="save_draft_dialog_title">Save Draft:</string>
+	<string name="save_draft_dialog_name_hint">Draft name</string>
+	<string name="save_draft_dialog_save_button">Save</string>
+	<string name="save_draft_dialog_cancel_button">Cancel</string>
+	<string name="save_draft_dialog_toast_success">Draft Saved</string>
+
+	<string name="scene_editor_name_hint">Scene Name</string>
+	<string name="scene_editor_rename_button">Rename</string>
+	<string name="scene_editor_cancel_button">Cancel</string>
+	<string name="scene_editor_unsaved_chip">Unsaved</string>
+	<string name="scene_editor_save_button">Save</string>
+	<string name="scene_editor_toast_save_successful">Saved</string>
+	<string name="scene_editor_body_placeholder">Begin writing your Scene here</string>
+</resources>

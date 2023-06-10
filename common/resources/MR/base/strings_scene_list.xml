@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="scene_list_header">Scenes:</string>
+	<string name="scene_list_create_group_button">Create Group</string>
+	<string name="scene_list_create_scene_button">Create Scene</string>
+
+	<string name="scene_list_create_group_dialog_title">Create Group</string>
+	<string name="scene_list_create_group_dialog_message">Group Name</string>
+
+	<string name="scene_list_create_scene_dialog_title">Create Scene</string>
+	<string name="scene_list_create_scene_dialog_message">Scene Name</string>
+
+	<string name="scene_group_item_collapsed">Group Collapsed</string>
+	<string name="scene_group_item_expanded">Group Expanded</string>
+
+	<string name="scene_delete_dialog_title">Delete Scene</string>
+	<string name="scene_delete_dialog_message">Are you sure you want to delete this scene:
+		"%1$s"
+	</string>
+	<string name="scene_delete_dialog_delete_button">DELETE</string>
+	<string name="scene_delete_dialog_dismiss_button">Dismiss</string>
+
+	<string name="group_cannot_delete_dialog_title">Cannot Delete Group</string>
+	<string name="group_cannot_delete_dialog_title">You cannot delete a group while it still has children:
+		"%1$s"
+	</string>
+	<string name="scene_delete_dialog_dismiss_button">Okay</string>
+
+	<string name="create_sceneitem_dialog_create_button">Create</string>
+	<string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
+
+	<string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
+</resources>
