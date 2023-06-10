@@ -103,7 +103,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 			topBar = {
 				SetStatusBar()
 				TopBar(
-					title = "Hammer",
+					title = getString(R.string.app_name),
 					drawerOpen = drawerState,
 					onButtonClicked = {
 						scope.launch {

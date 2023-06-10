@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +37,7 @@ internal fun TopBar(
 			IconButton(onClick = { onButtonClicked() }) {
 				Icon(
 					icon,
-					contentDescription = "Nav Drawer",
+					contentDescription = stringResource(R.string.navdrawer_button),
 				)
 			}
 		},

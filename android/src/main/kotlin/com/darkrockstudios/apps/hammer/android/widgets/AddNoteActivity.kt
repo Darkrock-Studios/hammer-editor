@@ -12,12 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -37,7 +39,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 		val projects = projectsRepository.getProjects()
 		if (projects.isEmpty()) {
-			Toast.makeText(this, "No projects", Toast.LENGTH_SHORT).show()
+			Toast.makeText(this, getString(R.string.note_widget_toast_no_projects), Toast.LENGTH_SHORT).show()
 			finish()
 		} else {
 			setContent {
@@ -53,7 +55,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 							modifier = Modifier.padding(Ui.Padding.XL)
 						) {
 							Text(
-								"Add Note to:",
+								stringResource(R.string.note_widget_dialog_title),
 								style = MaterialTheme.typography.headlineMedium,
 								color = MaterialTheme.colorScheme.onBackground
 							)
@@ -75,7 +77,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 									}
 								}
 							) {
-								Text("Save")
+								Text(stringResource(R.string.note_widget_dialog_save_button))
 							}
 						}
 					}
@@ -107,7 +109,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 				readOnly = true,
 				value = selectedOptionText,
 				onValueChange = { selectedOptionText = it },
-				label = { Text("Categories") },
+				label = { Text(stringResource(R.string.note_widget_dialog_categories_dropdown)) },
 				trailingIcon = {
 					ExposedDropdownMenuDefaults.TrailingIcon(
 						expanded = expanded
@@ -147,7 +149,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 		WorkManager.getInstance(this).enqueue(request)
 
-		Toast.makeText(this, "Note Added", Toast.LENGTH_SHORT).show()
+		Toast.makeText(this, getString(R.string.note_widget_toast_success), Toast.LENGTH_SHORT).show()
 
 		finish()
 	}

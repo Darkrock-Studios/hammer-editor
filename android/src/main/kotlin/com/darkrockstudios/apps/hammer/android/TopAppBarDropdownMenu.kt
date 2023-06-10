@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 
 @Composable
@@ -27,7 +28,7 @@ fun TopAppBarDropdownMenu(
 		}) {
 			Icon(
 				Icons.Filled.MoreVert,
-				contentDescription = "More Menu",
+				contentDescription = stringResource(R.string.overflow_menu_button),
 				tint = MaterialTheme.colorScheme.onSurface
 			)
 		}

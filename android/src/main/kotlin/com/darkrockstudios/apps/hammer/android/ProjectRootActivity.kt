@@ -186,11 +186,11 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private fun confirmCloseDialog(component: AppCloseManager) {
 		AlertDialog.Builder(this)
-			.setTitle("Unsaved Scenes")
-			.setMessage("Save unsaved scenes?")
-			.setNegativeButton("Discard and close") { _, _ -> finish() }
-			.setNeutralButton("Cancel") { dialog, _ -> dialog.dismiss() }
-			.setPositiveButton("Save and close") { _, _ ->
+			.setTitle(R.string.unsaved_scenes_dialog_title)
+			.setMessage(R.string.unsaved_scenes_dialog_message)
+			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ -> finish() }
+			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ -> dialog.dismiss() }
+			.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
 				lifecycleScope.launch {
 					component.storeDirtyBuffers()
 					withContext(mainDispatcher) {
