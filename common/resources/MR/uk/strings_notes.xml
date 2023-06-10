@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="notes_header">Нотатки</string>
+    <string name="notes_list_empty">Нотаток не знайдено</string>
+    <string name="notes_create_note_button">Створити нотатку</string>
+    <string name="notes_note_item_action_rename">Переіменувати</string>
+    <string name="notes_note_item_action_cancel">Скасувати</string>
+    <string name="notes_note_item_action_delete">Видалити</string>
+    <string name="notes_discard_dialog_title">Скасувати зміни\?</string>
+    <string name="notes_discard_dialog_message">Ви втратите всі внесені зміни.</string>
+    <string name="notes_create_header">Створити нотатку</string>
+    <string name="notes_create_body_hint">Нова нотатка:</string>
+    <string name="notes_create_create_button">Створити</string>
+    <string name="notes_create_cancel_button">Скасувати</string>
+    <string name="notes_create_toast_success">Нотатку створено</string>
+    <string name="notes_create_toast_too_long">Нотатка була занадто довгою</string>
+    <string name="notes_create_toast_empty">Нотатка була порожня</string>
+    <string name="notes_delete_title">Видалити нотатку\?</string>
+    <string name="notes_delete_message">Цю дію неможливо скасувати.</string>
+    <string name="notes_delete_toast_success">Примітка %1$s видалено</string>
 </resources>
