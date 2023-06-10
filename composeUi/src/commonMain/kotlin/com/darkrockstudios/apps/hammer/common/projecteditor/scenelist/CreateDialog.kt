@@ -12,8 +12,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @ExperimentalMaterial3Api
 @Composable
@@ -53,11 +55,11 @@ internal fun CreateDialog(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = { close(nameText) }) {
-						Text("Create")
+						Text(MR.strings.create_sceneitem_dialog_create_button.get())
 					}
 
 					Button(onClick = { close(null) }) {
-						Text("Cancel")
+						Text(MR.strings.create_sceneitem_dialog_dismiss_button.get())
 					}
 				}
 			}

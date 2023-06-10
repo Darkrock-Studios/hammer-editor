@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
@@ -41,7 +43,7 @@ fun NotesUi(
 	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		Column {
 			Text(
-				"Notes",
+				MR.strings.notes_header.get(),
 				style = MaterialTheme.typography.headlineLarge,
 				color = MaterialTheme.colorScheme.onBackground
 			)
@@ -56,7 +58,7 @@ fun NotesUi(
 				if (state.notes.isEmpty()) {
 					item {
 						Text(
-							"No Notes Found",
+							MR.strings.notes_list_empty.get(),
 							style = MaterialTheme.typography.headlineSmall,
 							color = MaterialTheme.colorScheme.onBackground
 						)
@@ -78,7 +80,7 @@ fun NotesUi(
 			onClick = { component.showCreate() },
 			modifier = Modifier.align(Alignment.BottomEnd)
 		) {
-			Icon(Icons.Filled.Create, "Create Note")
+			Icon(Icons.Filled.Create, MR.strings.notes_create_note_button.get())
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
@@ -127,7 +129,7 @@ fun NoteItem(
 							}) {
 								Icon(
 									Icons.Filled.Check,
-									"Rename",
+									MR.strings.notes_note_item_action_rename.get(),
 									tint = MaterialTheme.colorScheme.onSurface
 								)
 							}
@@ -136,7 +138,7 @@ fun NoteItem(
 							}) {
 								Icon(
 									Icons.Filled.Cancel,
-									"Cancel",
+									MR.strings.notes_note_item_action_cancel.get(),
 									tint = MaterialTheme.colorScheme.error
 								)
 							}
@@ -161,7 +163,7 @@ fun NoteItem(
 				IconButton(
 					onClick = { component.confirmDelete(note) },
 				) {
-					Icon(Icons.Filled.Delete, "Delete")
+					Icon(Icons.Filled.Delete, MR.strings.notes_note_item_action_delete.get())
 				}
 			}
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -180,8 +182,8 @@ fun NoteItem(
 
 	if (discardConfirm) {
 		SimpleConfirm(
-			title = "Discard Changes?",
-			message = "You will lose any changes you have made.",
+			title = MR.strings.notes_discard_dialog_title.get(),
+			message = MR.strings.notes_discard_dialog_message.get(),
 			onDismiss = { discardConfirm = false }
 		) {
 			isEditing = false

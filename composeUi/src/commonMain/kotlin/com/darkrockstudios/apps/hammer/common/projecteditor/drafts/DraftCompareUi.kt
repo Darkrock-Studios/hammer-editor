@@ -13,9 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
@@ -34,7 +37,7 @@ fun DraftCompareUi(component: DraftCompare) {
 			) {
 				Icon(
 					Icons.Default.Cancel,
-					contentDescription = "Cancel",
+					contentDescription = MR.strings.draft_compare_cancel_button.get(),
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
@@ -78,17 +81,17 @@ private fun CurrentContent(
 	Card(modifier = modifier.padding(Ui.Padding.L)) {
 		Column(modifier = Modifier.padding(Ui.Padding.L)) {
 			Text(
-				"Merge with Current",
+				MR.strings.draft_compare_current_header.get(),
 				style = MaterialTheme.typography.headlineLarge
 			)
 			Text(
-				"Copy parts of the draft into here",
+				MR.strings.draft_compare_current_subheader.get(),
 				style = MaterialTheme.typography.bodySmall,
 				fontStyle = FontStyle.Italic
 			)
 
 			Button(onClick = { component.pickMerged() }) {
-				Text("Take Merged")
+				Text(MR.strings.draft_compare_current_accept_button.get())
 			}
 
 			RichTextEditor(
@@ -98,7 +101,7 @@ private fun CurrentContent(
 					sceneText = rtv
 				},
 				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = "Begin writing your Scene here",
+					placeholder = MR.strings.draft_compare_current_body_placeholder.get(),
 					textColor = MaterialTheme.colorScheme.onBackground,
 					placeholderColor = MaterialTheme.colorScheme.onBackground,
 				)
@@ -112,6 +115,7 @@ private fun DraftContent(
 	modifier: Modifier,
 	component: DraftCompare,
 ) {
+	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var draftText by remember(state.draftContent) { mutableStateOf(getInitialEditorContent(state.draftContent)) }
 
@@ -126,16 +130,16 @@ private fun DraftContent(
 			*/
 
 			Text(
-				"Draft: ${component.draftDef.draftName}",
+				strRes.get(MR.strings.draft_compare_draft_header, component.draftDef.draftName),
 				style = MaterialTheme.typography.headlineLarge
 			)
 			Text(
-				"No edits here will be saved",
+				MR.strings.draft_compare_draft_subheader.get(),
 				style = MaterialTheme.typography.bodySmall,
 				fontStyle = FontStyle.Italic
 			)
 			Button(onClick = { component.pickDraft() }) {
-				Text("Take this whole draft")
+				Text(MR.strings.draft_compare_draft_accept_button.get())
 			}
 
 			RichTextEditor(
@@ -145,7 +149,7 @@ private fun DraftContent(
 					draftText = rtv
 				},
 				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = "Draft",
+					placeholder = MR.strings.draft_compare_draft_body_placeholder.get(),
 					textColor = MaterialTheme.colorScheme.onBackground,
 					placeholderColor = MaterialTheme.colorScheme.onBackground,
 				),
