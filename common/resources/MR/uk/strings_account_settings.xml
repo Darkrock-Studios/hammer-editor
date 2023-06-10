@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="settings_example_project_header">Приклад проєкту</string>
+    <string name="settings_example_project_description">Встановіть приклад проєкту, щоб побачити, як використовуються різні функції.</string>
+    <string name="settings_example_project_button">Перевстановлення</string>
+    <string name="settings_example_project_success_message">Створено приклад проєкту.</string>
+    <string name="settings_data_version">Дані: v%1$s</string>
+    <string name="settings_server_header">Сервер</string>
+    <string name="settings_server_description">Налаштуйте сервер для синхронізації між пристроями.</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_email_label">Пошта:</string>
+    <string name="settings_server_setup_button">Встановити</string>
+    <string name="settings_server_modify_button">Змінити</string>
+    <string name="settings_server_unknown_error">помилка</string>
+    <string name="settings_server_auto_sync">Автоматична синхронізація</string>
+    <string name="settings_server_sync_backup">Резервне копіювання при синхронізації</string>
+    <string name="settings_server_sync_auto_close">Закрити діалогові вікна синхронізації після успіху</string>
+    <string name="settings_server_max_backups">Максимальна кількість резервних копій на проєкт</string>
+    <string name="settings_server_reauth_button">Повторна авторизація</string>
+    <string name="settings_server_test_auth_button">Тест Авторизації</string>
+    <string name="settings_server_remove_server_button">Видалити авторизацію</string>
+    <string name="settings_server_authtest_toast_success">Тест авторизації пройдено успішно</string>
+    <string name="settings_remove_server_dialog_title">Видалити сервер</string>
+    <string name="settings_remove_server_dialog_message">Ви впевнені, що хочете видалити сервер\?</string>
+    <string name="settings_server_setup_ssl_label">HTTPS\?</string>
+    <string name="settings_server_setup_url_hint">Url серверу : myserver.com</string>
+    <string name="settings_server_setup_email_hint">Пошта: user@example.com</string>
+    <string name="settings_server_setup_password_hint">Пароль</string>
+    <string name="settings_server_setup_password_show">Показати пароль</string>
+    <string name="settings_server_setup_password_hide">Приховати пароль</string>
+    <string name="settings_server_setup_login_button">Логін</string>
+    <string name="settings_server_setup_create_button">Створити</string>
+    <string name="settings_server_setup_cancel_button">Скасувати</string>
+    <string name="remove_local_dialog_title">Видалити локальний вміст\?</string>
+    <string name="remove_local_dialog_message">Чи потрібно видалити поточний локальний вміст перед синхронізацією\? Якщо ні, ми спробуємо об\'єднати ваш локальний вміст із вмістом на сервері. Якщо вміст не пов\'язаний між собою, це може спричинити проблеми.</string>
+    <string name="settings_server_setup_title">Налаштування сервера</string>
+    <string name="settings_server_authtest_toast_failure">Тест авторизації не пройдено</string>
+    <string name="settings_server_setup_header">Налаштувати сервер</string>
+    <string name="settings_heading">⚙ Налаштування</string>
+    <string name="settings_theme_label">Тема інтерфейсу</string>
+    <string name="settings_projects_directory">Каталог проєктів</string>
+    <string name="settings_projects_directory_hint">Шлях до каталогу проєктів</string>
+    <string name="settings_projects_directory_button">Вибрати каталог</string>
 </resources>
