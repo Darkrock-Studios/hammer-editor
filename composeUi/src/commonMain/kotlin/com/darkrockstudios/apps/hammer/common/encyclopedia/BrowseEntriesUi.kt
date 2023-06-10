@@ -16,9 +16,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -56,9 +58,9 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 					searchText = it
 					component.updateFilter(searchText, selectedType)
 				},
-				label = { Text("Search by Name") },
+				label = { Text(MR.strings.encyclopedia_search_hint.get()) },
 				singleLine = true,
-				placeholder = { Text("Search by Name") },
+				placeholder = { Text(MR.strings.encyclopedia_search_hint.get()) },
 				modifier = Modifier.moveFocusOnTab().weight(1f),
 				keyboardOptions = KeyboardOptions(
 					autoCorrect = false,
@@ -70,7 +72,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 						searchText = ""
 						component.updateFilter(searchText, selectedType)
 					}) {
-						Icon(imageVector = Icons.Filled.Clear, "Clear")
+						Icon(imageVector = Icons.Filled.Clear, MR.strings.encyclopedia_search_clear_button.get())
 					}
 				},
 			)
@@ -81,7 +83,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
 				padding = Ui.Padding.XL,
 				items = types,
-				noneOption = "All",
+				noneOption = MR.strings.encyclopedia_category_all.get(),
 				defaultIndex = state.filterType?.let { types.indexOf(state.filterType) + 1 } ?: 0
 			) { item ->
 				selectedType = item
@@ -97,7 +99,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			if (filteredEntries.isEmpty()) {
 				item {
 					Text(
-						"No Entries Found",
+						MR.strings.encyclopedia_browse_list_empty.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground
 					)
@@ -124,7 +126,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	) {
 		Icon(
 			Icons.Rounded.Add,
-			"Create Entry"
+			MR.strings.encyclopedia_create_button.get()
 		)
 	}
 }

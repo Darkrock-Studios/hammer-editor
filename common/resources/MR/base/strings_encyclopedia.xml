@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="encyclopedia_search_hint">Search by Name</string>
+	<string name="encyclopedia_search_clear_button">Clear</string>
+	<string name="encyclopedia_category_all">All</string>
+	<string name="encyclopedia_browse_list_empty">No Entries Found</string>
+	<string name="encyclopedia_create_button">Create Entry</string>
+
+	<string name="encyclopedia_create_entry_header">Create New Entry</string>
+	<string name="encyclopedia_create_entry_type_label">Type:</string>
+	<string name="encyclopedia_create_entry_name_label">Name</string>
+	<string name="encyclopedia_create_entry_tags_label">Tags (space seperated)</string>
+	<string name="encyclopedia_create_entry_body_hint">Describe your entry</string>
+	<string name="encyclopedia_create_entry_remove_image_button">Remove Image</string>
+	<string name="encyclopedia_create_entry_select_image_button">Select Image</string>
+	<string name="encyclopedia_create_entry_create_button">Create</string>
+	<string name="encyclopedia_create_entry_cancel_button">Cancel</string>
+	<string name="encyclopedia_create_entry_toast_success">Entry Created</string>
+	<string name="encyclopedia_create_entry_toast_too_long">Entry Name was too long. Max %1$d</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">Entry Name must be alpha-numeric</string>
+	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag is too long. Max %1$d</string>
+	<string name="encyclopedia_create_entry_discard_title">Discard New Entry?</string>
+
+	<string name="encyclopedia_entry_load_error">Error: Failed to load entry!</string>
+	<string name="encyclopedia_entry_body_empty_placeholder">Describe your entry</string>
+	<string name="encyclopedia_entry_body_empty_label">Click to enter description</string>
+
+	<string name="encyclopedia_entry_edit_cancel_button">Cancel</string>
+	<string name="encyclopedia_entry_edit_save_button">Save</string>
+	<string name="encyclopedia_entry_edit_save_toast">Entry Saved</string>
+
+	<string name="encyclopedia_entry_discard_title">Discard Changes?</string>
+	<string name="encyclopedia_entry_discard_message">You will lose any changes you have made.</string>
+
+	<string name="encyclopedia_entry_delete_title">Delete Entry?</string>
+	<string name="encyclopedia_entry_delete_message">This cannot be undone!</string>
+	<string name="encyclopedia_entry_delete_toast">Entry Deleted</string>
+
+	<string name="encyclopedia_entry_delete_image_title">Delete Image?</string>
+	<string name="encyclopedia_entry_delete_image_message">This cannot be undone!</string>
+
+	<string name="encyclopedia_entry_name_hint">Name</string>
+	<string name="encyclopedia_entry_close_button">Close Entry</string>
+
+	<string name="encyclopedia_entry_discard_title">Discard Changes?</string>
+	<string name="encyclopedia_entry_discard_message">You will lose any changes you have made.</string>
+</resources>
