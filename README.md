@@ -6,12 +6,14 @@ A simple tool for building stories.
 
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux]
 
-[![Discord badge](https://img.shields.io/discord/1100282852295327744)](https://discord.gg/GTmgjZcupk)
+[![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
 [![Localization badge](https://hosted.weblate.org/widgets/hammer/-/clients/svg-badge.svg)](https://hosted.weblate.org/engage/hammer/)
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
 
 Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
+
+Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing the future of Hammer.
 
 ## Multi-platform
 
