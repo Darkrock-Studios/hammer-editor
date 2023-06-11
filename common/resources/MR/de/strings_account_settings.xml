@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="settings_heading">⚙ Einstellungen</string>
+    <string name="settings_theme_label">Schnittstellenfarbschema</string>
+    <string name="settings_projects_directory">Projektverzeichnis</string>
+    <string name="settings_projects_directory_hint">Pfad zum Projektverzeichnis</string>
+    <string name="settings_server_email_label">E-Mail :</string>
+    <string name="settings_server_setup_email_hint">E-Mail: benutzer@beispiel.com</string>
+    <string name="settings_server_sync_backup">Sicherung bei Synchronisierung</string>
 </resources>
