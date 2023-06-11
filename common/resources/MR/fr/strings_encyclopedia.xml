@@ -1,4 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="encyclopedia_search_clear_button">Effacer</string>
+    <string name="encyclopedia_browse_list_empty">Aucune entrée trouvée</string>
+    <string name="encyclopedia_create_button">Créer une entrée</string>
+    <string name="encyclopedia_create_entry_type_label">Type :</string>
+    <string name="encyclopedia_create_entry_name_label">Nom</string>
+    <string name="encyclopedia_create_entry_tags_label">Étiquettes (séparés par des espaces)</string>
+    <string name="encyclopedia_create_entry_body_hint">Décrivez votre entrée</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Retirer l’image</string>
+    <string name="encyclopedia_create_entry_select_image_button">Sélectionner une image</string>
+    <string name="encyclopedia_create_entry_create_button">Créer</string>
+    <string name="encyclopedia_create_entry_cancel_button">Annuler</string>
+    <string name="encyclopedia_create_entry_toast_success">Entrée créée</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">L’étiquette est trop longue. Max %1$d</string>
+    <string name="encyclopedia_create_entry_discard_title">Supprimer la nouvelle entrée \?</string>
+    <string name="encyclopedia_entry_load_error">Erreur : Échec du chargement de l’entrée !</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Décrivez votre entrée</string>
+    <string name="encyclopedia_entry_edit_save_button">Enregistrer</string>
+    <string name="encyclopedia_entry_edit_save_toast">Entrée enregistrée</string>
+    <string name="encyclopedia_entry_discard_title">Supprimer les modifications \?</string>
+    <string name="encyclopedia_entry_discard_message">Vous perdrez toutes les modifications que vous avez faites.</string>
+    <string name="encyclopedia_entry_delete_title">Supprimer l’entrée \?</string>
+    <string name="encyclopedia_entry_delete_message">Ceci est irréversible !</string>
+    <string name="encyclopedia_entry_delete_toast">Entrée supprimée</string>
+    <string name="encyclopedia_entry_delete_image_title">Supprimer l’image \?</string>
+    <string name="encyclopedia_entry_delete_image_message">Ceci est irréversible !</string>
+    <string name="encyclopedia_entry_name_hint">Nom</string>
+    <string name="encyclopedia_entry_close_button">Fermer l’entrée</string>
+    <string name="encyclopedia_category_all">Tout</string>
+    <string name="encyclopedia_search_hint">Rechercher par nom</string>
+    <string name="encyclopedia_create_entry_header">Créer une nouvelle entrée</string>
+    <string name="encyclopedia_create_entry_toast_too_long">Le nom de l’entrée est trop long. Max %1$d</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">Le nom de l’entrée doit être alphanumérique</string>
+    <string name="encyclopedia_entry_body_empty_label">Cliquez pour saisir la description</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Annuler</string>
 </resources>

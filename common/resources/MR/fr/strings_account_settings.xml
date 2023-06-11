@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="settings_heading">⚙ Paramètres</string>
+    <string name="settings_theme_label">Thème de l’interface utilisateur</string>
+    <string name="settings_projects_directory">Répertoire des projets</string>
+    <string name="settings_projects_directory_button">Sélectionnez rép</string>
+    <string name="settings_example_project_header">Exemple de projet</string>
+    <string name="settings_example_project_description">Installez un exemple de projet pour voir comment les différentes fonctionnalités sont utilisées.</string>
+    <string name="settings_example_project_button">Réinstaller</string>
+    <string name="settings_example_project_success_message">Exemple de projet créé.</string>
+    <string name="settings_data_version">Données : v%1$s</string>
+    <string name="settings_server_header">Serveur</string>
+    <string name="settings_server_description">Configurer un serveur pour la synchronisation entre les appareils.</string>
+    <string name="settings_server_url_label">URL :</string>
+    <string name="settings_server_email_label">Courriel :</string>
+    <string name="settings_server_setup_button">Configurer</string>
+    <string name="settings_server_modify_button">Modifier</string>
+    <string name="settings_server_unknown_error">erreur</string>
+    <string name="settings_server_auto_sync">Synchro auto</string>
+    <string name="settings_server_sync_backup">Sauvegarder en synchronisant</string>
+    <string name="settings_server_sync_auto_close">Fermer les dialogues de synchronisation en cas de succès</string>
+    <string name="settings_server_max_backups">Nombre maximal de sauvegardes par projet</string>
+    <string name="settings_server_test_auth_button">Test d’authentification</string>
+    <string name="settings_server_reauth_button">Se réauthentifier</string>
+    <string name="settings_server_remove_server_button">Retirer l’authentification</string>
+    <string name="settings_server_authtest_toast_success">Test d’authentification réussi</string>
+    <string name="settings_server_authtest_toast_failure">Échec du test d’authentification</string>
+    <string name="settings_remove_server_dialog_title">Retirer le serveur</string>
+    <string name="settings_remove_server_dialog_message">Êtes-vous sûr·e de vouloir supprimer le serveur \?</string>
+    <string name="settings_server_setup_ssl_label">HTTPS \?</string>
+    <string name="settings_server_setup_url_hint">URL du serveur : monserveur.com</string>
+    <string name="settings_server_setup_email_hint">Courriel : utilisateur@exemple.com</string>
+    <string name="settings_server_setup_password_show">Afficher le mot de passe</string>
+    <string name="settings_server_setup_password_hide">Masquer le mot de passe</string>
+    <string name="settings_server_setup_login_button">Se connecter</string>
+    <string name="settings_server_setup_create_button">Créer</string>
+    <string name="settings_server_setup_cancel_button">Annuler</string>
+    <string name="remove_local_dialog_title">Retirer le contenu local \?</string>
+    <string name="settings_projects_directory_hint">Chemin d’accès au répertoire des projets</string>
+    <string name="settings_server_setup_title">Configurer le serveur</string>
+    <string name="settings_server_setup_password_hint">Mot de passe</string>
+    <string name="settings_server_setup_header">Configurer le serveur</string>
+    <string name="remove_local_dialog_message">Devons-nous retirer votre contenu local actuel avant de procéder à la synchronisation \? Si ce n’est pas le cas, nous tenterons de fusionner votre contenu local avec le contenu du serveur. Si le contenu n’est pas lié, cela peut poser des problèmes.</string>
 </resources>
