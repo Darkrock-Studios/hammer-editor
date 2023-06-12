@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="notes_header">Notizen</string>
+    <string name="notes_list_empty">Keine Notizen gefunden</string>
+    <string name="notes_create_note_button">Notiz erstellen</string>
+    <string name="notes_note_item_action_rename">Umbenennen</string>
+    <string name="notes_note_item_action_cancel">Abbrechen</string>
+    <string name="notes_note_item_action_delete">Löschen</string>
+    <string name="notes_create_header">Notiz erstellen</string>
+    <string name="notes_discard_dialog_title">Änderungen verwerfen\?</string>
+    <string name="notes_create_body_hint">Neue Notiz:</string>
+    <string name="notes_create_create_button">Speichern</string>
+    <string name="notes_create_cancel_button">Abbrechen</string>
+    <string name="notes_create_toast_success">Notiz erstellt</string>
+    <string name="notes_create_toast_empty">Notiz ist leer</string>
+    <string name="notes_delete_title">Notiz löschen\?</string>
+    <string name="notes_delete_message">Notiz kann nicht wiederhergestellt werden!</string>
+    <string name="notes_delete_toast_success">Notiz %1$s gelöscht</string>
 </resources>
