@@ -11,5 +11,7 @@
     <string name="project_home_action_backup_toast_success">Backup erstellt: %1$s</string>
     <string name="project_home_action_backup_toast_failure">Backup fehlgeschlagen</string>
     <string name="project_home_stat_header">Statistik:</string>
-    <string name="project_home_stat_total_words">Wörter</string>
+    <string name="project_home_stat_total_words">Wörter Gesamt</string>
+    <string name="project_home_stat_chapter_words">Wörter in Kapiteln</string>
+    <string name="project_home_actions_header">Aktionen:</string>
 </resources>
