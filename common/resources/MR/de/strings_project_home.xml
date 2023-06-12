@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="project_home_stat_created">Erstellt: %1$s</string>
+    <string name="project_home_stat_num_scenes">Szenen</string>
+    <string name="project_home_stat_encyclopedia_entries">Einträge der Enzyklopädie</string>
+    <string name="project_home_stat_chapter_words_x_axis">Kapitel</string>
+    <string name="project_home_stat_chapter_words_y_axis">Wörter</string>
+    <string name="project_home_action_export">Geschichte exportieren</string>
+    <string name="project_home_action_sync">Geschichte synchronisieren</string>
+    <string name="project_home_action_backup">Backup</string>
+    <string name="project_home_action_backup_toast_success">Backup erstellt: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Backup fehlgeschlagen</string>
+    <string name="project_home_stat_header">Statistik:</string>
+    <string name="project_home_stat_total_words">Wörter</string>
 </resources>
