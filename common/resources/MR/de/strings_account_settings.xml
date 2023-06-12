@@ -4,7 +4,16 @@
     <string name="settings_theme_label">Schnittstellenfarbschema</string>
     <string name="settings_projects_directory">Projektverzeichnis</string>
     <string name="settings_projects_directory_hint">Pfad zum Projektverzeichnis</string>
-    <string name="settings_server_email_label">E-Mail :</string>
+    <string name="settings_server_email_label">E-Mail:</string>
     <string name="settings_server_setup_email_hint">E-Mail: benutzer@beispiel.com</string>
     <string name="settings_server_sync_backup">Sicherung bei Synchronisierung</string>
+    <string name="settings_projects_directory_button">Ordner wählen</string>
+    <string name="settings_example_project_header">Beispielprojekt</string>
+    <string name="settings_example_project_success_message">Beispielprojekt erstellt.</string>
+    <string name="settings_data_version">Daten: v%1$s</string>
+    <string name="settings_server_modify_button">Bearbeiten</string>
+    <string name="settings_server_header">Server</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_unknown_error">Fehler</string>
+    <string name="settings_server_auto_sync">Auto-Sync</string>
 </resources>
