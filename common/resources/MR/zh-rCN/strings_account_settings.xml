@@ -29,4 +29,5 @@
     <string name="settings_remove_server_dialog_title">移除服务器</string>
     <string name="settings_remove_server_dialog_message">确定要移除此服务器吗\?</string>
     <string name="settings_projects_directory">项目文件夹</string>
+    <string name="settings_server_setup_header">编辑服务器配置</string>
 </resources>
