@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="notes_header">笔记</string>
+    <string name="notes_list_empty">未找到笔记</string>
+    <string name="notes_create_note_button">新建编辑</string>
+    <string name="notes_create_toast_success">已新建笔记</string>
+    <string name="notes_create_toast_too_long">编辑过长</string>
+    <string name="notes_create_toast_empty">笔记是空的</string>
+    <string name="notes_delete_title">删除笔记\?</string>
+    <string name="notes_delete_message">此操作无法撤销.</string>
+    <string name="notes_note_item_action_delete">删除笔记</string>
+    <string name="notes_note_item_action_rename">重命名</string>
+    <string name="notes_discard_dialog_message">将失去所有已编辑的内容.</string>
+    <string name="notes_note_item_action_cancel">取消</string>
+    <string name="notes_discard_dialog_title">舍弃编辑\?</string>
+    <string name="notes_delete_toast_success">笔记 %1$s 已删除</string>
+    <string name="notes_create_header">新建笔记</string>
+    <string name="notes_create_body_hint">新笔记:</string>
+    <string name="notes_create_create_button">新建</string>
+    <string name="notes_create_cancel_button">取消</string>
 </resources>
