@@ -1,4 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="settings_heading">设置</string>
+    <string name="settings_theme_label">界面设置</string>
+    <string name="settings_example_project_header">项目示例</string>
+    <string name="settings_projects_directory_button">选择文件夹</string>
+    <string name="settings_example_project_button">重新获取</string>
+    <string name="settings_example_project_description">获取一个示例项目以了解如何使用不同的功能.</string>
+    <string name="settings_example_project_success_message">已新建示例项目.</string>
+    <string name="settings_projects_directory_hint">项目文件夹路径</string>
+    <string name="settings_server_modify_button">修改</string>
+    <string name="settings_data_version">数据: v%1$s</string>
+    <string name="settings_server_header">服务器</string>
+    <string name="settings_server_description">设置一个服务器以在不同设备间同步.</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_sync_auto_close">在成功后关闭同步对话框</string>
+    <string name="settings_server_email_label">邮箱:</string>
+    <string name="settings_server_setup_button">配置</string>
+    <string name="settings_server_test_auth_button">验证</string>
+    <string name="settings_server_reauth_button">重新验证</string>
+    <string name="settings_server_authtest_toast_failure">验证失败</string>
+    <string name="settings_server_setup_title">配置服务器</string>
+    <string name="settings_server_auto_sync">自动同步</string>
+    <string name="settings_server_sync_backup">同步备份</string>
+    <string name="settings_server_unknown_error">错误</string>
+    <string name="settings_server_max_backups">每个项目的最大备份数</string>
+    <string name="settings_server_remove_server_button">移除验证</string>
+    <string name="settings_server_authtest_toast_success">验证成功</string>
+    <string name="settings_remove_server_dialog_title">移除服务器</string>
+    <string name="settings_remove_server_dialog_message">确定要移除此服务器吗\?</string>
+    <string name="settings_projects_directory">项目文件夹</string>
 </resources>
