@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="project_home_stat_encyclopedia_entries">条目分布</string>
+    <string name="project_home_stat_chapter_words">各分组词数</string>
+    <string name="project_home_stat_header">统计:</string>
+    <string name="project_home_stat_created">已创建: %1$s</string>
+    <string name="project_home_stat_num_scenes">场景</string>
+    <string name="project_home_stat_total_words">字数总计</string>
 </resources>
