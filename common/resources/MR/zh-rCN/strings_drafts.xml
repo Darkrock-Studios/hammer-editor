@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="draft_compare_cancel_button">取消</string>
+    <string name="draft_compare_current_accept_button">合并</string>
+    <string name="draft_compare_current_body_placeholder">在此撰写场景</string>
+    <string name="draft_compare_current_header">与当前内容合并</string>
+    <string name="draft_compare_current_subheader">将草稿的部分复制到此处</string>
+    <string name="draft_compare_draft_accept_button">保存整个草稿</string>
+    <string name="draft_list_close_button">关闭草稿</string>
+    <string name="draft_list_header">%1$s 草稿:</string>
+    <string name="draft_list_empty">没有找到草稿</string>
+    <string name="draft_list_item_created">已创建: %1$s</string>
+    <string name="draft_compare_draft_header">草稿: %1$s</string>
+    <string name="draft_compare_draft_subheader">将所需的部分或全部内容复制到此处.</string>
+    <string name="draft_compare_draft_body_placeholder">草稿</string>
 </resources>
