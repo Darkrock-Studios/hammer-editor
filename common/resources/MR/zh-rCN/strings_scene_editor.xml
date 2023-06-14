@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="save_draft_dialog_title">保存草稿:</string>
+    <string name="save_draft_dialog_name_hint">草稿名</string>
+    <string name="save_draft_dialog_save_button">保存</string>
+    <string name="save_draft_dialog_toast_success">草稿已保存</string>
+    <string name="scene_editor_name_hint">场景名</string>
+    <string name="scene_editor_rename_button">重命名</string>
+    <string name="scene_editor_cancel_button">取消</string>
+    <string name="scene_editor_unsaved_chip">不保存</string>
+    <string name="scene_editor_save_button">保存</string>
+    <string name="scene_editor_toast_save_successful">已保存</string>
+    <string name="scene_editor_body_placeholder">在此撰写场景</string>
+    <string name="save_draft_dialog_cancel_button">取消</string>
 </resources>
