@@ -6,7 +6,7 @@
     <string name="notes_note_item_action_rename">Переіменувати</string>
     <string name="notes_note_item_action_cancel">Скасувати</string>
     <string name="notes_note_item_action_delete">Видалити</string>
-    <string name="notes_discard_dialog_title">Скасувати зміни\?</string>
+    <string name="notes_discard_dialog_title">Відхилити зміни\?</string>
     <string name="notes_discard_dialog_message">Ви втратите всі внесені зміни.</string>
     <string name="notes_create_header">Створити нотатку</string>
     <string name="notes_create_body_hint">Нова нотатка:</string>
