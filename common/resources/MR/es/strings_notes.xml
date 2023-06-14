@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="notes_header">Notas</string>
+    <string name="notes_list_empty">No se encontraron notas</string>
+    <string name="notes_create_note_button">Crear nota</string>
+    <string name="notes_note_item_action_rename">Renombrar</string>
+    <string name="notes_note_item_action_cancel">Cancelar</string>
+    <string name="notes_note_item_action_delete">Eliminar</string>
+    <string name="notes_discard_dialog_title">¿Descartar cambios\?</string>
+    <string name="notes_discard_dialog_message">Vas a perder cualquier cambio que hayas hecho.</string>
+    <string name="notes_create_header">Crear nota</string>
+    <string name="notes_create_body_hint">Nota nueva:</string>
+    <string name="notes_create_create_button">Crear</string>
+    <string name="notes_create_cancel_button">Cancelar</string>
+    <string name="notes_create_toast_success">Nota creada</string>
+    <string name="notes_delete_title">¿Eliminar nota\?</string>
+    <string name="notes_delete_message">Esta acción no se puede deshacer.</string>
 </resources>
