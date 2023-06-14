@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
+    <string name="unsaved_scenes_dialog_title">Escenas sin guardar</string>
+    <string name="title_activity_add_note">Agregar nota</string>
+    <string name="unsaved_scenes_dialog_message">¿Desea guardar las escenas sin guardar\?</string>
+    <string name="loading">Cargando…</string>
+    <string name="unsaved_scenes_dialog_negative_button">Descartar y cerrar</string>
+    <string name="title_activity_configure_note_widget">Configurar Widget</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Cancelar</string>
+    <string name="unsaved_scenes_dialog_positive_button">Guardar y cerrar</string>
+    <string name="note_widget_dialog_title">Agregar nota a:</string>
+    <string name="note_widget_dialog_save_button">Guardar</string>
+    <string name="note_widget_dialog_categories_dropdown">Categorías</string>
+    <string name="note_widget_button_description">Agregar nota</string>
 </resources>
