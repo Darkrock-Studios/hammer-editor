@@ -30,4 +30,15 @@
     <string name="settings_remove_server_dialog_message">确定要移除此服务器吗\?</string>
     <string name="settings_projects_directory">项目文件夹</string>
     <string name="settings_server_setup_header">编辑服务器配置</string>
+    <string name="settings_server_setup_ssl_label">启用HTTPS\?</string>
+    <string name="settings_server_setup_login_button">登陆</string>
+    <string name="settings_server_setup_url_hint">服务器URL: myserver.com</string>
+    <string name="settings_server_setup_email_hint">邮箱: user@example.com</string>
+    <string name="settings_server_setup_password_hint">密码</string>
+    <string name="settings_server_setup_password_show">显示密码</string>
+    <string name="settings_server_setup_password_hide">隐藏密码</string>
+    <string name="settings_server_setup_create_button">创建</string>
+    <string name="settings_server_setup_cancel_button">取消</string>
+    <string name="remove_local_dialog_title">移除本地内容\?</string>
+    <string name="remove_local_dialog_message">是否在同步之前移除当前本地的内容\? 取消后, 将尝试把本地内容与服务器内容合并, 这可能会导致问题。</string>
 </resources>
