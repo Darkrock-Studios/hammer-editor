@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_server_email_label">Correo electrónico:</string>
+    <string name="settings_heading">Configuración</string>
+    <string name="settings_theme_label">Tema UI</string>
+    <string name="settings_example_project_description">Instala un proyecto de ejemplo para ver cómo se usan las diferentes funciones.</string>
+    <string name="settings_example_project_button">Reinstalar</string>
+    <string name="settings_server_header">Servidor</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_modify_button">Modificar</string>
+    <string name="settings_server_unknown_error">error</string>
+    <string name="settings_projects_directory_button">Seleccionar directorio</string>
 </resources>
