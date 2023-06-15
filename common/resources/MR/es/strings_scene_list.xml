@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="scene_list_header">Escenas:</string>
+    <string name="scene_list_create_group_button">Crear grupo</string>
+    <string name="scene_list_create_scene_button">Crear escena</string>
+    <string name="scene_list_create_group_dialog_title">Crear grupo</string>
+    <string name="scene_list_create_group_dialog_message">Nombre del grupo</string>
+    <string name="scene_list_create_scene_dialog_title">Crear escena</string>
+    <string name="scene_list_create_scene_dialog_message">Nombre de escena</string>
+    <string name="scene_delete_dialog_title">Borrar escena</string>
+    <string name="scene_delete_dialog_delete_button">ELIMINAR</string>
+    <string name="create_sceneitem_dialog_create_button">Crear</string>
 </resources>

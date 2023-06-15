@@ -1,4 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="encyclopedia_create_entry_toast_success">Запис створено</string>
+    <string name="encyclopedia_create_entry_toast_too_long">Назва запису була занадто довгою. Макс %1$d</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">Назва запису має бути буквено-цифровою</string>
+    <string name="encyclopedia_search_hint">Пошук за назвою</string>
+    <string name="encyclopedia_search_clear_button">Очистити</string>
+    <string name="encyclopedia_category_all">Всі</string>
+    <string name="encyclopedia_browse_list_empty">Записів не знайдено</string>
+    <string name="encyclopedia_create_button">Створити запис</string>
+    <string name="encyclopedia_create_entry_header">Створити новий запис</string>
+    <string name="encyclopedia_create_entry_type_label">Тип:</string>
+    <string name="encyclopedia_create_entry_name_label">Ім’я</string>
+    <string name="encyclopedia_create_entry_tags_label">Теги (через пробіл)</string>
+    <string name="encyclopedia_create_entry_body_hint">Опишіть свій запис</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Видалити зображення</string>
+    <string name="encyclopedia_create_entry_create_button">Створити</string>
+    <string name="encyclopedia_create_entry_select_image_button">Вибрати зображення</string>
+    <string name="encyclopedia_create_entry_cancel_button">Скасувати</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">Тег занадто довгий. Макс %1$d</string>
+    <string name="encyclopedia_create_entry_discard_title">Відхилити новий запис\?</string>
+    <string name="encyclopedia_entry_load_error">Помилка: Не вдалося завантажити запис!</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Опишіть свій запис</string>
+    <string name="encyclopedia_entry_body_empty_label">Натисніть, щоб ввести опис</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Скасувати</string>
+    <string name="encyclopedia_entry_edit_save_button">Зберегти</string>
+    <string name="encyclopedia_entry_edit_save_toast">Запис збережено</string>
+    <string name="encyclopedia_entry_discard_title">Відхилити зміни\?</string>
+    <string name="encyclopedia_entry_discard_message">Ви втратите всі внесені зміни.</string>
+    <string name="encyclopedia_entry_delete_title">Видалити запис\?</string>
+    <string name="encyclopedia_entry_delete_message">Цього не можна скасувати!</string>
+    <string name="encyclopedia_entry_delete_toast">Запис видалено</string>
+    <string name="encyclopedia_entry_delete_image_title">Видалити зображення\?</string>
+    <string name="encyclopedia_entry_delete_image_message">Це неможливо скасувати!</string>
+    <string name="encyclopedia_entry_name_hint">Назва</string>
+    <string name="encyclopedia_entry_close_button">Закрити запис</string>
 </resources>

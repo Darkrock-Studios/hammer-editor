@@ -2,4 +2,25 @@
 <resources>
     <string name="delete_project_confirm">SUPPRIMER</string>
     <string name="delete_project_cancel">Annuler</string>
+    <string name="create_project_heading">Nouveau nom du projet</string>
+    <string name="create_project_button">Créer un projet</string>
+    <string name="project_select_list_header">Projets :</string>
+    <string name="project_select_project_list_empty">Aucun projet trouvé</string>
+    <string name="project_select_card_delete_button">Supprimer</string>
+    <string name="projects_list_sync_button">Synchroniser les projets</string>
+    <string name="projects_list_create_button">Créer un projet</string>
+    <string name="projects_list_toast_sync_complete">Projets synchronisés</string>
+    <string name="projects_list_toast_sync_failed">Échec de la synchronisation des projets</string>
+    <string name="account_sync_dialog_title">Synchronisation</string>
+    <string name="account_sync_dialog_header">Synchronisation des comptes</string>
+    <string name="account_sync_dialog_cancel_button">Annuler</string>
+    <string name="account_sync_log_title">Journal de synchronisation</string>
+    <string name="account_sync_dialog_status_pending">En attente</string>
+    <string name="account_sync_dialog_status_error">Erreur</string>
+    <string name="account_sync_dialog_status_complete">Synchronisation terminée</string>
+    <string name="account_sync_dialog_status_canceled">Annulé</string>
+    <string name="delete_project_title">Supprimer le projet</string>
+    <string name="delete_project_message">Êtes-vous sûr·e de vouloir supprimer ce projet \?
+\n%1$s</string>
+    <string name="create_project_title">Créer un projet</string>
 </resources>

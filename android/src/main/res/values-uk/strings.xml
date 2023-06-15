@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="app_name">Hammer</string>
+    <string name="title_activity_add_note">Додати нотатку</string>
+    <string name="loading">Завантаження…</string>
+    <string name="title_activity_configure_note_widget">Налаштувати віджет</string>
+    <string name="unsaved_scenes_dialog_title">Незбережені сцени</string>
+    <string name="unsaved_scenes_dialog_message">Зберегти незбережені сцени\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Відхилити та закрити</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Скасувати</string>
+    <string name="overflow_menu_button">Більше</string>
+    <string name="note_widget_dialog_title">Додати нотатку до:</string>
+    <string name="note_widget_dialog_save_button">Зберегти</string>
+    <string name="note_widget_button_description">Додати нотатку</string>
+    <string name="note_widget_toast_no_projects">Немає проєктів</string>
+    <string name="note_widget_toast_success">Додано нотатку</string>
+    <string name="unsaved_scenes_dialog_positive_button">Зберегти та закрити</string>
+    <string name="note_widget_dialog_categories_dropdown">Категорії</string>
+    <string name="navdrawer_button">Навігаційна панель</string>
 </resources>

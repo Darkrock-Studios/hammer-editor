@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scene_list_create_group_button">新建分组</string>
+    <string name="scene_list_create_group_dialog_title">新建分组</string>
+    <string name="scene_list_create_scene_dialog_message">场景名</string>
+    <string name="scene_group_item_collapsed">分组已折叠</string>
+    <string name="scene_group_item_expanded">分组已展开</string>
+    <string name="scene_delete_dialog_title">删除场景</string>
+    <string name="create_sceneitem_dialog_dismiss_button">取消</string>
+    <string name="scene_list_create_group_dialog_message">分组名</string>
+    <string name="scene_delete_dialog_message">确定要删除此场景: %1$s</string>
+    <string name="scene_list_create_scene_dialog_title">新建场景</string>
+    <string name="scene_delete_dialog_delete_button">删除</string>
+    <string name="create_sceneitem_dialog_create_button">新建</string>
+    <string name="scene_list_header">场景:</string>
+    <string name="scene_list_create_scene_button">新建场景</string>
+    <string name="group_cannot_delete_dialog_title">无法删除分组</string>
+    <string name="scene_delete_dialog_dismiss_button">关闭</string>
+</resources>

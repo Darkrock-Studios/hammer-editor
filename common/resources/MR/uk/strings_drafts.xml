@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="draft_compare_cancel_button">Скасувати</string>
+    <string name="draft_compare_current_header">Об\'єднати з поточним текстом</string>
+    <string name="draft_compare_current_accept_button">Взяти об\'єднані</string>
+    <string name="draft_compare_current_body_placeholder">Почніть писати свою Сцену тут</string>
+    <string name="draft_compare_current_subheader">Скопіюйте частини чернетки сюди</string>
+    <string name="draft_compare_draft_header">Чернетка: %1$s</string>
+    <string name="draft_compare_draft_subheader">Скопіюйте потрібні частини в поточний текст або візьміть на себе весь текст.</string>
+    <string name="draft_compare_draft_accept_button">Візьміть всю цю чернетку</string>
+    <string name="draft_compare_draft_body_placeholder">Чернетка</string>
+    <string name="draft_list_close_button">Закрити чернетки</string>
+    <string name="draft_list_header">%1$s Чернеток:</string>
+    <string name="draft_list_empty">Чернеток не знайдено</string>
+    <string name="draft_list_item_created">Створено: %1$s</string>
 </resources>

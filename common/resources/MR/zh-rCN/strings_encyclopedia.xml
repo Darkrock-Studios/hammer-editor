@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encyclopedia_search_clear_button">清除</string>
+    <string name="encyclopedia_search_hint">通过名称搜索</string>
+    <string name="encyclopedia_entry_body_empty_label">点击此处描述</string>
+    <string name="encyclopedia_category_all">全部</string>
+    <string name="encyclopedia_browse_list_empty">未找到条目</string>
+    <string name="encyclopedia_create_entry_type_label">类型:</string>
+    <string name="encyclopedia_create_entry_discard_title">舍弃新条目\?</string>
+    <string name="encyclopedia_entry_load_error">错误: 条目加载失败!</string>
+    <string name="encyclopedia_create_button">新建条目</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">描述此条目</string>
+    <string name="encyclopedia_create_entry_header">创建新的条目</string>
+    <string name="encyclopedia_entry_edit_cancel_button">取消</string>
+    <string name="encyclopedia_create_entry_name_label">名称</string>
+    <string name="encyclopedia_create_entry_tags_label">标签 (以空格分隔)</string>
+    <string name="encyclopedia_entry_edit_save_button">保存</string>
+    <string name="encyclopedia_create_entry_body_hint">描述此条目</string>
+    <string name="encyclopedia_entry_edit_save_toast">条目已保存</string>
+    <string name="encyclopedia_entry_delete_title">删除条目\?</string>
+    <string name="encyclopedia_create_entry_remove_image_button">移除图片</string>
+    <string name="encyclopedia_entry_discard_title">舍弃编辑\?</string>
+    <string name="encyclopedia_entry_discard_message">将失去所有已编辑的内容.</string>
+    <string name="encyclopedia_create_entry_select_image_button">选择图片</string>
+    <string name="encyclopedia_create_entry_toast_too_long">条目名过长. 最大限制: %1$d</string>
+    <string name="encyclopedia_create_entry_create_button">新建</string>
+    <string name="encyclopedia_create_entry_toast_success">已创建条目</string>
+    <string name="encyclopedia_create_entry_cancel_button">取消</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">条目名称必须是字母数字</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">标签过长. 最大限制 %1$d</string>
+    <string name="encyclopedia_entry_close_button">关闭条目</string>
+    <string name="encyclopedia_entry_delete_message">此操作无法撤销!</string>
+    <string name="encyclopedia_entry_delete_image_title">删除图片\?</string>
+    <string name="encyclopedia_entry_delete_toast">条目已删除</string>
+    <string name="encyclopedia_entry_delete_image_message">此操作无法撤销!</string>
+    <string name="encyclopedia_entry_name_hint">名称</string>
+</resources>

@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="draft_compare_cancel_button">Cancelar</string>
+    <string name="draft_compare_current_body_placeholder">Comienza escribiendo tu escena aquí</string>
+    <string name="draft_compare_draft_body_placeholder">Borrador</string>
+    <string name="draft_list_close_button">Cerrar borrador</string>
+    <string name="draft_list_empty">Ningún borrador encontrado</string>
+    <string name="draft_compare_current_subheader">Copia partes del borrador aquí</string>
+    <string name="draft_compare_draft_header">Borrador: %1$s</string>
 </resources>
