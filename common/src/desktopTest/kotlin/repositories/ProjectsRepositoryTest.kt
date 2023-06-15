@@ -1,15 +1,19 @@
 package repositories
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProjectDirectories
 import createRootDirectory
+import dev.icerock.moko.resources.StringResource
 import getProjectsDirectory
 import io.mockk.coEvery
 import io.mockk.coJustAwait
@@ -23,10 +27,7 @@ import org.junit.After
 import org.junit.Before
 import projectNames
 import utils.BaseTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectsRepositoryTest : BaseTest() {
@@ -57,7 +58,6 @@ class ProjectsRepositoryTest : BaseTest() {
 		setupKoin()
 	}
 
-
 	@After
 	override fun tearDown() {
 		super.tearDown()
@@ -68,23 +68,33 @@ class ProjectsRepositoryTest : BaseTest() {
 	fun `ProjectsRepository init`() = scope.runTest {
 		val projDir = getProjectsDirectory()
 		assertFalse(ffs.exists(projDir), "Dir should not have existed already")
-
 		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
-
 		assertTrue(ffs.exists(projDir), "Init did not create project dir")
+	}
+
+	private fun assertFailure(filename: String?, error: StringResource) {
+		val result = ProjectsRepository.validateFileName(filename)
+		assert(result.isFailure)
+
+		val exception = result.exceptionOrNull() as? ValidationFailedException
+		assertNotNull(exception)
+
+		assertEquals(error, exception.errorMessage)
 	}
 
 	@Test
 	fun `Scene Name Validation`() = scope.runTest {
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		listOf("good", "cliché", "one two", "one_two", "1234567890", "nums1234567890", "aZ").forEach {
+			assertTrue(ProjectsRepository.validateFileName(it).isSuccess)
+		}
 
-		assertTrue(repo.validateFileName("good"))
-		assertFalse(repo.validateFileName(null))
-		assertFalse(repo.validateFileName(""))
-		assertFalse(repo.validateFileName("bad*bad"))
-		assertFalse(repo.validateFileName("bad-bad"))
-		assertFalse(repo.validateFileName("bad/bad"))
-		assertFalse(repo.validateFileName("""bad\bad"""))
+		assertFailure(null, MR.strings.create_project_error_null_filename)
+		assertFailure("", MR.strings.create_project_error_blank)
+		assertFailure("   ", MR.strings.create_project_error_blank)
+
+		listOf("bad*bad", "bad-bad", "bad/bad", """bad\bad""").forEach {
+			assertFailure(it, MR.strings.create_project_error_invalid_characters)
+		}
 	}
 
 	@Test
@@ -125,14 +135,14 @@ class ProjectsRepositoryTest : BaseTest() {
 		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
 
 		val projectName = projectNames[0]
-		val created = repo.createProject(projectName)
-		assertTrue(created)
+		val result = repo.createProject(projectName)
+		assertTrue(result.isSuccess)
 
 		val actualProjDir = getProjectsDirectory().div(projectName)
 		assertTrue(ffs.exists(actualProjDir))
 
-		val created2 = repo.createProject(projectName)
-		assertFalse(created2)
+		val result2 = repo.createProject(projectName)
+		assertFalse(result2.isSuccess)
 	}
 
 	@Test

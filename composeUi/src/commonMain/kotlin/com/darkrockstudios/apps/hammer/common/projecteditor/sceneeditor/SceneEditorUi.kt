@@ -48,6 +48,12 @@ fun SceneEditorUi(
 		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
 	}
 
+	LaunchedEffect(state.toast) {
+		state.toast?.let { message ->
+			snackbarHostState.showSnackbar(strRes.get(message))
+		}
+	}
+
 	Box(modifier = modifier) {
 		Column(modifier = Modifier.fillMaxSize()) {
 			Row(verticalAlignment = Alignment.CenterVertically) {

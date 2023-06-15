@@ -27,4 +27,10 @@
 	<string name="create_project_title">Create Project</string>
 	<string name="create_project_heading">New Project Name</string>
 	<string name="create_project_button">Create Project</string>
+
+	<string name="create_project_error_already_exists">Project already exists</string>
+	<string name="create_project_error_null_filename">Missing Project Name</string>
+	<string name="create_project_error_too_long">Project Name too long</string>
+	<string name="create_project_error_invalid_characters">Project Name contains invalid characters</string>
+	<string name="create_project_error_blank">Project Name was blank</string>
 </resources>

@@ -4,12 +4,14 @@ import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -22,6 +24,7 @@ import createProject
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
@@ -46,6 +49,8 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
+
+	private val errorException = ValidationFailedException(MR.strings.create_project_error_null_filename)
 
 	private fun claimId(): Int {
 		val id = nextId
@@ -99,6 +104,8 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
 				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+
+		mockkObject(ProjectsRepository.Companion)
 
 		setupKoin()
 	}
@@ -197,7 +204,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, Invalid Scene Name`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { projectsRepo.validateFileName(any()) } returns false
+		every { ProjectsRepository.validateFileName(any()) } returns Result.failure(errorException)
 
 		repo.initializeProjectEditor()
 
@@ -210,7 +217,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, Under Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { projectsRepo.validateFileName(any()) } returns true
+		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
 
 		repo.initializeProjectEditor()
 
@@ -231,7 +238,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { projectsRepo.validateFileName(any()) } returns true
+		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
 
 		repo.initializeProjectEditor()
 
@@ -256,7 +263,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Group, In Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { projectsRepo.validateFileName(any()) } returns true
+		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
 
 		repo.initializeProjectEditor()
 		verifyTreeAndFilesystem()
@@ -275,7 +282,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Group, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { projectsRepo.validateFileName(any()) } returns true
+		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
 
 		repo.initializeProjectEditor()
 

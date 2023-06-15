@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -71,13 +72,14 @@ class ProjectsRepositoryOkio(
 		return projectDir.toHPath()
 	}
 
-	override fun createProject(projectName: String): Boolean {
+	override fun createProject(projectName: String): Result<Boolean> {
 		val strippedName = projectName.trim()
-		return if (validateFileName(strippedName)) {
+		val result = validateFileName(strippedName)
+		return if (result.isSuccess) {
 			val projectsDir = getProjectsDirectory().toOkioPath()
 			val newProjectDir = projectsDir.div(strippedName)
 			if (fileSystem.exists(newProjectDir)) {
-				false
+				Result.failure(ProjectCreationFailedException(MR.strings.create_project_error_already_exists))
 			} else {
 				fileSystem.createDirectory(newProjectDir)
 
@@ -97,10 +99,12 @@ class ProjectsRepositoryOkio(
 					writeUtf8(metalToml)
 				}
 
-				true
+				Result.success(true)
 			}
 		} else {
-			false
+			Result.failure(
+				ProjectCreationFailedException((result.exceptionOrNull() as? ValidationFailedException)?.errorMessage)
+			)
 		}
 	}
 

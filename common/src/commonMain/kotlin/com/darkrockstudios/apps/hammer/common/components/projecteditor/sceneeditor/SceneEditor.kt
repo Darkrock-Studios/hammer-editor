@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
+import dev.icerock.moko.resources.StringResource
 
 interface SceneEditor : HammerComponent {
 	val state: Value<State>
@@ -27,6 +28,7 @@ interface SceneEditor : HammerComponent {
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
 		val isEditingName: Boolean = false,
-		val isSavingDraft: Boolean = false
+		val isSavingDraft: Boolean = false,
+		val toast: StringResource? = null
 	)
 }

@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -155,13 +156,22 @@ class ProjectsListComponent(
 	override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
 
 	override fun createProject(projectName: String) {
-		if (projectsRepository.createProject(projectName)) {
+		val result = projectsRepository.createProject(projectName)
+		if (result.isSuccess) {
 			if (projectsSynchronizer.isServerSynchronized()) {
 				projectsSynchronizer.createProject(projectName)
 			}
 			Napier.i("Project created: $projectName")
 			loadProjectList()
 		} else {
+			(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
+				_state.getAndUpdate {
+					it.copy(
+						toast = message
+					)
+				}
+			}
+
 			Napier.e("Failed to create Project: $projectName")
 		}
 	}

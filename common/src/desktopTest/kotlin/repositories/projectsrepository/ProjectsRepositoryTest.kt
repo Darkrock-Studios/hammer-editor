@@ -83,8 +83,8 @@ class ProjectsRepositoryTest : BaseTest() {
 
 		val projectName = "Test Project"
 
-		val created = repo.createProject(projectName)
-		assertTrue { created }
+		val result = repo.createProject(projectName)
+		assertTrue { result.isSuccess }
 
 		val projectPath = settings.projectsDirectory.toPath() / projectName
 		ffs.exists(projectPath)
