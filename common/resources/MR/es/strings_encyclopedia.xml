@@ -2,7 +2,6 @@
 <resources>
     <string name="encyclopedia_search_hint">Buscar por nombre</string>
     <string name="encyclopedia_search_clear_button">Borrar</string>
-    <string name="encyclopedia_category_all"></string>
     <string name="encyclopedia_create_button">Crear entrada</string>
     <string name="encyclopedia_create_entry_header">Crear nueva entrada</string>
     <string name="encyclopedia_create_entry_name_label">Nombre</string>
