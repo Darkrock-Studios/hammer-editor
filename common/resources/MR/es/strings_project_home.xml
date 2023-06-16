@@ -10,4 +10,9 @@
     <string name="project_home_action_export">Exportar historia</string>
     <string name="project_home_action_backup">Respaldo</string>
     <string name="project_home_stat_encyclopedia_entries">Entradas de la enciclopedia</string>
+    <string name="project_home_action_export_toast_success">Historia exportada</string>
+    <string name="project_home_stat_created">Creado: %1$s</string>
+    <string name="project_home_action_backup_toast_success">Respaldo creado: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Respaldo fallido</string>
+    <string name="project_home_action_sync">Sincronizar historia</string>
 </resources>
