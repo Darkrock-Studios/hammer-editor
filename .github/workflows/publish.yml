@@ -12,4 +12,4 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@master
         with:
-          args: 'New release: {{ EVENT_PAYLOAD.release.name }}\nDownload Here: {{ EVENT_PAYLOAD.release.assets_url }}'
+          args: 'New release: {{ EVENT_PAYLOAD.release.name }} Download Here: {{ EVENT_PAYLOAD.release.assets_url }}'
