@@ -503,7 +503,7 @@ class ProjectEditorRepositoryOkio(
 	): SceneItem? {
 		val cleanedNamed = name.trim()
 
-		return if (!validateSceneName(cleanedNamed)) {
+		return if (validateSceneName(cleanedNamed).isFailure) {
 			Napier.d("Invalid scene name")
 			null
 		} else {

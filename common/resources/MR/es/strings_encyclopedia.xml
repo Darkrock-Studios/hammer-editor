@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encyclopedia_search_hint">Buscar por nombre</string>
+    <string name="encyclopedia_search_clear_button">Borrar</string>
+    <string name="encyclopedia_create_button">Crear entrada</string>
+    <string name="encyclopedia_create_entry_header">Crear nueva entrada</string>
+    <string name="encyclopedia_create_entry_name_label">Nombre</string>
+    <string name="encyclopedia_create_entry_tags_label">Etiquetas (espacios separados)</string>
+    <string name="encyclopedia_create_entry_body_hint">Describe tu entrada</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Remover imagen</string>
+    <string name="encyclopedia_create_entry_select_image_button">Seleccionar imagen</string>
+    <string name="encyclopedia_create_entry_create_button">Crear</string>
+    <string name="encyclopedia_create_entry_cancel_button">Cancelar</string>
+    <string name="encyclopedia_create_entry_toast_success">Entrada creada</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Describe tu entrada</string>
+    <string name="encyclopedia_entry_body_empty_label">Cliquea para completar descripción</string>
+    <string name="encyclopedia_create_entry_toast_too_long">El nombre de entrada es muy largo. Máximo %1$d</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">El nombre de la entrada debe ser alfanumérico</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">La etiqueta es muy larga. Máximo %1$d</string>
+    <string name="encyclopedia_create_entry_discard_title">¿Descartar nueva entrada\?</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Cancelar</string>
+    <string name="encyclopedia_entry_edit_save_button">Guardar</string>
+    <string name="encyclopedia_entry_edit_save_toast">Entrada guardada</string>
+    <string name="encyclopedia_entry_discard_title">¿Descartar cambios\?</string>
+    <string name="encyclopedia_entry_discard_message">Vas a perder cualquier cambio que hayas realizado.</string>
+    <string name="encyclopedia_entry_delete_title">¿Eliminar entrada\?</string>
+    <string name="encyclopedia_entry_delete_message">¡Esto no se puede deshacer!</string>
+    <string name="encyclopedia_entry_delete_toast">Entrada eliminada</string>
+    <string name="encyclopedia_entry_delete_image_title">¿Eliminar imagen\?</string>
+    <string name="encyclopedia_entry_delete_image_message">¡Esto no se puede deshacer!</string>
+    <string name="encyclopedia_entry_name_hint">Nombre</string>
+    <string name="encyclopedia_entry_close_button">Cerrar entrada</string>
+</resources>

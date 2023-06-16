@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
@@ -50,7 +51,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	LifecycleController(lifecycle, windowState)
 
 	Window(
-		title = "Project Selection",
+		title = DR.strings.account_window_title.get(),
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
@@ -61,8 +62,8 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 				ProjectSelection.Locations.values().forEach { item ->
 					NavigationRailItem(
-						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text) },
-						label = { Text(item.text) },
+						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
+						label = { Text(item.text.get()) },
 						selected = item == slot.child?.configuration?.location,
 						onClick = { component.showLocation(item) }
 					)

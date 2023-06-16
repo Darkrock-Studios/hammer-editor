@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scene_list_header">Scènes :</string>
+    <string name="scene_list_create_group_button">Créer un groupe</string>
+    <string name="scene_list_create_scene_button">Créer une scène</string>
+    <string name="scene_delete_dialog_delete_button">SUPPRIMER</string>
+    <string name="scene_delete_dialog_dismiss_button">Rejeter</string>
+    <string name="group_cannot_delete_dialog_title">Impossible de supprimer le groupe</string>
+    <string name="create_sceneitem_dialog_create_button">Créer</string>
+    <string name="create_sceneitem_dialog_dismiss_button">Annuler</string>
+    <string name="scene_list_create_group_dialog_title">Créer un groupe</string>
+    <string name="scene_list_create_group_dialog_message">Nom du groupe</string>
+    <string name="scene_list_create_scene_dialog_title">Créer une scène</string>
+    <string name="scene_list_create_scene_dialog_message">Nom de la scène</string>
+    <string name="scene_group_item_collapsed">Groupe réduit</string>
+    <string name="scene_group_item_expanded">Groupe développé</string>
+    <string name="scene_delete_dialog_title">Supprimer la scène</string>
+    <string name="scene_delete_dialog_message">Êtes-vous sûr·e de vouloir supprimer cette scène \? %1$s</string>
+</resources>

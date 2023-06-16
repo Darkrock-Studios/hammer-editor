@@ -16,10 +16,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,7 +36,7 @@ fun ProjectsSyncDialog(component: ProjectsList) {
 		},
 		visible = state.syncState.showProjectSync,
 		size = DpSize(400.dp, 400.dp),
-		title = "Synchronization"
+		title = MR.strings.account_sync_dialog_title.get()
 	) {
 		ProjectsSyncDialogContents(component)
 	}
@@ -53,7 +55,7 @@ internal fun ProjectsSyncDialogContents(
 			verticalAlignment = CenterVertically
 		) {
 			Text(
-				"Account Sync",
+				MR.strings.account_sync_dialog_header.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 
@@ -62,7 +64,7 @@ internal fun ProjectsSyncDialogContents(
 			if (!state.syncState.syncComplete) {
 				Icon(
 					Icons.Default.Cancel,
-					contentDescription = "Cancel",
+					contentDescription = MR.strings.account_sync_dialog_cancel_button.get(),
 					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelProjectsSync() },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
@@ -113,7 +115,7 @@ fun SyncLog(component: ProjectsList, onClose: () -> Unit) {
 	MpDialog(
 		onCloseRequest = onClose,
 		visible = true,
-		title = "Sync Log",
+		title = MR.strings.account_sync_log_title.get(),
 	) {
 		SyncLogContents(component)
 	}
@@ -180,7 +182,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Pending -> {
 			Icon(
 				Icons.Default.HourglassTop,
-				contentDescription = "Pending",
+				contentDescription = MR.strings.account_sync_dialog_status_pending.get(),
 				modifier = modifier
 			)
 		}
@@ -192,7 +194,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Failed -> {
 			Icon(
 				Icons.Default.Error,
-				contentDescription = "Error",
+				contentDescription = MR.strings.account_sync_dialog_status_error.get(),
 				tint = MaterialTheme.colorScheme.error,
 				modifier = modifier
 			)
@@ -201,7 +203,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Complete -> {
 			Icon(
 				Icons.Default.CheckCircle,
-				contentDescription = "Sync Complete",
+				contentDescription = MR.strings.account_sync_dialog_status_pending.get(),
 				tint = Color.Green,
 				modifier = modifier
 			)
@@ -210,7 +212,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Canceled -> {
 			Icon(
 				Icons.Default.Cancel,
-				contentDescription = "Canceled",
+				contentDescription = MR.strings.account_sync_dialog_status_canceled.get(),
 				modifier = modifier
 			)
 		}

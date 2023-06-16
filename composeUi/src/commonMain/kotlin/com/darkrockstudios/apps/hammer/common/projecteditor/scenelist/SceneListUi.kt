@@ -15,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -65,12 +67,20 @@ fun SceneListUi(
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Text(
-					"\uD83D\uDCDD Scenes:",
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.weight(1f)
-				)
+				Row {
+					Text(
+						"\uD83D\uDCDD ",
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground,
+						modifier = Modifier.weight(1f)
+					)
+					Text(
+						MR.strings.scene_list_header.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground,
+						modifier = Modifier.weight(1f)
+					)
+				}
 
 				if (expandOrCollapse) {
 					ElevatedButton(onClick = {
@@ -123,20 +133,20 @@ fun SceneListUi(
 				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
 				modifier = Modifier.padding(end = Ui.Padding.M)
 			) {
-				Icon(Icons.Filled.CreateNewFolder, "Create Group")
+				Icon(Icons.Filled.CreateNewFolder, MR.strings.scene_list_create_group_button.get())
 			}
 			FloatingActionButton(onClick = {
 				showCreateSceneDialog = treeState.summary.sceneTree.root.value
 			}) {
-				Icon(Icons.Filled.PostAdd, "Create Scene")
+				Icon(Icons.Filled.PostAdd, MR.strings.scene_list_create_group_button.get())
 			}
 		}
 	}
 
 	CreateDialog(
 		show = showCreateGroupDialog != null,
-		title = "Create Group",
-		textLabel = "Group Name"
+		title = MR.strings.scene_list_create_group_dialog_title.get(),
+		textLabel = MR.strings.scene_list_create_group_dialog_message.get()
 	) { groupName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -151,8 +161,8 @@ fun SceneListUi(
 
 	CreateDialog(
 		show = showCreateSceneDialog != null,
-		title = "Create Scene",
-		textLabel = "Scene Name"
+		title = MR.strings.scene_list_create_scene_dialog_title.get(),
+		textLabel = MR.strings.scene_list_create_scene_dialog_message.get()
 	) { sceneName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }

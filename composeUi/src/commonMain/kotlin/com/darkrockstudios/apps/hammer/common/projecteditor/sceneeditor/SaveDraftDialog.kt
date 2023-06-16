@@ -8,10 +8,13 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -22,13 +25,14 @@ internal fun SaveDraftDialog(
 	component: SceneEditor,
 	showSnackbar: (message: String) -> Unit
 ) {
+	val strRes = rememberStrRes()
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	var draftName by remember { mutableStateOf("") }
 
 	MpDialog(
 		visible = state.isSavingDraft,
-		title = "Save Draft:",
+		title = MR.strings.save_draft_dialog_title.get(),
 		onCloseRequest = {
 			component.endSaveDraft()
 			draftName = ""
@@ -44,7 +48,7 @@ internal fun SaveDraftDialog(
 					value = draftName,
 					onValueChange = { draftName = it },
 					singleLine = true,
-					placeholder = { Text("Draft name") }
+					placeholder = { Text(MR.strings.save_draft_dialog_name_hint.get()) }
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
@@ -60,17 +64,17 @@ internal fun SaveDraftDialog(
 								withContext(mainDispatcher) {
 									draftName = ""
 								}
-								showSnackbar("Draft Saved")
+								showSnackbar(strRes.get(MR.strings.save_draft_dialog_toast_success))
 							}
 						}
 					}) {
-						Text("Save")
+						Text(MR.strings.save_draft_dialog_save_button.get())
 					}
 					Button(onClick = {
 						component.endSaveDraft()
 						draftName = ""
 					}) {
-						Text("Cancel")
+						Text(MR.strings.save_draft_dialog_cancel_button.get())
 					}
 				}
 			}

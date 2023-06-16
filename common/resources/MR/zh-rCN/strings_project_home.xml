@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_home_stat_encyclopedia_entries">条目分布</string>
+    <string name="project_home_stat_chapter_words">各章节词数</string>
+    <string name="project_home_stat_header">统计:</string>
+    <string name="project_home_stat_created">已创建: %1$s</string>
+    <string name="project_home_stat_num_scenes">场景</string>
+    <string name="project_home_stat_total_words">字数总计</string>
+    <string name="project_home_action_backup_toast_success">已创建备份: %1$s</string>
+    <string name="project_home_action_backup">备份</string>
+    <string name="project_home_stat_chapter_words_x_axis">章节</string>
+    <string name="project_home_action_export">导出故事</string>
+    <string name="project_home_actions_header">操作:</string>
+    <string name="project_home_stat_chapter_words_y_axis">词数</string>
+    <string name="project_home_action_backup_toast_failure">备份失败</string>
+    <string name="project_home_action_sync">同步故事</string>
+</resources>

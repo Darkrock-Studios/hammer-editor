@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_title">Enregistrer le brouillon :</string>
+    <string name="save_draft_dialog_name_hint">Nom du brouillon</string>
+    <string name="save_draft_dialog_save_button">Enregistrer</string>
+    <string name="save_draft_dialog_cancel_button">Annuler</string>
+    <string name="save_draft_dialog_toast_success">Brouillon enregistré</string>
+    <string name="scene_editor_name_hint">Nom de la scène</string>
+    <string name="scene_editor_rename_button">Renommer</string>
+    <string name="scene_editor_cancel_button">Annuler</string>
+    <string name="scene_editor_unsaved_chip">Non enregistré</string>
+    <string name="scene_editor_save_button">Enregistrer</string>
+    <string name="scene_editor_toast_save_successful">Enregistré</string>
+    <string name="scene_editor_body_placeholder">Commencez à écrire votre Scène ici</string>
+</resources>

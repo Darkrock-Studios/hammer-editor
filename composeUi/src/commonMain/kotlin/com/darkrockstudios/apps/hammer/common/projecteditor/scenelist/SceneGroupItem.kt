@@ -13,8 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.bottomBorder
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
@@ -58,13 +60,13 @@ internal fun SceneGroupItem(
 					if (collapsed) {
 						Icon(
 							imageVector = Icons.Filled.Folder,
-							contentDescription = "Group Collapsed",
+							contentDescription = MR.strings.scene_group_item_collapsed.get(),
 							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
 						)
 					} else {
 						Icon(
 							imageVector = Icons.Filled.FolderOpen,
-							contentDescription = "Group Expanded",
+							contentDescription = MR.strings.scene_group_item_expanded.get(),
 							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
 						)
 					}

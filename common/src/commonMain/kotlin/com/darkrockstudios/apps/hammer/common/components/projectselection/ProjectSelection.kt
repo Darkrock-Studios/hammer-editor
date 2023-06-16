@@ -4,9 +4,11 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
+import dev.icerock.moko.resources.StringResource
 
 interface ProjectSelection : HammerComponent {
 	val slot: Value<ChildSlot<Config, Destination>>
@@ -15,9 +17,9 @@ interface ProjectSelection : HammerComponent {
 
 	fun showLocation(location: Locations)
 
-	enum class Locations(val text: String) {
-		Projects("Projects"),
-		Settings("Settings")
+	enum class Locations(val text: StringResource) {
+		Projects(MR.strings.project_select_nav_projects_list),
+		Settings(MR.strings.project_select_nav_account_settings)
 	}
 
 	sealed class Config(val location: Locations) : Parcelable {

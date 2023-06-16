@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scene_list_create_group_button">Gruppe erstellen</string>
+    <string name="scene_list_create_scene_button">Szene erstellen</string>
+    <string name="scene_list_create_group_dialog_title">Gruppe erstellen</string>
+    <string name="scene_list_header">Szenen:</string>
+    <string name="scene_list_create_group_dialog_message">Name der Gruppe</string>
+    <string name="scene_list_create_scene_dialog_title">Szene erstellen</string>
+    <string name="scene_list_create_scene_dialog_message">Name der Szene</string>
+    <string name="scene_delete_dialog_title">Szene löschen</string>
+    <string name="scene_delete_dialog_delete_button">LÖSCHEN</string>
+    <string name="scene_delete_dialog_dismiss_button">Verwerfen</string>
+    <string name="group_cannot_delete_dialog_title">Gruppe kann nicht gelöscht werden</string>
+    <string name="create_sceneitem_dialog_create_button">Erstellen</string>
+    <string name="create_sceneitem_dialog_dismiss_button">Abbrechen</string>
+    <string name="scene_group_item_collapsed">Gruppe eingeklappt</string>
+    <string name="scene_group_item_expanded">Gruppe ausgeklappt</string>
+    <string name="scene_delete_dialog_message">Sicher, dass diese Szene gelöscht werden soll\?: %1$s</string>
+</resources>

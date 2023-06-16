@@ -5,10 +5,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -21,9 +24,11 @@ internal fun CreateNoteDialog(
 	snackbarHostState: SnackbarHostState,
 	scope: CoroutineScope,
 ) {
+	val strRes = rememberStrRes()
+
 	MpDialog(
 		visible = true,
-		title = "Create Note",
+		title = MR.strings.notes_create_header.get(),
 		onCloseRequest = { component.dismissCreate() }
 	) {
 		val mainDispatcher = rememberMainDispatcher()
@@ -37,7 +42,7 @@ internal fun CreateNoteDialog(
 					.align(Alignment.Center)
 			) {
 				Text(
-					"New Note:",
+					MR.strings.notes_create_body_hint.get(),
 					style = MaterialTheme.typography.headlineLarge
 				)
 
@@ -60,22 +65,30 @@ internal fun CreateNoteDialog(
 							val result = component.createNote(newNoteText)
 							newNoteError = !result.isSuccess
 							when (result) {
-								NoteError.TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Note was too long") }
-								NoteError.EMPTY -> scope.launch { snackbarHostState.showSnackbar("Note was empty") }
+								NoteError.TOO_LONG -> scope.launch {
+									snackbarHostState.showSnackbar(strRes.get(MR.strings.notes_create_toast_too_long))
+								}
+
+								NoteError.EMPTY -> scope.launch {
+									snackbarHostState.showSnackbar(strRes.get(MR.strings.notes_create_toast_empty))
+								}
+
 								NoteError.NONE -> {
 									withContext(mainDispatcher) {
 										newNoteText = ""
 									}
-									scope.launch { snackbarHostState.showSnackbar("Note Created") }
+									scope.launch {
+										snackbarHostState.showSnackbar(strRes.get(MR.strings.notes_create_toast_success))
+									}
 								}
 							}
 						}
 					}) {
-						Text("Create")
+						Text(MR.strings.notes_create_create_button.get())
 					}
 
 					Button(onClick = { component.dismissCreate() }) {
-						Text("Cancel")
+						Text(MR.strings.notes_create_cancel_button.get())
 					}
 				}
 			}

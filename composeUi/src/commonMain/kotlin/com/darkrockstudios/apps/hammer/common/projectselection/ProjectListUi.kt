@@ -30,10 +30,10 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.moko.getString
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.soywiz.korio.async.launch
+import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -49,11 +49,11 @@ fun ProjectListUi(
 	var showProjectCreate by remember { mutableStateOf(false) }
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	LaunchedEffect(state.toast) {
+	val toastMessage = state.toast?.get()
+	LaunchedEffect(toastMessage) {
 		scope.launch {
-			val message = state.toast
-			if (message?.isNotEmpty() == true) {
-				snackbarHostState.showSnackbar(message)
+			if (toastMessage?.isNotEmpty() == true) {
+				snackbarHostState.showSnackbar(toastMessage)
 			}
 		}
 	}
@@ -83,7 +83,7 @@ fun ProjectListUi(
 					Button(onClick = {
 						component.showProjectsSync()
 					}) {
-						Image(Icons.Default.Refresh, "Sync Projects")
+						Image(Icons.Default.Refresh, MR.strings.projects_list_sync_button.get())
 					}
 				}
 			}
@@ -128,7 +128,7 @@ fun ProjectListUi(
 			onClick = { showProjectCreate = true },
 			modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.M),
 		) {
-			Icon(imageVector = Icons.Filled.Create, "Create Project")
+			Icon(imageVector = Icons.Filled.Create, MR.strings.projects_list_create_button.get())
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
@@ -141,7 +141,7 @@ fun ProjectListUi(
 	projectDefDeleteTarget?.let { project ->
 		SimpleConfirm(
 			title = MR.strings.delete_project_title.get(),
-			message = getString(MR.strings.delete_project_message, project.name),
+			message = stringResource(MR.strings.delete_project_message, project.name),
 			onDismiss = { projectDefDeleteTarget = null },
 			onConfirm = {
 				component.deleteProject(project)

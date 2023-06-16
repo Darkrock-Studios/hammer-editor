@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unsaved_scenes_dialog_title">Escenas sin guardar</string>
+    <string name="unsaved_scenes_dialog_message">¿Desea guardar las escenas sin guardar\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Descartar y cerrar</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Cancelar</string>
+    <string name="unsaved_scenes_dialog_positive_button">Guardar y cerrar</string>
+    <string name="project_window_menu_file">Archivo</string>
+    <string name="project_window_title">Hammer - %1$s</string>
+    <string name="project_window_menu_item_exit">Salir</string>
+    <string name="project_window_menu_item_close">Cerrar proyecto</string>
+</resources>

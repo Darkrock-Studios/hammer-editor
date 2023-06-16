@@ -14,8 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
 internal fun NoteConflict(
@@ -32,7 +34,7 @@ internal fun NoteConflict(
 			Row {
 				Icon(
 					Icons.Default.Warning,
-					contentDescription = "Conflict",
+					contentDescription = MR.strings.sync_conflict.get(),
 					modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
 					tint = MaterialTheme.colorScheme.error
 				)

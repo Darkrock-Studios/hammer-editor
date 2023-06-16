@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
 @ExperimentalMaterialApi
@@ -20,7 +22,7 @@ internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boole
 	MpDialog(
 		onCloseRequest = {},
 		visible = true,
-		title = "Cannot Delete Group"
+		title = MR.strings.group_cannot_delete_dialog_title.get()
 	) {
 		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
 			Column(
@@ -30,7 +32,7 @@ internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boole
 					.padding(Ui.Padding.XL)
 			) {
 				Text(
-					"You cannot delete a group while it still has children:\n\"${scene.name}\"",
+					MR.strings.group_cannot_delete_dialog_title.get(scene.name),
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.onSurface
 				)
@@ -38,7 +40,7 @@ internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boole
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Button(onClick = { dismissDialog(false) }) {
-					Text("Okay")
+					Text(MR.strings.scene_delete_dialog_dismiss_button.get())
 				}
 			}
 		}

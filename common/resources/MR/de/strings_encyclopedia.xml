@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encyclopedia_category_all">Alle</string>
+    <string name="encyclopedia_browse_list_empty">Keine Einträge gefunden</string>
+    <string name="encyclopedia_create_button">Eintrag erstellen</string>
+    <string name="encyclopedia_create_entry_header">Neuen Eintrag erstellen</string>
+    <string name="encyclopedia_create_entry_type_label">Typ:</string>
+    <string name="encyclopedia_create_entry_name_label">Name</string>
+    <string name="encyclopedia_create_entry_tags_label">Schlagworte (Leerzeichen separiert)</string>
+    <string name="encyclopedia_create_entry_body_hint">Eintrag beschreiben</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Bild entfernen</string>
+    <string name="encyclopedia_create_entry_select_image_button">Bild auswählen</string>
+    <string name="encyclopedia_create_entry_create_button">Erstellen</string>
+    <string name="encyclopedia_create_entry_cancel_button">Abbrechen</string>
+    <string name="encyclopedia_create_entry_toast_success">Eintrag erstellt</string>
+    <string name="encyclopedia_create_entry_toast_too_long">Name des Eintrags war zu lang (Max: %1$d)</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">Es dürfen nur alphanumerische Zeichen verwendet werden.</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">Schlagwort ist zu lang (Max: %1$d)</string>
+    <string name="encyclopedia_create_entry_discard_title">Neuen Eintrag verwerfen\?</string>
+    <string name="encyclopedia_entry_load_error">Fehler: Eintrag konnte nicht geladen werden!</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Eintrag beschreiben</string>
+    <string name="encyclopedia_search_hint">Nach Name suchen</string>
+    <string name="encyclopedia_search_clear_button">Zurücksetzen</string>
+    <string name="encyclopedia_entry_body_empty_label">Klicken um Beschreibung einzugeben</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Abbrechen</string>
+    <string name="encyclopedia_entry_edit_save_button">Speichern</string>
+    <string name="encyclopedia_entry_edit_save_toast">Eintrag gespeichert</string>
+    <string name="encyclopedia_entry_discard_title">Änderungen verwerfen\?</string>
+    <string name="encyclopedia_entry_discard_message">Alle Änderungen werden verloren gehen.</string>
+    <string name="encyclopedia_entry_delete_title">Eintrag löschen\?</string>
+    <string name="encyclopedia_entry_close_button">Eintrag schließen</string>
+    <string name="encyclopedia_entry_delete_message">Dies kann nicht rückgängig gemacht werden!</string>
+    <string name="encyclopedia_entry_delete_image_message">Dies kann nicht rückgängig gemacht werden!</string>
+    <string name="encyclopedia_entry_delete_toast">Eintrag gelöscht</string>
+    <string name="encyclopedia_entry_delete_image_title">Bild löschen\?</string>
+    <string name="encyclopedia_entry_name_hint">Name</string>
+</resources>

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectroot
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
+import dev.icerock.moko.resources.StringResource
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
 	val routerState: Value<ChildStack<*, Destination<*>>>
@@ -63,11 +65,11 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 		data class ProjectSync(val component: ProjectSyncComponent) : ModalDestination()
 	}
 
-	enum class DestinationTypes(val text: String) {
-		Home("Home"),
-		Editor("Editor"),
-		Notes("Notes"),
-		Encyclopedia("Encyclopedia"),
-		TimeLine("Time Line"),
+	enum class DestinationTypes(val text: StringResource) {
+		Home(MR.strings.project_nav_home),
+		Editor(MR.strings.project_nav_scene_editor),
+		Notes(MR.strings.project_nav_notes),
+		Encyclopedia(MR.strings.project_nav_encyclopedia),
+		TimeLine(MR.strings.project_nav_time_line),
 	}
 }

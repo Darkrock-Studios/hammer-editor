@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
+import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,7 +72,7 @@ internal fun AccountSettingsUi(
 					}
 
 					Text(
-						"Data: v${getDataVersion()}",
+						stringResource(MR.strings.settings_data_version, getDataVersion()),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onBackground,
 					)

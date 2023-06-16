@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="project_home_stat_header">Stats:</string>
+	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_stat_num_scenes">Scenes</string>
+	<string name="project_home_stat_total_words">Total Words</string>
+	<string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>
+
+	<string name="project_home_stat_chapter_words">Words in Chapters</string>
+	<string name="project_home_stat_chapter_words_x_axis">Chapter</string>
+	<string name="project_home_stat_chapter_words_y_axis">Words</string>
+
+	<string name="project_home_actions_header">Actions:</string>
+	<string name="project_home_action_export">Export Story</string>
+	<string name="project_home_action_sync">Sync Story</string>
+	<string name="project_home_action_backup">Backup</string>
+	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
+	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
+
+	<string name="project_home_action_export_toast_success">Story Exported</string>
+</resources>

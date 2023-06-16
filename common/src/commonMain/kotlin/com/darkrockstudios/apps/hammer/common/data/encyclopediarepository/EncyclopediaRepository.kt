@@ -98,8 +98,8 @@ abstract class EncyclopediaRepository(
 	abstract suspend fun reIdEntry(oldId: Int, newId: Int)
 
 	companion object {
-		val ENTRY_NAME_PATTERN = Regex("""([\da-zA-Z ]+)""")
-		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\da-zA-Z ]+)\.toml""")
+		val ENTRY_NAME_PATTERN = Regex("""([\d\p{L}+ _']+)""")
+		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 		const val MAX_NAME_SIZE = 64
 		const val MAX_TAG_SIZE = 64

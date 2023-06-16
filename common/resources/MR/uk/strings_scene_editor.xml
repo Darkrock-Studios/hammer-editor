@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_cancel_button">Скасувати</string>
+    <string name="save_draft_dialog_toast_success">Чернетку збережено</string>
+    <string name="scene_editor_unsaved_chip">Незбережені</string>
+    <string name="scene_editor_name_hint">Назва сцени</string>
+    <string name="scene_editor_cancel_button">Скасувати</string>
+    <string name="scene_editor_save_button">Зберегти</string>
+    <string name="scene_editor_rename_button">Перейменувати</string>
+    <string name="scene_editor_toast_save_successful">Збережено</string>
+    <string name="scene_editor_body_placeholder">Почніть писати свою сцену тут</string>
+    <string name="save_draft_dialog_save_button">Зберегти</string>
+    <string name="save_draft_dialog_title">Зберегти чернетку:</string>
+    <string name="save_draft_dialog_name_hint">Назва чернетки</string>
+</resources>

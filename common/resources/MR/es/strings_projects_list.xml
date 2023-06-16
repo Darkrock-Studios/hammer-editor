@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_select_list_header">Proyectos:</string>
+    <string name="project_select_project_list_empty">No se encontraron proyectos</string>
+    <string name="project_select_card_delete_button">Eliminar</string>
+    <string name="projects_list_create_button">Crear proyexto</string>
+    <string name="account_sync_dialog_title">Sincronización</string>
+    <string name="account_sync_dialog_status_pending">Pendiente</string>
+    <string name="account_sync_dialog_status_error">Error</string>
+    <string name="projects_list_toast_sync_complete">Proyectos sincronizados</string>
+    <string name="account_sync_dialog_status_canceled">Cancelado</string>
+    <string name="delete_project_title">Eliminar proyecto</string>
+    <string name="account_sync_dialog_cancel_button">Cancelar</string>
+</resources>

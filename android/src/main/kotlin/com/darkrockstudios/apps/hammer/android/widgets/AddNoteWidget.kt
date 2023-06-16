@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -42,7 +43,7 @@ class AddNoteWidget : GlanceAppWidget() {
 			Column {
 				Image(
 					ImageProvider(resId = R.drawable.ic_add_note),
-					contentDescription = "Add Note",
+					contentDescription = stringResource(R.string.note_widget_button_description),
 					modifier = GlanceModifier.fillMaxSize().clickable(
 						onClick = actionRunCallback<AddNoteClickAction>()
 					)
@@ -62,7 +63,7 @@ class AddNoteClickAction : ActionCallback {
 
 		val intent = Intent(context, AddNoteActivity::class.java)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
-			.putExtra(AddNoteActivity.EXTRA_PROJECT_NAME, "Alice In Wonderland")
+		//.putExtra(AddNoteActivity.EXTRA_PROJECT_NAME, "Alice In Wonderland")
 		context.startActivity(intent)
 	}
 }

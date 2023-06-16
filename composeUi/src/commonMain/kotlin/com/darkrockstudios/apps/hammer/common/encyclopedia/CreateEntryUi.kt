@@ -18,11 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
-import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
-import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -41,6 +40,7 @@ internal fun CreateEntryUi(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
+	val strRes = rememberStrRes()
 	var newEntryNameText by rememberSaveable { mutableStateOf("") }
 	var newEntryContentText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
 		mutableStateOf(TextFieldValue(""))
@@ -64,13 +64,13 @@ internal fun CreateEntryUi(
 					.widthIn(128.dp, 420.dp)
 			) {
 				Text(
-					"Create New Entry",
+					MR.strings.encyclopedia_create_entry_header.get(),
 					modifier = Modifier.padding(PaddingValues(bottom = Ui.Padding.XL)),
 					style = MaterialTheme.typography.displayMedium
 				)
 
 				Text(
-					"Type:",
+					MR.strings.encyclopedia_create_entry_type_label.get(),
 					style = MaterialTheme.typography.titleMedium,
 					modifier = Modifier.padding(bottom = Ui.Padding.M)
 				)
@@ -93,21 +93,21 @@ internal fun CreateEntryUi(
 						.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.L)),
 					value = newEntryNameText,
 					onValueChange = { newEntryNameText = it },
-					placeholder = { Text("Name") }
+					placeholder = { Text(MR.strings.encyclopedia_create_entry_name_label.get()) }
 				)
 
 				TextField(
 					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
 					value = newTagsText,
 					onValueChange = { newTagsText = it },
-					placeholder = { Text("Tags (space seperated)") }
+					placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) }
 				)
 
 				OutlinedTextField(
 					value = newEntryContentText,
 					onValueChange = { newEntryContentText = it },
 					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
-					placeholder = { Text(text = "Describe your entry") },
+					placeholder = { Text(text = MR.strings.encyclopedia_create_entry_body_hint.get()) },
 					maxLines = 10,
 				)
 
@@ -130,12 +130,15 @@ internal fun CreateEntryUi(
 									.align(Alignment.TopEnd),
 								onClick = { imagePath = null }
 							) {
-								Icon(Icons.Default.Delete, "Remove Image")
+								Icon(
+									Icons.Default.Delete,
+									MR.strings.encyclopedia_create_entry_remove_image_button.get()
+								)
 							}
 						}
 					} else {
 						Button(onClick = { showFilePicker = true }) {
-							Text("Select Image")
+							Text(MR.strings.encyclopedia_create_entry_select_image_button.get())
 						}
 					}
 				}
@@ -154,32 +157,49 @@ internal fun CreateEntryUi(
 									tags = newTagsText.splitToSequence(" ").toList(),
 									imagePath = imagePath
 								)
+
 								when (result.error) {
-									EntryError.NAME_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Entry Name was too long. Max ${EncyclopediaRepository.MAX_NAME_SIZE}") }
-									EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
+									EntryError.NAME_TOO_LONG -> scope.launch {
 										snackbarHostState.showSnackbar(
-											"Entry Name must be alpha-numeric"
+											strRes.get(
+												MR.strings.encyclopedia_create_entry_toast_too_long,
+												EncyclopediaRepository.MAX_NAME_SIZE
+											)
 										)
 									}
 
-									EntryError.TAG_TOO_LONG -> scope.launch { snackbarHostState.showSnackbar("Tag is too long. Max ${EncyclopediaRepository.MAX_TAG_SIZE}") }
+									EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
+										snackbarHostState.showSnackbar(
+											strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
+										)
+									}
+
+									EntryError.TAG_TOO_LONG -> scope.launch {
+										snackbarHostState.showSnackbar(
+											strRes.get(
+												MR.strings.encyclopedia_create_entry_toast_tag_too_long,
+												EncyclopediaRepository.MAX_TAG_SIZE
+											)
+										)
+									}
+
 									EntryError.NONE -> {
 										newEntryNameText = ""
 										close()
-										scope.launch { snackbarHostState.showSnackbar("Entry Created") }
+										scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
 									}
 								}
 							}
 						}
 					) {
-						Text("Create")
+						Text(MR.strings.encyclopedia_create_entry_create_button.get())
 					}
 
 					Button(
 						modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
 						onClick = { discardConfirm = true }
 					) {
-						Text("Cancel")
+						Text(MR.strings.encyclopedia_create_entry_cancel_button.get())
 					}
 				}
 			}
@@ -197,7 +217,7 @@ internal fun CreateEntryUi(
 
 	if (discardConfirm) {
 		SimpleConfirm(
-			title = "Discard New Entry?",
+			title = MR.strings.encyclopedia_create_entry_discard_title.get(),
 			onDismiss = { discardConfirm = false }
 		) {
 			discardConfirm = false

@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -163,10 +164,10 @@ class ProjectRootActivity : AppCompatActivity() {
 									icon = {
 										Icon(
 											imageVector = getDestinationIcon(item),
-											contentDescription = item.text
+											contentDescription = item.text.get()
 										)
 									},
-									label = { Text(item.text) },
+									label = { Text(item.text.get()) },
 									selected = router.active.instance.getLocationType() == item,
 									onClick = {
 										scope.launch { drawerState.close() }
@@ -186,11 +187,11 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private fun confirmCloseDialog(component: AppCloseManager) {
 		AlertDialog.Builder(this)
-			.setTitle("Unsaved Scenes")
-			.setMessage("Save unsaved scenes?")
-			.setNegativeButton("Discard and close") { _, _ -> finish() }
-			.setNeutralButton("Cancel") { dialog, _ -> dialog.dismiss() }
-			.setPositiveButton("Save and close") { _, _ ->
+			.setTitle(R.string.unsaved_scenes_dialog_title)
+			.setMessage(R.string.unsaved_scenes_dialog_message)
+			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ -> finish() }
+			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ -> dialog.dismiss() }
+			.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
 				lifecycleScope.launch {
 					component.storeDirtyBuffers()
 					withContext(mainDispatcher) {

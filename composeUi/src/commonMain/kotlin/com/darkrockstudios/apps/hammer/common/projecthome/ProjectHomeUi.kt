@@ -17,11 +17,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
+import dev.icerock.moko.resources.compose.stringResource
 import io.github.koalaplot.core.bar.DefaultBarChartEntry
 import io.github.koalaplot.core.bar.VerticalBarChart
 import io.github.koalaplot.core.pie.BezierLabelConnector
@@ -101,14 +104,14 @@ private fun Stats(
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
-					"Created: ${state.created}",
+					stringResource(MR.strings.project_home_stat_created, state.created),
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
-					"Stats:",
+					MR.strings.project_home_stat_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
@@ -116,21 +119,21 @@ private fun Stats(
 		}
 
 		item {
-			NumericStatsBlock("Scenes", state.numberOfScenes)
+			NumericStatsBlock(MR.strings.project_home_stat_num_scenes.get(), state.numberOfScenes)
 		}
 
 		item {
-			NumericStatsBlock("Total Words", state.totalWords)
+			NumericStatsBlock(MR.strings.project_home_stat_total_words.get(), state.totalWords)
 		}
 
 		item {
-			GenericStatsBlock("Words in Chapters") {
+			GenericStatsBlock(MR.strings.project_home_stat_chapter_words.get()) {
 				WordsInChaptersChart(state = state)
 			}
 		}
 
 		item {
-			GenericStatsBlock("Encyclopedia Entries") {
+			GenericStatsBlock(MR.strings.project_home_stat_encyclopedia_entries.get()) {
 				EncyclopediaChart(state = state)
 			}
 		}
@@ -293,8 +296,8 @@ private fun WordsInChaptersChart(
 		modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
 		xAxisModel = CategoryAxisModel(xAxis),
 		yAxisModel = LinearAxisModel(range = range),
-		xAxisTitle = "Chapter",
-		yAxisTitle = "Words",
+		xAxisTitle = MR.strings.project_home_stat_chapter_words_x_axis.get(),
+		yAxisTitle = MR.strings.project_home_stat_chapter_words_y_axis.get(),
 		xAxisLabels = { index -> (index + 1).toString() },
 		xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
 		yAxisLabels = { it.toInt().toString() },
@@ -311,37 +314,51 @@ private fun Actions(
 	scope: CoroutineScope,
 	snackbarHostState: SnackbarHostState
 ) {
+	val strRes = rememberStrRes()
+
 	val defaultDispatcher = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
+	var toastMessage: String? = remember { null }
+
+	LaunchedEffect(toastMessage) {
+		toastMessage?.let { message ->
+			if (message.isNotBlank()) {
+				scope.launch {
+					snackbarHostState.showSnackbar(message)
+				}
+			}
+		}
+	}
+
 	Column(modifier = modifier.padding(Ui.Padding.XL)) {
 		Text(
-			"Actions:",
+			MR.strings.project_home_actions_header.get(),
 			style = MaterialTheme.typography.headlineLarge,
 			color = MaterialTheme.colorScheme.onSurface
 		)
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 		Button(onClick = component::beginProjectExport) {
-			Text("Export Story")
+			Text(MR.strings.project_home_action_export.get())
 		}
 		if (state.hasServer) {
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 			Button(onClick = component::startProjectSync) {
-				Text("Sync Story")
+				Text(MR.strings.project_home_action_sync.get())
 			}
 		}
 		if (component.supportsBackup()) {
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 			Button(onClick = {
 				component.createBackup { backup ->
-					if (backup != null) {
-						scope.launch { snackbarHostState.showSnackbar("Backup Created: ${backup.path.name}") }
+					toastMessage = if (backup != null) {
+						strRes.get(MR.strings.project_home_action_backup_toast_success, backup.path.name)
 					} else {
-						scope.launch { snackbarHostState.showSnackbar("Failed to create backup!") }
+						strRes.get(MR.strings.project_home_action_backup_toast_failure)
 					}
 				}
 			}) {
-				Text("Backup")
+				Text(MR.strings.project_home_action_backup.get())
 			}
 		}
 	}
@@ -350,7 +367,7 @@ private fun Actions(
 		if (path != null) {
 			scope.launch(defaultDispatcher) {
 				component.exportProject(path)
-				snackbarHostState.showSnackbar("Story Exported")
+				snackbarHostState.showSnackbar(strRes.get(MR.strings.project_home_action_export_toast_success))
 			}
 		} else {
 			component.endProjectExport()

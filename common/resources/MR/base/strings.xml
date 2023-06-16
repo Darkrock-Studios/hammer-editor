@@ -1,47 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
     <string name="app_name">Hammer</string>
-
-    <string name="project_select_list_header">Projects:</string>
-    <string name="project_select_project_list_empty">No Projects Found</string>
-
-    <string name="project_select_card_delete_button">Delete</string>
-
-    <string name="settings_heading">⚙ Settings</string>
-    <string name="settings_theme_label">UI Theme</string>
-    <string name="settings_projects_directory">Projects Directory</string>
-    <string name="settings_projects_directory_hint">Path to Projects Directory</string>
-    <string name="settings_projects_directory_button">Select Dir</string>
-
-    <string name="settings_example_project_header">Example Project</string>
-    <string name="settings_example_project_description">Install an example project to see how different features are
-        used.
-    </string>
-    <string name="settings_example_project_button">Reinstall</string>
-    <string name="settings_example_project_success_message">Example project created.</string>
-
-    <string name="settings_server_header">Server</string>
-    <string name="settings_server_description">Setup a server for syncing between devices.</string>
-    <string name="settings_server_url_label">URL:</string>
-    <string name="settings_server_email_label">Email:</string>
-    <string name="settings_server_setup_button">Setup</string>
-    <string name="settings_server_modify_button">Modify</string>
-
-    <string name="settings_server_setup_title">Setup Server</string>
-    <string name="settings_server_setup_ssl_label">HTTPS?</string>
-    <string name="settings_server_setup_url_hint">Server Url: myserver.com</string>
-    <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
-    <string name="settings_server_setup_password_hint">Password</string>
-    <string name="settings_server_setup_login_button">Login</string>
-    <string name="settings_server_setup_create_button">Create</string>
-    <string name="settings_server_setup_cancel_button">Cancel</string>
-
-    <string name="delete_project_title">Delete Project</string>
-    <string name="delete_project_message">Are you sure you want to delete this project:\n%s</string>
-    <string name="delete_project_confirm">DELETE</string>
-    <string name="delete_project_cancel">Cancel</string>
-
-    <string name="create_project_title">Create Project</string>
-    <string name="create_project_heading">New Project Name</string>
-    <string name="create_project_button">Create Project</string>
 </resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_select_list_header">Projekte:</string>
+    <string name="project_select_project_list_empty">Keine Projekte gefunden</string>
+    <string name="project_select_card_delete_button">Löschen</string>
+    <string name="projects_list_sync_button">Projekte synchronisieren</string>
+    <string name="projects_list_create_button">Projekt erstellen</string>
+    <string name="projects_list_toast_sync_complete">Projekte synchronisiert</string>
+    <string name="projects_list_toast_sync_failed">Projektsynchronisierung fehlgeschlagen</string>
+    <string name="account_sync_dialog_title">Synchronisierung</string>
+    <string name="account_sync_dialog_header">Konto Synchronisierung</string>
+    <string name="account_sync_dialog_cancel_button">Abbrechen</string>
+    <string name="account_sync_log_title">Synchronisierungslog</string>
+    <string name="account_sync_dialog_status_error">Fehler</string>
+    <string name="account_sync_dialog_status_complete">Synchronisierung abgeschlossen</string>
+    <string name="account_sync_dialog_status_canceled">Abgebrochen</string>
+    <string name="delete_project_title">Projekt löschen</string>
+    <string name="delete_project_confirm">LÖSCHEN</string>
+    <string name="delete_project_cancel">Abbrechen</string>
+    <string name="create_project_title">Projekt erstellen</string>
+    <string name="create_project_heading">Projektname</string>
+    <string name="delete_project_message">Sicher, dass folgendes Projekt gelöscht werden soll\?:
+\n%1$s</string>
+    <string name="create_project_button">Projekt erstellen</string>
+    <string name="account_sync_dialog_status_pending">Ausstehend</string>
+</resources>

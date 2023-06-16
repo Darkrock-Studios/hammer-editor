@@ -16,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,6 +33,8 @@ fun ViewTimeLineEventUi(
 	snackbarHostState: SnackbarHostState,
 	closeEvent: () -> Unit
 ) {
+	val strRes = rememberStrRes()
+
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
@@ -73,13 +77,13 @@ fun ViewTimeLineEventUi(
 							}
 
 							scope.launch {
-								snackbarHostState.showSnackbar("Entry Saved")
+								snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
 							}
 						}
 					}) {
 						Icon(
 							Icons.Filled.Check,
-							"Save",
+							MR.strings.timeline_view_save_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -91,7 +95,7 @@ fun ViewTimeLineEventUi(
 					}) {
 						Icon(
 							Icons.Filled.Cancel,
-							"Cancel",
+							MR.strings.timeline_view_cancel_button.get(),
 							tint = MaterialTheme.colorScheme.error
 						)
 					}
@@ -110,8 +114,8 @@ fun ViewTimeLineEventUi(
 
 					if (discardConfirm) {
 						SimpleConfirm(
-							title = "Discard Changes?",
-							message = "You will lose any changes you have made.",
+							title = MR.strings.timeline_view_discard_title.get(),
+							message = MR.strings.timeline_view_discard_message.get(),
 							onDismiss = { discardConfirm = false }
 						) {
 							eventDateText = event.date ?: ""
@@ -136,7 +140,7 @@ fun ViewTimeLineEventUi(
 					) {
 						Icon(
 							Icons.Filled.Close,
-							contentDescription = "Close Entry",
+							contentDescription = MR.strings.timeline_view_close_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -150,7 +154,7 @@ fun ViewTimeLineEventUi(
 							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
 							value = eventDateText,
 							onValueChange = { eventDateText = it },
-							placeholder = { Text("Date") }
+							placeholder = { Text(MR.strings.timeline_view_date_label.get()) }
 						)
 					} else {
 						Text(
@@ -169,7 +173,7 @@ fun ViewTimeLineEventUi(
 						value = eventText,
 						onValueChange = { eventText = it },
 						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
-						placeholder = { Text(text = "Describe your event") },
+						placeholder = { Text(text = MR.strings.timeline_view_content_placeholder.get()) },
 						maxLines = 10,
 					)
 				} else {
@@ -186,8 +190,8 @@ fun ViewTimeLineEventUi(
 
 	if (closeConfirm) {
 		SimpleConfirm(
-			title = "Discard Changes?",
-			message = "You will lose any changes you have made.",
+			title = MR.strings.timeline_view_discard_title.get(),
+			message = MR.strings.timeline_view_discard_message.get(),
 			onDismiss = { closeConfirm = false }
 		) {
 			closeConfirm = false

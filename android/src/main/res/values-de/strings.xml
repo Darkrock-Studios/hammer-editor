@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unsaved_scenes_dialog_title">Nicht gespeicherte Szenen</string>
+    <string name="app_name">Hammer</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Abbrechen</string>
+    <string name="unsaved_scenes_dialog_positive_button">Speichern und schließen</string>
+    <string name="unsaved_scenes_dialog_message">Ungespeicherte Szenen speichern\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Verwerfen und schließen</string>
+    <string name="loading">Laden…</string>
+    <string name="title_activity_configure_note_widget">Widget konfigurieren</string>
+    <string name="title_activity_add_note">Notiz hinzufügen</string>
+    <string name="overflow_menu_button">Mehr</string>
+    <string name="navdrawer_button">Navigation</string>
+    <string name="note_widget_dialog_save_button">Speichern</string>
+    <string name="note_widget_dialog_categories_dropdown">Kategorien</string>
+    <string name="note_widget_button_description">Notiz hinzugefügen</string>
+    <string name="note_widget_toast_no_projects">Keine Projekte bisher</string>
+    <string name="note_widget_dialog_title">Notiz hinzufügen:</string>
+    <string name="note_widget_toast_success">Notiz hinzugefügt</string>
+</resources>

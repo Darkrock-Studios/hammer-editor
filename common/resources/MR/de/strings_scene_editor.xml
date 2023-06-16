@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_title">Entwurf speichern:</string>
+    <string name="save_draft_dialog_save_button">Speichern</string>
+    <string name="save_draft_dialog_cancel_button">Abbrechen</string>
+    <string name="save_draft_dialog_toast_success">Entwurf gespeichert</string>
+    <string name="scene_editor_name_hint">Name der Szene</string>
+    <string name="scene_editor_rename_button">Umbennen</string>
+    <string name="scene_editor_cancel_button">Abbrechen</string>
+    <string name="scene_editor_unsaved_chip">Nicht gespeichert</string>
+    <string name="scene_editor_save_button">Speichern</string>
+    <string name="scene_editor_toast_save_successful">Gespeichert</string>
+    <string name="scene_editor_body_placeholder">Hier mit dem Schreiben der Szene beginnen</string>
+    <string name="save_draft_dialog_name_hint">Name des Entwurfs</string>
+</resources>

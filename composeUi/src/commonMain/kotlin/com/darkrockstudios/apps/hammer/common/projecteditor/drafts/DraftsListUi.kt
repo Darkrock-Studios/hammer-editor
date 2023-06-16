@@ -15,9 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
 
@@ -25,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.util.formatLocal
 fun DraftsListUi(
 	component: DraftsList,
 ) {
+	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 
 	LaunchedEffect(state.sceneItem) {
@@ -43,12 +47,12 @@ fun DraftsListUi(
 							onClick = { component.cancel() },
 							modifier = Modifier.align(Alignment.End)
 						) {
-							Icon(Icons.Default.Close, "Close Drafts")
+							Icon(Icons.Default.Close, MR.strings.draft_list_close_button.get())
 						}
 					}
 
 					Text(
-						"${state.sceneItem.name} Drafts:",
+						strRes.get(MR.strings.draft_list_header, state.sceneItem.name),
 						style = MaterialTheme.typography.headlineLarge,
 						color = MaterialTheme.colorScheme.onSurface
 					)
@@ -61,7 +65,8 @@ fun DraftsListUi(
 					state.apply {
 						if (drafts.isEmpty()) {
 							item {
-								Text("No Drafts Found")
+
+								Text(MR.strings.draft_list_empty.get())
 							}
 						} else {
 							items(drafts.size) { index ->
@@ -99,7 +104,7 @@ fun DraftItem(
 				draftDef.draftTimestamp.formatLocal("dd MMM `yy")
 			}
 			Text(
-				"Created: $date",
+				MR.strings.draft_list_item_created.get(date),
 				style = MaterialTheme.typography.bodySmall
 			)
 		}

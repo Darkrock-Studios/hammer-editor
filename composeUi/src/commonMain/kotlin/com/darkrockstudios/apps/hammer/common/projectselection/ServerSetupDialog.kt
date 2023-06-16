@@ -85,7 +85,7 @@ fun ServerSetupDialog(
 
 			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 				Text(
-					"Configure Server",
+					MR.strings.settings_server_setup_header.get(),
 					style = MaterialTheme.typography.headlineMedium
 				)
 
@@ -156,7 +156,10 @@ fun ServerSetupDialog(
 						else Icons.Filled.VisibilityOff
 
 						// Please provide localized description for accessibility services
-						val description = if (passwordVisible) "Hide password" else "Show password"
+						val description = if (passwordVisible)
+							MR.strings.settings_server_setup_password_hide.get()
+						else
+							MR.strings.settings_server_setup_password_show.get()
 
 						IconButton(onClick = { passwordVisible = !passwordVisible }) {
 							Icon(imageVector = image, description)
@@ -236,8 +239,8 @@ fun ServerSetupDialog(
 			}
 
 			SimpleConfirm(
-				title = "Remove Local Content?",
-				message = "Should we remove your current local content before syncing? If not, we will attempt to merge your local content with the server content. If the content is unrelated, it could cause problems.",
+				title = MR.strings.remove_local_dialog_title.get(),
+				message = MR.strings.remove_local_dialog_message.get(),
 				implicitCancel = false,
 				onDismiss = {
 					setupServer(create, false)

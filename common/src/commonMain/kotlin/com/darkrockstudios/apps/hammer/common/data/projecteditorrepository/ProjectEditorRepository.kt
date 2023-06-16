@@ -423,7 +423,7 @@ abstract class ProjectEditorRepository(
 		return sceneTree.findOrNull { it.id == id }?.parent?.value
 	}
 
-	fun validateSceneName(sceneName: String) = projectsRepository.validateFileName(sceneName)
+	fun validateSceneName(sceneName: String): Result<Boolean> = ProjectsRepository.validateFileName(sceneName)
 
 	protected abstract fun loadMetadata(): ProjectMetadata
 	protected abstract fun saveMetadata(metadata: ProjectMetadata)
@@ -452,7 +452,7 @@ abstract class ProjectEditorRepository(
 	abstract fun reIdScene(oldId: Int, newId: Int)
 
 	companion object {
-		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\da-zA-Z _']+)-(\d+)(\.md)?(?:\.temp)?""")
+		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\d\p{L}+ _']+)-(\d+)(\.md)?(?:\.temp)?""")
 		val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
 		const val SCENE_FILENAME_EXTENSION = ".md"
 		const val SCENE_DIRECTORY = "scenes"

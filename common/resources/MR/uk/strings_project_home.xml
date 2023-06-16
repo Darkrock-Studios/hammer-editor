@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_home_action_backup">Резервне копіювання</string>
+    <string name="project_home_stat_header">Статистика:</string>
+    <string name="project_home_stat_created">Створено: %1$s</string>
+    <string name="project_home_stat_num_scenes">Сцени</string>
+    <string name="project_home_stat_total_words">Всього слів</string>
+    <string name="project_home_stat_encyclopedia_entries">Статті в енциклопедії</string>
+    <string name="project_home_stat_chapter_words_x_axis">Розділ</string>
+    <string name="project_home_stat_chapter_words">Слів у розділах</string>
+    <string name="project_home_stat_chapter_words_y_axis">Слова</string>
+    <string name="project_home_actions_header">Дії:</string>
+    <string name="project_home_action_export">Історія експорту</string>
+    <string name="project_home_action_sync">Історія синхронізації</string>
+    <string name="project_home_action_backup_toast_success">Резервну копію створено: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Помилка резервного копіювання</string>
+</resources>

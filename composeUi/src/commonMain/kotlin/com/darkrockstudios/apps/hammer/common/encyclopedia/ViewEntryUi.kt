@@ -17,8 +17,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -33,6 +35,7 @@ internal fun ViewEntryUi(
 	snackbarHostState: SnackbarHostState,
 	closeEntry: () -> Unit,
 ) {
+	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
@@ -81,13 +84,13 @@ internal fun ViewEntryUi(
 							}
 
 							scope.launch {
-								snackbarHostState.showSnackbar("Entry Saved")
+								snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
 							}
 						}
 					}) {
 						Icon(
 							Icons.Filled.Check,
-							"Save",
+							MR.strings.encyclopedia_entry_edit_save_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -95,7 +98,7 @@ internal fun ViewEntryUi(
 					IconButton(onClick = { discardConfirm = true }) {
 						Icon(
 							Icons.Filled.Cancel,
-							"Cancel",
+							MR.strings.encyclopedia_entry_edit_cancel_button.get(),
 							tint = MaterialTheme.colorScheme.error
 						)
 					}
@@ -114,8 +117,8 @@ internal fun ViewEntryUi(
 
 					if (discardConfirm) {
 						SimpleConfirm(
-							title = "Discard Changes?",
-							message = "You will lose any changes you have made.",
+							title = MR.strings.encyclopedia_entry_discard_title.get(),
+							message = MR.strings.encyclopedia_entry_discard_message.get(),
 							onDismiss = { discardConfirm = false }
 						) {
 							entryNameText = content.name
@@ -141,7 +144,7 @@ internal fun ViewEntryUi(
 					) {
 						Icon(
 							Icons.Filled.Close,
-							contentDescription = "Close Entry",
+							contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -153,7 +156,7 @@ internal fun ViewEntryUi(
 					modifier = Modifier.wrapContentHeight().fillMaxWidth(),
 					value = entryNameText,
 					onValueChange = { entryNameText = it },
-					placeholder = { Text("Name") }
+					placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
 				)
 			} else {
 				Text(
@@ -212,8 +215,8 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteImageDialog) {
 		SimpleConfirm(
-			title = "Delete Image?",
-			message = "This cannot be undone!",
+			title = MR.strings.encyclopedia_entry_delete_image_title.get(),
+			message = MR.strings.encyclopedia_entry_delete_image_message.get(),
 			onDismiss = { component.closeDeleteImageDialog() }
 		) {
 			scope.launch { component.removeEntryImage() }
@@ -223,8 +226,8 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteEntryDialog) {
 		SimpleConfirm(
-			title = "Delete Entry?",
-			message = "This cannot be undone!",
+			title = MR.strings.encyclopedia_entry_delete_title.get(),
+			message = MR.strings.encyclopedia_entry_delete_message.get(),
 			onDismiss = { component.closeDeleteEntryDialog() }
 		) {
 			scope.launch(dispatcherDefault) {
@@ -232,7 +235,7 @@ internal fun ViewEntryUi(
 					withContext(dispatcherMain) {
 						closeEntry()
 					}
-					snackbarHostState.showSnackbar("Entry Deleted")
+					snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_delete_toast))
 				}
 			}
 			component.closeDeleteEntryDialog()
@@ -241,8 +244,8 @@ internal fun ViewEntryUi(
 
 	if (closeConfirm) {
 		SimpleConfirm(
-			title = "Discard Changes?",
-			message = "You will lose any changes you have made.",
+			title = MR.strings.encyclopedia_entry_discard_title.get(),
+			message = MR.strings.encyclopedia_entry_discard_message.get(),
 			onDismiss = { closeConfirm = false }
 		) {
 			closeConfirm = false
@@ -300,17 +303,26 @@ private fun Contents(
 
 		if (content != null) {
 			Column {
+				LaunchedEffect(entryText) {
+					if (entryText.isBlank()) {
+						beginEdit()
+					}
+				}
+
 				if (editText) {
 					OutlinedTextField(
 						value = entryText,
 						onValueChange = setEntryText,
 						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
-						placeholder = { Text(text = "Describe your entry") },
+						placeholder = { Text(text = MR.strings.encyclopedia_entry_body_empty_placeholder.get()) },
 						maxLines = 10,
 					)
 				} else {
+					val text = entryText.ifBlank {
+						MR.strings.encyclopedia_entry_body_empty_label.get()
+					}
 					Text(
-						entryText,
+						text,
 						modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,

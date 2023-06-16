@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_home_stat_header">Statistiques :</string>
+    <string name="project_home_stat_created">Créé : %1$s</string>
+    <string name="project_home_stat_num_scenes">Scènes</string>
+    <string name="project_home_stat_total_words">Nombre de mots</string>
+    <string name="project_home_stat_encyclopedia_entries">Entrées de l’encyclopédie</string>
+    <string name="project_home_stat_chapter_words">Mots dans les chapitres</string>
+    <string name="project_home_stat_chapter_words_x_axis">Chapitre</string>
+    <string name="project_home_stat_chapter_words_y_axis">Mots</string>
+    <string name="project_home_actions_header">Actions :</string>
+    <string name="project_home_action_export">Exporter l\'histoire</string>
+    <string name="project_home_action_sync">Synchroniser l’histoire</string>
+    <string name="project_home_action_backup">Sauvegarde</string>
+    <string name="project_home_action_backup_toast_success">Sauvegarde créée : %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Échec de la sauvegarde</string>
+</resources>

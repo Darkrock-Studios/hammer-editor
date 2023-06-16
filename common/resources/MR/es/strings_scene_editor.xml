@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_title">Guardar borrador:</string>
+    <string name="save_draft_dialog_name_hint">Nombre del borrador</string>
+    <string name="save_draft_dialog_save_button">Guardar</string>
+    <string name="save_draft_dialog_cancel_button">Cancelar</string>
+    <string name="save_draft_dialog_toast_success">Borrador guardado</string>
+    <string name="scene_editor_name_hint">Nombre de la escena</string>
+    <string name="scene_editor_rename_button">Renombrar</string>
+    <string name="scene_editor_cancel_button">Cancelar</string>
+    <string name="scene_editor_unsaved_chip">Sin guardar</string>
+    <string name="scene_editor_save_button">Guardar</string>
+    <string name="scene_editor_toast_save_successful">Guardado</string>
+</resources>

@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
@@ -130,13 +131,13 @@ fun main(args: Array<String>) {
 				LocalImageLoader provides imageLoader,
 			) {
 				when (val windowState = applicationState.windows.value) {
-					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectSectionWindow -> {
+					is WindowState.ProjectSectionWindow -> {
 						ProjectSelectionWindow { project ->
 							applicationState.openProject(project)
 						}
 					}
 
-					is com.darkrockstudios.apps.hammer.desktop.WindowState.ProjectWindow -> {
+					is WindowState.ProjectWindow -> {
 						ProjectEditorWindow(applicationState, windowState.projectDef)
 					}
 				}
@@ -155,15 +156,15 @@ internal fun confirmCloseDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	AlertDialog(
-		title = { Text("Unsaved Scenes") },
-		text = { Text("Save unsaved scenes?") },
+		title = { Text(DR.strings.unsaved_scenes_dialog_title.get()) },
+		text = { Text(DR.strings.unsaved_scenes_dialog_message.get()) },
 		onDismissRequest = { /* Noop */ },
 		buttons = {
 			Column(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-					Text("Save and close")
+					Text(DR.strings.unsaved_scenes_dialog_positive_button.get())
 				}
 				Button(onClick = {
 					dismissDialog(
@@ -171,10 +172,10 @@ internal fun confirmCloseDialog(
 						ApplicationState.CloseType.None
 					)
 				}) {
-					Text("Cancel")
+					Text(DR.strings.unsaved_scenes_dialog_neutral_button.get())
 				}
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-					Text("Discard and close")
+					Text(DR.strings.unsaved_scenes_dialog_negative_button.get())
 				}
 			}
 		},

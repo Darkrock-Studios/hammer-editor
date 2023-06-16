@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -160,13 +162,25 @@ class SceneEditorComponent(
 	}
 
 	override suspend fun changeSceneName(newName: String) {
-		endSceneNameEdit()
-		projectEditor.renameScene(sceneDef, newName)
+		val result = ProjectsRepository.validateFileName(newName)
 
-		_state.getAndUpdate {
-			it.copy(
-				sceneItem = it.sceneItem.copy(name = newName)
-			)
+		if (result.isSuccess) {
+			endSceneNameEdit()
+			projectEditor.renameScene(sceneDef, newName)
+
+			_state.getAndUpdate {
+				it.copy(
+					sceneItem = it.sceneItem.copy(name = newName)
+				)
+			}
+		} else {
+			(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
+				_state.getAndUpdate {
+					it.copy(
+						toast = message
+					)
+				}
+			}
 		}
 	}
 

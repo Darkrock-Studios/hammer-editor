@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="settings_heading">⚙ Settings</string>
+	<string name="settings_theme_label">UI Theme</string>
+	<string name="settings_projects_directory">Projects Directory</string>
+	<string name="settings_projects_directory_hint">Path to Projects Directory</string>
+	<string name="settings_projects_directory_button">Select Dir</string>
+
+	<string name="settings_example_project_header">Example Project</string>
+	<string name="settings_example_project_description">Install an example project to see how different features are
+		used.
+	</string>
+	<string name="settings_example_project_button">Reinstall</string>
+	<string name="settings_example_project_success_message">Example project created.</string>
+
+	<string name="settings_data_version">Data: v%1$s</string>
+
+	<string name="settings_server_header">Server</string>
+	<string name="settings_server_description">Setup a server for syncing between devices.</string>
+	<string name="settings_server_url_label">URL:</string>
+	<string name="settings_server_email_label">Email:</string>
+	<string name="settings_server_setup_button">Setup</string>
+	<string name="settings_server_modify_button">Modify</string>
+	<string name="settings_server_unknown_error">error</string>
+	<string name="settings_server_auto_sync">Auto-Sync</string>
+	<string name="settings_server_sync_backup">Backup on sync</string>
+	<string name="settings_server_sync_auto_close">Close Sync Dialogs on Success</string>
+	<string name="settings_server_max_backups">Max Backups per Project</string>
+	<string name="settings_server_test_auth_button">Test Auth</string>
+	<string name="settings_server_reauth_button">Re-Auth</string>
+	<string name="settings_server_remove_server_button">Remove Auth</string>
+
+	<string name="settings_server_authtest_toast_success">Auth Test Successful</string>
+	<string name="settings_server_authtest_toast_failure">Auth Test Failed</string>
+
+	<string name="settings_remove_server_dialog_title">Remove Server</string>
+	<string name="settings_remove_server_dialog_message">Are you sure you want to remove the server?</string>
+
+	<string name="settings_server_setup_title">Setup Server</string>
+	<string name="settings_server_setup_header">Configure Server</string>
+	<string name="settings_server_setup_ssl_label">HTTPS?</string>
+	<string name="settings_server_setup_url_hint">Server Url: myserver.com</string>
+	<string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
+	<string name="settings_server_setup_password_hint">Password</string>
+	<string name="settings_server_setup_password_show">Show password</string>
+	<string name="settings_server_setup_password_hide">Hide password</string>
+	<string name="settings_server_setup_login_button">Login</string>
+	<string name="settings_server_setup_create_button">Create</string>
+	<string name="settings_server_setup_cancel_button">Cancel</string>
+
+	<string name="remove_local_dialog_title">Remove Local Content?</string>
+	<string name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we
+		will attempt to merge your local content with the server content. If the content is unrelated, it could cause
+		problems.
+	</string>
+</resources>
