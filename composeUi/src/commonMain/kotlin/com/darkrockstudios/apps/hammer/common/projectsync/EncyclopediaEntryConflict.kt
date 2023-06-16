@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -30,13 +32,13 @@ internal fun EncyclopediaEntryConflict(
 			Row {
 				Icon(
 					Icons.Default.Warning,
-					contentDescription = "Conflict",
+					contentDescription = MR.strings.sync_conflict.get(),
 					modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
 					tint = MaterialTheme.colorScheme.error
 				)
 
 				Text(
-					text = "Encyclopedia Entry Conflict:",
+					text = MR.strings.sync_conflict_encyclopedia.get(),
 					style = MaterialTheme.typography.headlineSmall,
 					modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
 				)
@@ -53,11 +55,11 @@ internal fun EncyclopediaEntryConflict(
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Text(
-						text = "Local Entry:",
+						text = MR.strings.sync_conflict_local_entry.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 					Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
-						Text("Use Local")
+						Text(MR.strings.sync_conflict_local_use_button.get())
 					}
 				}
 				SelectionContainer {
@@ -68,7 +70,10 @@ internal fun EncyclopediaEntryConflict(
 				}
 				Text(entityConflict.serverEntity.entryType)
 				Text(
-					if (entityConflict.serverEntity.image != null) "Has Image" else "No Image",
+					if (entityConflict.serverEntity.image != null)
+						MR.strings.sync_conflict_encyclopedia_has_image.get()
+					else
+						MR.strings.sync_conflict_encyclopedia_no_image.get(),
 					style = MaterialTheme.typography.bodyLarge
 				)
 				SelectionContainer {
@@ -91,11 +96,11 @@ internal fun EncyclopediaEntryConflict(
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Text(
-						text = "Remote Entry:",
+						text = MR.strings.sync_conflict_remote_entry.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 					Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-						Text("Use Remote")
+						Text(MR.strings.sync_conflict_remote_use_button.get())
 					}
 				}
 				SelectionContainer {
@@ -106,7 +111,10 @@ internal fun EncyclopediaEntryConflict(
 				}
 				Text(entityConflict.serverEntity.entryType)
 				Text(
-					if (entityConflict.serverEntity.image != null) "Has Image" else "No Image",
+					if (entityConflict.serverEntity.image != null)
+						MR.strings.sync_conflict_encyclopedia_has_image.get()
+					else
+						MR.strings.sync_conflict_encyclopedia_no_image.get(),
 					style = MaterialTheme.typography.bodyLarge
 				)
 				SelectionContainer {
@@ -124,33 +132,22 @@ internal fun EncyclopediaEntryConflict(
 		}
 	}
 
-
-
-
-
-
-
-
-
-
-
-
 	Column {
-		Text("Encyclopedia Entry Conflict")
+		Text(MR.strings.sync_conflict_encyclopedia_title.get())
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 		Row(modifier = Modifier.fillMaxSize()) {
 			Column(modifier = Modifier.weight(1f)) {
-				Text("Local Event: ${entityConflict.clientEntity.name}")
+				Text(MR.strings.sync_conflict_encyclopedia_local.get(entityConflict.clientEntity.name))
 				Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
-					Text("Use Local")
+					Text(MR.strings.sync_conflict_local_use_button.get())
 				}
 				Text(entityConflict.clientEntity.text)
 			}
 
 			Column(modifier = Modifier.weight(1f)) {
-				Text("Remote Event: ${entityConflict.serverEntity.name}")
+				Text(MR.strings.sync_conflict_encyclopedia_local.get(entityConflict.serverEntity.name))
 				Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-					Text("Use Remote")
+					Text(MR.strings.sync_conflict_remote_use_button.get())
 				}
 				Text(entityConflict.serverEntity.text)
 			}

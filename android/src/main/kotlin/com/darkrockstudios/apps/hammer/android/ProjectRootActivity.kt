@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -163,10 +164,10 @@ class ProjectRootActivity : AppCompatActivity() {
 									icon = {
 										Icon(
 											imageVector = getDestinationIcon(item),
-											contentDescription = item.text
+											contentDescription = item.text.get()
 										)
 									},
-									label = { Text(item.text) },
+									label = { Text(item.text.get()) },
 									selected = router.active.instance.getLocationType() == item,
 									onClick = {
 										scope.launch { drawerState.close() }

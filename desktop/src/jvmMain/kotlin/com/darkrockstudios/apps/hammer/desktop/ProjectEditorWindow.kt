@@ -134,8 +134,8 @@ private fun AppContent(component: ProjectRoot) {
 		NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 			destinations.forEach { item ->
 				NavigationRailItem(
-					icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text) },
-					label = { Text(item.text) },
+					icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
+					label = { Text(item.text.get()) },
 					selected = router.active.instance.getLocationType() == item,
 					onClick = { component.showDestination(item) }
 				)

@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -125,7 +126,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 							Spacer(Modifier.height(12.dp))
 							ProjectSelection.Locations.values().forEach { item ->
 								NavigationDrawerItem(
-									icon = { Icon(getLocationIcon(item), contentDescription = item.text) },
+									icon = { Icon(getLocationIcon(item), contentDescription = item.text.get()) },
 									label = { Text(item.name) },
 									selected = item == slot.child?.configuration?.location,
 									onClick = {

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="timeline_title">Timeline</string>
+	<string name="timeline_no_events">No Events</string>
+	<string name="timeline_create_event_button">Create Event</string>
+
+	<string name="timeline_create_close_button">Close</string>
+	<string name="timeline_create_title">Timeline Event</string>
+	<string name="timeline_create_date_label">Date (optional)</string>
+	<string name="timeline_create_content_label">Content</string>
+	<string name="timeline_create_create_event_button">Create</string>
+	<string name="timeline_create_toast_success">Event Created</string>
+	<string name="timeline_create_toast_failure">Failed to create event</string>
+
+	<string name="timeline_view_save_button">Save</string>
+	<string name="timeline_view_cancel_button">Cancel</string>
+	<string name="timeline_view_close_button">Close Entry</string>
+	<string name="timeline_view_date_label">Date</string>
+	<string name="timeline_view_content_placeholder">Describe your event</string>
+	<string name="timeline_view_toast_save_success">Cancel</string>
+
+	<string name="timeline_view_discard_title">Discard Changes?</string>
+	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
+</resources>

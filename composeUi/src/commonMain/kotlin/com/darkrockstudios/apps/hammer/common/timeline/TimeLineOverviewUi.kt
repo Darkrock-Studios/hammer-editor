@@ -20,8 +20,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.CoroutineScope
@@ -42,7 +44,7 @@ fun TimeLineOverviewUi(
 	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		Column(modifier = Modifier.widthIn(0.dp, 700.dp).fillMaxWidth()) {
 			Text(
-				"Time Line",
+				MR.strings.timeline_title.get(),
 				style = MaterialTheme.typography.headlineLarge,
 				color = MaterialTheme.colorScheme.onBackground
 			)
@@ -50,7 +52,7 @@ fun TimeLineOverviewUi(
 			val events = state.timeLine?.events ?: emptyList()
 			if (events.isEmpty()) {
 				Text(
-					"No Events",
+					MR.strings.timeline_no_events.get(),
 					modifier = Modifier.fillMaxWidth(),
 					textAlign = TextAlign.Center,
 					color = MaterialTheme.colorScheme.onBackground,
@@ -76,7 +78,7 @@ fun TimeLineOverviewUi(
 			onClick = showCreate,
 			modifier = Modifier.align(Alignment.BottomEnd).testTag(TIME_LINE_CREATE_TAG)
 		) {
-			Icon(Icons.Default.Create, "Create Event")
+			Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
 		}
 	}
 }

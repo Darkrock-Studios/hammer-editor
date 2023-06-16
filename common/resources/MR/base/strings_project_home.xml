@@ -16,4 +16,6 @@
 	<string name="project_home_action_backup">Backup</string>
 	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
+
+	<string name="project_home_action_export_toast_success">Story Exported</string>
 </resources>

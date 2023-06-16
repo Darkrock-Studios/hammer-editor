@@ -367,7 +367,7 @@ private fun Actions(
 		if (path != null) {
 			scope.launch(defaultDispatcher) {
 				component.exportProject(path)
-				snackbarHostState.showSnackbar("Story Exported")
+				snackbarHostState.showSnackbar(strRes.get(MR.strings.project_home_action_export_toast_success))
 			}
 		} else {
 			component.endProjectExport()

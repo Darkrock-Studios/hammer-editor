@@ -11,9 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -26,6 +29,8 @@ fun CreateTimeLineEventUi(
 	snackbarHostState: SnackbarHostState,
 	close: () -> Unit
 ) {
+	val strRes = rememberStrRes()
+
 	var dateText by remember { mutableStateOf("") }
 	var contentText by remember { mutableStateOf("") }
 
@@ -40,40 +45,40 @@ fun CreateTimeLineEventUi(
 			) {
 				Icon(
 					Icons.Default.Close,
-					"Close",
+					MR.strings.timeline_create_close_button.get(),
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
 		}
 		Text(
-			"Time Line Event",
+			MR.strings.timeline_create_title.get(),
 			style = MaterialTheme.typography.headlineLarge,
 			color = MaterialTheme.colorScheme.onBackground
 		)
 		TextField(
 			value = dateText,
 			onValueChange = { dateText = it },
-			label = { Text("Date (optional)") },
+			label = { Text(MR.strings.timeline_create_date_label.get()) },
 			singleLine = true
 		)
 		OutlinedTextField(
 			modifier = Modifier.fillMaxWidth().height(128.dp),
 			value = contentText,
 			onValueChange = { contentText = it },
-			label = { Text("Content") },
+			label = { Text(MR.strings.timeline_create_content_label.get()) },
 		)
 
 		Button(onClick = {
 			scope.launch {
 				if (component.createEvent(dateText, contentText)) {
-					launch { snackbarHostState.showSnackbar("Event Created") }
+					launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_create_toast_success)) }
 					close()
 				} else {
-					launch { snackbarHostState.showSnackbar("Failed to create event") }
+					launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_create_toast_failure)) }
 				}
 			}
 		}) {
-			Text("Create")
+			Text(MR.strings.timeline_create_create_event_button.get())
 		}
 	}
 }

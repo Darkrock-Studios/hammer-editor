@@ -62,8 +62,8 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 				ProjectSelection.Locations.values().forEach { item ->
 					NavigationRailItem(
-						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text) },
-						label = { Text(item.text) },
+						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
+						label = { Text(item.text.get()) },
 						selected = item == slot.child?.configuration?.location,
 						onClick = { component.showLocation(item) }
 					)
