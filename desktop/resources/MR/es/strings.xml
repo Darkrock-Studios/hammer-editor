@@ -9,4 +9,5 @@
     <string name="project_window_title">Hammer - %1$s</string>
     <string name="project_window_menu_item_exit">Salir</string>
     <string name="project_window_menu_item_close">Cerrar proyecto</string>
+    <string name="account_window_title">Hammer - Selección de proyecto</string>
 </resources>
