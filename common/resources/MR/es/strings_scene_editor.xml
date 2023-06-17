@@ -11,4 +11,5 @@
     <string name="scene_editor_unsaved_chip">Sin guardar</string>
     <string name="scene_editor_save_button">Guardar</string>
     <string name="scene_editor_toast_save_successful">Guardado</string>
+    <string name="scene_editor_body_placeholder">Comienza a escribir tu escena aquí</string>
 </resources>
