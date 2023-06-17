@@ -23,4 +23,9 @@
     <string name="create_project_title">Створити проєкт</string>
     <string name="create_project_heading">Нова назва проєкту</string>
     <string name="create_project_button">Створити проєкт</string>
+    <string name="create_project_error_invalid_characters">Назва проєкту містить неприпустимі символи</string>
+    <string name="create_project_error_too_long">Назва проєкту занадто довга</string>
+    <string name="create_project_error_already_exists">Проєкт вже існує</string>
+    <string name="create_project_error_null_filename">Відсутня назва проєкту</string>
+    <string name="create_project_error_blank">Назва проєкту була порожньою</string>
 </resources>
