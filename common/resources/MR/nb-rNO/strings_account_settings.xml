@@ -1,4 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="settings_example_project_header">Eksempelprosjekt</string>
+    <string name="settings_example_project_description">Installer et eksempelprosjekt for å finne ut hvordan alle funksjoner brukes.</string>
+    <string name="settings_data_version">Data: v%1$s</string>
+    <string name="settings_server_setup_password_hide">Skjul passord</string>
+    <string name="settings_server_header">Tjener</string>
+    <string name="settings_server_setup_create_button">Opprett</string>
+    <string name="settings_server_setup_cancel_button">Avbryt</string>
+    <string name="settings_heading">⚙ Innstillinger</string>
+    <string name="settings_theme_label">Grensesnittsdrakt</string>
+    <string name="settings_projects_directory">Prosjektmappe</string>
+    <string name="settings_projects_directory_hint">Sti til prosjektmappe</string>
+    <string name="settings_projects_directory_button">Velg katalog</string>
+    <string name="settings_example_project_button">Reinstaller</string>
+    <string name="settings_example_project_success_message">Eksempelprosjekt opprettet.</string>
+    <string name="settings_server_url_label">Nettadresse:</string>
+    <string name="settings_server_email_label">E-post:</string>
+    <string name="settings_server_modify_button">Endre</string>
+    <string name="settings_remove_server_dialog_title">Fjern tjener</string>
+    <string name="settings_server_unknown_error">feil</string>
+    <string name="settings_server_test_auth_button">Test identitetsbekreftelse</string>
+    <string name="settings_server_reauth_button">Identitetsbekreft på ny</string>
+    <string name="settings_server_remove_server_button">Fjern identitetsbekreftelse</string>
+    <string name="settings_server_authtest_toast_success">Itentitetsbekreftelse vellykket</string>
+    <string name="settings_server_authtest_toast_failure">Itentitetsbekreftelse mislyktes</string>
+    <string name="settings_server_description">Sett opp en tjener for synkronisering mellom enheter.</string>
+    <string name="settings_server_setup_button">Sett opp</string>
+    <string name="settings_server_auto_sync">Auto-synkronisering</string>
+    <string name="settings_server_sync_backup">Sikkerhetskopiering ved synkronisering</string>
+    <string name="settings_server_sync_auto_close">Lukk vellykkede synkroniseringsdialoger</string>
+    <string name="settings_server_max_backups">Maks. sikkerhetskopier per prosjekt</string>
+    <string name="settings_server_setup_header">Sett opp tjener</string>
+    <string name="settings_server_setup_ssl_label">HTTPS\?</string>
+    <string name="settings_server_setup_password_hint">Passord</string>
+    <string name="settings_server_setup_password_show">Vis passord</string>
+    <string name="remove_local_dialog_title">Fjern lokalt innhold\?</string>
+    <string name="settings_remove_server_dialog_message">Fjern tjeneren\?</string>
+    <string name="settings_server_setup_url_hint">Tjener-nettadresse: mintjener.no</string>
+    <string name="settings_server_setup_email_hint">E-post: bruker@eksempel.no</string>
+    <string name="settings_server_setup_login_button">Logg inn</string>
+    <string name="settings_server_setup_title">Sett opp tjener</string>
 </resources>
