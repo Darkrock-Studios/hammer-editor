@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="scene_delete_dialog_message">Slett %1$s-scenen\?</string>
+    <string name="scene_list_create_scene_dialog_message">Scenenavn</string>
+    <string name="create_sceneitem_dialog_dismiss_button">Avbryt</string>
+    <string name="scene_list_header">Scener:</string>
+    <string name="scene_list_create_group_button">Opprett gruppe</string>
+    <string name="scene_list_create_scene_button">Opprett scene</string>
+    <string name="scene_list_create_group_dialog_title">Opprett gruppe</string>
+    <string name="scene_list_create_group_dialog_message">Gruppenavn</string>
+    <string name="scene_list_create_scene_dialog_title">Opprett scene</string>
+    <string name="scene_delete_dialog_title">Slett scene</string>
+    <string name="group_cannot_delete_dialog_title">Kan ikke slette gruppe</string>
+    <string name="create_sceneitem_dialog_create_button">Opprett</string>
+    <string name="scene_delete_dialog_dismiss_button">Forkast</string>
+    <string name="scene_group_item_collapsed">Gruppe sammenfoldet</string>
+    <string name="scene_group_item_expanded">Gruppe utvidet</string>
+    <string name="scene_delete_dialog_delete_button">Slett</string>
 </resources>
