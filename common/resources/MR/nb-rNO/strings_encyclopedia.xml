@@ -1,4 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="encyclopedia_browse_list_empty">Fant ingen oppføringer</string>
+    <string name="encyclopedia_search_hint">Søk etter navn</string>
+    <string name="encyclopedia_create_entry_select_image_button">Velg bilde</string>
+    <string name="encyclopedia_create_entry_toast_too_long">Oppføringsnavnet er for langt. Maks. %1$d</string>
+    <string name="encyclopedia_search_clear_button">Tøm</string>
+    <string name="encyclopedia_category_all">Alle</string>
+    <string name="encyclopedia_create_button">Opprett oppføring</string>
+    <string name="encyclopedia_create_entry_header">Opprett ny oppføring</string>
+    <string name="encyclopedia_create_entry_type_label">Type:</string>
+    <string name="encyclopedia_create_entry_name_label">Navn</string>
+    <string name="encyclopedia_create_entry_body_hint">Beskriv oppføringen din</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Fjern bilde</string>
+    <string name="encyclopedia_create_entry_create_button">Opprett</string>
+    <string name="encyclopedia_create_entry_cancel_button">Avbryt</string>
+    <string name="encyclopedia_create_entry_toast_success">Oppføring opprettet</string>
+    <string name="encyclopedia_create_entry_tags_label">Etiketter (mellomromsinndelt)</string>
+    <string name="encyclopedia_create_entry_discard_title">Forkast ny oppføring\?</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Beskriv oppføringen din</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Avbryt</string>
+    <string name="encyclopedia_entry_edit_save_button">Lagre</string>
+    <string name="encyclopedia_entry_discard_title">Forkast endringer\?</string>
+    <string name="encyclopedia_entry_delete_title">Slett oppføring\?</string>
+    <string name="encyclopedia_entry_delete_toast">Oppføring slettet</string>
+    <string name="encyclopedia_entry_delete_image_title">Slett bilde\?</string>
+    <string name="encyclopedia_entry_delete_image_message">Dette kan ikke angres.</string>
+    <string name="encyclopedia_entry_name_hint">Navn</string>
+    <string name="encyclopedia_entry_close_button">Lukk oppføring</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">Etiketten er for lang. Maks. %1$d</string>
+    <string name="encyclopedia_entry_body_empty_label">Klikk for å skrive inn beskrivelse</string>
+    <string name="encyclopedia_entry_edit_save_toast">Oppføring lagret</string>
+    <string name="encyclopedia_entry_discard_message">Du vil miste alle endringer du har gjort.</string>
+    <string name="encyclopedia_entry_delete_message">Dette kan ikke angres.</string>
+    <string name="encyclopedia_entry_load_error">Feil: Klarte ikke å laste inn oppføringen.</string>
 </resources>
