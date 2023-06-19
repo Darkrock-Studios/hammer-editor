@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="unsaved_scenes_dialog_title">Ulagrede scener</string>
+    <string name="unsaved_scenes_dialog_message">Lagre ulagrede scener\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Forkast og lukk</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Avbryt</string>
+    <string name="unsaved_scenes_dialog_positive_button">Lagre og lukk</string>
+    <string name="account_window_title">Hammer — prosjektutvalg</string>
+    <string name="project_window_title">Hammer — %1$s</string>
+    <string name="project_window_menu_file">Fil</string>
+    <string name="project_window_menu_item_close">Lukk prosjekt</string>
+    <string name="project_window_menu_item_exit">Avslutt</string>
 </resources>

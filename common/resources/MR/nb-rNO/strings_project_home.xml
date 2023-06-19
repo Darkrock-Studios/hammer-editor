@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="project_home_action_export_toast_success">Historie eksportert</string>
+    <string name="project_home_stat_chapter_words_y_axis">Ord</string>
+    <string name="project_home_stat_header">Statistikk:</string>
+    <string name="project_home_stat_created">Opprettet: %1$s</string>
+    <string name="project_home_stat_chapter_words_x_axis">Kapittel</string>
+    <string name="project_home_actions_header">Handlinger:</string>
+    <string name="project_home_stat_num_scenes">Scener</string>
+    <string name="project_home_stat_total_words">Totalt antall ord</string>
+    <string name="project_home_stat_chapter_words">Ord i kapitler</string>
+    <string name="project_home_action_export">Eksporter historie</string>
+    <string name="project_home_action_sync">Synkroniser historie</string>
+    <string name="project_home_action_backup">Sikkerhetskopi</string>
+    <string name="project_home_action_backup_toast_success">Sikkerhetskopi opprettet: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Sikkerhetskopi mislyktes.</string>
 </resources>

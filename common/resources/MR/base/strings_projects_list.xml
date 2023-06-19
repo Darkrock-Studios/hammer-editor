@@ -1,36 +1,30 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_list_header">Projects:</string>
-	<string name="project_select_project_list_empty">No Projects Found</string>
-
-	<string name="project_select_card_delete_button">Delete</string>
-
-	<string name="projects_list_sync_button">Sync Projects</string>
-	<string name="projects_list_create_button">Create Project</string>
-	<string name="projects_list_toast_sync_complete">Projects synced</string>
-	<string name="projects_list_toast_sync_failed">Failed to sync projects</string>
-
-	<string name="account_sync_dialog_title">Synchronization</string>
-	<string name="account_sync_dialog_header">Account Sync</string>
-	<string name="account_sync_dialog_cancel_button">Cancel</string>
-	<string name="account_sync_log_title">Sync Log</string>
-	<string name="account_sync_dialog_status_pending">Pending</string>
-	<string name="account_sync_dialog_status_error">Error</string>
-	<string name="account_sync_dialog_status_complete">Sync Complete</string>
-	<string name="account_sync_dialog_status_canceled">Canceled</string>
-
-	<string name="delete_project_title">Delete Project</string>
-	<string name="delete_project_message">Are you sure you want to delete this project:\n%1$s</string>
-	<string name="delete_project_confirm">DELETE</string>
-	<string name="delete_project_cancel">Cancel</string>
-
-	<string name="create_project_title">Create Project</string>
-	<string name="create_project_heading">New Project Name</string>
-	<string name="create_project_button">Create Project</string>
-
-	<string name="create_project_error_already_exists">Project already exists</string>
-	<string name="create_project_error_null_filename">Missing Project Name</string>
-	<string name="create_project_error_too_long">Project Name too long</string>
-	<string name="create_project_error_invalid_characters">Project Name contains invalid characters</string>
-	<string name="create_project_error_blank">Project Name was blank</string>
+    <string name="project_select_list_header">Projects:</string>
+    <string name="project_select_project_list_empty">No Projects Found</string>
+    <string name="project_select_card_delete_button">Delete</string>
+    <string name="projects_list_sync_button">Sync Projects</string>
+    <string name="projects_list_create_button">Create Project</string>
+    <string name="projects_list_toast_sync_complete">Projects synced</string>
+    <string name="projects_list_toast_sync_failed">Failed to sync projects</string>
+    <string name="account_sync_dialog_title">Synchronization</string>
+    <string name="account_sync_dialog_header">Account Sync</string>
+    <string name="account_sync_dialog_cancel_button">Cancel</string>
+    <string name="account_sync_log_title">Sync Log</string>
+    <string name="account_sync_dialog_status_pending">Pending</string>
+    <string name="account_sync_dialog_status_error">Error</string>
+    <string name="account_sync_dialog_status_complete">Sync Complete</string>
+    <string name="account_sync_dialog_status_canceled">Canceled</string>
+    <string name="delete_project_title">Delete Project</string>
+    <string name="delete_project_message">Are you sure you want to delete this project:\n%1$s</string>
+    <string name="delete_project_confirm">Delete</string>
+    <string name="delete_project_cancel">Cancel</string>
+    <string name="create_project_title">Create Project</string>
+    <string name="create_project_heading">New Project Name</string>
+    <string name="create_project_button">Create Project</string>
+    <string name="create_project_error_already_exists">Project already exists</string>
+    <string name="create_project_error_null_filename">Missing Project Name</string>
+    <string name="create_project_error_too_long">Project name too long</string>
+    <string name="create_project_error_invalid_characters">The project name contains invalid characters</string>
+    <string name="create_project_error_blank">The project name was left blank</string>
 </resources>

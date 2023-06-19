@@ -14,4 +14,5 @@
     <string name="project_home_action_sync">Історія синхронізації</string>
     <string name="project_home_action_backup_toast_success">Резервну копію створено: %1$s</string>
     <string name="project_home_action_backup_toast_failure">Помилка резервного копіювання</string>
+    <string name="project_home_action_export_toast_success">Історію експортовано</string>
 </resources>

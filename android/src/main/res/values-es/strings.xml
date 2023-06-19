@@ -13,4 +13,6 @@
     <string name="note_widget_dialog_save_button">Guardar</string>
     <string name="note_widget_dialog_categories_dropdown">Categorías</string>
     <string name="note_widget_button_description">Agregar nota</string>
+    <string name="note_widget_toast_no_projects">Sin proyectos</string>
+    <string name="note_widget_toast_success">Nota agregada</string>
 </resources>

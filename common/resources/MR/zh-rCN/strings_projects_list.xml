@@ -23,4 +23,9 @@
     <string name="delete_project_title">确认删除项目</string>
     <string name="project_select_project_list_empty">未找到项目</string>
     <string name="projects_list_toast_sync_failed">项目同步失败</string>
+    <string name="create_project_error_null_filename">缺少项目名称</string>
+    <string name="create_project_error_invalid_characters">项目名包含无效字符</string>
+    <string name="create_project_error_blank">项目名为空</string>
+    <string name="create_project_error_too_long">项目名过长</string>
+    <string name="create_project_error_already_exists">项目已存在</string>
 </resources>
