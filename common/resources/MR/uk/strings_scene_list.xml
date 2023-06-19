@@ -11,9 +11,9 @@
     <string name="scene_group_item_expanded">Групу розширено</string>
     <string name="scene_delete_dialog_title">Видалити сцену</string>
     <string name="scene_delete_dialog_message">Ви впевнені, що хочете видалити цю сцену\? %1$s</string>
-    <string name="scene_delete_dialog_delete_button">ВИДАЛИТИ</string>
+    <string name="scene_delete_dialog_delete_button">Видалити</string>
     <string name="create_sceneitem_dialog_create_button">Створити</string>
     <string name="create_sceneitem_dialog_dismiss_button">Скасувати</string>
-    <string name="scene_delete_dialog_dismiss_button">Скасувати</string>
+    <string name="scene_delete_dialog_dismiss_button">OK</string>
     <string name="group_cannot_delete_dialog_title">Не вдається видалити групу</string>
 </resources>
