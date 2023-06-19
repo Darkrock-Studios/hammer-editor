@@ -15,7 +15,7 @@
     <string name="account_sync_dialog_status_complete">Synchronisierung abgeschlossen</string>
     <string name="account_sync_dialog_status_canceled">Abgebrochen</string>
     <string name="delete_project_title">Projekt löschen</string>
-    <string name="delete_project_confirm">LÖSCHEN</string>
+    <string name="delete_project_confirm">Löschen</string>
     <string name="delete_project_cancel">Abbrechen</string>
     <string name="create_project_title">Projekt erstellen</string>
     <string name="create_project_heading">Projektname</string>
@@ -23,4 +23,9 @@
 \n%1$s</string>
     <string name="create_project_button">Projekt erstellen</string>
     <string name="account_sync_dialog_status_pending">Ausstehend</string>
+    <string name="create_project_error_already_exists">Projekt mit diesem Namen existiert bereits</string>
+    <string name="create_project_error_null_filename">Projektname fehlt</string>
+    <string name="create_project_error_blank">Projektname wurde leer gelassen</string>
+    <string name="create_project_error_too_long">Projektname ist zu lang</string>
+    <string name="create_project_error_invalid_characters">Projektname enthält ungültige Zeichen</string>
 </resources>
