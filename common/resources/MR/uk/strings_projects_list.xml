@@ -18,7 +18,7 @@
     <string name="delete_project_title">Видалити проєкт</string>
     <string name="delete_project_message">Ви впевнені, що хочете видалити цей проєкт\?
 \n%1$s</string>
-    <string name="delete_project_confirm">ВИДАЛИТИ</string>
+    <string name="delete_project_confirm">Видалити</string>
     <string name="delete_project_cancel">Скасувати</string>
     <string name="create_project_title">Створити проєкт</string>
     <string name="create_project_heading">Нова назва проєкту</string>
@@ -27,5 +27,5 @@
     <string name="create_project_error_too_long">Назва проєкту занадто довга</string>
     <string name="create_project_error_already_exists">Проєкт вже існує</string>
     <string name="create_project_error_null_filename">Відсутня назва проєкту</string>
-    <string name="create_project_error_blank">Назва проєкту була порожньою</string>
+    <string name="create_project_error_blank">Назва проєкту залишилася порожньою</string>
 </resources>
