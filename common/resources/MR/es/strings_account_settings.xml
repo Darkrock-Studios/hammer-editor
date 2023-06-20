@@ -2,7 +2,7 @@
 <resources>
     <string name="settings_server_email_label">Correo electrónico:</string>
     <string name="settings_heading">⚙ Configuración</string>
-    <string name="settings_theme_label">Tema UI</string>
+    <string name="settings_theme_label">Tema IU</string>
     <string name="settings_example_project_description">Instala un proyecto de ejemplo para ver cómo se usan las diferentes funciones.</string>
     <string name="settings_example_project_button">Reinstalar</string>
     <string name="settings_server_header">Servidor</string>
@@ -29,4 +29,8 @@
     <string name="settings_server_setup_cancel_button">Cancelar</string>
     <string name="remove_local_dialog_title">¿Eliminar el contenido local\?</string>
     <string name="remove_local_dialog_message">¿Deberíamos eliminar tu contenido local actual antes de la sincronización\? Si no, vamos a intentar fusionar tu contenido local con el contenido del servidor. Si el contenido no se relaciona, podría ocasionar problemas.</string>
+    <string name="settings_server_setup_login_button">Entrar</string>
+    <string name="settings_server_setup_button">Establecer</string>
+    <string name="settings_server_max_backups">Número máximo de respaldos por proyecto</string>
+    <string name="settings_server_auto_sync">Auto-sincronizar</string>
 </resources>
