@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -168,6 +169,7 @@ class ProjectHomeComponent(
 	}
 
 	override fun isAtRoot() = true
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

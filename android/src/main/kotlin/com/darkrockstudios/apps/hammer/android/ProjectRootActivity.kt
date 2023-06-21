@@ -17,7 +17,7 @@ import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -110,16 +110,12 @@ class ProjectRootActivity : AppCompatActivity() {
 
 		val router by component.routerState.subscribeAsState()
 		val showBack = !component.isAtRoot()
-		val shouldConfirmClose by component.shouldConfirmClose.subscribeAsState()
+		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
 		val destinationTypes = remember { ProjectRoot.DestinationTypes.values() }
 
 		BackHandler(enabled = backEnabled) {
-			if (shouldConfirmClose) {
-				confirmCloseDialog(component)
-			} else {
-				finish()
-			}
+			component.requestClose()
 		}
 
 		Scaffold(
@@ -183,20 +179,48 @@ class ProjectRootActivity : AppCompatActivity() {
 				)
 			}
 		)
+
+		if (shouldConfirmClose.isNotEmpty()) {
+			val item = shouldConfirmClose.first()
+			when (item) {
+				CloseConfirm.Scenes -> {
+					confirmUnsavedScenesDialog(component)
+				}
+
+				CloseConfirm.Notes -> {
+					component.closeRequestDealtWith(CloseConfirm.Notes)
+				}
+
+				CloseConfirm.Encyclopedia -> {
+					component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+				}
+
+				CloseConfirm.Sync -> {
+					component.showProjectSync()
+				}
+
+				CloseConfirm.Complete -> {
+					finish()
+				}
+			}
+		}
 	}
 
-	private fun confirmCloseDialog(component: AppCloseManager) {
+	private fun confirmUnsavedScenesDialog(component: ProjectRootComponent) {
 		AlertDialog.Builder(this)
 			.setTitle(R.string.unsaved_scenes_dialog_title)
 			.setMessage(R.string.unsaved_scenes_dialog_message)
-			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ -> finish() }
-			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ -> dialog.dismiss() }
+			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ ->
+				component.closeRequestDealtWith(CloseConfirm.Scenes)
+			}
+			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ ->
+				component.cancelCloseRequest()
+				dialog.dismiss()
+			}
 			.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
 				lifecycleScope.launch {
 					component.storeDirtyBuffers()
-					withContext(mainDispatcher) {
-						finish()
-					}
+					component.closeRequestDealtWith(CloseConfirm.Scenes)
 				}
 			}
 			.create()

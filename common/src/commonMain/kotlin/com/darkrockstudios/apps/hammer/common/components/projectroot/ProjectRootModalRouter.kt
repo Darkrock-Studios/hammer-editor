@@ -29,6 +29,8 @@ class ProjectRootModalRouter(
 		return state.value.child?.instance is ProjectRoot.ModalDestination.None
 	}
 
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+
 	private fun createChild(
 		config: Config,
 		componentContext: ComponentContext

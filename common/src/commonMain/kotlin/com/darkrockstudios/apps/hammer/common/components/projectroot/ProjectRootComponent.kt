@@ -5,6 +5,8 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -25,21 +27,11 @@ class ProjectRootComponent(
 	private val projectEditor: ProjectEditorRepository by projectInject()
 	private val notes: NotesRepository by projectInject()
 
-	init {
-		projectEditor.subscribeToBufferUpdates(null, scope) {
-			updateCloseConfirmRequirement()
-		}
-
-		scope.launch {
-			initializeProjectScope(projectDef)
-		}
-	}
-
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
 
-	private val _shouldConfirmClose = MutableValue(false)
-	override val shouldConfirmClose = _shouldConfirmClose
+	private val _closeRequestHandlers = MutableValue<Set<CloseConfirm>>(emptySet())
+	override val closeRequestHandlers = _closeRequestHandlers
 
 	private val router = ProjectRootRouter(
 		componentContext,
@@ -63,12 +55,36 @@ class ProjectRootComponent(
 	override val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
 		get() = modalRouter.state
 
+	init {
+		projectEditor.subscribeToBufferUpdates(null, scope) {
+			updateCloseConfirmRequirement()
+		}
+
+		scope.launch {
+			initializeProjectScope(projectDef)
+		}
+
+		handleSyncDialogCompletion()
+	}
+
+	private fun handleSyncDialogCompletion() {
+		scope.launch {
+			// Listen for the sync dialog closing, if we are in the process of closing, mark it as dealt with
+			modalRouterState.subscribe {
+				if (it.child?.configuration == ProjectRootModalRouter.Config.None
+					&& closeRequestHandlers.value.isNotEmpty()
+				) {
+					closeRequestDealtWith(CloseConfirm.Sync)
+				}
+			}
+		}
+	}
+
 	override fun showEditor() {
 		router.showEditor()
 	}
 
 	override fun showNotes() {
-		Napier.d("showNotes component")
 		router.showNotes()
 	}
 
@@ -109,8 +125,37 @@ class ProjectRootComponent(
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
 
 	private fun updateCloseConfirmRequirement() {
-		_shouldConfirmClose.value = hasUnsavedBuffers() && router.isAtRoot()
 		_backEnabled.value = router.isAtRoot()
+	}
+
+	override fun closeRequestDealtWith(item: CloseConfirm) {
+		_closeRequestHandlers.getAndUpdate {
+			it.toMutableSet().apply {
+				remove(item)
+			}
+		}
+	}
+
+	override fun requestClose() {
+		scope.launch {
+			val list = mutableSetOf<CloseConfirm>()
+			if (hasUnsavedBuffers()) {
+				list.add(CloseConfirm.Scenes)
+			}
+
+			list.addAll(router.shouldConfirmClose())
+
+			if (synchronizer.shouldAutoSync()) {
+				list.add(CloseConfirm.Sync)
+			}
+
+			list.add(CloseConfirm.Complete)
+			_closeRequestHandlers.update { list }
+		}
+	}
+
+	override fun cancelCloseRequest() {
+		_closeRequestHandlers.update { emptySet() }
 	}
 
 	override fun onDestroy() {

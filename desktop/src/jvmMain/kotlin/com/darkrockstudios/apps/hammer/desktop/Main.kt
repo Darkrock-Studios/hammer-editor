@@ -151,7 +151,7 @@ fun main(args: Array<String>) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
-internal fun confirmCloseDialog(
+internal fun confirmCloseUnsavedScenesDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
@@ -207,9 +207,5 @@ internal fun ApplicationScope.onRequestClose(
 	app: ApplicationState,
 	closeType: ApplicationState.CloseType
 ) {
-	if (component.hasUnsavedBuffers()) {
-		app.showConfirmProjectClose(closeType)
-	} else {
-		performClose(app, closeType)
-	}
+	app.showConfirmProjectClose(closeType)
 }

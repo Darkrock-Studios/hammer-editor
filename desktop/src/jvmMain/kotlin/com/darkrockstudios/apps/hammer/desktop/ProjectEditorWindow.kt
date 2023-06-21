@@ -19,6 +19,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleC
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -41,7 +42,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle) }
 	val windowState = rememberWindowState(size = DpSize(1200.dp, 800.dp))
-	val closeDialog = app.shouldShowConfirmClose.subscribeAsState()
+	val closeRequest by app.closeRequest.subscribeAsState()
 
 	val component = remember<ProjectRoot> {
 		ProjectRootComponent(
@@ -55,6 +56,8 @@ internal fun ApplicationScope.ProjectEditorWindow(
 			}
 		)
 	}
+
+	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 
 	LifecycleController(lifecycle, windowState)
 
@@ -73,21 +76,48 @@ internal fun ApplicationScope.ProjectEditorWindow(
 			AppContent(component)
 		}
 
-		if (closeDialog.value != ApplicationState.CloseType.None) {
-			confirmCloseDialog(closeDialog.value) { result, closeType ->
-				scope.launch {
-					if (result == ConfirmCloseResult.SaveAll) {
-						component.storeDirtyBuffers()
-					}
+		LaunchedEffect(closeRequest) {
+			if (closeRequest != ApplicationState.CloseType.None) {
+				component.requestClose()
+			}
+		}
 
-					withContext(mainDispatcher) {
-						app.dismissConfirmProjectClose()
+		if (shouldConfirmClose.isNotEmpty()) {
+			val item = shouldConfirmClose.first()
+			when (item) {
+				CloseConfirm.Scenes -> {
+					confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
+						scope.launch {
+							if (result == ConfirmCloseResult.SaveAll) {
+								component.storeDirtyBuffers()
+							}
 
-						if (result != ConfirmCloseResult.Cancel) {
-							performClose(app, closeType)
+							withContext(mainDispatcher) {
+								app.dismissConfirmProjectClose()
+
+								if (result != ConfirmCloseResult.Cancel) {
+									component.closeRequestDealtWith(CloseConfirm.Scenes)
+								} else {
+									component.cancelCloseRequest()
+								}
+							}
 						}
 					}
 				}
+
+				CloseConfirm.Notes -> {
+					component.closeRequestDealtWith(CloseConfirm.Notes)
+				}
+
+				CloseConfirm.Encyclopedia -> {
+					component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+				}
+
+				CloseConfirm.Sync -> {
+					component.showProjectSync()
+				}
+
+				CloseConfirm.Complete -> performClose(app, closeRequest)
 			}
 		}
 	}

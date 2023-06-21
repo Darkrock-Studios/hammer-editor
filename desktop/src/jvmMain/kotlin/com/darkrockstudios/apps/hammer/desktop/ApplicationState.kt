@@ -14,8 +14,8 @@ class ApplicationState {
 	private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
 	val menu: Value<Set<MenuDescriptor>> = _menu
 
-	private val _shouldShowConfirmClose = MutableValue(CloseType.None)
-	val shouldShowConfirmClose: Value<CloseType> = _shouldShowConfirmClose
+	private val _closeRequest = MutableValue(CloseType.None)
+	val closeRequest: Value<CloseType> = _closeRequest
 
 	fun addMenu(menuDescriptor: MenuDescriptor) {
 		_menu.value = mutableSetOf<MenuDescriptor>().apply {
@@ -33,16 +33,16 @@ class ApplicationState {
 	}
 
 	fun closeProject() {
-		_shouldShowConfirmClose.value = CloseType.None
+		_closeRequest.value = CloseType.None
 		_windows.value = WindowState.ProjectSectionWindow()
 	}
 
 	fun showConfirmProjectClose(closeType: CloseType) {
-		_shouldShowConfirmClose.value = closeType
+		_closeRequest.value = closeType
 	}
 
 	fun dismissConfirmProjectClose() {
-		_shouldShowConfirmClose.value = CloseType.None
+		_closeRequest.value = CloseType.None
 	}
 
 	enum class CloseType {

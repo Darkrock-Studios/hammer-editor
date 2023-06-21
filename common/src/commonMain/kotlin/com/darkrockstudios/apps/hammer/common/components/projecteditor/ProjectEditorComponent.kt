@@ -8,6 +8,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -132,6 +133,8 @@ class ProjectEditorComponent(
 	override suspend fun storeDirtyBuffers() {
 		projectEditor.storeAllBuffers()
 	}
+
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 
 	private val backButtonHandler = object : BackCallback() {
 		override fun onBack() {

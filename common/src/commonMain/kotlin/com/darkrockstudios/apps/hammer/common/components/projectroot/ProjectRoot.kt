@@ -17,7 +17,7 @@ import dev.icerock.moko.resources.StringResource
 interface ProjectRoot : AppCloseManager, HammerComponent {
 	val routerState: Value<ChildStack<*, Destination<*>>>
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
-	val shouldConfirmClose: Value<Boolean>
+	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
 
 	fun showEditor()
@@ -31,12 +31,14 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 	fun showProjectSync()
 	fun dismissProjectSync()
 
-	sealed class Destination<T> : Router {
+	sealed class Destination<T : Router> : Router {
 		abstract val component: T
 
 		override fun isAtRoot(): Boolean {
 			return (component as? Router)?.isAtRoot() ?: true
 		}
+
+		override fun shouldConfirmClose() = component.shouldConfirmClose()
 
 		data class EditorDestination(override val component: ProjectEditor) : Destination<ProjectEditor>()
 
@@ -72,4 +74,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 		Encyclopedia(MR.strings.project_nav_encyclopedia),
 		TimeLine(MR.strings.project_nav_time_line),
 	}
+
+	fun closeRequestDealtWith(item: CloseConfirm)
+	fun requestClose()
+	fun cancelCloseRequest()
 }

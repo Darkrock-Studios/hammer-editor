@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -63,6 +64,8 @@ class EncyclopediaComponent(
 	override fun isAtRoot(): Boolean {
 		return stack.value.active.configuration is Encyclopedia.Config.BrowseEntriesConfig
 	}
+
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 
 	private fun createBrowseEntries(
 		config: Encyclopedia.Config.BrowseEntriesConfig,
