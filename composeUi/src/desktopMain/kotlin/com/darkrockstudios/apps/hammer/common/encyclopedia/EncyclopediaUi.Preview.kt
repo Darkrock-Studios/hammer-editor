@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntr
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -93,6 +94,7 @@ private fun EncyclopediaUiPreview() {
 		override fun showViewEntry(entryDef: EntryDef) {}
 		override fun showCreateEntry() {}
 		override fun isAtRoot() = true
+		override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	}
 	EncyclopediaUi(component)
 }
