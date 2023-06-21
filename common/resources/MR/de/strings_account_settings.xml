@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_heading">⚙ Einstellungen</string>
-    <string name="settings_theme_label">Schnittstellenfarbschema</string>
+    <string name="settings_theme_label">Farbschema</string>
     <string name="settings_projects_directory">Projektverzeichnis</string>
     <string name="settings_projects_directory_hint">Pfad zum Projektverzeichnis</string>
     <string name="settings_server_email_label">E-Mail:</string>
