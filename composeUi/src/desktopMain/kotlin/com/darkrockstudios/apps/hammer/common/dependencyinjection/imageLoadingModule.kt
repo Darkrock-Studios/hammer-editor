@@ -4,5 +4,5 @@ import com.seiko.imageloader.ImageLoader
 import org.koin.dsl.module
 
 actual val imageLoadingModule = module {
-	single<ImageLoader> { generateImageLoader() }
+	single<ImageLoader> { generateImageLoader(get()) }
 }

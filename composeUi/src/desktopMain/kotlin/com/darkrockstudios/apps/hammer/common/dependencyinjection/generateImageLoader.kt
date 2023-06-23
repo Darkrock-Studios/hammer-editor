@@ -13,10 +13,11 @@ import com.seiko.imageloader.component.mapper.Mapper
 import com.seiko.imageloader.component.setupDefaultComponents
 import com.seiko.imageloader.option.Options
 import com.seiko.imageloader.util.LogPriority
+import okio.FileSystem
 import okio.Path.Companion.toPath
 import java.io.File
 
-internal fun generateImageLoader(): ImageLoader {
+internal fun generateImageLoader(fileSystem: FileSystem): ImageLoader {
 	return ImageLoader {
 		components {
 			setupDefaultComponents()
@@ -32,7 +33,7 @@ internal fun generateImageLoader(): ImageLoader {
 				}
 			}
 			diskCache {
-				DiskCache {
+				DiskCache(fileSystem) {
 					directory(getImageCacheDirectory().toPath())
 					maxSizeBytes(128L * 1024 * 1024) // 512MB
 				}

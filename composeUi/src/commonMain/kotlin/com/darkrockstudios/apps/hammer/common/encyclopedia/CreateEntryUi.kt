@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.getHomeDirectory
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
+import com.darkrockstudios.libraries.mpfilepicker.MPFile
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -50,7 +51,7 @@ internal fun CreateEntryUi(
 	val types = rememberSaveable { EntryType.values().toList() }
 
 	var showFilePicker by rememberSaveable { mutableStateOf(false) }
-	var imagePath by rememberSaveable { mutableStateOf<String?>(null) }
+	var imagePath by rememberSaveable { mutableStateOf<MPFile<Any>?>(null) }
 
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
 
@@ -122,7 +123,7 @@ internal fun CreateEntryUi(
 						Box(modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)) {
 							ImageItem(
 								modifier = Modifier.size(128.dp).background(Color.LightGray),
-								path = imagePath
+								path = imagePath?.path
 							)
 							Button(
 								modifier = Modifier
@@ -155,7 +156,7 @@ internal fun CreateEntryUi(
 									type = selectedType,
 									text = newEntryContentText.text,
 									tags = newTagsText.splitToSequence(" ").toList(),
-									imagePath = imagePath
+									imagePath = imagePath?.path
 								)
 
 								when (result.error) {
@@ -208,7 +209,7 @@ internal fun CreateEntryUi(
 
 	FilePicker(
 		show = showFilePicker,
-		fileExtension = "jpg",
+		fileExtensions = listOf("jpg"),
 		initialDirectory = getHomeDirectory()
 	) { path ->
 		imagePath = path

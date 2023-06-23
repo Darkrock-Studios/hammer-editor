@@ -206,9 +206,9 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	FilePicker(show = state.showAddImageDialog, fileExtension = "jpg") { path ->
+	FilePicker(show = state.showAddImageDialog, fileExtensions = listOf("jpg")) { path ->
 		if (path != null) {
-			scope.launch { component.setImage(path) }
+			scope.launch { component.setImage(path.path) }
 		}
 		component.closeAddImageDialog()
 	}
