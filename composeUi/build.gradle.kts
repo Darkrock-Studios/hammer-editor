@@ -49,7 +49,7 @@ kotlin {
 				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
 				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
 				api("com.darkrockstudios:richtexteditor:1.4.1")
-				api("com.darkrockstudios:mpfilepicker:1.1.0")
+				api("com.darkrockstudios:mpfilepicker:1.2.0")
 				api("io.github.qdsfdhvh:image-loader:1.5.1")
 				implementation("io.github.koalaplot:koalaplot-core:0.3.0")
 				api("dev.icerock.moko:resources-compose:$moko_resources_version")
