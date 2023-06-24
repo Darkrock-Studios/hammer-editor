@@ -40,4 +40,5 @@
     <string name="settings_server_setup_email_hint">E-post: bruker@eksempel.no</string>
     <string name="settings_server_setup_login_button">Logg inn</string>
     <string name="settings_server_setup_title">Sett opp tjener</string>
+    <string name="remove_local_dialog_message">Fjern ditt lokale innhold før synkronisering\? Hvis ikke vil det forsøksvist flettes med tjenerinnholdet. Hvis innholdet er urelatert kan det forårsake problemer.</string>
 </resources>
