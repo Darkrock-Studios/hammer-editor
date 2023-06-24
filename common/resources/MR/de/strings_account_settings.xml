@@ -27,7 +27,7 @@
     <string name="settings_server_setup_password_hint">Passwort</string>
     <string name="settings_server_setup_password_show">Passwort anzeigen</string>
     <string name="settings_server_setup_password_hide">Passwort verbergen</string>
-    <string name="settings_server_setup_login_button">Login</string>
+    <string name="settings_server_setup_login_button">Anmelden</string>
     <string name="settings_server_setup_cancel_button">Abbrechen</string>
     <string name="settings_server_max_backups">Max Backups pro Projekt</string>
     <string name="settings_server_test_auth_button">Authentifizierung testen</string>
