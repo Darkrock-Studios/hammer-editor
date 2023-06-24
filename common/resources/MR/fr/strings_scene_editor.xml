@@ -11,5 +11,5 @@
     <string name="scene_editor_unsaved_chip">Non enregistré</string>
     <string name="scene_editor_save_button">Enregistrer</string>
     <string name="scene_editor_toast_save_successful">Enregistré</string>
-    <string name="scene_editor_body_placeholder">Commencez à écrire votre Scène ici</string>
+    <string name="scene_editor_body_placeholder">Commencez à écrire votre scène ici</string>
 </resources>
