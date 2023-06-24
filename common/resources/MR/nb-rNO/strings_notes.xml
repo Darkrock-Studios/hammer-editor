@@ -16,4 +16,5 @@
     <string name="notes_create_toast_too_long">Notatet var for langt</string>
     <string name="notes_create_toast_empty">Notatet er tomt</string>
     <string name="notes_delete_title">Slett notat\?</string>
+    <string name="notes_delete_message">Denne handlingen kan ikke angres.</string>
 </resources>
