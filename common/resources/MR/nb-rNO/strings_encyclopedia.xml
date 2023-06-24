@@ -33,4 +33,5 @@
     <string name="encyclopedia_entry_discard_message">Du vil miste alle endringer du har gjort.</string>
     <string name="encyclopedia_entry_delete_message">Dette kan ikke angres.</string>
     <string name="encyclopedia_entry_load_error">Feil: Klarte ikke å laste inn oppføringen.</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">Navnet på oppføringen må være alfanumerisk</string>
 </resources>
