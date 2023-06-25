@@ -161,6 +161,8 @@ private fun ViewEntryPreview() {
 		override fun startTextEdit() {}
 		override fun finishNameEdit() {}
 		override fun finishTextEdit() {}
+		override fun confirmClose() {}
+		override fun dismissConfirmClose() {}
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }

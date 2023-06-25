@@ -20,16 +20,7 @@ class EncyclopediaComponent(
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Encyclopedia.Config>()
-
-	private val _stack = componentContext.childStack(
-		source = navigation,
-		initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
-		key = "ProjectRootRouter",
-		childFactory = ::createChild
-	)
-
 	override val stack: Value<ChildStack<Encyclopedia.Config, Encyclopedia.Destination>>
-		get() = _stack
 
 	private fun createChild(
 		config: Encyclopedia.Config,
@@ -100,7 +91,8 @@ class EncyclopediaComponent(
 			componentContext = componentContext,
 			entryDef = config.entryDef,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			closeEntry = ::closeEntry
 		)
 	}
 
@@ -114,17 +106,24 @@ class EncyclopediaComponent(
 		)
 	}
 
-	private val backButtonHandler = object : BackCallback() {
-		override fun onBack() {
-			if (!isAtRoot()) {
-				navigation.pop()
-			}
+	private fun closeEntry() {
+		navigation.pop()
+	}
+
+	private val backButtonHandler = BackCallback {
+		if (!isAtRoot()) {
+			navigation.pop()
 		}
 	}
 
 	init {
 		backHandler.register(backButtonHandler)
-
+		stack = componentContext.childStack(
+			source = navigation,
+			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
+			key = "ProjectRootRouter",
+			childFactory = ::createChild
+		)
 		stack.observe(lifecycle) {
 			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()

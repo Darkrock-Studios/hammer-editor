@@ -44,7 +44,6 @@ internal fun ViewEntryUi(
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
 
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
-	var closeConfirm by rememberSaveable { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
 	val content = state.content
@@ -133,7 +132,7 @@ internal fun ViewEntryUi(
 					IconButton(
 						onClick = {
 							if (state.editName || state.editText) {
-								closeConfirm = true
+								component.confirmClose()
 							} else {
 								closeEntry()
 							}
@@ -239,13 +238,13 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	if (closeConfirm) {
+	if (state.confirmClose) {
 		SimpleConfirm(
 			title = MR.strings.encyclopedia_entry_discard_title.get(),
 			message = MR.strings.encyclopedia_entry_discard_message.get(),
-			onDismiss = { closeConfirm = false }
+			onDismiss = { component.dismissConfirmClose() }
 		) {
-			closeConfirm = false
+			component.dismissConfirmClose()
 			closeEntry()
 		}
 	}

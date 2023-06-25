@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -21,12 +22,25 @@ class ViewEntryComponent(
 	entryDef: EntryDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val closeEntry: () -> Unit
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(ViewEntry.State(entryDef = entryDef))
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+
+	private val backButtonHandler = BackCallback {
+		if (state.value.editText || state.value.editText) {
+			confirmClose()
+		} else {
+			closeEntry()
+		}
+	}
+
+	init {
+		backHandler.register(backButtonHandler)
+	}
 
 	override fun onCreate() {
 		super.onCreate()
@@ -155,6 +169,22 @@ class ViewEntryComponent(
 		}
 
 		return result
+	}
+
+	override fun confirmClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = true
+			)
+		}
+	}
+
+	override fun dismissConfirmClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = false
+			)
+		}
 	}
 
 	private fun getMenuId(): String {
