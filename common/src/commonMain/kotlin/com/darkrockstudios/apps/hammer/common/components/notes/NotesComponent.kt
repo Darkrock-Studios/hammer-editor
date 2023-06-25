@@ -85,5 +85,11 @@ class NotesComponent(
 
 	override fun isAtRoot() = true
 
-	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		return if (state.value.showCreate) {
+			setOf(CloseConfirm.Notes)
+		} else {
+			emptySet()
+		}
+	}
 }

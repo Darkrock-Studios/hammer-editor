@@ -40,10 +40,7 @@ internal fun ViewEntryUi(
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	var editName by rememberSaveable { mutableStateOf(false) }
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
-
-	var editText by rememberSaveable { mutableStateOf(false) }
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
 
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
@@ -69,7 +66,7 @@ internal fun ViewEntryUi(
 				horizontalArrangement = Arrangement.End,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				if (content != null && (editName || editText)) {
+				if (content != null && (state.editName || state.editText)) {
 					IconButton(onClick = {
 						scope.launch {
 							component.updateEntry(
@@ -79,8 +76,8 @@ internal fun ViewEntryUi(
 							)
 
 							withContext(dispatcherMain) {
-								editName = false
-								editText = false
+								component.finishNameEdit()
+								component.finishTextEdit()
 							}
 
 							scope.launch {
@@ -124,8 +121,8 @@ internal fun ViewEntryUi(
 							entryNameText = content.name
 							entryText = content.text
 
-							editName = false
-							editText = false
+							component.finishNameEdit()
+							component.finishTextEdit()
 
 							discardConfirm = false
 						}
@@ -135,7 +132,7 @@ internal fun ViewEntryUi(
 				if (screen.needsExplicitClose) {
 					IconButton(
 						onClick = {
-							if (editName || editText) {
+							if (state.editName || state.editText) {
 								closeConfirm = true
 							} else {
 								closeEntry()
@@ -151,7 +148,7 @@ internal fun ViewEntryUi(
 				}
 			}
 
-			if (editName) {
+			if (state.editName) {
 				TextField(
 					modifier = Modifier.wrapContentHeight().fillMaxWidth(),
 					value = entryNameText,
@@ -164,7 +161,7 @@ internal fun ViewEntryUi(
 					style = MaterialTheme.typography.displayMedium,
 					color = MaterialTheme.colorScheme.onBackground,
 					textAlign = TextAlign.Center,
-					modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { editName = true }
+					modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { component.startNameEdit() }
 				)
 			}
 
@@ -180,10 +177,10 @@ internal fun ViewEntryUi(
 					Contents(
 						modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
 						state = state,
-						editText = editText,
+						editText = state.editText,
 						entryText = entryText,
 						setEntryText = { entryText = it },
-						beginEdit = { editText = true }
+						beginEdit = { component.startTextEdit() }
 					)
 				}
 			} else {
@@ -196,10 +193,10 @@ internal fun ViewEntryUi(
 					Contents(
 						modifier = Modifier.wrapContentHeight(),
 						state = state,
-						editText = editText,
+						editText = state.editText,
 						entryText = entryText,
 						setEntryText = { entryText = it },
-						beginEdit = { editText = true }
+						beginEdit = { component.startTextEdit() }
 					)
 				}
 			}

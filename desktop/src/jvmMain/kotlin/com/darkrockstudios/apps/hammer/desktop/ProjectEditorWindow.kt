@@ -61,6 +61,11 @@ internal fun ApplicationScope.ProjectEditorWindow(
 
 	LifecycleController(lifecycle, windowState)
 
+	fun cancelClose() {
+		app.dismissConfirmProjectClose()
+		component.cancelCloseRequest()
+	}
+
 	Window(
 		title = DR.strings.project_window_title.get(projectDef.name),
 		state = windowState,
@@ -93,12 +98,10 @@ internal fun ApplicationScope.ProjectEditorWindow(
 							}
 
 							withContext(mainDispatcher) {
-								app.dismissConfirmProjectClose()
-
 								if (result != ConfirmCloseResult.Cancel) {
 									component.closeRequestDealtWith(CloseConfirm.Scenes)
 								} else {
-									component.cancelCloseRequest()
+									cancelClose()
 								}
 							}
 						}
@@ -110,7 +113,13 @@ internal fun ApplicationScope.ProjectEditorWindow(
 				}
 
 				CloseConfirm.Encyclopedia -> {
-					component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+					confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
+						when (result) {
+							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+							ConfirmCloseResult.Cancel -> cancelClose()
+						}
+					}
 				}
 
 				CloseConfirm.Sync -> {

@@ -114,6 +114,30 @@ class ViewEntryComponent(
 		}
 	}
 
+	override fun startNameEdit() {
+		_state.getAndUpdate {
+			it.copy(editName = true)
+		}
+	}
+
+	override fun startTextEdit() {
+		_state.getAndUpdate {
+			it.copy(editText = true)
+		}
+	}
+
+	override fun finishNameEdit() {
+		_state.getAndUpdate {
+			it.copy(editName = false)
+		}
+	}
+
+	override fun finishTextEdit() {
+		_state.getAndUpdate {
+			it.copy(editText = false)
+		}
+	}
+
 	override suspend fun updateEntry(
 		name: String,
 		text: String,

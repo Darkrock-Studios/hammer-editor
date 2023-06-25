@@ -9,7 +9,6 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import io.github.aakira.napier.Napier
@@ -25,7 +24,6 @@ class ProjectRootComponent(
 
 	private val synchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectEditor: ProjectEditorRepository by projectInject()
-	private val notes: NotesRepository by projectInject()
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled

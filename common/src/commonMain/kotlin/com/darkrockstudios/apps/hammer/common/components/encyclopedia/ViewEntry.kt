@@ -16,6 +16,8 @@ interface ViewEntry {
 		val showAddImageDialog: Boolean = false,
 		val showDeleteImageDialog: Boolean = false,
 		val showDeleteEntryDialog: Boolean = false,
+		val editText: Boolean = false,
+		val editName: Boolean = false,
 	)
 
 	fun getImagePath(entryDef: EntryDef): String?
@@ -31,4 +33,9 @@ interface ViewEntry {
 	fun closeDeleteImageDialog()
 	fun showAddImageDialog()
 	fun closeAddImageDialog()
+
+	fun startNameEdit()
+	fun startTextEdit()
+	fun finishNameEdit()
+	fun finishTextEdit()
 }

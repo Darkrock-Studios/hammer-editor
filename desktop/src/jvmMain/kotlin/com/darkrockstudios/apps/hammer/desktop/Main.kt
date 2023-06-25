@@ -1,16 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -18,10 +9,8 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
@@ -146,41 +135,6 @@ fun main(args: Array<String>) {
 	}
 
 	settingsUpdateJob.cancel()
-}
-
-@ExperimentalMaterialApi
-@ExperimentalComposeApi
-@Composable
-internal fun confirmCloseUnsavedScenesDialog(
-	closeType: ApplicationState.CloseType,
-	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
-) {
-	AlertDialog(
-		title = { Text(DR.strings.unsaved_scenes_dialog_title.get()) },
-		text = { Text(DR.strings.unsaved_scenes_dialog_message.get()) },
-		onDismissRequest = { /* Noop */ },
-		buttons = {
-			Column(
-				modifier = Modifier.fillMaxWidth(),
-			) {
-				Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-					Text(DR.strings.unsaved_scenes_dialog_positive_button.get())
-				}
-				Button(onClick = {
-					dismissDialog(
-						ConfirmCloseResult.Cancel,
-						ApplicationState.CloseType.None
-					)
-				}) {
-					Text(DR.strings.unsaved_scenes_dialog_neutral_button.get())
-				}
-				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-					Text(DR.strings.unsaved_scenes_dialog_negative_button.get())
-				}
-			}
-		},
-		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
-	)
 }
 
 internal enum class ConfirmCloseResult {

@@ -65,7 +65,22 @@ class EncyclopediaComponent(
 		return stack.value.active.configuration is Encyclopedia.Config.BrowseEntriesConfig
 	}
 
-	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		val unsaved = when (val destination = stack.value.active.instance) {
+			is Encyclopedia.Destination.CreateEntryDestination -> true
+			is Encyclopedia.Destination.ViewEntryDestination -> {
+				destination.component.state.value.editName || destination.component.state.value.editText
+			}
+
+			else -> false
+		}
+
+		return if (unsaved) {
+			setOf(CloseConfirm.Encyclopedia)
+		} else {
+			emptySet()
+		}
+	}
 
 	private fun createBrowseEntries(
 		config: Encyclopedia.Config.BrowseEntriesConfig,

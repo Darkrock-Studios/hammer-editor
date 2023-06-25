@@ -157,6 +157,10 @@ private fun ViewEntryPreview() {
 		override fun closeDeleteImageDialog() {}
 		override fun showAddImageDialog() {}
 		override fun closeAddImageDialog() {}
+		override fun startNameEdit() {}
+		override fun startTextEdit() {}
+		override fun finishNameEdit() {}
+		override fun finishTextEdit() {}
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
