@@ -115,6 +115,10 @@ class GlobalSettingsRepository(
 		_serverSettingsUpdates.tryEmit(settings)
 	}
 
+	fun serverIsSetup(): Boolean {
+		return fileSystem.exists(getServerSettingsPath().toOkioPath())
+	}
+
 	private fun getServerSettingsPath(): HPath {
 		return (globalSettings.projectsDirectory.toPath() / SERVER_FILE_NAME).toHPath()
 	}

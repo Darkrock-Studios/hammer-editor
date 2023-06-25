@@ -96,8 +96,10 @@ class ClientProjectSynchronizer(
 		return loadSyncData().dirty.isNotEmpty()
 	}
 
-	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing &&
-			networkConnectivity.hasActiveConnection()
+	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.serverIsSetup() &&
+			globalSettingsRepository.globalSettings.automaticSyncing &&
+			networkConnectivity.hasActiveConnection() &&
+			needsSync()
 
 	suspend fun isEntityDirty(id: Int): Boolean {
 		val syncData = loadSyncData()

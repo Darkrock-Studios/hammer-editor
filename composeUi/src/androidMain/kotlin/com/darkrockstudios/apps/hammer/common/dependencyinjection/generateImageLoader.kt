@@ -9,9 +9,10 @@ import com.seiko.imageloader.cache.memory.MemoryCache
 import com.seiko.imageloader.cache.memory.maxSizePercent
 import com.seiko.imageloader.component.setupDefaultComponents
 import com.seiko.imageloader.util.LogPriority
+import okio.FileSystem
 import okio.Path.Companion.toPath
 
-internal fun generateImageLoader(context: Context): ImageLoader {
+internal fun generateImageLoader(context: Context, fileSystem: FileSystem): ImageLoader {
 	return ImageLoader {
 		components {
 			setupDefaultComponents(context)
@@ -25,7 +26,7 @@ internal fun generateImageLoader(context: Context): ImageLoader {
 				}
 			}
 			diskCache {
-				DiskCache {
+				DiskCache(fileSystem) {
 					directory(getImageCacheDirectory().toPath())
 					maxSizeBytes(128L * 1024 * 1024)
 				}
