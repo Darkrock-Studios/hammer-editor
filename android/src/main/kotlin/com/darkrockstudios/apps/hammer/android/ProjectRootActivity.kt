@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.android
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -188,11 +187,11 @@ class ProjectRootActivity : AppCompatActivity() {
 				}
 
 				CloseConfirm.Notes -> {
-					component.closeRequestDealtWith(CloseConfirm.Notes)
+					confirmCloseUnsavedNotesDialog(component)
 				}
 
 				CloseConfirm.Encyclopedia -> {
-					component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+					confirmCloseUnsavedEncyclopediaDialog(component)
 				}
 
 				CloseConfirm.Sync -> {
@@ -204,27 +203,6 @@ class ProjectRootActivity : AppCompatActivity() {
 				}
 			}
 		}
-	}
-
-	private fun confirmUnsavedScenesDialog(component: ProjectRootComponent) {
-		AlertDialog.Builder(this)
-			.setTitle(R.string.unsaved_scenes_dialog_title)
-			.setMessage(R.string.unsaved_scenes_dialog_message)
-			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ ->
-				component.closeRequestDealtWith(CloseConfirm.Scenes)
-			}
-			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ ->
-				component.cancelCloseRequest()
-				dialog.dismiss()
-			}
-			.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
-				lifecycleScope.launch {
-					component.storeDirtyBuffers()
-					component.closeRequestDealtWith(CloseConfirm.Scenes)
-				}
-			}
-			.create()
-			.show()
 	}
 
 	companion object {

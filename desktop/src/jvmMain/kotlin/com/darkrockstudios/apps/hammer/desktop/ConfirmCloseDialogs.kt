@@ -67,10 +67,37 @@ internal fun confirmCloseUnsavedEncyclopediaDialog(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Cancel, closeType) }) {
-					Text(MR.strings.unsaved_encyclopedia_dialog_negative_button.get())
+					Text(MR.strings.unsaved_dialog_negative_button.get())
 				}
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-					Text(MR.strings.unsaved_encyclopedia_dialog_positive_button.get())
+					Text(MR.strings.unsaved_dialog_positive_button.get())
+				}
+			}
+		},
+		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
+	)
+}
+
+@ExperimentalMaterialApi
+@ExperimentalComposeApi
+@Composable
+internal fun confirmCloseUnsavedNotesDialog(
+	closeType: ApplicationState.CloseType,
+	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
+) {
+	AlertDialog(
+		title = { Text(MR.strings.unsaved_notes_dialog_title.get()) },
+		text = { Text(MR.strings.unsaved_notes_dialog_message.get()) },
+		onDismissRequest = { /* Noop */ },
+		buttons = {
+			Column(
+				modifier = Modifier.fillMaxWidth(),
+			) {
+				Button(onClick = { dismissDialog(ConfirmCloseResult.Cancel, closeType) }) {
+					Text(MR.strings.unsaved_dialog_negative_button.get())
+				}
+				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
+					Text(MR.strings.unsaved_dialog_positive_button.get())
 				}
 			}
 		},

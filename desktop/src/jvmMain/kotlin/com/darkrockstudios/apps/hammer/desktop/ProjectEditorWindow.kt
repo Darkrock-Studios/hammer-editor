@@ -109,7 +109,13 @@ internal fun ApplicationScope.ProjectEditorWindow(
 				}
 
 				CloseConfirm.Notes -> {
-					component.closeRequestDealtWith(CloseConfirm.Notes)
+					confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
+						when (result) {
+							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Notes)
+							ConfirmCloseResult.Cancel -> cancelClose()
+						}
+					}
 				}
 
 				CloseConfirm.Encyclopedia -> {
