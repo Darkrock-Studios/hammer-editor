@@ -121,7 +121,7 @@ class EncyclopediaComponent(
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
-			key = "ProjectRootRouter",
+			key = "EncyclopediaRouter",
 			childFactory = ::createChild
 		)
 		stack.observe(lifecycle) {
