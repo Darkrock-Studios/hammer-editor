@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.soywiz.kds.iterators.parallelMap
 import dev.icerock.moko.resources.StringResource
 import io.github.aakira.napier.Napier
@@ -42,6 +43,7 @@ class ProjectsListComponent(
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
+	private var syncScope: CoroutineScope? = null
 
 	private val _state = MutableValue(
 		ProjectsList.State(
@@ -256,7 +258,11 @@ class ProjectsListComponent(
 
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
-		syncProjectsJob = scope.launch {
+		syncScope?.cancel(CancellationException("Started another sync"))
+		val newScope = lifecycleCoroutineScope(dispatcherDefault)
+		syncScope = newScope
+
+		syncProjectsJob = newScope.launch {
 			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
@@ -273,9 +279,8 @@ class ProjectsListComponent(
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
 
-				// TODO doing this in parallel some times causes 1 project sync to fail?
 				projects.parallelMap { projectDef ->
-					scope.launch {
+					newScope.launch {
 						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
 						suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
@@ -319,6 +324,8 @@ class ProjectsListComponent(
 	override fun cancelProjectsSync() {
 		syncProjectsJob?.cancel(CancellationException("User canceled sync"))
 		syncProjectsJob = null
+
+		syncScope?.cancel(CancellationException("User canceled sync"))
 
 		scope.launch(mainDispatcher) {
 			onSyncLog(syncAccLogW("Sync canceled by user"))
