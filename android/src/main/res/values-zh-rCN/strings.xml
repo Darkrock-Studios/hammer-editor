@@ -3,17 +3,13 @@
     <string name="app_name">Hammer</string>
     <string name="title_activity_add_note">添加笔记</string>
     <string name="loading">加载中…</string>
-    <string name="unsaved_scenes_dialog_message">保存未保存的场景\?</string>
     <string name="unsaved_scenes_dialog_negative_button">不保存退出</string>
-    <string name="unsaved_scenes_dialog_positive_button">保存并退出</string>
     <string name="overflow_menu_button">更多功能</string>
     <string name="navdrawer_button">导航抽屉</string>
     <string name="note_widget_dialog_title">添加笔记至:</string>
-    <string name="unsaved_scenes_dialog_title">未保存的场景</string>
     <string name="note_widget_toast_no_projects">无项目</string>
     <string name="note_widget_toast_success">笔记已添加</string>
     <string name="title_activity_configure_note_widget">配置小部件</string>
-    <string name="unsaved_scenes_dialog_neutral_button">取消</string>
     <string name="note_widget_dialog_save_button">保存</string>
     <string name="note_widget_dialog_categories_dropdown">分类</string>
     <string name="note_widget_button_description">添加笔记</string>
