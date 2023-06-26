@@ -1,12 +1,10 @@
 package com.darkrockstudios.apps.hammer.desktop
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
@@ -16,6 +14,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
+@OptIn(ExperimentalLayoutApi::class)
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @Composable
@@ -24,15 +23,28 @@ internal fun confirmCloseUnsavedScenesDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	AlertDialog(
-		title = { Text(MR.strings.unsaved_scenes_dialog_title.get()) },
-		text = { Text(MR.strings.unsaved_scenes_dialog_message.get()) },
+		title = {
+			Text(
+				MR.strings.unsaved_scenes_dialog_title.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
+		text = {
+			Text(
+				MR.strings.unsaved_scenes_dialog_message.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
 		onDismissRequest = { /* Noop */ },
 		buttons = {
-			Column(
+			FlowRow(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
 					Text(MR.strings.unsaved_scenes_dialog_positive_button.get())
+				}
+				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
+					Text(MR.strings.unsaved_scenes_dialog_negative_button.get())
 				}
 				Button(onClick = {
 					dismissDialog(
@@ -41,9 +53,6 @@ internal fun confirmCloseUnsavedScenesDialog(
 					)
 				}) {
 					Text(MR.strings.unsaved_scenes_dialog_neutral_button.get())
-				}
-				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-					Text(MR.strings.unsaved_scenes_dialog_negative_button.get())
 				}
 			}
 		},
@@ -59,11 +68,21 @@ internal fun confirmCloseUnsavedEncyclopediaDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	AlertDialog(
-		title = { Text(MR.strings.unsaved_encyclopedia_dialog_title.get()) },
-		text = { Text(MR.strings.unsaved_encyclopedia_dialog_message.get()) },
+		title = {
+			Text(
+				MR.strings.unsaved_encyclopedia_dialog_title.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
+		text = {
+			Text(
+				MR.strings.unsaved_encyclopedia_dialog_message.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
 		onDismissRequest = { /* Noop */ },
 		buttons = {
-			Column(
+			Row(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Cancel, closeType) }) {
@@ -86,11 +105,21 @@ internal fun confirmCloseUnsavedNotesDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	AlertDialog(
-		title = { Text(MR.strings.unsaved_notes_dialog_title.get()) },
-		text = { Text(MR.strings.unsaved_notes_dialog_message.get()) },
+		title = {
+			Text(
+				MR.strings.unsaved_notes_dialog_title.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
+		text = {
+			Text(
+				MR.strings.unsaved_notes_dialog_message.get(),
+				color = MaterialTheme.colorScheme.onBackground
+			)
+		},
 		onDismissRequest = { /* Noop */ },
 		buttons = {
-			Column(
+			Row(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Cancel, closeType) }) {
