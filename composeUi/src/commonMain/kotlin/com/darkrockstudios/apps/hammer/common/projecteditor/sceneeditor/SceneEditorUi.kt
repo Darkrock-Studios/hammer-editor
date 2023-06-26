@@ -9,7 +9,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
@@ -40,7 +39,7 @@ fun SceneEditorUi(
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
 	val snackbarHostState = remember { SnackbarHostState() }
-	var sceneText by rememberSaveable {
+	var sceneText by remember {
 		mutableStateOf(
 			getInitialEditorContent(state.sceneBuffer?.content)
 		)
