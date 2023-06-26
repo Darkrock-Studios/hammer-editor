@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -41,6 +42,8 @@ internal fun CreateEntryUi(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
+	val state by component.state.subscribeAsState()
+
 	val strRes = rememberStrRes()
 	var newEntryNameText by rememberSaveable { mutableStateOf("") }
 	var newEntryContentText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -52,8 +55,6 @@ internal fun CreateEntryUi(
 
 	var showFilePicker by rememberSaveable { mutableStateOf(false) }
 	var imagePath by rememberSaveable { mutableStateOf<MPFile<Any>?>(null) }
-
-	var discardConfirm by rememberSaveable { mutableStateOf(false) }
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
@@ -198,7 +199,7 @@ internal fun CreateEntryUi(
 
 					Button(
 						modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
-						onClick = { discardConfirm = true }
+						onClick = { component.confirmClose() }
 					) {
 						Text(MR.strings.encyclopedia_create_entry_cancel_button.get())
 					}
@@ -216,12 +217,12 @@ internal fun CreateEntryUi(
 		showFilePicker = false
 	}
 
-	if (discardConfirm) {
+	if (state.showConfirmClose) {
 		SimpleConfirm(
 			title = MR.strings.encyclopedia_create_entry_discard_title.get(),
-			onDismiss = { discardConfirm = false }
+			onDismiss = { component.dismissConfirmClose() }
 		) {
-			discardConfirm = false
+			component.dismissConfirmClose()
 			close()
 		}
 	}

@@ -10,7 +10,8 @@ interface CreateEntry {
 	val state: Value<State>
 
 	data class State(
-		val projectDef: ProjectDef
+		val projectDef: ProjectDef,
+		val showConfirmClose: Boolean = false
 	)
 
 	suspend fun createEntry(
@@ -20,4 +21,7 @@ interface CreateEntry {
 		tags: List<String>,
 		imagePath: String?
 	): EntryResult
+
+	fun confirmClose()
+	fun dismissConfirmClose()
 }
