@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="unsaved_scenes_dialog_message">保存未保存的场景\?</string>
     <string name="unsaved_scenes_dialog_negative_button">不保存退出</string>
-    <string name="unsaved_scenes_dialog_positive_button">保存并退出</string>
     <string name="account_window_title">Hammer - 项目选择</string>
     <string name="project_window_title">Hammer - %1$s</string>
     <string name="project_window_menu_file">文件</string>
     <string name="project_window_menu_item_close">关闭项目</string>
-    <string name="unsaved_scenes_dialog_title">未保存的场景</string>
     <string name="unsaved_scenes_dialog_neutral_button">取消</string>
     <string name="project_window_menu_item_exit">退出</string>
 </resources>
