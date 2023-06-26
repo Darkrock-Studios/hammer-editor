@@ -17,4 +17,5 @@
     <string name="notes_create_toast_empty">Notatet er tomt</string>
     <string name="notes_delete_title">Slett notat\?</string>
     <string name="notes_delete_message">Denne handlingen kan ikke angres.</string>
+    <string name="notes_delete_toast_success">%1$s-notat slettet</string>
 </resources>
