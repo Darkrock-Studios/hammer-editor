@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="unsaved_scenes_dialog_neutral_button">Annuler</string>
     <string name="account_window_title">Hammer - Sélection du projet</string>
     <string name="project_window_title">Hammer – %1$s</string>
     <string name="project_window_menu_file">Fichier</string>
     <string name="project_window_menu_item_close">Fermer le projet</string>
     <string name="project_window_menu_item_exit">Quitter</string>
-    <string name="unsaved_scenes_dialog_message">Enregistrer des scènes non enregistrées \?</string>
 </resources>
