@@ -4,7 +4,6 @@
     <string name="title_activity_add_note">Agregar nota</string>
     <string name="loading">Cargando…</string>
     <string name="title_activity_configure_note_widget">Configurar Widget</string>
-    <string name="unsaved_scenes_dialog_positive_button">Guardar y cerrar</string>
     <string name="note_widget_dialog_title">Agregar nota a:</string>
     <string name="note_widget_dialog_save_button">Guardar</string>
     <string name="note_widget_dialog_categories_dropdown">Categorías</string>
