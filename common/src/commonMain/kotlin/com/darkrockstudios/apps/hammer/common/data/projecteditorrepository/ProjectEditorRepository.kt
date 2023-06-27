@@ -26,7 +26,6 @@ import kotlin.time.Duration.Companion.milliseconds
 
 abstract class ProjectEditorRepository(
 	val projectDef: ProjectDef,
-	private val projectsRepository: ProjectsRepository,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer,
 ) : Closeable, KoinComponent {
