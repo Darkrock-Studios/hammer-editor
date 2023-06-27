@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
@@ -85,6 +86,8 @@ val mainModule = module {
 	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
 
 	scope<ProjectDefScope> {
+		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
+
 		scopedOf(::ProjectEditorRepositoryOkio) bind ProjectEditorRepository::class
 
 		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class

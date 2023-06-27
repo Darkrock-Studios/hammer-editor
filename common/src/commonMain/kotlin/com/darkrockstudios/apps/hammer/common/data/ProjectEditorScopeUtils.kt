@@ -22,11 +22,23 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 	}
 }
 
+fun createProjectScope(projectDef: ProjectDef): Scope {
+	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
+	if (alreadyCreated) error("Scope was already created")
+
+	val defScope = ProjectDefScope(projectDef)
+	val projScope = getKoin().createScope<ProjectDefScope>(defScope.getScopeId())
+	projScope.declare(projectDef)
+
+	return projScope
+}
+
 suspend fun openProjectScope(projectDef: ProjectDef): Scope {
 	val defScope = ProjectDefScope(projectDef)
 
 	val needsInit = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
 	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(defScope.getScopeId())
+	projScope.declare(projectDef)
 
 	if (needsInit) {
 		initializeProjectScope(projectDef)

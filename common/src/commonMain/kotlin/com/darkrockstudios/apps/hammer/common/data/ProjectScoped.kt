@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.ParametersDefinition
-import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.Qualifier
 import org.koin.mp.KoinPlatformTools
 
@@ -22,11 +21,5 @@ inline fun <reified T : Any> ProjectScoped.projectInject(
 	noinline parameters: ParametersDefinition? = null
 ): Lazy<T> =
 	lazy(mode) {
-		val newParameters = if (parameters != null) {
-			val params = parameters()
-			parametersOf(arrayOf(params.values.toMutableList().add(projectScope.projectDef)))
-		} else {
-			parametersOf(projectScope.projectDef)
-		}
-		projectScope.get<T>(qualifier) { newParameters }
+		projectScope.get<T>(qualifier, parameters)
 	}

@@ -22,6 +22,8 @@ class ProjectRootComponent(
 	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
+	private val projScope = createProjectScope(projectDef)
+
 	private val synchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectEditor: ProjectEditorRepository by projectInject()
 
