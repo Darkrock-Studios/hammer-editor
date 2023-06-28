@@ -3,7 +3,7 @@
     <string name="draft_compare_cancel_button">Annuler</string>
     <string name="draft_compare_current_header">Fusionner avec l’actuel</string>
     <string name="draft_compare_current_subheader">Copier des parties du projet ici</string>
-    <string name="draft_compare_draft_header">Brouillon: %1$s</string>
+    <string name="draft_compare_draft_header">Brouillon : %1$s</string>
     <string name="draft_compare_draft_subheader">Copier les parties souhaitées dans la version actuelle, ou accepter l’ensemble.</string>
     <string name="draft_compare_draft_accept_button">Prenez l’ensemble de ce brouillon</string>
     <string name="draft_compare_draft_body_placeholder">Brouillon</string>
