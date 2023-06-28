@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
-    <string name="unsaved_scenes_dialog_neutral_button">Avbryt</string>
     <string name="title_activity_add_note">Legg til notat</string>
     <string name="loading">Laster inn …</string>
     <string name="title_activity_configure_note_widget">Sett opp miniprogram</string>
