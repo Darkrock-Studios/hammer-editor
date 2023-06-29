@@ -11,9 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
-import org.koin.core.component.getScopeId
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -21,8 +19,6 @@ class ProjectRootComponent(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
-
-	private val projScope = createProjectScope(projectDef)
 
 	private val synchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectEditor: ProjectEditorRepository by projectInject()
@@ -58,10 +54,6 @@ class ProjectRootComponent(
 	init {
 		projectEditor.subscribeToBufferUpdates(null, scope) {
 			updateCloseConfirmRequirement()
-		}
-
-		scope.launch {
-			initializeProjectScope(projectDef)
 		}
 
 		handleSyncDialogCompletion()
@@ -156,13 +148,6 @@ class ProjectRootComponent(
 
 	override fun cancelCloseRequest() {
 		_closeRequestHandlers.update { emptySet() }
-	}
-
-	override fun onDestroy() {
-		super.onDestroy()
-		Napier.i { "ProjectRootComponent closing Project Editor" }
-
-		closeProjectScope(getKoin().getScope(projectScope.getScopeId()), projectDef)
 	}
 
 	override fun onStart() {

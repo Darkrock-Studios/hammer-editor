@@ -6,6 +6,12 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
+import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.getScopeId
+import org.koin.java.KoinJavaComponent
 
 class ApplicationState {
 	private val _windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
@@ -29,10 +35,17 @@ class ApplicationState {
 	}
 
 	fun openProject(projectDef: ProjectDef) {
+		runBlocking {
+			openProjectScope(projectDef)
+		}
+
 		_windows.value = WindowState.ProjectWindow(projectDef)
 	}
 
 	fun closeProject() {
+		val def = (_windows.value as WindowState.ProjectWindow).projectDef
+		closeProjectScope(KoinJavaComponent.getKoin().getScope(ProjectDefScope(def).getScopeId()), def)
+
 		_closeRequest.value = CloseType.None
 		_windows.value = WindowState.ProjectSectionWindow()
 	}

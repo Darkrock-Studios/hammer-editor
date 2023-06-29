@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.android
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -24,8 +26,11 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
@@ -33,8 +38,11 @@ import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import org.koin.core.component.getScopeId
+import org.koin.java.KoinJavaComponent.getKoin
 
 class ProjectRootActivity : AppCompatActivity() {
 
@@ -44,6 +52,8 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
+	private val viewModel: ProjectRootViewModel by viewModels()
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -51,6 +61,20 @@ class ProjectRootActivity : AppCompatActivity() {
 		if (projectDef == null) {
 			finish()
 		} else {
+			viewModel.setProjectDef(projectDef)
+
+			val menu = MutableValue(setOf<MenuDescriptor>())
+			val component = ProjectRootComponent(
+				componentContext = defaultComponentContext(),
+				projectDef = projectDef,
+				addMenu = { menuDescriptor ->
+					menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
+				},
+				removeMenu = { menuId ->
+					menu.value = menu.value.filter { it.id != menuId }.toSet()
+				}
+			)
+
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
 					val settingsState by globalSettings.subscribeAsState()
@@ -61,7 +85,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					}
 
 					AppTheme(isDark) {
-						Content(projectDef)
+						Content(projectDef, component, menu)
 					}
 				}
 			}
@@ -88,24 +112,13 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	@OptIn(ExperimentalMaterial3Api::class)
 	@Composable
-	private fun Content(projectDef: ProjectDef) {
+	private fun Content(
+		projectDef: ProjectDef,
+		component: ProjectRootComponent,
+		menu: MutableValue<Set<MenuDescriptor>>
+	) {
 		val scope = rememberCoroutineScope()
 		val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-		val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
-		val component = remember {
-			ProjectRootComponent(
-				componentContext = defaultComponentContext(),
-				projectDef = projectDef,
-				addMenu = { menuDescriptor ->
-					menu.value =
-						mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-				},
-				removeMenu = { menuId ->
-					menu.value = menu.value.filter { it.id != menuId }.toSet()
-				}
-			)
-		}
 
 		val router by component.routerState.subscribeAsState()
 		val showBack = !component.isAtRoot()
@@ -207,5 +220,22 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	companion object {
 		const val EXTRA_PROJECT = "project"
+	}
+}
+
+class ProjectRootViewModel : ViewModel() {
+
+	private var projectDef: ProjectDef? = null
+	fun setProjectDef(project: ProjectDef) {
+		if (projectDef == null) {
+			projectDef = project
+			runBlocking { openProjectScope(project) }
+		}
+	}
+
+	override fun onCleared() {
+		projectDef?.let {
+			closeProjectScope(getKoin().getScope(ProjectDefScope(it).getScopeId()), it)
+		}
 	}
 }
