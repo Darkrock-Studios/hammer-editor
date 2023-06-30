@@ -5,9 +5,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
@@ -22,7 +24,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 		visible = show,
 		title = MR.strings.create_project_title.get(),
 	) {
-		var newProjectNameText by remember { mutableStateOf("") }
+		val state by component.state.subscribeAsState()
 		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
 			Column(
 				modifier = Modifier
@@ -30,17 +32,15 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 					.align(Alignment.Center)
 			) {
 				TextField(
-					value = newProjectNameText,
-					onValueChange = { newProjectNameText = it },
+					value = state.createDialogProjectName,
+					onValueChange = { component.onProjectNameUpdate(it) },
 					label = { Text(MR.strings.create_project_heading.get()) },
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 				Button(onClick = {
-					component.createProject(newProjectNameText)
-					newProjectNameText = ""
-					close()
+					component.createProject(state.createDialogProjectName)
 				}) {
 					Text(MR.strings.create_project_button.get())
 				}

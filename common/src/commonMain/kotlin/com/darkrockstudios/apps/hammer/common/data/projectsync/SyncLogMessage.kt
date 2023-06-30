@@ -1,16 +1,21 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.arkivanov.essenty.parcelable.Parcelable
+import com.arkivanov.essenty.parcelable.Parcelize
+import com.arkivanov.essenty.parcelable.TypeParceler
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.parcelize.InstantParceler
 import io.github.aakira.napier.LogLevel
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
+@Parcelize
 data class SyncLogMessage(
 	val message: String,
 	val level: SyncLogLevel,
 	val projectName: String?,
-	val timestamp: Instant
-)
+	@TypeParceler<Instant, InstantParceler>() val timestamp: Instant
+) : Parcelable
 
 fun syncLogD(message: String, projectName: String) = syncLog(message, projectName, SyncLogLevel.DEBUG)
 fun syncLogI(message: String, projectName: String) = syncLog(message, projectName, SyncLogLevel.INFO)

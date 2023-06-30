@@ -1,17 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -32,7 +32,7 @@ import kotlin.collections.set
 class ProjectsListComponent(
 	componentContext: ComponentContext,
 	private val onProjectSelected: (projectDef: ProjectDef) -> Unit
-) : ProjectsList, ComponentBase(componentContext) {
+) : ProjectsList, SavableComponent<ProjectsList.State>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
 
@@ -45,13 +45,13 @@ class ProjectsListComponent(
 	private var syncProjectsJob: Job? = null
 	private var syncScope: CoroutineScope? = null
 
-	private val _state = MutableValue(
+	private val _state by savableState {
 		ProjectsList.State(
 			projects = emptyList(),
 			projectsPath = HPath(globalSettingsRepository.globalSettings.projectsDirectory, "", true),
 			isServerSynced = projectsSynchronizer.isServerSynchronized(),
 		)
-	)
+	}
 	override val state: Value<ProjectsList.State> = _state
 
 	private fun showToast(message: StringResource) {
@@ -147,15 +147,26 @@ class ProjectsListComponent(
 			}
 
 			withContext(dispatcherMain) {
-				_state.getAndUpdate {
-					it.copy(projects = projectData)
-				}
+				_state.getAndUpdate { it.copy(projects = projectData) }
 				loadProjectsJob = null
 			}
 		}
 	}
 
 	override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
+
+	override fun showCreate() {
+		_state.getAndUpdate { it.copy(showCreateDialog = true) }
+	}
+
+	override fun hideCreate() {
+		_state.getAndUpdate {
+			it.copy(
+				showCreateDialog = false,
+				createDialogProjectName = ""
+			)
+		}
+	}
 
 	override fun createProject(projectName: String) {
 		val result = projectsRepository.createProject(projectName)
@@ -165,8 +176,9 @@ class ProjectsListComponent(
 			}
 			Napier.i("Project created: $projectName")
 			loadProjectList()
+			hideCreate()
 		} else {
-			(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
+			(result.exceptionOrNull() as? ProjectCreationFailedException)?.errorMessage?.let { message ->
 				_state.getAndUpdate {
 					it.copy(
 						toast = message
@@ -191,6 +203,10 @@ class ProjectsListComponent(
 
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
 		return projectsRepository.loadMetadata(projectDef)
+	}
+
+	override fun onProjectNameUpdate(newProjectName: String) {
+		_state.getAndUpdate { it.copy(createDialogProjectName = newProjectName) }
 	}
 
 	private suspend fun syncProject(

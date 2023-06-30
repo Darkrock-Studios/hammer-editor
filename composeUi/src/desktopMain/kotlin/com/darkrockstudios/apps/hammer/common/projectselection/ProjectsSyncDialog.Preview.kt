@@ -71,6 +71,8 @@ private val fakeProjectsList = object : ProjectsList {
 
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
+	override fun showCreate() {}
+	override fun hideCreate() {}
 	override fun createProject(projectName: String) {}
 	override fun deleteProject(projectDef: ProjectDef) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
@@ -78,4 +80,5 @@ private val fakeProjectsList = object : ProjectsList {
 	override fun hideProjectsSync() {}
 	override fun cancelProjectsSync() {}
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? = null
+	override fun onProjectNameUpdate(newProjectName: String) {}
 }
