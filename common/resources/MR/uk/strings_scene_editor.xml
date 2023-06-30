@@ -12,4 +12,11 @@
     <string name="save_draft_dialog_save_button">Зберегти</string>
     <string name="save_draft_dialog_title">Зберегти чернетку:</string>
     <string name="save_draft_dialog_name_hint">Назва чернетки</string>
+    <string name="scene_editor_menu_item_rename">Переіменувати</string>
+    <string name="scene_editor_menu_item_discard">Відхилити</string>
+    <string name="scene_editor_menu_item_save">Зберегти</string>
+    <string name="scene_editor_menu_item_close">Закрити</string>
+    <string name="scene_editor_menu_group">Сцена</string>
+    <string name="scene_editor_menu_item_save_draft">Зберегти чернетку</string>
+    <string name="scene_editor_menu_item_view_drafts">Переглянути чернетки</string>
 </resources>
