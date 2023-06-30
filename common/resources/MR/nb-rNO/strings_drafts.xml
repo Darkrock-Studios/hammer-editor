@@ -12,4 +12,5 @@
     <string name="draft_compare_draft_body_placeholder">Kladd</string>
     <string name="draft_compare_draft_accept_button">Ta hele denne kladden</string>
     <string name="draft_compare_draft_subheader">Kopier ønskede deler inn i nåværende, eller godta alt dette.</string>
+    <string name="draft_list_header">%1$s kladder:</string>
 </resources>

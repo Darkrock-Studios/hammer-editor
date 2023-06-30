@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
-    <string name="unsaved_scenes_dialog_title">Scènes non enregistrées</string>
-    <string name="unsaved_scenes_dialog_message">Enregistrer des scènes non enregistrées \?</string>
     <string name="title_activity_add_note">Ajouter une note</string>
     <string name="loading">Chargement…</string>
     <string name="title_activity_configure_note_widget">Configurer le widget</string>
-    <string name="unsaved_scenes_dialog_negative_button">Rejeter et fermer</string>
-    <string name="unsaved_scenes_dialog_neutral_button">Annuler</string>
-    <string name="unsaved_scenes_dialog_positive_button">Enregistrer et fermer</string>
     <string name="overflow_menu_button">Plus de menu</string>
     <string name="navdrawer_button">Tiroir de navigation</string>
     <string name="note_widget_dialog_title">Ajouter une note à :</string>

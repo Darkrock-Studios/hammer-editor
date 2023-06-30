@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="delete_project_confirm">SUPPRIMER</string>
+    <string name="delete_project_confirm">Supprimer</string>
     <string name="delete_project_cancel">Annuler</string>
     <string name="create_project_heading">Nouveau nom du projet</string>
     <string name="create_project_button">Créer un projet</string>
@@ -23,4 +23,9 @@
     <string name="delete_project_message">Êtes-vous sûr·e de vouloir supprimer ce projet \?
 \n%1$s</string>
     <string name="create_project_title">Créer un projet</string>
+    <string name="create_project_error_already_exists">Le projet existe déjà</string>
+    <string name="create_project_error_null_filename">Nom du projet manquant</string>
+    <string name="create_project_error_too_long">Nom du projet trop long</string>
+    <string name="create_project_error_blank">Le nom du projet a été laissé vide</string>
+    <string name="create_project_error_invalid_characters">Le nom du projet contient des caractères invalides</string>
 </resources>
