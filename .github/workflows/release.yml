@@ -144,13 +144,13 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Package MacOS ".dmg" distribution
-        run: ./gradlew :desktop:packageReleaseDeb
+        run: ./gradlew :desktop:packageReleaseDmg
 
       - name: Rename Artifact
         run: |
-          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/
+          cd /Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/
           # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer_*.dmg' -print -quit)
+          file=$(find . -type f -name 'hammer-*.dmg' -print -quit)
 
           # if no file was found, exit with an error message
           if [ -z "$file" ]; then
@@ -158,8 +158,8 @@ jobs:
             exit 1
           fi
 
-          # rename the file to "hammer.deb"
-          mv "$file" "${file/hammer_*/hammer}.dmg"
+          # rename the file to "hammer.dmg"
+          mv "$file" "${file/hammer-*/hammer}.dmg"
 
           echo "File renamed successfully."
 
@@ -172,7 +172,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
+          artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
 
   server:
     runs-on: ubuntu-latest
