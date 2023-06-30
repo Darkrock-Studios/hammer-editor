@@ -4,16 +4,21 @@ A simple tool for building stories.
 
 ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/develop/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases)
 
-![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux]
+![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
 [![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
 [![Localization badge](https://hosted.weblate.org/widgets/hammer/-/clients/svg-badge.svg)](https://hosted.weblate.org/engage/hammer/)
+
+### Available on:
+
+[![Google Play badge](https://img.shields.io/endpoint?color=green&logo=google-play&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dcom.darkrockstudios.apps.hammer.android%26l%3DGoogle%2520Play%26m%3D%24version)](https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android)
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
 
 Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
 
-Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing the future of Hammer.
+Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing
+the future of Hammer.
 
 ## Multi-platform
 
@@ -22,7 +27,6 @@ website-in-a-box, but instead using native client side technologies to provide t
 
 ### Will add support for more platforms in the future:
 
-- ![badge-platform-macos]
 - ![badge-platform-ios]
 
 ## Multi-Screen
