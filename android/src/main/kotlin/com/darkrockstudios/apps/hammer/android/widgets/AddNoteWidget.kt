@@ -3,9 +3,7 @@ package com.darkrockstudios.apps.hammer.android.widgets
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -24,30 +22,32 @@ import com.darkrockstudios.apps.hammer.android.R
 import io.github.aakira.napier.Napier
 
 class AddNoteWidget : GlanceAppWidget() {
-	@Composable
-	override fun Content() {
-		Box(
-			modifier = GlanceModifier
-				.fillMaxSize()
-				.background(
-					day = Color.White,
-					night = Color.DarkGray
-				)
-				.appWidgetBackground()
-				.cornerRadius(16.dp)
-				.padding(8.dp)
-				.clickable(
-					onClick = actionRunCallback<AddNoteClickAction>()
-				)
-		) {
-			Column {
-				Image(
-					ImageProvider(resId = R.drawable.ic_add_note),
-					contentDescription = stringResource(R.string.note_widget_button_description),
-					modifier = GlanceModifier.fillMaxSize().clickable(
+
+	override suspend fun provideGlance(context: Context, id: GlanceId) {
+		provideContent {
+			Box(
+				modifier = GlanceModifier
+					.fillMaxSize()
+					.background(
+						day = Color.White,
+						night = Color.DarkGray
+					)
+					.appWidgetBackground()
+					.cornerRadius(16.dp)
+					.padding(8.dp)
+					.clickable(
 						onClick = actionRunCallback<AddNoteClickAction>()
 					)
-				)
+			) {
+				Column {
+					Image(
+						ImageProvider(resId = R.drawable.ic_add_note),
+						contentDescription = context.getString(R.string.note_widget_button_description),
+						modifier = GlanceModifier.fillMaxSize().clickable(
+							onClick = actionRunCallback<AddNoteClickAction>()
+						)
+					)
+				}
 			}
 		}
 	}

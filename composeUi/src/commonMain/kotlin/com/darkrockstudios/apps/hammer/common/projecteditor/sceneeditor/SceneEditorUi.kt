@@ -17,6 +17,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -48,11 +49,7 @@ fun SceneEditorUi(
 		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
 	}
 
-	LaunchedEffect(state.toast) {
-		state.toast?.let { message ->
-			snackbarHostState.showSnackbar(strRes.get(message))
-		}
-	}
+	Toaster(state.toast, snackbarHostState)
 
 	Box(modifier = modifier) {
 		Column(modifier = Modifier.fillMaxSize()) {

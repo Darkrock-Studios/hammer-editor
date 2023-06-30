@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -27,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.getHomeDirectory
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
+import com.darkrockstudios.libraries.mpfilepicker.MPFile
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -40,6 +42,8 @@ internal fun CreateEntryUi(
 	modifier: Modifier,
 	close: () -> Unit
 ) {
+	val state by component.state.subscribeAsState()
+
 	val strRes = rememberStrRes()
 	var newEntryNameText by rememberSaveable { mutableStateOf("") }
 	var newEntryContentText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -50,9 +54,7 @@ internal fun CreateEntryUi(
 	val types = rememberSaveable { EntryType.values().toList() }
 
 	var showFilePicker by rememberSaveable { mutableStateOf(false) }
-	var imagePath by rememberSaveable { mutableStateOf<String?>(null) }
-
-	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var imagePath by rememberSaveable { mutableStateOf<MPFile<Any>?>(null) }
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
@@ -122,7 +124,7 @@ internal fun CreateEntryUi(
 						Box(modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)) {
 							ImageItem(
 								modifier = Modifier.size(128.dp).background(Color.LightGray),
-								path = imagePath
+								path = imagePath?.path
 							)
 							Button(
 								modifier = Modifier
@@ -155,7 +157,7 @@ internal fun CreateEntryUi(
 									type = selectedType,
 									text = newEntryContentText.text,
 									tags = newTagsText.splitToSequence(" ").toList(),
-									imagePath = imagePath
+									imagePath = imagePath?.path
 								)
 
 								when (result.error) {
@@ -197,7 +199,7 @@ internal fun CreateEntryUi(
 
 					Button(
 						modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
-						onClick = { discardConfirm = true }
+						onClick = { component.confirmClose() }
 					) {
 						Text(MR.strings.encyclopedia_create_entry_cancel_button.get())
 					}
@@ -208,19 +210,19 @@ internal fun CreateEntryUi(
 
 	FilePicker(
 		show = showFilePicker,
-		fileExtension = "jpg",
+		fileExtensions = listOf("jpg"),
 		initialDirectory = getHomeDirectory()
 	) { path ->
 		imagePath = path
 		showFilePicker = false
 	}
 
-	if (discardConfirm) {
+	if (state.showConfirmClose) {
 		SimpleConfirm(
 			title = MR.strings.encyclopedia_create_entry_discard_title.get(),
-			onDismiss = { discardConfirm = false }
+			onDismiss = { component.dismissConfirmClose() }
 		) {
-			discardConfirm = false
+			component.dismissConfirmClose()
 			close()
 		}
 	}

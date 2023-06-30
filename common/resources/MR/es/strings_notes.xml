@@ -15,4 +15,7 @@
     <string name="notes_create_toast_success">Nota creada</string>
     <string name="notes_delete_title">¿Eliminar nota\?</string>
     <string name="notes_delete_message">Esta acción no se puede deshacer.</string>
+    <string name="notes_create_toast_too_long">La nota era muy larga</string>
+    <string name="notes_create_toast_empty">La nota estaba vacía</string>
+    <string name="notes_delete_toast_success">Nota %1$s eliminada</string>
 </resources>

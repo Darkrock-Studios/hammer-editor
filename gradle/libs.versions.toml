@@ -1,0 +1,12 @@
+# https://developer.android.com/build/migrate-to-catalogs
+
+[versions]
+jvm = "17"
+kotlin = "1.8.20"
+android_gradle_plugin = "7.4.1"
+napier = "2.6.1"
+
+[libraries]
+napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
+
+[plugins]

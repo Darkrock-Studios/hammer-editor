@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="notes_header">Notater</string>
+    <string name="notes_list_empty">Fant ingen notater</string>
+    <string name="notes_create_note_button">Opprett notat</string>
+    <string name="notes_note_item_action_rename">Gi nytt navn</string>
+    <string name="notes_note_item_action_cancel">Avbryt</string>
+    <string name="notes_note_item_action_delete">Slett</string>
+    <string name="notes_discard_dialog_title">Forkast endringer\?</string>
+    <string name="notes_create_header">Opprett notat</string>
+    <string name="notes_create_body_hint">Nytt notat:</string>
+    <string name="notes_create_create_button">Opprett</string>
+    <string name="notes_discard_dialog_message">Du vil miste alle endringer du har gjort.</string>
+    <string name="notes_create_cancel_button">Avbryt</string>
+    <string name="notes_create_toast_success">Notat opprettet</string>
+    <string name="notes_create_toast_too_long">Notatet var for langt</string>
+    <string name="notes_create_toast_empty">Notatet er tomt</string>
+    <string name="notes_delete_title">Slett notat\?</string>
+    <string name="notes_delete_message">Denne handlingen kan ikke angres.</string>
+    <string name="notes_delete_toast_success">%1$s-notat slettet</string>
 </resources>

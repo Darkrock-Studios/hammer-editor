@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.window.Dialog
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
 actual fun MpDialog(
@@ -21,7 +23,7 @@ actual fun MpDialog(
 	visible: Boolean,
 	title: String,
 	size: DpSize?,
-	content: @Composable () -> Unit
+	content: @Composable ColumnScope.() -> Unit
 ) {
 	if (visible) {
 		val modifier = if (size != null) {
@@ -33,7 +35,7 @@ actual fun MpDialog(
 		Dialog(
 			onDismissRequest = onCloseRequest,
 			content = {
-				Card {
+				Card(modifier = Modifier.wrapContentSize()) {
 					Column(modifier = modifier) {
 						Row(
 							modifier = Modifier.fillMaxWidth(),
@@ -51,7 +53,7 @@ actual fun MpDialog(
 
 							Icon(
 								Icons.Default.Close,
-								contentDescription = "Close Dialog",
+								contentDescription = MR.strings.close_dialog_button.get(),
 								modifier = Modifier
 									.padding(Ui.Padding.L)
 									.clickable {

@@ -16,6 +16,6 @@
     <string name="notes_create_toast_too_long">Нотатка була занадто довгою</string>
     <string name="notes_create_toast_empty">Нотатка була порожня</string>
     <string name="notes_delete_title">Видалити нотатку\?</string>
-    <string name="notes_delete_message">Цю дію неможливо скасувати.</string>
+    <string name="notes_delete_message">Цю дію неможливо скасувати!</string>
     <string name="notes_delete_toast_success">Примітка %1$s видалено</string>
 </resources>

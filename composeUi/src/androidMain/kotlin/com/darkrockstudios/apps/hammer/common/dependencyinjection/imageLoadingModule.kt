@@ -5,5 +5,5 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 actual val imageLoadingModule: Module = module {
-	single<ImageLoader> { generateImageLoader(get()) }
+	single<ImageLoader> { generateImageLoader(get(), get()) }
 }

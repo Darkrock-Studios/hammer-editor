@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -25,12 +24,11 @@ import okio.Path
 
 class ProjectEditorRepositoryOkio(
 	projectDef: ProjectDef,
-	projectsRepository: ProjectsRepository,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : ProjectEditorRepository(projectDef, projectsRepository, idRepository, projectSynchronizer) {
+) : ProjectEditorRepository(projectDef, idRepository, projectSynchronizer) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 

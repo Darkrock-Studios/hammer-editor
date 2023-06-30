@@ -130,7 +130,6 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 		repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
-			projectsRepository = projectsRepo,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			toml = toml,

@@ -30,3 +30,4 @@ abstract class ComponentBase(componentContext: ComponentContext) :
 		setup()
 	}
 }
+

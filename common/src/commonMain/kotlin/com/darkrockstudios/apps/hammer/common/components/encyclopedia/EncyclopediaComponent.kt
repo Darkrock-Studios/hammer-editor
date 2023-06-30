@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -19,16 +20,7 @@ class EncyclopediaComponent(
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Encyclopedia.Config>()
-
-	private val _stack = componentContext.childStack(
-		source = navigation,
-		initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
-		key = "ProjectRootRouter",
-		childFactory = ::createChild
-	)
-
 	override val stack: Value<ChildStack<Encyclopedia.Config, Encyclopedia.Destination>>
-		get() = _stack
 
 	private fun createChild(
 		config: Encyclopedia.Config,
@@ -64,6 +56,23 @@ class EncyclopediaComponent(
 		return stack.value.active.configuration is Encyclopedia.Config.BrowseEntriesConfig
 	}
 
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		val unsaved = when (val destination = stack.value.active.instance) {
+			is Encyclopedia.Destination.CreateEntryDestination -> true
+			is Encyclopedia.Destination.ViewEntryDestination -> {
+				destination.component.state.value.editName || destination.component.state.value.editText
+			}
+
+			else -> false
+		}
+
+		return if (unsaved) {
+			setOf(CloseConfirm.Encyclopedia)
+		} else {
+			emptySet()
+		}
+	}
+
 	private fun createBrowseEntries(
 		config: Encyclopedia.Config.BrowseEntriesConfig,
 		componentContext: ComponentContext
@@ -82,7 +91,8 @@ class EncyclopediaComponent(
 			componentContext = componentContext,
 			entryDef = config.entryDef,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			closeEntry = ::closeEntry
 		)
 	}
 
@@ -96,17 +106,24 @@ class EncyclopediaComponent(
 		)
 	}
 
-	private val backButtonHandler = object : BackCallback() {
-		override fun onBack() {
-			if (!isAtRoot()) {
-				navigation.pop()
-			}
+	private fun closeEntry() {
+		navigation.pop()
+	}
+
+	private val backButtonHandler = BackCallback {
+		if (!isAtRoot()) {
+			navigation.pop()
 		}
 	}
 
 	init {
 		backHandler.register(backButtonHandler)
-
+		stack = componentContext.childStack(
+			source = navigation,
+			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
+			key = "EncyclopediaRouter",
+			childFactory = ::createChild
+		)
 		stack.observe(lifecycle) {
 			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()

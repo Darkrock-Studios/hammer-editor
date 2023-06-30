@@ -28,11 +28,11 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
-import com.soywiz.korio.async.launch
 import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -43,20 +43,11 @@ fun ProjectListUi(
 	component: ProjectsList,
 	modifier: Modifier = Modifier
 ) {
-	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
-	var showProjectCreate by remember { mutableStateOf(false) }
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	val toastMessage = state.toast?.get()
-	LaunchedEffect(toastMessage) {
-		scope.launch {
-			if (toastMessage?.isNotEmpty() == true) {
-				snackbarHostState.showSnackbar(toastMessage)
-			}
-		}
-	}
+	Toaster(state.toast, snackbarHostState)
 
 	Box {
 		Column(
@@ -125,7 +116,7 @@ fun ProjectListUi(
 			}
 		}
 		FloatingActionButton(
-			onClick = { showProjectCreate = true },
+			onClick = { component.showCreate() },
 			modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.M),
 		) {
 			Icon(imageVector = Icons.Filled.Create, MR.strings.projects_list_create_button.get())
@@ -134,8 +125,8 @@ fun ProjectListUi(
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 
-	ProjectCreateDialog(showProjectCreate, component) {
-		showProjectCreate = false
+	ProjectCreateDialog(state.showCreateDialog, component) {
+		component.hideCreate()
 	}
 
 	projectDefDeleteTarget?.let { project ->

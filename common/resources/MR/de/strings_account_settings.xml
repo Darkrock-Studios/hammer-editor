@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_heading">⚙ Einstellungen</string>
-    <string name="settings_theme_label">Schnittstellenfarbschema</string>
+    <string name="settings_theme_label">Farbschema</string>
     <string name="settings_projects_directory">Projektverzeichnis</string>
     <string name="settings_projects_directory_hint">Pfad zum Projektverzeichnis</string>
     <string name="settings_server_email_label">E-Mail:</string>
@@ -19,15 +19,15 @@
     <string name="settings_example_project_button">Neu installieren</string>
     <string name="settings_example_project_description">Ein Beispielprojekt installieren, um zu sehen, wie verschiedene Funktionen verwendet werden.</string>
     <string name="settings_server_setup_button">Einrichten</string>
-    <string name="settings_server_description">Einrichtung eines Servers für die Synchronisierung mehrerer Geräte.</string>
+    <string name="settings_server_description">Einrichten eines Servers für die Synchronisierung mehrerer Geräte.</string>
     <string name="settings_remove_server_dialog_title">Server entfernen</string>
     <string name="settings_server_setup_header">Server konfigurieren</string>
     <string name="settings_server_setup_ssl_label">HTTPS aktivieren\?</string>
-    <string name="settings_server_setup_url_hint">Server Url: meinserver.de</string>
+    <string name="settings_server_setup_url_hint">Server URL: meinserver.de</string>
     <string name="settings_server_setup_password_hint">Passwort</string>
     <string name="settings_server_setup_password_show">Passwort anzeigen</string>
     <string name="settings_server_setup_password_hide">Passwort verbergen</string>
-    <string name="settings_server_setup_login_button">Login</string>
+    <string name="settings_server_setup_login_button">Anmelden</string>
     <string name="settings_server_setup_cancel_button">Abbrechen</string>
     <string name="settings_server_max_backups">Max Backups pro Projekt</string>
     <string name="settings_server_test_auth_button">Authentifizierung testen</string>

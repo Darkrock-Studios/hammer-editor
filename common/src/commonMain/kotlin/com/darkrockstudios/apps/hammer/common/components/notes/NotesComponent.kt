@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
@@ -80,5 +81,15 @@ class NotesComponent(
 
 	override fun dismissCreate() {
 		_state.getAndUpdate { it.copy(showCreate = false) }
+	}
+
+	override fun isAtRoot() = true
+
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		return if (state.value.showCreate) {
+			setOf(CloseConfirm.Notes)
+		} else {
+			emptySet()
+		}
 	}
 }

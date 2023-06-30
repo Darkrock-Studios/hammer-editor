@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 
 @Composable
@@ -41,7 +42,7 @@ fun TopAppBarDropdownMenu(
 		menus.forEach { menu ->
 			menu.items.forEach { item ->
 				DropdownMenuItem(
-					text = { Text(item.label) },
+					text = { Text(item.label.get()) },
 					onClick = {
 						expanded.value = false
 						item.action(item.id)

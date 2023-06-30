@@ -9,8 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -43,36 +46,18 @@ fun ServerSetupDialog(
 
 	val focusManager = LocalFocusManager.current
 
-	var sslValue by rememberSaveable(state.serverSsl) { mutableStateOf(state.serverSsl ?: true) }
-	var urlValue by rememberSaveable(state.serverUrl) { mutableStateOf(state.serverUrl ?: "") }
-	var emailValue by rememberSaveable(state.serverEmail) { mutableStateOf(state.serverEmail ?: "") }
-	var passwordValue by rememberSaveable(state.serverSetup) { mutableStateOf("") }
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
 	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
-
-	fun clearInput() {
-		sslValue = state.serverSsl ?: true
-		urlValue = state.serverUrl ?: ""
-		emailValue = state.serverEmail ?: ""
-		passwordValue = ""
-		passwordVisible = false
-	}
+	val existingServer = rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
 
 	MpDialog(
 		onCloseRequest = {
-			clearInput()
 			component.cancelServerSetup()
 		},
 		visible = state.serverSetup,
 		title = MR.strings.settings_server_setup_title.get(),
 		size = DpSize(400.dp, 460.dp)
 	) {
-		DisposableEffect(Unit) {
-			onDispose {
-				clearInput()
-			}
-		}
-
 		Box(
 			modifier = Modifier.padding(Ui.Padding.XL),
 			contentAlignment = Alignment.Center
@@ -95,16 +80,16 @@ fun ServerSetupDialog(
 
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					Checkbox(
-						checked = sslValue,
-						onCheckedChange = { sslValue = it },
-						enabled = state.serverWorking.not() && (state.serverSsl == null)
+						checked = state.serverSsl,
+						onCheckedChange = { component.updateServerSsl(it) },
+						enabled = state.serverWorking.not() && existingServer.not()
 					)
 					Text(MR.strings.settings_server_setup_ssl_label.get())
 				}
 
 				OutlinedTextField(
-					value = urlValue,
-					onValueChange = { urlValue = it },
+					value = state.serverUrl ?: "",
+					onValueChange = { component.updateServerUrl(it) },
 					label = { Text(MR.strings.settings_server_setup_url_hint.get()) },
 					modifier = Modifier.moveFocusOnTab(),
 					keyboardOptions = KeyboardOptions(
@@ -115,12 +100,12 @@ fun ServerSetupDialog(
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
 					),
-					enabled = state.serverWorking.not() && (state.serverUrl == null)
+					enabled = state.serverWorking.not() && existingServer.not()
 				)
 
 				OutlinedTextField(
-					value = emailValue,
-					onValueChange = { emailValue = it },
+					value = state.serverEmail ?: "",
+					onValueChange = { component.updateServerEmail(it) },
 					label = { Text(MR.strings.settings_server_setup_email_hint.get()) },
 					modifier = Modifier.moveFocusOnTab(),
 					keyboardOptions = KeyboardOptions(
@@ -131,12 +116,12 @@ fun ServerSetupDialog(
 					keyboardActions = KeyboardActions(
 						onNext = { focusManager.moveFocus(FocusDirection.Down) }
 					),
-					enabled = state.serverWorking.not() && (state.serverEmail == null)
+					enabled = state.serverWorking.not() && existingServer.not()
 				)
 
 				OutlinedTextField(
-					value = passwordValue,
-					onValueChange = { passwordValue = it },
+					value = state.serverPassword ?: "",
+					onValueChange = { component.updateServerPassword(it) },
 					label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
 					singleLine = true,
 					placeholder = { Text(MR.strings.settings_server_setup_password_hint.get()) },
@@ -188,10 +173,10 @@ fun ServerSetupDialog(
 								confirmDeleteLocal = false
 							} else {
 								component.setupServer(
-									ssl = sslValue,
-									url = urlValue,
-									email = emailValue,
-									password = passwordValue,
+									ssl = state.serverSsl,
+									url = state.serverUrl ?: "",
+									email = state.serverEmail ?: "",
+									password = state.serverPassword ?: "",
 									create = false,
 									removeLocalContent = false
 								)
@@ -205,7 +190,7 @@ fun ServerSetupDialog(
 					if (state.serverIsLoggedIn.not()) {
 						Button(
 							onClick = { confirmDeleteLocal = true },
-							enabled = state.serverWorking.not()
+							enabled = state.serverWorking.not() && state.currentUrl == null
 						) {
 							Text(MR.strings.settings_server_setup_create_button.get())
 						}
@@ -214,7 +199,6 @@ fun ServerSetupDialog(
 					Button(
 						onClick = {
 							scope.launch {
-								clearInput()
 								component.cancelServerSetup()
 							}
 						},
@@ -229,10 +213,10 @@ fun ServerSetupDialog(
 		confirmDeleteLocal?.let { create ->
 			fun setupServer(create: Boolean, removeLocal: Boolean) {
 				component.setupServer(
-					ssl = sslValue,
-					url = urlValue,
-					email = emailValue,
-					password = passwordValue,
+					ssl = state.serverSsl,
+					url = state.serverUrl ?: "",
+					email = state.serverEmail ?: "",
+					password = state.serverPassword ?: "",
 					create = create,
 					removeLocalContent = removeLocal
 				)

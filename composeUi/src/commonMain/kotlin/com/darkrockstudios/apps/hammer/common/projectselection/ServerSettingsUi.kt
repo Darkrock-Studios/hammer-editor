@@ -12,6 +12,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -56,7 +57,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 				)
 
 				Text(
-					state.serverUrl ?: MR.strings.settings_server_unknown_error.get(),
+					state.currentUrl ?: MR.strings.settings_server_unknown_error.get(),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onBackground,
 					fontStyle = FontStyle.Italic
@@ -71,7 +72,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 				)
 
 				Text(
-					state.serverEmail ?: MR.strings.settings_server_unknown_error.get(),
+					state.currentEmail ?: MR.strings.settings_server_unknown_error.get(),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onBackground,
 					fontStyle = FontStyle.Italic
@@ -190,9 +191,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 		)
 	}
 
-	LaunchedEffect(state.toast) {
-		state.toast?.let { snackbarHostState.showSnackbar(it) }
-	}
+	Toaster(state.toast, snackbarHostState)
 
 	ServerSetupDialog(component, scope)
 }

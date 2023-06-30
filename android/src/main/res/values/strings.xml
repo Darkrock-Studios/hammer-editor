@@ -5,12 +5,6 @@
 	<string name="loading">Loading…</string>
 	<string name="title_activity_configure_note_widget">Configure Widget</string>
 
-	<string name="unsaved_scenes_dialog_title">Unsaved Scenes</string>
-	<string name="unsaved_scenes_dialog_message">Save unsaved scenes?</string>
-	<string name="unsaved_scenes_dialog_negative_button">Discard and close</string>
-	<string name="unsaved_scenes_dialog_neutral_button">Cancel</string>
-	<string name="unsaved_scenes_dialog_positive_button">Save and close</string>
-
 	<string name="overflow_menu_button">More Menu</string>
 	<string name="navdrawer_button">Navigation Drawer</string>
 

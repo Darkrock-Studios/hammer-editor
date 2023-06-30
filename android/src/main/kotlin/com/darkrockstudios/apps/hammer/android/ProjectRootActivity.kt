@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.android
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -12,12 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.common.AppCloseManager
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -25,8 +26,11 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
@@ -34,8 +38,11 @@ import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
+import org.koin.core.component.getScopeId
+import org.koin.java.KoinJavaComponent.getKoin
 
 class ProjectRootActivity : AppCompatActivity() {
 
@@ -45,6 +52,8 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
+	private val viewModel: ProjectRootViewModel by viewModels()
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -52,6 +61,20 @@ class ProjectRootActivity : AppCompatActivity() {
 		if (projectDef == null) {
 			finish()
 		} else {
+			viewModel.setProjectDef(projectDef)
+
+			val menu = MutableValue(setOf<MenuDescriptor>())
+			val component = ProjectRootComponent(
+				componentContext = defaultComponentContext(),
+				projectDef = projectDef,
+				addMenu = { menuDescriptor ->
+					menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
+				},
+				removeMenu = { menuId ->
+					menu.value = menu.value.filter { it.id != menuId }.toSet()
+				}
+			)
+
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
 					val settingsState by globalSettings.subscribeAsState()
@@ -62,7 +85,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					}
 
 					AppTheme(isDark) {
-						Content(projectDef)
+						Content(projectDef, component, menu)
 					}
 				}
 			}
@@ -89,37 +112,22 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	@OptIn(ExperimentalMaterial3Api::class)
 	@Composable
-	private fun Content(projectDef: ProjectDef) {
+	private fun Content(
+		projectDef: ProjectDef,
+		component: ProjectRootComponent,
+		menu: MutableValue<Set<MenuDescriptor>>
+	) {
 		val scope = rememberCoroutineScope()
 		val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-		val menu = remember { mutableStateOf<Set<MenuDescriptor>>(emptySet()) }
-		val component = remember {
-			ProjectRootComponent(
-				componentContext = defaultComponentContext(),
-				projectDef = projectDef,
-				addMenu = { menuDescriptor ->
-					menu.value =
-						mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-				},
-				removeMenu = { menuId ->
-					menu.value = menu.value.filter { it.id != menuId }.toSet()
-				}
-			)
-		}
-
 		val router by component.routerState.subscribeAsState()
 		val showBack = !component.isAtRoot()
-		val shouldConfirmClose by component.shouldConfirmClose.subscribeAsState()
+		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
 		val destinationTypes = remember { ProjectRoot.DestinationTypes.values() }
 
 		BackHandler(enabled = backEnabled) {
-			if (shouldConfirmClose) {
-				confirmCloseDialog(component)
-			} else {
-				finish()
-			}
+			component.requestClose()
 		}
 
 		Scaffold(
@@ -134,7 +142,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					showBack = showBack,
 					onButtonClicked = {
 						if (showBack) {
-							onBackPressed()
+							onBackPressedDispatcher.onBackPressed()
 						} else {
 							scope.launch {
 								if (drawerState.isOpen) {
@@ -183,27 +191,51 @@ class ProjectRootActivity : AppCompatActivity() {
 				)
 			}
 		)
-	}
 
-	private fun confirmCloseDialog(component: AppCloseManager) {
-		AlertDialog.Builder(this)
-			.setTitle(R.string.unsaved_scenes_dialog_title)
-			.setMessage(R.string.unsaved_scenes_dialog_message)
-			.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ -> finish() }
-			.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ -> dialog.dismiss() }
-			.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
-				lifecycleScope.launch {
-					component.storeDirtyBuffers()
-					withContext(mainDispatcher) {
-						finish()
-					}
+		if (shouldConfirmClose.isNotEmpty()) {
+			val item = shouldConfirmClose.first()
+			when (item) {
+				CloseConfirm.Scenes -> {
+					confirmUnsavedScenesDialog(component)
+				}
+
+				CloseConfirm.Notes -> {
+					confirmCloseUnsavedNotesDialog(component)
+				}
+
+				CloseConfirm.Encyclopedia -> {
+					confirmCloseUnsavedEncyclopediaDialog(component)
+				}
+
+				CloseConfirm.Sync -> {
+					component.showProjectSync()
+				}
+
+				CloseConfirm.Complete -> {
+					finish()
 				}
 			}
-			.create()
-			.show()
+		}
 	}
 
 	companion object {
 		const val EXTRA_PROJECT = "project"
+	}
+}
+
+class ProjectRootViewModel : ViewModel() {
+
+	private var projectDef: ProjectDef? = null
+	fun setProjectDef(project: ProjectDef) {
+		if (projectDef == null) {
+			projectDef = project
+			runBlocking { openProjectScope(project) }
+		}
+	}
+
+	override fun onCleared() {
+		projectDef?.let {
+			closeProjectScope(getKoin().getScope(ProjectDefScope(it).getScopeId()), it)
+		}
 	}
 }

@@ -47,4 +47,8 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override suspend fun setAutoSyncing(value: Boolean) {}
 		override suspend fun setMaxBackups(value: Int) {}
 		override fun reauthenticate() {}
+		override fun updateServerUrl(url: String) {}
+		override fun updateServerSsl(ssl: Boolean) {}
+		override fun updateServerEmail(email: String) {}
+		override fun updateServerPassword(password: String) {}
 	}

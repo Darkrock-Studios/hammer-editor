@@ -157,6 +157,12 @@ internal class ProjectRootRouter(
 		return router?.isAtRoot() ?: true
 	}
 
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		return state.value.items.flatMap {
+			it.instance.shouldConfirmClose()
+		}.toSet()
+	}
+
 	init {
 		navigation.subscribe { updateShouldClose() }
 	}

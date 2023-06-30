@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
@@ -35,7 +36,7 @@ internal fun CreateNoteDialog(
 		var newNoteText by remember { mutableStateOf("") }
 		var newNoteError by remember { mutableStateOf(false) }
 
-		Box(modifier = Modifier.fillMaxWidth()) {
+		Box(modifier = Modifier.wrapContentWidth().heightIn(100.dp, 300.dp).align(Alignment.CenterHorizontally)) {
 			Column(
 				modifier = Modifier
 					.width(IntrinsicSize.Max)
@@ -48,16 +49,17 @@ internal fun CreateNoteDialog(
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				TextField(
+				OutlinedTextField(
 					value = newNoteText,
 					onValueChange = { newNoteText = it },
+					modifier = Modifier.weight(1f),
 					isError = newNoteError,
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Row(
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier,
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = {
@@ -86,6 +88,8 @@ internal fun CreateNoteDialog(
 					}) {
 						Text(MR.strings.notes_create_create_button.get())
 					}
+
+					Spacer(modifier = Modifier.weight(1f))
 
 					Button(onClick = { component.dismissCreate() }) {
 						Text(MR.strings.notes_create_cancel_button.get())

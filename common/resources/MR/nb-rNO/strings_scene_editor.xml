@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="save_draft_dialog_title">Lagre kladd:</string>
+    <string name="save_draft_dialog_name_hint">Kladd-navn</string>
+    <string name="save_draft_dialog_save_button">Lagre</string>
+    <string name="save_draft_dialog_cancel_button">Avbryt</string>
+    <string name="save_draft_dialog_toast_success">Kladd lagret</string>
+    <string name="scene_editor_name_hint">Scenenavn</string>
+    <string name="scene_editor_rename_button">Gi nytt navn</string>
+    <string name="scene_editor_cancel_button">Avbryt</string>
+    <string name="scene_editor_unsaved_chip">Ulagret</string>
+    <string name="scene_editor_save_button">Lagre</string>
+    <string name="scene_editor_toast_save_successful">Lagret</string>
+    <string name="scene_editor_body_placeholder">Begynn å skrive scenen din her</string>
 </resources>

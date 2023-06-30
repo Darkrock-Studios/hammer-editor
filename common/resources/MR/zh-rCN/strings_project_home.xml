@@ -14,4 +14,5 @@
     <string name="project_home_stat_chapter_words_y_axis">词数</string>
     <string name="project_home_action_backup_toast_failure">备份失败</string>
     <string name="project_home_action_sync">同步故事</string>
+    <string name="project_home_action_export_toast_success">故事已导出</string>
 </resources>

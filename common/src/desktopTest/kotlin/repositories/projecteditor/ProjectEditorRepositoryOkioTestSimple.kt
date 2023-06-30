@@ -116,7 +116,6 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 	fun `Get filename`() {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
-			projectsRepository = projectsRepo,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
@@ -133,7 +132,6 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 	fun `Load Scene Tree`() {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
-			projectsRepository = projectsRepo,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
@@ -152,7 +150,6 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 	fun `Init Editor`() = runTest {
 		val repo = ProjectEditorRepositoryOkio(
 			projectDef = projectDef,
-			projectsRepository = projectsRepo,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,

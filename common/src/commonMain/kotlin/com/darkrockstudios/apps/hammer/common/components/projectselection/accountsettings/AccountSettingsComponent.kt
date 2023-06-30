@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.components.SavableComponent
+import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -22,7 +22,7 @@ import org.koin.core.component.inject
 class AccountSettingsComponent(
 	componentContext: ComponentContext,
 	override val showProjectDirectory: Boolean,
-) : AccountSettings, ComponentBase(componentContext) {
+) : AccountSettings, SavableComponent<AccountSettings.State>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
 
@@ -33,7 +33,7 @@ class AccountSettingsComponent(
 
 	private var serverSetupJob: Job? = null
 
-	private val _state = MutableValue(
+	private val _state by savableState {
 		AccountSettings.State(
 			projectsDir = projectsRepository.getProjectsDirectory(),
 			uiTheme = globalSettingsRepository.globalSettings.uiTheme,
@@ -42,7 +42,7 @@ class AccountSettingsComponent(
 			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
 			maxBackups = globalSettingsRepository.globalSettings.maxBackups
 		)
-	)
+	}
 	override val state: Value<AccountSettings.State> = _state
 
 	init {
@@ -74,9 +74,9 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
-							serverSsl = settings?.ssl,
-							serverUrl = settings?.url,
-							serverEmail = settings?.email,
+							currentSsl = settings?.ssl,
+							currentUrl = settings?.url,
+							currentEmail = settings?.email,
 							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true
 						)
 					}
@@ -133,11 +133,23 @@ class AccountSettingsComponent(
 
 	override fun cancelServerSetup() {
 		cancelSetupJob()
+		cleanUpServerSetup()
 		_state.getAndUpdate {
 			it.copy(
 				serverSetup = false,
 				serverError = null,
 				serverWorking = false,
+			)
+		}
+	}
+
+	private fun cleanUpServerSetup() {
+		_state.getAndUpdate {
+			it.copy(
+				serverSsl = true,
+				serverUrl = null,
+				serverEmail = null,
+				serverPassword = null,
 			)
 		}
 	}
@@ -190,6 +202,22 @@ class AccountSettingsComponent(
 		}
 	}
 
+	override fun updateServerUrl(url: String) {
+		_state.getAndUpdate { it.copy(serverUrl = url) }
+	}
+
+	override fun updateServerSsl(ssl: Boolean) {
+		_state.getAndUpdate { it.copy(serverSsl = ssl) }
+	}
+
+	override fun updateServerEmail(email: String) {
+		_state.getAndUpdate { it.copy(serverEmail = email) }
+	}
+
+	override fun updateServerPassword(password: String) {
+		_state.getAndUpdate { it.copy(serverPassword = password) }
+	}
+
 	override fun setupServer(
 		ssl: Boolean,
 		url: String,
@@ -235,6 +263,7 @@ class AccountSettingsComponent(
 				val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
 				withContext(mainDispatcher) {
 					if (result.isSuccess) {
+						cleanUpServerSetup()
 						_state.getAndUpdate {
 							it.copy(
 								serverUrl = cleanUrl,

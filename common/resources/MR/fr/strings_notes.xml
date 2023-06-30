@@ -15,7 +15,7 @@
     <string name="notes_create_toast_too_long">La note était trop longue</string>
     <string name="notes_create_toast_empty">La note était vide</string>
     <string name="notes_delete_title">Supprimer la note \?</string>
-    <string name="notes_delete_message">Cette action ne peut pas être annulée.</string>
+    <string name="notes_delete_message">Cette action ne peut pas être annulée !</string>
     <string name="notes_delete_toast_success">Note %1$s supprimée</string>
     <string name="notes_create_note_button">Créer une note</string>
 </resources>

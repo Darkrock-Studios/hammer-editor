@@ -4,6 +4,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -21,12 +23,25 @@ class ViewEntryComponent(
 	entryDef: EntryDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val closeEntry: () -> Unit
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(ViewEntry.State(entryDef = entryDef))
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+
+	private val backButtonHandler = BackCallback {
+		if (state.value.editText || state.value.editText) {
+			confirmClose()
+		} else {
+			closeEntry()
+		}
+	}
+
+	init {
+		backHandler.register(backButtonHandler)
+	}
 
 	override fun onCreate() {
 		super.onCreate()
@@ -114,6 +129,30 @@ class ViewEntryComponent(
 		}
 	}
 
+	override fun startNameEdit() {
+		_state.getAndUpdate {
+			it.copy(editName = true)
+		}
+	}
+
+	override fun startTextEdit() {
+		_state.getAndUpdate {
+			it.copy(editText = true)
+		}
+	}
+
+	override fun finishNameEdit() {
+		_state.getAndUpdate {
+			it.copy(editName = false)
+		}
+	}
+
+	override fun finishTextEdit() {
+		_state.getAndUpdate {
+			it.copy(editText = false)
+		}
+	}
+
 	override suspend fun updateEntry(
 		name: String,
 		text: String,
@@ -133,6 +172,22 @@ class ViewEntryComponent(
 		return result
 	}
 
+	override fun confirmClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = true
+			)
+		}
+	}
+
+	override fun dismissConfirmClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = false
+			)
+		}
+	}
+
 	private fun getMenuId(): String {
 		return "view-entry"
 	}
@@ -141,7 +196,7 @@ class ViewEntryComponent(
 
 		val addImage = MenuItemDescriptor(
 			"view-entry-add-image",
-			"Add Image",
+			MR.strings.encyclopedia_entry_menu_add_image,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showAddImageDialog = true) }
@@ -149,7 +204,7 @@ class ViewEntryComponent(
 
 		val removeImage = MenuItemDescriptor(
 			"view-entry-remove-image",
-			"Remove Image",
+			MR.strings.encyclopedia_entry_menu_remove_image,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showDeleteImageDialog = true) }
@@ -157,7 +212,7 @@ class ViewEntryComponent(
 
 		val deleteEntry = MenuItemDescriptor(
 			"view-entry-delete",
-			"Delete Entry",
+			MR.strings.encyclopedia_entry_menu_delete,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showDeleteEntryDialog = true) }
@@ -165,7 +220,7 @@ class ViewEntryComponent(
 
 		val menu = MenuDescriptor(
 			getMenuId(),
-			"Entry",
+			MR.strings.encyclopedia_entry_menu_group,
 			listOf(addImage, removeImage, deleteEntry)
 		)
 		addMenu(menu)

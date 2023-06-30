@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
@@ -94,6 +95,8 @@ class TimeLineComponent(
 	override fun isAtRoot(): Boolean {
 		return stack.value.active.configuration is TimeLine.Config.TimeLineOverviewConfig
 	}
+
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 
 	private val backButtonHandler = object : BackCallback() {
 		override fun onBack() {

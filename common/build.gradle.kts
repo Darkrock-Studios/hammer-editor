@@ -13,7 +13,6 @@ val essenty_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
 val datetime_version: String by extra
-val napier_version: String by extra
 val ktor_version: String by extra
 val json_version: String by extra
 val atomicfu_version: String by extra
@@ -49,7 +48,7 @@ kotlin {
 				export("com.arkivanov.essenty:lifecycle:$essenty_version")
 				export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				export("dev.icerock.moko:resources:$moko_resources_version")
-				export("io.github.aakira:napier:$napier_version")
+				export(libs.napier)
 			}
 		}
 	}
@@ -62,7 +61,7 @@ kotlin {
 				api(project(":base"))
 
 				api("com.arkivanov.decompose:decompose:$decompose_version")
-				api("io.github.aakira:napier:$napier_version")
+				api(libs.napier)
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				api("io.insert-koin:koin-core:$koin_version")
 				api("com.squareup.okio:okio:$okio_version")

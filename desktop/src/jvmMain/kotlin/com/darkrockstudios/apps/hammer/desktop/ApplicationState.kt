@@ -6,6 +6,12 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
+import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.getScopeId
+import org.koin.java.KoinJavaComponent
 
 class ApplicationState {
 	private val _windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
@@ -14,8 +20,8 @@ class ApplicationState {
 	private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
 	val menu: Value<Set<MenuDescriptor>> = _menu
 
-	private val _shouldShowConfirmClose = MutableValue(CloseType.None)
-	val shouldShowConfirmClose: Value<CloseType> = _shouldShowConfirmClose
+	private val _closeRequest = MutableValue(CloseType.None)
+	val closeRequest: Value<CloseType> = _closeRequest
 
 	fun addMenu(menuDescriptor: MenuDescriptor) {
 		_menu.value = mutableSetOf<MenuDescriptor>().apply {
@@ -29,20 +35,27 @@ class ApplicationState {
 	}
 
 	fun openProject(projectDef: ProjectDef) {
+		runBlocking {
+			openProjectScope(projectDef)
+		}
+
 		_windows.value = WindowState.ProjectWindow(projectDef)
 	}
 
 	fun closeProject() {
-		_shouldShowConfirmClose.value = CloseType.None
+		val def = (_windows.value as WindowState.ProjectWindow).projectDef
+		closeProjectScope(KoinJavaComponent.getKoin().getScope(ProjectDefScope(def).getScopeId()), def)
+
+		_closeRequest.value = CloseType.None
 		_windows.value = WindowState.ProjectSectionWindow()
 	}
 
 	fun showConfirmProjectClose(closeType: CloseType) {
-		_shouldShowConfirmClose.value = closeType
+		_closeRequest.value = closeType
 	}
 
 	fun dismissConfirmProjectClose() {
-		_shouldShowConfirmClose.value = CloseType.None
+		_closeRequest.value = CloseType.None
 	}
 
 	enum class CloseType {
