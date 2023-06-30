@@ -12,4 +12,5 @@
     <string name="unsaved_notes_dialog_message">Відхилити нотатку\?</string>
     <string name="unsaved_dialog_negative_button">Скасувати</string>
     <string name="unsaved_dialog_positive_button">Відхилити та закрити</string>
+    <string name="close_dialog_button">Затворити</string>
 </resources>
