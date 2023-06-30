@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -17,7 +19,7 @@ actual fun MpDialog(
 	visible: Boolean,
 	title: String,
 	size: DpSize?,
-	content: @Composable () -> Unit
+	content: @Composable ColumnScope.() -> Unit
 ) {
 	val osThemeDetector = remember { OsThemeDetector.getDetector() }
 	val defaultSize = DpSize(400.dp, 300.dp)
@@ -35,7 +37,9 @@ actual fun MpDialog(
 
 		AppTheme(useDarkTheme = darkMode) {
 			Surface(modifier = Modifier.fillMaxSize()) {
-				content()
+				Column {
+					content()
+				}
 			}
 		}
 	}

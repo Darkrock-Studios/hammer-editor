@@ -23,7 +23,7 @@ actual fun MpDialog(
 	visible: Boolean,
 	title: String,
 	size: DpSize?,
-	content: @Composable () -> Unit
+	content: @Composable ColumnScope.() -> Unit
 ) {
 	if (visible) {
 		val modifier = if (size != null) {
@@ -35,7 +35,7 @@ actual fun MpDialog(
 		Dialog(
 			onDismissRequest = onCloseRequest,
 			content = {
-				Card {
+				Card(modifier = Modifier.wrapContentSize()) {
 					Column(modifier = modifier) {
 						Row(
 							modifier = Modifier.fillMaxWidth(),
