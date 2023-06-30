@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.window.Dialog
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
 actual fun MpDialog(
@@ -51,7 +53,7 @@ actual fun MpDialog(
 
 							Icon(
 								Icons.Default.Close,
-								contentDescription = "Close Dialog",
+								contentDescription = MR.strings.close_dialog_button.get(),
 								modifier = Modifier
 									.padding(Ui.Padding.L)
 									.clickable {
