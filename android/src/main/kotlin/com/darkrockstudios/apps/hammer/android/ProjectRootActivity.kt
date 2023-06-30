@@ -142,7 +142,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					showBack = showBack,
 					onButtonClicked = {
 						if (showBack) {
-							onBackPressed()
+							onBackPressedDispatcher.onBackPressed()
 						} else {
 							scope.launch {
 								if (drawerState.isOpen) {
