@@ -121,6 +121,59 @@ jobs:
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb"
 
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: 17
+
+      - name: Gradle caching
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Package MacOS ".dmg" distribution
+        run: ./gradlew :desktop:packageReleaseDeb
+
+      - name: Rename Artifact
+        run: |
+          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name 'hammer_*.dmg' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.deb"
+          mv "$file" "${file/hammer_*/hammer}.dmg"
+
+          echo "File renamed successfully."
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: true
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
+
   server:
     runs-on: ubuntu-latest
     steps:
