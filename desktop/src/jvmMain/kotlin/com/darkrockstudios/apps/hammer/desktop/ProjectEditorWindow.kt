@@ -157,10 +157,10 @@ private fun FrameWindowScope.EditorMenuBar(
 		}
 
 		menu.forEach { menuDescriptor ->
-			Menu(menuDescriptor.label) {
+			Menu(menuDescriptor.label.get()) {
 				menuDescriptor.items.forEach { itemDescriptor ->
 					Item(
-						itemDescriptor.label,
+						itemDescriptor.label.get(),
 						onClick = { itemDescriptor.action(itemDescriptor.id) },
 						shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
 					)

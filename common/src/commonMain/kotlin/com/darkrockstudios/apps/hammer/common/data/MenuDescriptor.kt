@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-data class MenuDescriptor(val id: String, val label: String, val items: List<MenuItemDescriptor>)
+import dev.icerock.moko.resources.StringResource
+
+data class MenuDescriptor(val id: String, val label: StringResource, val items: List<MenuItemDescriptor>)
 
 data class MenuItemDescriptor(
 	val id: String,
-	val label: String,
+	val label: StringResource,
 	val icon: String,
 	val shortcut: KeyShortcut? = null,
 	val action: (itemId: String) -> Unit,

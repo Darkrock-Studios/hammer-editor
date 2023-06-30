@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
@@ -165,11 +166,11 @@ class ProjectRootComponent(
 			addMenu(
 				MenuDescriptor(
 					id = "project-root-sync",
-					label = "Sync",
+					label = MR.strings.sync_menu_group,
 					items = listOf(
 						MenuItemDescriptor(
 							id = "project-root-sync-start",
-							label = "Start",
+							label = MR.strings.sync_menu_item,
 							icon = "",
 							shortcut = KeyShortcut(keyCode = 0x72),
 							action = { showProjectSync() }

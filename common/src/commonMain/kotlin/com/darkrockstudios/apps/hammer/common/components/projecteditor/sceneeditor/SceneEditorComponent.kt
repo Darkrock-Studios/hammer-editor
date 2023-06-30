@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -85,14 +86,18 @@ class SceneEditorComponent(
 	}
 
 	override fun addEditorMenu() {
-		val closeItem = MenuItemDescriptor("scene-editor-close", "Close", "") {
+		val closeItem = MenuItemDescriptor(
+			"scene-editor-close",
+			MR.strings.scene_editor_menu_item_close,
+			""
+		) {
 			Napier.d("Scene close selected")
 			closeSceneEditor()
 		}
 
 		val saveItem = MenuItemDescriptor(
 			"scene-editor-save",
-			"Save",
+			MR.strings.scene_editor_menu_item_save,
 			"",
 			KeyShortcut(83, ctrl = true)
 		) {
@@ -102,7 +107,7 @@ class SceneEditorComponent(
 
 		val discardItem = MenuItemDescriptor(
 			"scene-editor-discard",
-			"Discard",
+			MR.strings.scene_editor_menu_item_discard,
 			""
 		) {
 			Napier.d("Scene buffer discard selected")
@@ -112,7 +117,7 @@ class SceneEditorComponent(
 
 		val renameItem = MenuItemDescriptor(
 			"scene-editor-rename",
-			"Rename",
+			MR.strings.scene_editor_menu_item_rename,
 			""
 		) {
 			Napier.d("Scene rename selected")
@@ -121,7 +126,7 @@ class SceneEditorComponent(
 
 		val draftsItem = MenuItemDescriptor(
 			"scene-editor-view-drafts",
-			"Drafts",
+			MR.strings.scene_editor_menu_item_view_drafts,
 			""
 		) {
 			Napier.i("View drafts")
@@ -130,7 +135,7 @@ class SceneEditorComponent(
 
 		val saveDraftItem = MenuItemDescriptor(
 			"scene-editor-save-draft",
-			"Save Draft",
+			MR.strings.scene_editor_menu_item_save_draft,
 			""
 		) {
 			Napier.i("Save draft")
@@ -139,7 +144,7 @@ class SceneEditorComponent(
 
 		val menu = MenuDescriptor(
 			getMenuId(),
-			"Scene",
+			MR.strings.scene_editor_menu_group,
 			listOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
 		)
 		addMenu(menu)

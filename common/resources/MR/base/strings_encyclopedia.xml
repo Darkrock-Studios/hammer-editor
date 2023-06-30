@@ -36,4 +36,8 @@
     <string name="encyclopedia_entry_close_button">Close Entry</string>
     <string name="encyclopedia_entry_discard_title">Discard Changes?</string>
     <string name="encyclopedia_entry_discard_message">You will lose any changes you have made.</string>
+    <string name="encyclopedia_entry_menu_group">Entry</string>
+    <string name="encyclopedia_entry_menu_delete">Delete Entry</string>
+    <string name="encyclopedia_entry_menu_remove_image">Remove Image</string>
+    <string name="encyclopedia_entry_menu_add_image">Add Image</string>
 </resources>

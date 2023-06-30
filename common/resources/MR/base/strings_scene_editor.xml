@@ -12,4 +12,11 @@
     <string name="scene_editor_save_button">Save</string>
     <string name="scene_editor_toast_save_successful">Saved</string>
     <string name="scene_editor_body_placeholder">Begin writing your scene here</string>
+    <string name="scene_editor_menu_group">Scene</string>
+    <string name="scene_editor_menu_item_save_draft">Save Draft</string>
+    <string name="scene_editor_menu_item_view_drafts">View Drafts</string>
+    <string name="scene_editor_menu_item_rename">Rename</string>
+    <string name="scene_editor_menu_item_discard">Discard</string>
+    <string name="scene_editor_menu_item_save">Save</string>
+    <string name="scene_editor_menu_item_close">Close</string>
 </resources>
