@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">Hammer</string>
     <string name="title_activity_add_note">Aggiungi Nota</string>
+    <string name="loading">Caricando…</string>
+    <string name="title_activity_configure_note_widget">Configura Widget</string>
 </resources>
