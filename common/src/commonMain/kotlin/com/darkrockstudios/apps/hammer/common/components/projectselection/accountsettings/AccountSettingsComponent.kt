@@ -245,7 +245,6 @@ class AccountSettingsComponent(
 				withContext(mainDispatcher) {
 					_state.getAndUpdate {
 						it.copy(
-							serverUrl = null,
 							serverError = message,
 							serverWorking = false,
 						)
@@ -266,7 +265,6 @@ class AccountSettingsComponent(
 						cleanUpServerSetup()
 						_state.getAndUpdate {
 							it.copy(
-								serverUrl = cleanUrl,
 								serverSetup = false,
 								serverWorking = false,
 								toast = "Server setup successfully!"
@@ -276,7 +274,6 @@ class AccountSettingsComponent(
 						_state.getAndUpdate {
 							val message = result.exceptionOrNull()?.message ?: "Unknown error"
 							it.copy(
-								serverUrl = null,
 								serverError = message,
 								serverWorking = false,
 								toast = "Server setup failed: $message"
