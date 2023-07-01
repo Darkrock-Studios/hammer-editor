@@ -175,6 +175,6 @@ class ProjectHomeComponent(
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")
 fun ProjectEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
 	val markdown = loadSceneMarkdownRaw(sceneItem)
-	val count = wordRegex.findAll(markdown.trim()).count() + 1
+	val count = wordRegex.findAll(markdown.trim()).count()
 	return count
 }
