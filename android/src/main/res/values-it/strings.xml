@@ -5,4 +5,10 @@
     <string name="loading">Caricando…</string>
     <string name="title_activity_configure_note_widget">Configura Widget</string>
     <string name="overflow_menu_button">Altro Menu</string>
+    <string name="note_widget_dialog_title">Aggiungi Nota a:</string>
+    <string name="note_widget_dialog_save_button">Salva</string>
+    <string name="note_widget_toast_no_projects">Nessun Progetto</string>
+    <string name="note_widget_toast_success">Nota Aggiunta</string>
+    <string name="note_widget_dialog_categories_dropdown">Categorie</string>
+    <string name="note_widget_button_description">Aggiungi Nota</string>
 </resources>
