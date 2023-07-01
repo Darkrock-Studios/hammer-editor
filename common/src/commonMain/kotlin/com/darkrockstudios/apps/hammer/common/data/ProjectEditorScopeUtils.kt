@@ -5,10 +5,13 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Proje
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
+import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.getScopeId
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.TypeQualifier
 import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeID
 import org.koin.mp.KoinPlatform.getKoin
 
 suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: suspend (projectScope: Scope) -> Unit) {
@@ -27,8 +30,7 @@ fun createProjectScope(projectDef: ProjectDef): Scope {
 	if (alreadyCreated) error("Scope was already created")
 
 	val defScope = ProjectDefScope(projectDef)
-	val projScope = getKoin().createScope<ProjectDefScope>(defScope.getScopeId())
-	projScope.declare(projectDef)
+	val projScope = getKoin().createScope<ProjectDefScope>(defScope.getScopeId(), source = defScope)
 
 	return projScope
 }
@@ -37,8 +39,7 @@ suspend fun openProjectScope(projectDef: ProjectDef): Scope {
 	val defScope = ProjectDefScope(projectDef)
 
 	val needsInit = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
-	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(defScope.getScopeId())
-	projScope.declare(projectDef)
+	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(defScope.getScopeId(), source = defScope)
 
 	if (needsInit) {
 		initializeProjectScope(projectDef)
@@ -67,4 +68,9 @@ fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	projectEditor.close()
 	notesRepository.close()
 	projectScope.close()
+}
+
+private inline fun <reified T : Any> Koin.getOrCreateScope(scopeId: ScopeID, source: Any? = null): Scope {
+	val qualifier = TypeQualifier(T::class)
+	return getScopeOrNull(scopeId) ?: createScope(scopeId, qualifier, source)
 }
