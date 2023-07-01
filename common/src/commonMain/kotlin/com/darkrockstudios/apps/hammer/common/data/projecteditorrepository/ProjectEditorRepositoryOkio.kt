@@ -122,7 +122,8 @@ class ProjectEditorRepositoryOkio(
 					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
 					fileSystem.atomicMove(realPath.toOkioPath(), intendedPath.toOkioPath())
 				} else {
-					Napier.d { "Scene ${node.value.id} is in the correct location" }
+					// Too chatty, don't need it
+					//Napier.d { "Scene ${node.value.id} is in the correct location" }
 				}
 			} else {
 				Napier.e { "Scene ${node.value.id} is missing from the filesystem" }
