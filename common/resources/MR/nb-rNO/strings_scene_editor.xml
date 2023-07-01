@@ -12,4 +12,5 @@
     <string name="scene_editor_save_button">Lagre</string>
     <string name="scene_editor_toast_save_successful">Lagret</string>
     <string name="scene_editor_body_placeholder">Begynn å skrive scenen din her</string>
+    <string name="scene_editor_menu_item_save_draft">Lagre kladd</string>
 </resources>
