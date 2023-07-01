@@ -197,7 +197,10 @@ class AccountSettingsComponent(
 	override fun reauthenticate() {
 		_state.getAndUpdate {
 			it.copy(
-				serverSetup = true
+				serverSetup = true,
+				serverSsl = state.value.currentSsl ?: true,
+				serverUrl = state.value.currentUrl,
+				serverEmail = state.value.currentEmail,
 			)
 		}
 	}
