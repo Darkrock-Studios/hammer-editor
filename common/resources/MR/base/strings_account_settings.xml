@@ -25,7 +25,7 @@
     <string name="settings_server_max_backups">Max Backups per Project</string>
     <string name="settings_server_test_auth_button">Test Auth</string>
     <string name="settings_server_reauth_button">Re-Auth</string>
-    <string name="settings_server_remove_server_button">Remove Auth</string>
+    <string name="settings_server_remove_server_button">Remove Server</string>
     <string name="settings_server_authtest_toast_success">Auth Test Successful</string>
     <string name="settings_server_authtest_toast_failure">Auth Test Failed</string>
     <string name="settings_remove_server_dialog_title">Remove Server</string>
