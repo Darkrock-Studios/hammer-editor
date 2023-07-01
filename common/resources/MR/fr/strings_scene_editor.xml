@@ -12,4 +12,11 @@
     <string name="scene_editor_save_button">Enregistrer</string>
     <string name="scene_editor_toast_save_successful">Enregistré</string>
     <string name="scene_editor_body_placeholder">Commencez à écrire votre scène ici</string>
+    <string name="scene_editor_menu_group">Scène</string>
+    <string name="scene_editor_menu_item_save_draft">Enregistrer le brouillon</string>
+    <string name="scene_editor_menu_item_discard">Rejeter</string>
+    <string name="scene_editor_menu_item_close">Fermer</string>
+    <string name="scene_editor_menu_item_view_drafts">Voir les brouillons</string>
+    <string name="scene_editor_menu_item_rename">Renommer</string>
+    <string name="scene_editor_menu_item_save">Enregistrer</string>
 </resources>

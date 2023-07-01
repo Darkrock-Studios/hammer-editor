@@ -34,4 +34,8 @@
     <string name="encyclopedia_create_entry_toast_invalid_name">Le nom de l’entrée doit être alphanumérique</string>
     <string name="encyclopedia_entry_body_empty_label">Cliquez pour saisir la description</string>
     <string name="encyclopedia_entry_edit_cancel_button">Annuler</string>
+    <string name="encyclopedia_entry_menu_group">Entrée</string>
+    <string name="encyclopedia_entry_menu_delete">Supprimer l’entrée</string>
+    <string name="encyclopedia_entry_menu_remove_image">Retirer l’image</string>
+    <string name="encyclopedia_entry_menu_add_image">Ajouter une image</string>
 </resources>
