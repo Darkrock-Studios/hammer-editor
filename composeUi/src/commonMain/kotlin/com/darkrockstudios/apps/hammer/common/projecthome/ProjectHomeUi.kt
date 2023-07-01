@@ -292,18 +292,20 @@ private fun WordsInChaptersChart(
 		}
 	}
 
-	XYChart(
-		modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
-		xAxisModel = CategoryAxisModel(xAxis),
-		yAxisModel = LinearAxisModel(range = range),
-		xAxisTitle = MR.strings.project_home_stat_chapter_words_x_axis.get(),
-		yAxisTitle = MR.strings.project_home_stat_chapter_words_y_axis.get(),
-		xAxisLabels = { index -> (index + 1).toString() },
-		xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
-		yAxisLabels = { it.toInt().toString() },
-		yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
-	) {
-		VerticalBarChart(series = listOf(entries))
+	if (state.wordsByChapter.size > 1) {
+		XYChart(
+			modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
+			xAxisModel = CategoryAxisModel(xAxis),
+			yAxisModel = LinearAxisModel(range = range),
+			xAxisTitle = MR.strings.project_home_stat_chapter_words_x_axis.get(),
+			yAxisTitle = MR.strings.project_home_stat_chapter_words_y_axis.get(),
+			xAxisLabels = { index -> (index + 1).toString() },
+			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
+			yAxisLabels = { it.toInt().toString() },
+			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
+		) {
+			VerticalBarChart(series = listOf(entries))
+		}
 	}
 }
 
