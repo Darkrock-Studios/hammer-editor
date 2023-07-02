@@ -14,6 +14,6 @@
     <string name="scene_delete_dialog_delete_button">Видалити</string>
     <string name="create_sceneitem_dialog_create_button">Створити</string>
     <string name="create_sceneitem_dialog_dismiss_button">Скасувати</string>
-    <string name="scene_delete_dialog_dismiss_button">OK</string>
+    <string name="scene_delete_dialog_dismiss_button">Відхилити</string>
     <string name="group_cannot_delete_dialog_title">Не вдається видалити групу</string>
 </resources>
