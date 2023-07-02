@@ -12,4 +12,11 @@
     <string name="scene_editor_toast_save_successful">已保存</string>
     <string name="scene_editor_body_placeholder">在此撰写场景</string>
     <string name="save_draft_dialog_cancel_button">取消</string>
+    <string name="scene_editor_menu_group">场景</string>
+    <string name="scene_editor_menu_item_save_draft">保存草稿</string>
+    <string name="scene_editor_menu_item_view_drafts">查看草稿</string>
+    <string name="scene_editor_menu_item_rename">重命名</string>
+    <string name="scene_editor_menu_item_discard">丢弃</string>
+    <string name="scene_editor_menu_item_save">保存</string>
+    <string name="scene_editor_menu_item_close">关闭</string>
 </resources>
