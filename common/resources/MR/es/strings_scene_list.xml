@@ -15,5 +15,5 @@
     <string name="create_sceneitem_dialog_dismiss_button">Cancelar</string>
     <string name="group_cannot_delete_dialog_title">No se puede eliminar el grupo</string>
     <string name="scene_delete_dialog_message">¿Confirma desear eliminar esta escena\?: %1$s</string>
-    <string name="scene_delete_dialog_dismiss_button">Descartar</string>
+    <string name="scene_delete_dialog_dismiss_button">Rechazar</string>
 </resources>
