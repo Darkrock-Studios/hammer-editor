@@ -63,7 +63,7 @@ fun ProjectListUi(
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(
 			modifier = colModifier
-				.padding(Ui.Padding.XL)
+				.padding(Ui.Padding.contents)
 				.align(Alignment.TopCenter)
 				.fillMaxSize()
 		) {
@@ -96,7 +96,7 @@ fun ProjectListUi(
 				LazyColumn(
 					modifier = Modifier.weight(1f),
 					state = listState,
-					contentPadding = PaddingValues(Ui.Padding.XL),
+					contentPadding = PaddingValues(horizontal = Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 				) {
 					if (state.projects.isEmpty()) {
