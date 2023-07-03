@@ -16,6 +16,10 @@ object Ui {
 		val XL = 16.dp
 	}
 
+	object NavDrawer {
+		val widthExpanded = 200.dp
+	}
+
 	val NAV_DRAWER = 256.dp
 	val MIN_TOUCH_SIZE = 44.dp
 }

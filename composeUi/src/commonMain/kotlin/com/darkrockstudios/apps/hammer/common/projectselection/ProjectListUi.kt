@@ -8,10 +8,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,21 +40,31 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun ProjectListUi(
 	component: ProjectsList,
 	modifier: Modifier = Modifier
 ) {
+	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 	val snackbarHostState = remember { SnackbarHostState() }
 
 	Toaster(state.toast, snackbarHostState)
 
-	Box {
+	val colModifier: Modifier = when (windowSizeClass.widthSizeClass) {
+		WindowWidthSizeClass.Compact -> modifier.fillMaxWidth()
+		WindowWidthSizeClass.Medium -> modifier.fillMaxWidth()
+		WindowWidthSizeClass.Expanded -> modifier.widthIn(max = 600.dp)
+		else -> error("Unhandled window class size: ${windowSizeClass.widthSizeClass}")
+	}
+
+	Box(modifier = Modifier.fillMaxSize()) {
 		Column(
-			modifier = modifier
+			modifier = colModifier
 				.padding(Ui.Padding.XL)
+				.align(Alignment.TopCenter)
 				.fillMaxSize()
 		) {
 			Row {
@@ -114,12 +126,6 @@ fun ProjectListUi(
 				}
 				MpScrollBarList(state = listState)
 			}
-		}
-		FloatingActionButton(
-			onClick = { component.showCreate() },
-			modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.M),
-		) {
-			Icon(imageVector = Icons.Filled.Create, MR.strings.projects_list_create_button.get())
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
