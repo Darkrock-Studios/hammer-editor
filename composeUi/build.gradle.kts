@@ -45,6 +45,7 @@ kotlin {
 				api(compose.animation)
 				api(compose.animationGraphics)
 				api(compose.materialIconsExtended)
+				api("dev.chrisbanes.material3:material3-window-size-class-multiplatform:0.2.0")
 				api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
 				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
 				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
