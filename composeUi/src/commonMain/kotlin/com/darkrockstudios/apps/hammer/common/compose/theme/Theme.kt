@@ -92,17 +92,23 @@ private fun generateMaterial2Colors(colorScheme: ColorScheme, isLight: Boolean):
 	)
 }
 
-@Composable
-fun AppTheme(
-	useDarkTheme: Boolean = isSystemInDarkTheme(),
-	content: @Composable () -> Unit
-) {
-	val colors = if (!useDarkTheme) {
+fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
+	return if (!useDarkTheme) {
 		LightColors
 	} else {
 		DarkColors
 	}
+}
 
+@Composable
+fun AppTheme(
+	useDarkTheme: Boolean = isSystemInDarkTheme(),
+	getOverrideColorScheme: ((Boolean) -> ColorScheme?)? = null,
+	content: @Composable () -> Unit
+) {
+	val colors = remember(useDarkTheme) {
+		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
+	}
 	val material2Colors = remember(useDarkTheme) {
 		generateMaterial2Colors(colors, !useDarkTheme)
 	}

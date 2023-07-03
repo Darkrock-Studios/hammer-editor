@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +18,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -76,7 +78,21 @@ class ProjectSelectActivity : AppCompatActivity() {
 					UiTheme.FollowSystem -> isSystemInDarkTheme()
 				}
 
-				AppTheme(isDark) {
+				// Dynamic color is available on Android 12+
+				val localCtx = LocalContext.current
+				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
+					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+					return when {
+						dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
+						dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
+						else -> null
+					}
+				}
+
+				AppTheme(
+					useDarkTheme = isDark,
+					getOverrideColorScheme = ::getDynamicColorScheme
+				) {
 					Content(component)
 				}
 			}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.android
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
@@ -84,7 +86,18 @@ class ProjectRootActivity : AppCompatActivity() {
 						UiTheme.FollowSystem -> isSystemInDarkTheme()
 					}
 
-					AppTheme(isDark) {
+					// Dynamic color is available on Android 12+
+					val localCtx = LocalContext.current
+					fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
+						val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+						return when {
+							dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
+							dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
+							else -> null
+						}
+					}
+
+					AppTheme(isDark, ::getDynamicColorScheme) {
 						Content(projectDef, component, menu)
 					}
 				}
