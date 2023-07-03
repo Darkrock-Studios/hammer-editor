@@ -36,7 +36,7 @@ internal fun AccountSettingsUi(
 
 	Box(modifier = modifier.fillMaxSize()) {
 		Column(
-			modifier = modifier
+			modifier = Modifier
 				.padding(Ui.Padding.L)
 				.fillMaxSize()
 		) {
