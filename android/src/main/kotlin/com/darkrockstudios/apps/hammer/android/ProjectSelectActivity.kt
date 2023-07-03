@@ -8,8 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.BottomNavigation
-import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -150,13 +148,11 @@ fun Content(component: ProjectSelection) {
 private fun CompactNavigation(
 	component: ProjectSelection,
 ) {
-	val paddingValues = WindowInsets.navigationBars.asPaddingValues()
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
 			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background)
-			.padding(paddingValues),
+			.background(MaterialTheme.colorScheme.background),
 		content = { innerPadding ->
 			ProjectSelectionUi(
 				component,
@@ -164,9 +160,9 @@ private fun CompactNavigation(
 			)
 		},
 		bottomBar = {
-			BottomNavigation {
+			NavigationBar {
 				ProjectSelection.Locations.values().forEach { item ->
-					BottomNavigationItem(
+					NavigationBarItem(
 						selected = item == slot.child?.configuration?.location,
 						onClick = { component.showLocation(item) },
 						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
