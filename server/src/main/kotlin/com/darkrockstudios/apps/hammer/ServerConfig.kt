@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class ServerConfig(
 	val host: String = "localhost",
 	val port: Int = 8080,
+	val sslPort: Int = 443,
 	val serverMessage: String = DEFAULT_MESSAGE,
 	val contact: String? = null,
 	val sslCert: SslCertConfig? = null,
