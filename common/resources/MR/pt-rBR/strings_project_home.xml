@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="project_home_stat_created">Criado: %1$s</string>
+    <string name="project_home_stat_chapter_words">Palavras em Capítulos</string>
+    <string name="project_home_stat_chapter_words_x_axis">Capítulo</string>
+    <string name="project_home_stat_chapter_words_y_axis">Palavras</string>
+    <string name="project_home_actions_header">Ações:</string>
+    <string name="project_home_action_export">Exportar História</string>
+    <string name="project_home_action_sync">Sincronizar História</string>
+    <string name="project_home_action_backup">Cópia de Segurança</string>
+    <string name="project_home_action_backup_toast_success">Cópia de Segurança Criada: %1$s</string>
+    <string name="project_home_action_backup_toast_failure">Falha ao Fazer Cópia de Segurança</string>
+    <string name="project_home_action_export_toast_success">História Exportada</string>
+    <string name="project_home_stat_num_scenes">Cenas</string>
+    <string name="project_home_stat_header">Estatísticas:</string>
+    <string name="project_home_stat_total_words">Total de Palavras</string>
+    <string name="project_home_stat_encyclopedia_entries">Inscrições na Enciclopédia</string>
 </resources>
