@@ -136,6 +136,12 @@ private fun Component.downloadHammer() {
 		)
 
 		downloadColumn(
+			"MacOS",
+			"apple",
+			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg "
+		)
+
+		downloadColumn(
 			"Android",
 			"android",
 			"https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
