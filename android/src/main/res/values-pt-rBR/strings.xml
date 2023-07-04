@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
+    <string name="loading">Carregando…</string>
+    <string name="title_activity_configure_note_widget">Configurar Widget</string>
+    <string name="note_widget_dialog_categories_dropdown">Categorias</string>
+    <string name="note_widget_button_description">Adicionar Notas</string>
+    <string name="note_widget_toast_no_projects">Sem projetos</string>
+    <string name="note_widget_toast_success">Nota Adicionada</string>
+    <string name="title_activity_add_note">Adicionar Nota</string>
+    <string name="overflow_menu_button">Mais Opções</string>
+    <string name="navdrawer_button">Gaveta de Navegação</string>
+    <string name="note_widget_dialog_title">Adicionar Nota à:</string>
+    <string name="note_widget_dialog_save_button">Salvar</string>
 </resources>
