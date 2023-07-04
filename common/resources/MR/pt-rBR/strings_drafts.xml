@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="draft_compare_cancel_button">Cancelar</string>
+    <string name="draft_compare_current_header">Mesclar com o Atual</string>
+    <string name="draft_compare_current_accept_button">Obter Mesclada</string>
+    <string name="draft_compare_draft_accept_button">Usar todo o rascunho</string>
+    <string name="draft_compare_draft_body_placeholder">Rascunho</string>
+    <string name="draft_list_item_created">Criado: %1$s</string>
+    <string name="draft_list_empty">Nenhum Rascunho Encontrado</string>
+    <string name="draft_compare_current_body_placeholder">Comece a escrever sua cena aqui</string>
+    <string name="draft_compare_draft_header">Rascunho: %1$s</string>
+    <string name="draft_compare_current_subheader">Copiar pra cá partes do rascunho</string>
+    <string name="draft_list_close_button">Fechar Rascunhos</string>
+    <string name="draft_compare_draft_subheader">Copiar as partes desejadas no texto atual ou aceitar tudo.</string>
+    <string name="draft_list_header">%1$s Rascunhos:</string>
 </resources>
