@@ -1,4 +1,4 @@
-[# How to run a Server
+# How to run a Server
 
 So you want to run an Instance of the Hammer Server? Great!
 
