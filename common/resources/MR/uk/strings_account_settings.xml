@@ -18,7 +18,7 @@
     <string name="settings_server_max_backups">Максимальна кількість резервних копій на проєкт</string>
     <string name="settings_server_reauth_button">Повторна авторизація</string>
     <string name="settings_server_test_auth_button">Тест Авторизації</string>
-    <string name="settings_server_remove_server_button">Видалити авторизацію</string>
+    <string name="settings_server_remove_server_button">Видалити сервер</string>
     <string name="settings_server_authtest_toast_success">Тест авторизації пройдено успішно</string>
     <string name="settings_remove_server_dialog_title">Видалити сервер</string>
     <string name="settings_remove_server_dialog_message">Ви впевнені, що хочете видалити сервер\?</string>

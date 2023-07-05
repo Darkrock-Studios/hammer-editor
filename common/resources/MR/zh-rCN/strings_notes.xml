@@ -7,7 +7,7 @@
     <string name="notes_create_toast_too_long">编辑过长</string>
     <string name="notes_create_toast_empty">笔记是空的</string>
     <string name="notes_delete_title">删除笔记\?</string>
-    <string name="notes_delete_message">此操作无法撤销.</string>
+    <string name="notes_delete_message">此操作无法撤销！</string>
     <string name="notes_note_item_action_delete">删除笔记</string>
     <string name="notes_note_item_action_rename">重命名</string>
     <string name="notes_discard_dialog_message">将失去所有已编辑的内容.</string>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hammer</string>
+    <string name="unsaved_scenes_dialog_title">Cenas Não Salvas</string>
+    <string name="unsaved_scenes_dialog_message">Salvar as cenas não salvas\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Descartar e fechar</string>
+    <string name="unsaved_scenes_dialog_positive_button">Salvar e fechar</string>
+    <string name="unsaved_encyclopedia_dialog_title">Inscrição da Enciclopédia Não Salva</string>
+    <string name="unsaved_notes_dialog_title">Nota Não Salva</string>
+    <string name="unsaved_notes_dialog_message">Descartar nota\?</string>
+    <string name="unsaved_dialog_negative_button">Cancelar</string>
+    <string name="unsaved_dialog_positive_button">Descartar e fechar</string>
+    <string name="close_dialog_button">Fechar</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Cancelar</string>
+    <string name="unsaved_encyclopedia_dialog_message">Descartar a inscrição\?</string>
+</resources>

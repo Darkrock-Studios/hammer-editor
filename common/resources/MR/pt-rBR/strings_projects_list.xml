@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_select_card_delete_button">Deletar</string>
+    <string name="projects_list_sync_button">Sincronizar Projetos</string>
+    <string name="projects_list_create_button">Criar Projeto</string>
+    <string name="projects_list_toast_sync_failed">Falha ao sincronizar projetos</string>
+    <string name="account_sync_dialog_title">Sincronização</string>
+    <string name="account_sync_dialog_header">Sincronizar Conta</string>
+    <string name="account_sync_dialog_cancel_button">Cancelar</string>
+    <string name="account_sync_log_title">Registro de Sincronização</string>
+    <string name="account_sync_dialog_status_pending">Pendente</string>
+    <string name="account_sync_dialog_status_canceled">Cancelado</string>
+    <string name="delete_project_title">Deletar Projeto</string>
+    <string name="delete_project_message">Você tem certeza de que quer deletar este projeto:
+\n%1$s</string>
+    <string name="delete_project_confirm">Deletar</string>
+    <string name="delete_project_cancel">Cancelar</string>
+    <string name="create_project_heading">Novo Nome de Projeto</string>
+    <string name="create_project_button">Criar Projeto</string>
+    <string name="create_project_error_already_exists">O projeto já existe</string>
+    <string name="create_project_error_null_filename">Falta o Nome do Projeto</string>
+    <string name="create_project_error_too_long">Nome de projeto muito longo</string>
+    <string name="create_project_error_invalid_characters">O nome do projeto possui caracteres inválidos</string>
+    <string name="create_project_title">Criar Projeto</string>
+    <string name="project_select_list_header">Projetos:</string>
+    <string name="projects_list_toast_sync_complete">Projetos sincronizados</string>
+    <string name="project_select_project_list_empty">Nenhum Projeto Encontrado</string>
+    <string name="account_sync_dialog_status_complete">Sincronização Completa</string>
+    <string name="account_sync_dialog_status_error">Erro</string>
+    <string name="create_project_error_blank">O nome do projeto foi deixado em branco</string>
+</resources>

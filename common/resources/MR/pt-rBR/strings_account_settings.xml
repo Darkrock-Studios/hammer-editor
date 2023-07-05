@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_heading">⚙ Configurações</string>
+    <string name="settings_theme_label">Tema de Interface</string>
+    <string name="settings_projects_directory">Diretório de Projetos</string>
+    <string name="settings_projects_directory_hint">Caminho do Diretório de Projetos</string>
+    <string name="settings_example_project_header">Projeto de Exemplo</string>
+    <string name="settings_example_project_description">Instala um projeto de exemplo para ver como os recursos variados são utilizados.</string>
+    <string name="settings_example_project_button">Reinstalar</string>
+    <string name="settings_example_project_success_message">Projeto de exemplo criado.</string>
+    <string name="settings_data_version">Dados: v%1$s</string>
+    <string name="settings_server_description">Configure um servidor para sincronizar entre dispositivos.</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_remove_server_dialog_title">Remover Servidor</string>
+    <string name="settings_projects_directory_button">Selecionar Diretório</string>
+    <string name="settings_server_email_label">E-mail:</string>
+    <string name="settings_server_setup_button">Configurar</string>
+    <string name="settings_server_header">Servidor</string>
+    <string name="settings_server_auto_sync">Auto Sincronização</string>
+    <string name="settings_server_modify_button">Modificar</string>
+    <string name="settings_server_unknown_error">erro</string>
+    <string name="settings_server_sync_backup">Fazer Cópia de Segurança ao Sincronizar</string>
+    <string name="settings_server_sync_auto_close">Fechar Diálogos de Sincronização ao Terminar</string>
+    <string name="settings_server_max_backups">Máximo de Cópias de Segurança por Projeto</string>
+    <string name="settings_server_remove_server_button">Remover Servidor</string>
+    <string name="settings_server_test_auth_button">Teste de Autenticação</string>
+    <string name="settings_server_reauth_button">Re-Autenticar</string>
+    <string name="settings_server_authtest_toast_success">Teste de Autenticação Bem-sucedido</string>
+    <string name="settings_remove_server_dialog_message">Você tem certeza de que quer remover o servidor\?</string>
+    <string name="settings_server_authtest_toast_failure">Teste de Autenticação Falhou</string>
+    <string name="settings_server_setup_title">Configurar Servidor</string>
+</resources>

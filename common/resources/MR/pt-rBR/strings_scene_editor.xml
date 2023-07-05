@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_save_button">Salvar</string>
+    <string name="save_draft_dialog_cancel_button">Cancelar</string>
+    <string name="scene_editor_cancel_button">Cancelar</string>
+    <string name="scene_editor_unsaved_chip">Não Salvo</string>
+    <string name="scene_editor_save_button">Salvar</string>
+    <string name="scene_editor_body_placeholder">Comece a escrever sua cena aqui</string>
+    <string name="scene_editor_menu_item_save_draft">Salvar Rascunho</string>
+    <string name="scene_editor_menu_item_rename">Renomear</string>
+    <string name="scene_editor_menu_item_discard">Descartar</string>
+    <string name="scene_editor_menu_item_save">Salvar</string>
+    <string name="scene_editor_toast_save_successful">Salvo</string>
+    <string name="save_draft_dialog_name_hint">Nome do rascunho</string>
+    <string name="scene_editor_name_hint">Nome da Cena</string>
+    <string name="save_draft_dialog_title">Salvar Rascunho:</string>
+    <string name="scene_editor_rename_button">Renomear</string>
+    <string name="scene_editor_menu_group">Cena</string>
+    <string name="scene_editor_menu_item_close">Fechar</string>
+    <string name="save_draft_dialog_toast_success">Rascunho Salvo</string>
+    <string name="scene_editor_menu_item_view_drafts">Ver Rascunhos</string>
+</resources>

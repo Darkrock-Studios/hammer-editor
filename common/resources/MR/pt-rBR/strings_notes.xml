@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notes_header">Notas</string>
+    <string name="notes_list_empty">Nenhuma Nota Encontrada</string>
+    <string name="notes_create_note_button">Criar Nota</string>
+    <string name="notes_note_item_action_rename">Renomear</string>
+    <string name="notes_note_item_action_cancel">Cancelar</string>
+    <string name="notes_discard_dialog_title">Descartar Alterações\?</string>
+    <string name="notes_discard_dialog_message">Você perderá quaisquer mudanças feitas.</string>
+    <string name="notes_create_header">Criar Nota</string>
+    <string name="notes_create_body_hint">Nova Nota:</string>
+    <string name="notes_create_create_button">Criar</string>
+    <string name="notes_create_cancel_button">Cancelar</string>
+    <string name="notes_create_toast_success">Nota Criada</string>
+    <string name="notes_create_toast_too_long">A Nota ficou muito longa</string>
+    <string name="notes_create_toast_empty">A Nota está vazia</string>
+    <string name="notes_delete_title">Deletar Nota\?</string>
+    <string name="notes_delete_toast_success">A Nota %1$s foi Deletada</string>
+    <string name="notes_note_item_action_delete">Deletar</string>
+    <string name="notes_delete_message">Esta ação não pode ser desfeita!</string>
+</resources>

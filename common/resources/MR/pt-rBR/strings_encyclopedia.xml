@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="encyclopedia_category_all">Todos</string>
+    <string name="encyclopedia_browse_list_empty">Inscrições Não Encontradas</string>
+    <string name="encyclopedia_create_button">Criar Uma Inscrição</string>
+    <string name="encyclopedia_create_entry_header">Criar Uma Nova Inscrição</string>
+    <string name="encyclopedia_create_entry_type_label">Tipo:</string>
+    <string name="encyclopedia_create_entry_select_image_button">Selecionar Imagem</string>
+    <string name="encyclopedia_create_entry_toast_success">Inscrição Criada</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_long">A etiqueta é muito longa. Máximo %1$d</string>
+    <string name="encyclopedia_create_entry_discard_title">Descartar a Nova Inscrição\?</string>
+    <string name="encyclopedia_entry_body_empty_placeholder">Descreva sua inscrição</string>
+    <string name="encyclopedia_entry_body_empty_label">Clique para inserir uma descrição</string>
+    <string name="encyclopedia_entry_edit_cancel_button">Cancelar</string>
+    <string name="encyclopedia_entry_edit_save_button">Salvar</string>
+    <string name="encyclopedia_entry_discard_title">Descartar Alterações\?</string>
+    <string name="encyclopedia_entry_delete_title">Deletar Inscrição\?</string>
+    <string name="encyclopedia_entry_delete_message">Isso não pode ser desfeito!</string>
+    <string name="encyclopedia_entry_delete_toast">Inscrição Deletada</string>
+    <string name="encyclopedia_entry_name_hint">Nome</string>
+    <string name="encyclopedia_entry_close_button">Fechar Inscrição</string>
+    <string name="encyclopedia_entry_menu_group">Inscrição</string>
+    <string name="encyclopedia_entry_menu_delete">Deletar Inscrição</string>
+    <string name="encyclopedia_search_hint">Procurar por Nome</string>
+    <string name="encyclopedia_search_clear_button">Limpar</string>
+    <string name="encyclopedia_create_entry_body_hint">Descreva sua inscrição</string>
+    <string name="encyclopedia_create_entry_name_label">Nome</string>
+    <string name="encyclopedia_create_entry_remove_image_button">Remover Imagem</string>
+    <string name="encyclopedia_create_entry_tags_label">Etiquetas (separadas por espaço)</string>
+    <string name="encyclopedia_create_entry_create_button">Criar</string>
+    <string name="encyclopedia_create_entry_cancel_button">Cancelar</string>
+    <string name="encyclopedia_create_entry_toast_too_long">O Nome da Inscrição está muito longo. Máximo %1$d</string>
+    <string name="encyclopedia_entry_load_error">Erro: Falha ao carregar inscrição!</string>
+    <string name="encyclopedia_create_entry_toast_invalid_name">O nome da inscrição deve ser alfanumérico</string>
+    <string name="encyclopedia_entry_delete_image_title">Deletar Imagem\?</string>
+    <string name="encyclopedia_entry_edit_save_toast">Inscrição Salva</string>
+    <string name="encyclopedia_entry_menu_remove_image">Remover Imagem</string>
+    <string name="encyclopedia_entry_discard_message">Você perderá quaisquer alterações feitas.</string>
+    <string name="encyclopedia_entry_delete_image_message">Isso não pode ser desfeito!</string>
+    <string name="encyclopedia_entry_menu_add_image">Adicionar Imagem</string>
+</resources>

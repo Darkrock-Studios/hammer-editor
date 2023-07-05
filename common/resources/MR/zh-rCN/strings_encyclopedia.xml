@@ -34,4 +34,8 @@
     <string name="encyclopedia_entry_delete_toast">条目已删除</string>
     <string name="encyclopedia_entry_delete_image_message">此操作无法撤销!</string>
     <string name="encyclopedia_entry_name_hint">名称</string>
+    <string name="encyclopedia_entry_menu_group">条目</string>
+    <string name="encyclopedia_entry_menu_delete">删除条目</string>
+    <string name="encyclopedia_entry_menu_remove_image">移除图片</string>
+    <string name="encyclopedia_entry_menu_add_image">添加图片</string>
 </resources>
