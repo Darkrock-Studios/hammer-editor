@@ -9,12 +9,12 @@
     <string name="settings_example_project_button">Reinstalar</string>
     <string name="settings_example_project_success_message">Projeto de exemplo criado.</string>
     <string name="settings_data_version">Dados: v%1$s</string>
-    <string name="settings_server_description">Configure um servidor para sincronizar entre dispositivos.</string>
+    <string name="settings_server_description">Monte um servidor para sincronizar entre dispositivos.</string>
     <string name="settings_server_url_label">URL:</string>
     <string name="settings_remove_server_dialog_title">Remover Servidor</string>
     <string name="settings_projects_directory_button">Selecionar Diretório</string>
     <string name="settings_server_email_label">E-mail:</string>
-    <string name="settings_server_setup_button">Configurar</string>
+    <string name="settings_server_setup_button">Montar</string>
     <string name="settings_server_header">Servidor</string>
     <string name="settings_server_auto_sync">Auto Sincronização</string>
     <string name="settings_server_modify_button">Modificar</string>
@@ -28,5 +28,17 @@
     <string name="settings_server_authtest_toast_success">Teste de Autenticação Bem-sucedido</string>
     <string name="settings_remove_server_dialog_message">Você tem certeza de que quer remover o servidor\?</string>
     <string name="settings_server_authtest_toast_failure">Teste de Autenticação Falhou</string>
-    <string name="settings_server_setup_title">Configurar Servidor</string>
+    <string name="settings_server_setup_title">Montar Servidor</string>
+    <string name="settings_server_setup_login_button">Conectar-se</string>
+    <string name="settings_server_setup_create_button">Criar</string>
+    <string name="settings_server_setup_cancel_button">Cancelar</string>
+    <string name="remove_local_dialog_title">Remover o Conteúdo Local\?</string>
+    <string name="remove_local_dialog_message">Devemos remover seu conteúdo local atual antes de sincronizar\? Se não tentaremos mesclar o seu conteúdo local com o do servidor. Se o conteúdo não for relacionado, pode causar problemas.</string>
+    <string name="settings_server_setup_header">onfigurar Servidor</string>
+    <string name="settings_server_setup_ssl_label">HTTPS\?</string>
+    <string name="settings_server_setup_password_show">Exibir senha</string>
+    <string name="settings_server_setup_url_hint">URL do Servidor: meuservidor.com</string>
+    <string name="settings_server_setup_password_hide">Ocultar senha</string>
+    <string name="settings_server_setup_email_hint">E-Mail: usuario@exemplo.com</string>
+    <string name="settings_server_setup_password_hint">Senha</string>
 </resources>
