@@ -1,3 +1,7 @@
 [*]
 indent_style = tab
 indent_size = 4
+
+[*.yml]
+indent_style = unset
+indent_size = unset
