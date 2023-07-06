@@ -297,7 +297,7 @@ class AccountSettingsComponent(
 	companion object {
 		// regex to validate url with port number
 		private val urlWithPortRegex =
-			Regex("""^(?:w{1,3}\.)?[^\s.]+(?:\.[a-z]+)*(?::\d+)?(?![^<]*(?:</\w+>|/?>))$""")
+			Regex("""^([a-z0-9]+\.)*([a-z0-9]+)(\.[a-z]+)(:[0-9]{1,5})?$""")
 		private val ipWithPortRegex = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$""")
 
 		fun validateUrl(url: String): Boolean {
