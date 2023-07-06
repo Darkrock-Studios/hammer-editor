@@ -112,6 +112,7 @@ private fun MediumNavigation(
 						"v${BuildMetadata.APP_VERSION}",
 						style = MaterialTheme.typography.labelSmall,
 						fontWeight = FontWeight.Thin,
+						modifier = Modifier.align(Alignment.Start).padding(Ui.Padding.L)
 					)
 				}
 
@@ -183,7 +184,7 @@ private fun ColumnScope.NavigationDrawerContents(
 		"v${BuildMetadata.APP_VERSION}",
 		modifier = Modifier
 			.padding(Ui.Padding.L)
-			.align(Alignment.End),
+			.align(Alignment.Start),
 		style = MaterialTheme.typography.labelSmall,
 	)
 }

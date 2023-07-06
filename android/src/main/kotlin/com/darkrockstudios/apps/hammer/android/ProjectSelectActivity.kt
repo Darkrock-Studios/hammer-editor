@@ -14,7 +14,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment.Companion.End
+import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -151,8 +151,7 @@ private fun CompactNavigation(
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background),
+			.fillMaxSize(),
 		content = { innerPadding ->
 			ProjectSelectionUi(
 				component,
@@ -191,7 +190,6 @@ private fun MediumNavigation(
 				modifier = Modifier
 					.padding(innerPadding)
 					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.background)
 			) {
 				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 					ProjectSelection.Locations.values().forEach { item ->
@@ -209,6 +207,9 @@ private fun MediumNavigation(
 						"v${BuildMetadata.APP_VERSION}",
 						style = MaterialTheme.typography.labelSmall,
 						fontWeight = FontWeight.Thin,
+						modifier = Modifier
+							.align(Start)
+							.padding(Ui.Padding.L)
 					)
 				}
 
@@ -280,7 +281,7 @@ private fun ColumnScope.NavigationDrawerContents(
 		"v${BuildMetadata.APP_VERSION}",
 		modifier = Modifier
 			.padding(Ui.Padding.L)
-			.align(End),
+			.align(Start),
 		style = MaterialTheme.typography.labelSmall,
 	)
 }
