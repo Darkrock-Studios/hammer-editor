@@ -28,6 +28,8 @@ fun Application.configureHTTP(config: ServerConfig) {
 	}
 
 	if (config.sslCert?.forceHttps == true) {
-		install(HttpsRedirect)
+		install(HttpsRedirect) {
+		    sslPort = config.sslPort
+		}
 	}
 }

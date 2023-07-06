@@ -51,6 +51,7 @@ private fun startServer(config: ServerConfig) {
 				privateKeyPassword = { (keyPassword ?: "").toCharArray() }) {
 				keyStorePath = File(path)
 				host = bindHost
+				port = config.sslPort
 			}
 		}
 

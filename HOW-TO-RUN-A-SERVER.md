@@ -16,7 +16,10 @@ port = 80
 serverMessage = "Welcome to the my personal Hammer server!"
 contact = "bob@example.com"
 
-# Optional, if you don't care about HTTPS, just leave this section out
+# Below this line is optional, if you don't care about HTTPS, just leave it out
+
+sslPort = 443
+
 [sslCert]
 path = "/etc/letsencrypt/live/example.com/cert.jks"
 storePassword = "1234567890"
