@@ -49,4 +49,5 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginSaveDraft() {}
 	override fun endSaveDraft() {}
 	override suspend fun saveDraft(draftName: String) = true
+	override fun closeEditor() {}
 }
