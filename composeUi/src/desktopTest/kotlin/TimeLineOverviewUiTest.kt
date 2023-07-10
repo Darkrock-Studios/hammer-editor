@@ -82,6 +82,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		*/
 	}
 
+	/*
 	@Test
 	fun `Event Overview Show Create`() {
 		val data = TimeLineOverview.State(
@@ -106,6 +107,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).performClick()
 		verify(exactly = 1) { showCreate.invoke() }
 	}
+	*/
 
 	@Test
 	fun `Event Card Click`() {

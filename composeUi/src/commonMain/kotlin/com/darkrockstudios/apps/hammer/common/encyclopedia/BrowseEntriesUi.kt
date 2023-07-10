@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,7 +25,6 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_TAG
 import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -133,7 +131,6 @@ fun BrowseEntriesFab(
 		is Encyclopedia.Destination.BrowseEntriesDestination -> {
 			FloatingActionButton(
 				onClick = component::showCreateEntry,
-				modifier = Modifier.testTag(TIME_LINE_CREATE_TAG)
 			) {
 				Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
 			}
