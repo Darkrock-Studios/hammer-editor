@@ -19,12 +19,15 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
+import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
+import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
 import com.darkrockstudios.apps.hammer.common.uiNeedsExplicitCloseButtons
 import kotlinx.coroutines.launch
 
@@ -43,7 +46,8 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
-	drawableKlass: Any? = null
+	modifier: Modifier = Modifier,
+	drawableKlass: Any? = null,
 ) {
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
@@ -55,7 +59,7 @@ fun ProjectRootUi(
 				uiNeedsExplicitCloseButtons()
 			)
 		) {
-			FeatureContent(Modifier.fillMaxSize(), component, isWide, drawableKlass)
+			FeatureContent(modifier.fillMaxSize(), component, isWide, drawableKlass)
 			SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 		}
 	}
@@ -70,7 +74,7 @@ fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
 	isWide: Boolean,
-	drawableKlass: Any? = null
+	drawableKlass: Any? = null,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 	Children(
@@ -108,5 +112,33 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 		}
 
 		null -> {}
+	}
+}
+
+@Composable
+fun ProjectRootFab(
+	component: ProjectRoot,
+) {
+	val routerState by component.routerState.subscribeAsState()
+	when (val child = routerState.active.instance) {
+		is ProjectRoot.Destination.EditorDestination -> {
+
+		}
+
+		is ProjectRoot.Destination.NotesDestination -> {
+			NotesFab(child.component)
+		}
+
+		is ProjectRoot.Destination.EncyclopediaDestination -> {
+			BrowseEntriesFab(child.component)
+		}
+
+		is ProjectRoot.Destination.TimeLineDestination -> {
+			TimelineFab(child.component)
+		}
+
+		is ProjectRoot.Destination.HomeDestination -> {
+
+		}
 	}
 }

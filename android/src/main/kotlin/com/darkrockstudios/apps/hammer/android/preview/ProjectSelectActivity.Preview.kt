@@ -6,7 +6,7 @@ import com.arkivanov.decompose.Child.Created
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.android.Content
+import com.darkrockstudios.apps.hammer.android.ProjectSelectContent
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
@@ -53,5 +53,5 @@ val component = object : ProjectSelection {
 @Preview
 @Composable
 private fun ProjectSelectActivityPreview() {
-	Content(component)
+	ProjectSelectContent(component)
 }

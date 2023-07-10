@@ -18,4 +18,5 @@
     <string name="unsaved_dialog_positive_button">Discard and close</string>
 
     <string name="close_dialog_button">Close</string>
+	<string name="more_menu_button">More</string>
 </resources>

@@ -40,7 +40,7 @@ fun NotesUi(
 	val state by component.state.subscribeAsState()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
+	Box(modifier = Modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL)) {
 		Column {
 			Text(
 				MR.strings.notes_header.get(),
@@ -74,13 +74,6 @@ fun NotesUi(
 					)
 				}
 			}
-		}
-
-		FloatingActionButton(
-			onClick = { component.showCreate() },
-			modifier = Modifier.align(Alignment.BottomEnd)
-		) {
-			Icon(Icons.Filled.Create, MR.strings.notes_create_note_button.get())
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
@@ -189,5 +182,16 @@ fun NoteItem(
 			isEditing = false
 			discardConfirm = false
 		}
+	}
+}
+
+@Composable
+fun NotesFab(
+	component: Notes,
+) {
+	FloatingActionButton(
+		onClick = { component.showCreate() },
+	) {
+		Icon(Icons.Filled.Create, MR.strings.notes_create_note_button.get())
 	}
 }

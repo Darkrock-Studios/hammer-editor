@@ -56,10 +56,47 @@ internal fun ViewEntryUi(
 	}
 
 	Box(
-		modifier = modifier.fillMaxSize().padding(Ui.Padding.XL),
+		modifier = modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL),
 		contentAlignment = Alignment.TopCenter
 	) {
 		Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
+			if (state.editName) {
+				TextField(
+					modifier = Modifier.wrapContentHeight().fillMaxWidth(),
+					value = entryNameText,
+					onValueChange = { entryNameText = it },
+					placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
+				)
+			} else {
+				Row(modifier = Modifier.fillMaxWidth()) {
+					Text(
+						entryNameText,
+						style = MaterialTheme.typography.displaySmall,
+						color = MaterialTheme.colorScheme.onBackground,
+						textAlign = TextAlign.Center,
+						modifier = Modifier.weight(1f).clickable { component.startNameEdit() }
+					)
+
+					ViewEntryMenuUi(component)
+
+					IconButton(
+						onClick = {
+							if (state.editName || state.editText) {
+								component.confirmClose()
+							} else {
+								closeEntry()
+							}
+						},
+					) {
+						Icon(
+							Icons.Filled.Close,
+							contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
+				}
+			}
+
 			Row(
 				modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
 				horizontalArrangement = Arrangement.End,
@@ -127,41 +164,6 @@ internal fun ViewEntryUi(
 						}
 					}
 				}
-
-				if (screen.needsExplicitClose) {
-					IconButton(
-						onClick = {
-							if (state.editName || state.editText) {
-								component.confirmClose()
-							} else {
-								closeEntry()
-							}
-						},
-					) {
-						Icon(
-							Icons.Filled.Close,
-							contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					}
-				}
-			}
-
-			if (state.editName) {
-				TextField(
-					modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-					value = entryNameText,
-					onValueChange = { entryNameText = it },
-					placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
-				)
-			} else {
-				Text(
-					entryNameText,
-					style = MaterialTheme.typography.displayMedium,
-					color = MaterialTheme.colorScheme.onBackground,
-					textAlign = TextAlign.Center,
-					modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { component.startNameEdit() }
-				)
 			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
@@ -299,12 +301,6 @@ private fun Contents(
 
 		if (content != null) {
 			Column {
-				LaunchedEffect(entryText) {
-					if (entryText.isBlank()) {
-						beginEdit()
-					}
-				}
-
 				if (editText) {
 					OutlinedTextField(
 						value = entryText,

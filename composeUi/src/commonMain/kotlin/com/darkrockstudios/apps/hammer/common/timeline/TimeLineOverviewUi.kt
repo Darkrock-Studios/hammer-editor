@@ -3,9 +3,10 @@ package com.darkrockstudios.apps.hammer.common.timeline
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -41,8 +42,8 @@ fun TimeLineOverviewUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	Box(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		Column(modifier = Modifier.widthIn(0.dp, 700.dp).fillMaxWidth()) {
+	Box(modifier = Modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL)) {
+		Column(modifier = Modifier.widthIn(0.dp, 700.dp).align(Alignment.Center).fillMaxWidth()) {
 			Text(
 				MR.strings.timeline_title.get(),
 				style = MaterialTheme.typography.headlineLarge,
@@ -72,13 +73,6 @@ fun TimeLineOverviewUi(
 			) { event, isDragging ->
 				EventCard(event, isDragging, viewEvent)
 			}
-		}
-
-		FloatingActionButton(
-			onClick = showCreate,
-			modifier = Modifier.align(Alignment.BottomEnd).testTag(TIME_LINE_CREATE_TAG)
-		) {
-			Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
 		}
 	}
 }

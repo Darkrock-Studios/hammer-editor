@@ -2,16 +2,13 @@ package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
@@ -26,7 +23,6 @@ import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SceneEditorUi(
 	component: SceneEditor,
@@ -52,68 +48,12 @@ fun SceneEditorUi(
 	Toaster(state.toast, snackbarHostState)
 
 	Box(modifier = modifier) {
-		Column(modifier = Modifier.fillMaxSize()) {
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				if (state.isEditingName) {
-					var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
+		Column(
+			modifier = Modifier.fillMaxHeight(),
+			horizontalAlignment = Alignment.CenterHorizontally
+		) {
+			EditorTopBar(component, snackbarHostState)
 
-					TextField(
-						value = editSceneNameValue,
-						onValueChange = { editSceneNameValue = it },
-						modifier = Modifier.padding(Ui.Padding.XL),
-						label = { Text(MR.strings.scene_editor_name_hint.get()) }
-					)
-					IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
-						Icon(
-							Icons.Filled.Check,
-							MR.strings.scene_editor_rename_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					}
-					IconButton(onClick = component::endSceneNameEdit) {
-						Icon(
-							Icons.Filled.Cancel,
-							MR.strings.scene_editor_cancel_button.get(),
-							tint = MaterialTheme.colorScheme.error
-						)
-					}
-				} else {
-					ClickableText(
-						AnnotatedString(state.sceneItem.name),
-						modifier = Modifier.padding(
-							start = Ui.Padding.XL,
-							end = Ui.Padding.XL,
-							top = 24.dp,
-							bottom = 28.dp
-						),
-						onClick = { component.beginSceneNameEdit() },
-						style = MaterialTheme.typography.headlineMedium
-							.copy(color = MaterialTheme.colorScheme.onBackground),
-					)
-
-					val unsaved = state.sceneBuffer?.dirty == true
-					if (unsaved) {
-						Badge(
-							modifier = Modifier.align(Alignment.Top).padding(top = Ui.Padding.L)
-						) { Text(MR.strings.scene_editor_unsaved_chip.get()) }
-
-						Spacer(modifier = Modifier.weight(1f))
-
-						IconButton(onClick = {
-							scope.launch {
-								component.storeSceneContent()
-								scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
-							}
-						}) {
-							Icon(
-								Icons.Filled.Save,
-								contentDescription = MR.strings.scene_editor_save_button.get(),
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						}
-					}
-				}
-			}
 			Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 				EditorAction(
 					iconRes = "drawable/icon_bold.xml",
@@ -151,7 +91,7 @@ fun SceneEditorUi(
 					modifier = Modifier
 						.fillMaxHeight()
 						.widthIn(128.dp, 700.dp)
-						.padding(Ui.Padding.XL),
+						.padding(start = Ui.Padding.XL, end = Ui.Padding.XL),
 					value = sceneText,
 					onValueChange = { rtv ->
 						sceneText = rtv

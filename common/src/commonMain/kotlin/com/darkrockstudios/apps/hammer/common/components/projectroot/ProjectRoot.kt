@@ -11,10 +11,12 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEd
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import dev.icerock.moko.resources.StringResource
 
 interface ProjectRoot : AppCloseManager, HammerComponent {
+	val projectDef: ProjectDef
 	val routerState: Value<ChildStack<*, Destination<*>>>
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>

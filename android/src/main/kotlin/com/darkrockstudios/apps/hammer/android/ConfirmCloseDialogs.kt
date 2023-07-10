@@ -5,10 +5,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import kotlinx.coroutines.launch
 
-fun AppCompatActivity.confirmUnsavedScenesDialog(component: ProjectRootComponent) {
+fun AppCompatActivity.confirmUnsavedScenesDialog(component: ProjectRoot) {
 	AlertDialog.Builder(this)
 		.setTitle(R.string.unsaved_scenes_dialog_title)
 		.setMessage(R.string.unsaved_scenes_dialog_message)
@@ -29,7 +29,7 @@ fun AppCompatActivity.confirmUnsavedScenesDialog(component: ProjectRootComponent
 		.show()
 }
 
-fun AppCompatActivity.confirmCloseUnsavedEncyclopediaDialog(component: ProjectRootComponent) {
+fun AppCompatActivity.confirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
 	AlertDialog.Builder(this)
 		.setTitle(MR.strings.unsaved_encyclopedia_dialog_title.getString(this))
 		.setMessage(MR.strings.unsaved_encyclopedia_dialog_message.getString(this))
@@ -44,7 +44,7 @@ fun AppCompatActivity.confirmCloseUnsavedEncyclopediaDialog(component: ProjectRo
 		.show()
 }
 
-fun AppCompatActivity.confirmCloseUnsavedNotesDialog(component: ProjectRootComponent) {
+fun AppCompatActivity.confirmCloseUnsavedNotesDialog(component: ProjectRoot) {
 	AlertDialog.Builder(this)
 		.setTitle(MR.strings.unsaved_notes_dialog_title.getString(this))
 		.setMessage(MR.strings.unsaved_notes_dialog_message.getString(this))

@@ -218,16 +218,27 @@ class ViewEntryComponent(
 			_state.getAndUpdate { it.copy(showDeleteEntryDialog = true) }
 		}
 
+		val menuItems = setOf(addImage, removeImage, deleteEntry)
 		val menu = MenuDescriptor(
 			getMenuId(),
 			MR.strings.encyclopedia_entry_menu_group,
-			listOf(addImage, removeImage, deleteEntry)
+			menuItems.toList()
 		)
 		addMenu(menu)
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = menuItems
+			)
+		}
 	}
 
 	private fun removeEntryMenu() {
 		removeMenu(getMenuId())
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = emptySet()
+			)
+		}
 	}
 
 	override fun onStart() {

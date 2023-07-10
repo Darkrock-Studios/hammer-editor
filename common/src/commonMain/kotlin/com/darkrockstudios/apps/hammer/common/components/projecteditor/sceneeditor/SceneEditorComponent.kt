@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -30,11 +31,12 @@ class SceneEditorComponent(
 	private val projectEditor: ProjectEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 
+	private val mainDispatcher by injectMainDispatcher()
+
 	private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
 	override val state: Value<SceneEditor.State> = _state
 
 	override var lastForceUpdate = MutableValue<Long>(0)
-
 	private var bufferUpdateSubscription: Job? = null
 
 	private val sceneDef: SceneItem
@@ -142,12 +144,18 @@ class SceneEditorComponent(
 			beginSaveDraft()
 		}
 
+		val menuItems = setOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
 		val menu = MenuDescriptor(
 			getMenuId(),
 			MR.strings.scene_editor_menu_group,
-			listOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
+			menuItems.toList()
 		)
 		addMenu(menu)
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = menuItems
+			)
+		}
 	}
 
 	private fun forceUpdate() {
@@ -156,6 +164,11 @@ class SceneEditorComponent(
 
 	override fun removeEditorMenu() {
 		removeMenu(getMenuId())
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = emptySet()
+			)
+		}
 	}
 
 	override fun beginSceneNameEdit() {
@@ -167,23 +180,25 @@ class SceneEditorComponent(
 	}
 
 	override suspend fun changeSceneName(newName: String) {
-		val result = ProjectsRepository.validateFileName(newName)
+		withContext(mainDispatcher) {
+			val result = ProjectsRepository.validateFileName(newName)
 
-		if (result.isSuccess) {
-			endSceneNameEdit()
-			projectEditor.renameScene(sceneDef, newName)
+			if (result.isSuccess) {
+				endSceneNameEdit()
+				projectEditor.renameScene(sceneDef, newName)
 
-			_state.getAndUpdate {
-				it.copy(
-					sceneItem = it.sceneItem.copy(name = newName)
-				)
-			}
-		} else {
-			(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
 				_state.getAndUpdate {
 					it.copy(
-						toast = message
+						sceneItem = it.sceneItem.copy(name = newName)
 					)
+				}
+			} else {
+				(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
+					_state.getAndUpdate {
+						it.copy(
+							toast = message
+						)
+					}
 				}
 			}
 		}
@@ -214,6 +229,10 @@ class SceneEditorComponent(
 			Napier.w { "Failed to save Draft, invalid name: $draftName" }
 			false
 		}
+	}
+
+	override fun closeEditor() {
+		closeSceneEditor()
 	}
 
 	private fun getMenuId(): String {

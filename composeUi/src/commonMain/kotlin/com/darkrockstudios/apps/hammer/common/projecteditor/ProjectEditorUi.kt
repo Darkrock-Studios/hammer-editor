@@ -26,7 +26,7 @@ fun ProjectEditorUi(
 	component: ProjectEditor,
 	modifier: Modifier = Modifier,
 	isWide: Boolean,
-	drawableKlass: Any? = null
+	drawableKlass: Any? = null,
 ) {
 	BoxWithConstraints(modifier = modifier) {
 		val state by component.state.subscribeAsState()
@@ -56,7 +56,7 @@ fun ProjectEditorUi(
 			DetailsPane(
 				state = detailsState,
 				modifier = detailsModifier,
-				drawableKlass = drawableKlass
+				drawableKlass = drawableKlass,
 			)
 		}
 
@@ -95,7 +95,7 @@ private fun ListPane(
 private fun DetailsPane(
 	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
 	modifier: Modifier,
-	drawableKlass: Any? = null
+	drawableKlass: Any? = null,
 ) {
 	Children(
 		stack = state,

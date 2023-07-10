@@ -5,7 +5,6 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
@@ -91,7 +90,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 					useDarkTheme = isDark,
 					getOverrideColorScheme = ::getDynamicColorScheme
 				) {
-					Content(component)
+					ProjectSelectContent(component)
 				}
 			}
 		}
@@ -125,7 +124,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun Content(component: ProjectSelection) {
+fun ProjectSelectContent(component: ProjectSelection) {
 	val windowSizeClass = calculateWindowSizeClass()
 
 	when (windowSizeClass.widthSizeClass) {
@@ -183,8 +182,7 @@ private fun MediumNavigation(
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background),
+			.fillMaxSize(),
 		content = { innerPadding ->
 			Row(
 				modifier = Modifier
@@ -230,8 +228,7 @@ private fun ExpandedNavigation(
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background),
+			.fillMaxSize(),
 		content = { innerPadding ->
 			val drawerState = rememberDrawerState(DrawerValue.Closed)
 			val scope = rememberCoroutineScope()

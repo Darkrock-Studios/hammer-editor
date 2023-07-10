@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 
 abstract class ProjectComponentBase(
-	protected val projectDef: ProjectDef,
+	val projectDef: ProjectDef,
 	componentContext: ComponentContext
 ) : ComponentBase(componentContext), ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)

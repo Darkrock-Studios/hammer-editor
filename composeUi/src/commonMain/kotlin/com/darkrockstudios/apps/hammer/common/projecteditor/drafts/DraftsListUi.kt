@@ -65,7 +65,6 @@ fun DraftsListUi(
 					state.apply {
 						if (drafts.isEmpty()) {
 							item {
-
 								Text(MR.strings.draft_list_empty.get())
 							}
 						} else {

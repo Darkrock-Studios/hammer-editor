@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -19,6 +20,7 @@ interface ViewEntry {
 		val editText: Boolean = false,
 		val editName: Boolean = false,
 		val confirmClose: Boolean = false,
+		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 
 	fun getImagePath(entryDef: EntryDef): String?
