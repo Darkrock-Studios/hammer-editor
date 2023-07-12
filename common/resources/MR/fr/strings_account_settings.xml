@@ -22,7 +22,7 @@
     <string name="settings_server_max_backups">Nombre maximal de sauvegardes par projet</string>
     <string name="settings_server_test_auth_button">Test d’authentification</string>
     <string name="settings_server_reauth_button">Se réauthentifier</string>
-    <string name="settings_server_remove_server_button">Retirer l’authentification</string>
+    <string name="settings_server_remove_server_button">Retirer le serveur</string>
     <string name="settings_server_authtest_toast_success">Test d’authentification réussi</string>
     <string name="settings_server_authtest_toast_failure">Échec du test d’authentification</string>
     <string name="settings_remove_server_dialog_title">Retirer le serveur</string>
