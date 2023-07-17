@@ -7,7 +7,7 @@ val moko_resources_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
-	kotlin("plugin.serialization")
+	alias(libs.plugins.kotlin.serialization)
 	id("org.jetbrains.compose")
 	id("org.jetbrains.kotlinx.kover")
 	id("dev.icerock.mobile.multiplatform-resources")

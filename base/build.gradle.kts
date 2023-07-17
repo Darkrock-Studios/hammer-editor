@@ -11,8 +11,8 @@ val korio_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
-	kotlin("plugin.serialization")
-    id("com.android.library")
+	alias(libs.plugins.kotlin.serialization)
+	id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
     id("com.github.gmazzo.buildconfig")
 }

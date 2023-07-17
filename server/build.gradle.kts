@@ -13,9 +13,9 @@ val ktoml_version: String by extra
 val app_version: String by extra
 
 plugins {
-	kotlin("jvm")
+	alias(libs.plugins.kotlin.jvm)
 	id("io.ktor.plugin")
-	id("org.jetbrains.kotlin.plugin.serialization")
+	alias(libs.plugins.kotlin.serialization)
 	id("app.cash.sqldelight")
 	id("org.jetbrains.kotlinx.kover")
 }

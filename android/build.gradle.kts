@@ -15,7 +15,7 @@ val RELEASE_KEY_PASSWORD = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
 
 plugins {
 	kotlin("android")
-	kotlin("plugin.serialization")
+	alias(libs.plugins.kotlin.serialization)
 	id("com.android.application")
 	id("org.jetbrains.compose")
 	id("org.jetbrains.kotlinx.kover")

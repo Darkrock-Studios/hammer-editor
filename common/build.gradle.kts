@@ -15,7 +15,7 @@ val ktoml_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
-	kotlin("plugin.serialization")
+	alias(libs.plugins.kotlin.serialization)
 	id("com.android.library")
 	id("kotlin-parcelize")
 	//id("parcelize-darwin")
