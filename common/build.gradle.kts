@@ -1,5 +1,3 @@
-val app_version: String by extra
-val jvm_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
@@ -24,13 +22,13 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = app_version
+version = libs.versions.app.get()
 
 kotlin {
 	android()
 	jvm("desktop") {
 		compilations.all {
-			kotlinOptions.jvmTarget = jvm_version
+			kotlinOptions.jvmTarget = libs.versions.jvm.get()
 		}
 	}
 	ios {

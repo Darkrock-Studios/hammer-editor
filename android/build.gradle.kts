@@ -1,4 +1,3 @@
-val app_version: String by extra
 //val androidx_compose_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
@@ -22,7 +21,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = app_version
+version = libs.versions.app.get()
 
 repositories {
 	mavenCentral()
@@ -57,7 +56,7 @@ android {
 		minSdk = android_min_sdk.toInt()
 		targetSdk = android_target_sdk.toInt()
 		versionCode = android_version_code.toInt()
-		versionName = app_version
+		versionName = libs.versions.app.get()
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}

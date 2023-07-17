@@ -1,8 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
-val app_version: String by extra
 val data_version: String by extra
-val jvm_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
@@ -14,13 +12,13 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
-version = app_version
+version = libs.versions.app.get()
 
 
 kotlin {
 	jvm {
 		compilations.all {
-			kotlinOptions.jvmTarget = jvm_version
+			kotlinOptions.jvmTarget = libs.versions.jvm.get()
 		}
 		withJava()
 	}
@@ -53,7 +51,7 @@ compose.desktop {
 			targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
 			includeAllModules = true
 			packageName = "hammer"
-			packageVersion = app_version
+			packageVersion = libs.versions.app.get()
 			description = "A simple tool for building stories."
 			copyright = "© 2023 Adam W. Brown, All rights reserved."
 			licenseFile.set(project.file("../LICENSE"))

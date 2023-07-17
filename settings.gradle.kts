@@ -8,7 +8,6 @@ pluginManagement {
     }
 
     plugins {
-        kotlin("plugin.serialization").version(extra["kotlin_version"] as String) apply false
         kotlin("android").version(extra["kotlin_version"] as String) apply false
         id("com.android.application").version(extra["agp_version"] as String) apply false
         id("com.android.library").version(extra["agp_version"] as String) apply false
