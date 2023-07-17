@@ -1,7 +1,6 @@
 val data_version: String by extra
 val kotlinx_serialization_version: String by extra
 val datetime_version: String by extra
-val coroutines_version: String by extra
 val json_version: String by extra
 val korio_version: String by extra
 
@@ -35,7 +34,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-				implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				implementation(libs.coroutines.core)
 				implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
                 //implementation("org.kotlincrypto.endians:endians:0.1.0")

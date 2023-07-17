@@ -3,13 +3,14 @@
 [versions]
 app = "1.2.0"
 jvm = "17"
-
 kotlin = "1.8.20"
 android_gradle_plugin = "7.4.1"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
 android_version_code = "9"
+
+coroutines = "1.6.4"
 napier = "2.6.1"
 jetbrains_compose = "1.4.0"
 jetbrains_kover = "0.6.1"
@@ -34,6 +35,11 @@ decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
+
+coroutines_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines_android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+coroutines_swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+coroutines_test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 koin_core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin_core" }
 koin_android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin_android" }

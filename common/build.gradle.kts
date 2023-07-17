@@ -1,4 +1,3 @@
-val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
@@ -36,7 +35,7 @@ kotlin {
 				export(libs.decompose)
 				// This isn't working for some reason, once it is remove transitiveExport
 				export(libs.essenty)
-				export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				export(libs.coroutines.core)
 				export("dev.icerock.moko:resources:$moko_resources_version")
 				export(libs.napier)
 			}
@@ -52,7 +51,7 @@ kotlin {
 
 				api(libs.decompose)
 				api(libs.napier)
-				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
+				api(libs.coroutines.core)
 				api(libs.koin.core)
 				api(libs.okio)
 
@@ -86,7 +85,7 @@ kotlin {
 			dependencies {
 				//api("androidx.appcompat:appcompat:1.5.1")
 				api("androidx.core:core-ktx:1.10.0")
-				api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
+				api(libs.coroutines.android)
 				implementation(libs.koin.android)
 				implementation("io.ktor:ktor-client-okhttp:$ktor_version")
 			}
@@ -108,7 +107,7 @@ kotlin {
 			dependencies {
 				implementation("org.slf4j:slf4j-simple:2.0.6")
 				api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
-				api("org.jetbrains.kotlinx:kotlinx-coroutines-swing:$coroutines_version")
+				api(libs.coroutines.swing)
 				implementation("net.harawata:appdirs:1.2.1")
 				api("dev.icerock.moko:resources-compose:$moko_resources_version")
 				//implementation("io.ktor:ktor-client-curl:$ktor_version")
@@ -117,7 +116,7 @@ kotlin {
 		}
 		val desktopTest by getting {
 			dependencies {
-				implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
+				implementation(libs.coroutines.test)
 				implementation("io.mockk:mockk:$mockk_version")
 				implementation(libs.koin.test)
 			}
