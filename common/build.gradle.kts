@@ -1,7 +1,5 @@
-val kotlinx_serialization_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
-val datetime_version: String by extra
 val ktor_version: String by extra
 val json_version: String by extra
 val atomicfu_version: String by extra
@@ -62,9 +60,9 @@ kotlin {
 				implementation("io.ktor:ktor-client-encoding:$ktor_version")
 				implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
-				api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
-				api("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
-				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
+				api(libs.serialization.core)
+				api(libs.serialization.json)
+				api(libs.datetime)
 				implementation("com.akuleshov7:ktoml-core:$ktoml_version")
 				api(libs.essenty)
 				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
@@ -106,7 +104,7 @@ kotlin {
 		val desktopMain by getting {
 			dependencies {
 				implementation("org.slf4j:slf4j-simple:2.0.6")
-				api("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
+				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)
 				implementation("net.harawata:appdirs:1.2.1")
 				api("dev.icerock.moko:resources-compose:$moko_resources_version")

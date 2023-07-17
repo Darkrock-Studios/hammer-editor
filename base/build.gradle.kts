@@ -1,5 +1,4 @@
 val data_version: String by extra
-val kotlinx_serialization_version: String by extra
 val datetime_version: String by extra
 val json_version: String by extra
 val korio_version: String by extra
@@ -33,14 +32,14 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-				implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinx_serialization_version")
+				implementation(libs.serialization.core)
 				implementation(libs.coroutines.core)
-				implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
-				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
-                //implementation("org.kotlincrypto.endians:endians:0.1.0")
-                //api("io.getstream:stream-result:1.1.0")
+				implementation(libs.datetime)
+				implementation(libs.serialization.json)
+				//implementation("org.kotlincrypto.endians:endians:0.1.0")
+				//api("io.getstream:stream-result:1.1.0")
 				api("com.benasher44:uuid:0.7.0")
-                api("com.soywiz.korlibs.krypto:krypto:$korio_version")
+				api("com.soywiz.korlibs.krypto:krypto:$korio_version")
 				//api("com.goncalossilva:murmurhash:0.4.0")
 				api("com.appmattus.crypto:cryptohash:0.10.1")
 				api("com.soywiz.korlibs.korio:korio:$korio_version")

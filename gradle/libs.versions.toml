@@ -10,7 +10,10 @@ android_sdk_target = "34"
 android_sdk_min = "26"
 android_version_code = "9"
 
+serialization = "1.5.0"
+serialization_json = "1.5.0"
 coroutines = "1.6.4"
+datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
 jetbrains_compose = "1.4.0"
 jetbrains_kover = "0.6.1"
@@ -36,9 +39,16 @@ decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-comp
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
 
+datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+
+serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
+serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
+serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
+
 coroutines_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines_android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines_swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+coroutines_jdk8 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "coroutines" }
 coroutines_test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 koin_core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin_core" }

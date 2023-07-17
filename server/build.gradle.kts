@@ -2,10 +2,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktor_version: String by project
 val logback_version: String by project
-val coroutines_version: String by extra
 val mockk_version: String by extra
 val sqldelight_version: String by extra
-val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
 val ktoml_version: String by extra
 val app_version: String by extra
@@ -56,10 +54,10 @@ tasks.withType<KotlinCompile> {
 dependencies {
 	implementation(project(":base"))
 
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutines_version")
-	implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$kotlinx_serialization_version")
-	implementation("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
+	implementation(libs.coroutines.core)
+	implementation(libs.coroutines.jdk8)
+	implementation(libs.serialization.jvm)
+	implementation(libs.datetime)
 	implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
 
 	implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
@@ -90,7 +88,7 @@ dependencies {
 
 	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:${libs.versions.kotlin}")
-	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
+	testImplementation(libs.coroutines.test)
 	testImplementation("io.mockk:mockk:$mockk_version")
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
