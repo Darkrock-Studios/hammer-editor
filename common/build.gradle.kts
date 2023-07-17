@@ -6,7 +6,6 @@ val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
-val okio_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
 val datetime_version: String by extra
@@ -61,7 +60,7 @@ kotlin {
 				api(libs.napier)
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				api(libs.koin.core)
-				api("com.squareup.okio:okio:$okio_version")
+				api(libs.okio)
 
 				api("io.ktor:ktor-client-core:$ktor_version")
 				implementation("io.ktor:ktor-client-auth:$ktor_version")
@@ -84,7 +83,7 @@ kotlin {
 			dependencies {
 				implementation(kotlin("test"))
 				//implementation("io.insert-koin:koin-test:$koin_version")
-				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+				implementation(libs.okio.fakefilesystem)
 				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
 				implementation("dev.icerock.moko:resources-test:$moko_resources_version")
 			}

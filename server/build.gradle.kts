@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val kotlin_version: String by project
 val ktor_version: String by project
 val logback_version: String by project
-val okio_version: String by extra
 val coroutines_version: String by extra
 val mockk_version: String by extra
 val sqldelight_version: String by extra
@@ -81,7 +80,7 @@ dependencies {
 
 	implementation(libs.bundles.koin.server)
 
-	implementation("com.squareup.okio:okio:$okio_version")
+	implementation(libs.okio)
 
 	implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
 	implementation("app.cash.sqldelight:primitive-adapters:$sqldelight_version")
@@ -96,6 +95,6 @@ dependencies {
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
 	testImplementation("io.mockk:mockk:$mockk_version")
 	testImplementation(libs.koin.test)
-	testImplementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+	testImplementation(libs.okio.fakefilesystem)
 	//testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
 }

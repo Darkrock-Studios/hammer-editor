@@ -7,7 +7,6 @@ val kotlin_version: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
 val mockk_version: String by extra
-val okio_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
@@ -58,7 +57,7 @@ kotlin {
 			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 			dependencies {
 				implementation(kotlin("test"))
-				implementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
+				implementation(libs.okio.fakefilesystem)
 				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
 				api(compose.uiTestJUnit4)
 			}
