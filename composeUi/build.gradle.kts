@@ -10,7 +10,7 @@ plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
 	id("org.jetbrains.compose")
-	id("com.android.library")
+	alias(libs.plugins.android.library)
 	id("kotlin-parcelize")
 	id("org.jetbrains.kotlinx.kover")
 }
