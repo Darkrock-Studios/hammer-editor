@@ -1,6 +1,7 @@
 # https://developer.android.com/build/migrate-to-catalogs
 
 [versions]
+app = "1.2.0"
 jvm = "17"
 kotlin = "1.8.20"
 android_gradle_plugin = "7.4.1"
@@ -19,6 +20,8 @@ koin_compose = "3.4.5"
 okio = "3.3.0"
 
 [libraries]
+kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
@@ -36,6 +39,8 @@ okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
 
 [plugins]
+kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinjvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 
 [bundles]
-koin-server = ["koin_core", "koin_sl4j", "koin_ktor"]
+koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]

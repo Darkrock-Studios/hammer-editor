@@ -6,7 +6,7 @@ val jvm_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
-	kotlin("multiplatform")
+	alias(libs.plugins.kotlin.multiplatform)
 	kotlin("plugin.serialization")
 	id("org.jetbrains.compose")
 	id("org.jetbrains.kotlinx.kover")

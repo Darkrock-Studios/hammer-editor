@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = app_version
+version = libs.versions.app.get()
 application {
 	mainClass.set("com.darkrockstudios.apps.hammer.ApplicationKt")
 
@@ -52,7 +52,7 @@ repositories {
 }
 
 tasks.withType<KotlinCompile> {
-	kotlinOptions.jvmTarget = jvm_version
+	kotlinOptions.jvmTarget = libs.versions.jvm.get()
 }
 
 dependencies {

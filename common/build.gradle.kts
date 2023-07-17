@@ -3,7 +3,6 @@ val jvm_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
-val kotlin_version: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
 val mockk_version: String by extra
@@ -15,7 +14,7 @@ val atomicfu_version: String by extra
 val ktoml_version: String by extra
 
 plugins {
-	kotlin("multiplatform")
+	alias(libs.plugins.kotlin.multiplatform)
 	kotlin("plugin.serialization")
 	id("com.android.library")
 	id("kotlin-parcelize")
@@ -84,7 +83,7 @@ kotlin {
 				implementation(kotlin("test"))
 				//implementation("io.insert-koin:koin-test:$koin_version")
 				implementation(libs.okio.fakefilesystem)
-				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
+				implementation(libs.kotlin.reflect)
 				implementation("dev.icerock.moko:resources-test:$moko_resources_version")
 			}
 		}

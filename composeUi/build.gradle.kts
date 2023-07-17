@@ -3,14 +3,13 @@ val jvm_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
 val android_min_sdk: String by extra
-val kotlin_version: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
-	kotlin("multiplatform")
+	alias(libs.plugins.kotlin.multiplatform)
 	kotlin("plugin.serialization")
 	id("org.jetbrains.compose")
 	id("com.android.library")
@@ -58,7 +57,7 @@ kotlin {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.okio.fakefilesystem)
-				implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
+				implementation(libs.kotlin.reflect)
 				api(compose.uiTestJUnit4)
 			}
 		}

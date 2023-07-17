@@ -1,5 +1,4 @@
 val jvm_version: String by extra
-val app_version: String by extra
 val data_version: String by extra
 val android_compile_sdk: String by extra
 val android_target_sdk: String by extra
@@ -11,15 +10,15 @@ val json_version: String by extra
 val korio_version: String by extra
 
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
+	alias(libs.plugins.kotlin.multiplatform)
+	kotlin("plugin.serialization")
     id("com.android.library")
     id("org.jetbrains.kotlinx.kover")
     id("com.github.gmazzo.buildconfig")
 }
 
 group = "com.darkrockstudios.apps.hammer"
-version = app_version
+version = libs.versions.app.get()
 
 repositories {
     mavenCentral()
@@ -72,8 +71,8 @@ buildConfig {
     className("BuildMetadata")
     useKotlinOutput { internalVisibility = false }
 
-    buildConfigField("String", "APP_VERSION", "\"$app_version\"")
-    buildConfigField("String", "DATA_VERSION", "\"$data_version\"")
+	buildConfigField("String", "APP_VERSION", "\"${libs.versions.app.get()}\"")
+	buildConfigField("String", "DATA_VERSION", "\"$data_version\"")
 }
 
 val GIT_TASK_NAME = "install-git-hooks"
