@@ -6,10 +6,7 @@ val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
-val decompose_version: String by extra
-val koin_version: String by extra
 val okio_version: String by extra
-val essenty_version: String by extra
 val mockk_version: String by extra
 val moko_resources_version: String by extra
 val datetime_version: String by extra
@@ -43,9 +40,9 @@ kotlin {
 			framework {
 				baseName = "Hammer"
 				//transitiveExport = true
-				export("com.arkivanov.decompose:decompose:$decompose_version")
+				export(libs.decompose)
 				// This isn't working for some reason, once it is remove transitiveExport
-				export("com.arkivanov.essenty:lifecycle:$essenty_version")
+				export(libs.essenty)
 				export("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
 				export("dev.icerock.moko:resources:$moko_resources_version")
 				export(libs.napier)
@@ -60,10 +57,10 @@ kotlin {
 			dependencies {
 				api(project(":base"))
 
-				api("com.arkivanov.decompose:decompose:$decompose_version")
+				api(libs.decompose)
 				api(libs.napier)
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version")
-				api("io.insert-koin:koin-core:$koin_version")
+				api(libs.koin.core)
 				api("com.squareup.okio:okio:$okio_version")
 
 				api("io.ktor:ktor-client-core:$ktor_version")
@@ -77,7 +74,7 @@ kotlin {
 				api("org.jetbrains.kotlinx:kotlinx-datetime:$datetime_version")
 				implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$json_version")
 				implementation("com.akuleshov7:ktoml-core:$ktoml_version")
-				api("com.arkivanov.essenty:lifecycle:$essenty_version")
+				api(libs.essenty)
 				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
 				api("dev.icerock.moko:resources:$moko_resources_version")
 				implementation("org.jetbrains.kotlinx:atomicfu:$atomicfu_version")
@@ -97,14 +94,14 @@ kotlin {
 				//api("androidx.appcompat:appcompat:1.5.1")
 				api("androidx.core:core-ktx:1.10.0")
 				api("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version")
-				api("io.insert-koin:koin-android:$koin_version")
+				implementation(libs.koin.android)
 				implementation("io.ktor:ktor-client-okhttp:$ktor_version")
 			}
 		}
 		val iosMain by getting {
 			dependencies {
-				api("com.arkivanov.decompose:decompose:$decompose_version")
-				api("com.arkivanov.essenty:lifecycle:$essenty_version")
+				api(libs.decompose)
+				api(libs.essenty)
 				api("dev.icerock.moko:resources:$moko_resources_version")
 				api("io.ktor:ktor-client-darwin:$ktor_version")
 			}
@@ -129,7 +126,7 @@ kotlin {
 			dependencies {
 				implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
 				implementation("io.mockk:mockk:$mockk_version")
-				implementation("io.insert-koin:koin-test:$koin_version")
+				implementation(libs.koin.test)
 			}
 		}
 	}

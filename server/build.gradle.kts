@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val kotlin_version: String by project
 val ktor_version: String by project
 val logback_version: String by project
-val koin_version: String by extra
 val okio_version: String by extra
 val coroutines_version: String by extra
 val mockk_version: String by extra
@@ -80,9 +79,7 @@ dependencies {
 
 	implementation("org.slf4j:slf4j-simple:2.0.6")
 
-	implementation("io.insert-koin:koin-core:$koin_version")
-	implementation("io.insert-koin:koin-logger-slf4j:3.3.1")
-	implementation("io.insert-koin:koin-ktor:3.3.1")
+	implementation(libs.bundles.koin.server)
 
 	implementation("com.squareup.okio:okio:$okio_version")
 
@@ -98,7 +95,7 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version")
 	testImplementation("io.mockk:mockk:$mockk_version")
-	testImplementation("io.insert-koin:koin-test:$koin_version")
+	testImplementation(libs.koin.test)
 	testImplementation("com.squareup.okio:okio-fakefilesystem:$okio_version")
 	//testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
 }

@@ -6,10 +6,8 @@ val android_min_sdk: String by extra
 val kotlin_version: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
-val decompose_version: String by extra
 val mockk_version: String by extra
 val okio_version: String by extra
-val koin_version: String by extra
 val moko_resources_version: String by extra
 
 plugins {
@@ -48,7 +46,7 @@ kotlin {
 				api("dev.chrisbanes.material3:material3-window-size-class-multiplatform:0.2.0")
 				api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
 				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
-				api("com.arkivanov.decompose:extensions-compose-jetbrains:$decompose_version")
+				api(libs.decompose.compose)
 				api("com.darkrockstudios:richtexteditor:1.4.1")
 				api("com.darkrockstudios:mpfilepicker:1.2.0")
 				api("io.github.qdsfdhvh:image-loader:1.5.1")
@@ -67,7 +65,7 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
-				api("io.insert-koin:koin-androidx-compose:3.4.1")
+				api(libs.koin.compose)
 			}
 		}
 		val desktopMain by getting {
@@ -76,6 +74,7 @@ kotlin {
 				api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
 			}
 		}
+
 		val desktopTest by getting {
 			dependencies {
 				implementation("io.mockk:mockk:$mockk_version")
@@ -83,6 +82,7 @@ kotlin {
 		}
 	}
 }
+
 android {
 	namespace = "com.darkrockstudios.apps.hammer.composeui"
 	compileSdk = android_compile_sdk.toInt()

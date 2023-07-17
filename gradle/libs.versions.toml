@@ -6,7 +6,33 @@ kotlin = "1.8.20"
 android_gradle_plugin = "7.4.1"
 napier = "2.6.1"
 
+decompose = "2.0.0"
+essenty = "1.1.0" # This should match what ever decompose is referncing internally
+
+koin_core = "3.4.2"
+koin_android = "3.4.2"
+koin_test = "3.4.1"
+koin_sl4j = "3.4.1"
+koin_ktor = "3.4.1"
+koin_compose = "3.4.5"
+
+okio = "3.3.0"
+
 [libraries]
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
+decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
+decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
+
+essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
+
+koin_core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin_core" }
+koin_android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin_android" }
+koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin_test" }
+koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref = "koin_sl4j" }
+koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
+koin_compose = { group = "io.insert-koin", name = "koin-compose", version.ref = "koin_compose" }
 
 [plugins]
+
+[bundles]
+koin-server = ["koin_core", "koin_sl4j", "koin_ktor"]

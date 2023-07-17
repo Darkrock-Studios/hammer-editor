@@ -31,7 +31,7 @@ repositories {
 dependencies {
 	api(project(":composeUi"))
 	implementation("androidx.activity:activity-compose:1.7.2")
-	implementation("io.insert-koin:koin-android:$koin_version")
+	implementation(libs.koin.android)
 	implementation("androidx.glance:glance:1.0.0-beta01")
 	implementation("androidx.glance:glance-appwidget:1.0.0-beta01")
 	implementation("androidx.glance:glance-material3:1.0.0-beta01")
