@@ -1,6 +1,3 @@
-val android_compile_sdk: String by extra
-val android_target_sdk: String by extra
-val android_min_sdk: String by extra
 val coroutines_version: String by extra
 val kotlinx_serialization_version: String by extra
 val mockk_version: String by extra
@@ -134,7 +131,7 @@ multiplatformResources {
 
 android {
 	namespace = "com.darkrockstudios.apps.hammer.common"
-	compileSdk = android_compile_sdk.toInt()
+	compileSdk = libs.versions.android.sdk.compile.get().toInt()
 	sourceSets {
 		named("main") {
 			manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -148,8 +145,8 @@ android {
 		}
 	}
 	defaultConfig {
-		minSdk = android_min_sdk.toInt()
-		targetSdk = android_target_sdk.toInt()
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+		targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.VERSION_17

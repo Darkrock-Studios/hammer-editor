@@ -1,6 +1,3 @@
-val android_compile_sdk: String by extra
-val android_target_sdk: String by extra
-val android_min_sdk: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
 val mockk_version: String by extra
@@ -9,10 +6,10 @@ val moko_resources_version: String by extra
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
-	id("org.jetbrains.compose")
+	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
 	id("kotlin-parcelize")
-	id("org.jetbrains.kotlinx.kover")
+	alias(libs.plugins.jetbrains.kover)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -81,12 +78,12 @@ kotlin {
 
 android {
 	namespace = "com.darkrockstudios.apps.hammer.composeui"
-	compileSdk = android_compile_sdk.toInt()
+	compileSdk = libs.versions.android.sdk.compile.get().toInt()
 	sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 	sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
 	defaultConfig {
-		minSdk = android_min_sdk.toInt()
-		targetSdk = android_target_sdk.toInt()
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+		targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 	buildFeatures {
 		compose = true

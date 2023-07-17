@@ -8,7 +8,6 @@ val mockk_version: String by extra
 val sqldelight_version: String by extra
 val datetime_version: String by extra
 val kotlinx_serialization_version: String by extra
-val jvm_version: String by extra
 val ktoml_version: String by extra
 val app_version: String by extra
 
@@ -17,7 +16,7 @@ plugins {
 	id("io.ktor.plugin")
 	alias(libs.plugins.kotlin.serialization)
 	id("app.cash.sqldelight")
-	id("org.jetbrains.kotlinx.kover")
+	alias(libs.plugins.jetbrains.kover)
 }
 
 group = "com.darkrockstudios.apps.hammer"

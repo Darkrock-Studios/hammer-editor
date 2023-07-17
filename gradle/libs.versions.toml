@@ -3,9 +3,16 @@
 [versions]
 app = "1.2.0"
 jvm = "17"
+
 kotlin = "1.8.20"
 android_gradle_plugin = "7.4.1"
+android_sdk_compile = "34"
+android_sdk_target = "34"
+android_sdk_min = "26"
+android_version_code = "9"
 napier = "2.6.1"
+jetbrains_compose = "1.4.0"
+jetbrains_kover = "0.6.1"
 
 decompose = "2.0.0"
 essenty = "1.1.0" # This should match what ever decompose is referncing internally
@@ -45,6 +52,8 @@ kotlin_jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin_android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android_application = { id = "com.android.application", version.ref = "android_gradle_plugin" }
 android_library = { id = "com.android.library", version.ref = "android_gradle_plugin" }
+jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
+jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
 
 [bundles]
 koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]

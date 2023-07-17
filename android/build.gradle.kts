@@ -1,11 +1,6 @@
 //val androidx_compose_version: String by extra
-val android_compile_sdk: String by extra
-val android_target_sdk: String by extra
-val android_min_sdk: String by extra
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
-val koin_version: String by extra
-val android_version_code: String by extra
 
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
@@ -16,8 +11,8 @@ plugins {
 	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.application)
-	id("org.jetbrains.compose")
-	id("org.jetbrains.kotlinx.kover")
+	alias(libs.plugins.jetbrains.compose)
+	alias(libs.plugins.jetbrains.kover)
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -50,12 +45,12 @@ dependencies {
 
 android {
 	namespace = "com.darkrockstudios.apps.hammer.android"
-	compileSdk = android_compile_sdk.toInt()
+	compileSdk = libs.versions.android.sdk.compile.get().toInt()
 	defaultConfig {
 		applicationId = "com.darkrockstudios.apps.hammer.android"
-		minSdk = android_min_sdk.toInt()
-		targetSdk = android_target_sdk.toInt()
-		versionCode = android_version_code.toInt()
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+		targetSdk = libs.versions.android.sdk.target.get().toInt()
+		versionCode = libs.versions.android.version.code.get().toInt()
 		versionName = libs.versions.app.get()
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

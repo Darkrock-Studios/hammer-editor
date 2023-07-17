@@ -1,8 +1,4 @@
-val jvm_version: String by extra
 val data_version: String by extra
-val android_compile_sdk: String by extra
-val android_target_sdk: String by extra
-val android_min_sdk: String by extra
 val kotlinx_serialization_version: String by extra
 val datetime_version: String by extra
 val coroutines_version: String by extra
@@ -13,8 +9,8 @@ plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
-	id("org.jetbrains.kotlinx.kover")
-    id("com.github.gmazzo.buildconfig")
+	alias(libs.plugins.jetbrains.kover)
+	id("com.github.gmazzo.buildconfig")
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -28,7 +24,7 @@ kotlin {
     android()
     jvm("desktop") {
         compilations.all {
-            kotlinOptions.jvmTarget = jvm_version
+			kotlinOptions.jvmTarget = libs.versions.jvm.get()
         }
     }
     ios {
@@ -55,12 +51,12 @@ kotlin {
 }
 
 android {
-    namespace = "com.darkrockstudios.apps.hammer.base"
-    compileSdk = android_compile_sdk.toInt()
+	namespace = "com.darkrockstudios.apps.hammer.base"
+	compileSdk = libs.versions.android.sdk.compile.get().toInt()
     defaultConfig {
-        minSdk = android_min_sdk.toInt()
-        targetSdk = android_target_sdk.toInt()
-    }
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+		targetSdk = libs.versions.android.sdk.target.get().toInt()
+	}
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

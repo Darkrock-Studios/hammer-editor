@@ -1,7 +1,5 @@
-val app_version: String by extra
-
 group = "com.darkrockstudios.apps.hammer"
-version = app_version
+version = libs.versions.app.get()
 
 buildscript {
     repositories {
@@ -33,8 +31,8 @@ plugins {
 	alias(libs.plugins.kotlin.android) apply false
 	alias(libs.plugins.android.application) apply false
 	alias(libs.plugins.android.library) apply false
-	id("org.jetbrains.compose") apply false
-	id("org.jetbrains.kotlinx.kover") version "0.6.1"
+	alias(libs.plugins.jetbrains.compose) apply false
+	alias(libs.plugins.jetbrains.kover)
 	id("com.github.gmazzo.buildconfig") version "4.0.2" apply false
 }
 
