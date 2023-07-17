@@ -19,4 +19,5 @@
     <string name="scene_editor_menu_item_view_drafts">Voir les brouillons</string>
     <string name="scene_editor_menu_item_rename">Renommer</string>
     <string name="scene_editor_menu_item_save">Enregistrer</string>
+    <string name="scene_editor_rename_dialog_title">Renommer la scène</string>
 </resources>

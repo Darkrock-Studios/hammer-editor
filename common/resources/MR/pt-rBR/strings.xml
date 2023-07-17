@@ -13,4 +13,5 @@
     <string name="close_dialog_button">Fechar</string>
     <string name="unsaved_scenes_dialog_neutral_button">Cancelar</string>
     <string name="unsaved_encyclopedia_dialog_message">Descartar a inscrição\?</string>
+    <string name="more_menu_button">Mais</string>
 </resources>

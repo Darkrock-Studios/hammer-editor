@@ -19,4 +19,5 @@
     <string name="scene_editor_menu_group">Сцена</string>
     <string name="scene_editor_menu_item_save_draft">Зберегти чернетку</string>
     <string name="scene_editor_menu_item_view_drafts">Переглянути чернетки</string>
+    <string name="scene_editor_rename_dialog_title">Перейменувати сцену</string>
 </resources>

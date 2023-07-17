@@ -19,4 +19,5 @@
     <string name="scene_editor_menu_item_close">Fechar</string>
     <string name="save_draft_dialog_toast_success">Rascunho Salvo</string>
     <string name="scene_editor_menu_item_view_drafts">Ver Rascunhos</string>
+    <string name="scene_editor_rename_dialog_title">Renomear Cena</string>
 </resources>
