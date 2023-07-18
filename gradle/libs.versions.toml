@@ -56,7 +56,7 @@ koin_android = { group = "io.insert-koin", name = "koin-android", version.ref = 
 koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin_test" }
 koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref = "koin_sl4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
-koin_compose = { group = "io.insert-koin", name = "koin-compose", version.ref = "koin_compose" }
+koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin_compose" }
 
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
