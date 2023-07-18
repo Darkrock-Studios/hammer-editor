@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
@@ -26,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import kotlinx.coroutines.launch
@@ -175,18 +174,26 @@ private fun AppContent(component: ProjectRoot) {
 	val destinations = remember { ProjectRoot.DestinationTypes.values() }
 	val router by component.routerState.subscribeAsState()
 
-	Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-		NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-			destinations.forEach { item ->
-				NavigationRailItem(
-					icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
-					label = { Text(item.text.get()) },
-					selected = router.active.instance.getLocationType() == item,
-					onClick = { component.showDestination(item) }
-				)
+	Box {
+		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+				destinations.forEach { item ->
+					NavigationRailItem(
+						icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
+						label = { Text(item.text.get()) },
+						selected = router.active.instance.getLocationType() == item,
+						onClick = { component.showDestination(item) }
+					)
+				}
 			}
+
+			ProjectRootUi(component)
 		}
 
-		ProjectRootUi(component)
+		Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
+			ProjectRootFab(
+				component
+			)
+		}
 	}
 }
