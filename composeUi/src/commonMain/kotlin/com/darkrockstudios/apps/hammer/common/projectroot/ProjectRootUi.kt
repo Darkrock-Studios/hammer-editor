@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
 import com.darkrockstudios.apps.hammer.common.uiNeedsExplicitCloseButtons
 import kotlinx.coroutines.launch
 
-private val VERTICAL_CONTROL_WIDTH_THRESHOLD = 700.dp
+private val WIDE_SCREEN_THRESHOLD = 700.dp
 
 fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	return when (location) {
@@ -58,10 +57,12 @@ fun ProjectRootUi(
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
 	BoxWithConstraints {
+		val isWide by remember(maxWidth) { derivedStateOf { maxWidth >= WIDE_SCREEN_THRESHOLD } }
 		val windowSizeClass = calculateWindowSizeClass()
 
 		CompositionLocalProvider(
 			LocalScreenCharacteristic provides ScreenCharacteristics(
+				isWide,
 				windowSizeClass.widthSizeClass,
 				windowSizeClass.heightSizeClass,
 				uiNeedsExplicitCloseButtons()

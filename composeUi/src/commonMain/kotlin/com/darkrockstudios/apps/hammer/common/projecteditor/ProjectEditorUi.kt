@@ -2,8 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +15,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
@@ -67,12 +66,16 @@ fun ProjectEditorUi(
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 private fun SetMultiPane(component: ProjectEditor) {
+	/*
+	// On first, I didn't like how this worked out, may try again later
 	val windowSizeClass = calculateWindowSizeClass()
 	val isWide = when (windowSizeClass.widthSizeClass) {
 		WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> false
 		WindowWidthSizeClass.Expanded -> true
 		else -> error("Unhandled Window class")
 	}
+	*/
+	val isWide = LocalScreenCharacteristic.current.isWide
 	LaunchedEffect(isWide) {
 		component.setMultiPane(isWide)
 	}

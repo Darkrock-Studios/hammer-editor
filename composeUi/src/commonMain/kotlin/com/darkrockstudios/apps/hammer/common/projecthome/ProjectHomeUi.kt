@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
@@ -46,7 +45,7 @@ fun ProjectHomeUi(
 	val snackbarHostState = remember { SnackbarHostState() }
 
 	Box {
-		if (screen.windowWidthClass == WindowWidthSizeClass.Expanded) {
+		if (screen.isWide) {
 			Row(
 				modifier = Modifier.fillMaxSize()
 					.padding(Ui.Padding.XL)
@@ -56,7 +55,7 @@ fun ProjectHomeUi(
 					state = state
 				)
 				Actions(
-					modifier = Modifier.weight(1.2f),
+					modifier = Modifier.weight(1f),
 					component = component,
 					scope = scope,
 					snackbarHostState = snackbarHostState
