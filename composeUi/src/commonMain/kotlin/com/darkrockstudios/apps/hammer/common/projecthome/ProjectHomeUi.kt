@@ -89,7 +89,7 @@ private fun Stats(
 	otherContent: (@Composable () -> Unit)? = null
 ) {
 	LazyVerticalGrid(
-		columns = GridCells.Adaptive(256.dp),
+		columns = GridCells.Adaptive(300.dp),
 		modifier = modifier.fillMaxHeight(),
 		contentPadding = PaddingValues(Ui.Padding.XL)
 	) {

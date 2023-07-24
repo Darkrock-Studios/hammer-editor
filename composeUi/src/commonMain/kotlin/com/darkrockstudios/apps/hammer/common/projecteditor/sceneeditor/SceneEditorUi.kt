@@ -83,12 +83,15 @@ fun SceneEditorUi(
 			}
 
 			//val verticalScrollState = rememberScrollState(0)
-			Row {
+			Row(
+				modifier = Modifier.fillMaxSize(),
+				horizontalArrangement = Arrangement.Center
+			) {
 				RichTextEditor(
 					modifier = Modifier
 						.fillMaxHeight()
 						.widthIn(128.dp, 700.dp)
-						.padding(start = Ui.Padding.XL, end = Ui.Padding.XL),
+						.padding(horizontal = Ui.Padding.XL),
 					value = sceneText,
 					onValueChange = { rtv ->
 						sceneText = rtv
