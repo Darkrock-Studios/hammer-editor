@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -168,7 +169,7 @@ internal fun ViewEntryUi(
 
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			if (screen.isWide) {
+			if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
 				Row {
 					Image(
 						modifier = Modifier.weight(1f),

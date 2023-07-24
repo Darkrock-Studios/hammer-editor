@@ -8,6 +8,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,8 @@ import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
 
 @Composable
 fun DraftCompareUi(component: DraftCompare) {
+	val screen = LocalScreenCharacteristic.current
+
 	LaunchedEffect(component.sceneItem) {
 		component.loadContents()
 	}
@@ -57,7 +60,7 @@ fun DraftCompareUi(component: DraftCompare) {
 			}
 		}
 
-		if (LocalScreenCharacteristic.current.isWide) {
+		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
 			Row(modifier = Modifier.fillMaxSize()) {
 				content()
 			}

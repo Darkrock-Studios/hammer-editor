@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +28,6 @@ private val LIST_PANE_WIDTH = 300.dp
 fun ProjectEditorUi(
 	component: ProjectEditor,
 	modifier: Modifier = Modifier,
-	isWide: Boolean,
 	drawableKlass: Any? = null,
 ) {
 	BoxWithConstraints(modifier = modifier) {
@@ -33,36 +35,46 @@ fun ProjectEditorUi(
 		val detailsState by component.detailsRouterState.subscribeAsState()
 		val isMultiPane = state.isMultiPane
 
-		BoxWithConstraints {
-			val listModifier = if (isMultiPane) {
-				Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH).fillMaxHeight()
-			} else {
-				Modifier.fillMaxSize()
-			}
-
-			//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
-			ListPane(
-				routerState = component.listRouterState,
-				modifier = listModifier,
-			)
-
-			val detailsModifier = if (isMultiPane) {
-				Modifier.padding(start = LIST_PANE_WIDTH).requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
-					.fillMaxHeight()
-			} else {
-				Modifier.fillMaxSize()
-			}
-			// Detail
-			DetailsPane(
-				state = detailsState,
-				modifier = detailsModifier,
-				drawableKlass = drawableKlass,
-			)
+		val listModifier = if (isMultiPane) {
+			Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH).fillMaxHeight()
+		} else {
+			Modifier.fillMaxSize()
 		}
 
-		LaunchedEffect(isWide) {
-			component.setMultiPane(isWide)
+		//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
+		ListPane(
+			routerState = component.listRouterState,
+			modifier = listModifier,
+		)
+
+		val detailsModifier = if (isMultiPane) {
+			Modifier.padding(start = LIST_PANE_WIDTH).requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
+				.fillMaxHeight()
+		} else {
+			Modifier.fillMaxSize()
 		}
+		// Detail
+		DetailsPane(
+			state = detailsState,
+			modifier = detailsModifier,
+			drawableKlass = drawableKlass,
+		)
+	}
+
+	SetMultiPane(component)
+}
+
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@Composable
+private fun SetMultiPane(component: ProjectEditor) {
+	val windowSizeClass = calculateWindowSizeClass()
+	val isWide = when (windowSizeClass.widthSizeClass) {
+		WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> false
+		WindowWidthSizeClass.Expanded -> true
+		else -> error("Unhandled Window class")
+	}
+	LaunchedEffect(isWide) {
+		component.setMultiPane(isWide)
 	}
 }
 

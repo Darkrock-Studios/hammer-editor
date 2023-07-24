@@ -93,7 +93,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 		}
 
 		LazyVerticalStaggeredGrid(
-			columns = StaggeredGridCells.Adaptive(512.dp),
+			columns = StaggeredGridCells.Adaptive(480.dp),
 			modifier = Modifier.fillMaxSize(),
 			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {

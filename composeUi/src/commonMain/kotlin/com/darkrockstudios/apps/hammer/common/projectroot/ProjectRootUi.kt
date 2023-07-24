@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,6 +10,8 @@ import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +48,7 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	}
 }
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
@@ -52,14 +58,16 @@ fun ProjectRootUi(
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
 	BoxWithConstraints {
-		val isWide by remember(maxWidth) { derivedStateOf { maxWidth >= VERTICAL_CONTROL_WIDTH_THRESHOLD } }
+		val windowSizeClass = calculateWindowSizeClass()
+
 		CompositionLocalProvider(
 			LocalScreenCharacteristic provides ScreenCharacteristics(
-				isWide,
+				windowSizeClass.widthSizeClass,
+				windowSizeClass.heightSizeClass,
 				uiNeedsExplicitCloseButtons()
 			)
 		) {
-			FeatureContent(modifier.fillMaxSize(), component, isWide, drawableKlass)
+			FeatureContent(modifier.fillMaxSize(), component, drawableKlass)
 			SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 		}
 	}
@@ -73,7 +81,6 @@ fun ProjectRootUi(
 fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
-	isWide: Boolean,
 	drawableKlass: Any? = null,
 ) {
 	val routerState by component.routerState.subscribeAsState()
@@ -84,7 +91,7 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(component = child.component, isWide = isWide, drawableKlass = drawableKlass)
+				ProjectEditorUi(component = child.component, drawableKlass = drawableKlass)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component)
@@ -115,30 +122,40 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 	}
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ProjectRootFab(
 	component: ProjectRoot,
 ) {
 	val routerState by component.routerState.subscribeAsState()
-	when (val child = routerState.active.instance) {
-		is ProjectRoot.Destination.EditorDestination -> {
 
+	AnimatedContent(
+		targetState = routerState.active.instance,
+		transitionSpec = {
+			scaleIn(animationSpec = tween(500)) with
+				scaleOut(animationSpec = tween(500))
 		}
+	) { instance ->
+		when (instance) {
+			is ProjectRoot.Destination.EditorDestination -> {
 
-		is ProjectRoot.Destination.NotesDestination -> {
-			NotesFab(child.component)
-		}
+			}
 
-		is ProjectRoot.Destination.EncyclopediaDestination -> {
-			BrowseEntriesFab(child.component)
-		}
+			is ProjectRoot.Destination.NotesDestination -> {
+				NotesFab(instance.component)
+			}
 
-		is ProjectRoot.Destination.TimeLineDestination -> {
-			TimelineFab(child.component)
-		}
+			is ProjectRoot.Destination.EncyclopediaDestination -> {
+				BrowseEntriesFab(instance.component)
+			}
 
-		is ProjectRoot.Destination.HomeDestination -> {
+			is ProjectRoot.Destination.TimeLineDestination -> {
+				TimelineFab(instance.component)
+			}
 
+			is ProjectRoot.Destination.HomeDestination -> {
+
+			}
 		}
 	}
 }
