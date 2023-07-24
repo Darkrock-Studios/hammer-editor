@@ -75,7 +75,12 @@ android {
 	}
 
 	buildTypes {
-		getByName("release") {
+		debug {
+			applicationIdSuffix = ".dev"
+			versionNameSuffix = "-dev"
+		}
+
+		release {
 			isMinifyEnabled = false
 			isShrinkResources = false
 
