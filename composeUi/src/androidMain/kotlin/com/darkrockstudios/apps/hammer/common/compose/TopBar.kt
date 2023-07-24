@@ -26,7 +26,7 @@ fun TopBar(
 ) {
 	Row(
 		modifier = modifier.fillMaxWidth(),
-		verticalAlignment = Alignment.CenterVertically
+		verticalAlignment = Alignment.CenterVertically,
 	) {
 		IconButton(onClick = onClose) {
 			Icon(imageVector = Icons.Default.Close, contentDescription = MR.strings.scene_editor_menu_item_close.get())

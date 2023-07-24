@@ -29,7 +29,6 @@ fun SceneEditorUi(
 	modifier: Modifier = Modifier,
 	drawableKlass: Any? = null
 ) {
-	val strRes = rememberStrRes()
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
@@ -50,7 +49,6 @@ fun SceneEditorUi(
 	Box(modifier = modifier) {
 		Column(
 			modifier = Modifier.fillMaxHeight(),
-			horizontalAlignment = Alignment.CenterHorizontally
 		) {
 			EditorTopBar(component, snackbarHostState)
 

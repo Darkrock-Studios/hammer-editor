@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
+import androidx.compose.foundation.layout.Arrangement.Start
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -32,14 +34,17 @@ actual fun EditorTopBar(
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 
-	Row(verticalAlignment = Alignment.CenterVertically) {
+	Row(
+		verticalAlignment = CenterVertically,
+		horizontalArrangement = Start
+	) {
 		if (state.isEditingName) {
 			var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
 
 			TextField(
 				value = editSceneNameValue,
 				onValueChange = { editSceneNameValue = it },
-				modifier = Modifier.padding(Ui.Padding.XL),
+				modifier = Modifier.padding(Ui.Padding.S),
 				label = { Text(MR.strings.scene_editor_name_hint.get()) }
 			)
 			IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
