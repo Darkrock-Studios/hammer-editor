@@ -34,5 +34,6 @@ object Ui {
 		val widthExpanded = 240.dp
 	}
 
-	val MIN_TOUCH_SIZE = 44.dp
+	val MIN_TOUCH_SIZE = 48.dp
+	val TOP_BAR_HEIGHT = 56.dp
 }
