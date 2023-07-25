@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
@@ -108,8 +109,10 @@ private fun MediumNavigation(
 
 					Spacer(modifier = Modifier.weight(1f))
 
+					val versionText = remember { getVersionText() }
+
 					Text(
-						"v${BuildMetadata.APP_VERSION}",
+						versionText,
 						style = MaterialTheme.typography.labelSmall,
 						fontWeight = FontWeight.Thin,
 						modifier = Modifier.align(Alignment.Start).padding(Ui.Padding.L)
@@ -180,11 +183,19 @@ private fun ColumnScope.NavigationDrawerContents(
 
 	Spacer(modifier = Modifier.weight(1f))
 
+	val versionText = remember { getVersionText() }
+
 	Text(
-		"v${BuildMetadata.APP_VERSION}",
+		versionText,
 		modifier = Modifier
 			.padding(Ui.Padding.L)
 			.align(Alignment.Start),
 		style = MaterialTheme.typography.labelSmall,
 	)
+}
+
+private fun getVersionText() = if (getInDevelopmentMode()) {
+	"v${BuildMetadata.APP_VERSION}-dev"
+} else {
+	"v${BuildMetadata.APP_VERSION}"
 }

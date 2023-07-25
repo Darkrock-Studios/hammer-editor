@@ -17,8 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
-import com.darkrockstudios.apps.hammer.common.getDataVersion
-import com.darkrockstudios.apps.hammer.common.setDataVersion
+import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -40,16 +39,16 @@ import org.koin.java.KoinJavaComponent.getKoin
 private fun handleArguments(args: Array<String>) {
 	val parser = ArgParser("hammer")
 
-	val dataVersion by parser.option(
-		ArgType.String,
+	val devMode by parser.option(
+		ArgType.Boolean,
 		shortName = "d",
-		fullName = "dataVersion",
-		description = "Data version"
-	).default(getDataVersion())
+		fullName = "dev",
+		description = "Development Mode"
+	).default(false)
 
 	parser.parse(args)
 
-	setDataVersion(dataVersion)
+	setInDevelopmentMode(devMode)
 }
 
 @ExperimentalDecomposeApi

@@ -12,6 +12,7 @@
 			<option name="taskNames">
 				<list>
 					<option value="run"/>
+					<option value="--args=&quot;--dev&quot;"/>
 				</list>
 			</option>
 			<option name="vmOptions"/>

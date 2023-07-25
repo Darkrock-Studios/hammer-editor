@@ -1,8 +1,22 @@
 # Development
 
-## Running the Desktop app
+## Running The App
 
-`gradlew desktop:run`
+There are several run configurations provided for IntelliJ, stored in `/.run`.
+
+### Desktop App
+
+`gradlew desktop:run` This will run in development mode. To run in developmeny mode manually, simply pass `--dev` as an
+argument when running it. Passing nothing will run in release mode.
+
+`dev` mode will use a separate config directory so that you don't accidentally mess with production data.
+
+### Android App
+
+Select the `Android` run target in the IDE and run it.
+
+You can install the development version alongside a production version, they will have different names and icons so you
+can tell them apart.
 
 ### Running the Server
 
