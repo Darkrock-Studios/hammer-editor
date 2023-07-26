@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -130,6 +129,7 @@ fun ProjectRootFab(
 ) {
 	val routerState by component.routerState.subscribeAsState()
 
+	/*
 	AnimatedContent(
 		targetState = routerState.active.instance,
 		transitionSpec = {
@@ -137,26 +137,27 @@ fun ProjectRootFab(
 				scaleOut(animationSpec = tween(500))
 		}
 	) { instance ->
-		when (instance) {
-			is ProjectRoot.Destination.EditorDestination -> {
+		*/
+	val instance = routerState.active.instance
+	when (instance) {
+		is ProjectRoot.Destination.EditorDestination -> {
 
-			}
+		}
 
-			is ProjectRoot.Destination.NotesDestination -> {
-				NotesFab(instance.component)
-			}
+		is ProjectRoot.Destination.NotesDestination -> {
+			NotesFab(instance.component)
+		}
 
-			is ProjectRoot.Destination.EncyclopediaDestination -> {
-				BrowseEntriesFab(instance.component)
-			}
+		is ProjectRoot.Destination.EncyclopediaDestination -> {
+			BrowseEntriesFab(instance.component)
+		}
 
-			is ProjectRoot.Destination.TimeLineDestination -> {
-				TimelineFab(instance.component)
-			}
+		is ProjectRoot.Destination.TimeLineDestination -> {
+			TimelineFab(instance.component)
+		}
 
-			is ProjectRoot.Destination.HomeDestination -> {
+		is ProjectRoot.Destination.HomeDestination -> {
 
-			}
 		}
 	}
 }
