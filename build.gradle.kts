@@ -7,6 +7,7 @@ buildscript {
     }
 
     val moko_resources_version: String by extra
+	val moko_resources_plugin_version: String by extra
 	val atomicfu_version: String by extra
     dependencies {
 		classpath("dev.icerock.moko:resources-generator:$moko_resources_version")

@@ -24,23 +24,23 @@ repositories {
 
 dependencies {
 	api(project(":composeUi"))
-	implementation("androidx.activity:activity-compose:1.7.2")
+	implementation(libs.activity.compose)
 	implementation(libs.koin.android)
-	implementation("androidx.glance:glance:1.0.0-beta01")
-	implementation("androidx.glance:glance-appwidget:1.0.0-beta01")
-	implementation("androidx.glance:glance-material3:1.0.0-beta01")
+	implementation(libs.glance)
+	implementation(libs.glance.appwidget)
+	implementation(libs.glance.material3)
 
-	implementation("androidx.work:work-runtime-ktx:2.8.1")
-	implementation("com.google.android.material:material:1.9.0")
-	implementation("androidx.appcompat:appcompat:1.6.1")
+	implementation(libs.work.runtime.ktx)
+	implementation(libs.material)
+	implementation(libs.appcompat)
 
-	androidTestImplementation("androidx.test.ext:junit:1.1.5")
-	androidTestImplementation("androidx.test.ext:junit-ktx:1.1.5")
-	androidTestImplementation("androidx.test:core:1.5.0")
-	androidTestImplementation("androidx.test:core-ktx:1.5.0")
-	androidTestImplementation("androidx.test:runner:1.5.2")
-	androidTestUtil("androidx.test:orchestrator:1.4.2")
-	androidTestImplementation("androidx.test:runner:1.5.2")
+	androidTestImplementation(libs.junit)
+	androidTestImplementation(libs.junit.ktx)
+	androidTestImplementation(libs.core)
+	androidTestImplementation(libs.core.ktx)
+	androidTestImplementation(libs.runner)
+	androidTestUtil(libs.orchestrator)
+	androidTestImplementation(libs.test.runner)
 }
 
 android {

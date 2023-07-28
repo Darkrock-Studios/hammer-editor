@@ -3,16 +3,14 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val ktor_version: String by project
 val logback_version: String by project
 val mockk_version: String by extra
-val sqldelight_version: String by extra
 val kotlinx_serialization_version: String by extra
-val ktoml_version: String by extra
 val app_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.jvm)
-	id("io.ktor.plugin")
+	alias(libs.plugins.ktor)
 	alias(libs.plugins.kotlin.serialization)
-	id("app.cash.sqldelight")
+	alias(libs.plugins.sqldelight)
 	alias(libs.plugins.jetbrains.kover)
 }
 
@@ -58,39 +56,39 @@ dependencies {
 	implementation(libs.coroutines.jdk8)
 	implementation(libs.serialization.jvm)
 	implementation(libs.datetime)
-	implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+	implementation(libs.kotlinx.cli)
 
-	implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
-	implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-default-headers-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-caching-headers-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
-	implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
-	implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
-	implementation("io.ktor:ktor-server-http-redirect:$ktor_version")
+	implementation(libs.ktor.server.contentnegotiationsjvm)
+	implementation(libs.ktor.server.corejvm)
+	implementation(libs.ktor.server.serializationkotlinxjsonjvm)
+	implementation(libs.ktor.server.callloggingjvm)
+	implementation(libs.ktor.server.defaultheadersjvm)
+	implementation(libs.ktor.server.compressionjvm)
+	implementation(libs.ktor.server.cachingheadersjvm)
+	implementation(libs.ktor.server.authjvm)
+	implementation(libs.ktor.server.nettyjvm)
+	implementation(libs.ktor.server.httpredirect)
+	implementation(libs.ktor.network.tlscertificates)
 
-	implementation("org.slf4j:slf4j-simple:2.0.6")
+	implementation(libs.slf4j.simple)
 
 	implementation(libs.bundles.koin.server)
 
 	implementation(libs.okio)
 
-	implementation("app.cash.sqldelight:sqlite-driver:$sqldelight_version")
-	implementation("app.cash.sqldelight:primitive-adapters:$sqldelight_version")
+	implementation(libs.sqldelight.driver)
+	implementation(libs.sqldelight.driver)
 
-	implementation("io.kweb:kweb-core:1.4.6")
-	implementation("io.ktor:ktor-server-websockets:$ktor_version")
+	implementation(libs.kweb.core)
+	implementation(libs.ktor.server.websockets)
 
-	implementation("com.akuleshov7:ktoml-core:$ktoml_version")
+	implementation(libs.ktoml)
 
-	testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
-	testImplementation("org.jetbrains.kotlin:kotlin-test-junit:${libs.versions.kotlin}")
+	testImplementation(libs.ktor.server.testsjvm)
+	testImplementation(libs.kotlin.test.junit)
 	testImplementation(libs.coroutines.test)
-	testImplementation("io.mockk:mockk:$mockk_version")
+	testImplementation(libs.mockk)
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
-	//testImplementation("io.ktor:ktor-server-test-host-jvm:2.2.4")
+	testImplementation(libs.ktor.server.testshostjvm)
 }

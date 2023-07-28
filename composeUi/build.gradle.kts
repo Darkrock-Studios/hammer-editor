@@ -36,15 +36,15 @@ kotlin {
 				api(compose.animation)
 				api(compose.animationGraphics)
 				api(compose.materialIconsExtended)
-				api("dev.chrisbanes.material3:material3-window-size-class-multiplatform:0.2.0")
-				api("org.jetbrains.compose.ui:ui-util:$jetbrains_compose_version")
-				api("org.jetbrains.compose.ui:ui-text:$jetbrains_compose_version")
+				api(libs.multiplatform.window.size)
+				api(libs.jetbrains.compose.ui.util)
+				api(libs.jetbrains.compose.ui.text)
 				api(libs.decompose.compose)
-				api("com.darkrockstudios:richtexteditor:1.4.1")
-				api("com.darkrockstudios:mpfilepicker:1.2.0")
-				api("io.github.qdsfdhvh:image-loader:1.5.1")
-				implementation("io.github.koalaplot:koalaplot-core:0.3.0")
-				api("dev.icerock.moko:resources-compose:$moko_resources_version")
+				api(libs.richtexteditor)
+				api(libs.mpfilepicker)
+				api(libs.image.loader)
+				implementation(libs.koalaplot.core)
+				api(libs.moko.resources.compose)
 			}
 		}
 		val commonTest by getting {
@@ -64,13 +64,13 @@ kotlin {
 		val desktopMain by getting {
 			dependencies {
 				implementation(compose.desktop.currentOs)
-				api("com.github.Dansoftowner:jSystemThemeDetector:3.8")
+				api(libs.jSystemThemeDetector)
 			}
 		}
 
 		val desktopTest by getting {
 			dependencies {
-				implementation("io.mockk:mockk:$mockk_version")
+				implementation(libs.mockk)
 			}
 		}
 	}

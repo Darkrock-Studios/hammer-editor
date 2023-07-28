@@ -1,7 +1,4 @@
 val data_version: String by extra
-val datetime_version: String by extra
-val json_version: String by extra
-val korio_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
@@ -38,11 +35,11 @@ kotlin {
 				implementation(libs.serialization.json)
 				//implementation("org.kotlincrypto.endians:endians:0.1.0")
 				//api("io.getstream:stream-result:1.1.0")
-				api("com.benasher44:uuid:0.7.0")
-				api("com.soywiz.korlibs.krypto:krypto:$korio_version")
+				api(libs.uuid)
+				api(libs.korlibs.krypto)
 				//api("com.goncalossilva:murmurhash:0.4.0")
-				api("com.appmattus.crypto:cryptohash:0.10.1")
-				api("com.soywiz.korlibs.korio:korio:$korio_version")
+				api(libs.cryptohash)
+				api(libs.korlibs.korio)
 			}
         }
     }

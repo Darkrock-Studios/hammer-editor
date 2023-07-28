@@ -1,25 +1,50 @@
 # https://developer.android.com/build/migrate-to-catalogs
 
 [versions]
+activity-compose = "1.7.2"
+androidx-runner = "1.5.2"
 app = "1.2.0"
+appcompat = "1.6.1"
+appdirs = "1.2.1"
+cache4k = "0.9.0"
+core = "1.5.0"
+coreKtx = "1.10.1"
+cryptohash = "0.10.1"
+glance = "1.0.0-rc01"
+jSystemThemeDetector = "3.8"
+junit = "1.1.5"
 jvm = "17"
-kotlin = "1.8.20"
-android_gradle_plugin = "7.4.1"
+kotlin = "1.8.22"
+android_gradle_plugin = "8.0.0"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
 android_version_code = "9"
 
-serialization = "1.5.0"
-serialization_json = "1.5.0"
-coroutines = "1.6.4"
+kotlinxCli = "0.3.5"
+kwebCore = "1.4.6"
+material = "1.9.0"
+orchestrator = "1.4.2"
+runner = "1.5.2"
+serialization = "1.5.1"
+serialization_json = "1.5.1"
+coroutines = "1.7.3"
 datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
-jetbrains_compose = "1.4.0"
+jetbrains_compose = "1.4.3"
+jetbrains_compose_compiler = "1.4.5"
 jetbrains_kover = "0.6.1"
+
+moko_resources = "0.23.0"
+moko_resources_plugin = "0.14.2"
 
 decompose = "2.0.0"
 essenty = "1.1.0" # This should match what ever decompose is referncing internally
+
+mpfilepicker = "1.2.0"
+richtexteditor = "1.4.1"
+koalaplot-core = "0.3.0"
+image-loader = "1.5.1"
 
 koin_core = "3.4.2"
 koin_android = "3.4.2"
@@ -28,19 +53,68 @@ koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
 koin_compose = "3.4.5"
 
+ktor = "2.3.1"
+
 okio = "3.3.0"
+slf4jSimple = "2.0.6"
+uuid = "0.7.0"
+work-runtime-ktx = "2.8.1"
+
+multiplatform_window_size = "0.2.0"
+mockk = "1.13.5"
+
+kotlinx_atomicfu = "0.21.0"
+
+ktoml = "0.4.0"
+
+krypto = "3.4.0"
+
+sqldelight = "2.0.0"
 
 [libraries]
-kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+appdirs = { module = "net.harawata:appdirs", version.ref = "appdirs" }
+cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "cache4k" }
+core = { module = "androidx.test:core", version.ref = "core" }
+core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
+cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
+glance = { module = "androidx.glance:glance", version.ref = "glance" }
+glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
+glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
 
+jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
+
+image-loader = { module = "io.github.qdsfdhvh:image-loader", version.ref = "image-loader" }
+jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
+junit = { module = "androidx.test.ext:junit", version.ref = "junit" }
+junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "junit" }
+koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot-core" }
+kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+kotlin_test_junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-cli = { module = "org.jetbrains.kotlinx:kotlinx-cli", version.ref = "kotlinxCli" }
+kweb-core = { module = "io.kweb:kweb-core", version.ref = "kwebCore" }
+multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpfilepicker" }
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
-
 datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 
+moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
+moko_resources_compose = { group = "dev.icerock.moko", name = "resources-compose", version.ref = "moko_resources" }
+orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
+resources-generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
+
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+
+richtexteditor = { module = "com.darkrockstudios:richtexteditor", version.ref = "richtexteditor" }
+runner = { module = "androidx.test:runner", version.ref = "runner" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
 serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
@@ -58,8 +132,48 @@ koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref 
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin_compose" }
 
+ktoml = { group = "com.akuleshov7", name = "ktoml-core", version.ref = "ktoml" }
+
+ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor_client_auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
+ktor_client_logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
+ktor_client_content_negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor_client_encoding = { group = "io.ktor", name = "ktor-client-encoding", version.ref = "ktor" }
+ktor_serialization_kotlinx_json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor_client_okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor_client_darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor_client_java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+
+ktor_server_contentnegotiationsjvm = { group = "io.ktor", name = "ktor-server-content-negotiation-jvm", version.ref = "ktor" }
+ktor_server_corejvm = { group = "io.ktor", name = "ktor-server-core-jvm", version.ref = "ktor" }
+ktor_server_serializationkotlinxjsonjvm = { group = "io.ktor", name = "ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
+ktor_server_callloggingjvm = { group = "io.ktor", name = "ktor-server-call-logging-jvm", version.ref = "ktor" }
+ktor_server_defaultheadersjvm = { group = "io.ktor", name = "ktor-server-default-headers-jvm", version.ref = "ktor" }
+ktor_server_compressionjvm = { group = "io.ktor", name = "ktor-server-compression-jvm", version.ref = "ktor" }
+ktor_server_cachingheadersjvm = { group = "io.ktor", name = "ktor-server-caching-headers-jvm", version.ref = "ktor" }
+ktor_server_authjvm = { group = "io.ktor", name = "ktor-server-auth-jvm", version.ref = "ktor" }
+ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", version.ref = "ktor" }
+ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
+ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
+ktor_server_testsjvm = { group = "io.ktor", name = "ktor-server-tests-jvm", version.ref = "ktor" }
+ktor_server_testshostjvm = { group = "io.ktor", name = "ktor-server-test-host-jvm", version.ref = "ktor" }
+
+ktor_network_tlscertificates = { group = "io.ktor", name = "ktor-network-tls-certificates", version.ref = "ktor" }
+
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" }
+test-runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
+uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
+
+kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx_atomicfu" }
+
+korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
+korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
+
+sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapters", version.ref = "sqldelight" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -70,6 +184,9 @@ android_application = { id = "com.android.application", version.ref = "android_g
 android_library = { id = "com.android.library", version.ref = "android_gradle_plugin" }
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
+moko_resources = { id = "dev.icerock.mobile.multiplatform-resources", version.ref = "moko_resources_plugin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 
 [bundles]
 koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]

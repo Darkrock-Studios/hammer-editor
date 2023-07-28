@@ -1,10 +1,3 @@
-val mockk_version: String by extra
-val moko_resources_version: String by extra
-val ktor_version: String by extra
-val json_version: String by extra
-val atomicfu_version: String by extra
-val ktoml_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -34,7 +27,7 @@ kotlin {
 				// This isn't working for some reason, once it is remove transitiveExport
 				export(libs.essenty)
 				export(libs.coroutines.core)
-				export("dev.icerock.moko:resources:$moko_resources_version")
+				export(libs.moko.resources)
 				export(libs.napier)
 			}
 		}
@@ -53,47 +46,47 @@ kotlin {
 				api(libs.koin.core)
 				api(libs.okio)
 
-				api("io.ktor:ktor-client-core:$ktor_version")
-				implementation("io.ktor:ktor-client-auth:$ktor_version")
-				implementation("io.ktor:ktor-client-logging:$ktor_version")
-				implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
-				implementation("io.ktor:ktor-client-encoding:$ktor_version")
-				implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+				api(libs.ktor.client.core)
+				implementation(libs.ktor.client.auth)
+				implementation(libs.ktor.client.logging)
+				implementation(libs.ktor.client.content.negotiation)
+				implementation(libs.ktor.client.encoding)
+				implementation(libs.ktor.serialization.kotlinx.json)
 
 				api(libs.serialization.core)
 				api(libs.serialization.json)
 				api(libs.datetime)
-				implementation("com.akuleshov7:ktoml-core:$ktoml_version")
+				implementation(libs.ktoml)
 				api(libs.essenty)
-				implementation("io.github.reactivecircus.cache4k:cache4k:0.9.0")
-				api("dev.icerock.moko:resources:$moko_resources_version")
-				implementation("org.jetbrains.kotlinx:atomicfu:$atomicfu_version")
+				implementation(libs.cache4k)
+				api(libs.moko.resources)
+				implementation(libs.kotlinx.atomicfu)
 			}
 		}
 		val commonTest by getting {
 			dependencies {
 				implementation(kotlin("test"))
-				//implementation("io.insert-koin:koin-test:$koin_version")
+				implementation(libs.koin.test)
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				implementation("dev.icerock.moko:resources-test:$moko_resources_version")
+				implementation(libs.moko.resources)
 			}
 		}
 		val androidMain by getting {
 			dependencies {
 				//api("androidx.appcompat:appcompat:1.5.1")
-				api("androidx.core:core-ktx:1.10.0")
+				api(libs.androidx.core.ktx)
 				api(libs.coroutines.android)
 				implementation(libs.koin.android)
-				implementation("io.ktor:ktor-client-okhttp:$ktor_version")
+				implementation(libs.ktor.client.okhttp)
 			}
 		}
 		val iosMain by getting {
 			dependencies {
 				api(libs.decompose)
 				api(libs.essenty)
-				api("dev.icerock.moko:resources:$moko_resources_version")
-				api("io.ktor:ktor-client-darwin:$ktor_version")
+				api(libs.moko.resources)
+				api(libs.ktor.client.darwin)
 			}
 		}
 		val iosTest by getting
@@ -103,19 +96,18 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
-				implementation("org.slf4j:slf4j-simple:2.0.6")
+				implementation(libs.slf4j.simple)
 				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)
-				implementation("net.harawata:appdirs:1.2.1")
-				api("dev.icerock.moko:resources-compose:$moko_resources_version")
-				//implementation("io.ktor:ktor-client-curl:$ktor_version")
-				implementation("io.ktor:ktor-client-java:$ktor_version")
+				implementation(libs.appdirs)
+				api(libs.moko.resources.compose)
+				implementation(libs.ktor.client.java)
 			}
 		}
 		val desktopTest by getting {
 			dependencies {
 				implementation(libs.coroutines.test)
-				implementation("io.mockk:mockk:$mockk_version")
+				implementation(libs.mockk)
 				implementation(libs.koin.test)
 			}
 		}
