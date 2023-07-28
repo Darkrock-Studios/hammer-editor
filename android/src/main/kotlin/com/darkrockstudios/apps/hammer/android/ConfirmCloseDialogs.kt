@@ -10,16 +10,16 @@ import kotlinx.coroutines.launch
 
 fun AppCompatActivity.confirmUnsavedScenesDialog(component: ProjectRoot) {
 	AlertDialog.Builder(this)
-		.setTitle(R.string.unsaved_scenes_dialog_title)
-		.setMessage(R.string.unsaved_scenes_dialog_message)
-		.setNegativeButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ ->
+		.setTitle(MR.strings.unsaved_scenes_dialog_title.resourceId)
+		.setMessage(MR.strings.unsaved_scenes_dialog_message.resourceId)
+		.setNegativeButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
 			component.closeRequestDealtWith(CloseConfirm.Scenes)
 		}
-		.setNeutralButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ ->
+		.setNeutralButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
 			component.cancelCloseRequest()
 			dialog.dismiss()
 		}
-		.setPositiveButton(R.string.unsaved_scenes_dialog_positive_button) { _, _ ->
+		.setPositiveButton(MR.strings.unsaved_scenes_dialog_positive_button.resourceId) { _, _ ->
 			lifecycleScope.launch {
 				component.storeDirtyBuffers()
 				component.closeRequestDealtWith(CloseConfirm.Scenes)
@@ -33,10 +33,10 @@ fun AppCompatActivity.confirmCloseUnsavedEncyclopediaDialog(component: ProjectRo
 	AlertDialog.Builder(this)
 		.setTitle(MR.strings.unsaved_encyclopedia_dialog_title.getString(this))
 		.setMessage(MR.strings.unsaved_encyclopedia_dialog_message.getString(this))
-		.setPositiveButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ ->
+		.setPositiveButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
 			component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
 		}
-		.setNegativeButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ ->
+		.setNegativeButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
 			component.cancelCloseRequest()
 			dialog.dismiss()
 		}
@@ -48,10 +48,10 @@ fun AppCompatActivity.confirmCloseUnsavedNotesDialog(component: ProjectRoot) {
 	AlertDialog.Builder(this)
 		.setTitle(MR.strings.unsaved_notes_dialog_title.getString(this))
 		.setMessage(MR.strings.unsaved_notes_dialog_message.getString(this))
-		.setPositiveButton(R.string.unsaved_scenes_dialog_negative_button) { _, _ ->
+		.setPositiveButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
 			component.closeRequestDealtWith(CloseConfirm.Notes)
 		}
-		.setNegativeButton(R.string.unsaved_scenes_dialog_neutral_button) { dialog, _ ->
+		.setNegativeButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
 			component.cancelCloseRequest()
 			dialog.dismiss()
 		}
