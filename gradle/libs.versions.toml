@@ -32,8 +32,8 @@ serialization_json = "1.5.1"
 coroutines = "1.7.3"
 datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
+jetpack_compose_compiler = "1.4.5"
 jetbrains_compose = "1.4.3"
-jetbrains_compose_compiler = "1.4.5"
 jetbrains_kover = "0.6.1"
 
 moko_resources = "0.23.0"

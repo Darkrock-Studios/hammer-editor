@@ -1,6 +1,3 @@
-val jetbrains_compose_version: String by extra
-val jetpack_compose_compiler_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -87,7 +84,7 @@ android {
 		compose = true
 	}
 	composeOptions {
-		kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
+		kotlinCompilerExtensionVersion = libs.versions.jetpack.compose.compiler.get()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.VERSION_17

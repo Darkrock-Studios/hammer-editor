@@ -1,7 +1,3 @@
-//val androidx_compose_version: String by extra
-val jetbrains_compose_version: String by extra
-val jetpack_compose_compiler_version: String by extra
-
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
 val RELEASE_KEY_ALIAS = System.getenv("RELEASE_KEY_ALIAS") ?: ""
@@ -59,7 +55,7 @@ android {
 		compose = true
 	}
 	composeOptions {
-		kotlinCompilerExtensionVersion = jetpack_compose_compiler_version
+		kotlinCompilerExtensionVersion = libs.versions.jetpack.compose.compiler.get()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.VERSION_17
