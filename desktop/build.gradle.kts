@@ -1,7 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val data_version: String by extra
-val moko_resources_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
@@ -26,7 +25,7 @@ kotlin {
 		val commonMain by getting {
 			resources.srcDirs("resources")
 			dependencies {
-				implementation("dev.icerock.moko:resources:$moko_resources_version")
+				implementation(libs.moko.resources)
 			}
 		}
 		val jvmMain by getting {
@@ -36,8 +35,8 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(compose.preview)
 				implementation(compose.desktop.currentOs)
-				implementation("com.github.weisj:darklaf-core:3.0.2")
-				implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+				implementation(libs.darklaf.core)
+				implementation(libs.kotlinx.cli)
 			}
 		}
 		val jvmTest by getting

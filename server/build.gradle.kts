@@ -1,9 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktor_version: String by project
-val logback_version: String by project
-val mockk_version: String by extra
-val kotlinx_serialization_version: String by extra
 val app_version: String by extra
 
 plugins {

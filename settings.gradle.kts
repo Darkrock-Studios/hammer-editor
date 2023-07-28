@@ -6,10 +6,6 @@ pluginManagement {
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
-
-    plugins {
-        id("dev.icerock.mobile.multiplatform-resources").version(extra["moko_resources_version"] as String) apply false
-	}
 }
 
 rootProject.name = "hammer"

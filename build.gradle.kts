@@ -6,12 +6,9 @@ buildscript {
         gradlePluginPortal()
     }
 
-    val moko_resources_version: String by extra
-	val moko_resources_plugin_version: String by extra
-	val atomicfu_version: String by extra
     dependencies {
-		classpath("dev.icerock.moko:resources-generator:$moko_resources_version")
-		classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:$atomicfu_version")
+		classpath(libs.moko.resources.generator)
+		classpath(libs.kotlinx.atomicfu.plugin)
     }
 }
 

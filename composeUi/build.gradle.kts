@@ -1,7 +1,5 @@
 val jetbrains_compose_version: String by extra
 val jetpack_compose_compiler_version: String by extra
-val mockk_version: String by extra
-val moko_resources_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)

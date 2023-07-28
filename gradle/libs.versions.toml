@@ -10,6 +10,7 @@ cache4k = "0.9.0"
 core = "1.5.0"
 coreKtx = "1.10.1"
 cryptohash = "0.10.1"
+darklafCore = "3.0.2"
 glance = "1.0.0-rc01"
 jSystemThemeDetector = "3.8"
 junit = "1.1.5"
@@ -80,6 +81,7 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 core = { module = "androidx.test:core", version.ref = "core" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
 cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
+darklaf-core = { module = "com.github.weisj:darklaf-core", version.ref = "darklafCore" }
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
@@ -108,6 +110,8 @@ datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version
 
 moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
 moko_resources_compose = { group = "dev.icerock.moko", name = "resources-compose", version.ref = "moko_resources" }
+moko_resources_generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
+moko_resources_test = { group = "dev.icerock.moko", name = "resources-test", version.ref = "moko_resources" }
 orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
 resources-generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
 
@@ -168,6 +172,7 @@ uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
 
 kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx_atomicfu" }
+kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
 
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
