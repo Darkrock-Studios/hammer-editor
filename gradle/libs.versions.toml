@@ -26,7 +26,6 @@ kotlinx_cli = "0.3.5"
 kwebCore = "1.4.6"
 material = "1.9.0"
 orchestrator = "1.4.2"
-runner = "1.5.2"
 serialization = "1.5.1"
 serialization_json = "1.5.1"
 coroutines = "1.7.3"
@@ -118,7 +117,7 @@ resources-generator = { group = "dev.icerock.moko", name = "resources-generator"
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 richtexteditor = { module = "com.darkrockstudios:richtexteditor", version.ref = "richtexteditor" }
-runner = { module = "androidx.test:runner", version.ref = "runner" }
+androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
 serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
@@ -167,7 +166,6 @@ ktor_network_tlscertificates = { group = "io.ktor", name = "ktor-network-tls-cer
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" }
-test-runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
 uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
 
