@@ -6,7 +6,8 @@ There are several run configurations provided for IntelliJ, stored in `/.run`.
 
 ### Desktop App
 
-`gradlew desktop:run` This will run in development mode. To run in developmeny mode manually, simply pass `--dev` as an
+`gradlew :desktop:run --args='--dev'` This will run in development mode. To run in developmeny mode manually, simply
+pass `--dev` as an
 argument when running it. Passing nothing will run in release mode.
 
 `dev` mode will use a separate config directory so that you don't accidentally mess with production data.
