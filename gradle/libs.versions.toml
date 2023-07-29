@@ -20,7 +20,7 @@ android_gradle_plugin = "8.0.0"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
-android_version_code = "9"
+android_version_code = "10"
 
 kotlinx_cli = "0.3.5"
 kwebCore = "1.4.6"
