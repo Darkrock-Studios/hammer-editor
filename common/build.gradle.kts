@@ -46,11 +46,7 @@ kotlin {
 				api(libs.koin.core)
 				api(libs.okio)
 
-				api(libs.ktor.client.core)
-				implementation(libs.ktor.client.auth)
-				implementation(libs.ktor.client.logging)
-				implementation(libs.ktor.client.content.negotiation)
-				implementation(libs.ktor.client.encoding)
+				implementation(libs.bundles.ktor.client)
 				implementation(libs.ktor.serialization.kotlinx.json)
 
 				api(libs.serialization.core)

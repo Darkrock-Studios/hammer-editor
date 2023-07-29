@@ -54,16 +54,7 @@ dependencies {
 	implementation(libs.datetime)
 	implementation(libs.kotlinx.cli)
 
-	implementation(libs.ktor.server.contentnegotiationsjvm)
-	implementation(libs.ktor.server.corejvm)
-	implementation(libs.ktor.server.serializationkotlinxjsonjvm)
-	implementation(libs.ktor.server.callloggingjvm)
-	implementation(libs.ktor.server.defaultheadersjvm)
-	implementation(libs.ktor.server.compressionjvm)
-	implementation(libs.ktor.server.cachingheadersjvm)
-	implementation(libs.ktor.server.authjvm)
-	implementation(libs.ktor.server.nettyjvm)
-	implementation(libs.ktor.server.httpredirect)
+	implementation(libs.bundles.ktor.server)
 	implementation(libs.ktor.network.tlscertificates)
 
 	implementation(libs.slf4j.simple)

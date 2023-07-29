@@ -142,10 +142,11 @@ ktor_client_auth = { group = "io.ktor", name = "ktor-client-auth", version.ref =
 ktor_client_logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
 ktor_client_content_negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor_client_encoding = { group = "io.ktor", name = "ktor-client-encoding", version.ref = "ktor" }
-ktor_serialization_kotlinx_json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor_client_okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor_client_darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 ktor_client_java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+
+ktor_serialization_kotlinx_json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 ktor_server_contentnegotiationsjvm = { group = "io.ktor", name = "ktor-server-content-negotiation-jvm", version.ref = "ktor" }
 ktor_server_corejvm = { group = "io.ktor", name = "ktor-server-core-jvm", version.ref = "ktor" }
@@ -158,6 +159,7 @@ ktor_server_authjvm = { group = "io.ktor", name = "ktor-server-auth-jvm", versio
 ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", version.ref = "ktor" }
 ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
+
 ktor_server_testsjvm = { group = "io.ktor", name = "ktor-server-tests-jvm", version.ref = "ktor" }
 ktor_server_testshostjvm = { group = "io.ktor", name = "ktor-server-test-host-jvm", version.ref = "ktor" }
 
@@ -193,3 +195,23 @@ sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 
 [bundles]
 koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]
+ktor_client = [
+	"ktor_client_core",
+	"ktor_client_auth",
+	"ktor_client_logging",
+	"ktor_client_content_negotiation",
+	"ktor_client_encoding",
+]
+ktor_server = [
+	"ktor_server_contentnegotiationsjvm",
+	"ktor_server_corejvm",
+	"ktor_server_serializationkotlinxjsonjvm",
+	"ktor_server_callloggingjvm",
+	"ktor_server_defaultheadersjvm",
+	"ktor_server_compressionjvm",
+	"ktor_server_cachingheadersjvm",
+	"ktor_server_authjvm",
+	"ktor_server_nettyjvm",
+	"ktor_server_httpredirect",
+	"ktor_server_websockets",
+]
