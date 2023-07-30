@@ -15,7 +15,7 @@
 \n%1$s</string>
     <string name="delete_project_confirm">Deletar</string>
     <string name="delete_project_cancel">Cancelar</string>
-    <string name="create_project_heading">Novo Nome de Projeto</string>
+    <string name="create_project_heading">Nome do Novo Projeto</string>
     <string name="create_project_button">Criar Projeto</string>
     <string name="create_project_error_already_exists">O projeto já existe</string>
     <string name="create_project_error_null_filename">Falta o Nome do Projeto</string>
