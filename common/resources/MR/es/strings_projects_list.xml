@@ -12,7 +12,7 @@
     <string name="delete_project_title">Eliminar proyecto</string>
     <string name="account_sync_dialog_cancel_button">Cancelar</string>
     <string name="create_project_error_null_filename">Falta nombre del proyecto</string>
-    <string name="create_project_error_invalid_characters">El nombre del proyecto contiene carácteres inválidos</string>
+    <string name="create_project_error_invalid_characters">El nombre del proyecto contiene caracteres inválidos</string>
     <string name="create_project_error_blank">El nombre del proyecto estaba en blanco</string>
     <string name="create_project_error_too_long">Nombre del proyecto muy largo</string>
     <string name="create_project_error_already_exists">Este proyecto ya existe</string>
@@ -23,7 +23,7 @@
     <string name="account_sync_log_title">Registro de sincronización</string>
     <string name="delete_project_message">¿Confirma desear eliminar este proyecto\?:
 \n%1$s</string>
-    <string name="delete_project_confirm">ELIMINAR</string>
+    <string name="delete_project_confirm">Eliminar</string>
     <string name="delete_project_cancel">Cancelar</string>
     <string name="create_project_title">Crear proyecto</string>
     <string name="create_project_heading">Nuevo nombre del proyecto</string>
