@@ -33,4 +33,6 @@
     <string name="settings_server_setup_button">Establecer</string>
     <string name="settings_server_max_backups">Número máximo de respaldos por proyecto</string>
     <string name="settings_server_auto_sync">Auto-sincronizar</string>
+    <string name="settings_data_version">Datos: v%1$s</string>
+    <string name="settings_projects_directory_hint">Ruta hacia el Directorio de Proyectos</string>
 </resources>
