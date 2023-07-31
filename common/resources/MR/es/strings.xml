@@ -2,4 +2,9 @@
 <resources>
     <string name="app_name">Hammer</string>
     <string name="unsaved_scenes_dialog_title">Escenas sin guardar</string>
+    <string name="unsaved_scenes_dialog_neutral_button">Cancelar</string>
+    <string name="unsaved_scenes_dialog_positive_button">Guardar y cerrar</string>
+    <string name="unsaved_dialog_negative_button">Cancelar</string>
+    <string name="close_dialog_button">Cerrar</string>
+    <string name="more_menu_button">Más</string>
 </resources>
