@@ -9,12 +9,12 @@
     <string name="notes_discard_dialog_title">¿Descartar cambios\?</string>
     <string name="notes_discard_dialog_message">Vas a perder cualquier cambio que hayas hecho.</string>
     <string name="notes_create_header">Crear nota</string>
-    <string name="notes_create_body_hint">Nota nueva:</string>
+    <string name="notes_create_body_hint">Nueva nota:</string>
     <string name="notes_create_create_button">Crear</string>
     <string name="notes_create_cancel_button">Cancelar</string>
     <string name="notes_create_toast_success">Nota creada</string>
     <string name="notes_delete_title">¿Eliminar nota\?</string>
-    <string name="notes_delete_message">Esta acción no se puede deshacer.</string>
+    <string name="notes_delete_message">¡Esta acción no se puede deshacer!</string>
     <string name="notes_create_toast_too_long">La nota era muy larga</string>
     <string name="notes_create_toast_empty">La nota estaba vacía</string>
     <string name="notes_delete_toast_success">Nota %1$s eliminada</string>
