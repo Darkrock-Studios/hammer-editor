@@ -32,7 +32,7 @@
     <string name="settings_server_max_backups">Max Backups pro Projekt</string>
     <string name="settings_server_test_auth_button">Authentifizierung testen</string>
     <string name="settings_server_reauth_button">Neu authentifizieren</string>
-    <string name="settings_server_remove_server_button">Authentifizierung entfernen</string>
+    <string name="settings_server_remove_server_button">Server Entfernen</string>
     <string name="settings_server_authtest_toast_success">Authentifizierungstest erfolgreich</string>
     <string name="settings_server_setup_title">Server einrichten</string>
     <string name="settings_server_sync_auto_close">Synchronisierungsdialog bei Erfolg schließen</string>
