@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="notes_header">Notities</string>
+    <string name="notes_list_empty">Geen notities gevonden</string>
+    <string name="notes_create_note_button">Notitie creëren</string>
 </resources>
