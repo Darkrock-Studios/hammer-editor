@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+    <string name="encyclopedia_search_hint">Zoek op naam</string>
 </resources>
