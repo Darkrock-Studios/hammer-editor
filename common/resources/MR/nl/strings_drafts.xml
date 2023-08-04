@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="draft_compare_cancel_button">Annuleren</string>
+    <string name="draft_compare_current_header">Samenvoegen met Huidig</string>
 </resources>
