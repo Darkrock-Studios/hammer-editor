@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_heading">⚙ Instellingen</string>
+    <string name="settings_theme_label">UI Thema</string>
 </resources>
