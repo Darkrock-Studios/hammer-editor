@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="project_home_stat_header">Gegevens:</string>
+    <string name="project_home_stat_created">Gecreëerd: %1$s</string>
+    <string name="project_home_stat_num_scenes">Scènes</string>
 </resources>
