@@ -2,10 +2,10 @@ plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
-	id("kotlin-parcelize")
-	//id("parcelize-darwin")
-	id("org.jetbrains.kotlinx.kover")
-	id("dev.icerock.mobile.multiplatform-resources")
+	alias(libs.plugins.kotlin.parcelize)
+	alias(libs.plugins.parcelize.darwin)
+	alias(libs.plugins.jetbrains.kover)
+	alias(libs.plugins.moko.resources)
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -24,7 +24,6 @@ kotlin {
 				baseName = "Hammer"
 				//transitiveExport = true
 				export(libs.decompose)
-				// This isn't working for some reason, once it is remove transitiveExport
 				export(libs.essenty)
 				export(libs.coroutines.core)
 				export(libs.moko.resources)
@@ -72,7 +71,6 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
-				//api("androidx.appcompat:appcompat:1.5.1")
 				api(libs.androidx.core.ktx)
 				api(libs.coroutines.android)
 				implementation(libs.koin.android)

@@ -36,11 +36,11 @@ jetbrains_compose = "1.4.3"
 jetbrains_kover = "0.6.1"
 
 moko_resources = "0.23.0"
-moko_resources_plugin = "0.14.2"
 moko_graphics = "0.9.0"
 
 decompose = "2.0.0"
 essenty = "1.1.0" # This should match what ever decompose is referncing internally
+parcelize_darwin = "0.1.4"
 
 mpfilepicker = "1.2.0"
 richtexteditor = "1.4.1"
@@ -71,6 +71,7 @@ ktoml = "0.4.0"
 krypto = "3.4.0"
 
 sqldelight = "2.0.0"
+buildconfig = "4.0.2"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -181,18 +182,24 @@ korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.re
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapters", version.ref = "sqldelight" }
 
+parcelize_darwin = { group = "com.arkivanov.parcelize.darwin", name = "gradle-plugin", version.ref = "parcelize_darwin" }
+
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin_serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin_jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin_android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin_parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+kotlinx_atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
 android_application = { id = "com.android.application", version.ref = "android_gradle_plugin" }
 android_library = { id = "com.android.library", version.ref = "android_gradle_plugin" }
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
-moko_resources = { id = "dev.icerock.mobile.multiplatform-resources", version.ref = "moko_resources_plugin" }
+moko_resources = { id = "dev.icerock.mobile.multiplatform-resources", version.ref = "moko_resources" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
+parcelize_darwin = { id = "com.arkivanov.parcelize.darwin", version.ref = "parcelize_darwin" }
 
 [bundles]
 koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]

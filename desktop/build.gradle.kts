@@ -7,7 +7,7 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.jetbrains.kover)
-	id("dev.icerock.mobile.multiplatform-resources")
+	alias(libs.plugins.moko.resources)
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
