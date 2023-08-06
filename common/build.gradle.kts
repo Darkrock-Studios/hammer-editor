@@ -28,6 +28,7 @@ kotlin {
 				export(libs.essenty)
 				export(libs.coroutines.core)
 				export(libs.moko.resources)
+				export(libs.moko.graphics)
 				export(libs.napier)
 			}
 		}
@@ -56,6 +57,7 @@ kotlin {
 				api(libs.essenty)
 				implementation(libs.cache4k)
 				api(libs.moko.resources)
+				api(libs.moko.graphics)
 				implementation(libs.kotlinx.atomicfu)
 			}
 		}

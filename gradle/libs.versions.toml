@@ -37,6 +37,7 @@ jetbrains_kover = "0.6.1"
 
 moko_resources = "0.23.0"
 moko_resources_plugin = "0.14.2"
+moko_graphics = "0.9.0"
 
 decompose = "2.0.0"
 essenty = "1.1.0" # This should match what ever decompose is referncing internally
@@ -111,8 +112,8 @@ moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref =
 moko_resources_compose = { group = "dev.icerock.moko", name = "resources-compose", version.ref = "moko_resources" }
 moko_resources_generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
 moko_resources_test = { group = "dev.icerock.moko", name = "resources-test", version.ref = "moko_resources" }
+moko_graphics = { group = "dev.icerock.moko", name = "graphics", version.ref = "moko_graphics" }
 orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
-resources-generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
 
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
