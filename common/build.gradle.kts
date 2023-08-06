@@ -79,6 +79,7 @@ kotlin {
 		}
 		val iosMain by getting {
 			dependencies {
+				implementation(libs.parcelize.darwin)
 				api(libs.decompose)
 				api(libs.essenty)
 				api(libs.moko.resources)
