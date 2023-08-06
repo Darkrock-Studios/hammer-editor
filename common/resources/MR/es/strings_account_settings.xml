@@ -13,7 +13,7 @@
     <string name="settings_projects_directory">Directorio de proyectos</string>
     <string name="settings_server_description">Establece un servidor para sincronizar entre dispositivos.</string>
     <string name="settings_server_test_auth_button">Prueba de autentificación</string>
-    <string name="settings_server_remove_server_button">Eliminar autentificación</string>
+    <string name="settings_server_remove_server_button">Eliminar servidor</string>
     <string name="settings_server_authtest_toast_success">Prueba de autentificación exitosa</string>
     <string name="settings_server_authtest_toast_failure">La prueba de autentificación falló</string>
     <string name="settings_remove_server_dialog_title">Eliminar servidor</string>
@@ -33,4 +33,7 @@
     <string name="settings_server_setup_button">Establecer</string>
     <string name="settings_server_max_backups">Número máximo de respaldos por proyecto</string>
     <string name="settings_server_auto_sync">Auto-sincronizar</string>
+    <string name="settings_data_version">Datos: v%1$s</string>
+    <string name="settings_projects_directory_hint">Ruta hacia el Directorio de Proyectos</string>
+    <string name="settings_server_reauth_button">Re-autenticar</string>
 </resources>

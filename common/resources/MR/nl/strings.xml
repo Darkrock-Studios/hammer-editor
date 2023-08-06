@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hamer</string>
+    <string name="unsaved_scenes_dialog_title">Onopgeslagen scènes</string>
+</resources>

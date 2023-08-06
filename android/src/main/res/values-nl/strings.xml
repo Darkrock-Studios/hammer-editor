@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hamer</string>
+    <string name="title_activity_add_note">Notitie toevoegen</string>
+    <string name="loading">Laden…</string>
+</resources>

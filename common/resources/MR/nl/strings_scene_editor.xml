@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="save_draft_dialog_title">Ontwerp opslaan:</string>
+    <string name="save_draft_dialog_name_hint">Naam ontwerp</string>
+    <string name="save_draft_dialog_save_button">Opslaan</string>
+</resources>

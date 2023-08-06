@@ -12,4 +12,12 @@
     <string name="scene_editor_toast_save_successful">Gespeichert</string>
     <string name="scene_editor_body_placeholder">Hier mit dem Schreiben der Szene beginnen</string>
     <string name="save_draft_dialog_name_hint">Name des Entwurfs</string>
+    <string name="scene_editor_menu_item_discard">Wegwerfen</string>
+    <string name="scene_editor_menu_item_save_draft">Entwurf Speichern</string>
+    <string name="scene_editor_menu_item_view_drafts">Entwürfe Ansehen</string>
+    <string name="scene_editor_rename_dialog_title">Szene Umbenennen</string>
+    <string name="scene_editor_menu_group">Szene</string>
+    <string name="scene_editor_menu_item_rename">Umbenennen</string>
+    <string name="scene_editor_menu_item_save">Speichern</string>
+    <string name="scene_editor_menu_item_close">Schließen</string>
 </resources>

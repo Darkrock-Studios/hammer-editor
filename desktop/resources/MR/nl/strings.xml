@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_window_title">Hamer - Projectselectie</string>
+    <string name="project_window_title">Hamer - %1$s</string>
+    <string name="project_window_menu_file">Bestand</string>
+</resources>

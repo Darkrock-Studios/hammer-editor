@@ -34,4 +34,8 @@
     <string name="encyclopedia_entry_delete_toast">Eintrag gelöscht</string>
     <string name="encyclopedia_entry_delete_image_title">Bild löschen\?</string>
     <string name="encyclopedia_entry_name_hint">Name</string>
+    <string name="encyclopedia_entry_menu_group">Eintrag</string>
+    <string name="encyclopedia_entry_menu_delete">Eintrag Löschen</string>
+    <string name="encyclopedia_entry_menu_remove_image">Bild Entfernen</string>
+    <string name="encyclopedia_entry_menu_add_image">Bild Hinzufügen</string>
 </resources>

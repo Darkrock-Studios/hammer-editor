@@ -19,4 +19,5 @@
     <string name="scene_editor_menu_item_discard">丢弃</string>
     <string name="scene_editor_menu_item_save">保存</string>
     <string name="scene_editor_menu_item_close">关闭</string>
+    <string name="scene_editor_rename_dialog_title">重命名场景</string>
 </resources>

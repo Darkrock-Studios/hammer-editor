@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="project_select_list_header">Projecten:</string>
+    <string name="project_select_card_delete_button">Verwijderen</string>
+    <string name="project_select_project_list_empty">Geen projecten gevonden</string>
+</resources>

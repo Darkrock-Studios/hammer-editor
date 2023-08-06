@@ -4,4 +4,14 @@
     <string name="unsaved_scenes_dialog_neutral_button">Abbrechen</string>
     <string name="unsaved_scenes_dialog_title">Nicht gespeicherte Szenen</string>
     <string name="unsaved_scenes_dialog_positive_button">Speichern und schließen</string>
+    <string name="unsaved_scenes_dialog_message">Ungespeicherte Szenen speichern\?</string>
+    <string name="unsaved_scenes_dialog_negative_button">Verwerfen und schließen</string>
+    <string name="unsaved_encyclopedia_dialog_title">Ungespeicherter Enzyklopädie Eintrag</string>
+    <string name="unsaved_encyclopedia_dialog_message">Eintrag verwerfen\?</string>
+    <string name="unsaved_notes_dialog_title">Ungespeicherte Notiz</string>
+    <string name="unsaved_notes_dialog_message">Notiz wegwerfen\?</string>
+    <string name="unsaved_dialog_negative_button">Abbrechen</string>
+    <string name="unsaved_dialog_positive_button">Verwerfen und schließen</string>
+    <string name="close_dialog_button">Schließen</string>
+    <string name="more_menu_button">Mehr</string>
 </resources>
