@@ -17,8 +17,11 @@ A simple tool for building stories.
 
 Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
 
+### Community
 Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing
 the future of Hammer.
+
+Or visit us on Reddit at [/hammereditor](https://www.reddit.com/r/hammereditor/)
 
 ## Multi-platform
 
