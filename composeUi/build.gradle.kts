@@ -3,7 +3,6 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
-	id("kotlin-parcelize")
 	alias(libs.plugins.jetbrains.kover)
 }
 
