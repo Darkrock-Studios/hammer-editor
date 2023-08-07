@@ -57,8 +57,8 @@ android {
 		kotlinCompilerExtensionVersion = libs.versions.jetpack.compose.compiler.get()
 	}
 	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
+		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
+		targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
 	}
 	signingConfigs {
 		create("release") {
