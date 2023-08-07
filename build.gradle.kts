@@ -10,7 +10,7 @@ buildscript {
     dependencies {
 		classpath(libs.moko.resources.generator)
 		classpath(libs.kotlinx.atomicfu.plugin)
-		classpath(libs.parcelize.darwin)
+		//classpath(libs.parcelize.darwin)
     }
 }
 
