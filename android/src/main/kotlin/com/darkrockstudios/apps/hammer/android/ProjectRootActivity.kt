@@ -226,7 +226,6 @@ private fun CompactNavigation(
 			ProjectRootUi(
 				component,
 				modifier = Modifier.padding(innerPadding),
-				R.drawable::class,
 			)
 		},
 		bottomBar = {
@@ -288,7 +287,7 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectRootUi(component, Modifier.padding(innerPadding), R.drawable::class)
+				ProjectRootUi(component, Modifier.padding(innerPadding))
 			}
 		},
 		floatingActionButton = {
@@ -338,7 +337,7 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectRootUi(component, Modifier.padding(innerPadding), R.drawable::class)
+					ProjectRootUi(component, Modifier.padding(innerPadding))
 				}
 			)
 		},

@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 fun SceneEditorUi(
 	component: SceneEditor,
 	modifier: Modifier = Modifier,
-	drawableKlass: Any? = null
 ) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
@@ -53,29 +52,25 @@ fun SceneEditorUi(
 
 			Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 				EditorAction(
-					iconRes = "drawable/icon_bold.xml",
-					drawableKlass = drawableKlass,
+					iconRes = MR.images.icon_bold,
 					active = sceneText.currentStyles.contains(Style.Bold),
 				) {
 					sceneText = sceneText.insertStyle(Style.Bold)
 				}
 				EditorAction(
-					iconRes = "drawable/icon_italic.xml",
-					drawableKlass = drawableKlass,
+					iconRes = MR.images.icon_italic,
 					active = sceneText.currentStyles.contains(Style.Italic),
 				) {
 					sceneText = sceneText.insertStyle(Style.Italic)
 				}
 				EditorAction(
-					iconRes = "drawable/icon_undo.xml",
-					drawableKlass = drawableKlass,
+					iconRes = MR.images.icon_undo,
 					active = sceneText.isUndoAvailable
 				) {
 					sceneText = sceneText.undo()
 				}
 				EditorAction(
-					iconRes = "drawable/icon_redo.xml",
-					drawableKlass = drawableKlass,
+					iconRes = MR.images.icon_redo,
 					active = sceneText.isRedoAvailable
 				) {
 					sceneText = sceneText.redo()

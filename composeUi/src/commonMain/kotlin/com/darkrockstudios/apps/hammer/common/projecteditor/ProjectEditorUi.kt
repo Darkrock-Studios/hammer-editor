@@ -27,7 +27,6 @@ private val LIST_PANE_WIDTH = 300.dp
 fun ProjectEditorUi(
 	component: ProjectEditor,
 	modifier: Modifier = Modifier,
-	drawableKlass: Any? = null,
 ) {
 	BoxWithConstraints(modifier = modifier) {
 		val state by component.state.subscribeAsState()
@@ -56,7 +55,6 @@ fun ProjectEditorUi(
 		DetailsPane(
 			state = detailsState,
 			modifier = detailsModifier,
-			drawableKlass = drawableKlass,
 		)
 	}
 
@@ -105,12 +103,10 @@ private fun ListPane(
 	}
 }
 
-@OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun DetailsPane(
 	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
 	modifier: Modifier,
-	drawableKlass: Any? = null,
 ) {
 	Children(
 		stack = state,
@@ -123,7 +119,6 @@ private fun DetailsPane(
 				SceneEditorUi(
 					component = child.component,
 					modifier = Modifier.fillMaxSize(),
-					drawableKlass = drawableKlass
 				)
 			}
 

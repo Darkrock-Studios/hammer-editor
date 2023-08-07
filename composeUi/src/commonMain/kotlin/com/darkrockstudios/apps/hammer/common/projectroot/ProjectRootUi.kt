@@ -51,7 +51,6 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 fun ProjectRootUi(
 	component: ProjectRoot,
 	modifier: Modifier = Modifier,
-	drawableKlass: Any? = null,
 ) {
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
@@ -67,7 +66,7 @@ fun ProjectRootUi(
 				uiNeedsExplicitCloseButtons()
 			)
 		) {
-			FeatureContent(modifier.fillMaxSize(), component, drawableKlass)
+			FeatureContent(modifier.fillMaxSize(), component)
 			SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 		}
 	}
@@ -81,7 +80,6 @@ fun ProjectRootUi(
 fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
-	drawableKlass: Any? = null,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 	Children(
@@ -91,7 +89,7 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(component = child.component, drawableKlass = drawableKlass)
+				ProjectEditorUi(component = child.component)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component)

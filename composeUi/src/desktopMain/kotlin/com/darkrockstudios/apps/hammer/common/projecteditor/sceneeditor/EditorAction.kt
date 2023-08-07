@@ -11,13 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.painterResource
+import dev.icerock.moko.resources.ImageResource
+import dev.icerock.moko.resources.compose.painterResource
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal actual fun EditorAction(
-	iconRes: String,
-	drawableKlass: Any?,
+	iconRes: ImageResource,
 	active: Boolean,
 	onClick: () -> Unit
 ) {
@@ -35,7 +35,7 @@ internal actual fun EditorAction(
 	) {
 		Icon(
 			modifier = Modifier.size(24.dp),
-			painter = painterResource(res = iconRes, drawableKlass = drawableKlass),
+			painter = painterResource(iconRes),
 			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
 			contentDescription = null
 		)

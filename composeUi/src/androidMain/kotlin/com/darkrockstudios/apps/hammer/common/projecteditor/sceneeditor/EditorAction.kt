@@ -7,19 +7,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.painterResource
+import dev.icerock.moko.resources.ImageResource
+import dev.icerock.moko.resources.compose.painterResource
 
 @Composable
 internal actual fun EditorAction(
-	iconRes: String,
-	drawableKlass: Any?,
+	iconRes: ImageResource,
 	active: Boolean,
 	onClick: () -> Unit
 ) {
 	IconButton(onClick = onClick) {
 		Icon(
 			modifier = Modifier.size(24.dp),
-			painter = painterResource(res = iconRes, drawableKlass = drawableKlass),
+			painter = painterResource(iconRes),
 			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
 			contentDescription = null
 		)
