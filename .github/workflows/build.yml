@@ -30,7 +30,6 @@ jobs:
         uses: codecov/codecov-action@v3
   ios:
     runs-on: macos-latest
-    if: ${{ false }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
