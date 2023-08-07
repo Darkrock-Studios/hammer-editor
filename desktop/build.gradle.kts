@@ -48,6 +48,7 @@ compose.desktop {
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+			modules = arrayListOf(":base", ":common", ":composeUi", ":desktop")
 			includeAllModules = true
 			packageName = "hammer"
 			packageVersion = libs.versions.app.get()
@@ -56,18 +57,26 @@ compose.desktop {
 			licenseFile.set(project.file("../LICENSE"))
 			outputBaseDir.set(project.buildDir.resolve("installers"))
 
-			windows.apply {
+			windows {
 				menuGroup = "Hammer"
 				shortcut = true
 				console = true
+
+				iconFile.set(project.file("icons/windows.ico"))
 			}
 
-			linux.apply {
+			linux {
 				rpmLicenseType = "MIT"
+				shortcut = true
+
+				iconFile.set(project.file("icons/linux.png"))
 			}
 
-			macOS.apply {
+			macOS {
+				dockName = "Hammer"
 				appStore = false
+
+				iconFile.set(project.file("icons/macos.icns"))
 			}
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
