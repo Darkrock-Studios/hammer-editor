@@ -22,16 +22,15 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.lifecycle.LifecycleC
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
+import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -109,7 +108,7 @@ private fun MediumNavigation(
 
 					Spacer(modifier = Modifier.weight(1f))
 
-					val versionText = remember { getVersionText() }
+					val versionText = remember { getAppVersionString() }
 
 					Text(
 						versionText,
@@ -183,7 +182,7 @@ private fun ColumnScope.NavigationDrawerContents(
 
 	Spacer(modifier = Modifier.weight(1f))
 
-	val versionText = remember { getVersionText() }
+	val versionText = remember { getAppVersionString() }
 
 	Text(
 		versionText,
@@ -192,10 +191,4 @@ private fun ColumnScope.NavigationDrawerContents(
 			.align(Alignment.Start),
 		style = MaterialTheme.typography.labelSmall,
 	)
-}
-
-private fun getVersionText() = if (getInDevelopmentMode()) {
-	"v${BuildMetadata.APP_VERSION}-dev"
-} else {
-	"v${BuildMetadata.APP_VERSION}"
 }

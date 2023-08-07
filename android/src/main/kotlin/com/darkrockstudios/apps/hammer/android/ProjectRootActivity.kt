@@ -245,7 +245,7 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectRoot,
