@@ -3,7 +3,7 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.parcelize)
-	alias(libs.plugins.parcelize.darwin)
+	//alias(libs.plugins.parcelize.darwin)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.moko.resources)
 }
@@ -25,6 +25,7 @@ kotlin {
 				//transitiveExport = true
 				export(libs.decompose)
 				export(libs.essenty)
+				//export(libs.parcelize.darwin.runtime)
 				export(libs.coroutines.core)
 				export(libs.moko.resources)
 				export(libs.moko.graphics)
@@ -79,7 +80,7 @@ kotlin {
 		}
 		val iosMain by getting {
 			dependencies {
-				implementation(libs.parcelize.darwin)
+				//implementation(libs.parcelize.darwin.runtime)
 				api(libs.decompose)
 				api(libs.essenty)
 				api(libs.moko.resources)
