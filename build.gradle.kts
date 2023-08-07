@@ -25,7 +25,8 @@ allprojects {
 }
 
 plugins {
-	alias(libs.plugins.kotlin.jvm) apply false
+	// TODO Re-add "apply false" once this is fixed: https://youtrack.jetbrains.com/issue/KTIJ-25236
+	alias(libs.plugins.kotlin.jvm) // apply false
 	alias(libs.plugins.kotlin.multiplatform) apply false
 	alias(libs.plugins.kotlin.serialization) apply false
 	alias(libs.plugins.kotlin.parcelize) apply false
