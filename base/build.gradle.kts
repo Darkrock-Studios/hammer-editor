@@ -1,11 +1,9 @@
-val data_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.jetbrains.kover)
-	id("com.github.gmazzo.buildconfig")
+	alias(libs.plugins.buildconfig)
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -63,7 +61,7 @@ buildConfig {
     useKotlinOutput { internalVisibility = false }
 
 	buildConfigField("String", "APP_VERSION", "\"${libs.versions.app.get()}\"")
-	buildConfigField("String", "DATA_VERSION", "\"$data_version\"")
+	buildConfigField("String", "DATA_VERSION", "\"${libs.versions.data.version.get()}\"")
 }
 
 val GIT_TASK_NAME = "install-git-hooks"

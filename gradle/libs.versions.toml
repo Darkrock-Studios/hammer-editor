@@ -1,9 +1,24 @@
 # https://developer.android.com/build/migrate-to-catalogs
 
 [versions]
+# App Versions
+app = "1.2.0"
+android_version_code = "10"
+data_version = "1.0"
+
+# Kotlin
+jvm = "17"
+kotlin = "1.8.22"
+
+# Android
+android_gradle_plugin = "8.0.0"
+android_sdk_compile = "34"
+android_sdk_target = "34"
+android_sdk_min = "26"
+
+# Other libraries
 activity-compose = "1.7.2"
 androidx-runner = "1.5.2"
-app = "1.2.0"
 appcompat = "1.6.1"
 appdirs = "1.2.1"
 cache4k = "0.9.0"
@@ -14,14 +29,6 @@ darklafCore = "3.0.2"
 glance = "1.0.0-rc01"
 jSystemThemeDetector = "3.8"
 junit = "1.1.5"
-jvm = "17"
-kotlin = "1.8.22"
-android_gradle_plugin = "8.0.0"
-android_sdk_compile = "34"
-android_sdk_target = "34"
-android_sdk_min = "26"
-android_version_code = "10"
-
 kotlinx_cli = "0.3.5"
 kwebCore = "1.4.6"
 material = "1.9.0"
