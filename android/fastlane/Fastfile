@@ -1,0 +1,56 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:android)
+
+platform :android do
+  desc "Runs all the tests"
+  lane :test do
+    gradle(
+      task: "test",
+      gradle_path: "../gradlew"
+    )
+  end
+
+  desc "Submit a new Beta Build to Google Play Internal"
+  lane :alpha do
+    changelog = File.read("../Changelog.txt")
+    gradle(
+      task: ":android:bundleRelease",
+      gradle_path: "../gradlew"
+    )
+    upload_to_play_store(track: 'alpha')
+  end
+
+  desc "Submit a new Beta Build to Google Play Internal"
+  lane :beta do
+    changelog = File.read("../Changelog.txt")
+    gradle(
+      task: ":android:bundleRelease",
+      gradle_path: "../gradlew"
+    )
+    upload_to_play_store(track: 'beta')
+  end
+
+  desc "Deploy a new version to the Google Play"
+  lane :release do
+    changelog = File.read("../Changelog.txt")
+    gradle(
+      task: "clean bundleRelease",
+      gradle_path: "../gradlew"
+    )
+    upload_to_play_store
+  end
+end

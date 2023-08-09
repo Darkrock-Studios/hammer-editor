@@ -3,7 +3,7 @@
 [versions]
 # App Versions
 app = "1.2.1"
-android_version_code = "11"
+android_version_code = "13"
 data_version = "1.0"
 
 # Kotlin

@@ -1,0 +1,1 @@
+- Hotfix to fix editor crash
