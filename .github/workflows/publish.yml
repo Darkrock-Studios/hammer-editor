@@ -4,6 +4,71 @@ on:
     types: [ published ]
 
 jobs:
+  publish-google-play:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+
+      - name: Cache Ruby - Bundler
+        uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Cache Gradle
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches/
+          key: cache-clean-gradle-${{ matrix.os }}-${{ matrix.jdk }}
+
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/wrapper/
+          key: cache-clean-wrapper-${{ matrix.os }}-${{ matrix.jdk }}
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
+      - name: Install bundle
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Restore key
+        working-directory: /home/runner/work/hammer-editor/hammer-editor/
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
+          echo ${{ secrets.RELEASE_STORE_PASSWORD_BASE64 }} | base64 -d > passphrase
+          gpg -d --passphrase-file passphrase --batch release.keystore.asc > release.keystore
+        env:
+          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Create Google Play Config file
+        run: |
+          echo "$PLAY_CONFIG_JSON" > android/play_config.json.b64
+          base64 -d -i android/play_config.json.b64 > android/play_config.json
+        env:
+          PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
+
+      - name: Write Changelog
+        run: |
+          echo "${{ EVENT_PAYLOAD.release.description }}" > changelog.txt
+
+      - name: Distribute app to Production track 🚀
+        run: |
+          cd android
+          bundle exec fastlane release
   notify:
     runs-on: ubuntu-latest
     steps:
