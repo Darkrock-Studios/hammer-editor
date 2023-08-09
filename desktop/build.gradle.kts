@@ -47,7 +47,7 @@ compose.desktop {
 	application {
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
-			targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.AppImage)
+			targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
 			modules = arrayListOf(":base", ":common", ":composeUi", ":desktop")
 			includeAllModules = true
 			packageName = "hammer"
