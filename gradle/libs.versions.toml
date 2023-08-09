@@ -2,8 +2,8 @@
 
 [versions]
 # App Versions
-app = "1.2.1"
-android_version_code = "13"
+app = "1.2.2"
+android_version_code = "14"
 data_version = "1.0"
 
 # Kotlin
