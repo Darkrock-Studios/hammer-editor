@@ -63,7 +63,9 @@ jobs:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
       - name: Write Changelog
-        run: echo "{{ EVENT_PAYLOAD.release.description }}" > changelog.txt
+        run: |
+          echo "Changes:\n{{ EVENT_PAYLOAD.release.description }}" > changelog.txt
+          cat changelog.txt
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
