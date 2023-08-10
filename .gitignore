@@ -46,3 +46,8 @@ bin/
 
 wix311/
 /android/release/android-release.aab
+
+# Fastlane
+play_config.json
+fastlane/report.xml
+fastlane/README.md

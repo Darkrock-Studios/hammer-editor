@@ -20,36 +20,36 @@ platform :android do
   lane :test do
     gradle(
       task: "test",
-      gradle_path: "../gradlew"
+      gradle_path: "./gradlew"
     )
   end
 
   desc "Submit a new Beta Build to Google Play Internal"
   lane :alpha do
-    changelog = File.read("../changelog.txt")
+    changelog = File.read("changelog.txt")
     gradle(
       task: ":android:bundleRelease",
-      gradle_path: "../gradlew"
+      gradle_path: "./gradlew"
     )
     upload_to_play_store(track: 'alpha')
   end
 
   desc "Submit a new Beta Build to Google Play Internal"
   lane :beta do
-    changelog = File.read("../changelog.txt")
+    changelog = File.read("changelog.txt")
     gradle(
       task: ":android:bundleRelease",
-      gradle_path: "../gradlew"
+      gradle_path: "./gradlew"
     )
     upload_to_play_store(track: 'beta')
   end
 
   desc "Deploy a new version to the Google Play"
   lane :release do
-    changelog = File.read("../changelog.txt")
+    changelog = File.read("changelog.txt")
     gradle(
       task: "clean bundleRelease",
-      gradle_path: "../gradlew"
+      gradle_path: "./gradlew"
     )
     upload_to_play_store
   end
