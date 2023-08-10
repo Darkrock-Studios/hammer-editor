@@ -30,18 +30,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gems-
 
-      - name: Cache Gradle
-        uses: actions/cache@v1
-        with:
-          path: ~/.gradle/caches/
-          key: cache-clean-gradle-${{ matrix.os }}-${{ matrix.jdk }}
-
-      - name: Cache Gradle Wrapper
-        uses: actions/cache@v1
-        with:
-          path: ~/.gradle/wrapper/
-          key: cache-clean-wrapper-${{ matrix.os }}-${{ matrix.jdk }}
-
       - name: Grant Permission to Execute
         run: chmod +x gradlew
 
@@ -64,10 +52,11 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      - name: Write Changelog
-        run: |
-          echo "Changes:\n{{ EVENT_PAYLOAD.release.description }}" > changelog.txt
-          cat changelog.txt
+      # Need to find a way to get the version code here
+      #- name: Write Changelog
+      #  run: |
+      #    echo "${{ EVENT_PAYLOAD.release.description }}" > fastlane/metadata/android/en-US/changelogs/14.txt
+      #    cat changelog.txt
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
