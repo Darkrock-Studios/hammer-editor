@@ -56,11 +56,6 @@ jobs:
           echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
           echo ${{ secrets.RELEASE_STORE_PASSWORD_BASE64 }} | base64 -d > passphrase
           gpg -d --passphrase-file passphrase --batch release.keystore.asc > release.keystore
-        env:
-          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Create Google Play Config file
         run: |
@@ -76,6 +71,11 @@ jobs:
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
+        env:
+          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
   notify:
     needs: publish-google-play
     runs-on: ubuntu-latest
