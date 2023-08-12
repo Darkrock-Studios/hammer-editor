@@ -15,7 +15,7 @@ A simple tool for building stories.
 [![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.darkrockstudios.apps.hammer.android?include_prereleases&logo=FDROID)](https://apt.izzysoft.de/fdroid/index/apk/com.darkrockstudios.apps.hammer.android)
 [![GitHub](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases&logo=github)](https://github.com/Wavesonics/hammer-editor/releases/latest)
 
-<a href=""><img src="" alt="" width="16%"></a> <a href="https://github.com/Wavesonics/hammer-editor/releases/latest"><img src="https://repology.org/badge/vertical-allrepos/hammer-editor.svg" alt="Linux" width="16%"></a>
+<a href=""><img src="" alt="" width="16%"></a> <a href="https://repology.org/project/hammer-editor/versions"><img src="https://repology.org/badge/vertical-allrepos/hammer-editor.svg" alt="Linux" width="16%"></a>
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
 
