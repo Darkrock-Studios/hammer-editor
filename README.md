@@ -2,7 +2,7 @@
 
 A simple tool for building stories.
 
-![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/develop/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor) ![Latest Release](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases)
+![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/develop/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
 
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
@@ -11,7 +11,11 @@ A simple tool for building stories.
 
 ### Available on:
 
-[![Google Play badge](https://img.shields.io/endpoint?color=green&logo=google-play&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dcom.darkrockstudios.apps.hammer.android%26l%3DGoogle%2520Play%26m%3D%24version)](https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android)
+[![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dcom.darkrockstudios.apps.hammer.android%26l%3DGoogle%2520Play%26m%3D%24version)](https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android)
+[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.darkrockstudios.apps.hammer.android?include_prereleases&logo=FDROID)](https://apt.izzysoft.de/fdroid/index/apk/com.darkrockstudios.apps.hammer.android)
+[![GitHub](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases&logo=github)](https://github.com/Wavesonics/hammer-editor/releases/latest)
+
+<a href=""><img src="" alt="" width="16%"></a> <a href="https://repology.org/project/hammer-editor/versions"><img src="https://repology.org/badge/vertical-allrepos/hammer-editor.svg" alt="Linux" width="16%"></a>
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
 
