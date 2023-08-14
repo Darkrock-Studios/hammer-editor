@@ -49,7 +49,7 @@ decompose = "2.0.0"
 essenty = "1.1.0" # This should match what ever decompose is referncing internally
 parcelize_darwin = "0.1.4"
 
-mpfilepicker = "1.2.0"
+mpfilepicker = "2.0.2"
 richtexteditor = "1.4.1"
 koalaplot-core = "0.3.0"
 image-loader = "1.5.1"
