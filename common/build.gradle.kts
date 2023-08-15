@@ -67,7 +67,7 @@ kotlin {
 				implementation(libs.koin.test)
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				implementation(libs.moko.resources)
+				implementation(libs.moko.resources.test)
 			}
 		}
 		val androidMain by getting {
