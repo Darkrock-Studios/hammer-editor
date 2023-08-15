@@ -15,7 +15,7 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
     - Draft selection editor
     - Lots of work on Merge Conflict editors when syncing
     - General work for larger screen sizes
-    - Confirm save on more entity types beyond just scenes
+    - ~~Confirm save on more entity types beyond just scenes~~
 
 ## Road to 1.0
 
@@ -30,7 +30,7 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
     - Allow tag removal, addition after creation
     - Tag search in browser
 - More unit testing across the board
-- Release for **MacOS**
+- ~~Release for **MacOS**~~
 
 ## Post 1.0
 
