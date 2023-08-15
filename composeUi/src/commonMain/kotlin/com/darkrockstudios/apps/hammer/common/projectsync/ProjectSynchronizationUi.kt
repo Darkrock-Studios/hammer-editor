@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -24,8 +26,12 @@ import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.koin.core.component.getScopeId
 
 @Composable
 internal fun ProjectSynchronization(
@@ -40,66 +46,97 @@ internal fun ProjectSynchronization(
 		visible = true,
 		size = DpSize(width = 1024.dp, height = 768.dp)
 	) {
-		val scope = rememberCoroutineScope()
+		ProjectSynchronizationContent(component, showSnackbar)
+	}
+}
 
-		LaunchedEffect(Unit) {
-			component.syncProject { success ->
-				if (success) {
-					showSnackbar("Project Sync Complete")
-				} else {
-					showSnackbar("Project Sync Failed")
-				}
+@Composable
+internal fun ProjectSynchronizationContent(component: ProjectSync, showSnackbar: (String) -> Unit) {
+	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
+
+	LaunchedEffect(Unit) {
+		component.syncProject { success ->
+			if (success) {
+				showSnackbar(strRes.get(MR.strings.sync_toast_success))
+			} else {
+				showSnackbar(strRes.get(MR.strings.sync_toast_failed))
 			}
 		}
+	}
 
-		Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-			Row {
-				if (state.isSyncing) {
+	Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
+		Row {
+			if (state.isSyncing) {
+				Text(
+					MR.strings.sync_status_in_progress.get(),
+					style = MaterialTheme.typography.headlineSmall
+				)
+			} else {
+				if (state.failed) {
 					Text(
-						"Synchronizing...",
+						MR.strings.sync_status_failed.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 				} else {
-					if (state.failed) {
-						Text(
-							"Sync Failed",
-							style = MaterialTheme.typography.headlineSmall
-						)
-					} else {
-						Text(
-							"Sync Complete",
-							style = MaterialTheme.typography.headlineSmall
-						)
-					}
-				}
-
-				Spacer(modifier = Modifier.weight(1f))
-
-				if (state.isSyncing) {
-					Icon(
-						Icons.Default.Cancel,
-						contentDescription = "Cancel",
-						modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
-						tint = MaterialTheme.colorScheme.onBackground
+					Text(
+						MR.strings.sync_status_success.get(),
+						style = MaterialTheme.typography.headlineSmall
 					)
 				}
+			}
 
+			Spacer(modifier = Modifier.weight(1f))
+
+			if (state.isSyncing) {
 				Icon(
-					Icons.Default.List,
-					contentDescription = null,
-					modifier = Modifier.padding(Ui.Padding.S).clickable { component.showLog(!state.showLog) },
+					Icons.Default.Cancel,
+					contentDescription = MR.strings.sync_cancel_button.get(),
+					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
 
+			Icon(
+				Icons.Default.List,
+				contentDescription = null,
+				modifier = Modifier.padding(Ui.Padding.S).clickable { component.showLog(!state.showLog) },
+				tint = MaterialTheme.colorScheme.onBackground
+			)
+		}
+
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+		LinearProgressIndicator(
+			progress = state.syncProgress,
+			modifier = Modifier.fillMaxWidth()
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+		Column(modifier = Modifier.fillMaxSize()) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			LinearProgressIndicator(
-				progress = state.syncProgress,
-				modifier = Modifier.fillMaxWidth()
-			)
+			Box(
+				modifier = Modifier.fillMaxWidth(),
+				contentAlignment = Alignment.Center
+			) {
+				Row {
+					Icon(
+						Icons.Default.Warning,
+						contentDescription = MR.strings.sync_conflict_icon_description.get(),
+						modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
+						tint = MaterialTheme.colorScheme.error
+					)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
+					Text(
+						text = state.conflictTitle?.get() ?: "error",
+						style = MaterialTheme.typography.headlineSmall,
+						modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
+					)
+				}
+			}
 
 			val conflict = state.entityConflict
 			if (conflict != null) {

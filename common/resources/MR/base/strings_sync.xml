@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
+	<string name="sync_conflict_scene_title">Scene Conflict</string>
+	<string name="sync_conflict_note_title">Note Conflict</string>
+	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
+	<string name="sync_conflict_encyclopedia_title">Encyclopedia Conflict</string>
+	<string name="sync_conflict_draft_title">Encyclopedia Conflict</string>
+
+	<string name="sync_conflict_tab_local">Local</string>
+	<string name="sync_conflict_tab_remote">Remote</string>
+
+	<string name="sync_conflict_icon_description">conflict</string>
+
 	<string name="sync_conflict">Conflict</string>
 	<string name="sync_conflict_local_entry">Local Entry:</string>
 	<string name="sync_conflict_local_use_button">Use Local</string>
@@ -18,4 +29,13 @@
 
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>
+
+	<string name="sync_status_in_progress">Synchronizing...</string>
+	<string name="sync_status_failed">Sync Failed</string>
+	<string name="sync_status_success">Sync Complete</string>
+
+	<string name="sync_cancel_button">Cancel</string>
+
+	<string name="sync_toast_success">Project Sync Complete</string>
+	<string name="sync_toast_failed">Project Sync Failed</string>
 </resources>

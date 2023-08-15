@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
+import dev.icerock.moko.resources.StringResource
 
 interface ProjectSync {
 	val state: Value<State>
@@ -16,6 +17,7 @@ interface ProjectSync {
 	data class State(
 		val syncProgress: Float = 0f,
 		val entityConflict: EntityConflict<*>? = null,
+		val conflictTitle: StringResource? = null,
 		val showLog: Boolean = false,
 		val failed: Boolean = false,
 		val syncLog: List<SyncLogMessage> = emptyList(),

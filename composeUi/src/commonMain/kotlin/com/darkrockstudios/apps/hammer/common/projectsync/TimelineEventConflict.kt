@@ -25,28 +25,6 @@ internal fun TimelineEventConflict(
 	Column(modifier = Modifier.fillMaxSize()) {
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-		Box(
-			modifier = Modifier.fillMaxWidth(),
-			contentAlignment = Alignment.Center
-		) {
-			Row {
-				Icon(
-					Icons.Default.Warning,
-					contentDescription = "Conflict",
-					modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
-					tint = MaterialTheme.colorScheme.error
-				)
-
-				Text(
-					text = "Timeline Event Conflict:",
-					style = MaterialTheme.typography.headlineSmall,
-					modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
-				)
-			}
-		}
-
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
-
 		Row(modifier = Modifier.fillMaxSize()) {
 			Column(modifier = Modifier.padding(Ui.Padding.L).weight(1f)) {
 				Row(

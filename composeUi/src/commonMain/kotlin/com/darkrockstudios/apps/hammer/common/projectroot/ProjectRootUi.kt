@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.SnackbarHost
@@ -9,7 +8,6 @@ import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,8 +18,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
@@ -31,7 +28,6 @@ import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
-import com.darkrockstudios.apps.hammer.common.uiNeedsExplicitCloseButtons
 import kotlinx.coroutines.launch
 
 private val WIDE_SCREEN_THRESHOLD = 700.dp
@@ -46,7 +42,6 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	}
 }
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
@@ -54,21 +49,9 @@ fun ProjectRootUi(
 ) {
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
-	BoxWithConstraints {
-		val isWide by remember(maxWidth) { derivedStateOf { maxWidth >= WIDE_SCREEN_THRESHOLD } }
-		val windowSizeClass = calculateWindowSizeClass()
-
-		CompositionLocalProvider(
-			LocalScreenCharacteristic provides ScreenCharacteristics(
-				isWide,
-				windowSizeClass.widthSizeClass,
-				windowSizeClass.heightSizeClass,
-				uiNeedsExplicitCloseButtons()
-			)
-		) {
-			FeatureContent(modifier.fillMaxSize(), component)
-			SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
-		}
+	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
+		FeatureContent(modifier.fillMaxSize(), component)
+		SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
 	}
 
 	ModalContent(component) { message ->

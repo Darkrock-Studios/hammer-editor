@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -186,7 +187,8 @@ class ProjectSyncComponent(
 					entityConflict = ProjectSync.EntityConflict.NoteConflict(
 						serverNote = serverEntity,
 						clientNote = localEntity
-					)
+					),
+					conflictTitle = MR.strings.sync_conflict_note_title
 				)
 			}
 		}
@@ -209,7 +211,8 @@ class ProjectSyncComponent(
 					entityConflict = ProjectSync.EntityConflict.TimelineEventConflict(
 						serverEvent = serverEntity,
 						clientEvent = localEntity
-					)
+					),
+					conflictTitle = MR.strings.sync_conflict_timeline_title
 				)
 			}
 		}
@@ -241,7 +244,8 @@ class ProjectSyncComponent(
 					entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
-					)
+					),
+					conflictTitle = MR.strings.sync_conflict_encyclopedia_title
 				)
 			}
 		}
@@ -267,7 +271,8 @@ class ProjectSyncComponent(
 					entityConflict = ProjectSync.EntityConflict.SceneDraftConflict(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
-					)
+					),
+					conflictTitle = MR.strings.sync_conflict_scene_title
 				)
 			}
 		}
