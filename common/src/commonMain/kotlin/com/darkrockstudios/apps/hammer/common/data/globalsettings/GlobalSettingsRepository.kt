@@ -91,6 +91,8 @@ class GlobalSettingsRepository(
 	}
 
 	private fun loadSettings(): GlobalSettings {
+		Napier.i { "Loading Global Settings from: $CONFIG_PATH" }
+
 		val settingsText: String = fileSystem.read(CONFIG_PATH) {
 			readUtf8()
 		}
@@ -125,6 +127,8 @@ class GlobalSettingsRepository(
 
 	private fun loadServerSettings(): ServerSettings? {
 		val path = getServerSettingsPath().toOkioPath()
+		Napier.i { "Loading Server Settings from: $CONFIG_PATH" }
+
 		return if (fileSystem.exists(path)) {
 			val settingsText: String = fileSystem.read(path) {
 				readUtf8()
