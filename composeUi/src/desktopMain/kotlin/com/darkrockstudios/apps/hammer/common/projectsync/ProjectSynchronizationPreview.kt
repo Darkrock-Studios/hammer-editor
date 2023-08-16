@@ -103,13 +103,42 @@ private val sceneContent = "Alice was beginning to get very tired of sitting by 
 		"There was nothing so VERY remarkable in that; nor did Alice\n" +
 		"think it so VERY much out of the way to hear the Rabbit say to\n" +
 		"itself, `Oh dear!  Oh dear!  I shall be late!'  (when she thought\n" +
-		"it over afterwards, it occurred to her that she ought to have\n" +
-		"wondered at this, but at the time it all seemed quite natural);\n" +
-		"but when the Rabbit actually TOOK A WATCH OUT OF ITS WAISTCOAT-\n" +
-		"POCKET, and looked at it, and then hurried on, Alice started to\n" +
-		"her feet, for it flashed across her mind that she had never\n" +
-		"before seen a rabbit with either a waistcoat-pocket, or a watch to\n" +
-		"take out of it, and burning with curiosity, she ran across the\n" +
-		"field after it, and fortunately was just in time to see it pop\n" +
-		"down a large rabbit-hole under the hedge.\n" +
-		"\n"
+	"it over afterwards, it occurred to her that she ought to have\n" +
+	"wondered at this, but at the time it all seemed quite natural);\n" +
+	"but when the Rabbit actually TOOK A WATCH OUT OF ITS WAISTCOAT-\n" +
+	"POCKET, and looked at it, and then hurried on, Alice started to\n" +
+	"her feet, for it flashed across her mind that she had never\n" +
+	"before seen a rabbit with either a waistcoat-pocket, or a watch to\n" +
+	"take out of it, and burning with curiosity, she ran across the\n" +
+	"field after it, and fortunately was just in time to see it pop\n" +
+	"down a large rabbit-hole under the hedge.\n" +
+	"\n"
+
+@Preview
+@Composable
+private fun RemotePreview() {
+	val entity = ApiProjectEntity.EncyclopediaEntryEntity(
+		id = 1,
+		name = "Test",
+		entryType = "person",
+		text = "Test, Test, Test, Test, Test,Test,v,v,v,v,v,",
+		tags = listOf("tag1", "tag2"),
+		image = null
+	)
+
+	RemoteEntry(
+		entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(entity, entity),
+		component = object : ProjectSync {
+			override val state = MutableValue(
+				ProjectSync.State(
+				)
+			)
+
+			override fun syncProject(onComplete: (Boolean) -> Unit) {}
+			override fun resolveConflict(resolvedEntity: ApiProjectEntity) {}
+			override fun endSync() {}
+			override fun cancelSync() {}
+			override fun showLog(show: Boolean) {}
+		}
+	)
+}

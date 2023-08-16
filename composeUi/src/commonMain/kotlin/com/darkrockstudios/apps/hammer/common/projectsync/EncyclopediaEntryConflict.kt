@@ -1,17 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
@@ -84,7 +93,7 @@ private fun LocalEntry(
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun RemoteEntry(
+fun RemoteEntry(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
 	component: ProjectSync
@@ -169,33 +178,4 @@ private fun RemoteEntry(
 			}
 		}
 	}
-}
-
-@Preview
-@Composable
-private fun RemotePreview() {
-	val entity = ApiProjectEntity.EncyclopediaEntryEntity(
-		id = 1,
-		name = "Test",
-		entryType = "person",
-		text = "Test, Test, Test, Test, Test,Test,v,v,v,v,v,",
-		tags = listOf("tag1", "tag2"),
-		image = null
-	)
-
-	RemoteEntry(
-		entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(entity, entity),
-		component = object : ProjectSync {
-			override val state = MutableValue(
-				ProjectSync.State(
-				)
-			)
-
-			override fun syncProject(onComplete: (Boolean) -> Unit) {}
-			override fun resolveConflict(resolvedEntity: ApiProjectEntity) {}
-			override fun endSync() {}
-			override fun cancelSync() {}
-			override fun showLog(show: Boolean) {}
-		}
-	)
 }
