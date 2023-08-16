@@ -162,7 +162,7 @@ internal fun ProjectSynchronizationContent(
 					is ProjectSync.EntityConflict.TimelineEventConflict -> {
 						val timelineEventConflict =
 							state.entityConflict as ProjectSync.EntityConflict.TimelineEventConflict
-						TimelineEventConflict(timelineEventConflict, component)
+						TimelineEventConflict(timelineEventConflict, component, screenCharacteristics)
 					}
 
 					is ProjectSync.EntityConflict.EncyclopediaEntryConflict -> {

@@ -7,6 +7,8 @@
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Conflict</string>
 	<string name="sync_conflict_draft_title">Encyclopedia Conflict</string>
 
+	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
+
 	<string name="sync_conflict_tab_local">Local</string>
 	<string name="sync_conflict_tab_remote">Remote</string>
 
@@ -17,8 +19,6 @@
 	<string name="sync_conflict_local_use_button">Use Local</string>
 
 	<string name="sync_conflict_remote_entry">Remote Entry:</string>
-	<string name="sync_conflict_remote_use_button">Use Remote</string>
-
 	<string name="sync_conflict_remote_use_button">Use Remote</string>
 
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
@@ -38,6 +38,9 @@
 
 	<string name="sync_conflict_title_note_remote">Remote Note:</string>
 	<string name="sync_conflict_title_note_local">Local Note:</string>
+
+	<string name="sync_conflict_title_timeline_event_remote">Remote Event:</string>
+	<string name="sync_conflict_title_timeline_event_local">Local Event:</string>
 
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>
