@@ -127,7 +127,7 @@ class GlobalSettingsRepository(
 
 	private fun loadServerSettings(): ServerSettings? {
 		val path = getServerSettingsPath().toOkioPath()
-		Napier.i { "Loading Server Settings from: $CONFIG_PATH" }
+		Napier.i { "Loading Server Settings from: $path" }
 
 		return if (fileSystem.exists(path)) {
 			val settingsText: String = fileSystem.read(path) {
