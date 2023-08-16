@@ -26,9 +26,13 @@
 
 	<string name="sync_conflict_encyclopedia_remote">Remote Event: %1$s</string>
 
+	<string name="sync_conflict_encyclopedia_label_name">Name:</string>
+	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
+	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
+	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
+
 	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
 	<string name="sync_conflict_encyclopedia_no_image">No Image</string>
-	<string name="sync_conflict_encyclopedia">Encyclopedia Entry Conflict:</string>
 
 	<string name="sync_conflict_title_scene_remote">Remote Scene:</string>
 	<string name="sync_conflict_title_scene_local">Local Scene:</string>
