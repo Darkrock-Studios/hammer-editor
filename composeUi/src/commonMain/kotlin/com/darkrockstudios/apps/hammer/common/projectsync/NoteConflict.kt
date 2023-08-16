@@ -27,12 +27,8 @@ internal fun NoteConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = @Composable { m, c, p ->
-			LocalNote(m, c, p)
-		},
-		RemoteEntity = @Composable { m, c, p ->
-			RemoteNote(m, c, p)
-		},
+		LocalEntity = { m, c, p -> LocalNote(m, c, p) },
+		RemoteEntity = { m, c, p -> RemoteNote(m, c, p) },
 	)
 }
 

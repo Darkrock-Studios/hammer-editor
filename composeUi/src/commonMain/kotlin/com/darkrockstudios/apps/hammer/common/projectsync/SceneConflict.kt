@@ -27,12 +27,8 @@ internal fun SceneConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = @Composable { m, c, p ->
-			LocalScene(m, c, p)
-		},
-		RemoteEntity = @Composable { m, c, p ->
-			RemoteScene(m, c, p)
-		},
+		LocalEntity = { m, c, p -> LocalScene(m, c, p) },
+		RemoteEntity = { m, c, p -> RemoteScene(m, c, p) },
 	)
 }
 

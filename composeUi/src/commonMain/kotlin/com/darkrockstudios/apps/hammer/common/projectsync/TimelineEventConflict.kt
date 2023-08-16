@@ -27,12 +27,8 @@ internal fun TimelineEventConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = @Composable { m, c, p ->
-			LocalNote(m, c, p)
-		},
-		RemoteEntity = @Composable { m, c, p ->
-			RemoteNote(m, c, p)
-		},
+		LocalEntity = { m, c, p -> LocalEvent(m, c, p) },
+		RemoteEntity = { m, c, p -> RemoteEvent(m, c, p) },
 	)
 }
 
@@ -47,7 +43,7 @@ private fun getDateText(entityConflict: ProjectSync.EntityConflict<ApiProjectEnt
 }
 
 @Composable
-private fun LocalNote(
+private fun LocalEvent(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
 	component: ProjectSync
@@ -84,7 +80,7 @@ private fun LocalNote(
 }
 
 @Composable
-private fun RemoteNote(
+private fun RemoteEvent(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
 	component: ProjectSync

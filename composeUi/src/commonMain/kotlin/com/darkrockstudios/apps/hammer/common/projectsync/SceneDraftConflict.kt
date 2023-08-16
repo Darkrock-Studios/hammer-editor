@@ -27,17 +27,13 @@ internal fun SceneDraftConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = @Composable { m, c, p ->
-			LocalNote(m, c, p)
-		},
-		RemoteEntity = @Composable { m, c, p ->
-			RemoteNote(m, c, p)
-		},
+		LocalEntity = { m, c, p -> LocalDraft(m, c, p) },
+		RemoteEntity = { m, c, p -> RemoteDraft(m, c, p) },
 	)
 }
 
 @Composable
-private fun LocalNote(
+private fun LocalDraft(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
 	component: ProjectSync
@@ -72,7 +68,7 @@ private fun LocalNote(
 }
 
 @Composable
-private fun RemoteNote(
+private fun RemoteDraft(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
 	component: ProjectSync

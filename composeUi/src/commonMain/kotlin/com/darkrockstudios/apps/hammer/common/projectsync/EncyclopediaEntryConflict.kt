@@ -25,18 +25,14 @@ internal fun EncyclopediaEntryConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = @Composable { m, c, p ->
-			LocalScene(m, c, p)
-		},
-		RemoteEntity = @Composable { m, c, p ->
-			RemoteScene(m, c, p)
-		},
+		LocalEntity = { m, c, p -> LocalEntry(m, c, p) },
+		RemoteEntity = { m, c, p -> RemoteEntry(m, c, p) },
 	)
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun LocalScene(
+private fun LocalEntry(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
 	component: ProjectSync
@@ -85,7 +81,7 @@ private fun LocalScene(
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun RemoteScene(
+private fun RemoteEntry(
 	modifier: Modifier = Modifier,
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
 	component: ProjectSync
