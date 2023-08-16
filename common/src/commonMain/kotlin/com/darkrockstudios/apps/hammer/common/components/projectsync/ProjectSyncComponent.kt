@@ -105,7 +105,8 @@ class ProjectSyncComponent(
 
 		_state.getAndUpdate {
 			it.copy(
-				entityConflict = null
+				entityConflict = null,
+				conflictTitle = null,
 			)
 		}
 	}
@@ -117,6 +118,7 @@ class ProjectSyncComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						conflictTitle = null,
 						isSyncing = false,
 						syncProgress = 0f,
 						syncLog = emptyList()
@@ -139,6 +141,7 @@ class ProjectSyncComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						conflictTitle = null,
 						isSyncing = false,
 					)
 				}
