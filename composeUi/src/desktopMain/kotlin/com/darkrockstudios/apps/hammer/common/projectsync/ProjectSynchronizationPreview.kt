@@ -6,6 +6,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
@@ -79,7 +80,8 @@ private fun previewProjectSyncComponent(conflict: ProjectSync.EntityConflict<*>?
 	compoent.state.update {
 		ProjectSync.State(
 			isSyncing = true,
-			entityConflict = conflict
+			entityConflict = conflict,
+			conflictTitle = MR.strings.sync_conflict_scene_title,
 		)
 	}
 

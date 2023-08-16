@@ -168,7 +168,7 @@ internal fun ProjectSynchronizationContent(
 					is ProjectSync.EntityConflict.EncyclopediaEntryConflict -> {
 						val encyclopediaEntryConflict =
 							state.entityConflict as ProjectSync.EntityConflict.EncyclopediaEntryConflict
-						EncyclopediaEntryConflict(encyclopediaEntryConflict, component)
+						EncyclopediaEntryConflict(encyclopediaEntryConflict, component, screenCharacteristics)
 					}
 
 					is ProjectSync.EntityConflict.SceneDraftConflict -> {
