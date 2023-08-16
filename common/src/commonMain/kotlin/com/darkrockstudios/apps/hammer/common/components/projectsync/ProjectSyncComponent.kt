@@ -272,7 +272,7 @@ class ProjectSyncComponent(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_scene_title
+					conflictTitle = MR.strings.sync_conflict_scene_draft_title
 				)
 			}
 		}
@@ -305,7 +305,8 @@ class ProjectSyncComponent(
 					entityConflict = ProjectSync.EntityConflict.SceneConflict(
 						serverScene = serverEntity,
 						clientScene = localEntity
-					)
+					),
+					conflictTitle = MR.strings.sync_conflict_scene_title
 				)
 			}
 		}

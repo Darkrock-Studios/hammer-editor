@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
 	<string name="sync_conflict_scene_title">Scene Conflict</string>
+	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
 	<string name="sync_conflict_note_title">Note Conflict</string>
 	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Conflict</string>
@@ -18,6 +19,8 @@
 	<string name="sync_conflict_remote_entry">Remote Entry:</string>
 	<string name="sync_conflict_remote_use_button">Use Remote</string>
 
+	<string name="sync_conflict_remote_use_button">Use Remote</string>
+
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
 	<string name="sync_conflict_encyclopedia_local">Local Event: %1$s</string>
 
@@ -26,6 +29,15 @@
 	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
 	<string name="sync_conflict_encyclopedia_no_image">No Image</string>
 	<string name="sync_conflict_encyclopedia">Encyclopedia Entry Conflict:</string>
+
+	<string name="sync_conflict_title_scene_remote">Remote Scene:</string>
+	<string name="sync_conflict_title_scene_local">Local Scene:</string>
+
+	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
+	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>
+
+	<string name="sync_conflict_title_note_remote">Remote Note:</string>
+	<string name="sync_conflict_title_note_local">Local Note:</string>
 
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>

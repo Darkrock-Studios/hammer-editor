@@ -13,6 +13,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,17 +25,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
-import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.koin.core.component.getScopeId
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 internal fun ProjectSynchronization(
 	component: ProjectSync,
@@ -46,12 +49,17 @@ internal fun ProjectSynchronization(
 		visible = true,
 		size = DpSize(width = 1024.dp, height = 768.dp)
 	) {
-		ProjectSynchronizationContent(component, showSnackbar)
+		val screenCharacteristics = calculateWindowSizeClass()
+		ProjectSynchronizationContent(component, showSnackbar, screenCharacteristics)
 	}
 }
 
 @Composable
-internal fun ProjectSynchronizationContent(component: ProjectSync, showSnackbar: (String) -> Unit) {
+internal fun ProjectSynchronizationContent(
+	component: ProjectSync,
+	showSnackbar: (String) -> Unit,
+	screenCharacteristics: WindowSizeClass
+) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
@@ -143,12 +151,12 @@ internal fun ProjectSynchronizationContent(component: ProjectSync, showSnackbar:
 				when (conflict) {
 					is ProjectSync.EntityConflict.SceneConflict -> {
 						val sceneConflict = state.entityConflict as ProjectSync.EntityConflict.SceneConflict
-						SceneConflict(sceneConflict, component)
+						SceneConflict(sceneConflict, component, screenCharacteristics)
 					}
 
 					is ProjectSync.EntityConflict.NoteConflict -> {
 						val noteConflict = state.entityConflict as ProjectSync.EntityConflict.NoteConflict
-						NoteConflict(noteConflict, component)
+						NoteConflict(noteConflict, component, screenCharacteristics)
 					}
 
 					is ProjectSync.EntityConflict.TimelineEventConflict -> {
