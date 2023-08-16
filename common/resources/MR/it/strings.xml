@@ -10,4 +10,8 @@
     <string name="unsaved_dialog_negative_button">Annulla</string>
     <string name="unsaved_dialog_positive_button">Scarta e chiudi</string>
     <string name="close_dialog_button">Chiudi</string>
+    <string name="unsaved_encyclopedia_dialog_message"></string>
+    <string name="unsaved_encyclopedia_dialog_title"></string>
+    <string name="more_menu_button"></string>
+    <string name="unsaved_scenes_dialog_message"></string>
 </resources>
