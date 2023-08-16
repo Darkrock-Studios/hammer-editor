@@ -126,28 +126,28 @@ internal fun ProjectSynchronizationContent(
 		Column(modifier = Modifier.fillMaxSize()) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			Box(
-				modifier = Modifier.fillMaxWidth(),
-				contentAlignment = Alignment.Center
-			) {
-				Row {
-					Icon(
-						Icons.Default.Warning,
-						contentDescription = MR.strings.sync_conflict_icon_description.get(),
-						modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
-						tint = MaterialTheme.colorScheme.error
-					)
-
-					Text(
-						text = state.conflictTitle?.get() ?: "error",
-						style = MaterialTheme.typography.headlineSmall,
-						modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
-					)
-				}
-			}
-
 			val conflict = state.entityConflict
 			if (conflict != null) {
+				Box(
+					modifier = Modifier.fillMaxWidth(),
+					contentAlignment = Alignment.Center
+				) {
+					Row {
+						Icon(
+							Icons.Default.Warning,
+							contentDescription = MR.strings.sync_conflict_icon_description.get(),
+							modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
+							tint = MaterialTheme.colorScheme.error
+						)
+
+						Text(
+							text = state.conflictTitle?.get() ?: "error",
+							style = MaterialTheme.typography.headlineSmall,
+							modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
+						)
+					}
+				}
+
 				when (conflict) {
 					is ProjectSync.EntityConflict.SceneConflict -> {
 						val sceneConflict = state.entityConflict as ProjectSync.EntityConflict.SceneConflict
