@@ -174,7 +174,7 @@ internal fun ProjectSynchronizationContent(
 					is ProjectSync.EntityConflict.SceneDraftConflict -> {
 						val sceneDraftConflict =
 							state.entityConflict as ProjectSync.EntityConflict.SceneDraftConflict
-						SceneDraftConflict(sceneDraftConflict, component)
+						SceneDraftConflict(sceneDraftConflict, component, screenCharacteristics)
 					}
 				}
 			} else if (state.showLog) {
