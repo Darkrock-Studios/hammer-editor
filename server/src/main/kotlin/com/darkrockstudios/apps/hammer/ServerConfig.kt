@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import kotlinx.serialization.Serializable
+import java.util.*
 
 @Serializable
 data class ServerConfig(
@@ -10,7 +11,10 @@ data class ServerConfig(
 	val serverMessage: String = DEFAULT_MESSAGE,
 	val contact: String? = null,
 	val sslCert: SslCertConfig? = null,
-)
+	val defaultLocale: String = Locale.ENGLISH.toLanguageTag(),
+) {
+	fun getDefaultLocale(): Locale = Locale.Builder().setLanguageTag(defaultLocale).build()
+}
 
 @Serializable
 data class SslCertConfig(

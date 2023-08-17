@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.plugins.kweb.KwebStringTranslator
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
 import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
@@ -11,20 +12,24 @@ import kweb.*
 import kweb.components.Component
 import kweb.plugins.fomanticUI.fomantic
 import kweb.routing.RouteReceiver
+import java.util.*
 
 fun RouteReceiver.homePage(
 	scope: CoroutineScope,
 	config: ServerConfig,
 	whiteListEnabled: WhiteListRepository,
+	translator: KwebStringTranslator,
+	changeLocale: (Locale, KwebStringTranslator) -> Unit,
 	goTo: (String) -> Unit,
 ) {
 	path("/") {
 		div(fomantic.pusher) {
 			mastHead(goTo)
 
-			text(R("greeting").toString())
 			div(fomantic.ui.vertical.segment.padded) {
 				div(fomantic.ui.middle.aligned.stackable.grid.container) {
+					element.text(translator.t(R("greeting")))
+
 					serverMessage(config, whiteListEnabled)
 
 					whatIsHammer()
@@ -35,7 +40,7 @@ fun RouteReceiver.homePage(
 				}
 			}
 
-			footer()
+			footer(translator, changeLocale)
 		}
 	}
 }
@@ -201,7 +206,10 @@ private fun Component.menu(goTo: (String) -> Unit) {
 	}
 }
 
-private fun Component.footer() {
+private fun Component.footer(
+	translator: KwebStringTranslator,
+	changeLocale: (Locale, KwebStringTranslator) -> Unit,
+) {
 	div(fomantic.ui.inverted.vertical.segment) {
 		div(fomantic.ui.center.aligned.text.container) {
 			div(fomantic.row) {
@@ -218,6 +226,20 @@ private fun Component.footer() {
 				}
 
 				p().text("v${BuildMetadata.APP_VERSION}")
+
+				a {
+					span().text("en")
+				}.on.click {
+					changeLocale(Locale.ENGLISH, translator)
+				}
+
+				span().text(" ")
+
+				a {
+					span().text("de")
+				}.on.click {
+					changeLocale(Locale.GERMAN, translator)
+				}
 			}
 		}
 	}.addClasses("footer")
