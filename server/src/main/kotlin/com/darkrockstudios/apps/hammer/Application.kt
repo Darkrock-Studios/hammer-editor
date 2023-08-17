@@ -79,6 +79,7 @@ fun Application.appMain(config: ServerConfig) {
 	configureMonitoring()
 	configureHTTP(config)
 	configureSecurity()
+	configureLocalization()
 	configureRouting()
 	configureKweb(config)
 }

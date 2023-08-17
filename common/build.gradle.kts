@@ -59,6 +59,7 @@ kotlin {
 				api(libs.moko.resources)
 				api(libs.moko.graphics)
 				implementation(libs.kotlinx.atomicfu)
+				implementation(libs.fluidsonic.locale)
 			}
 		}
 		val commonTest by getting {

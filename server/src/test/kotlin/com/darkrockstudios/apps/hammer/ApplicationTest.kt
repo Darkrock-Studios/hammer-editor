@@ -54,7 +54,7 @@ class ApplicationTest : BaseTest() {
 			configureSecurity()
 			configureRouting()
 		}
-		client.get("/teapot").apply {
+		client.get("/api/teapot").apply {
 			assertEquals(HttpStatusCode.fromValue(418), status)
 			assertEquals("I'm a little Tea Pot", bodyAsText())
 		}

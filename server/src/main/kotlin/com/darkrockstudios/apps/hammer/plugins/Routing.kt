@@ -10,17 +10,20 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
-	accountRoutes()
-	projectsRoutes()
-	projectRoutes()
-	adminRoutes()
-	teapot()
+	val logger = log
+	routing {
+		route("api") {
+			accountRoutes()
+			projectsRoutes()
+			projectRoutes(logger)
+			adminRoutes()
+			teapot()
+		}
+	}
 }
 
-private fun Application.teapot() {
-	routing {
-		get("/teapot") {
-			call.respondText("I'm a little Tea Pot", status = HttpStatusCode.fromValue(418))
-		}
+private fun Route.teapot() {
+	get("/teapot") {
+		call.respondText("I'm a little Tea Pot", status = HttpStatusCode.fromValue(418))
 	}
 }

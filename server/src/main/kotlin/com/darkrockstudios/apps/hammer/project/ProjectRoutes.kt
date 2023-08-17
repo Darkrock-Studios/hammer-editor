@@ -17,23 +17,19 @@ import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import kotlin.coroutines.CoroutineContext
 
-fun Application.projectRoutes() {
-	val logger = log
-	routing {
-		authenticate(USER_AUTH) {
-			route("/project/{userId}/{projectName}") {
-				beginProjectSync()
-				endProjectSync()
-				uploadEntity()
-				downloadEntity(logger)
-				deleteEntity()
-			}
+fun Route.projectRoutes(logger: Logger) {
+	authenticate(USER_AUTH) {
+		route("/project/{userId}/{projectName}") {
+			beginProjectSync()
+			endProjectSync()
+			uploadEntity()
+			downloadEntity(logger)
+			deleteEntity()
 		}
 	}
 }

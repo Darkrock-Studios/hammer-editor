@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
+import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kweb.*
@@ -21,6 +22,7 @@ fun RouteReceiver.homePage(
 		div(fomantic.pusher) {
 			mastHead(goTo)
 
+			text(R("greeting").toString())
 			div(fomantic.ui.vertical.segment.padded) {
 				div(fomantic.ui.middle.aligned.stackable.grid.container) {
 					serverMessage(config, whiteListEnabled)

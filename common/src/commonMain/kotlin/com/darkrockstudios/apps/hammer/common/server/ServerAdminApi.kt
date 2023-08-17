@@ -11,21 +11,21 @@ class ServerAdminApi(
 
 	suspend fun getWhiteList(): Result<List<String>> {
 		return get(
-			"/admin/$userId/whitelist",
+			"/api/admin/$userId/whitelist",
 			parse = { it.body() }
 		)
 	}
 
 	suspend fun addToWhiteList(email: String): Result<String> {
 		return put(
-			"/admin/$userId/whitelist",
+			"/api/admin/$userId/whitelist",
 			parse = { it.body() }
 		)
 	}
 
 	suspend fun removeFromWhiteList(email: String): Result<String> {
 		return delete(
-			"/admin/$userId/whitelist",
+			"/api/admin/$userId/whitelist",
 			parse = { it.body() }
 		)
 	}

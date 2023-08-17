@@ -18,7 +18,7 @@ class ServerAccountApi(
 		password: String,
 		installId: String,
 	): Result<Token> {
-		return post("/account/create", parse = { it.body() }) {
+		return post("/api/account/create", parse = { it.body() }) {
 			setBody(
 				FormDataContent(
 					Parameters.build {
@@ -36,7 +36,7 @@ class ServerAccountApi(
 		password: String,
 		installId: String,
 	): Result<Token> {
-		return post("/account/login/", parse = { it.body() }) {
+		return post("/api/account/login/", parse = { it.body() }) {
 			setBody(
 				FormDataContent(
 					Parameters.build {
@@ -50,6 +50,6 @@ class ServerAccountApi(
 	}
 
 	suspend fun testAuth(): Result<String> {
-		return get("/account/test_auth/$userId")
+		return get("/api/account/test_auth/$userId")
 	}
 }

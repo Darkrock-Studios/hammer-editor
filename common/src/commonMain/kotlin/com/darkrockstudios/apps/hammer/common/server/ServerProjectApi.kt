@@ -14,7 +14,6 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.datetime.Instant
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -36,7 +35,7 @@ class ServerProjectApi(
 		}
 
 		return post(
-			path = "/project/$userId/$projectName/begin_sync",
+			path = "/api/project/$userId/$projectName/begin_sync",
 			parse = { it.body() }
 		) {
 			if (lite) {
@@ -59,7 +58,7 @@ class ServerProjectApi(
 		syncEnd: Instant?,
 	): Result<String> {
 		return get(
-			path = "/project/$userId/$projectName/end_sync",
+			path = "/api/project/$userId/$projectName/end_sync",
 			parse = { it.body() },
 			builder = {
 				headers {
@@ -86,7 +85,7 @@ class ServerProjectApi(
 	): Result<SaveEntityResponse> {
 		val projectName = projectDef.name
 		return post(
-			path = "/project/$userId/$projectName/upload_entity/${entity.id}",
+			path = "/api/project/$userId/$projectName/upload_entity/${entity.id}",
 			parse = { it.body() },
 			builder = {
 				headers {
@@ -157,7 +156,7 @@ class ServerProjectApi(
 	): Result<LoadEntityResponse> {
 		val projectName = projectDef.name
 		return get(
-			path = "/project/$userId/$projectName/download_entity/$entityId",
+			path = "/api/project/$userId/$projectName/download_entity/$entityId",
 			parse = { response ->
 				if (response.status == HttpStatusCode.NotModified) {
 					throw EntityNotModifiedException(entityId)
@@ -194,7 +193,7 @@ class ServerProjectApi(
 
 	suspend fun deleteId(projectName: String, id: Int, syncId: String): Result<DeleteIdsResponse> {
 		return get(
-			path = "/project/$userId/$projectName/delete_entity/$id",
+			path = "/api/project/$userId/$projectName/delete_entity/$id",
 			parse = { it.body() },
 			builder = {
 				headers {

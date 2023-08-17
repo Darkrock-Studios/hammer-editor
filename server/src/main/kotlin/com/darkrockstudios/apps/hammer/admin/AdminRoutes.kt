@@ -10,15 +10,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
 
-fun Application.adminRoutes() {
-	routing {
-		authenticate(USER_AUTH, ADMIN_AUTH) {
-			route("/admin/{userId}") {
-				getWhiteList()
-				addToWhiteList()
-				removeFromWhiteList()
-				enableWhiteList()
-			}
+fun Route.adminRoutes() {
+	authenticate(USER_AUTH, ADMIN_AUTH) {
+		route("/admin/{userId}") {
+			getWhiteList()
+			addToWhiteList()
+			removeFromWhiteList()
+			enableWhiteList()
 		}
 	}
 }
