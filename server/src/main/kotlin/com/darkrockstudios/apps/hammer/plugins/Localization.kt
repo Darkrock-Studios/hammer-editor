@@ -5,8 +5,8 @@ import io.ktor.server.application.*
 
 fun Application.configureLocalization() {
 	install(I18n) {
-		supportedLocales = listOf("en").map(java.util.Locale::forLanguageTag)
-		useOfCookie = true
+		supportedLocales = listOf("en", "de").map(java.util.Locale::forLanguageTag)
+		//useOfCookie = true
 		//useOfRedirection = true
 		//excludePrefixes("/api")
 	}
