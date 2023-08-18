@@ -231,7 +231,7 @@ private fun Component.footer(translator: KwebLocalizer, availableLocales: List<L
 					a(href = this.browser.url.value) {
 						span().text(locale.toLanguageTag())
 					}.on.click {
-						translator.setLocale(locale)
+						translator.overrideLocale(locale)
 					}
 
 					span().text(" ")

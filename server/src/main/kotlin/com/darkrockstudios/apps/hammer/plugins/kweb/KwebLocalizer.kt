@@ -4,6 +4,7 @@ import com.github.aymanizz.ktori18n.I18n
 import com.github.aymanizz.ktori18n.KeyGenerator
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.i18n
+import io.ktor.http.*
 import io.ktor.server.application.*
 import kweb.html.Document
 import java.util.*
@@ -13,15 +14,25 @@ class KwebLocalizer(
 	private val doc: Document,
 	defaultLocale: Locale
 ) {
+	private val log = application.log
 	private val i18n: I18n = application.i18n
 	private var curLocale: Locale = defaultLocale
 
 	init {
-		val locale = getLocale()
-		if (locale == null) {
-			setLocale(curLocale)
-		} else if (curLocale != locale) {
-			this.curLocale = locale
+		// Cookie overrides all
+		val cookieLocale = getCookieLocale()
+		if (cookieLocale != null) {
+			log.info("Setting locale from cookie: ${cookieLocale.toLanguageTag()}")
+			this.curLocale = cookieLocale
+		} else {
+			// Otherwise fallback to header locale
+			val headerLocale = getHeaderLocale()
+			if (headerLocale != null) {
+				log.info("Setting locale from header: ${headerLocale.toLanguageTag()}")
+				this.curLocale = headerLocale
+			} else {
+				log.info("Locale not set, fallback back to server default: ${defaultLocale.toLanguageTag()}")
+			}
 		}
 	}
 
@@ -33,7 +44,7 @@ class KwebLocalizer(
 		return i18n.t(curLocale, keyGenerator, args)
 	}
 
-	fun setLocale(locale: Locale, refresh: Boolean = true) {
+	fun overrideLocale(locale: Locale, refresh: Boolean = true) {
 		doc.cookie.set("locale", locale.toLanguageTag())
 		curLocale = locale
 
@@ -42,7 +53,18 @@ class KwebLocalizer(
 		}
 	}
 
-	fun getLocale(): Locale? {
+	private fun getHeaderLocale(): Locale? {
+		val acceptLanguageHeader = doc.browser.httpRequestInfo.request.headers[HttpHeaders.AcceptLanguage]
+		val acceptableLocales = Locale.LanguageRange.parse(acceptLanguageHeader)
+		val language = acceptableLocales.firstOrNull()?.range
+		return if (language != null) {
+			Locale.Builder().setLanguageTag(language).build()
+		} else {
+			null
+		}
+	}
+
+	private fun getCookieLocale(): Locale? {
 		val localeTag = doc.browser.httpRequestInfo.cookies["locale"]
 		return if (localeTag != null) {
 			Locale.Builder().setLanguageTag(localeTag).build()
