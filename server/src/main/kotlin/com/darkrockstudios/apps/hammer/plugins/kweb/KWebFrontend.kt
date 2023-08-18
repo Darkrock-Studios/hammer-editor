@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.frontend.adminPanelPage
 import com.darkrockstudios.apps.hammer.frontend.homePage
 import com.darkrockstudios.apps.hammer.frontend.notFoundPage
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
+import com.darkrockstudios.apps.hammer.utils.getTranslatedLocales
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -44,6 +45,7 @@ fun Application.configureKweb(config: ServerConfig) {
 		debug = false
 	}
 
+	val availableLocales = getTranslatedLocales()
 	val app = this
 
 	installKwebOnRemainingRoutes {
@@ -73,7 +75,7 @@ fun Application.configureKweb(config: ServerConfig) {
 
 				val authToken = KVar<String?>(null)
 
-				homePage(scope, config, whitListRepository, loc, ::goTo)
+				homePage(scope, config, whitListRepository, loc, availableLocales, ::goTo)
 
 				adminLoginPage(accountRepository, log, authToken, scope, ::goTo)
 

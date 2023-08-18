@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.database
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.darkrockstudios.apps.hammer.ServerDatabase
-import com.darkrockstudios.apps.hammer.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.utils.getRootDataDirectory
 import okio.FileSystem
 
 class SqliteDatabase(fileSystem: FileSystem) : Database {

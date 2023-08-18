@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer
+package com.darkrockstudios.apps.hammer.utils
 
 import com.akuleshov7.ktoml.Toml
 import kotlinx.serialization.InternalSerializationApi

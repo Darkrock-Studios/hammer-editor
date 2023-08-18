@@ -18,6 +18,7 @@ fun RouteReceiver.homePage(
 	config: ServerConfig,
 	whiteListEnabled: WhiteListRepository,
 	loc: KwebLocalizer,
+	availableLocales: List<Locale>,
 	goTo: (String) -> Unit,
 ) {
 	path("/") {
@@ -40,7 +41,7 @@ fun RouteReceiver.homePage(
 				}
 			}
 
-			footer(loc)
+			footer(loc, availableLocales)
 		}
 	}
 }
@@ -206,7 +207,7 @@ private fun Component.menu(goTo: (String) -> Unit) {
 	}
 }
 
-private fun Component.footer(translator: KwebLocalizer) {
+private fun Component.footer(translator: KwebLocalizer, availableLocales: List<Locale>) {
 	div(fomantic.ui.inverted.vertical.segment) {
 		div(fomantic.ui.center.aligned.text.container) {
 			div(fomantic.row) {
@@ -224,16 +225,16 @@ private fun Component.footer(translator: KwebLocalizer) {
 
 				p().text("v${BuildMetadata.APP_VERSION}")
 
-				a(href = this.browser.url.value) {
-					span().text("en")
-				}.on.click {
-					translator.setLocale(Locale.ENGLISH)
-				}
-
 				span().text(" ")
 
-				a(href = this.browser.url.value) {}.innerHTML("de").on.click {
-					translator.setLocale(Locale.GERMAN)
+				for (locale in availableLocales) {
+					a(href = this.browser.url.value) {
+						span().text(locale.toLanguageTag())
+					}.on.click {
+						translator.setLocale(locale)
+					}
+
+					span().text(" ")
 				}
 			}
 		}

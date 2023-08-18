@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.plugins.*
 import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
+import com.darkrockstudios.apps.hammer.utils.readToml
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.jetty.*
