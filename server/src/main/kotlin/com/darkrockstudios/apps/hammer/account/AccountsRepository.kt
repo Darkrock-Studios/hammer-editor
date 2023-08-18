@@ -6,7 +6,10 @@ import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utilities.RandomString
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.github.aymanizz.ktori18n.R
 import com.soywiz.krypto.sha256
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toInstant
@@ -54,13 +57,28 @@ class AccountsRepository(
 
 	suspend fun hasUsers(): Boolean = accountDao.numAccounts() > 0
 
-	suspend fun createAccount(email: String, installId: String, password: String): Result<Token> {
+	suspend fun createAccount(email: String, installId: String, password: String): ServerResult<Token> {
 		val existingAccount = accountDao.findAccount(email)
 		val passwordResult = validatePassword(password)
 		return when {
-			existingAccount != null -> Result.failure(CreateFailed("Account already exists"))
-			!validateEmail(email) -> Result.failure(CreateFailed("Invalid email"))
-			passwordResult != PasswordResult.VALID -> Result.failure(InvalidPassword(passwordResult))
+			existingAccount != null -> SResult.failure(
+				"account already exists",
+				R("api.accounts.create.error.accountexists"),
+				CreateFailed("Account already exists")
+			)
+
+			!validateEmail(email) -> SResult.failure(
+				"invalid email",
+				R("api.accounts.create.error.invalidemail"),
+				CreateFailed("Invalid email")
+			)
+
+			passwordResult != PasswordResult.VALID -> SResult.failure(
+				"password failure",
+				InvalidPassword.getMessage(passwordResult),
+				InvalidPassword(passwordResult)
+			)
+
 			else -> {
 				val salt = saltGenerator.nextString()
 				val hashedPassword = hashPassword(password = password, salt = salt)
@@ -78,7 +96,7 @@ class AccountsRepository(
 
 				val token = createToken(userId = userId, installId = installId)
 
-				Result.success(token)
+				SResult.success(token)
 			}
 		}
 	}
@@ -88,34 +106,34 @@ class AccountsRepository(
 		return hashedPassword == account.password_hash
 	}
 
-	suspend fun login(email: String, password: String, installId: String): Result<Token> {
+	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
 		val account = accountDao.findAccount(email)
 
 		return if (account == null) {
-			Result.failure(LoginFailed("Account not found"))
+			SResult.failure("Account not found", R("api.accounts.login.error.notfound"))
 		} else if (!checkPassword(account, password)) {
-			Result.failure(LoginFailed("Incorrect password"))
+			SResult.failure("Incorrect password", R("api.accounts.login.error.badpassword"))
 		} else {
 			val token = getAuthToken(account.id, installId)
-			Result.success(token)
+			SResult.success(token)
 		}
 	}
 
-	suspend fun checkToken(userId: Long, token: String): Result<Long> {
+	suspend fun checkToken(userId: Long, token: String): SResult<Long> {
 		val authToken = authTokenDao.getTokenByAuthToken(token)
 
 		return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
-			Result.success(authToken.userId)
+			SResult.success(authToken.userId)
 		} else {
-			Result.failure(LoginFailed("No valid token not found"))
+			SResult.failure("No valid token not found", R("api.accounts.login.error.notoken"))
 		}
 	}
 
-	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): Result<Token> {
+	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
 		val authToken = authTokenDao.getTokenByInstallId(installId)
 		return if (authToken != null && authToken.refresh == refreshToken) {
 			val newToken = createToken(userId, installId)
-			Result.success(
+			SResult.success(
 				Token(
 					userId = userId,
 					auth = newToken.auth,
@@ -123,7 +141,7 @@ class AccountsRepository(
 				)
 			)
 		} else {
-			Result.failure(LoginFailed("No valid token not found"))
+			SResult.failure("No valid token not found", R("api.accounts.login.error.notoken"))
 		}
 	}
 
@@ -179,16 +197,16 @@ class AccountsRepository(
 }
 
 open class CreateFailed(message: String) : Exception(message)
-class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) : CreateFailed(getMessage(result)) {
+class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) : CreateFailed("Invalid Password") {
 	companion object {
-		private fun getMessage(result: AccountsRepository.Companion.PasswordResult) = when (result) {
-			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> "Password too short"
-			AccountsRepository.Companion.PasswordResult.TOO_LONG -> "Password too long"
-			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> "Password must contain at least one uppercase letter"
-			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> "Password must contain at least one lowercase letter"
-			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> "Password must contain at least one number"
-			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> "Password must contain at least one special character"
-			else -> "Invalid password"
+		fun getMessage(result: AccountsRepository.Companion.PasswordResult): R = when (result) {
+			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> R("api.accounts.create.error.password.tooshort")
+			AccountsRepository.Companion.PasswordResult.TOO_LONG -> R("api.accounts.create.error.password.toolong")
+			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> R("api.accounts.create.error.password.nouppercase")
+			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> R("api.accounts.create.error.password.nolowercase")
+			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> R("api.accounts.create.error.password.nonumber")
+			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> R("api.accounts.create.error.password.nospecial")
+			else -> R("api.accounts.create.error.password.generic")
 		}
 	}
 }

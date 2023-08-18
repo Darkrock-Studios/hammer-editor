@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import org.koin.ktor.ext.inject
@@ -22,7 +23,7 @@ fun Application.configureSecurity() {
 			authenticate { tokenCredential ->
 				val userId = parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
 				val result = accountRepo.checkToken(userId, tokenCredential.token)
-				if (result.isSuccess) {
+				if (isSuccess(result)) {
 					val okay = if (whitelistRepo.useWhiteList()) {
 						val account = accountRepo.getAccount(userId)
 						account.isAdmin || whitelistRepo.isOnWhiteList(account.email)
@@ -30,11 +31,10 @@ fun Application.configureSecurity() {
 						true
 					}
 
-					val dbUserId = result.getOrThrow()
+					val dbUserId = result.data
 					ServerUserIdPrincipal(dbUserId)
 
 					if (okay) {
-						val dbUserId = result.getOrThrow()
 						ServerUserIdPrincipal(dbUserId)
 					} else {
 						null

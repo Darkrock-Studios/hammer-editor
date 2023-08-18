@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MAX_
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MIN_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
+import com.darkrockstudios.apps.hammer.utilities.isFailure
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -21,7 +23,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class AccountsRepositoryTest : BaseTest() {
 
 	private lateinit var accountDao: AccountDao
@@ -108,8 +109,12 @@ class AccountsRepositoryTest : BaseTest() {
 		val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
 		assertTrue { result.isSuccess }
 
-		val token = result.getOrThrow()
-		assertTrue { token.isValid() }
+		if(isSuccess(result)) {
+			val token = result.data
+			assertTrue { token.isValid() }
+		} else {
+			error("Was failure")
+		}
 	}
 
 	@Test
@@ -131,10 +136,11 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = "x".repeat(MIN_PASSWORD_LENGTH - 1)
 		)
-		assertTrue { result.isFailure }
-		val exception = result.exceptionOrNull()
-		assertTrue { exception is InvalidPassword }
-		assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (exception as InvalidPassword).result)
+		if(isSuccess(result)) {
+			error("Should have been failure")
+		} else {
+			assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (result.exception as InvalidPassword).result)
+		}
 	}
 
 	@Test
@@ -148,9 +154,12 @@ class AccountsRepositoryTest : BaseTest() {
 			password = "x".repeat(MAX_PASSWORD_LENGTH + 1)
 		)
 		assertTrue { result.isFailure }
-		val exception = result.exceptionOrNull()
-		assertTrue { exception is InvalidPassword }
-		assertEquals(AccountsRepository.Companion.PasswordResult.TOO_LONG, (exception as InvalidPassword).result)
+		if(isFailure(result)) {
+			assertTrue { result.exception is InvalidPassword }
+			assertEquals(AccountsRepository.Companion.PasswordResult.TOO_LONG, (result.exception as InvalidPassword).result)
+		} else {
+			error("Should have been failure")
+		}
 	}
 
 	@Test
@@ -163,9 +172,12 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = password
 		)
-		assertTrue { result.isFailure }
-		val exception = result.exceptionOrNull()
-		assertTrue { exception is CreateFailed }
+		if(isFailure(result)) {
+			assertTrue(result.exception is CreateFailed)
+			assertEquals("account already exists", result.error)
+		} else {
+			error("Was success")
+		}
 	}
 
 	@Test
@@ -175,8 +187,11 @@ class AccountsRepositoryTest : BaseTest() {
 		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
-		assertTrue { result.isSuccess }
-		assertEquals(userId, result.getOrThrow())
+		if(isSuccess(result)) {
+			assertEquals(userId, result.data)
+		} else {
+			error("Failed")
+		}
 	}
 
 	@Test

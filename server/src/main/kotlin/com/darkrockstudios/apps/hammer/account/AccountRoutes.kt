@@ -4,6 +4,9 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.github.aymanizz.ktori18n.R
+import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -33,12 +36,14 @@ private fun Route.createAccount() {
 		val installId = formParameters["installId"].toString()
 
 		val result = accountsComponent.createAccount(email = email, installId = installId, password = password)
-		if (result.isSuccess) {
-			val token = result.getOrThrow()
+		if (isSuccess(result)) {
+			val token = result.data
 			call.respond(HttpStatusCode.Created, token)
 		} else {
-			val message = result.exceptionOrNull()?.message
-			val response = HttpResponseError(error = "Failed to create account", displayMessage = message ?: "Unknown error")
+			val response = HttpResponseError(
+				error = "Failed to create account",
+				displayMessage = call.t(result.displayMessage ?: R("api.error.unknown"))
+			)
 			call.respond(status = HttpStatusCode.Conflict, response)
 		}
 	}
@@ -54,12 +59,14 @@ private fun Route.login() {
 		val installId = formParameters["installId"].toString()
 
 		val result = accountsComponent.login(email = email, password = password, installId = installId)
-		if (result.isSuccess) {
-			val authToken = result.getOrThrow()
+		if (isSuccess(result)) {
+			val authToken = result.data
 			call.respond(authToken)
 		} else {
-			val message = result.exceptionOrNull()?.message
-			val response = HttpResponseError(error = "Failed to authenticate", displayMessage = message ?: "Unknown error")
+			val response = HttpResponseError(
+				error = "Failed to authenticate",
+				displayMessage = call.t(result.displayMessage  ?: R("api.error.unknown"))
+			)
 			call.respond(status = HttpStatusCode.Unauthorized, response)
 		}
 	}
@@ -77,13 +84,16 @@ private fun Route.refreshToken() {
 
 		val result =
 			accountsComponent.refreshToken(userId = userId, installId = installId, refreshToken = refreshToken)
-		if (result.isSuccess) {
-			val token = result.getOrThrow()
+		if (isSuccess(result)) {
+			val token = result.data
 			call.respond(token)
 		} else {
 			call.respond(
 				status = HttpStatusCode.Unauthorized,
-				HttpResponseError(error = "Unauthorized", displayMessage = "Failed to refresh auth token")
+				HttpResponseError(
+					error = "Unauthorized",
+					displayMessage = call.t(R("api.accounts.tokenrefresh.error"))
+				)
 			)
 		}
 	}
@@ -92,6 +102,6 @@ private fun Route.refreshToken() {
 private fun Route.testAuth() {
 	get("/test_auth/{userId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		call.respondText("Authenticated as ${principal.id}")
+		call.respondText(call.t(R("api.accounts.testauth.error"), principal.id))
 	}
 }

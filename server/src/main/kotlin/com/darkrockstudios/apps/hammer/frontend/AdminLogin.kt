@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.plugins.kweb.KwebLocalizer
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import io.ktor.util.logging.*
 import kotlinx.coroutines.CoroutineScope
@@ -101,9 +102,9 @@ private fun Component.loginButton(
 						password = passwordText.value,
 						installId = "web"
 					)
-					if (result.isSuccess) {
+					if (isSuccess(result)) {
 						log.info("login success!")
-						val token = result.getOrThrow()
+						val token = result.data
 						authToken.value = token.auth
 						goTo("/admin/${token.userId}")
 					} else {
