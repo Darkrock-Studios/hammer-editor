@@ -53,7 +53,8 @@ sealed class ServerResult<out T> {
 	}
 }
 
-class Msg private constructor(
+typealias Msg = ServerMessage
+class ServerMessage private constructor(
 	@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) res: R,
 	inArgs: List<Any>
 ) {
@@ -63,7 +64,7 @@ class Msg private constructor(
 	fun text(call: ApplicationCall): String = call.t(r, args)
 
 	companion object {
-		fun r(key: String, vararg args: Any): Msg = Msg(R(key), args.toList())
+		fun r(key: String, vararg args: Any): ServerMessage = ServerMessage(R(key), args.toList())
 	}
 }
 

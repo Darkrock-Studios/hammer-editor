@@ -1,9 +1,11 @@
 package com.darkrockstudios.apps.hammer.plugins.kweb
 
+import com.github.aymanizz.ktori18n.DEFAULT_RESOURCE_BUNDLE
 import com.github.aymanizz.ktori18n.R
 import kotlinx.serialization.json.JsonPrimitive
 import kweb.*
 import kweb.util.json
+import org.jetbrains.annotations.PropertyKey
 
 fun ImageElement.src(path: String): Element {
 	return setAttributes(
@@ -28,6 +30,6 @@ fun ElementCreator<Element>.rellink(
 	)
 }
 
-fun Element.text(key: String, loc: KwebLocalizer): Element {
+fun Element.text(@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) key: String, loc: KwebLocalizer): Element {
 	return text(loc.t(R(key)))
 }
