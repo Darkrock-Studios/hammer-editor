@@ -3,6 +3,9 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.plugins.kweb.KwebLocalizer
+import com.darkrockstudios.apps.hammer.plugins.kweb.text
+import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -17,6 +20,7 @@ fun RouteReceiver.adminPanelPage(
 	accountRepository: AccountsRepository,
 	authToken: KVar<String?>,
 	whiteListRepository: WhiteListRepository,
+	loc: KwebLocalizer,
 	scope: CoroutineScope,
 	goTo: (String) -> Unit
 ) {
@@ -32,7 +36,7 @@ fun RouteReceiver.adminPanelPage(
 		}
 
 		div(fomantic.ui.middle.aligned.center.aligned.grid) {
-			adminCard(userId, authToken, accountRepository, whiteListRepository, scope, goTo)
+			adminCard(userId, authToken, accountRepository, whiteListRepository, loc, scope, goTo)
 		}.addClasses("centered-container")
 	}
 }
@@ -42,6 +46,7 @@ private fun Component.adminCard(
 	authToken: KVar<String?>,
 	accountRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
+	loc: KwebLocalizer,
 	scope: CoroutineScope,
 	goTo: (String) -> Unit
 ) {
@@ -67,20 +72,25 @@ private fun Component.adminCard(
 
 	div(fomantic.center.aligned.column) {
 		div(fomantic.ui.card) {
-			panelHeader(account, authToken, goTo)
+			panelHeader(account, authToken, loc, goTo)
 
-			enableWhiteList(initialUseWhiteList, whiteListRepository, scope)
+			enableWhiteList(initialUseWhiteList, whiteListRepository, loc, scope)
 
-			whiteList(list, whiteListRepository, scope, ::updateList)
+			whiteList(list, whiteListRepository, loc, scope, ::updateList)
 
-			addToWhiteList(whiteListRepository, scope, ::updateList)
+			addToWhiteList(whiteListRepository, loc, scope, ::updateList)
 		}
 	}.addClasses("medium-width")
 }
 
-private fun Component.panelHeader(account: KVar<Account?>, authToken: KVar<String?>, goTo: (String) -> Unit) {
+private fun Component.panelHeader(
+	account: KVar<Account?>,
+	authToken: KVar<String?>,
+	loc: KwebLocalizer,
+	goTo: (String) -> Unit
+) {
 	div(fomantic.ui.top.attached.inverted.menu) {
-		div(fomantic.header.item).innerHTML("Admin")
+		div(fomantic.header.item).innerHTML(loc.t(R("admin.header")))
 		div(fomantic.right.menu) {
 			a(fomantic.header.item).innerHTML("X")
 				.on.click {
@@ -100,6 +110,7 @@ private fun Component.panelHeader(account: KVar<Account?>, authToken: KVar<Strin
 private fun Component.enableWhiteList(
 	initialUseWhiteList: Boolean,
 	whiteListRepository: WhiteListRepository,
+	loc: KwebLocalizer,
 	scope: CoroutineScope
 ) {
 	div(fomantic.left.aligned.content) {
@@ -112,7 +123,7 @@ private fun Component.enableWhiteList(
 					}
 				}
 
-			label().text("Enforce White List")
+			label().text("admin.whitelist.checkbox", loc)
 		}
 	}
 }
@@ -121,20 +132,21 @@ private fun Component.whiteList(
 	//list: ObservableList<String>,
 	list: KVar<List<String>>,
 	whiteListRepository: WhiteListRepository,
+	loc: KwebLocalizer,
 	scope: CoroutineScope,
 	updateList: suspend () -> Unit
 ) {
 	div(fomantic.left.aligned.content) {
-		h3().text("White List:")
+		h3().text("admin.whitelist.title", loc)
 		render(list) { rlist ->
 			table(fomantic.ui.table) {
 				thead {
 					tr {
 						th {
-							span().text("Email")
+							span().text(loc.t(R("admin.whitelist.colheader.email")))
 						}
 						th(fomantic.right.aligned) {
-							span().text("Remove")
+							span().text(loc.t(R("admin.whitelist.colheader.remove")))
 						}
 					}
 				}
@@ -171,23 +183,24 @@ private fun Component.whiteListEntry(
 
 private fun Component.addToWhiteList(
 	whiteListRepository: WhiteListRepository,
+	loc: KwebLocalizer,
 	scope: CoroutineScope,
 	updateList: suspend () -> Unit
 ) {
 	val emailText = KVar("")
 
 	div(fomantic.extra.centered.aligned) {
-		label().text("Add to whtielist:")
+		label().text("admin.addtowhitelist.header", loc)
 		div(fomantic.ui.right.action.input) {
 			input(
 				attributes = fomantic.ui.labeled.input,
 				type = InputType.text,
-				placeholder = "EMail"
+				placeholder = loc.t(R("admin.addtowhitelist.hint.email"))
 			).value = emailText
 
 			div(fomantic.ui.teal.button) {
 				i(fomantic.add.icon)
-				label().text("Add")
+				label().text("admin.addtowhitelist.addbutton", loc)
 			}.on.click {
 				scope.launch {
 					whiteListRepository.addToWhiteList(emailText.value)

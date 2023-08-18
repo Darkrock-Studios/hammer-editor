@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
@@ -52,11 +53,12 @@ class ApplicationTest : BaseTest() {
 	fun testRoot() = testApplication {
 		application {
 			configureSecurity()
+			configureLocalization()
 			configureRouting()
 		}
-		client.get("/teapot").apply {
+		client.get("/api/teapot").apply {
 			assertEquals(HttpStatusCode.fromValue(418), status)
-			assertEquals("I'm a little Tea Pot", bodyAsText())
+			assertEquals("I'm a little Tea Pot [English]", bodyAsText())
 		}
 	}
 }

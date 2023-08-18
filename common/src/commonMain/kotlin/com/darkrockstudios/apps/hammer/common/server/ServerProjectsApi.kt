@@ -14,14 +14,14 @@ class ServerProjectsApi(
 
 	suspend fun beginProjectsSync(): Result<BeginProjectsSyncResponse> {
 		return get(
-			path = "/projects/$userId/begin_sync",
+			path = "/api/projects/$userId/begin_sync",
 			parse = { it.body() },
 		)
 	}
 
 	suspend fun endProjectsSync(syncId: String): Result<String> {
 		return get(
-			path = "/projects/$userId/end_sync",
+			path = "/api/projects/$userId/end_sync",
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
@@ -32,7 +32,7 @@ class ServerProjectsApi(
 
 	suspend fun deleteProject(projectName: String, syncId: String): Result<String> {
 		return get(
-			path = "/projects/$userId/$projectName/delete",
+			path = "/api/projects/$userId/$projectName/delete",
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
@@ -43,7 +43,7 @@ class ServerProjectsApi(
 
 	suspend fun createProject(projectName: String, syncId: String): Result<String> {
 		return get(
-			path = "/projects/$userId/$projectName/create",
+			path = "/api/projects/$userId/$projectName/create",
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)

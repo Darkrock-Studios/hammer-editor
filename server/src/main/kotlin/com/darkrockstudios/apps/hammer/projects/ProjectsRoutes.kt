@@ -13,15 +13,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
 
-fun Application.projectsRoutes() {
-	routing {
-		authenticate(USER_AUTH) {
-			route("/projects/{userId}") {
-				beginProjectsSync()
-				endProjectSync()
-				deleteProject()
-				createProject()
-			}
+fun Route.projectsRoutes() {
+	authenticate(USER_AUTH) {
+		route("/projects/{userId}") {
+			beginProjectsSync()
+			endProjectSync()
+			deleteProject()
+			createProject()
 		}
 	}
 }

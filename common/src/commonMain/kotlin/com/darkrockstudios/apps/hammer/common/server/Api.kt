@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -13,6 +14,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 abstract class Api(
 	private val httpClient: HttpClient,
@@ -22,6 +24,7 @@ abstract class Api(
 		get() = globalSettingsRepository.serverSettings?.userId
 
 	private val ioDispatcher by injectIoDispatcher()
+	private val localeResolver: DeviceLocaleResolver by inject()
 
 	private suspend fun <T> makeRequest(
 		path: String,
@@ -37,6 +40,7 @@ abstract class Api(
 		var outerResponse: HttpResponse? = null
 		return@withContext try {
 			val response = execute {
+				header("Accept-Language", localeResolver.getCurrentLocale().toLanguageTag().toString())
 				url(server, path)
 				builder()
 			}

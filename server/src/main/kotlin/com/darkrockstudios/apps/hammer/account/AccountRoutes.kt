@@ -12,15 +12,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
 
-fun Application.accountRoutes() {
-	routing {
-		route("/account") {
-			createAccount()
-			login()
-			refreshToken()
-			authenticate(USER_AUTH) {
-				testAuth()
-			}
+fun Route.accountRoutes() {
+	route("/account") {
+		createAccount()
+		login()
+		refreshToken()
+		authenticate(USER_AUTH) {
+			testAuth()
 		}
 	}
 }

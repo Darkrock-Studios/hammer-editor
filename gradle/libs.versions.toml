@@ -62,6 +62,7 @@ koin_ktor = "3.4.1"
 koin_compose = "3.4.5"
 
 ktor = "2.3.1"
+ktor_i18n = "2.0.0"
 
 okio = "3.3.0"
 slf4jSimple = "2.0.6"
@@ -79,6 +80,7 @@ krypto = "3.4.0"
 
 sqldelight = "2.0.0"
 buildconfig = "4.0.2"
+fluidsonic_locale = "0.13.0"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -169,6 +171,8 @@ ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", vers
 ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
 
+ktor_server_i18n = { group = "com.github.aymanizz", name = "ktor-i18n", version.ref = "ktor_i18n" }
+
 ktor_server_testsjvm = { group = "io.ktor", name = "ktor-server-tests-jvm", version.ref = "ktor" }
 ktor_server_testshostjvm = { group = "io.ktor", name = "ktor-server-test-host-jvm", version.ref = "ktor" }
 
@@ -191,6 +195,8 @@ sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapter
 
 parcelize_darwin = { group = "com.arkivanov.parcelize.darwin", name = "gradle-plugin", version.ref = "parcelize_darwin" }
 parcelize_darwin_runtime = { group = "com.arkivanov.parcelize.darwin", name = "runtime", version.ref = "parcelize_darwin" }
+
+fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -230,4 +236,5 @@ ktor_server = [
 	"ktor_server_nettyjvm",
 	"ktor_server_httpredirect",
 	"ktor_server_websockets",
+	"ktor_server_i18n",
 ]

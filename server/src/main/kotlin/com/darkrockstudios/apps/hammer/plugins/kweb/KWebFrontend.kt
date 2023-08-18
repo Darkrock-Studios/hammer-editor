@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.frontend.adminPanelPage
 import com.darkrockstudios.apps.hammer.frontend.homePage
 import com.darkrockstudios.apps.hammer.frontend.notFoundPage
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
+import com.darkrockstudios.apps.hammer.utils.getTranslatedLocales
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -43,9 +44,17 @@ fun Application.configureKweb(config: ServerConfig) {
 		debug = false
 	}
 
+	val availableLocales = getTranslatedLocales()
+	val app = this
+
 	installKwebOnRemainingRoutes {
+		val ioDispatcher: CoroutineContext by inject(named(DISPATCHER_IO))
+		val scope = CoroutineScope(Job() + ioDispatcher)
+		val loc = KwebLocalizer(app, doc, config.getDefaultLocale())
+
 		doc.head {
 			title().text("Hammer")
+
 			meta(
 				name = "viewport",
 				content = "width=device-width, initial-scale=1.0, maximum-scale=1.0"
@@ -56,9 +65,6 @@ fun Application.configureKweb(config: ServerConfig) {
 			route {
 				val accountRepository: AccountsRepository by inject()
 				val whitListRepository: WhiteListRepository by inject()
-				val ioDispatcher: CoroutineContext by inject(named(DISPATCHER_IO))
-
-				val scope = CoroutineScope(Job() + ioDispatcher)
 
 				fun goTo(location: String) {
 					url.value = location
@@ -66,11 +72,11 @@ fun Application.configureKweb(config: ServerConfig) {
 
 				val authToken = KVar<String?>(null)
 
-				homePage(scope, config, whitListRepository, ::goTo)
+				homePage(scope, config, whitListRepository, loc, availableLocales, ::goTo)
 
-				adminLoginPage(accountRepository, log, authToken, scope, ::goTo)
+				adminLoginPage(accountRepository, log, authToken, loc, scope, ::goTo)
 
-				adminPanelPage(accountRepository, authToken, whitListRepository, scope, ::goTo)
+				adminPanelPage(accountRepository, authToken, whitListRepository, loc, scope, ::goTo)
 
 				notFound(notFoundPage)
 			}
