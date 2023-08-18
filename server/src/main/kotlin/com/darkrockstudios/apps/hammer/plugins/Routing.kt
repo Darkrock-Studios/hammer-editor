@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.admin.adminRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
 import com.github.aymanizz.ktori18n.R
-import com.github.aymanizz.ktori18n.locale
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -28,7 +27,7 @@ fun Application.configureRouting() {
 private fun Route.teapot() {
 	get("/teapot") {
 		call.respondText(
-			"I'm a little Tea Pot: L: ${call.locale.toString()} - ${call.t(R("greeting"))}",
+			"I'm a little Tea Pot [${call.t(R("language"))}]",
 			status = HttpStatusCode.fromValue(418)
 		)
 	}

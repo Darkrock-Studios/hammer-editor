@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.plugins.kweb.KwebLocalizer
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
+import com.darkrockstudios.apps.hammer.plugins.kweb.text
+import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kweb.*
@@ -23,30 +25,27 @@ fun RouteReceiver.homePage(
 ) {
 	path("/") {
 		div(fomantic.pusher) {
-			mastHead(goTo)
+			mastHead(goTo, loc)
 
 			div(fomantic.ui.vertical.segment.padded) {
 				div(fomantic.ui.middle.aligned.stackable.grid.container) {
 
-					// TODO remove this, just localization example
-					p().innerHTML(loc.t("greeting"))
+					serverMessage(config, whiteListEnabled, loc)
 
-					serverMessage(config, whiteListEnabled)
+					whatIsHammer(loc)
 
-					whatIsHammer()
+					hammerFeatures(loc)
 
-					hammerFeatures()
-
-					downloadHammer()
+					downloadHammer(loc)
 				}
 			}
 
-			footer(loc, availableLocales)
+			footer(loc, availableLocales, loc)
 		}
 	}
 }
 
-private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: WhiteListRepository) {
+private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: WhiteListRepository, loc: KwebLocalizer) {
 	val whiteList = runBlocking { whiteListEnabled.useWhiteList() }
 
 	if (whiteList || config.serverMessage.isNotBlank()) {
@@ -59,7 +58,7 @@ private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: Whit
 								div(fomantic.center.aligned.row) {
 									if (config.serverMessage.isNotBlank()) {
 										div(fomantic.column) {
-											h3(fomantic.ui.header).text("Server Message")
+											h3(fomantic.ui.header).text("home.servermessage", loc)
 											p().innerHTML(config.serverMessage)
 										}
 									}
@@ -70,7 +69,12 @@ private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: Whit
 
 					if (whiteList) {
 						div(fomantic.ui.row) {
-							div(fomantic.ui.info.message.column).innerHTML("This server requires you to get permission before creating an account. Please contact ${config.contact} to get on the white list.")
+							div(fomantic.ui.info.message.column).innerHTML(
+								loc.t(
+									"home.servermessage.whitelist",
+									config.contact ?: "[foo@bar.com]"
+								)
+							)
 						}
 					}
 				}
@@ -79,35 +83,39 @@ private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: Whit
 	}
 }
 
-private fun Component.whatIsHammer() {
+private fun Component.whatIsHammer(loc: KwebLocalizer) {
 	div(fomantic.ui.text.container.row) {
 		div(fomantic.padded) {
-			h1(fomantic.ui.header).text("What is Hammer?")
-			p().innerHTML("Hammer is an open source tool for writing stories, and the worlds in which they exist.")
+			h1(fomantic.ui.header).text("home.whatishammer.title", loc)
+			p().innerHTML(loc.t("home.whatishammer.subtitle"))
 		}
 	}
 }
 
-private fun Component.hammerFeatures() {
+private fun Component.hammerFeatures(loc: KwebLocalizer) {
 	div(fomantic.ui.row.four.column.grid) {
 		messageColumn(
-			"Multi-platform",
-			"This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible."
+			R("home.feature.multiplatform.header"),
+			R("home.feature.multiplatform.body"),
+			loc
 		)
 
 		messageColumn(
-			"Multi-Screen",
-			"Whether you are on a phone, tablet, or desktop, Hammer will make the best use of your screen space. Also supporting both light and dark modes."
+			R("home.feature.multiscreen.header"),
+			R("home.feature.multiscreen.body"),
+			loc
 		)
 
 		messageColumn(
-			"Offline first",
-			"I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever."
+			R("home.feature.offlinefirst.header"),
+			R("home.feature.offlinefirst.body"),
+			loc
 		)
 
 		messageColumn(
-			"Transparent Data",
-			"Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data."
+			R("home.feature.transparentdata.header"),
+			R("home.feature.transparentdata.body"),
+			loc
 		)
 		/*
 		div(fomantic.row) {
@@ -123,36 +131,40 @@ private fun Component.hammerFeatures() {
 	}
 }
 
-private fun Component.downloadHammer() {
+private fun Component.downloadHammer(loc: KwebLocalizer) {
 	div(fomantic.ui.text.container.row) {
 		div(fomantic.padded) {
-			h1(fomantic.ui.dividing.header).text("Get your Hammer:")
+			h1(fomantic.ui.dividing.header).text(loc.t(R("home.download.header")))
 		}
 	}
 
 	div(fomantic.ui.row.four.column.grid.middle.aligned) {
 		downloadColumn(
-			"Windows",
+			R("home.download.windows"),
 			"windows",
-			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
+			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi",
+			loc
 		)
 
 		downloadColumn(
-			"Linux",
+			R("home.download.linux"),
 			"linux",
-			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer_amd64.deb "
+			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer_amd64.deb ",
+			loc
 		)
 
 		downloadColumn(
-			"MacOS",
+			R("home.download.macos"),
 			"apple",
-			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg "
+			"https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg ",
+			loc
 		)
 
 		downloadColumn(
-			"Android",
+			R("home.download.android"),
 			"android",
-			"https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
+			"https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android",
+			loc
 		)
 
 		div(fomantic.ui.three.wide.right.floated.column) {
@@ -161,45 +173,43 @@ private fun Component.downloadHammer() {
 	}
 }
 
-private fun Component.messageColumn(header: String, body: String) {
+private fun Component.messageColumn(header: R, body: R, loc: KwebLocalizer) {
 	div(fomantic.column) {
 		div(fomantic.ui.raised.segment) {
-			h3(fomantic.ui.header).text(header)
-			p().innerHTML(body)
+			h3(fomantic.ui.header).text(loc.t(header))
+			p().innerHTML(loc.t(body))
 		}
 	}
 }
 
-private fun Component.downloadColumn(name: String, icon: String, link: String) {
+private fun Component.downloadColumn(name: R, icon: String, link: String, loc: KwebLocalizer) {
 	div(fomantic.column) {
 		div(fomantic.ui.raised.segment) {
-			h3(fomantic.ui.header).text(name)
+			h3(fomantic.ui.header).text(loc.t(name))
 			i(fomantic.icon).addClasses(icon)
-			a(href = link).text(
-				"Download"
-			)
+			a(href = link).text("home.download.link", loc)
 		}
 	}
 }
 
-private fun Component.mastHead(goTo: (String) -> Unit) {
+private fun Component.mastHead(goTo: (String) -> Unit, loc: KwebLocalizer) {
 	div(fomantic.ui.inverted.vertical.masthead.center.aligned.middle.aligned.segment) {
-		menu(goTo)
+		menu(goTo, loc)
 
 		div(fomantic.ui.text.container.center.aligned) {
-			h1(fomantic.ui.inverted.header).text("Hammer:")
-			h2().text("A simple tool for building stories")
+			h1(fomantic.ui.inverted.header).text("home.masthead.title", loc)
+			h2().text("home.masthead.subtitle", loc)
 		}
 	}
 }
 
-private fun Component.menu(goTo: (String) -> Unit) {
+private fun Component.menu(goTo: (String) -> Unit, loc: KwebLocalizer) {
 	div(fomantic.ui.container) {
 		div(fomantic.ui.large.secondary.inverted.pointing.menu) {
 			img(fomantic.item).src("/assets/images/hammer_icon_sm.png")
-			a(fomantic.item.text.header).text("Hammer")
+			a(fomantic.item.text.header).text("home.header.title", loc)
 			div(fomantic.right.item) {
-				a(fomantic.ui.inverted.button).text("Admin").on.click {
+				a(fomantic.ui.inverted.button).text("home.header.adminbutton", loc).on.click {
 					goTo("/admin")
 				}
 			}
@@ -207,20 +217,20 @@ private fun Component.menu(goTo: (String) -> Unit) {
 	}
 }
 
-private fun Component.footer(translator: KwebLocalizer, availableLocales: List<Locale>) {
+private fun Component.footer(translator: KwebLocalizer, availableLocales: List<Locale>, loc: KwebLocalizer) {
 	div(fomantic.ui.inverted.vertical.segment) {
 		div(fomantic.ui.center.aligned.text.container) {
 			div(fomantic.row) {
 				a(href = "https://github.com/Wavesonics/hammer-editor/") {
 					i(fomantic.icon).addClasses("github")
-					span().text("GitHub")
+					span().text("home.footer.github", loc)
 				}
 
 				span().text(" ")
 
 				a(href = "https://discord.gg/GTmgjZcupk") {
 					i(fomantic.icon).addClasses("discord")
-					span().text("Discord")
+					span().text("home.footer.discord", loc)
 				}
 
 				p().text("v${BuildMetadata.APP_VERSION}")
@@ -236,6 +246,10 @@ private fun Component.footer(translator: KwebLocalizer, availableLocales: List<L
 
 					span().text(" ")
 				}
+
+				span().text(" ")
+
+				span().text("[${loc.t(R("language"))}]")
 			}
 		}
 	}.addClasses("footer")

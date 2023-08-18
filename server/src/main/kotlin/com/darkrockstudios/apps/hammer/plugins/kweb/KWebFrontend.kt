@@ -21,7 +21,6 @@ import kweb.plugins.FaviconPlugin
 import kweb.plugins.fomanticUI.fomanticUIPlugin
 import kweb.plugins.staticFiles.ResourceFolder
 import kweb.plugins.staticFiles.StaticFilesPlugin
-import kweb.state.KVal
 import kweb.state.KVar
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
@@ -75,9 +74,9 @@ fun Application.configureKweb(config: ServerConfig) {
 
 				homePage(scope, config, whitListRepository, loc, availableLocales, ::goTo)
 
-				adminLoginPage(accountRepository, log, authToken, scope, ::goTo)
+				adminLoginPage(accountRepository, log, authToken, loc, scope, ::goTo)
 
-				adminPanelPage(accountRepository, authToken, whitListRepository, scope, ::goTo)
+				adminPanelPage(accountRepository, authToken, whitListRepository, loc, scope, ::goTo)
 
 				notFound(notFoundPage)
 			}

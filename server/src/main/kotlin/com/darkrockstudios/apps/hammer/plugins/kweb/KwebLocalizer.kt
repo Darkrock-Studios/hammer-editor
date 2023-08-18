@@ -36,12 +36,14 @@ class KwebLocalizer(
 		}
 	}
 
-	fun t(key: String, vararg args: Any = arrayOf()): String {
-		return i18n.t(curLocale, R(key), args)
-	}
+	fun t(key: String, vararg args: Any): String = t(R(key), *args)
 
-	fun t(keyGenerator: KeyGenerator, vararg args: Any = arrayOf()): String {
-		return i18n.t(curLocale, keyGenerator, args)
+	fun t(keyGenerator: KeyGenerator, vararg args: Any): String {
+		return try {
+			i18n.t(curLocale, keyGenerator, *args)
+		} catch (e: MissingResourceException) {
+			i18n.t(Locale.ENGLISH, keyGenerator, *args)
+		}
 	}
 
 	fun overrideLocale(locale: Locale, refresh: Boolean = true) {

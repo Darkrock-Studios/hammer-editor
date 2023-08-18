@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.kweb
 
+import com.github.aymanizz.ktori18n.R
 import kotlinx.serialization.json.JsonPrimitive
 import kweb.*
 import kweb.util.json
@@ -25,4 +26,8 @@ fun ElementCreator<Element>.rellink(
 				.set("hreflang", JsonPrimitive(hreflang))
 		)
 	)
+}
+
+fun Element.text(key: String, loc: KwebLocalizer): Element {
+	return text(loc.t(R(key)))
 }
