@@ -8,7 +8,7 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 
 - **Client/Server syncing stabilization:** There's no known bugs, but this is by far the most likely feature to cause
   user data loss, so it must be rock solid
-- **Localization Support:** Move all strings into localization files, get setup with community localization service.
+- ~~**Localization Support:** Move all strings into localization files, get setup with community localization service.~~
 - **Quality of Life UI improvements:** The UI is ready for a second polish pass, focusing on quality of life
   improvements.
     - Word Count in text editor
