@@ -233,6 +233,13 @@ private fun Component.footer(translator: KwebLocalizer, availableLocales: List<L
 					span().text("home.footer.discord", loc)
 				}
 
+				span().text(" ")
+
+				a(href = "https://www.reddit.com/r/hammereditor/") {
+					i(fomantic.icon).addClasses("reddit")
+					span().text("home.footer.reddit", loc)
+				}
+
 				p().text("v${BuildMetadata.APP_VERSION}")
 
 				span().text(" ")
