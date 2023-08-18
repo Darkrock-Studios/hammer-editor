@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -18,7 +19,7 @@ class AccountsComponent(
 		// If we dont have users, skip whitelist check
 		if (accountsRepository.hasUsers() && whiteListRejected(email)) return ServerResult.failure(
 			"not on whitelist",
-			R("api.accounts.create.error.notonwhitelist")
+			Msg.r("api.accounts.create.error.notonwhitelist")
 		)
 
 		val result = accountsRepository.createAccount(email, installId, password)
@@ -65,5 +66,5 @@ class AccountsComponent(
 
 fun <T> WhiteListRejected() = SResult.failure<T>(
 	error = "User not on whitelist",
-	displayMessage = R("api.whitelist.rejected")
+	displayMessage = Msg.r("api.whitelist.rejected")
 )

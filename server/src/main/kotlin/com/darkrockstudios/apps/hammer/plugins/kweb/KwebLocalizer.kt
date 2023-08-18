@@ -1,12 +1,10 @@
 package com.darkrockstudios.apps.hammer.plugins.kweb
 
-import com.github.aymanizz.ktori18n.I18n
-import com.github.aymanizz.ktori18n.KeyGenerator
-import com.github.aymanizz.ktori18n.R
-import com.github.aymanizz.ktori18n.i18n
+import com.github.aymanizz.ktori18n.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import kweb.html.Document
+import org.jetbrains.annotations.PropertyKey
 import java.util.*
 
 class KwebLocalizer(
@@ -36,7 +34,7 @@ class KwebLocalizer(
 		}
 	}
 
-	fun t(key: String, vararg args: Any): String = t(R(key), *args)
+	fun t(@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) key: String, vararg args: Any): String = t(R(key), *args)
 
 	fun t(keyGenerator: KeyGenerator, vararg args: Any): String {
 		return try {

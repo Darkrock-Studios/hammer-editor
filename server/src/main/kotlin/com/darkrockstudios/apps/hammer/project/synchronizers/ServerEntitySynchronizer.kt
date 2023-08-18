@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.readJsonOrNull
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -77,7 +78,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		entity: T,
 		originalHash: String?,
 		force: Boolean,
-	): Result<Boolean> {
+	): SResult<Boolean> {
 		val conflict = checkForConflict(
 			userId,
 			projectDef,
@@ -92,16 +93,16 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 				fileSystem.write(path) {
 					writeUtf8(jsonString)
 				}
-				Result.success(true)
+				SResult.success(true)
 			} catch (e: SerializationException) {
-				Result.failure(e)
+				SResult.failure(e)
 			} catch (e: IllegalArgumentException) {
-				Result.failure(e)
+				SResult.failure(e)
 			} catch (e: IOException) {
-				Result.failure(e)
+				SResult.failure(e)
 			}
 		} else {
-			Result.failure(conflict)
+			SResult.failure(conflict)
 		}
 	}
 
@@ -110,7 +111,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entityId: Int,
-	): Result<T> {
+	): SResult<T> {
 		val path = getPath(userId, projectDef, entityId)
 
 		return try {
@@ -119,13 +120,13 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 			}
 
 			val scene = json.decodeFromString(entityClazz.serializer(), jsonString)
-			Result.success(scene)
+			SResult.success(scene)
 		} catch (e: SerializationException) {
-			Result.failure(e)
+			SResult.failure(e)
 		} catch (e: IllegalArgumentException) {
-			Result.failure(e)
+			SResult.failure(e)
 		} catch (e: IOException) {
-			Result.failure(e)
+			SResult.failure(e)
 		}
 	}
 

@@ -11,6 +11,9 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.isFailure
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -115,7 +118,6 @@ class ProjectRepositoryTest : BaseTest() {
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `Begin Project Sync`() = runTest {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
@@ -127,10 +129,8 @@ class ProjectRepositoryTest : BaseTest() {
 		createProjectRepository().apply {
 			val result = beginProjectSync(userId, projectDefinition, clientState, false)
 
-			assertTrue { result.isSuccess }
-
-			val syncBegan = result.getOrNull()
-			assertNotNull(syncBegan)
+			assertTrue(isSuccess(result))
+			val syncBegan = result.data
 			assertTrue(syncBegan.syncId.isNotBlank())
 		}
 	}
@@ -150,9 +150,9 @@ class ProjectRepositoryTest : BaseTest() {
 
 			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
 
-			assertTrue { beginResult.isSuccess }
-			val syncBegan = beginResult.getOrThrow()
+			assertTrue(isSuccess(beginResult))
 
+			val syncBegan = beginResult.data
 			val session = ProjectSynchronizationSession(userId, projectDefinition, clock.now(), syncBegan.syncId)
 			coEvery { projectSessionManager.findSession(any()) } returns session
 
@@ -188,7 +188,7 @@ class ProjectRepositoryTest : BaseTest() {
 		mockCreateSession(syncId)
 
 		every { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
-				Result.success(createSceneEntity(entityId))
+				SResult.success(createSceneEntity(entityId))
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
@@ -196,16 +196,15 @@ class ProjectRepositoryTest : BaseTest() {
 
 		createProjectRepository().apply {
 			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
-			assertTrue(beginResult.isSuccess)
+			assertTrue(isSuccess(beginResult))
 
-			val syncBegan = beginResult.getOrThrow()
-
+			val syncBegan = beginResult.data
 			clock.advanceTime(SynchronizationSession.EXPIRATION_TIME + 1.minutes)
 
 			val result = loadEntity(userId, projectDefinition, 1, syncBegan.syncId)
-			assertTrue(result.isFailure)
+			assertTrue(isFailure(result))
 
-			val exception = result.exceptionOrNull()
+			val exception = result.exception
 			assertTrue(exception is InvalidSyncIdException)
 		}
 	}

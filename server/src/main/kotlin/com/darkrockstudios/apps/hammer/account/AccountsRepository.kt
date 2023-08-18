@@ -5,10 +5,7 @@ import com.darkrockstudios.apps.hammer.AuthToken
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.utilities.RandomString
-import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
-import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.*
 import com.github.aymanizz.ktori18n.R
 import com.soywiz.krypto.sha256
 import kotlinx.datetime.Clock
@@ -63,13 +60,13 @@ class AccountsRepository(
 		return when {
 			existingAccount != null -> SResult.failure(
 				"account already exists",
-				R("api.accounts.create.error.accountexists"),
+				Msg.r("api.accounts.create.error.accountexists"),
 				CreateFailed("Account already exists")
 			)
 
 			!validateEmail(email) -> SResult.failure(
 				"invalid email",
-				R("api.accounts.create.error.invalidemail"),
+				Msg.r("api.accounts.create.error.invalidemail"),
 				CreateFailed("Invalid email")
 			)
 
@@ -110,9 +107,9 @@ class AccountsRepository(
 		val account = accountDao.findAccount(email)
 
 		return if (account == null) {
-			SResult.failure("Account not found", R("api.accounts.login.error.notfound"))
+			SResult.failure("Account not found", Msg.r("api.accounts.login.error.notfound"))
 		} else if (!checkPassword(account, password)) {
-			SResult.failure("Incorrect password", R("api.accounts.login.error.badpassword"))
+			SResult.failure("Incorrect password", Msg.r("api.accounts.login.error.badpassword"))
 		} else {
 			val token = getAuthToken(account.id, installId)
 			SResult.success(token)
@@ -125,7 +122,7 @@ class AccountsRepository(
 		return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
 			SResult.success(authToken.userId)
 		} else {
-			SResult.failure("No valid token not found", R("api.accounts.login.error.notoken"))
+			SResult.failure("No valid token not found", Msg.r("api.accounts.login.error.notoken"))
 		}
 	}
 
@@ -141,7 +138,7 @@ class AccountsRepository(
 				)
 			)
 		} else {
-			SResult.failure("No valid token not found", R("api.accounts.login.error.notoken"))
+			SResult.failure("No valid token not found", Msg.r("api.accounts.login.error.notoken"))
 		}
 	}
 
@@ -199,14 +196,14 @@ class AccountsRepository(
 open class CreateFailed(message: String) : Exception(message)
 class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) : CreateFailed("Invalid Password") {
 	companion object {
-		fun getMessage(result: AccountsRepository.Companion.PasswordResult): R = when (result) {
-			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> R("api.accounts.create.error.password.tooshort")
-			AccountsRepository.Companion.PasswordResult.TOO_LONG -> R("api.accounts.create.error.password.toolong")
-			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> R("api.accounts.create.error.password.nouppercase")
-			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> R("api.accounts.create.error.password.nolowercase")
-			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> R("api.accounts.create.error.password.nonumber")
-			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> R("api.accounts.create.error.password.nospecial")
-			else -> R("api.accounts.create.error.password.generic")
+		fun getMessage(result: AccountsRepository.Companion.PasswordResult): Msg = when (result) {
+			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> Msg.r("api.accounts.create.error.password.tooshort")
+			AccountsRepository.Companion.PasswordResult.TOO_LONG -> Msg.r("api.accounts.create.error.password.toolong")
+			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> Msg.r("api.accounts.create.error.password.nouppercase")
+			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> Msg.r("api.accounts.create.error.password.nolowercase")
+			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> Msg.r("api.accounts.create.error.password.nonumber")
+			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> Msg.r("api.accounts.create.error.password.nospecial")
+			else -> Msg.r("api.accounts.create.error.password.generic")
 		}
 	}
 }

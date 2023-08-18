@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -31,8 +32,8 @@ private fun Route.beginProjectsSync() {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 
 		val result = projectsRepository.beginProjectsSync(principal.id)
-		if (result.isSuccess) {
-			val syncData = result.getOrThrow()
+		if (isSuccess(result)) {
+			val syncData = result.data
 			val responseData = BeginProjectsSyncResponse(
 				syncId = syncData.syncId,
 				projects = syncData.projects.map { it.name }.toSet(),
@@ -40,10 +41,14 @@ private fun Route.beginProjectsSync() {
 			)
 			call.respond(responseData)
 		} else {
-			val message = result.exceptionOrNull()?.message
+			val message = result.displayMessage
+
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", displayMessage = message ?: "Unknown Error")
+				HttpResponseError(
+					error = "Missing Header",
+					displayMessage = message?.text(call) ?: "Unknown Error"
+				)
 			)
 		}
 	}

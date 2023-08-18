@@ -9,9 +9,10 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.getUserDirectory
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -83,13 +84,16 @@ class ProjectRepository(
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?,
 		lite: Boolean
-	): Result<ProjectSynchronizationBegan> {
+	): SResult<ProjectSynchronizationBegan> {
 
 		val projectDir = getProjectDirectory(userId, projectDef)
 		val syncKey = ProjectSyncKey(userId, projectDef)
 
 		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(syncKey)) {
-			Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+			SResult.failure(
+				"begin sync failure: existing session",
+				Msg.r("api.project.sync.begin.error.session", userId)
+			)
 		} else {
 			if (!fileSystem.exists(projectDir)) {
 				createProject(userId, projectDef)
@@ -119,7 +123,7 @@ class ProjectRepository(
 				idSequence = updateSequence,
 				deletedIds = projectSyncData.deletedIds,
 			)
-			Result.success(syncBegan)
+			SResult.success(syncBegan)
 		}
 	}
 
@@ -129,14 +133,20 @@ class ProjectRepository(
 		syncId: String,
 		lastSync: Instant?,
 		lastId: Int?,
-	): Result<Boolean> {
+	): SResult<Unit> {
 		val syncKey = ProjectSyncKey(userId, projectDef)
 		val session = sessionManager.findSession(syncKey)
 		return if (session == null) {
-			Result.failure(IllegalStateException("User $userId does not have a synchronization session"))
+			SResult.failure(
+				"begin sync failure: existing session",
+				Msg.r("api.project.sync.begin.error.session", userId)
+			)
 		} else {
 			if (session.syncId != syncId) {
-				Result.failure(IllegalStateException("Invalid sync id"))
+				SResult.failure(
+					"end sync failure: invalid session id",
+					Msg.r("api.project.sync.end.invalidid", userId)
+				)
 			} else {
 				// Update sync data if it was sent
 				if (lastSync != null && lastId != null) {
@@ -149,7 +159,7 @@ class ProjectRepository(
 				}
 
 				sessionManager.terminateSession(syncKey)
-				Result.success(true)
+				SResult.success()
 			}
 		}
 	}
@@ -158,22 +168,25 @@ class ProjectRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		syncId: String
-	): Result<ProjectServerState> {
+	): SResult<ProjectServerState> {
 		if (validateSyncId(userId, projectDef, syncId).not())
-			return Result.failure(IllegalStateException("Sync Id not valid"))
+			return SResult.failure(
+				"end sync failure: invalid session id",
+				Msg.r("api.project.sync.end.invalidid", userId)
+			)
 
 		val projectDir = getProjectDirectory(userId, projectDef)
 
 		return if (fileSystem.exists(projectDir)) {
 			val projectSyncData = getProjectSyncData(userId, projectDef)
-			Result.success(
+			SResult.success(
 				ProjectServerState(
 					lastSync = projectSyncData.lastSync,
 					lastId = projectSyncData.lastId
 				)
 			)
 		} else {
-			Result.failure(IllegalStateException("Project does not exist"))
+			SResult.failure("Project does not exist", Msg.r("api.project.getproject.error.notfound"))
 		}
 	}
 
@@ -184,8 +197,9 @@ class ProjectRepository(
 		originalHash: String?,
 		syncId: String,
 		force: Boolean
-	): Result<Boolean> {
-		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
+	): SResult<Boolean> {
+		if (validateSyncId(userId, projectDef, syncId).not())
+			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
 		ensureEntityDir(userId, projectDef)
 
@@ -238,8 +252,9 @@ class ProjectRepository(
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		syncId: String,
-	): Result<Boolean> {
-		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
+	): SResult<Unit> {
+		if (validateSyncId(userId, projectDef, syncId).not())
+			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
 		updateSyncData(userId, projectDef) {
 			it.copy(
@@ -248,7 +263,10 @@ class ProjectRepository(
 		}
 
 		val entityType: ApiProjectEntity.Type =
-			getEntityType(userId, projectDef, entityId) ?: return Result.failure(NoEntityTypeFound(entityId))
+			getEntityType(userId, projectDef, entityId) ?: return SResult.failure(
+				"No type found",
+				exception = NoEntityTypeFound(entityId)
+			)
 
 		when (entityType) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(userId, projectDef, entityId)
@@ -263,7 +281,7 @@ class ProjectRepository(
 			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(userId, projectDef, entityId)
 		}
 
-		return Result.success(true)
+		return SResult.success()
 	}
 
 	private fun getEntityType(userId: Long, projectDef: ProjectDefinition, entityId: Int): ApiProjectEntity.Type? {
@@ -313,11 +331,12 @@ class ProjectRepository(
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		syncId: String
-	): Result<ApiProjectEntity> {
-		if (validateSyncId(userId, projectDef, syncId).not()) return Result.failure(InvalidSyncIdException())
+	): SResult<ApiProjectEntity> {
+		if (validateSyncId(userId, projectDef, syncId).not())
+			return SResult.failure("Invalid sync id", exception = InvalidSyncIdException())
 
 		val type = findEntityType(entityId, userId, projectDef)
-			?: return Result.failure(EntityNotFound(entityId))
+			?: return SResult.failure("EntityNotFound", exception = EntityNotFound(entityId))
 
 		return when (type) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)

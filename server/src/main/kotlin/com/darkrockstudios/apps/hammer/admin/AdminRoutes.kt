@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ADMIN_AUTH
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
+import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
@@ -55,7 +56,7 @@ private fun Route.addToWhiteList() {
 					status = HttpStatusCode.InternalServerError,
 					HttpResponseError(
 						error = "invalid email",
-						displayMessage = call.t(result.displayMessage ?: R("api.error.unknown"))
+						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
 					)
 				)
 			}

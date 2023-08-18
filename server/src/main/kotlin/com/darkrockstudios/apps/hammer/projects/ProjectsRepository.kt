@@ -6,7 +6,10 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
+import com.github.aymanizz.ktori18n.R
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
@@ -57,9 +60,12 @@ class ProjectsRepository(
 		return getUserDirectory(userId, fileSystem)
 	}
 
-	suspend fun beginProjectsSync(userId: Long): Result<ProjectsBeginSyncData> {
+	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
 		return if (syncSessionManager.hasActiveSyncSession(userId)) {
-			Result.failure(IllegalStateException("User $userId already has a synchronization session"))
+			SResult.failure(
+				"User $userId already has a synchronization session",
+				Msg.r("api.project.sync.begin.error.session")
+			)
 		} else {
 			val newSyncId = syncSessionManager.createNewSession(userId) { user, sync ->
 				ProjectsSynchronizationSession(
@@ -78,20 +84,26 @@ class ProjectsRepository(
 				deletedProjects = deletedProjects
 			)
 
-			Result.success(data)
+			SResult.success(data)
 		}
 	}
 
-	suspend fun endProjectsSync(userId: Long, syncId: String) {
+	suspend fun endProjectsSync(userId: Long, syncId: String): SResult<Unit> {
 		val session = syncSessionManager.findSession(userId)
-		if (session == null) {
-			Result.failure(IllegalStateException("User $userId does not have a synchronization session"))
+		return if (session == null) {
+			SResult.failure(
+				"User $userId does not have a synchronization session",
+				Msg.r("api.project.sync.end.noid", userId)
+			)
 		} else {
 			if (session.syncId != syncId) {
-				Result.failure(IllegalStateException("Invalid sync id"))
+				SResult.failure(
+					"Invalid sync id",
+					Msg.r("api.project.sync.end.invalidid")
+				)
 			} else {
 				syncSessionManager.terminateSession(userId)
-				Result.success(true)
+				SResult.success()
 			}
 		}
 	}

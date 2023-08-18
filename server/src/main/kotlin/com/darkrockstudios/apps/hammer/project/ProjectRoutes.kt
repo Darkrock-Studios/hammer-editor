@@ -6,6 +6,9 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.github.aymanizz.ktori18n.R
+import com.github.aymanizz.ktori18n.t
 import com.soywiz.korio.compression.deflate.GZIP
 import com.soywiz.korio.compression.uncompress
 import io.ktor.http.*
@@ -57,20 +60,23 @@ private fun Route.beginProjectSync() {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+				)
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
 			val result = projectRepository.beginProjectSync(principal.id, projectDef, clientState, lite)
-			if (result.isSuccess) {
-				val syncBegan = result.getOrThrow()
+			if (isSuccess(result)) {
+				val syncBegan = result.data
 				call.respond(syncBegan)
 			} else {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Failed to begin sync",
-						displayMessage = result.exceptionOrNull()?.message ?: "Unknown"
+						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
 					)
 				)
 			}
@@ -97,25 +103,31 @@ private fun Route.endProjectSync() {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+				)
 			)
 		} else if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "syncId was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+				)
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
 			val result = projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)
-			if (result.isSuccess) {
-				val success = result.getOrThrow()
+			if (isSuccess(result)) {
+				val success = result.data
 				call.respond(success)
 			} else {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Failed to begin sync",
-						displayMessage = result.exceptionOrNull()?.message ?: "Unknown"
+						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
 					)
 				)
 			}
@@ -139,7 +151,10 @@ private fun Route.uploadEntity() {
 		if (type == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", displayMessage = "x-entity-type was missing")
+				HttpResponseError(
+					error = "Missing Header",
+					displayMessage = call.t(R("api.project.error.entitytypemissing"))
+				)
 			)
 		} else {
 			val entity = when (type) {
@@ -153,44 +168,52 @@ private fun Route.uploadEntity() {
 			if (projectName == null) {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
-					HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+					HttpResponseError(
+						error = "Missing Parameter",
+						displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+					)
 				)
 			} else if (entityId == null) {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
-					HttpResponseError(error = "Missing Parameter", displayMessage = "entityId was missing")
+					HttpResponseError(
+						error = "Missing Parameter",
+						displayMessage = call.t(R("api.project.error.entityidmissing"))
+					)
 				)
 			} else if (syncId.isNullOrBlank()) {
 				call.respond(
 					status = HttpStatusCode.BadRequest,
-					HttpResponseError(error = "Missing Parameter", displayMessage = "syncId was missing")
+					HttpResponseError(
+						error = "Missing Parameter",
+						displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+					)
 				)
 			} else {
 				val projectDef = ProjectDefinition(projectName)
 				val result =
 					projectRepository.saveEntity(principal.id, projectDef, entity, originalHash, syncId, force ?: false)
-				if (result.isSuccess) {
-					call.respond(SaveEntityResponse(result.getOrThrow()))
+				if (isSuccess(result)) {
+					call.respond(SaveEntityResponse(result.data))
 				} else {
-					val e = result.exceptionOrNull()
+					val e = result.exception
 					if (e is EntityConflictException) {
-						val entity = e.entity
-						when (entity) {
-							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
-							is ApiProjectEntity.NoteEntity -> call.respond(status = HttpStatusCode.Conflict, entity)
+						when (val conflictedEntity = e.entity) {
+							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, conflictedEntity)
+							is ApiProjectEntity.NoteEntity -> call.respond(status = HttpStatusCode.Conflict, conflictedEntity)
 							is ApiProjectEntity.TimelineEventEntity -> call.respond(
 								status = HttpStatusCode.Conflict,
-								entity
+								conflictedEntity
 							)
 
 							is ApiProjectEntity.EncyclopediaEntryEntity -> call.respond(
 								status = HttpStatusCode.Conflict,
-								entity
+								conflictedEntity
 							)
 
 							is ApiProjectEntity.SceneDraftEntity -> call.respond(
 								status = HttpStatusCode.Conflict,
-								entity
+								conflictedEntity
 							)
 						}
 					} else {
@@ -198,7 +221,7 @@ private fun Route.uploadEntity() {
 							status = HttpStatusCode.ExpectationFailed,
 							HttpResponseError(
 								error = "Save Error",
-								displayMessage = e?.message ?: "Unknown failure",
+								displayMessage = result.displayMessageText(call, R("api.error.unknown")),
 							)
 						)
 					}
@@ -221,25 +244,34 @@ private fun Route.downloadEntity(log: Logger) {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+				)
 			)
 		} else if (entityId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "entityId was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.error.entityidmissing"))
+				)
 			)
 		} else if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+				)
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
 
 			val result =
 				projectRepository.loadEntity(principal.id, projectDef, entityId, syncId)
-			if (result.isSuccess) {
-				val serverEntity = result.getOrThrow()
+			if (isSuccess(result)) {
+				val serverEntity = result.data
 				val serverEntityHash = serverEntityHash(serverEntity)
 
 				if (entityHash != null && entityHash == serverEntityHash) {
@@ -256,18 +288,24 @@ private fun Route.downloadEntity(log: Logger) {
 					}
 				}
 			} else {
-				when (val e = result.exceptionOrNull()) {
+				when (val e = result.exception) {
 					is EntityConflictException -> {
 						call.respond(
 							status = HttpStatusCode.Conflict,
-							HttpResponseError(error = "Download Error", displayMessage = e.message ?: "Unknown failure")
+							HttpResponseError(
+								error = "Download Error",
+								displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+							)
 						)
 					}
 
 					is EntityNotFound -> {
 						call.respond(
 							status = HttpStatusCode.NotFound,
-							HttpResponseError(error = "Download Error", displayMessage = e.message ?: "Unknown failure")
+							HttpResponseError(
+								error = "Download Error",
+								result.displayMessageText(call, R("api.error.unknown"))
+							)
 						)
 					}
 
@@ -275,7 +313,10 @@ private fun Route.downloadEntity(log: Logger) {
 						log.error("Entity Download failed for ID $entityId: " + e?.message)
 						call.respond(
 							status = HttpStatusCode.InternalServerError,
-							HttpResponseError(error = "Download Error", displayMessage = e?.message ?: "Unknown failure")
+							HttpResponseError(
+								error = "Download Error",
+								result.displayMessageText(call, R("api.error.unknown"))
+							)
 						)
 					}
 				}
@@ -296,33 +337,44 @@ private fun Route.deleteEntity() {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+				)
 			)
 		} else if (entityId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "entityId was missing")
+				HttpResponseError(
+					error = "Missing Entity Id",
+					displayMessage = call.t(R("api.project.error.entityidmissing"))
+				)
 			)
 		} else if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+				)
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName)
 			val result = projectRepository.deleteEntity(principal.id, projectDef, entityId, syncId)
 
-			if (result.isSuccess) {
+			if (isSuccess(result)) {
 				call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))
 			} else {
-				val e = result.exceptionOrNull()
+				val e = result.exception
 				if (e is NoEntityTypeFound) {
 					call.respond(HttpStatusCode.OK, DeleteIdsResponse(false))
 				} else {
-					val message = result.exceptionOrNull()?.message ?: "Unknown failure"
 					call.respond(
 						status = HttpStatusCode.InternalServerError,
-						HttpResponseError(error = "Failed to delete Entity", displayMessage = message)
+						HttpResponseError(
+							error = "Failed to delete Entity",
+							result.displayMessageText(call, R("api.error.unknown"))
+						)
 					)
 				}
 			}

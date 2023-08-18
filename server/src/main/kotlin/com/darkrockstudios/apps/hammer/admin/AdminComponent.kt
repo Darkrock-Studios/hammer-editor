@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.admin
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.github.aymanizz.ktori18n.R
 
@@ -16,7 +17,7 @@ class AdminComponent(
 			whiteListRepository.addToWhiteList(email)
 			ServerResult.success(Unit)
 		} else {
-			ServerResult.failure("Invalid email", R("api.admin.addtowhitelist.invalidemail"))
+			ServerResult.failure("Invalid email", Msg.r("api.admin.addtowhitelist.invalidemail"))
 		}
 	}
 

@@ -42,7 +42,7 @@ private fun Route.createAccount() {
 		} else {
 			val response = HttpResponseError(
 				error = "Failed to create account",
-				displayMessage = call.t(result.displayMessage ?: R("api.error.unknown"))
+				displayMessage = result.displayMessageText(call, R("api.error.unknown"))
 			)
 			call.respond(status = HttpStatusCode.Conflict, response)
 		}
@@ -65,7 +65,7 @@ private fun Route.login() {
 		} else {
 			val response = HttpResponseError(
 				error = "Failed to authenticate",
-				displayMessage = call.t(result.displayMessage  ?: R("api.error.unknown"))
+				displayMessage = result.displayMessageText(call, R("api.error.unknown"))
 			)
 			call.respond(status = HttpStatusCode.Unauthorized, response)
 		}

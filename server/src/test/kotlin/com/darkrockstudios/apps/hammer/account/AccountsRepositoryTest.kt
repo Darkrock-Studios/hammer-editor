@@ -107,14 +107,10 @@ class AccountsRepositoryTest : BaseTest() {
 		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 
 		val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
-		assertTrue { result.isSuccess }
+		assertTrue(isSuccess(result))
 
-		if(isSuccess(result)) {
-			val token = result.data
-			assertTrue { token.isValid() }
-		} else {
-			error("Was failure")
-		}
+		val token = result.data
+		assertTrue { token.isValid() }
 	}
 
 	@Test
@@ -136,11 +132,8 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = "x".repeat(MIN_PASSWORD_LENGTH - 1)
 		)
-		if(isSuccess(result)) {
-			error("Should have been failure")
-		} else {
-			assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (result.exception as InvalidPassword).result)
-		}
+		assertTrue(isFailure(result))
+		assertEquals(AccountsRepository.Companion.PasswordResult.TOO_SHORT, (result.exception as InvalidPassword).result)
 	}
 
 	@Test
@@ -153,13 +146,9 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = "x".repeat(MAX_PASSWORD_LENGTH + 1)
 		)
-		assertTrue { result.isFailure }
-		if(isFailure(result)) {
-			assertTrue { result.exception is InvalidPassword }
-			assertEquals(AccountsRepository.Companion.PasswordResult.TOO_LONG, (result.exception as InvalidPassword).result)
-		} else {
-			error("Should have been failure")
-		}
+		assertTrue(isFailure(result))
+		assertTrue { result.exception is InvalidPassword }
+		assertEquals(AccountsRepository.Companion.PasswordResult.TOO_LONG, (result.exception as InvalidPassword).result)
 	}
 
 	@Test
@@ -172,12 +161,9 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = password
 		)
-		if(isFailure(result)) {
-			assertTrue(result.exception is CreateFailed)
-			assertEquals("account already exists", result.error)
-		} else {
-			error("Was success")
-		}
+		assertTrue(isFailure(result))
+		assertTrue(result.exception is CreateFailed)
+		assertEquals("account already exists", result.error)
 	}
 
 	@Test
@@ -187,11 +173,8 @@ class AccountsRepositoryTest : BaseTest() {
 		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
-		if(isSuccess(result)) {
-			assertEquals(userId, result.data)
-		} else {
-			error("Failed")
-		}
+		assertTrue(isSuccess(result))
+		assertEquals(userId, result.data)
 	}
 
 	@Test
