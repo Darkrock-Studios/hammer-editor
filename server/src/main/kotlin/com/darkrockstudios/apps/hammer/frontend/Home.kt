@@ -3,9 +3,8 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
-import com.darkrockstudios.apps.hammer.plugins.kweb.KwebStringTranslator
+import com.darkrockstudios.apps.hammer.plugins.kweb.KwebLocalizer
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
-import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kweb.*
@@ -18,8 +17,7 @@ fun RouteReceiver.homePage(
 	scope: CoroutineScope,
 	config: ServerConfig,
 	whiteListEnabled: WhiteListRepository,
-	translator: KwebStringTranslator,
-	changeLocale: (Locale, KwebStringTranslator) -> Unit,
+	loc: KwebLocalizer,
 	goTo: (String) -> Unit,
 ) {
 	path("/") {
@@ -28,7 +26,9 @@ fun RouteReceiver.homePage(
 
 			div(fomantic.ui.vertical.segment.padded) {
 				div(fomantic.ui.middle.aligned.stackable.grid.container) {
-					element.text(translator.t(R("greeting")))
+
+					// TODO remove this, just localization example
+					p().innerHTML(loc.t("greeting"))
 
 					serverMessage(config, whiteListEnabled)
 
@@ -40,7 +40,7 @@ fun RouteReceiver.homePage(
 				}
 			}
 
-			footer(translator, changeLocale)
+			footer(loc)
 		}
 	}
 }
@@ -206,10 +206,7 @@ private fun Component.menu(goTo: (String) -> Unit) {
 	}
 }
 
-private fun Component.footer(
-	translator: KwebStringTranslator,
-	changeLocale: (Locale, KwebStringTranslator) -> Unit,
-) {
+private fun Component.footer(translator: KwebLocalizer) {
 	div(fomantic.ui.inverted.vertical.segment) {
 		div(fomantic.ui.center.aligned.text.container) {
 			div(fomantic.row) {
@@ -227,18 +224,16 @@ private fun Component.footer(
 
 				p().text("v${BuildMetadata.APP_VERSION}")
 
-				a {
+				a(href = this.browser.url.value) {
 					span().text("en")
 				}.on.click {
-					changeLocale(Locale.ENGLISH, translator)
+					translator.setLocale(Locale.ENGLISH)
 				}
 
 				span().text(" ")
 
-				a {
-					span().text("de")
-				}.on.click {
-					changeLocale(Locale.GERMAN, translator)
+				a(href = this.browser.url.value) {}.innerHTML("de").on.click {
+					translator.setLocale(Locale.GERMAN)
 				}
 			}
 		}
