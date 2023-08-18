@@ -51,9 +51,7 @@ fun Application.configureKweb(config: ServerConfig) {
 	installKwebOnRemainingRoutes {
 		val ioDispatcher: CoroutineContext by inject(named(DISPATCHER_IO))
 		val scope = CoroutineScope(Job() + ioDispatcher)
-
-		val locVal = KVal(KwebLocalizer(app, doc, config.getDefaultLocale()))
-		val loc = locVal.value
+		val loc = KwebLocalizer(app, doc, config.getDefaultLocale())
 
 		doc.head {
 			title().text("Hammer")
