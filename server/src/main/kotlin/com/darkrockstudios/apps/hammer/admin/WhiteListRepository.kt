@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.admin
 
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
+import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.utils.getRootDataDirectory
-import com.darkrockstudios.apps.hammer.utils.readJson
-import com.darkrockstudios.apps.hammer.utils.writeJson
+import com.darkrockstudios.apps.hammer.utilities.readJson
+import com.darkrockstudios.apps.hammer.utilities.writeJson
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.FileSystem

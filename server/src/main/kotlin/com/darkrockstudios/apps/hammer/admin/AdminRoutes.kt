@@ -3,6 +3,9 @@ package com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ADMIN_AUTH
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.github.aymanizz.ktori18n.R
+import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -38,17 +41,22 @@ private fun Route.addToWhiteList() {
 		if (email == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "email was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.admin.whitelist.error.emailmissing"))
+				)
 			)
 		} else {
 			val result = adminRepository.addToWhiteList(email)
-			if (result.isSuccess) {
+			if (isSuccess(result)) {
 				call.respond("Success")
 			} else {
-				val e = result.exceptionOrNull()
 				call.respond(
 					status = HttpStatusCode.InternalServerError,
-					HttpResponseError(error = "Error", message = e?.message ?: "Unknown failure")
+					HttpResponseError(
+						error = "invalid email",
+						displayMessage = call.t(result.displayMessage ?: R("api.error.unknown"))
+					)
 				)
 			}
 		}
@@ -63,11 +71,14 @@ private fun Route.removeFromWhiteList() {
 		if (email == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "email was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.admin.whitelist.error.emailmissing"))
+				)
 			)
 		} else {
 			adminRepository.removeFromWhiteList(email)
-			call.respond("Success")
+			call.respond(call.t(R("api.success")))
 		}
 	}
 }
@@ -80,7 +91,10 @@ private fun Route.enableWhiteList() {
 		if (setEnable == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "setEnable was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api.admin.enablewhitelist.enablemissing"))
+				)
 			)
 		} else {
 			if (setEnable) {
@@ -88,7 +102,7 @@ private fun Route.enableWhiteList() {
 			} else {
 				adminRepository.disableWhiteList()
 			}
-			call.respond("Success")
+			call.respond(call.t(R("api.success")))
 		}
 	}
 }

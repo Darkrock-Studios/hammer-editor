@@ -65,7 +65,7 @@ class AccountRepository(
 		} else {
 			globalSettingsRepository.deleteServerSettings()
 
-			val message = (result.exceptionOrNull() as? HttpFailureException)?.error?.message ?: "Unknown error"
+			val message = (result.exceptionOrNull() as? HttpFailureException)?.error?.displayMessage ?: "Unknown error"
 			Result.failure(ServerSetupFailed(message))
 		}
 	}

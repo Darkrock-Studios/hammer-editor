@@ -61,7 +61,7 @@ abstract class Api(
 					statusCode = outerResponse?.status ?: HttpStatusCode.InternalServerError,
 					error = HttpResponseError(
 						error = "Failed to parse error response",
-						message = "Unknown Error",
+						displayMessage = "Unknown Error",
 					)
 				)
 			)
@@ -182,7 +182,7 @@ abstract class Api(
 class HttpFailureException(
 	val statusCode: HttpStatusCode,
 	val error: HttpResponseError
-) : Exception("HTTP Failure: $statusCode ${error.error}: ${error.message}")
+) : Exception("HTTP Failure: $statusCode ${error.error}: ${error.displayMessage}")
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 

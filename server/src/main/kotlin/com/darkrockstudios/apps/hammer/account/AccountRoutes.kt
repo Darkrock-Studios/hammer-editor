@@ -38,7 +38,7 @@ private fun Route.createAccount() {
 			call.respond(HttpStatusCode.Created, token)
 		} else {
 			val message = result.exceptionOrNull()?.message
-			val response = HttpResponseError(error = "Failed to create account", message = message ?: "Unknown error")
+			val response = HttpResponseError(error = "Failed to create account", displayMessage = message ?: "Unknown error")
 			call.respond(status = HttpStatusCode.Conflict, response)
 		}
 	}
@@ -59,7 +59,7 @@ private fun Route.login() {
 			call.respond(authToken)
 		} else {
 			val message = result.exceptionOrNull()?.message
-			val response = HttpResponseError(error = "Failed to authenticate", message = message ?: "Unknown error")
+			val response = HttpResponseError(error = "Failed to authenticate", displayMessage = message ?: "Unknown error")
 			call.respond(status = HttpStatusCode.Unauthorized, response)
 		}
 	}
@@ -83,7 +83,7 @@ private fun Route.refreshToken() {
 		} else {
 			call.respond(
 				status = HttpStatusCode.Unauthorized,
-				HttpResponseError(error = "Unauthorized", message = "Failed to refresh auth token")
+				HttpResponseError(error = "Unauthorized", displayMessage = "Failed to refresh auth token")
 			)
 		}
 	}

@@ -43,7 +43,7 @@ private fun Route.beginProjectsSync() {
 			val message = result.exceptionOrNull()?.message
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = message ?: "Unknown Error")
+				HttpResponseError(error = "Missing Header", displayMessage = message ?: "Unknown Error")
 			)
 		}
 	}
@@ -60,7 +60,7 @@ private fun Route.endProjectSync() {
 		if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = "syncId was missing")
+				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
 			)
 		} else {
 			projectsRepository.endProjectsSync(principal.id, syncId)
@@ -80,12 +80,12 @@ private fun Route.deleteProject() {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
+				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
 			)
 		} else if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = "syncId was missing")
+				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
 			)
 		} else {
 			val result = projectsRepository.deleteProject(principal.id, syncId, projectName)
@@ -96,14 +96,14 @@ private fun Route.deleteProject() {
 					is InvalidSyncIdException -> {
 						call.respond(
 							status = HttpStatusCode.BadRequest,
-							HttpResponseError(error = "Error", message = "Invalid sync ID")
+							HttpResponseError(error = "Error", displayMessage = "Invalid sync ID")
 						)
 					}
 
 					else -> {
 						call.respond(
 							status = HttpStatusCode.InternalServerError,
-							HttpResponseError(error = "Error", message = e?.message ?: "Unknown failure")
+							HttpResponseError(error = "Error", displayMessage = e?.message ?: "Unknown failure")
 						)
 					}
 				}
@@ -123,12 +123,12 @@ private fun Route.createProject() {
 		if (projectName == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", message = "projectName was missing")
+				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
 			)
 		} else if (syncId == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Header", message = "syncId was missing")
+				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
 			)
 		} else {
 			val result = projectsRepository.createProject(principal.id, syncId, projectName)
@@ -139,14 +139,14 @@ private fun Route.createProject() {
 					is InvalidSyncIdException -> {
 						call.respond(
 							status = HttpStatusCode.BadRequest,
-							HttpResponseError(error = "Error", message = "Invalid sync ID")
+							HttpResponseError(error = "Error", displayMessage = "Invalid sync ID")
 						)
 					}
 
 					else -> {
 						call.respond(
 							status = HttpStatusCode.InternalServerError,
-							HttpResponseError(error = "Error", message = e?.message ?: "Unknown failure")
+							HttpResponseError(error = "Error", displayMessage = e?.message ?: "Unknown failure")
 						)
 					}
 				}

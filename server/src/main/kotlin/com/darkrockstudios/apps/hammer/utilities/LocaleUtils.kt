@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.utils
+package com.darkrockstudios.apps.hammer.utilities
 
 import java.io.File
 import java.net.URL

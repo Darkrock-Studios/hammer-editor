@@ -4,6 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class HttpResponseError(
+	/** Message meant for logging */
 	val error: String,
-	val message: String,
+	/** A translated message to display to the user */
+	val displayMessage: String,
 )

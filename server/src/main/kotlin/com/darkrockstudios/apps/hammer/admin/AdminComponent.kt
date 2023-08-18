@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.admin
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.github.aymanizz.ktori18n.R
 
 class AdminComponent(
 	private val whiteListRepository: WhiteListRepository,
@@ -9,12 +11,12 @@ class AdminComponent(
 		return whiteListRepository.getWhiteList()
 	}
 
-	suspend fun addToWhiteList(email: String): Result<Unit> {
+	suspend fun addToWhiteList(email: String): ServerResult<Unit> {
 		return if (AccountsRepository.validateEmail(email)) {
 			whiteListRepository.addToWhiteList(email)
-			Result.success(Unit)
+			ServerResult.success(Unit)
 		} else {
-			Result.failure(IllegalArgumentException("Invalid email"))
+			ServerResult.failure("Invalid email", R("api.admin.addtowhitelist.invalidemail"))
 		}
 	}
 

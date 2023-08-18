@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
-import com.darkrockstudios.apps.hammer.utils.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
