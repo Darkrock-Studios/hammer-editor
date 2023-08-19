@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import com.github.aymanizz.ktori18n.R
 
 class AccountsComponent(
 	private val accountsRepository: AccountsRepository,
@@ -17,7 +16,7 @@ class AccountsComponent(
 ) {
 	suspend fun createAccount(email: String, installId: String, password: String): ServerResult<Token> {
 		// If we dont have users, skip whitelist check
-		if (accountsRepository.hasUsers() && whiteListRejected(email)) return ServerResult.failure(
+		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email)) return ServerResult.failure(
 			"not on whitelist",
 			Msg.r("api.accounts.create.error.notonwhitelist")
 		)
@@ -32,32 +31,32 @@ class AccountsComponent(
 	}
 
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
-		if (whiteListRejected(email)) return WhiteListRejected()
+		if (checkIfWhiteListRejected(email)) return WhiteListRejected()
 
 		return accountsRepository.login(email, password, installId)
 	}
 
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
-		if (whiteListRejected(userId)) return WhiteListRejected()
+		if (checkIfWhiteListRejected(userId)) return WhiteListRejected()
 
 		return accountsRepository.refreshToken(userId, installId, refreshToken)
 	}
 
-	private suspend fun whiteListRejected(email: String): Boolean {
+	suspend fun checkIfWhiteListRejected(email: String): Boolean {
 		val account = accountsRepository.findAccount(email)
 		return if (account != null) {
-			whiteListRejected(account)
+			checkIfWhiteListRejected(account)
 		} else {
-			whiteListRepository.useWhiteList()
+			whiteListRepository.useWhiteList() && whiteListRepository.isOnWhiteList(email).not()
 		}
 	}
 
-	private suspend fun whiteListRejected(userId: Long): Boolean {
+	private suspend fun checkIfWhiteListRejected(userId: Long): Boolean {
 		val account = accountsRepository.getAccount(userId)
-		return whiteListRejected(account)
+		return checkIfWhiteListRejected(account)
 	}
 
-	private suspend fun whiteListRejected(account: Account): Boolean {
+	private suspend fun checkIfWhiteListRejected(account: Account): Boolean {
 		return !account.isAdmin &&
 				whiteListRepository.useWhiteList() &&
 				whiteListRepository.isOnWhiteList(account.email).not()
