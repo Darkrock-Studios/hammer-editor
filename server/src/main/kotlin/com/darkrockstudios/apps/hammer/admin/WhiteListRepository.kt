@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.utilities.readJson
 import com.darkrockstudios.apps.hammer.utilities.writeJson
+import io.ktor.util.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -42,15 +43,18 @@ class WhiteListRepository(
 	}
 
 	suspend fun isOnWhiteList(email: String): Boolean {
-		return whiteListDao.isWhiteListed(email)
+		val cleanedEmail = cleanEmail(email)
+		return whiteListDao.isWhiteListed(cleanedEmail)
 	}
 
 	suspend fun addToWhiteList(email: String) {
-		whiteListDao.addToWhiteList(email)
+		val cleanedEmail = cleanEmail(email)
+		whiteListDao.addToWhiteList(cleanedEmail)
 	}
 
 	suspend fun removeFromWhiteList(email: String) {
-		whiteListDao.removeFromWhiteList(email)
+		val cleanedEmail = cleanEmail(email)
+		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
 	private fun getConfigFile(): Path {
@@ -78,6 +82,11 @@ class WhiteListRepository(
 		val original = loadConfig()
 		val updated = block(original)
 		storeConfig(updated)
+	}
+
+	private fun cleanEmail(email: String): String {
+		val cleanedEmail = email.trim().toLowerCasePreservingASCIIRules()
+		return cleanedEmail
 	}
 
 	companion object {
