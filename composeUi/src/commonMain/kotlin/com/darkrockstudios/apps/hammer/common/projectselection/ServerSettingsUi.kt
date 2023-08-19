@@ -48,6 +48,16 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 			}) {
 				Text(MR.strings.settings_server_setup_button.get())
 			}
+
+			if (state.currentUrl != null) {
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+				Button(onClick = {
+					showConfirmRemoveServer = true
+				}) {
+					Text(MR.strings.settings_server_remove_server_button.get())
+				}
+			}
 		} else {
 			Row {
 				Text(

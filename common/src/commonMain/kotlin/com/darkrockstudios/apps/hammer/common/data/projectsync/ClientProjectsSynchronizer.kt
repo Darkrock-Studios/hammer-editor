@@ -29,7 +29,7 @@ class ClientProjectsSynchronizer(
 	var initialSync = false
 
 	fun isServerSynchronized(): Boolean {
-		return globalSettingsRepository.serverSettings != null
+		return (globalSettingsRepository.serverSettings?.userId ?: -1) > -1
 	}
 
 	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.globalSettings.automaticSyncing &&

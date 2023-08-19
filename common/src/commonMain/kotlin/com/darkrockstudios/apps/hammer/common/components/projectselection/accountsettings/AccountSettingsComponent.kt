@@ -126,7 +126,11 @@ class AccountSettingsComponent(
 	override fun beginSetupServer() {
 		_state.getAndUpdate {
 			it.copy(
-				serverSetup = true
+				serverSetup = true,
+				serverUrl = it.currentUrl,
+				serverEmail = it.currentEmail,
+				serverSsl = it.currentSsl ?: true,
+				serverPassword = null,
 			)
 		}
 	}
