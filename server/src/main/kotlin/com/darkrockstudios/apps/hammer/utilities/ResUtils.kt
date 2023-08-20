@@ -21,7 +21,7 @@ object ResUtils {
 	}
 
 	fun getTranslatedLocales(): List<Locale> {
-		val regex = Regex("Messages_([a-zA-Z]{2}).properties")
+		val regex = Regex(".*Messages_([a-zA-Z]{2}).properties$")
 		val localeFiles = resource.list("i18n")
 		return if (localeFiles != null) {
 			localeFiles
