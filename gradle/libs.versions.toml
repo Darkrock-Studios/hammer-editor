@@ -81,6 +81,7 @@ krypto = "3.4.0"
 sqldelight = "2.0.0"
 buildconfig = "4.0.2"
 fluidsonic_locale = "0.13.0"
+resources = "1.1.0"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -197,6 +198,7 @@ parcelize_darwin = { group = "com.arkivanov.parcelize.darwin", name = "gradle-pl
 parcelize_darwin_runtime = { group = "com.arkivanov.parcelize.darwin", name = "runtime", version.ref = "parcelize_darwin" }
 
 fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
+resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

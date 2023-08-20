@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.frontend.adminPanelPage
 import com.darkrockstudios.apps.hammer.frontend.homePage
 import com.darkrockstudios.apps.hammer.frontend.notFoundPage
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
-import com.darkrockstudios.apps.hammer.utilities.getTranslatedLocales
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -44,7 +43,7 @@ fun Application.configureKweb(config: ServerConfig) {
 		debug = false
 	}
 
-	val availableLocales = getTranslatedLocales()
+	val availableLocales = ResUtils.getTranslatedLocales()
 	val app = this
 
 	installKwebOnRemainingRoutes {

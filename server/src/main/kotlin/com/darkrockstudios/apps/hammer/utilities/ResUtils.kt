@@ -1,33 +1,37 @@
 package com.darkrockstudios.apps.hammer.utilities
 
-import java.io.File
+import io.herrera.kevin.resource.Resource
 import java.io.InputStream
-import java.net.URISyntaxException
-import java.net.URL
+import java.util.*
 
 object ResUtils {
+	private val resource: Resource = Resource(ResUtils::class.java.classLoader)
+
+	private fun getClassLoader() = ResUtils::class.java.classLoader
+
 	fun getResourceAsBytes(fileName: String): ByteArray {
 		return getResourceAsStream(fileName).readAllBytes()
 	}
 
 	fun getResourceAsStream(fileName: String): InputStream {
-		val classLoader = ResUtils::class.java.classLoader
-		val inputStream = classLoader.getResourceAsStream(fileName)
+		val inputStream = getClassLoader()?.getResourceAsStream(fileName)
 
 		// the stream holding the file content
 		return inputStream ?: throw IllegalArgumentException("file not found! $fileName")
 	}
 
-	@Throws(URISyntaxException::class)
-	fun getFileFromResource(fileName: String): File {
-		val classLoader = ResUtils::class.java.classLoader
-		val resource: URL? = classLoader.getResource(fileName)
-		return if (resource == null) {
-			throw java.lang.IllegalArgumentException("file not found! $fileName")
+	fun getTranslatedLocales(): List<Locale> {
+		val regex = Regex("Messages_([a-zA-Z]{2}).properties")
+		val localeFiles = resource.list("i18n")
+		return if (localeFiles != null) {
+			localeFiles
+				.mapNotNull { file ->
+					val result = regex.matchEntire(file)
+					result?.groups?.get(1)?.value
+				}
+				.map { Locale.Builder().setLanguageTag(it).build() }
 		} else {
-			// failed if files have whitespaces or special characters
-			//return new File(resource.getFile());
-			File(resource.toURI())
+			error("No locale files found")
 		}
 	}
 }

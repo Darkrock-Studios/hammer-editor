@@ -70,6 +70,7 @@ dependencies {
 	implementation(libs.ktor.server.websockets)
 
 	implementation(libs.ktoml)
+	implementation(libs.resources)
 
 	testImplementation(libs.ktor.server.testsjvm)
 	testImplementation(libs.kotlin.test.junit)
