@@ -1,0 +1,5 @@
+- Fixed lots of Server Setup UI issues
+- Fixed server whitelist check bugs
+- Reworked merge conflict UI to function on mobile
+- Finished localization work! Everything is localized now including the server wen page ui and API responses
+- Fix crash with project directory picker
