@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
 import com.mikepenz.aboutlibraries.Libs
 
 class DesktopLibraryInfoProvider : LibraryInfoProvider {
-	override fun libJson(): Libs {
+	override fun getLibs(): Libs {
 		val json = readJson()
 		return Libs.Builder().withJson(json).build()
 	}

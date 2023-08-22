@@ -8,7 +8,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 
 class AndroidLibraryInfoProvider(private val context: Context) : LibraryInfoProvider {
-	override fun libJson(): Libs {
+	override fun getLibs(): Libs {
 		val json = readJson()
 		return Libs.Builder().withJson(json).build()
 	}

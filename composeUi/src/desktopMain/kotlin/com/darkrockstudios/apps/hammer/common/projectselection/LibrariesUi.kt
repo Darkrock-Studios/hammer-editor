@@ -21,6 +21,6 @@ actual fun LibrariesUi(
 		title = MR.strings.project_libraries_dialog_title.get(),
 	) {
 		val librariesInfo: LibraryInfoProvider = rememberKoinInject()
-		LibrariesContainer(librariesBlock = librariesInfo::libJson, modifier = Modifier.fillMaxSize())
+		LibrariesContainer(librariesBlock = librariesInfo::getLibs, modifier = Modifier.fillMaxSize())
 	}
 }

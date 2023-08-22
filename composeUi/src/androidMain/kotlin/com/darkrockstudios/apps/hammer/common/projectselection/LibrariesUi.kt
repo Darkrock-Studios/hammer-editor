@@ -30,7 +30,7 @@ actual fun LibrariesUi(
 					.fillMaxSize()
 					.height(500.dp),
 				librariesBlock = {
-					val lib = libraryInfo.libJson()
+					val lib = libraryInfo.getLibs()
 					lib
 				},
 			)
