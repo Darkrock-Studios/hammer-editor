@@ -6,7 +6,7 @@
     <string name="notes_note_item_action_rename">Renomear</string>
     <string name="notes_note_item_action_cancel">Cancelar</string>
     <string name="notes_discard_dialog_title">Descartar Alterações\?</string>
-    <string name="notes_discard_dialog_message">Você perderá quaisquer mudanças feitas.</string>
+    <string name="notes_discard_dialog_message">Você perderá quaisquer alterações que você fez.</string>
     <string name="notes_create_header">Criar Nota</string>
     <string name="notes_create_body_hint">Nova Nota:</string>
     <string name="notes_create_create_button">Criar</string>

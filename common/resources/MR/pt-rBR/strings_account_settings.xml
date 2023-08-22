@@ -34,7 +34,7 @@
     <string name="settings_server_setup_cancel_button">Cancelar</string>
     <string name="remove_local_dialog_title">Remover o Conteúdo Local\?</string>
     <string name="remove_local_dialog_message">Devemos remover seu conteúdo local atual antes de sincronizar\? Se não tentaremos mesclar o seu conteúdo local com o do servidor. Se o conteúdo não for relacionado, pode causar problemas.</string>
-    <string name="settings_server_setup_header">onfigurar Servidor</string>
+    <string name="settings_server_setup_header">Configurar Servidor</string>
     <string name="settings_server_setup_ssl_label">HTTPS\?</string>
     <string name="settings_server_setup_password_show">Exibir senha</string>
     <string name="settings_server_setup_url_hint">URL do Servidor: meuservidor.com</string>

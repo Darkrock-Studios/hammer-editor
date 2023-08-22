@@ -12,7 +12,7 @@
     <string name="scene_list_create_group_dialog_message">Nome do Grupo</string>
     <string name="scene_delete_dialog_title">Deletar Cena</string>
     <string name="scene_group_item_expanded">Grupo Expandido</string>
-    <string name="scene_delete_dialog_message">Você está certo de que quer deletar essa cena\?: %1$s</string>
+    <string name="scene_delete_dialog_message">Tem certeza de que quer deletar essa cena\?: %1$s</string>
     <string name="scene_delete_dialog_delete_button">Deletar</string>
     <string name="scene_delete_dialog_dismiss_button">Dispensar</string>
     <string name="group_cannot_delete_dialog_title">Impossível Deletar o Grupo</string>
