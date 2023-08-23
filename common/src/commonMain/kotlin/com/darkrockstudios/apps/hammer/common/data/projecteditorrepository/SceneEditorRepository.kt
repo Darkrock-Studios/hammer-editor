@@ -490,3 +490,6 @@ open class InvalidSceneFilename(message: String, fileName: String) :
 
 class InvalidSceneBufferFilename(message: String, fileName: String) :
 	InvalidSceneFilename(message, fileName)
+
+inline fun Tree<SceneItem>.findById(scene: SceneItem): TreeNode<SceneItem> = findById(scene.id)
+inline fun Tree<SceneItem>.findById(id: Int): TreeNode<SceneItem> = find { it.id == id }

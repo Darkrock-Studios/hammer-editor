@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
@@ -95,7 +96,7 @@ class ClientSceneSynchronizer(
 
 			val existingScene = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingScene != null) {
-				val existingTreeNode = tree.find { it.id == id }
+				val existingTreeNode = tree.findById(id)
 				// Must move parents
 				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
 					existingTreeNode.parent?.removeChild(existingTreeNode)
@@ -138,7 +139,7 @@ class ClientSceneSynchronizer(
 
 			val existingGroup = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingGroup != null) {
-				val existingTreeNode = tree.find { it.id == id }
+				val existingTreeNode = tree.findById(id)
 				// Must move parents
 				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
 					existingTreeNode.parent?.removeChild(existingTreeNode)
@@ -160,7 +161,7 @@ class ClientSceneSynchronizer(
 					?: throw IllegalStateException("Failed to create scene")
 			}
 
-			val treeNode = tree.find { it.id == id }
+			val treeNode = tree.findById(id)
 			treeNode.value = sceneItem.copy(
 				name = serverEntity.name,
 				order = serverEntity.order
