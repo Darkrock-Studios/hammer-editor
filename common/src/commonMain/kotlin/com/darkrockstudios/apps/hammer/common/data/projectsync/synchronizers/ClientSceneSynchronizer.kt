@@ -58,12 +58,14 @@ class ClientSceneSynchronizer(
 		return if (sceneItem != null) {
 			val scenePath = sceneEditorRepository.getPathFromFilesystem(sceneItem)
 				?: throw IllegalStateException("Scene $id has no path")
+			val pathSegments = sceneEditorRepository.getPathSegments(sceneItem)
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
 			EntityHasher.hashScene(
 				id = sceneItem.id,
 				name = sceneItem.name,
 				order = sceneItem.order,
+				path = pathSegments,
 				type = sceneItem.type.toApiType(),
 				content = sceneContent
 			)

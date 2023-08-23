@@ -10,6 +10,7 @@ fun serverEntityHash(serverEntity: ApiProjectEntity): String {
 				id = serverEntity.id,
 				name = serverEntity.name,
 				order = serverEntity.order,
+				path = serverEntity.path,
 				type = serverEntity.sceneType,
 				content = serverEntity.content
 			)

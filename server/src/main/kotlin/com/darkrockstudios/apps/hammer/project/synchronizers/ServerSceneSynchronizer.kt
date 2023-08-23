@@ -18,6 +18,7 @@ class ServerSceneSynchronizer(
 		return EntityHasher.hashScene(
 			id = entity.id,
 			order = entity.order,
+			path = entity.path,
 			name = entity.name,
 			type = entity.sceneType,
 			content = entity.content

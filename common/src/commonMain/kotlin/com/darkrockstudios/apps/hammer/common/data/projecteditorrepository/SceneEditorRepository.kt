@@ -81,10 +81,12 @@ abstract class SceneEditorRepository(
 
 	protected suspend fun markForSynchronization(scene: SceneItem) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val pathSegments = getPathSegments(scene)
 			val content = loadSceneMarkdownRaw(scene)
 			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
+				path = pathSegments,
 				name = scene.name,
 				type = scene.type.toApiType(),
 				content = content

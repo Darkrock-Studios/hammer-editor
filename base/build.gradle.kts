@@ -40,6 +40,13 @@ kotlin {
 				api(libs.korlibs.korio)
 			}
         }
+		val commonTest by getting {
+			dependencies {
+				implementation(kotlin("test"))
+				implementation(libs.koin.test)
+				implementation(libs.kotlin.reflect)
+			}
+		}
     }
 }
 

@@ -464,9 +464,11 @@ class SceneEditorRepositoryOkio(
 
 	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val pathSegments = getPathSegments(scene)
 			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
+				path = pathSegments,
 				name = scene.name,
 				type = scene.type.toApiType(),
 				content = content
