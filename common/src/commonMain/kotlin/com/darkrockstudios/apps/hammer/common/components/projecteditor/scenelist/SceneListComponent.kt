@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -19,7 +19,7 @@ class SceneListComponent(
 	private val sceneSelected: (sceneDef: SceneItem) -> Unit
 ) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
-	private val projectEditor: ProjectEditorRepository by projectInject()
+	private val projectEditor: SceneEditorRepository by projectInject()
 
 	private val _state = MutableValue(SceneList.State(projectDef = projectDef))
 	override val state: Value<SceneList.State> = _state

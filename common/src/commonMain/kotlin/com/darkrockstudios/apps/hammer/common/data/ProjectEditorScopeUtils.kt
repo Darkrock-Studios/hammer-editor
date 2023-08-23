@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -51,7 +51,7 @@ suspend fun openProjectScope(projectDef: ProjectDef): Scope {
 suspend fun initializeProjectScope(projectDef: ProjectDef) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
-		val projectEditor: ProjectEditorRepository = projScope.get { parametersOf(projectDef) }
+		val projectEditor: SceneEditorRepository = projScope.get { parametersOf(projectDef) }
 		projectEditor.initializeProjectEditor()
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
@@ -62,7 +62,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
 
-	val projectEditor: ProjectEditorRepository = projectScope.get { parametersOf(projectDef) }
+	val projectEditor: SceneEditorRepository = projectScope.get { parametersOf(projectDef) }
 	val notesRepository: NotesRepository = projectScope.get { parametersOf(projectDef) }
 
 	projectEditor.close()

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -11,7 +11,7 @@ import kotlinx.datetime.Instant
 
 abstract class SceneDraftRepository(
 	protected val projectDef: ProjectDef,
-	protected val projectEditorRepository: ProjectEditorRepository,
+	protected val sceneEditorRepository: SceneEditorRepository,
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 

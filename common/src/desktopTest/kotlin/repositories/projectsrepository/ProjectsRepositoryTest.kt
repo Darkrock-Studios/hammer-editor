@@ -4,7 +4,7 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -90,7 +90,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		ffs.exists(projectPath)
 
 		val newDef = ProjectDef(projectName, projectPath.toHPath())
-		val metadataPath = ProjectEditorRepositoryOkio.getMetadataPath(newDef)
+		val metadataPath = SceneEditorRepositoryOkio.getMetadataPath(newDef)
 		ffs.exists(metadataPath.toOkioPath())
 	}
 }

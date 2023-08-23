@@ -22,13 +22,13 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 
-class ProjectEditorRepositoryOkio(
+class SceneEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : ProjectEditorRepository(projectDef, idRepository, projectSynchronizer) {
+) : SceneEditorRepository(projectDef, idRepository, projectSynchronizer) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 

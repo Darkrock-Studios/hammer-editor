@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -28,7 +28,7 @@ class SceneEditorComponent(
 	private val showDraftsList: (SceneItem) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext), SceneEditor {
 
-	private val projectEditor: ProjectEditorRepository by projectInject()
+	private val projectEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 
 	private val mainDispatcher by injectMainDispatcher()

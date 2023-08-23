@@ -10,7 +10,7 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import kotlinx.coroutines.launch
 
@@ -22,7 +22,7 @@ class ProjectRootComponent(
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val synchronizer: ClientProjectSynchronizer by projectInject()
-	private val projectEditor: ProjectEditorRepository by projectInject()
+	private val projectEditor: SceneEditorRepository by projectInject()
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled

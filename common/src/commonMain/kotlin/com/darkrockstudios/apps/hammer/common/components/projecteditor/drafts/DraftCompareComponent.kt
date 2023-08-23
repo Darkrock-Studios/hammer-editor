@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,7 +24,7 @@ class DraftCompareComponent(
 ) : ProjectComponentBase(sceneItem.projectDef, componentContext), DraftCompare {
 
 	private val draftsRepository: SceneDraftRepository by projectInject()
-	private val projectEditor: ProjectEditorRepository by projectInject()
+	private val projectEditor: SceneEditorRepository by projectInject()
 
 	private val _state = MutableValue(
 		DraftCompare.State(

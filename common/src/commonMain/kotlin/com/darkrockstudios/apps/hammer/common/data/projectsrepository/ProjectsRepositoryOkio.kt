@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -87,7 +87,7 @@ class ProjectsRepositoryOkio(
 					name = strippedName,
 					path = newProjectDir.toHPath()
 				)
-				val metadataPath = ProjectEditorRepositoryOkio.getMetadataPath(newDef)
+				val metadataPath = SceneEditorRepositoryOkio.getMetadataPath(newDef)
 
 				val metadata = ProjectMetadata(
 					info = Info(
@@ -119,7 +119,7 @@ class ProjectsRepositoryOkio(
 	}
 
 	override suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata? {
-		val path = ProjectEditorRepositoryOkio.getMetadataPath(projectDef).toOkioPath()
+		val path = SceneEditorRepositoryOkio.getMetadataPath(projectDef).toOkioPath()
 
 		val metadata = try {
 			val metadataText = fileSystem.read(path) {

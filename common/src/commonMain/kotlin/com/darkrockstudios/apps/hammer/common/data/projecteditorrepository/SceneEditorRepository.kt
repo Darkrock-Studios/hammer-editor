@@ -24,7 +24,7 @@ import okio.Closeable
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.milliseconds
 
-abstract class ProjectEditorRepository(
+abstract class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer,
@@ -157,7 +157,7 @@ abstract class ProjectEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	suspend fun initializeProjectEditor(): ProjectEditorRepository {
+	suspend fun initializeProjectEditor(): SceneEditorRepository {
 		val root = loadSceneTree()
 		sceneTree.setRoot(root)
 
