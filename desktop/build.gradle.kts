@@ -8,6 +8,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.moko.resources)
+	alias(libs.plugins.aboutlibraries.plugin)
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
@@ -26,6 +27,7 @@ kotlin {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.moko.resources)
+				implementation(libs.aboutlibraries.core)
 			}
 		}
 		val jvmMain by getting {
@@ -92,4 +94,9 @@ multiplatformResources {
 	multiplatformResourcesClassName = "DR"
 	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer.desktop"
 	multiplatformResourcesSourceSet = "commonMain"
+}
+
+aboutLibraries {
+	registerAndroidTasks = false
+	prettyPrint = true
 }

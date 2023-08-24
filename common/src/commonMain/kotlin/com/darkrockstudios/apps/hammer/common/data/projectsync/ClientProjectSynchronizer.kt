@@ -29,7 +29,6 @@ import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -411,6 +410,7 @@ class ClientProjectSynchronizer(
 
 			allSuccess
 		} catch (e: Exception) {
+			Napier.e("Sync failed: ${e.message}", e)
 			onLog(syncLogE("Sync failed: ${e.message}", projectDef))
 			endSync()
 			onComplete()
@@ -669,7 +669,7 @@ class ClientProjectSynchronizer(
 
 		return if (entityResponse.isSuccess) {
 			val serverEntity = entityResponse.getOrThrow().entity
-			when (serverEntity) {
+			val success = when (serverEntity) {
 				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(serverEntity, syncId, onLog)
 				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(serverEntity, syncId, onLog)
 				is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.storeEntity(serverEntity, syncId, onLog)
@@ -681,8 +681,14 @@ class ClientProjectSynchronizer(
 
 				is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.storeEntity(serverEntity, syncId, onLog)
 			}
-			onLog(syncLogI("Entity $id downloaded", projectDef))
-			true
+
+			if (success) {
+				onLog(syncLogI("Entity $id downloaded", projectDef))
+			} else {
+				onLog(syncLogE("Entity $id failed to download", projectDef))
+			}
+
+			success
 		} else {
 			when (entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {

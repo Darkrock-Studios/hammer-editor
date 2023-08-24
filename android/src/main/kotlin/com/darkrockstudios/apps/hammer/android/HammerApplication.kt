@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.app.Application
+import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
@@ -21,7 +22,7 @@ class HammerApplication : Application() {
 		startKoin {
 			logger(NapierLogger())
 			androidContext(this@HammerApplication)
-			modules(mainModule, imageLoadingModule)
+			modules(mainModule, imageLoadingModule, aboutLibrariesModule)
 		}
 	}
 }

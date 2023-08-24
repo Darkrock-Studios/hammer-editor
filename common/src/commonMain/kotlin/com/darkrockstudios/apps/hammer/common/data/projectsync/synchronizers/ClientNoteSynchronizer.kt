@@ -57,7 +57,7 @@ class ClientNoteSynchronizer(
 		serverEntity: ApiProjectEntity.NoteEntity,
 		syncId: String,
 		onLog: OnSyncLog
-	) {
+	): Boolean {
 		val updatedNote = NoteContent(
 			id = serverEntity.id,
 			created = serverEntity.created,
@@ -68,6 +68,8 @@ class ClientNoteSynchronizer(
 			noteContent = updatedNote,
 			markForSync = false
 		)
+
+		return true
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {

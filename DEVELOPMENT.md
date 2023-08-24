@@ -134,3 +134,17 @@ You can inject the various contexts as such:
 - This will trigger the `publish` action which will upload artifacts to stores, deploy
   to [hammer.ink](https://hammer.ink), and notify the **Discord** channel of a new release
 - All done!
+
+## Re-generate open source library data
+
+This is a manual step that needs to be run any time a new Open Source library is added.
+This data drives the Opensource Licences UI in the apps.
+
+**Android Target:**
+`./gradlew :android:exportLibraryDefinitions -P"aboutLibraries.exportPath=src\main\res\raw"`
+
+**Desktop Target:**
+`./gradlew :desktop:exportLibraryDefinitions -P"aboutLibraries.exportPath=src\jvmMain\resources"`
+
+**iOS Target:**
+???

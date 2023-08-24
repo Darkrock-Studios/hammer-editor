@@ -24,7 +24,7 @@ import okio.Closeable
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.milliseconds
 
-abstract class ProjectEditorRepository(
+abstract class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer,
@@ -81,10 +81,12 @@ abstract class ProjectEditorRepository(
 
 	protected suspend fun markForSynchronization(scene: SceneItem) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val pathSegments = getPathSegments(scene)
 			val content = loadSceneMarkdownRaw(scene)
 			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
+				path = pathSegments,
 				name = scene.name,
 				type = scene.type.toApiType(),
 				content = content
@@ -157,7 +159,7 @@ abstract class ProjectEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	suspend fun initializeProjectEditor(): ProjectEditorRepository {
+	suspend fun initializeProjectEditor(): SceneEditorRepository {
 		val root = loadSceneTree()
 		sceneTree.setRoot(root)
 
@@ -473,6 +475,7 @@ abstract class ProjectEditorRepository(
 	}
 
 	abstract suspend fun updateSceneOrderMagnitudeOnly(parentId: Int)
+	abstract fun resolveScenePathFromFilesystem(id: Int): HPath?
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
@@ -488,3 +491,6 @@ open class InvalidSceneFilename(message: String, fileName: String) :
 
 class InvalidSceneBufferFilename(message: String, fileName: String) :
 	InvalidSceneFilename(message, fileName)
+
+inline fun Tree<SceneItem>.findById(scene: SceneItem): TreeNode<SceneItem> = findById(scene.id)
+inline fun Tree<SceneItem>.findById(id: Int): TreeNode<SceneItem> = find { it.id == id }

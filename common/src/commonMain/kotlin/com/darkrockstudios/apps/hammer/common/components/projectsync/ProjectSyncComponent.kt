@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -34,7 +34,7 @@ class ProjectSyncComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
-	private val projectEditorRepository: ProjectEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
@@ -287,11 +287,11 @@ class ProjectSyncComponent(
 	}
 
 	private suspend fun onSceneConflict(serverEntity: ApiProjectEntity.SceneEntity) {
-		val local = projectEditorRepository.getSceneItemFromId(serverEntity.id)
+		val local = sceneEditorRepository.getSceneItemFromId(serverEntity.id)
 			?: throw IllegalStateException("Failed to get local scene")
 
-		val path = projectEditorRepository.getPathSegments(local)
-		val content = projectEditorRepository.loadSceneMarkdownRaw(local)
+		val path = sceneEditorRepository.getPathSegments(local)
+		val content = sceneEditorRepository.loadSceneMarkdownRaw(local)
 
 		val localEntity = ApiProjectEntity.SceneEntity(
 			id = local.id,

@@ -14,7 +14,6 @@ buildscript {
     }
 }
 
-
 allprojects {
     repositories {
         google()
@@ -35,6 +34,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose) apply false
 	alias(libs.plugins.buildconfig) apply false
 	alias(libs.plugins.moko.resources) apply false
+	alias(libs.plugins.aboutlibraries.plugin) apply false
 	//alias(libs.plugins.parcelize.darwin) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)

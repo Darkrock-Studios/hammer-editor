@@ -4,8 +4,8 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -29,7 +29,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
+class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
@@ -55,7 +55,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 	private fun populateProject(fs: FakeFileSystem) {
 		fs.createDirectories(projectPath.toOkioPath())
-		scenesPath = projectPath.toOkioPath().div(ProjectEditorRepository.SCENE_DIRECTORY).toHPath()
+		scenesPath = projectPath.toOkioPath().div(SceneEditorRepository.SCENE_DIRECTORY).toHPath()
 
 		fs.createDirectory(scenesPath.toOkioPath())
 
@@ -114,7 +114,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 	@Test
 	fun `Get filename`() {
-		val repo = ProjectEditorRepositoryOkio(
+		val repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
@@ -130,7 +130,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 	@Test
 	fun `Load Scene Tree`() {
-		val repo = ProjectEditorRepositoryOkio(
+		val repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
@@ -148,7 +148,7 @@ class ProjectEditorRepositoryOkioTestSimple : BaseTest() {
 
 	@Test
 	fun `Init Editor`() = runTest {
-		val repo = ProjectEditorRepositoryOkio(
+		val repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,

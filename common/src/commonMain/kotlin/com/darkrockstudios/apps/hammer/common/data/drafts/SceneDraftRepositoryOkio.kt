@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -18,14 +18,14 @@ import okio.Path
 
 class SceneDraftRepositoryOkio(
 	projectDef: ProjectDef,
-	projectEditorRepository: ProjectEditorRepository,
+	sceneEditorRepository: SceneEditorRepository,
 	private val fileSystem: FileSystem
-) : SceneDraftRepository(projectDef, projectEditorRepository) {
+) : SceneDraftRepository(projectDef, sceneEditorRepository) {
 
 	private val idRepository: IdRepository by projectInject()
 
 	override fun getDraftsDirectory(): HPath {
-		val sceneDir = projectEditorRepository.getSceneDirectory().toOkioPath()
+		val sceneDir = sceneEditorRepository.getSceneDirectory().toOkioPath()
 
 		val path: Path = sceneDir / DRAFTS_DIR
 		val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
@@ -137,13 +137,13 @@ class SceneDraftRepositoryOkio(
 			return null
 		}
 
-		val existingBuffer = projectEditorRepository.getSceneBuffer(sceneItem.id)
+		val existingBuffer = sceneEditorRepository.getSceneBuffer(sceneItem.id)
 		val content: String = if (existingBuffer != null) {
 			Napier.i { "Draft content loaded from memory" }
 			existingBuffer.content.coerceMarkdown()
 		} else {
 			Napier.i { "Draft content loaded from disk" }
-			val loadedBuffer = projectEditorRepository.loadSceneBuffer(sceneItem)
+			val loadedBuffer = sceneEditorRepository.loadSceneBuffer(sceneItem)
 			loadedBuffer.content.coerceMarkdown()
 		}
 

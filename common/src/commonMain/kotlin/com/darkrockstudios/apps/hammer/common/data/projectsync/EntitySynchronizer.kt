@@ -61,7 +61,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		}
 	}
 
-	abstract suspend fun storeEntity(serverEntity: T, syncId: String, onLog: OnSyncLog)
+	abstract suspend fun storeEntity(serverEntity: T, syncId: String, onLog: OnSyncLog): Boolean
 	abstract suspend fun reIdEntity(oldId: Int, newId: Int)
 	abstract suspend fun finalizeSync()
 	abstract fun getEntityType(): EntityType

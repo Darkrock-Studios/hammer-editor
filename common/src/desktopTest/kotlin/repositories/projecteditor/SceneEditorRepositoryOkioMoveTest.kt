@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
@@ -39,14 +39,14 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
+class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: ProjectEditorRepository
+	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -83,7 +83,7 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 		val nodesById = node.children().associateBy({ it.value.id }, { it.value })
 		val scenePath = repo.getSceneFilePath(node.value.id)
 		ffs.list(scenePath.toOkioPath())
-			.filter { it.name != ProjectEditorRepository.BUFFER_DIRECTORY }
+			.filter { it.name != SceneEditorRepository.BUFFER_DIRECTORY }
 			.sortedBy { it.name }.forEach { childPath ->
 				val sceneItem = repo.getSceneFromPath(childPath.toHPath())
 				val foundItem = nodesById[sceneItem.id]
@@ -125,7 +125,7 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 
 		setupKoin()
 
-		repo = ProjectEditorRepositoryOkio(
+		repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
@@ -148,7 +148,7 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 
 	@Test
 	fun `Verify Initial Layout`() {
-		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
 
 		for (index in 0..tree.numChildrenRecursive()) {
 			assertEquals(index, tree[index].value.id)
@@ -162,12 +162,12 @@ class ProjectEditorRepositoryOkioMoveTest : BaseTest() {
 		print: Boolean,
 		vararg ids: Int
 	) = runTest {
-		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
 		verifyCoords(tree, request.toPosition.coords, targetPosId)
 		repo.moveScene(request)
 
 		val afterTree =
-			repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+			repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
 		verify(afterTree[leafToVerify], ffs, print, *ids)
 	}
 

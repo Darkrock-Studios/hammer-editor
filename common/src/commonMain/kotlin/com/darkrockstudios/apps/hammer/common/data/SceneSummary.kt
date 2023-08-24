@@ -8,16 +8,18 @@ data class SceneSummary(
 	val hasDirtyBuffer: Set<Int>
 )
 
+fun rootSceneNode(projectDef: ProjectDef) = SceneItem(
+	projectDef = projectDef,
+	type = SceneItem.Type.Root,
+	id = SceneItem.ROOT_ID,
+	name = "",
+	order = 0
+)
+
 fun emptySceneSummary(projectDef: ProjectDef) = SceneSummary(
 	sceneTree = ImmutableTree(
 		root = TreeValue(
-			value = SceneItem(
-				projectDef = projectDef,
-				type = SceneItem.Type.Root,
-				id = SceneItem.ROOT_ID,
-				name = "",
-				order = 0
-			),
+			value = rootSceneNode(projectDef),
 			index = 0,
 			parent = -1,
 			children = emptyList(),

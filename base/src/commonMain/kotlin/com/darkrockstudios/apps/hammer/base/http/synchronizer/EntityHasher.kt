@@ -11,7 +11,7 @@ import kotlinx.datetime.Instant
 object EntityHasher {
 	private fun buff() = ByteArray(4)
 
-	fun hashScene(id: Int, order: Int, name: String, type: ApiSceneType, content: String): String {
+	fun hashScene(id: Int, order: Int, path: List<Int>, name: String, type: ApiSceneType, content: String): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
 		d.update(id, buf)
@@ -19,6 +19,9 @@ object EntityHasher {
 		d.update(name, buf)
 		d.update(type.ordinal, buf)
 		d.update(content, buf)
+		for (segment in path) {
+			d.update(segment, buf)
+		}
 		return d.digest().base64Url
 	}
 

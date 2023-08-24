@@ -8,9 +8,9 @@
     <string name="draft_compare_draft_accept_button">Prenez l’ensemble de ce brouillon</string>
     <string name="draft_compare_draft_body_placeholder">Brouillon</string>
     <string name="draft_list_close_button">Fermer les brouillons</string>
-    <string name="draft_list_header">%1$s brouillons:</string>
+    <string name="draft_list_header">%1$s brouillons :</string>
     <string name="draft_compare_current_body_placeholder">Commencez à écrire votre scène ici</string>
     <string name="draft_list_empty">Aucun brouillon trouvé</string>
-    <string name="draft_list_item_created">Créé: %1$s</string>
-    <string name="draft_compare_current_accept_button">Prise fusionnée</string>
+    <string name="draft_list_item_created">Créé : %1$s</string>
+    <string name="draft_compare_current_accept_button">Prendre la fusionnée</string>
 </resources>

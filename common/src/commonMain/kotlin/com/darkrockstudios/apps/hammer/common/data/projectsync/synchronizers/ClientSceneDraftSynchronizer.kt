@@ -78,8 +78,9 @@ class ClientSceneDraftSynchronizer(
 		serverEntity: ApiProjectEntity.SceneDraftEntity,
 		syncId: String,
 		onLog: OnSyncLog
-	) {
+	): Boolean {
 		sceneDraftRepository.insertSyncDraft(serverEntity)
+		return true
 	}
 
 	override suspend fun finalizeSync() {

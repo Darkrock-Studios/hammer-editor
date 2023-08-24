@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -24,7 +24,7 @@ class ProjectEditorComponent(
 	removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectEditor {
 
-	private val projectEditor: ProjectEditorRepository by projectInject()
+	private val projectEditor: SceneEditorRepository by projectInject()
 
 	private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
 		replay = 1,

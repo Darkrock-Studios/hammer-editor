@@ -22,13 +22,13 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 
-class ProjectEditorRepositoryOkio(
+class SceneEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
 	private val fileSystem: FileSystem,
 	private val toml: Toml
-) : ProjectEditorRepository(projectDef, idRepository, projectSynchronizer) {
+) : SceneEditorRepository(projectDef, idRepository, projectSynchronizer) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -272,6 +272,12 @@ class ProjectEditorRepositoryOkio(
 		return scenePaths
 	}
 
+	override fun resolveScenePathFromFilesystem(id: Int): HPath? {
+		return getAllScenePathsOkio()
+			.map { it.toHPath() }
+			.find { path -> getSceneIdFromPath(path) == id }
+	}
+
 	private fun getScenePathsOkio(root: Path): List<Path> {
 		val scenePaths = fileSystem.list(root)
 			.filterScenePathsOkio()
@@ -464,9 +470,11 @@ class ProjectEditorRepositoryOkio(
 
 	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val pathSegments = getPathSegments(scene)
 			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
+				path = pathSegments,
 				name = scene.name,
 				type = scene.type.toApiType(),
 				content = content
@@ -714,15 +722,15 @@ class ProjectEditorRepositoryOkio(
 		sceneItem.markdown ?: return false
 
 		return try {
-			markForSynchronization(sceneItem.scene)
-
 			fileSystem.write(scenePath.toOkioPath()) {
 				writeUtf8(sceneItem.markdown)
 			}
 
+			markForSynchronization(sceneItem.scene)
+
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name})")
+			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name}) because: ${e.message}")
 			false
 		}
 	}

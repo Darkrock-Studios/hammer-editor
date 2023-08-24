@@ -8,8 +8,8 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -38,14 +38,14 @@ import utils.getPrivateProperty
 import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
+class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: ProjectEditorRepository
+	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -59,7 +59,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	private fun verifyTreeAndFilesystem() {
-		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
 
 		// Verify tree nodes match file system nodes
 		tree.filter { !it.value.isRootScene }.forEach { node ->
@@ -103,7 +103,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
 
 		mockkObject(ProjectsRepository.Companion)
 
@@ -128,7 +128,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = ProjectEditorRepositoryOkio(
+		repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
@@ -157,7 +157,7 @@ class ProjectEditorRepositoryOkioOtherTest : BaseTest() {
 
 		verifyTreeAndFilesystem()
 
-		val tree = repo.getPrivateProperty<ProjectEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
 		tree.forEachIndexed { index, node ->
 			when (index) {
 				0 -> assertTrue(node.value.isRootScene)

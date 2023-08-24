@@ -6,8 +6,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEF
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import org.koin.core.parameter.ParametersDefinition
+import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.get
 import org.koin.mp.KoinPlatform.getKoin
 import kotlin.coroutines.CoroutineContext
 
@@ -34,3 +37,14 @@ inline fun rememberMainDispatcher(): CoroutineContext = remember { getMainDispat
 
 @Composable
 inline fun rememberStrRes() = remember { getKoin().get<StrRes>() }
+
+@Composable
+inline fun <reified T> rememberKoinInject(
+	clazz: Class<*> = T::class.java,
+	qualifier: Qualifier? = null,
+	noinline parameters: ParametersDefinition? = null
+): T {
+	return remember<T> {
+		return@remember get<T>(clazz, qualifier, parameters)
+	}
+}

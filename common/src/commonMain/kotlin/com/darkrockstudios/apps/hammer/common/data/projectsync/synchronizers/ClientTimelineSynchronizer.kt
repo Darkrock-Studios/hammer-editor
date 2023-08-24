@@ -64,7 +64,7 @@ class ClientTimelineSynchronizer(
 		serverEntity: ApiProjectEntity.TimelineEventEntity,
 		syncId: String,
 		onLog: OnSyncLog
-	) {
+	): Boolean {
 		val event = TimeLineEvent(
 			id = serverEntity.id,
 			order = serverEntity.order,
@@ -73,6 +73,8 @@ class ClientTimelineSynchronizer(
 		)
 
 		timeLineRepository.updateEvent(event, false)
+
+		return true
 	}
 
 	override suspend fun finalizeSync() {

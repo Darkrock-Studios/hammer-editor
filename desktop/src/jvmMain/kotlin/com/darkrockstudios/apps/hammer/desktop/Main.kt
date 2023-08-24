@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
+import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
@@ -61,7 +62,7 @@ fun main(args: Array<String>) {
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
-		modules(mainModule, imageLoadingModule)
+		modules(mainModule, imageLoadingModule, aboutLibrariesModule)
 	}
 
 	val osThemeDetector = OsThemeDetector.getDetector()

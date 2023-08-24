@@ -7,8 +7,8 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -31,12 +31,12 @@ import utils.callPrivate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
+class SceneEditorRepositoryOkioLoadTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: ProjectEditorRepository
+	private lateinit var repo: SceneEditorRepository
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var idRepository: IdRepository
 	private var nextId = -1
@@ -68,7 +68,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-				rootDir.toPath().div(ProjectEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
 
 		setupKoin()
 	}
@@ -91,7 +91,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = ProjectEditorRepositoryOkio(
+		repo = SceneEditorRepositoryOkio(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
@@ -175,7 +175,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<ProjectEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)
@@ -257,7 +257,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<ProjectEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)
@@ -331,7 +331,7 @@ class ProjectEditorRepositoryOkioLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<ProjectEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)

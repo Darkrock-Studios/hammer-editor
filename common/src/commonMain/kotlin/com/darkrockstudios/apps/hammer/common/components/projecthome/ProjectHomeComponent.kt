@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.ProjectEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -36,7 +36,7 @@ class ProjectHomeComponent(
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
-	private val projectEditorRepository: ProjectEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
@@ -71,7 +71,7 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true
 		)
-		projectEditorRepository.exportStory(hpath)
+		sceneEditorRepository.exportStory(hpath)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
@@ -112,11 +112,11 @@ class ProjectHomeComponent(
 
 	private fun loadData() {
 		scope.launch(dispatcherDefault) {
-			val metadata = projectEditorRepository.getMetadata()
+			val metadata = sceneEditorRepository.getMetadata()
 			val created = metadata.info.created.formatLocal("dd MMM `yy")
 
 			var sceneSummary: SceneSummary? = null
-			projectEditorRepository.sceneListChannel.take(1).collect { summary ->
+			sceneEditorRepository.sceneListChannel.take(1).collect { summary ->
 				sceneSummary = summary
 			}
 			val tree = sceneSummary?.sceneTree?.root ?: throw IllegalStateException("Failed to get scene tree")
@@ -125,7 +125,7 @@ class ProjectHomeComponent(
 			var words = 0
 			tree.forEach { node ->
 				if (node.value.type == SceneItem.Type.Scene) {
-					val count = projectEditorRepository.countWordsInScene(node.value)
+					val count = sceneEditorRepository.countWordsInScene(node.value)
 					words += count
 				}
 			}
@@ -136,7 +136,7 @@ class ProjectHomeComponent(
 				var wordsInChapter = 0
 				node.forEach { child ->
 					if (child.value.type == SceneItem.Type.Scene) {
-						val count = projectEditorRepository.countWordsInScene(child.value)
+						val count = sceneEditorRepository.countWordsInScene(child.value)
 						wordsInChapter += count
 					}
 				}
@@ -173,7 +173,7 @@ class ProjectHomeComponent(
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")
-fun ProjectEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
+fun SceneEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
 	val markdown = loadSceneMarkdownRaw(sceneItem)
 	val count = wordRegex.findAll(markdown.trim()).count()
 	return count
