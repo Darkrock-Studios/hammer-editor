@@ -1,0 +1,1 @@
+- Fixed scene syncing with server
