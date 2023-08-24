@@ -63,48 +63,6 @@ class SceneSynchronizerTest : BaseTest() {
 	)
 
 	@Test
-	fun `Download Scene - Simple update`() = runTest {
-		////////////////////
-		// Setup
-		val sceneId = 1
-		val syncId = "syncId"
-		val serverEntity = ApiProjectEntity.SceneEntity(
-			id = 1,
-			sceneType = ApiSceneType.Scene,
-			order = 0,
-			name = "Test Scene",
-			path = listOf(0),
-			content = "Scene Content"
-		)
-		val oldContent = "old Scene Content"
-		val clientEntity = SceneItem.fromApiEntity(serverEntity.copy(content = oldContent), def)
-		val filePath = HPath("/", "", true)
-		val content = SceneContent(clientEntity, serverEntity.content)
-
-		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
-		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientEntity
-		every { sceneEditorRepository.rawTree } returns tree
-		every { sceneEditorRepository.getPathFromFilesystem(clientEntity) } returns filePath
-		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
-
-		rootNode.addChild(TreeNode(clientEntity))
-
-		////////////////////
-		// Test
-		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
-			serverEntity = serverEntity,
-			syncId = syncId,
-			onLog = {}
-		)
-
-		////////////////////
-		// Verify
-		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
-	}
-
-	@Test
 	fun `Download Scene - New Scene`() = runTest {
 		////////////////////
 		// Setup
@@ -161,6 +119,111 @@ class SceneSynchronizerTest : BaseTest() {
 		}
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
 		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+	}
+
+	@Test
+	fun `Download Scene - Simple update`() = runTest {
+		////////////////////
+		// Setup
+		val sceneId = 1
+		val syncId = "syncId"
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = 1,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene",
+			path = listOf(0),
+			content = "Scene Content"
+		)
+		val oldContent = "old Scene Content"
+		val clientEntity = SceneItem.fromApiEntity(serverEntity.copy(content = oldContent), def)
+		val filePath = HPath("/", "", true)
+		val content = SceneContent(clientEntity, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientEntity
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.getPathFromFilesystem(clientEntity) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
+
+		rootNode.addChild(TreeNode(clientEntity))
+
+		////////////////////
+		// Test
+		val sync = defaultSceneSynchronizer()
+		sync.storeEntity(
+			serverEntity = serverEntity,
+			syncId = syncId,
+			onLog = {}
+		)
+
+		////////////////////
+		// Verify
+		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
+		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+	}
+
+	@Test
+	fun `Download Scene - Update, move group`() = runTest {
+		////////////////////
+		// Setup
+		val sceneId = 1
+		val syncId = "syncId"
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = 1,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene",
+			path = listOf(0),
+			content = "Scene Content"
+		)
+
+		val clientSceneEntity = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = 1,
+			name = "Test Name",
+			order = 0
+		)
+
+		val filePath = HPath("/", "", true)
+		val content = SceneContent(clientSceneEntity, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientSceneEntity
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.getPathFromFilesystem(clientSceneEntity) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
+
+		val clientGroupEntity = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Group,
+			id = 2,
+			name = "Group Name",
+			order = 0
+		)
+		val groupNode = TreeNode(clientGroupEntity)
+		rootNode.addChild(groupNode)
+
+		val sceneNode = TreeNode(clientSceneEntity)
+		groupNode.addChild(sceneNode)
+
+		////////////////////
+		// Test
+		val sync = defaultSceneSynchronizer()
+		sync.storeEntity(
+			serverEntity = serverEntity,
+			syncId = syncId,
+			onLog = {}
+		)
+
+		////////////////////
+		// Verify
+		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
+		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+
+		assertEquals(0, sceneNode.parent?.value?.id)
+		assertEquals(0, groupNode.parent?.value?.id)
 	}
 
 	@Test

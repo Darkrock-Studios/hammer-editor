@@ -113,7 +113,7 @@ class ClientEncyclopediaSynchronizer(
 		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity,
 		syncId: String,
 		onLog: OnSyncLog
-	) {
+	): Boolean {
 		val oldDef = encyclopediaRepository.findEntryDef(serverEntity.id)
 		val serverDef = EntryDef(
 			projectDef = projectDef,
@@ -141,6 +141,8 @@ class ClientEncyclopediaSynchronizer(
 				forceId = serverEntity.id
 			)
 		}
+
+		return true
 	}
 
 	private fun handleImage(

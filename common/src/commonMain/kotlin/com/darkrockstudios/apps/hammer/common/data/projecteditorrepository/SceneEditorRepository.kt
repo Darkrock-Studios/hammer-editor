@@ -475,6 +475,7 @@ abstract class SceneEditorRepository(
 	}
 
 	abstract suspend fun updateSceneOrderMagnitudeOnly(parentId: Int)
+	abstract fun resolveScenePathFromFilesystem(id: Int): HPath?
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {

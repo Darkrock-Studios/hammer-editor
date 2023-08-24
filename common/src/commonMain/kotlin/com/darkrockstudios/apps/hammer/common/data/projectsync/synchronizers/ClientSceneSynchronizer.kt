@@ -57,9 +57,9 @@ class ClientSceneSynchronizer(
 	override suspend fun getEntityHash(id: Int): String? {
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		return if (sceneItem != null) {
-			val scenePath = sceneEditorRepository.getPathFromFilesystem(sceneItem)
-				?: throw IllegalStateException("Scene $id has no path")
-			val pathSegments = sceneEditorRepository.getPathSegments(sceneItem)
+			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystem(sceneItem.id)
+				?: throw IllegalStateException("Scene $id not found on filesystem")
+			val pathSegments = sceneEditorRepository.getScenePathSegments(scenePath).pathSegments
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
 			EntityHasher.hashScene(
@@ -79,7 +79,7 @@ class ClientSceneSynchronizer(
 		serverEntity: ApiProjectEntity.SceneEntity,
 		syncId: String,
 		onLog: OnSyncLog
-	) {
+	): Boolean {
 		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = sceneEditorRepository.rawTree
@@ -91,21 +91,11 @@ class ClientSceneSynchronizer(
 			null
 		}
 
-		if (serverEntity.sceneType == ApiSceneType.Scene) {
+		return if (serverEntity.sceneType == ApiSceneType.Scene) {
 			Napier.d("Entity $id is a Scene")
 
 			val existingScene = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingScene != null) {
-				val existingTreeNode = tree.findById(id)
-				// Must move parents
-				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
-					existingTreeNode.parent?.removeChild(existingTreeNode)
-
-					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
-					newParent.addChild(existingTreeNode)
-					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
-				}
-
 				existingScene
 			} else {
 				onLog(syncLogI("Creating new scene $id", projectDef))
@@ -128,27 +118,33 @@ class ClientSceneSynchronizer(
 				?: throw IllegalStateException("Scene $id has no path")
 
 			val content = SceneContent(sceneItem, serverEntity.content)
-			if (!sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-				onLog(syncLogE("Failed to save downloaded scene content for: $id", projectDef))
-			} else {
+			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
 				onLog(syncLogI("Downloaded scene content for: $id", projectDef))
 				sceneEditorRepository.onContentChanged(content, UpdateSource.Sync)
+
+				if (existingScene != null) {
+					val existingTreeNode = tree.findById(id)
+					// Must move parents
+					if (existingTreeNode.parent?.value?.id != serverEntity.path.lastOrNull()) {
+
+						existingTreeNode.parent?.removeChild(existingTreeNode)
+
+						val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
+						newParent.addChild(existingTreeNode)
+						onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
+					}
+				}
+
+				true
+			} else {
+				onLog(syncLogE("Failed to save downloaded scene content for: $id", projectDef))
+				false
 			}
 		} else {
 			Napier.d("Entity $id is a Scene Group")
 
 			val existingGroup = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingGroup != null) {
-				val existingTreeNode = tree.findById(id)
-				// Must move parents
-				if (existingTreeNode.parent?.value?.order != serverEntity.path.lastOrNull()) {
-					existingTreeNode.parent?.removeChild(existingTreeNode)
-
-					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
-					newParent.addChild(existingTreeNode)
-					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
-				}
-
 				existingGroup
 			} else {
 				onLog(syncLogI("Creating new group $id", projectDef))
@@ -167,7 +163,20 @@ class ClientSceneSynchronizer(
 				order = serverEntity.order
 			)
 
+			if (existingGroup != null) {
+				val existingTreeNode = tree.findById(id)
+				// Must move parents
+				if (existingTreeNode.parent?.value?.id != serverEntity.path.lastOrNull()) {
+					existingTreeNode.parent?.removeChild(existingTreeNode)
+
+					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
+					newParent.addChild(existingTreeNode)
+					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
+				}
+			}
+
 			onLog(syncLogI("Downloaded scene group for: $id", projectDef))
+			true
 		}
 	}
 

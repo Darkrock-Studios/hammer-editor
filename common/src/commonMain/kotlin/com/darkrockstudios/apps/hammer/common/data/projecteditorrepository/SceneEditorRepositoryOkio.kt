@@ -272,6 +272,12 @@ class SceneEditorRepositoryOkio(
 		return scenePaths
 	}
 
+	override fun resolveScenePathFromFilesystem(id: Int): HPath? {
+		return getAllScenePathsOkio()
+			.map { it.toHPath() }
+			.find { path -> getSceneIdFromPath(path) == id }
+	}
+
 	private fun getScenePathsOkio(root: Path): List<Path> {
 		val scenePaths = fileSystem.list(root)
 			.filterScenePathsOkio()
@@ -716,15 +722,15 @@ class SceneEditorRepositoryOkio(
 		sceneItem.markdown ?: return false
 
 		return try {
-			markForSynchronization(sceneItem.scene)
-
 			fileSystem.write(scenePath.toOkioPath()) {
 				writeUtf8(sceneItem.markdown)
 			}
 
+			markForSynchronization(sceneItem.scene)
+
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name})")
+			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name}) because: ${e.message}")
 			false
 		}
 	}
