@@ -61,7 +61,7 @@ koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
 koin_compose = "3.4.5"
 
-ktor = "2.3.1"
+ktor = "2.3.3"
 ktor_i18n = "2.0.0"
 
 okio = "3.3.0"
