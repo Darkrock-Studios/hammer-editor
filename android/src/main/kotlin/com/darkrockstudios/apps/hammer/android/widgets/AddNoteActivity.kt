@@ -10,7 +10,7 @@ import androidx.compose.material.Card
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment.Companion.End
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -35,6 +35,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
+		setFinishOnTouchOutside(false)
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 
 		val projects = projectsRepository.getProjects()
@@ -45,39 +46,104 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			setContent {
 				var noteText by rememberSaveable { mutableStateOf("") }
 				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
+				var confirmCancel by rememberSaveable { mutableStateOf(false) }
 
 				AppTheme {
-					Card(
-						elevation = 2.dp,
-						shape = RoundedCornerShape(20.dp)
-					) {
-						Column(
-							modifier = Modifier.padding(Ui.Padding.XL)
-						) {
-							Text(
-								stringResource(R.string.note_widget_dialog_title),
-								style = MaterialTheme.typography.headlineMedium,
-								color = MaterialTheme.colorScheme.onBackground
-							)
-							ProjectDropDown(projects) {
-								selectedProject = it
-							}
-							Spacer(modifier = Modifier.size(Ui.Padding.L))
-							OutlinedTextField(
-								value = noteText,
-								onValueChange = { noteText = it },
-								modifier = Modifier.heightIn(128.dp)
-							)
-							Spacer(modifier = Modifier.size(Ui.Padding.L))
-							Button(
-								modifier = Modifier.align(End),
-								onClick = {
-									if (noteText.isNotBlank()) {
-										saveNote(selectedProject, noteText)
+					Box {
+						if (confirmCancel.not()) {
+							Card(
+								elevation = 2.dp,
+								shape = RoundedCornerShape(20.dp)
+							) {
+								Column(
+									modifier = Modifier
+										.padding(Ui.Padding.XL)
+										.width(IntrinsicSize.Min)
+								) {
+									Text(
+										stringResource(R.string.note_widget_dialog_title),
+										style = MaterialTheme.typography.headlineMedium,
+										color = MaterialTheme.colorScheme.onBackground
+									)
+									ProjectDropDown(projects) {
+										selectedProject = it
+									}
+									Spacer(modifier = Modifier.size(Ui.Padding.L))
+									OutlinedTextField(
+										value = noteText,
+										onValueChange = { noteText = it },
+										modifier = Modifier.heightIn(128.dp)
+									)
+									Spacer(modifier = Modifier.size(Ui.Padding.L))
+									Row(
+										modifier = Modifier.fillMaxWidth(),
+										horizontalArrangement = Arrangement.SpaceBetween
+									) {
+										Button(
+											onClick = {
+												if (noteText.isNotBlank()) {
+													confirmCancel = true
+												} else {
+													finish()
+												}
+											}
+										) {
+											Text(stringResource(R.string.note_widget_dialog_cancel_button))
+										}
+
+										Button(
+											onClick = {
+												if (noteText.isNotBlank()) {
+													saveNote(selectedProject, noteText)
+												}
+											}
+										) {
+											Text(stringResource(R.string.note_widget_dialog_save_button))
+										}
 									}
 								}
+							}
+						} else {
+							Card(
+								modifier = Modifier
+									.wrapContentSize()
+									.align(Alignment.Center),
+								elevation = 2.dp,
+								shape = RoundedCornerShape(20.dp)
 							) {
-								Text(stringResource(R.string.note_widget_dialog_save_button))
+								Column(
+									modifier = Modifier
+										.padding(Ui.Padding.XL)
+										.width(IntrinsicSize.Min)
+								) {
+									Text(
+										stringResource(R.string.note_widget_confirm_cancel_title),
+										style = MaterialTheme.typography.headlineMedium,
+										color = MaterialTheme.colorScheme.onBackground
+									)
+
+									Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+									Row(
+										modifier = Modifier.fillMaxWidth(),
+										horizontalArrangement = Arrangement.SpaceBetween
+									) {
+										Button(
+											onClick = { confirmCancel = false }
+										) {
+											Text(stringResource(R.string.note_widget_confirm_cancel_negative))
+										}
+
+										Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+										Button(
+											modifier = Modifier.width(IntrinsicSize.Max),
+											onClick = { finish() }
+										) {
+											Text(stringResource(R.string.note_widget_confirm_cancel_positive))
+										}
+									}
+								}
 							}
 						}
 					}

@@ -10,10 +10,18 @@
 
 	<string name="note_widget_dialog_title">Add Note to:</string>
 	<string name="note_widget_dialog_save_button">Save</string>
+	<string name="note_widget_dialog_cancel_button">Cancel</string>
 	<string name="note_widget_dialog_categories_dropdown">Categories</string>
+	<string name="note_widget_confirm_cancel_title">Discard Note?</string>
+	<string name="note_widget_confirm_cancel_positive">Discard</string>
+	<string name="note_widget_confirm_cancel_negative">Cancel</string>
 
 	<string name="note_widget_button_description">Add Note</string>
 
 	<string name="note_widget_toast_no_projects">No projects</string>
 	<string name="note_widget_toast_success">Note Added</string>
+
+	<string name="action_add_note_short_label">Add Note</string>
+	<string name="action_add_note_long_label">Add Story Note</string>
+	<string name="action_add_note_disabled">Adding notes is disabled right now</string>
 </resources>

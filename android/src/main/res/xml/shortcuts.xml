@@ -1,0 +1,28 @@
+<?xml version ="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- Add shortcuts that launch your app to a specific screen or task. -->
+	<!-- Learn more at https://developer.android.com/guide/topics/ui/shortcuts/creating-shortcuts -->
+	<shortcut android:shortcutId="com.darkrockstudios.apps.hammer.android.add_note"
+			  android:enabled="true"
+			  android:shortcutShortLabel="@string/action_add_note_short_label"
+			  android:shortcutDisabledMessage="@string/action_add_note_disabled"
+			  android:shortcutLongLabel="@string/action_add_note_long_label"
+			  android:icon="@drawable/ic_action_add_note"
+	>
+		<intent
+				android:action="android.intent.action.CREATE_NOTE"
+				android:targetClass="com.darkrockstudios.apps.hammer.android.ProjectSelectActivity"
+				android:targetPackage="com.darkrockstudios.apps.hammer.android"
+		>
+			<categories android:name="android.shortcut.conversation"/>
+			<capability-binding android:key="actions.intent.CREATE_MESSAGE"/>
+		</intent>
+	</shortcut>
+
+	<!-- Integrate with Google Assistant App Actions for launching your app with various voice commands. -->
+	<!-- Learn more at: https://developers.google.com/assistant/app/overview -->
+	<!-- <capability android:name="actions.intent.OPEN_APP_FEATURE"> -->
+	<!--     Provide query fulfillment instructions for this capability, or bind it to a shortcut. -->
+	<!--     Learn more at: https://developers.google.com/assistant/app/action-schema -->
+	<!-- </capability> -->
+</shortcuts>

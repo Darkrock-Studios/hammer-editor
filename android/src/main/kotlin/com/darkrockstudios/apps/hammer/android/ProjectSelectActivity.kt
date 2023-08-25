@@ -25,6 +25,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.android.widgets.AddNoteActivity
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -59,6 +60,8 @@ class ProjectSelectActivity : AppCompatActivity() {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 
+		handleIntent(intent)
+
 		val component = ProjectSelectionComponent(
 			componentContext = defaultComponentContext(),
 			onProjectSelected = ::onProjectSelected
@@ -92,6 +95,15 @@ class ProjectSelectActivity : AppCompatActivity() {
 				) {
 					ProjectSelectContent(component)
 				}
+			}
+		}
+	}
+
+	private fun handleIntent(intent: Intent?) {
+		if (intent != null) {
+			if (intent.action == Intent.ACTION_CREATE_NOTE) {
+				startActivity(Intent(this, AddNoteActivity::class.java))
+				finish()
 			}
 		}
 	}
