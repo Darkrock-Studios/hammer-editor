@@ -34,4 +34,8 @@
     <string name="encyclopedia_entry_delete_message">Dette kan ikke angres.</string>
     <string name="encyclopedia_entry_load_error">Feil: Klarte ikke å laste inn oppføringen.</string>
     <string name="encyclopedia_create_entry_toast_invalid_name">Navnet på oppføringen må være alfanumerisk</string>
+    <string name="encyclopedia_entry_menu_delete">Slett oppføring</string>
+    <string name="encyclopedia_entry_menu_group">Oppføring</string>
+    <string name="encyclopedia_entry_menu_remove_image">Fjern bilde</string>
+    <string name="encyclopedia_entry_menu_add_image">Legg til bilde</string>
 </resources>
