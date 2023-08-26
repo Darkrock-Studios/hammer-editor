@@ -161,12 +161,12 @@ private fun CompactNavigation(
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			ProjectSelectionUi(
 				component,
-				modifier = Modifier.padding(innerPadding)
+				modifier = Modifier.rootElement(scaffoldPadding),
 			)
 		},
 		bottomBar = {
@@ -186,25 +186,30 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(
+	ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class,
+)
 @Composable
 private fun MediumNavigation(
 	component: ProjectSelection
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			Row(
-				modifier = Modifier
-					.padding(innerPadding)
-					.fillMaxSize()
+				modifier = Modifier.rootElement(scaffoldPadding),
 			) {
 				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 					ProjectSelection.Locations.values().forEach { item ->
 						NavigationRailItem(
-							icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
+							icon = {
+								Icon(
+									imageVector = getLocationIcon(item),
+									contentDescription = item.text.get()
+								)
+							},
 							label = { Text(item.text.get()) },
 							selected = item == slot.child?.configuration?.location,
 							onClick = { component.showLocation(item) }
@@ -241,13 +246,13 @@ private fun ExpandedNavigation(
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			val drawerState = rememberDrawerState(DrawerValue.Closed)
 			val scope = rememberCoroutineScope()
 			PermanentNavigationDrawer(
-				modifier = Modifier.padding(innerPadding),
+				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
 					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
 						NavigationDrawerContents(component, scope, slot, drawerState)

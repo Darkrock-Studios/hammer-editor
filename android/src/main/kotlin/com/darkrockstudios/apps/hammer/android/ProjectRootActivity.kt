@@ -9,14 +9,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -220,12 +218,12 @@ private fun CompactNavigation(
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			ProjectRootUi(
 				component,
-				modifier = Modifier.padding(innerPadding),
+				modifier = Modifier.rootElement(scaffoldPadding),
 			)
 		},
 		bottomBar = {
@@ -234,7 +232,12 @@ private fun CompactNavigation(
 					NavigationBarItem(
 						selected = item == router.active.instance.getLocationType(),
 						onClick = { component.showDestination(item) },
-						icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
+						icon = {
+							Icon(
+								imageVector = getDestinationIcon(item),
+								contentDescription = item.text.get()
+							)
+						},
 					)
 				}
 			}
@@ -245,17 +248,19 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectRoot,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
-			Row(modifier = Modifier.fillMaxSize()) {
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
+			Row(
+				modifier = Modifier.rootElement(scaffoldPadding)
+			) {
 				NavigationRail(
 					modifier = Modifier
 						.padding(top = Ui.Padding.M)
@@ -287,7 +292,7 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectRootUi(component, Modifier.padding(innerPadding))
+				ProjectRootUi(component, Modifier.padding(scaffoldPadding))
 			}
 		},
 		floatingActionButton = {
@@ -296,17 +301,20 @@ private fun MediumNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(
+	ExperimentalMaterial3Api::class,
+)
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectRoot,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			PermanentNavigationDrawer(
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
 					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
 						Spacer(Modifier.height(12.dp))
@@ -337,7 +345,7 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectRootUi(component, Modifier.padding(innerPadding))
+					ProjectRootUi(component, Modifier.rootElement(scaffoldPadding))
 				}
 			)
 		},
