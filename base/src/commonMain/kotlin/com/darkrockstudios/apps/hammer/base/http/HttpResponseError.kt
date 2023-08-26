@@ -8,4 +8,6 @@ data class HttpResponseError(
 	val error: String,
 	/** A translated message to display to the user */
 	val displayMessage: String,
-)
+) {
+	override fun toString() = displayMessage
+}

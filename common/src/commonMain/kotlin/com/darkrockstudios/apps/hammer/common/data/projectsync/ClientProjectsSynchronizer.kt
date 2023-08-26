@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -7,10 +8,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -24,7 +25,8 @@ class ClientProjectsSynchronizer(
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
 	private val networkConnectivity: NetworkConnectivity,
-	private val json: Json
+	private val json: Json,
+	private val strRes: StrRes,
 ) {
 	var initialSync = false
 
@@ -36,13 +38,13 @@ class ClientProjectsSynchronizer(
 			networkConnectivity.hasActiveConnection()
 
 	suspend fun syncProjects(onLog: OnSyncLog): Boolean {
-		onLog(syncAccLogI("Begin Sync"))
+		onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_begin)))
 
 		var syncId: String? = null
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
-				onLog(syncAccLogI("Got server data"))
+				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_server_data_loaded)))
 
 				val serverSyncData = result.getOrThrow()
 				syncId = serverSyncData.syncId
@@ -61,11 +63,10 @@ class ClientProjectsSynchronizer(
 				yield()
 
 				serverProjectsApi.endProjectsSync(syncId)
-
-				onLog(syncAccLogI("Account Sync complete"))
+				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_complete)))
 				true
 			} else {
-				onLog(syncAccLogE("Failed to sync projects: ${result.exceptionOrNull()?.message}"))
+				onLog(syncAccLogE(strRes.get(MR.strings.sync_log_account_failed, result.exceptionOrNull() ?: "---")))
 				false
 			}
 		} catch (e: Exception) {
@@ -96,7 +97,7 @@ class ClientProjectsSynchronizer(
 		clientSyncData.projectsToDelete.forEach { projectName ->
 			val result = serverProjectsApi.deleteProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
-				onLog(syncAccLogI("Deleting server project: $projectName"))
+				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_project_delete_server_success, projectName)))
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToDelete = syncData.projectsToDelete - projectName,
@@ -104,13 +105,13 @@ class ClientProjectsSynchronizer(
 					)
 				}
 			} else {
-				onLog(syncAccLogE("Failed to delete project on server: $projectName"))
+				onLog(syncAccLogE(strRes.get(MR.strings.sync_log_account_project_delete_server_failure, projectName)))
 			}
 		}
 
 		// Delete local projects from server
 		newlyDeletedProjects.forEach { projectName ->
-			onLog(syncAccLogI("Deleting local project: $projectName"))
+			onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_project_delete_client, projectName)))
 			projectsRepository.deleteProject(projectName)
 		}
 	}
@@ -135,21 +136,22 @@ class ClientProjectsSynchronizer(
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
 			if (result.isSuccess) {
-				onLog(syncAccLogI("Created project on server: $projectName"))
+
+				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_project_create_server_success, projectName)))
 				updateSyncData { syncData ->
 					syncData.copy(
 						projectsToCreate = syncData.projectsToCreate - projectName,
 					)
 				}
 			} else {
-				onLog(syncAccLogE("Failed to create project on server: $projectName"))
+				onLog(syncAccLogE(strRes.get(MR.strings.sync_log_account_project_create_server_failure, projectName)))
 			}
 		}
 
 		// Create local projects from server
 		newServerProjects.forEach { projectName ->
 			projectsRepository.createProject(projectName)
-			onLog(syncAccLogI("Created local project: $projectName"))
+			onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_project_create_client, projectName)))
 		}
 	}
 

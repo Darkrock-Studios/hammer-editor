@@ -19,4 +19,7 @@
 
     <string name="close_dialog_button">Close</string>
 	<string name="more_menu_button">More</string>
+
+	<string name="network_request_failure_connection">Network request failed: %1$s</string>
+	<string name="network_request_failure_parse_body">Failed to parse response body: %1$s</string>
 </resources>

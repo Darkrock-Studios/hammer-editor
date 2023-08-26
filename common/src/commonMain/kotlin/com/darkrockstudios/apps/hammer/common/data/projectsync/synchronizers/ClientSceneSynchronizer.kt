@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
@@ -14,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Scene
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 
@@ -21,7 +23,8 @@ class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
 	private val sceneEditorRepository: SceneEditorRepository,
 	private val draftRepository: SceneDraftRepository,
-	serverProjectApi: ServerProjectApi
+	serverProjectApi: ServerProjectApi,
+	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
 	projectDef, serverProjectApi
 ) {
@@ -98,7 +101,7 @@ class ClientSceneSynchronizer(
 			val sceneItem = if (existingScene != null) {
 				existingScene
 			} else {
-				onLog(syncLogI("Creating new scene $id", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_scene_creating, id), projectDef))
 				sceneEditorRepository.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
@@ -119,7 +122,7 @@ class ClientSceneSynchronizer(
 
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-				onLog(syncLogI("Downloaded scene content for: $id", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_scene_downloading, id), projectDef))
 				sceneEditorRepository.onContentChanged(content, UpdateSource.Sync)
 
 				if (existingScene != null) {
@@ -131,13 +134,21 @@ class ClientSceneSynchronizer(
 
 						val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 						newParent.addChild(existingTreeNode)
-						onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
+						onLog(
+							syncLogI(
+								strRes.get(
+									MR.strings.sync_scene_moved_parent,
+									id,
+									serverEntity.path.lastOrNull() ?: -1
+								), projectDef
+							)
+						)
 					}
 				}
 
 				true
 			} else {
-				onLog(syncLogE("Failed to save downloaded scene content for: $id", projectDef))
+				onLog(syncLogE(strRes.get(MR.strings.sync_scene_store_content_failed, id), projectDef))
 				false
 			}
 		} else {
@@ -147,7 +158,7 @@ class ClientSceneSynchronizer(
 			val sceneItem = if (existingGroup != null) {
 				existingGroup
 			} else {
-				onLog(syncLogI("Creating new group $id", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_scene_group_creating, id), projectDef))
 				sceneEditorRepository.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
@@ -171,11 +182,19 @@ class ClientSceneSynchronizer(
 
 					val newParent = tree.find { it.id == serverEntity.path.lastOrNull() }
 					newParent.addChild(existingTreeNode)
-					onLog(syncLogI("Moved scene $id to new parent ${serverEntity.path.lastOrNull()}", projectDef))
+					onLog(
+						syncLogI(
+							strRes.get(
+								MR.strings.sync_scene_group_moved_parent,
+								id,
+								serverEntity.path.lastOrNull() ?: -1
+							), projectDef
+						)
+					)
 				}
 			}
 
-			onLog(syncLogI("Downloaded scene group for: $id", projectDef))
+			onLog(syncLogI(strRes.get(MR.strings.sync_scene_group_downloading, id), projectDef))
 			true
 		}
 	}
@@ -208,12 +227,12 @@ class ClientSceneSynchronizer(
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
 			if (sceneEditorRepository.deleteScene(sceneItem)) {
-				onLog(syncLogI("Deleting scene $id", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_scene_deleted, id), projectDef))
 			} else {
-				onLog(syncLogE("Failed to delete scene $id", projectDef))
+				onLog(syncLogE(strRes.get(MR.strings.sync_scene_delete_failed, id), projectDef))
 			}
 		} else {
-			onLog(syncLogE("Failed find scene to delete: $id", projectDef))
+			onLog(syncLogE(strRes.get(MR.strings.sync_scene_delete_failed_not_found, id), projectDef))
 		}
 	}
 

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.soywiz.korio.compression.compress
 import com.soywiz.korio.compression.deflate.GZIP
 import com.soywiz.korio.lang.toByteArray
@@ -20,8 +21,9 @@ import kotlinx.serialization.json.Json
 class ServerProjectApi(
 	httpClient: HttpClient,
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val json: Json
-) : Api(httpClient, globalSettingsRepository) {
+	private val json: Json,
+	strRes: StrRes,
+) : Api(httpClient, globalSettingsRepository, strRes) {
 
 	suspend fun beginProjectSync(
 		userId: Long,

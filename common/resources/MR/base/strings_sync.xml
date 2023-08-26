@@ -57,4 +57,65 @@
 
 	<string name="sync_toast_success">Project Sync Complete</string>
 	<string name="sync_toast_failed">Project Sync Failed</string>
+
+	<string name="sync_log_account_begin">Begin Sync</string>
+	<string name="sync_log_account_server_data_loaded">Server data loaded</string>
+	<string name="sync_log_account_complete">Account Sync complete</string>
+	<string name="sync_log_account_failed">Failed to sync projects: %1$s</string>
+	<string name="sync_log_account_project_delete_server_success">Deleting server project: %1$s</string>
+	<string name="sync_log_account_project_delete_server_failure">Failed to delete project on server: %1$s</string>
+	<string name="sync_log_account_project_delete_client">Deleting local project: %1$s</string>
+	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
+	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
+	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
+
+	<string name="sync_log_begin_account">Syncing Account...</string>
+	<string name="sync_log_begin_projects">Syncing Projects...</string>
+	<string name="sync_log_begin_project">Syncing Project: %1$s</string>
+
+	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order
+		to resolve it
+	</string>
+
+	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
+	<string name="sync_log_server_data_loaded">Server data received</string>
+	<string name="sync_log_client_data_loaded">Client data loaded</string>
+	<string name="sync_log_backup_made">Local Backup made: %1$s</string>
+	<string name="sync_log_entity_download_success">Entity %1$d downloaded</string>
+	<string name="sync_log_entity_download_failed_general">Failed to download entity %1$d</string>
+	<string name="sync_log_entity_download_failed_not_found">Entity %1$d not found on server</string>
+	<string name="sync_log_entity_download_not_modified">Entity %1$d not modified</string>
+	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything,
+		probably deleted
+	</string>
+	<string name="sync_log_entity_delete_failed">Failed to delete ID %1$d on server: %2$s</string>
+	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
+	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d
+		TYPE: %2$s
+	</string>
+	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
+	<string name="sync_log_entities_transferred">Entities transferred</string>
+	<string name="sync_log_finalized">Sync finalized</string>
+	<string name="sync_log_data_saved">Sync data saved</string>
+	<string name="sync_log_data_save_failed">Sync data not saved due to errors</string>
+	<string name="sync_log_failed">Failed to end sync</string>
+
+	<string name="sync_encyclopedia_deleted">Deleted Encyclopedia ID %1$d from client</string>
+	<string name="sync_note_deleted">Deleted note ID %1$d from client</string>
+	<string name="sync_draft_deleted">Deleted draft %1$d from client</string>
+	<string name="sync_scene_deleted">Deleted scene %1$d from client</string>
+	<string name="sync_scene_delete_failed">Failed to delete scene %1$d from client</string>
+	<string name="sync_scene_delete_failed_not_found">Failed find scene to delete: %1$d</string>
+	<string name="sync_event_deleted">Deleted event %1$d from client</string>
+	<string name="sync_event_delete_failed">Failed to delete event %1$d from client</string>
+	<string name="sync_event_delete_failed_not_found">Failed find event to delete: %1$d</string>
+
+	<string name="sync_scene_creating">Creating new scene %1$d</string>
+	<string name="sync_scene_downloading">Downloaded scene content for: %1$d</string>
+	<string name="sync_scene_moved_parent">Moved scene %1$d to new parent %2$d</string>
+	<string name="sync_scene_store_content_failed">Failed to save downloaded scene content for: %1$d</string>
+
+	<string name="sync_scene_group_creating">Creating new group %1$d</string>
+	<string name="sync_scene_group_downloading">Downloaded scene content for: %1$d</string>
+	<string name="sync_scene_group_moved_parent">Moved scene %1$d to new parent %2$d</string>
 </resources>

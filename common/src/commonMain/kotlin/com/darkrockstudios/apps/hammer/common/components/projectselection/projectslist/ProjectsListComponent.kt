@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.soywiz.kds.iterators.parallelMap
 import dev.icerock.moko.resources.StringResource
@@ -40,6 +41,7 @@ class ProjectsListComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
+	private val strRes: StrRes by inject()
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
@@ -214,7 +216,7 @@ class ProjectsListComponent(
 		onLog: OnSyncLog,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit
 	): Boolean {
-		onLog(syncLogI("Syncing Project: ${projectDef.name}", projectDef))
+		onLog(syncLogI(strRes.get(MR.strings.sync_log_begin_project, projectDef.name), projectDef))
 
 		var success = false
 		temporaryProjectTask(projectDef) { projScope ->
@@ -225,7 +227,7 @@ class ProjectsListComponent(
 				onConflict = {
 					onLog(
 						syncLogW(
-							"There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it",
+							strRes.get(MR.strings.sync_log_project_conflict, projectDef.name),
 							projectDef
 						)
 					)
@@ -282,7 +284,7 @@ class ProjectsListComponent(
 			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
-			onSyncLog(syncAccLogI("Syncing Account..."))
+			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_account)))
 
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
@@ -290,7 +292,7 @@ class ProjectsListComponent(
 
 			var allSuccess = success
 			if (success) {
-				onSyncLog(syncAccLogI("Syncing Projects..."))
+				onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_projects)))
 
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
