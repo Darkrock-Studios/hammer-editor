@@ -56,7 +56,7 @@ koalaplot-core = "0.3.0"
 image-loader = "1.5.1"
 
 koin_core = "3.4.2"
-koin_android = "3.4.2"
+koin_android = "3.4.3"
 koin_test = "3.4.1"
 koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
