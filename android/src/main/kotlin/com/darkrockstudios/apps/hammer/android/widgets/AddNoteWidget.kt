@@ -6,10 +6,11 @@ import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.Action
@@ -31,11 +32,17 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
+import androidx.glance.material3.ColorProviders
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
+import androidx.glance.text.TextStyle
 import com.darkrockstudios.apps.hammer.android.R
+import com.darkrockstudios.apps.hammer.common.compose.theme.DarkColors
+import com.darkrockstudios.apps.hammer.common.compose.theme.LightColors
 import io.github.aakira.napier.Napier
 
 class AddNoteWidget : GlanceAppWidget() {
+
 	override suspend fun provideGlance(context: Context, id: GlanceId) {
 		val glanceAppWidgetManager = GlanceAppWidgetManager(context)
 		provideContent {
@@ -43,40 +50,50 @@ class AddNoteWidget : GlanceAppWidget() {
 			val data by context.widgetConfigDataStore.data.collectAsState(initial = null)
 			val projectName = remember(data) { data?.getWidgetConfig(widgetId) }
 
-			Box(
-				modifier = GlanceModifier
-					.fillMaxSize()
-					.background(
-						day = Color.White,
-						night = Color.DarkGray
-					)
-					.appWidgetBackground()
-					.cornerRadius(16.dp)
-					.padding(8.dp)
-					.clickable(getAddNoteActionCallback(projectName))
-			) {
-				Column(
-					modifier = GlanceModifier.fillMaxSize(),
-					horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+			GlanceTheme(colors = HammerWidgetGlanceColorScheme.colors) {
+				GlanceTheme.colors.surface
+				Box(
+					modifier = GlanceModifier
+						.fillMaxSize()
+						// TODO why can't we pass a ColorProvider here?
+						.background(
+							day = LightColors.surface,
+							night = DarkColors.surface
+						)
+						.appWidgetBackground()
+						.cornerRadius(16.dp)
+						.padding(8.dp)
+						.clickable(getAddNoteActionCallback(projectName))
 				) {
-					Image(
-						ImageProvider(resId = R.drawable.ic_add_note),
-						contentDescription = context.getString(R.string.note_widget_button_description),
-						modifier = GlanceModifier
-							.clickable(getAddNoteActionCallback(projectName))
-							.fillMaxWidth()
-							.defaultWeight()
-					)
+					Column(
+						modifier = GlanceModifier.fillMaxSize(),
+						horizontalAlignment = Alignment.Horizontal.CenterHorizontally
+					) {
+						Image(
+							ImageProvider(resId = R.drawable.ic_add_note),
+							contentDescription = context.getString(R.string.note_widget_button_description),
+							colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface),
+							modifier = GlanceModifier
+								.clickable(getAddNoteActionCallback(projectName))
+								.fillMaxWidth()
+								.defaultWeight()
+						)
 
-					if (!projectName.isNullOrBlank()) {
-						Text(
-							projectName,
-							maxLines = 1
-						)
-					} else {
-						Text(
-							context.getString(R.string.note_widget_button_description)
-						)
+						if (!projectName.isNullOrBlank()) {
+							Text(
+								projectName,
+								maxLines = 1,
+								style = TextStyle(
+									color = GlanceTheme.colors.onSurface,
+									textAlign = TextAlign.Center
+								)
+							)
+						} else {
+							Text(
+								context.getString(R.string.note_widget_button_description),
+								style = TextStyle(GlanceTheme.colors.onSurface)
+							)
+						}
 					}
 				}
 			}
@@ -112,4 +129,11 @@ class AddNoteClickAction : ActionCallback {
 			.putExtra(AddNoteActivity.EXTRA_PROJECT_NAME, projectName)
 		context.startActivity(intent)
 	}
+}
+
+object HammerWidgetGlanceColorScheme {
+	val colors = ColorProviders(
+		light = LightColors,
+		dark = DarkColors
+	)
 }
