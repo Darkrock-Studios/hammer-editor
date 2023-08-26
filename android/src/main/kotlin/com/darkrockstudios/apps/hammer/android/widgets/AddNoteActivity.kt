@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.android.widgets
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +69,14 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 				var noteText by rememberSaveable { mutableStateOf("") }
 				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
 				var confirmCancel by rememberSaveable { mutableStateOf(false) }
+
+				BackHandler(true) {
+					if (noteText.isNotBlank()) {
+						confirmCancel = true
+					} else {
+						finish()
+					}
+				}
 
 				AppTheme {
 					Box {
