@@ -8,7 +8,7 @@
     <string name="navdrawer_button">Tiroir de navigation</string>
     <string name="note_widget_dialog_title">Ajouter une note à :</string>
     <string name="note_widget_dialog_save_button">Enregistrer</string>
-    <string name="note_widget_dialog_categories_dropdown">Catégories</string>
+    <string name="note_widget_dialog_projects_dropdown">Catégories</string>
     <string name="note_widget_button_description">Ajouter une note</string>
     <string name="note_widget_toast_no_projects">Aucun projet</string>
     <string name="note_widget_toast_success">Note ajoutée</string>

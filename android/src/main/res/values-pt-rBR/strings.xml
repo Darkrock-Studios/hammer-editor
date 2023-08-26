@@ -3,7 +3,7 @@
     <string name="app_name">Hammer</string>
     <string name="loading">Carregando…</string>
     <string name="title_activity_configure_note_widget">Configurar Widget</string>
-    <string name="note_widget_dialog_categories_dropdown">Categorias</string>
+    <string name="note_widget_dialog_projects_dropdown">Categorias</string>
     <string name="note_widget_button_description">Adicionar Notas</string>
     <string name="note_widget_toast_no_projects">Sem projetos</string>
     <string name="note_widget_toast_success">Nota Adicionada</string>

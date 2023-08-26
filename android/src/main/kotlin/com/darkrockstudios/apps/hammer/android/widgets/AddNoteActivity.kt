@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
@@ -38,11 +40,30 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		setFinishOnTouchOutside(false)
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 
+		val projectNameExtra = intent.extras?.getString(EXTRA_PROJECT_NAME)
+		val projectName = if (projectNameExtra.isNullOrBlank()) {
+			null
+		} else {
+			projectNameExtra
+		}
+
 		val projects = projectsRepository.getProjects()
 		if (projects.isEmpty()) {
-			Toast.makeText(this, getString(R.string.note_widget_toast_no_projects), Toast.LENGTH_SHORT).show()
+			Toast.makeText(
+				this,
+				getString(R.string.note_widget_toast_no_projects),
+				Toast.LENGTH_SHORT
+			).show()
 			finish()
 		} else {
+			val preselectedProject = projects.find { projectDef -> projectDef.name == projectName }
+			// Bail if we can't find the project
+			if (projectName != null && preselectedProject == null) {
+				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectName)
+				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+				finish()
+			}
+
 			setContent {
 				var noteText by rememberSaveable { mutableStateOf("") }
 				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
@@ -65,10 +86,22 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 										style = MaterialTheme.typography.headlineMedium,
 										color = MaterialTheme.colorScheme.onBackground
 									)
-									ProjectDropDown(projects) {
-										selectedProject = it
+
+									if (projectName == null) {
+										ProjectDropDownUi(projects) {
+											selectedProject = it
+										}
+									} else {
+										Text(
+											projectName,
+											style = MaterialTheme.typography.bodyLarge,
+											color = MaterialTheme.colorScheme.onBackground,
+											fontStyle = FontStyle.Italic
+										)
 									}
+
 									Spacer(modifier = Modifier.size(Ui.Padding.L))
+
 									OutlinedTextField(
 										value = noteText,
 										onValueChange = { noteText = it },
@@ -94,7 +127,11 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 										Button(
 											onClick = {
 												if (noteText.isNotBlank()) {
-													saveNote(selectedProject, noteText)
+													if (preselectedProject != null) {
+														saveNote(preselectedProject, noteText)
+													} else {
+														saveNote(selectedProject, noteText)
+													}
 												}
 											}
 										) {
@@ -147,57 +184,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 							}
 						}
 					}
-				}
-			}
-		}
-	}
-
-	@OptIn(ExperimentalMaterial3Api::class)
-	@Composable
-	private fun ProjectDropDown(projects: List<ProjectDef>, onProjectSelected: (ProjectDef) -> Unit) {
-		var expanded by remember { mutableStateOf(false) }
-		var selectedOptionText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-			mutableStateOf(
-				TextFieldValue(
-					text = projects.firstOrNull()?.name ?: ""
-				)
-			)
-		}
-
-		ExposedDropdownMenuBox(
-			expanded = expanded,
-			onExpandedChange = {
-				expanded = !expanded
-			}
-		) {
-			OutlinedTextField(
-				modifier = Modifier.menuAnchor(),
-				readOnly = true,
-				value = selectedOptionText,
-				onValueChange = { selectedOptionText = it },
-				label = { Text(stringResource(R.string.note_widget_dialog_categories_dropdown)) },
-				trailingIcon = {
-					ExposedDropdownMenuDefaults.TrailingIcon(
-						expanded = expanded
-					)
-				},
-				colors = ExposedDropdownMenuDefaults.textFieldColors()
-			)
-			ExposedDropdownMenu(
-				expanded = expanded,
-				onDismissRequest = {
-					expanded = false
-				}
-			) {
-				projects.forEach { selectionOption ->
-					DropdownMenuItem(
-						text = { Text(selectionOption.name) },
-						onClick = {
-							selectedOptionText = TextFieldValue(selectionOption.name)
-							onProjectSelected(selectionOption)
-							expanded = false
-						}
-					)
 				}
 			}
 		}

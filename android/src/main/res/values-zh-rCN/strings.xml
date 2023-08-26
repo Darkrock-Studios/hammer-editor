@@ -10,6 +10,6 @@
     <string name="note_widget_toast_success">笔记已添加</string>
     <string name="title_activity_configure_note_widget">配置小部件</string>
     <string name="note_widget_dialog_save_button">保存</string>
-    <string name="note_widget_dialog_categories_dropdown">分类</string>
+    <string name="note_widget_dialog_projects_dropdown">分类</string>
     <string name="note_widget_button_description">添加笔记</string>
 </resources>

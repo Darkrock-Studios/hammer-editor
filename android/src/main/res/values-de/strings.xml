@@ -7,7 +7,7 @@
     <string name="overflow_menu_button">Mehr</string>
     <string name="navdrawer_button">Navigation</string>
     <string name="note_widget_dialog_save_button">Speichern</string>
-    <string name="note_widget_dialog_categories_dropdown">Kategorien</string>
+    <string name="note_widget_dialog_projects_dropdown">Kategorien</string>
     <string name="note_widget_button_description">Notiz hinzugefügen</string>
     <string name="note_widget_toast_no_projects">Keine Projekte bisher</string>
     <string name="note_widget_dialog_title">Notiz hinzufügen:</string>
