@@ -4,7 +4,14 @@ import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
@@ -200,7 +207,7 @@ class SceneEditorRepositoryOkio(
 		return sceneDef
 	}
 
-	override fun exportStory(path: HPath) {
+	override fun exportStory(path: HPath): HPath {
 		val exportPath = path.toOkioPath() / "${projectDef.name}.md"
 
 		fileSystem.write(exportPath) {
@@ -227,6 +234,8 @@ class SceneEditorRepositoryOkio(
 				}
 			}
 		}
+
+		return exportPath.toHPath()
 	}
 
 	override fun loadSceneTree(): TreeNode<SceneItem> {

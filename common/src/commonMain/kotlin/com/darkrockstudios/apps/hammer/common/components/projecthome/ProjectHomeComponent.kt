@@ -65,17 +65,19 @@ class ProjectHomeComponent(
 		}
 	}
 
-	override suspend fun exportProject(path: String) {
+	override suspend fun exportProject(path: String): HPath {
 		val hpath = HPath(
 			path = path,
 			name = "",
 			isAbsolute = true
 		)
-		sceneEditorRepository.exportStory(hpath)
+		val filePath = sceneEditorRepository.exportStory(hpath)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
 		}
+
+		return filePath
 	}
 
 	override fun startProjectSync() = showProjectSync()
@@ -170,6 +172,9 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	override fun getExportFileName(): String {
+		return "${projectDef.name}.md"
+	}
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

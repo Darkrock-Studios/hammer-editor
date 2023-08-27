@@ -220,7 +220,7 @@ abstract class SceneEditorRepository(
 	abstract fun getSceneTempBufferContents(): List<SceneContent>
 	abstract fun getSceneAtIndex(index: Int): SceneItem
 	abstract fun getSceneFromPath(path: HPath): SceneItem
-	abstract fun exportStory(path: HPath)
+	abstract fun exportStory(path: HPath): HPath
 
 	/**
 	 * This should only be used for stats and other fire and forget actions where accuracy

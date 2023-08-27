@@ -16,4 +16,10 @@ private class DesktopExternalFileIo(private val fileSystem: FileSystem) : Extern
 			readByteArray()
 		}
 	}
+
+	override fun writeExternalFile(path: String, content: String) {
+		fileSystem.write(path.toPath()) {
+			writeUtf8(content)
+		}
+	}
 }

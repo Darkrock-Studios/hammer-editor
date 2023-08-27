@@ -5,6 +5,9 @@ import android.net.Uri
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
 
 actual val externalFileIoModule = module {
 	singleOf(::AndroidExternalFileIo) bind ExternalFileIo::class
@@ -21,5 +24,23 @@ private class AndroidExternalFileIo(private val appContext: Context) : ExternalF
 		bytes?.let {
 			return it
 		} ?: error("Failed to read external file: $path")
+	}
+
+	override fun writeExternalFile(path: String, content: String) {
+		val contentResolver = appContext.contentResolver
+		try {
+			val uri = Uri.parse(path)
+			contentResolver.openFileDescriptor(uri, "w")?.use {
+				FileOutputStream(it.fileDescriptor).use { fos ->
+					fos.write(
+						content.toByteArray()
+					)
+				}
+			}
+		} catch (e: FileNotFoundException) {
+			e.printStackTrace()
+		} catch (e: IOException) {
+			e.printStackTrace()
+		}
 	}
 }

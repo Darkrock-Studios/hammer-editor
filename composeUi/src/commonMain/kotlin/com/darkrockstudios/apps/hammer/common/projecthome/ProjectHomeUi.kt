@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
-import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
 import io.github.koalaplot.core.bar.DefaultBarChartEntry
 import io.github.koalaplot.core.bar.VerticalBarChart
@@ -51,7 +50,8 @@ fun ProjectHomeUi(
 					.padding(Ui.Padding.XL)
 			) {
 				Stats(
-					modifier = Modifier.weight(3f).rightBorder(1.dp, MaterialTheme.colorScheme.outline),
+					modifier = Modifier.weight(3f)
+						.rightBorder(1.dp, MaterialTheme.colorScheme.outline),
 					state = state
 				)
 				Actions(
@@ -63,7 +63,8 @@ fun ProjectHomeUi(
 			}
 		} else {
 			Stats(
-				modifier = Modifier.fillMaxWidth().bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
+				modifier = Modifier.fillMaxWidth()
+					.bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
 				state = state,
 				otherContent = {
 					Actions(
@@ -317,8 +318,6 @@ private fun Actions(
 	snackbarHostState: SnackbarHostState
 ) {
 	val strRes = rememberStrRes()
-
-	val defaultDispatcher = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
 	var toastMessage: String? = remember { null }
@@ -354,7 +353,10 @@ private fun Actions(
 			Button(onClick = {
 				component.createBackup { backup ->
 					toastMessage = if (backup != null) {
-						strRes.get(MR.strings.project_home_action_backup_toast_success, backup.path.name)
+						strRes.get(
+							MR.strings.project_home_action_backup_toast_success,
+							backup.path.name
+						)
 					} else {
 						strRes.get(MR.strings.project_home_action_backup_toast_failure)
 					}
@@ -365,14 +367,13 @@ private fun Actions(
 		}
 	}
 
-	DirectoryPicker(state.showExportDialog) { path ->
-		if (path != null) {
-			scope.launch(defaultDispatcher) {
-				component.exportProject(path)
-				snackbarHostState.showSnackbar(strRes.get(MR.strings.project_home_action_export_toast_success))
-			}
-		} else {
-			component.endProjectExport()
-		}
-	}
+	ExportDirectoryPicker(state.showExportDialog, component, scope, snackbarHostState)
 }
+
+@Composable
+expect fun ExportDirectoryPicker(
+	show: Boolean,
+	component: ProjectHome,
+	scope: CoroutineScope,
+	snackbarHostState: SnackbarHostState,
+)
