@@ -17,7 +17,7 @@ A simple tool for building stories.
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
 
-Take a look at the [Roadmap](ROADMAP.md) to see whats coming.
+Take a look at the [Roadmap](docs/ROADMAP.md) to see whats coming.
 
 ### Community
 Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing
@@ -60,11 +60,14 @@ change on one device, overwriting a change on another device.
 
 ## Optional and Self hosted Syncing
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and
-sync your data between devices. You could even use some other service to sync your data, like Dropbox or Google Drive.
-It's all up to you. Instructions can be found [here](HOW-TO-RUN-A-SERVER.md).
+Syncing is entirely optional, you can install the client and use it on one device, or you can
+install the server and
+sync your data between devices. You could even use some other service to sync your data, like
+Dropbox or Google Drive.
+It's all up to you. Instructions can be found [here](docs/HOW-TO-RUN-A-SERVER.md).
 
-If you don't know how, or just don't want to setup your own server, we're also running an official syncing server.
+If you don't know how, or just don't want to setup your own server, we're also running an official
+syncing server.
 
 ### Official Server: [hammer.ink](https://hammer.ink/)
 while we're still early in development here, the official server is invite only. but I'll approve anyone for now, just ask.
@@ -74,7 +77,8 @@ We're also running a test environment here: [test.hammer.ink](https://test.hamme
 _Do not use the test environment for real data! It will get cleared from time-to-time without notice!_
 
 # Development
-Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
+
+Want to contribute? Great! [Here are some instructions to get you started](docs/DEVELOPMENT.md).
 
 ![badge-kotlin]
 
