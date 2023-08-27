@@ -47,7 +47,7 @@ actual fun ExportDirectoryPicker(
 
 	LaunchedEffect(show) {
 		if (show) {
-			launcher.launch(component.getExportFileName())
+			launcher.launch(component.getExportStoryFileName())
 		}
 	}
 }

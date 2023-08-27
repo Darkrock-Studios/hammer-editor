@@ -172,9 +172,7 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-	override fun getExportFileName(): String {
-		return "${projectDef.name}.md"
-	}
+	override fun getExportStoryFileName() = sceneEditorRepository.getExportStoryFileName()
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

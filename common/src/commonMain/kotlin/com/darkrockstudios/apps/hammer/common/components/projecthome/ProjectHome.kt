@@ -17,7 +17,7 @@ interface ProjectHome : Router, HammerComponent {
 	fun startProjectSync()
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
-	fun getExportFileName(): String
+	fun getExportStoryFileName(): String
 
 	data class State(
 		val projectDef: ProjectDef,

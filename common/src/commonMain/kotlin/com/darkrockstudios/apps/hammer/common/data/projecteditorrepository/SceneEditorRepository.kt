@@ -221,6 +221,7 @@ abstract class SceneEditorRepository(
 	abstract fun getSceneAtIndex(index: Int): SceneItem
 	abstract fun getSceneFromPath(path: HPath): SceneItem
 	abstract fun exportStory(path: HPath): HPath
+	abstract fun getExportStoryFileName(): String
 
 	/**
 	 * This should only be used for stats and other fire and forget actions where accuracy

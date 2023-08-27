@@ -208,7 +208,7 @@ class SceneEditorRepositoryOkio(
 	}
 
 	override fun exportStory(path: HPath): HPath {
-		val exportPath = path.toOkioPath() / "${projectDef.name}.md"
+		val exportPath = path.toOkioPath() / getExportStoryFileName()
 
 		fileSystem.write(exportPath) {
 			writeUtf8("# ${projectDef.name}\n\n")
@@ -237,6 +237,8 @@ class SceneEditorRepositoryOkio(
 
 		return exportPath.toHPath()
 	}
+
+	override fun getExportStoryFileName() = "${projectDef.name}.md"
 
 	override fun loadSceneTree(): TreeNode<SceneItem> {
 		val sceneDirPath = getSceneDirectory().toOkioPath()
