@@ -43,15 +43,13 @@ that do not need synchronization.
 references to that ID in the process.
 
 **Dirty Entity** When a client edits a local Entity, the client first hashes the existing,
-pre-edited content, and saves off the **Entity ID ** and this pre-edit hash of the data to a "dirty
-list". If the client and server are in sync
-at the time of this edit, then the saved hash in the dirty list will match the hash of the server's
-copy of the Entity.
+pre-edited content, and saves off the **Entity ID** and this pre-edit hash of the data to a "dirty
+list". If the client and server are in sync at the time of this edit, then the saved hash in the
+dirty list will match the hash of the server's copy of the Entity.
 At syncing time this allows us to detect conflicts. If another client edits the same entity, and
-syncs with the server
-first. This our local "dirty list" hash will not match the hash of the server side copy, and we'll
-know we have a
-conflict that needs resolving.
+syncs with the server first.
+Thus our local "dirty list" hash will not match the hash of the server side copy, and we'll know we
+have a conflict that needs resolving.
 
 **Account Sync** This synchronizes what projects the Account has, creating or deleting just the top
 level directories on the client
