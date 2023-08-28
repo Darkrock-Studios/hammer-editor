@@ -11,7 +11,7 @@ jvm = "17"
 kotlin = "1.8.22"
 
 # Android
-android_gradle_plugin = "8.1.1"
+android_gradle_plugin = "8.0.0"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
@@ -61,6 +61,8 @@ koin_test = "3.4.1"
 koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
 koin_compose = "3.4.5"
+
+cokoin = "1.0.0"
 
 ktor = "2.3.3"
 ktor_i18n = "2.0.0"
@@ -152,6 +154,8 @@ koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin_
 koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref = "koin_sl4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin_compose" }
+
+cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
 ktoml = { group = "com.akuleshov7", name = "ktoml-core", version.ref = "ktoml" }
 

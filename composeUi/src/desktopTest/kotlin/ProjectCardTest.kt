@@ -1,9 +1,9 @@
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCard
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
-import com.darkrockstudios.apps.hammer.common.projectselection.fakeProjectData
 import io.mockk.*
 import org.junit.Rule
 import org.junit.Test

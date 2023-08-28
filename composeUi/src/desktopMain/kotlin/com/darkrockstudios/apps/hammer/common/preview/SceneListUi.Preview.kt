@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneListUi
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneItem
 
 /*

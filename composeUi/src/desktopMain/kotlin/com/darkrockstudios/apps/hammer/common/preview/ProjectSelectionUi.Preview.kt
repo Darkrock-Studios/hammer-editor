@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
@@ -9,8 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectMetadata
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCard
 
 /*
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)

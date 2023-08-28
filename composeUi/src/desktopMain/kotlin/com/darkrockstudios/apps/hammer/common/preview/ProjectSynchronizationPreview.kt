@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectsync
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
+import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
 import kotlinx.datetime.Clock
 
 @Preview

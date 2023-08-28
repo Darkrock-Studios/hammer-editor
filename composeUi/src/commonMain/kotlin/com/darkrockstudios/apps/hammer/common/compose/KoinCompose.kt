@@ -11,7 +11,6 @@ import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.get
-import org.koin.mp.KoinPlatform.getKoin
 import kotlin.coroutines.CoroutineContext
 
 fun getDefaultDispatcher(): CoroutineContext {
@@ -36,7 +35,7 @@ inline fun rememberIoDispatcher(): CoroutineContext = remember { getIoDispatcher
 inline fun rememberMainDispatcher(): CoroutineContext = remember { getMainDispatcher() }
 
 @Composable
-inline fun rememberStrRes() = remember { getKoin().get<StrRes>() }
+inline fun rememberStrRes() = remember<StrRes> { get(clazz = StrRes::class.java) }
 
 @Composable
 inline fun <reified T> rememberKoinInject(

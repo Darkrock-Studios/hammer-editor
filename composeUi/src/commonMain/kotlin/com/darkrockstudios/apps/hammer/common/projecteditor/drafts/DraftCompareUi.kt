@@ -72,7 +72,6 @@ fun DraftCompareUi(component: DraftCompare) {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CurrentContent(
 	modifier: Modifier,

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.encyclopedia
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
@@ -27,7 +27,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
+import com.darkrockstudios.apps.hammer.common.encyclopedia.CreateEntryUi
+import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
+import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
+import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
 
 @Preview
 @Composable
