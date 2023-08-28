@@ -23,7 +23,7 @@ Take a look at the [Roadmap](docs/ROADMAP.md) to see whats coming.
 Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing
 the future of Hammer.
 
-Or visit us on Reddit at [/hammereditor](https://www.reddit.com/r/hammereditor/)
+Or visit us on Reddit at [r/hammereditor](https://www.reddit.com/r/hammereditor/)
 
 ## Multi-platform
 
