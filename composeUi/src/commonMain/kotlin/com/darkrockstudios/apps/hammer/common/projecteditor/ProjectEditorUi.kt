@@ -46,7 +46,8 @@ fun ProjectEditorUi(
 		)
 
 		val detailsModifier = if (isMultiPane) {
-			Modifier.padding(start = LIST_PANE_WIDTH).requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
+			Modifier.padding(start = LIST_PANE_WIDTH)
+				.requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
 				.fillMaxHeight()
 		} else {
 			Modifier.fillMaxSize()

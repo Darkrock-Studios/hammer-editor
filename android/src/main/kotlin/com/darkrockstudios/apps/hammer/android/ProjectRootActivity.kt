@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -18,7 +17,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -208,7 +206,6 @@ class ProjectRootViewModel : ViewModel() {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CompactNavigation(
 	component: ProjectRoot,
@@ -218,6 +215,7 @@ private fun CompactNavigation(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
 		content = { scaffoldPadding ->
+			Box(modifier = Modifier.fillMaxSize())
 			ProjectRootUi(
 				component,
 				modifier = Modifier.rootElement(scaffoldPadding),
@@ -245,7 +243,6 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectRoot,
@@ -261,7 +258,6 @@ private fun MediumNavigation(
 				NavigationRail(
 					modifier = Modifier
 						.padding(top = Ui.Padding.M)
-						.background(Color.Blue)
 				) {
 					ProjectRoot.DestinationTypes.values().forEach { item ->
 						NavigationRailItem(
@@ -298,9 +294,6 @@ private fun MediumNavigation(
 	)
 }
 
-@OptIn(
-	ExperimentalMaterial3Api::class,
-)
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectRoot,

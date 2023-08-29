@@ -63,7 +63,7 @@ fun SceneListUi(
 			Row(
 				modifier = Modifier.fillMaxWidth()
 					.wrapContentHeight()
-					.padding(Ui.Padding.L),
+					.padding(horizontal = Ui.Padding.L),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
@@ -72,7 +72,7 @@ fun SceneListUi(
 						"\uD83D\uDCDD ",
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.weight(1f)
+						modifier = Modifier.padding(end = Ui.Padding.L)
 					)
 					Text(
 						MR.strings.scene_list_header.get(),

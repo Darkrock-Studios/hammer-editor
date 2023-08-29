@@ -56,36 +56,37 @@ fun ProjectListUi(
 	val colModifier: Modifier = when (windowSizeClass.widthSizeClass) {
 		WindowWidthSizeClass.Compact -> modifier.fillMaxWidth()
 		WindowWidthSizeClass.Medium -> modifier.fillMaxWidth()
-		WindowWidthSizeClass.Expanded -> modifier.widthIn(max = 600.dp)
+		WindowWidthSizeClass.Expanded -> modifier.widthIn(max = 600.dp).fillMaxSize()
 		else -> error("Unhandled window class size: ${windowSizeClass.widthSizeClass}")
 	}
 
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(
-			modifier = colModifier
-				.padding(Ui.Padding.contents)
-				.align(Alignment.TopCenter)
-				.fillMaxSize()
+			modifier = colModifier.align(Alignment.TopCenter)
 		) {
 			Row {
 				Text(
 					"\uD83D\uDCDD",
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.padding(start = Ui.Padding.L, top = Ui.Padding.L, bottom = Ui.Padding.L)
+					modifier = Modifier.padding(start = Ui.Padding.L, bottom = Ui.Padding.L)
 				)
 
 				Text(
 					MR.strings.project_select_list_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.weight(1f).padding(Ui.Padding.L)
+					modifier = Modifier.weight(1f)
+						.padding(start = Ui.Padding.L, bottom = Ui.Padding.L)
 				)
 
 				if (state.isServerSynced) {
-					Button(onClick = {
-						component.showProjectsSync()
-					}) {
+					Button(
+						onClick = {
+							component.showProjectsSync()
+						},
+						modifier = Modifier.padding(end = Ui.Padding.XL),
+					) {
 						Image(Icons.Default.Refresh, MR.strings.projects_list_sync_button.get())
 					}
 				}

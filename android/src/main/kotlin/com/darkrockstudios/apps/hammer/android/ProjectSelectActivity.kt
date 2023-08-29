@@ -190,9 +190,7 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(
-	ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class,
-)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectSelection
@@ -243,7 +241,7 @@ private fun MediumNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectSelection
@@ -273,7 +271,6 @@ private fun ExpandedNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColumnScope.NavigationDrawerContents(
 	component: ProjectSelection,

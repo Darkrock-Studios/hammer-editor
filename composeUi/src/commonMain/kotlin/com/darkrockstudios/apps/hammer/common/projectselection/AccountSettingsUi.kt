@@ -26,7 +26,7 @@ import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
@@ -57,21 +57,20 @@ internal fun AccountSettingsUi(
 		Ui.ToneElevation.NONE
 	}
 
-	Box(modifier = modifier.padding(top = Ui.Padding.XL).fillMaxSize()) {
+	Box(modifier = modifier.fillMaxSize()) {
 		Surface(
 			tonalElevation = containerElevation,
 			shape = containerShape
 		) {
 			Column(
 				modifier = Modifier
-					.padding(Ui.Padding.contents)
 					.fillMaxSize()
+					.padding(horizontal = Ui.Padding.XL)
 			) {
 				Text(
 					MR.strings.settings_heading.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.padding(Ui.Padding.L)
 				)
 
 				Divider(modifier = Modifier.fillMaxWidth())

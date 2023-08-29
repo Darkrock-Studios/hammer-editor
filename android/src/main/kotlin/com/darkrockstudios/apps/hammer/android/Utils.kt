@@ -25,18 +25,32 @@ fun isInternetConnected(context: Context): Boolean {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-fun Modifier.rootElement(scaffoldPadding: PaddingValues): Modifier {
+fun Modifier.rootElement(
+	scaffoldPadding: PaddingValues,
+): Modifier {
+	return this.then(
+		Modifier
+			.fillMaxSize()
+			.padding(scaffoldPadding)
+			.consumeWindowInsets(scaffoldPadding)
+			.systemBarsPadding()
+	)
+	/*
 	return this.then(
 		fillMaxSize()
 			.padding(scaffoldPadding)
-			.consumeWindowInsets(scaffoldPadding)
-	)
+			.systemBarsPadding()
+			.navigationBarsPadding()
+			.consumeWindowInsets(sysBarInsets)
+			.consumeWindowInsets(navBars)
+			.imePadding()
+			.fillMaxSize()
+			)
+		*/
 }
 
 fun Modifier.defaultScaffold(): Modifier {
 	return this.then(
-		imePadding()
-			.systemBarsPadding()
-			.fillMaxSize()
+		imePadding().fillMaxSize()
 	)
 }

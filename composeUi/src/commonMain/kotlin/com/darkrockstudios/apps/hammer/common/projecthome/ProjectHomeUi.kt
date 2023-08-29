@@ -36,17 +36,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProjectHomeUi(
 	component: ProjectHome,
+	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	Box {
+	Box(modifier = modifier) {
 		if (screen.isWide) {
 			Row(
 				modifier = Modifier.fillMaxSize()
-					.padding(Ui.Padding.XL)
+					.padding(horizontal = Ui.Padding.XL)
 			) {
 				Stats(
 					modifier = Modifier.weight(3f)
@@ -62,7 +63,7 @@ fun ProjectHomeUi(
 			}
 		} else {
 			Stats(
-				modifier = Modifier.fillMaxWidth()
+				modifier = Modifier.fillMaxSize()
 					.bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
 				state = state,
 				otherContent = {
@@ -91,7 +92,7 @@ private fun Stats(
 	LazyVerticalGrid(
 		columns = GridCells.Adaptive(300.dp),
 		modifier = modifier.fillMaxHeight(),
-		contentPadding = PaddingValues(Ui.Padding.XL)
+		contentPadding = PaddingValues(horizontal = Ui.Padding.XL)
 	) {
 		item(span = spanAll) {
 			Column {
