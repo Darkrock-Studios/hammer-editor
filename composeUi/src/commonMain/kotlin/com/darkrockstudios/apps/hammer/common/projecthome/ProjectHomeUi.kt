@@ -63,8 +63,7 @@ fun ProjectHomeUi(
 			}
 		} else {
 			Stats(
-				modifier = Modifier.fillMaxSize()
-					.bottomBorder(1.dp, MaterialTheme.colorScheme.outline),
+				modifier = Modifier.fillMaxSize(),
 				state = state,
 				otherContent = {
 					Actions(
