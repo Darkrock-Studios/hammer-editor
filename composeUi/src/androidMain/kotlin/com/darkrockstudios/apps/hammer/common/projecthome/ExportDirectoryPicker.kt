@@ -42,6 +42,8 @@ actual fun ExportDirectoryPicker(
 					)
 					snackbarHostState.showSnackbar(strRes.get(MR.strings.project_home_action_export_toast_success))
 				}
+			} else {
+				component.endProjectExport()
 			}
 		}
 
