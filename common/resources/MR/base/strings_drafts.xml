@@ -9,6 +9,9 @@
     <string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
     <string name="draft_compare_draft_accept_button">Take this whole draft</string>
     <string name="draft_compare_draft_body_placeholder">Draft</string>
+    <string name="draft_compare_tab_title_draft">Draft</string>
+    <string name="draft_compare_tab_title_current">Current</string>
+
     <string name="draft_list_close_button">Close Drafts</string>
     <string name="draft_list_header">%1$s Drafts:</string>
     <string name="draft_list_empty">No Drafts Found</string>

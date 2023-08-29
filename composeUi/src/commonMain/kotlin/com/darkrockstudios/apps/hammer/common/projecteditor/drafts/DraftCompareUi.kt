@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
@@ -47,29 +48,61 @@ fun DraftCompareUi(component: DraftCompare) {
 			}
 		}
 
-		val content = remember {
-			movableContentOf {
-				DraftContent(
-					modifier = Modifier.weight(1f),
-					component = component,
-				)
+		when (screen.windowWidthClass) {
+			WindowWidthSizeClass.Compact -> {
+				CompactDraftCompareUi(Modifier.fillMaxSize(), component)
+			}
 
-				CurrentContent(
-					modifier = Modifier.weight(1f),
-					component = component
+			else -> {
+				ExpandedDraftCompareUi(Modifier.fillMaxSize(), component)
+			}
+		}
+	}
+}
+
+@Composable
+private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
+	var tabState by rememberSaveable { mutableStateOf(0) }
+	val titles = remember {
+		listOf(MR.strings.draft_compare_tab_title_draft, MR.strings.draft_compare_tab_title_current)
+	}
+
+	Column(modifier = modifier) {
+		TabRow(selectedTabIndex = tabState) {
+			titles.forEachIndexed { index, title ->
+				Tab(
+					text = { Text(title.get()) },
+					selected = tabState == index,
+					onClick = { tabState = index }
 				)
 			}
 		}
-
-		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
-			Row(modifier = Modifier.fillMaxSize()) {
-				content()
-			}
-		} else {
-			Column(modifier = Modifier.fillMaxSize()) {
-				content()
-			}
+		if (tabState == 0) {
+			DraftContent(
+				modifier = Modifier.weight(1f),
+				component = component
+			)
+		} else if (tabState == 1) {
+			CurrentContent(
+				modifier = Modifier.weight(1f),
+				component = component
+			)
 		}
+	}
+}
+
+@Composable
+private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) {
+	Row(modifier = modifier) {
+		DraftContent(
+			modifier = Modifier.weight(1f),
+			component = component,
+		)
+
+		CurrentContent(
+			modifier = Modifier.weight(1f),
+			component = component
+		)
 	}
 }
 
