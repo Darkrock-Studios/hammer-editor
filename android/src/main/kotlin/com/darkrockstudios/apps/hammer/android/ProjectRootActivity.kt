@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
@@ -36,7 +37,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -67,6 +67,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val viewModel: ProjectRootViewModel by viewModels()
 
+	@OptIn(ExperimentalDecomposeApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -77,17 +78,14 @@ class ProjectRootActivity : AppCompatActivity() {
 		} else {
 			viewModel.setProjectDef(projectDef)
 
-			val menu = MutableValue(setOf<MenuDescriptor>())
-			val component = ProjectRootComponent(
-				componentContext = defaultComponentContext(),
-				projectDef = projectDef,
-				addMenu = { menuDescriptor ->
-					menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-				},
-				removeMenu = { menuId ->
-					menu.value = menu.value.filter { it.id != menuId }.toSet()
-				}
-			)
+			val component = retainedComponent { componentContext ->
+				ProjectRootComponent(
+					componentContext = componentContext,
+					projectDef = projectDef,
+					addMenu = { /* Not needed on Android */ },
+					removeMenu = { /* Not needed on Android */ }
+				)
+			}
 
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
@@ -110,7 +108,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					}
 
 					AppTheme(isDark, ::getDynamicColorScheme) {
-						Content(component, menu)
+						Content(component)
 					}
 				}
 			}
@@ -139,7 +137,6 @@ class ProjectRootActivity : AppCompatActivity() {
 	@Composable
 	private fun Content(
 		component: ProjectRoot,
-		menu: MutableValue<Set<MenuDescriptor>>
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()

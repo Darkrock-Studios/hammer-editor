@@ -81,7 +81,7 @@ fun ProjectHomeUi(
 	}
 }
 
-private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(Int.MAX_VALUE) }
+private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
 
 @Composable
 private fun Stats(
@@ -320,7 +320,7 @@ private fun Actions(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 
-	var toastMessage: String? = remember { null }
+	var toastMessage: String? by remember { mutableStateOf(null) }
 
 	LaunchedEffect(toastMessage) {
 		toastMessage?.let { message ->

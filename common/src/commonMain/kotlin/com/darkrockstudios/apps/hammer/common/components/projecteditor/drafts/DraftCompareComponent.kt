@@ -5,11 +5,9 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -50,14 +48,27 @@ class DraftCompareComponent(
 		}
 	}
 
-	override fun pickMerged() {
-		val content = state.value.sceneContent
-		if (content != null) {
-			projectEditor.onContentChanged(content, UpdateSource.Drafts)
-			backToEditor()
-		} else {
-			Napier.e { "Cannot pick merged, merged content was NULL" }
+	override fun onMergedContentChanged(richText: PlatformRichText) {
+		_state.getAndUpdate {
+			it.copy(
+				mergedContent = richText,
+			)
 		}
+	}
+
+	override fun onCreate() {
+		super.onCreate()
+
+		loadContents()
+	}
+
+	override fun pickMerged() {
+		val content = SceneContent(
+			scene = sceneItem,
+			platformRepresentation = state.value.mergedContent
+		)
+		projectEditor.onContentChanged(content, UpdateSource.Drafts)
+		backToEditor()
 	}
 
 	override fun pickDraft() {

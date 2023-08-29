@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.drafts
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,24 +14,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.data.text.markdownToSnapshot
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.getInitialEditorContent
+import com.darkrockstudios.richtexteditor.model.RichTextValue
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
 
 @Composable
 fun DraftCompareUi(component: DraftCompare) {
 	val screen = LocalScreenCharacteristic.current
-
-	LaunchedEffect(component.sceneItem) {
-		component.loadContents()
-	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
 		if (LocalScreenCharacteristic.current.needsExplicitClose) {
@@ -78,9 +79,38 @@ private fun CurrentContent(
 	component: DraftCompare
 ) {
 	val state by component.state.subscribeAsState()
-	var sceneText by remember(state.sceneContent) { mutableStateOf(getInitialEditorContent(state.sceneContent)) }
 
-	Card(modifier = modifier.padding(Ui.Padding.L)) {
+	// I feel like there must be a better way...
+	var sceneText by remember(state.sceneContent) {
+		val existing = state.mergedContent as? ComposeRichText
+
+		if (existing == null && state.sceneContent != null) {
+			val sceneSnapshot = (state.sceneContent?.markdown?.markdownToSnapshot())
+			if (sceneSnapshot != null) {
+				component.onMergedContentChanged(ComposeRichText(sceneSnapshot))
+			}
+
+			mutableStateOf(
+				RichTextValue.fromSnapshot(
+					sceneSnapshot ?: "".markdownToSnapshot()
+				)
+			)
+		} else {
+			mutableStateOf(
+				RichTextValue.fromSnapshot(
+					existing?.snapshot ?: "".markdownToSnapshot()
+				)
+			)
+		}
+	}
+
+	Card(
+		modifier = modifier.padding(Ui.Padding.L),
+		border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer),
+		elevation = CardDefaults.outlinedCardElevation(
+			defaultElevation = Ui.Elevation.MEDIUM
+		),
+	) {
 		Column(modifier = Modifier.padding(Ui.Padding.L)) {
 			Text(
 				MR.strings.draft_compare_current_header.get(),
@@ -100,6 +130,7 @@ private fun CurrentContent(
 				modifier = Modifier.fillMaxSize(),
 				value = sceneText,
 				onValueChange = { rtv ->
+					component.onMergedContentChanged(ComposeRichText(rtv.getLastSnapshot()))
 					sceneText = rtv
 				},
 				textFieldStyle = defaultRichTextFieldStyle().copy(

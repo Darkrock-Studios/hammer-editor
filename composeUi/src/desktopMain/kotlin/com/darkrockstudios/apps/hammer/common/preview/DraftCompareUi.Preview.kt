@@ -1,13 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.runtime.Composable
-import com.arkivanov.decompose.value.MutableValue
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
-import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompareUi
-import kotlinx.datetime.Clock
-
+/*
 @Preview
 @Composable
 private fun DraftCompareUiPreview() = koinForPreview {
@@ -33,8 +26,9 @@ private fun DraftCompareUiPreview() = koinForPreview {
 
 		override fun loadContents() {}
 		override fun pickDraft() {}
-		override fun pickMerged() {}
+		override fun pickMerged(composeRichText: PlatformRichText) {}
 		override fun cancel() {}
 	}
 	DraftCompareUi(comp)
 }
+*/

@@ -8,7 +8,7 @@ data_version = "1.0"
 
 # Kotlin
 jvm = "17"
-kotlin = "1.8.22"
+kotlin = "1.9.0"
 
 # Android
 android_gradle_plugin = "8.0.0"
@@ -39,23 +39,23 @@ serialization_json = "1.5.1"
 coroutines = "1.7.3"
 datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
-jetpack_compose_compiler = "1.4.5"
-jetbrains_compose = "1.4.3"
+jetpack_compose_compiler = "1.5.2"
+jetbrains_compose = "1.5.0"
 jetbrains_kover = "0.6.1"
 
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
 
-decompose = "2.0.0"
-essenty = "1.1.0" # This should match what ever decompose is referncing internally
-parcelize_darwin = "0.1.4"
+decompose = "2.1.0-alpha-07"
+essenty = "1.2.0-alpha-06" # This should match what ever decompose is referncing internally
+parcelize_darwin = "0.2.0"
 
 mpfilepicker = "2.0.2"
 richtexteditor = "1.4.1"
 koalaplot-core = "0.3.0"
 image-loader = "1.5.1"
 
-koin_core = "3.4.2"
+koin_core = "3.4.3"
 koin_android = "3.4.3"
 koin_test = "3.4.1"
 koin_sl4j = "3.4.1"
@@ -67,7 +67,7 @@ cokoin = "1.0.0"
 ktor = "2.3.3"
 ktor_i18n = "2.0.0"
 
-okio = "3.3.0"
+okio = "3.4.0"
 slf4jSimple = "2.0.6"
 uuid = "0.7.0"
 work-runtime-ktx = "2.8.1"
@@ -122,6 +122,7 @@ mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpf
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
+decompose_android = { group = "com.arkivanov.decompose", name = "extensions-android", version.ref = "decompose" }
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
 datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
