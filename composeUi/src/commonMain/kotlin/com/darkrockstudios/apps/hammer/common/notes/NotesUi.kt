@@ -88,7 +88,6 @@ fun NotesUi(
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteItem(
 	note: NoteContent,

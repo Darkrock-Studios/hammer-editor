@@ -22,7 +22,6 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import dev.icerock.moko.resources.compose.stringResource
 import io.github.koalaplot.core.bar.DefaultBarChartEntry
 import io.github.koalaplot.core.bar.VerticalBarChart
@@ -187,7 +186,7 @@ private fun NumericStatsBlock(label: String, stateValue: Int) {
 			}
 
 			Text(
-				animatedValue.formatDecimalSeparator(),
+				stateValue.toString(), //animatedValue.formatDecimalSeparator(), // TODO this started crashing in Compose 1.5.0
 				modifier = Modifier.fillMaxWidth().scale(scaleValue),
 				style = MaterialTheme.typography.displayMedium,
 				color = MaterialTheme.colorScheme.onSurface,
