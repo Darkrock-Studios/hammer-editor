@@ -113,9 +113,6 @@ fun AppTheme(
 	val colors = remember(useDarkTheme) {
 		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
 	}
-	val material2Colors = remember(useDarkTheme) {
-		generateMaterial2Colors(colors, !useDarkTheme)
-	}
 
 	val shapes = Shapes(
 		extraSmall = RoundedCornerShape(16.dp),
@@ -128,13 +125,6 @@ fun AppTheme(
 	MaterialTheme(
 		colorScheme = colors,
 		//shapes = shapes,
-		content = {
-			// TODO Can remove when this is solved https://github.com/KoalaPlot/koalaplot-core/issues/8
-			androidx.compose.material.MaterialTheme(
-				colors = material2Colors
-			) {
-				content()
-			}
-		}
+		content = content
 	)
 }
