@@ -158,7 +158,7 @@ fun ProjectSelectContent(component: ProjectSelection) {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun CompactNavigation(
 	component: ProjectSelection,
