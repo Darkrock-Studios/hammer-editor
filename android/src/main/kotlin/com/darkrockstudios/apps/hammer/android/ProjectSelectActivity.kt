@@ -20,8 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
@@ -56,16 +57,19 @@ class ProjectSelectActivity : AppCompatActivity() {
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
+	@OptIn(ExperimentalDecomposeApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 
 		handleIntent(intent)
 
-		val component = ProjectSelectionComponent(
-			componentContext = defaultComponentContext(),
-			onProjectSelected = ::onProjectSelected
-		)
+		val component = retainedComponent { componentContext ->
+			ProjectSelectionComponent(
+				componentContext = componentContext,
+				onProjectSelected = ::onProjectSelected
+			)
+		}
 
 		setContent {
 			CompositionLocalProvider(
