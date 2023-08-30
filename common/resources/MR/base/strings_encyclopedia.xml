@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="encyclopedia_search_hint">Search by Name</string>
+    <string name="encyclopedia_search_hint">Search by Name or #hastag</string>
     <string name="encyclopedia_search_clear_button">Clear</string>
     <string name="encyclopedia_category_all">All</string>
     <string name="encyclopedia_browse_list_empty">No Entries Found</string>

@@ -67,13 +67,28 @@ class BrowseEntriesComponent(
 		}
 	}
 
+	private val hashtagRegex = Regex("""#(\w+)""")
 	override fun getFilteredEntries(): List<EntryDef> {
 		val type = state.value.filterType
-		val text = state.value.filterText
+		val text = state.value.filterText ?: ""
+
+		val tags = hashtagRegex.findAll(text).map { it.value }.toSet()
+
+		// Remove hash tags
+		var searchTerms = text
+		tags.forEach {
+			searchTerms = searchTerms.replace("#$it", "")
+		}
+		// Remove all white space
+		searchTerms = searchTerms.replace(" ", "")
 
 		return state.value.entryDefs.filter { entry ->
 			val typeOk = type == null || entry.type == type
-			val textOk = text.isNullOrEmpty() || entry.name.contains(text.trim(), ignoreCase = true)
+			val cleanedName = entry.name.replace(" ", "")
+			val textOk = searchTerms.isNullOrEmpty() || cleanedName.contains(
+				searchTerms.trim(),
+				ignoreCase = true
+			)
 			typeOk && textOk
 		}
 	}

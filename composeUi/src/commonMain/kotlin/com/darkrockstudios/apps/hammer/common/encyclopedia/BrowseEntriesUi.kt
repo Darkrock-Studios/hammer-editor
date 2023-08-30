@@ -47,7 +47,6 @@ import kotlinx.coroutines.CoroutineScope
 internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	component: BrowseEntries,
 	scope: CoroutineScope,
-	showCreate: () -> Unit,
 	viewEntry: (EntryDef) -> Unit
 ) {
 	val state by component.state.subscribeAsState()

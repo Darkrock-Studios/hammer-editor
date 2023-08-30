@@ -37,7 +37,6 @@ fun EncyclopediaUi(
 					BrowseEntriesUi(
 						component = child.component,
 						scope = scope,
-						showCreate = component::showCreateEntry,
 						viewEntry = component::showViewEntry
 					)
 				}
