@@ -67,7 +67,7 @@ fun FeatureContent(
 	Children(
 		modifier = modifier,
 		stack = routerState,
-		animation = stackAnimation { _, _, _ -> fade() },
+		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->

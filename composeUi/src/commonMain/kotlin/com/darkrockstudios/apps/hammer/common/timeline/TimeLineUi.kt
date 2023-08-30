@@ -36,7 +36,7 @@ fun TimeLineUi(
 		Children(
 			stack = state,
 			modifier = Modifier,
-			animation = stackAnimation { _, _, _ -> fade() },
+			animation = stackAnimation { _ -> fade() },
 		) {
 			when (val child = it.instance) {
 				is TimeLine.Destination.TimeLineOverviewDestination -> {
