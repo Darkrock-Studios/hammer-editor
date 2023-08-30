@@ -31,6 +31,7 @@ class BrowseEntriesComponent(
 	private val entryContentCache = Cache.Builder()
 		.maximumCacheSize(20)
 		.build<Int, EntryContainer>()
+	private val indexByTag = mutableMapOf<String, MutableSet<Int>>()
 
 	override fun onCreate() {
 		super.onCreate()
@@ -42,10 +43,26 @@ class BrowseEntriesComponent(
 		encyclopediaRepository.loadEntries()
 	}
 
+	private fun reindexEntries(entryDefs: List<EntryDef>) {
+		indexByTag.clear()
+		entryDefs.forEach { entryDef ->
+			val entryContainer = encyclopediaRepository.loadEntry(entryDef)
+			entryContainer.entry.tags.forEach { tag ->
+				val ids = indexByTag[tag]
+				if (ids == null) {
+					indexByTag[tag] = mutableSetOf(entryDef.id)
+				} else {
+					ids.add(entryDef.id)
+				}
+			}
+		}
+	}
+
 	private fun watchEntries() {
 		scope.launch {
 			encyclopediaRepository.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
+				reindexEntries(entryDefs)
 
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { state ->
@@ -72,7 +89,9 @@ class BrowseEntriesComponent(
 		val type = state.value.filterType
 		val text = state.value.filterText ?: ""
 
-		val tags = hashtagRegex.findAll(text).map { it.value }.toSet()
+		val tags = hashtagRegex.findAll(text).map {
+			it.groupValues[1]
+		}.toSet()
 
 		// Remove hash tags
 		var searchTerms = text
@@ -83,13 +102,24 @@ class BrowseEntriesComponent(
 		searchTerms = searchTerms.replace(" ", "")
 
 		return state.value.entryDefs.filter { entry ->
-			val typeOk = type == null || entry.type == type
+			val typeOk = (type == null || entry.type == type)
 			val cleanedName = entry.name.replace(" ", "")
-			val textOk = searchTerms.isNullOrEmpty() || cleanedName.contains(
-				searchTerms.trim(),
-				ignoreCase = true
-			)
-			typeOk && textOk
+
+			val textOk = searchTerms.isBlank() || (
+				searchTerms.isNotBlank() &&
+					cleanedName.contains(
+						searchTerms.trim(),
+						ignoreCase = true
+					)
+				)
+
+			val tagOk = if (tags.isEmpty()) {
+				true
+			} else {
+				tags.any { tag -> (indexByTag[tag]?.contains(entry.id) == true) }
+			}
+
+			typeOk && (textOk && tagOk)
 		}
 	}
 

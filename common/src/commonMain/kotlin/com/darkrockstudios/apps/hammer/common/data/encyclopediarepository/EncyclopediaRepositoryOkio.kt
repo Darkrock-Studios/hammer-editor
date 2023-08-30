@@ -168,7 +168,16 @@ class EncyclopediaRepositoryOkio(
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
 
-		val cleanedTags = tags.map { it.trim() }.filter { it.isNotEmpty() }
+		val cleanedTags = tags
+			.map { it.trim() }
+			.map {
+				if (it.startsWith("#")) {
+					it.substring(1)
+				} else {
+					it
+				}
+			}
+			.filter { it.isNotEmpty() }
 
 		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(
