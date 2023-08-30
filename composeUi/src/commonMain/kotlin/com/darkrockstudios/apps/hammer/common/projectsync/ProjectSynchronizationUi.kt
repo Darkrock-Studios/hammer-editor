@@ -22,12 +22,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -43,11 +42,15 @@ internal fun ProjectSynchronization(
 ) {
 	val state by component.state.subscribeAsState()
 
-	MpDialog(
+	SimpleDialog(
 		title = "Project Synchronization",
 		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
 		visible = true,
-		size = DpSize(width = 1024.dp, height = 768.dp)
+		// TODO this size is a hold over from the old Dialog, maybe we dont need it
+		modifier = Modifier.size(
+			width = 1024.dp,
+			height = 768.dp
+		),
 	) {
 		val screenCharacteristics = calculateWindowSizeClass()
 		ProjectSynchronizationContent(component, showSnackbar, screenCharacteristics)

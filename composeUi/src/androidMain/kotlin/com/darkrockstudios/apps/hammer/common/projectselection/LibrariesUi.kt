@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
@@ -18,7 +18,7 @@ actual fun LibrariesUi(
 	showLibraries: Boolean,
 	close: () -> Unit
 ) {
-	MpDialog(
+	SimpleDialog(
 		onCloseRequest = close,
 		visible = showLibraries,
 		title = MR.strings.project_libraries_dialog_title.get(),

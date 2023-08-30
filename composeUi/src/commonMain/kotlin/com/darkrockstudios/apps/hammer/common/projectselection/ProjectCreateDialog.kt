@@ -12,14 +12,14 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Unit) {
-	MpDialog(
+	SimpleDialog(
 		onCloseRequest = close,
 		visible = show,
 		title = MR.strings.create_project_title.get(),

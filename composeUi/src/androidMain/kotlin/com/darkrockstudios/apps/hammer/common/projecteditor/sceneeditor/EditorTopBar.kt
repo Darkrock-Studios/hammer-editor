@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.TopBar
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -68,7 +68,7 @@ actual fun EditorTopBar(component: SceneEditor, snackbarHostState: SnackbarHostS
 		}
 	}
 
-	MpDialog(
+	SimpleDialog(
 		onCloseRequest = component::endSceneNameEdit,
 		visible = state.isEditingName,
 		title = MR.strings.scene_editor_rename_dialog_title.get()

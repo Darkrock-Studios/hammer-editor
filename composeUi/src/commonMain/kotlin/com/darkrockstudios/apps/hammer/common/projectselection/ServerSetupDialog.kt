@@ -23,13 +23,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
@@ -48,15 +47,20 @@ fun ServerSetupDialog(
 
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
 	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
-	val existingServer = rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
+	val existingServer =
+		rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
 
-	MpDialog(
+	SimpleDialog(
 		onCloseRequest = {
 			component.cancelServerSetup()
 		},
 		visible = state.serverSetup,
 		title = MR.strings.settings_server_setup_title.get(),
-		size = DpSize(400.dp, 460.dp)
+		// TODO this size is a hold over from the old Dialog, maybe we dont need it
+		modifier = Modifier.size(
+			width = 400.dp,
+			height = 460.dp
+		),
 	) {
 		Box(
 			modifier = Modifier.padding(Ui.Padding.XL),
