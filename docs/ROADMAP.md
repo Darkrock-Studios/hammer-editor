@@ -27,8 +27,8 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 - **Encyclopedia Improvements:** usability improvements
     - Allow more characters to be used in the name
     - Allow changing of entry type after creation
-    - Allow tag removal, addition after creation
-    - Tag search in browser
+	- Allow tag removal, addition after creation
+	- ~~Tag search in encyclopedia browser~~
 - More unit testing across the board
 - ~~Release for **MacOS**~~
 
