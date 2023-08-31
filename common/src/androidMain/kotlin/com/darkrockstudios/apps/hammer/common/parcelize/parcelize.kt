@@ -14,10 +14,12 @@ internal actual object InstantParceler : Parceler<Instant> {
 	}
 }
 
-internal actual object StringResourceParceler : Parceler<StringResource> {
+internal actual object StringResourceParceler : Parceler<StringResource?> {
 	override fun create(parcel: Parcel): StringResource = StringResource(parcel.readInt())
 
-	override fun StringResource.write(parcel: Parcel, flags: Int) {
-		parcel.writeInt(parcel.readInt())
+	override fun StringResource?.write(parcel: Parcel, flags: Int) {
+		if (this != null) {
+			parcel.writeInt(parcel.readInt())
+		}
 	}
 }
