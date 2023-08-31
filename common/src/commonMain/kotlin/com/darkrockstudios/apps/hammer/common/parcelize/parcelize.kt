@@ -6,4 +6,4 @@ import kotlinx.datetime.Instant
 
 internal expect object InstantParceler : Parceler<Instant>
 
-internal expect object StringResourceParceler : Parceler<StringResource>
+internal expect object StringResourceParceler : Parceler<StringResource?>

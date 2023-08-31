@@ -30,7 +30,7 @@ interface ProjectsList : HammerComponent {
 	fun onProjectNameUpdate(newProjectName: String)
 
 	@Parcelize
-	@TypeParceler<StringResource, StringResourceParceler>()
+	@TypeParceler<StringResource?, StringResourceParceler>()
 	data class State(
 		val projects: List<ProjectData> = mutableListOf(),
 		val projectsPath: HPath,
