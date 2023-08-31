@@ -58,7 +58,7 @@ class ProjectsListComponent(
 
 	private fun showToast(message: StringResource) {
 		_state.getAndUpdate {
-			it.copy(toast = message)
+			it.copy(toast = strRes.get(message))
 		}
 	}
 
@@ -183,7 +183,7 @@ class ProjectsListComponent(
 			(result.exceptionOrNull() as? ProjectCreationFailedException)?.errorMessage?.let { message ->
 				_state.getAndUpdate {
 					it.copy(
-						toast = message
+						toast = strRes.get(message)
 					)
 				}
 			}
