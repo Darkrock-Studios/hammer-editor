@@ -19,6 +19,7 @@ data class ProjectMetadata(
 
 @Parcelize
 @Serializable
+@TypeParceler<Instant, InstantParceler>()
 data class Info(
-	@TypeParceler<Instant, InstantParceler>() val created: Instant
+	val created: Instant
 ) : Parcelable
