@@ -15,7 +15,14 @@ const val PROJECT_EMPTY_NAME = "Empty Project"
 const val PROJECT_1_NAME = "Test Project 1"
 const val PROJECT_2_NAME = "Test Project 2"
 const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
-val projectNames = listOf(PROJECT_EMPTY_NAME, OUT_OF_ORDER_PROJECT_NAME, PROJECT_1_NAME, PROJECT_2_NAME)
+const val ENCYCLOPEDIA_ONLY_PROJECT_NAME = "Encyclopedia Only"
+val projectNames = listOf(
+	PROJECT_EMPTY_NAME,
+	OUT_OF_ORDER_PROJECT_NAME,
+	PROJECT_1_NAME,
+	PROJECT_2_NAME,
+	ENCYCLOPEDIA_ONLY_PROJECT_NAME
+)
 
 fun getProjectDef(name: String): ProjectDef {
 	val projectPath = getProjectsDirectory().div(name).toHPath()

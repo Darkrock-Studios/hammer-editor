@@ -93,7 +93,7 @@ class BrowseEntriesComponent(
 			it.groupValues[1]
 		}.toSet()
 
-		// Remove hash tags
+		// Remove hashtags
 		var searchTerms = text
 		tags.forEach {
 			searchTerms = searchTerms.replace("#$it", "")

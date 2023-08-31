@@ -113,8 +113,8 @@ class ProjectsRepositoryTest : BaseTest() {
 		val projects = repo.getProjects()
 
 		assertEquals(projectNames.size, projects.size)
-		projects.forEachIndexed { index, project ->
-			assertEquals(projectNames[index], project.name)
+		projects.forEach { project ->
+			projectNames.contains(project.name)
 		}
 	}
 

@@ -22,12 +22,15 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.libraries.mpfilepicker.FilePicker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ViewEntryUi(
 	component: ViewEntry,
@@ -106,20 +109,20 @@ internal fun ViewEntryUi(
 				if (content != null && (state.editName || state.editText)) {
 					IconButton(onClick = {
 						scope.launch {
-							component.updateEntry(
+							val result = component.updateEntry(
 								name = entryNameText,
 								text = entryText,
 								tags = content.tags
 							)
 
-							withContext(dispatcherMain) {
-								component.finishNameEdit()
-								component.finishTextEdit()
+							if (result.error == EntryError.NONE) {
+								withContext(dispatcherMain) {
+									component.finishNameEdit()
+									component.finishTextEdit()
+								}
 							}
 
-							scope.launch {
-								snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
-							}
+							reportSaveResult(result, snackbarHostState, scope, strRes)
 						}
 					}) {
 						Icon(
@@ -332,6 +335,54 @@ private fun Contents(
 			}
 		} else {
 			CircularProgressIndicator()
+		}
+	}
+}
+
+private fun reportSaveResult(
+	result: EntryResult,
+	snackbarHostState: SnackbarHostState,
+	scope: CoroutineScope,
+	strRes: StrRes
+) {
+	scope.launch {
+		when (result.error) {
+			EntryError.NAME_TOO_LONG -> scope.launch {
+				snackbarHostState.showSnackbar(
+					strRes.get(
+						MR.strings.encyclopedia_create_entry_toast_too_long,
+						EncyclopediaRepository.MAX_NAME_SIZE
+					)
+				)
+			}
+
+			EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
+				snackbarHostState.showSnackbar(
+					strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
+				)
+			}
+
+			EntryError.TAG_TOO_LONG -> scope.launch {
+				snackbarHostState.showSnackbar(
+					strRes.get(
+						MR.strings.encyclopedia_create_entry_toast_tag_too_long,
+						EncyclopediaRepository.MAX_TAG_SIZE
+					)
+				)
+			}
+
+			EntryError.NAME_TOO_SHORT -> scope.launch {
+				snackbarHostState.showSnackbar(
+					strRes.get(
+						MR.strings.encyclopedia_create_entry_toast_tag_too_short,
+					)
+				)
+			}
+
+			EntryError.NONE -> {
+				scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
+				snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
+			}
 		}
 	}
 }

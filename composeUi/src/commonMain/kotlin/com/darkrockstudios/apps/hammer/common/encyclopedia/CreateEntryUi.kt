@@ -185,6 +185,14 @@ internal fun CreateEntryUi(
 										)
 									}
 
+									EntryError.NAME_TOO_SHORT -> scope.launch {
+										snackbarHostState.showSnackbar(
+											strRes.get(
+												MR.strings.encyclopedia_create_entry_toast_tag_too_short,
+											)
+										)
+									}
+
 									EntryError.NONE -> {
 										newEntryNameText = ""
 										close()

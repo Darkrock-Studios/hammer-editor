@@ -62,7 +62,7 @@ class EncyclopediaRepositoryOkio(
 	override fun findEntryPath(id: Int): HPath? {
 		var path: HPath? = null
 
-		val types = EntryType.values()
+		val types = EntryType.entries.toTypedArray()
 		for (type in types) {
 			val typeDir = getTypeDirectory(type).toOkioPath()
 			val files = fileSystem.listRecursively(typeDir)

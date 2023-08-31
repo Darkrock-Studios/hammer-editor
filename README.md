@@ -78,7 +78,7 @@ _Do not use the test environment for real data! It will get cleared from time-to
 
 # Development
 
-Want to contribute? Great! [Here are some instructions to get you started](docs/DEVELOPMENT.md).
+Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
 
 ![badge-kotlin]
 

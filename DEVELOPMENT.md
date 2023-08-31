@@ -62,13 +62,13 @@ testing: [Compose Test Cheatsheet](https://developer.android.com/reference/kotli
 
 ## Overal Project Structure (modules)
 
-![Project Modules](../readme/modules.png)
+![Project Modules](readme/modules.png)
 
 ## Client Development
 
 ### Client Architecture
 
-![Client Architecture Layers](../readme/client-architecture-layers.png)
+![Client Architecture Layers](readme/client-architecture-layers.png)
 
 ### Coroutines
 
@@ -123,7 +123,7 @@ scope.launch(defaultDispatcher) {
 ## Synchronization
 
 The protocol for synchronizing data between client and server is outlined here:
-[SYNCING-PROTOCOL.md](SYNCING-PROTOCOL.md)
+[SYNCING-PROTOCOL.md](docs/SYNCING-PROTOCOL.md)
 
 ## How to Release
 
