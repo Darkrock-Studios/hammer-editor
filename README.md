@@ -86,7 +86,7 @@ Want to contribute? Great! [Here are some instructions to get you started](DEVEL
 
 <!-- TAG_DEPENDENCIES -->
 
-[badge-kotlin]: https://img.shields.io/badge/kotlin-1.8.20-blue.svg?logo=kotlin
+[badge-kotlin]: https://img.shields.io/badge/kotlin-1.9.0-blue.svg?logo=kotlin
 
 <!-- PLATFORMS -->
 
