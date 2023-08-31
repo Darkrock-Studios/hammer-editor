@@ -3,12 +3,15 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.proje
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
+import com.arkivanov.essenty.parcelable.TypeParceler
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.parcelize.StringResourceParceler
+import dev.icerock.moko.resources.StringResource
 
 interface ProjectsList : HammerComponent {
 	val state: Value<State>
@@ -27,6 +30,7 @@ interface ProjectsList : HammerComponent {
 	fun onProjectNameUpdate(newProjectName: String)
 
 	@Parcelize
+	@TypeParceler<StringResource, StringResourceParceler>()
 	data class State(
 		val projects: List<ProjectData> = mutableListOf(),
 		val projectsPath: HPath,
@@ -34,7 +38,7 @@ interface ProjectsList : HammerComponent {
 		val syncState: SyncState = SyncState(),
 		val showCreateDialog: Boolean = false,
 		val createDialogProjectName: String = "",
-		val toast: String? = null
+		val toast: StringResource? = null
 	) : Parcelable
 
 	@Parcelize
