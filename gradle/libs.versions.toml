@@ -125,6 +125,7 @@ decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-comp
 decompose_android = { group = "com.arkivanov.decompose", name = "extensions-android", version.ref = "decompose" }
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
+essenty_parcelable = { group = "com.arkivanov.essenty", name = "parcelable", version.ref = "essenty" }
 datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 
 moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
