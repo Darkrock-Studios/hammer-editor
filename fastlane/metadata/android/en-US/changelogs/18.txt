@@ -1,0 +1,14 @@
+- New: More advanced searching including tags in Encyclopedia
+- New: Project List now sorted by last opened
+- New: Scene List now has a proper Empty state
+- Fixed: Draft Compare, merging content from draft and current now works
+- Android: Added "Add Note" shortcut, long press app icon
+- Android: "Add Note" Widget 2.0
+- Android: Fix soft keyboards not pushing UI up
+- Android: Fixed windows padding and margin, now reactive to all device types
+- Android: Implemented "Export Story"
+- Android: Scene Editor not showing "Unsaved" UI
+- Android: Survive orientation changes more gracefully now
+- Dialogs and Popups now commonized across all platforms
+- Major Library Upgrades
+- More localization work
