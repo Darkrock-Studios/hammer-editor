@@ -127,6 +127,9 @@ The protocol for synchronizing data between client and server is outlined here:
 
 ## How to Release
 
+- Increment app version `app` and `android_version_code` in `libs.versions.toml`
+- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
+  the `android_version_code`
 - Merge `develop` into `release`
 - Tag the latest commit to make the release from in the [semvar](https://semver.org) format
   of `v1.1.1`
