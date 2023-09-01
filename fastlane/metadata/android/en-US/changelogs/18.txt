@@ -1,12 +1,12 @@
 - More advanced searching including tags in Encyclopedia
 - Project List sorted by last opened
 - Scene List has a proper Empty state
-- Draft Compare merging content from draft and current now works
+- Draft Compare merging now works
 - Android:
   + "Add Note" Widget 2.0 + Shortcut
   + Fix soft keyboards not pushing UI up
   + Fixed windows padding and margin, now reactive to all device types
-  + Implemented "Export Story"
-  + Scene Editor not showing "Unsaved" UI
+  + Implemented Export Story
+  + Scene Editor not showing Unsaved UI
   + Survive orientation changes more gracefully now
 - Dialogs and Popups improved
