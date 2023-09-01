@@ -28,7 +28,6 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
@@ -45,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
@@ -276,7 +276,7 @@ private fun MediumNavigation(
 					Spacer(modifier = Modifier.weight(1f))
 
 					Text(
-						"v${BuildMetadata.APP_VERSION}",
+						getAppVersionString(),
 						style = MaterialTheme.typography.labelSmall,
 						fontWeight = FontWeight.Thin,
 						modifier = Modifier
@@ -326,7 +326,7 @@ private fun ExpandedNavigation(
 						Spacer(modifier = Modifier.weight(1f))
 
 						Text(
-							"v${BuildMetadata.APP_VERSION}",
+							getAppVersionString(),
 							modifier = Modifier
 								.padding(Ui.Padding.L)
 								.align(Alignment.Start),
