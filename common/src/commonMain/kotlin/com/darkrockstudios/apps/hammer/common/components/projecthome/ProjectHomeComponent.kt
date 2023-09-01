@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.koin.core.component.inject
 
 class ProjectHomeComponent(
@@ -132,6 +133,8 @@ class ProjectHomeComponent(
 				}
 			}
 
+			yield()
+
 			val wordsByChapter = mutableMapOf<String, Int>()
 			tree.children.forEach { node ->
 				val chapterName = node.value.name
@@ -146,6 +149,8 @@ class ProjectHomeComponent(
 				wordsByChapter[chapterName] = wordsInChapter
 			}
 
+			yield()
+
 			encyclopediaRepository.loadEntries()
 			val entriesByType = mutableMapOf<EntryType, Int>()
 			encyclopediaRepository.entryListFlow.take(1).collect { entries ->
@@ -154,6 +159,8 @@ class ProjectHomeComponent(
 					entriesByType[type] = numEntriesOfType
 				}
 			}
+
+			yield()
 
 			withContext(dispatcherMain) {
 				_state.getAndUpdate {

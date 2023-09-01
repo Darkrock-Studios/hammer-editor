@@ -2,9 +2,12 @@ package repositories
 
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
@@ -19,9 +22,9 @@ import io.mockk.coEvery
 import io.mockk.coJustAwait
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
@@ -29,11 +32,11 @@ import projectNames
 import utils.BaseTest
 import kotlin.test.*
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class ProjectsRepositoryTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var settingsRepo: GlobalSettingsRepository
+	private lateinit var projectsMetaRepo: ProjectMetadataRepository
 	private lateinit var settings: GlobalSettings
 	private lateinit var toml: Toml
 
@@ -41,6 +44,15 @@ class ProjectsRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		toml = createTomlSerializer()
+
+		projectsMetaRepo = mockk(relaxed = true)
+		every { projectsMetaRepo.loadMetadata(any()) } returns
+			ProjectMetadata(
+				info = Info(
+					created = Instant.DISTANT_FUTURE,
+					lastAccessed = Instant.DISTANT_FUTURE,
+				)
+			)
 
 		settingsRepo = mockk()
 		settings = mockk()
@@ -68,7 +80,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	fun `ProjectsRepository init`() = scope.runTest {
 		val projDir = getProjectsDirectory()
 		assertFalse(ffs.exists(projDir), "Dir should not have existed already")
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 		assertTrue(ffs.exists(projDir), "Init did not create project dir")
 	}
 
@@ -100,7 +112,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	@Test
 	fun `Get Projects Directory`() = scope.runTest {
 		val actualProjDir = getProjectsDirectory().toHPath()
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 		val projectDir = repo.getProjectsDirectory()
 		assertEquals(actualProjDir, projectDir)
 	}
@@ -109,7 +121,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	fun `Get Projects`() = scope.runTest {
 		createProjectDirectories(ffs)
 
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 		val projects = repo.getProjects()
 
 		assertEquals(projectNames.size, projects.size)
@@ -121,7 +133,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	@Test
 	fun `Get Project Directory`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 
 		val projectName = projectNames[0]
 		val projectDir = repo.getProjectDirectory(projectName)
@@ -132,7 +144,7 @@ class ProjectsRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Project`() = scope.runTest {
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 
 		val projectName = projectNames[0]
 		val result = repo.createProject(projectName)
@@ -148,7 +160,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete Project`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepositoryOkio(ffs, toml, settingsRepo)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
 
 		val projectName = projectNames[0]
 		val projPath = getProjectsDirectory().div(projectName)

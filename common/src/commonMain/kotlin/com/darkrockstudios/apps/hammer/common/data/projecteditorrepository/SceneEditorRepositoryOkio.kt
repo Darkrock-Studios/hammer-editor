@@ -1,18 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.MoveRequest
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -22,9 +13,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.datetime.Clock
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -33,9 +21,9 @@ class SceneEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
+	metadataRepository: ProjectMetadataRepository,
 	private val fileSystem: FileSystem,
-	private val toml: Toml
-) : SceneEditorRepository(projectDef, idRepository, projectSynchronizer) {
+) : SceneEditorRepository(projectDef, idRepository, projectSynchronizer, metadataRepository) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -874,50 +862,6 @@ class SceneEditorRepositoryOkio(
 		reloadScenes()
 	}
 
-	override fun getMetadataPath() = getMetadataPath(projectDef)
-
-	override fun loadMetadata(): ProjectMetadata {
-		val path = getMetadataPath().toOkioPath()
-
-		val metadata = try {
-			val metadataText = fileSystem.read(path) {
-				readUtf8()
-			}
-			toml.decodeFromString(metadataText)
-		} catch (e: IOException) {
-			Napier.e("Failed to project metadata")
-
-			// Delete any old corrupt file if we got here
-			fileSystem.delete(path, false)
-
-			createNewMetadata()
-		}
-
-		return metadata
-	}
-
-	private fun createNewMetadata(): ProjectMetadata {
-		val newMetadata = ProjectMetadata(
-			info = Info(
-				created = Clock.System.now()
-			)
-		)
-
-		saveMetadata(newMetadata)
-
-		return newMetadata
-	}
-
-	override fun saveMetadata(metadata: ProjectMetadata) {
-		val path = getMetadataPath().toOkioPath()
-
-		val metadataText = toml.encodeToString<ProjectMetadata>(metadata)
-
-		fileSystem.write(path, false) {
-			writeUtf8(metadataText)
-		}
-	}
-
 	companion object {
 		fun getSceneDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
 			val projOkPath = projectDef.path.toOkioPath()
@@ -926,10 +870,6 @@ class SceneEditorRepositoryOkio(
 				fileSystem.createDirectories(sceneDirPath)
 			}
 			return sceneDirPath.toHPath()
-		}
-
-		fun getMetadataPath(projectDef: ProjectDef): HPath {
-			return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
 		}
 	}
 }

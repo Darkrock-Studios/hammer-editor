@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -33,6 +34,7 @@ import org.koin.core.component.inject
 class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	private val projectsRepository: ProjectsRepository by inject()
+	private val projectsMetadataRepository: ProjectMetadataRepository by inject()
 
 	@OptIn(ExperimentalMaterial3Api::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +50,11 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			projectNameExtra
 		}
 
-		val projects = projectsRepository.getProjects()
+		val projects = projectsRepository.getProjects().map { projectDef ->
+			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
+			Pair(projectDef, metadata)
+		}.sortedByDescending { it.second.info.lastAccessed }.map { it.first }
+
 		if (projects.isEmpty()) {
 			Toast.makeText(
 				this,

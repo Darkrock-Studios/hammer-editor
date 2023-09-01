@@ -5,11 +5,14 @@ import PROJECT_1_NAME
 import PROJECT_2_NAME
 import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -25,8 +28,8 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -37,7 +40,6 @@ import utils.callPrivate
 import utils.getPrivateProperty
 import kotlin.test.*
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
@@ -47,10 +49,12 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
+	private lateinit var metadataRepository: ProjectMetadataRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
 
-	private val errorException = ValidationFailedException(MR.strings.create_project_error_null_filename)
+	private val errorException =
+		ValidationFailedException(MR.strings.create_project_error_null_filename)
 
 	private fun claimId(): Int {
 		val id = nextId
@@ -97,6 +101,15 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 		coEvery { idRepository.claimNextId() } answers { claimId() }
 		coEvery { idRepository.findNextId() } answers { }
 
+		metadataRepository = mockk()
+		every { metadataRepository.loadMetadata(any()) } returns
+			ProjectMetadata(
+				info = Info(
+					created = Instant.DISTANT_FUTURE,
+					lastAccessed = Instant.DISTANT_FUTURE,
+				)
+			)
+
 		projectSynchronizer = mockk()
 		every { projectSynchronizer.isServerSynchronized() } returns false
 		//coEvery { projectSynchronizer.recordIdDeletion(any()) } just Runs
@@ -132,8 +145,8 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
-			toml = toml,
-			idRepository = idRepository
+			idRepository = idRepository,
+			metadataRepository = metadataRepository,
 		)
 	}
 

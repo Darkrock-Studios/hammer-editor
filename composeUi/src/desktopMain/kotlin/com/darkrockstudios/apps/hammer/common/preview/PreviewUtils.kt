@@ -32,7 +32,8 @@ fun fakeProjectDef(): ProjectDef = ProjectDef(
 
 fun fakeProjectMetadata(): ProjectMetadata = ProjectMetadata(
 	info = Info(
-		created = Instant.DISTANT_FUTURE
+		created = Instant.DISTANT_FUTURE,
+		lastAccessed = Instant.DISTANT_FUTURE,
 	)
 )
 

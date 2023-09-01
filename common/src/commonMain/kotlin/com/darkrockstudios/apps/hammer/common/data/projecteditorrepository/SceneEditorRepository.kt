@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
@@ -28,6 +29,7 @@ abstract class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer,
+	protected val metadataRepository: ProjectMetadataRepository,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(
@@ -176,7 +178,7 @@ abstract class SceneEditorRepository(
 
 		reloadScenes()
 
-		val newMetadata = loadMetadata()
+		val newMetadata = metadataRepository.loadMetadata(projectDef)
 		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
@@ -426,10 +428,6 @@ abstract class SceneEditorRepository(
 	}
 
 	fun validateSceneName(sceneName: String): Result<Boolean> = ProjectsRepository.validateFileName(sceneName)
-
-	protected abstract fun loadMetadata(): ProjectMetadata
-	protected abstract fun saveMetadata(metadata: ProjectMetadata)
-	protected abstract fun getMetadataPath(): HPath
 
 	abstract fun getHpath(sceneItem: SceneItem): HPath
 

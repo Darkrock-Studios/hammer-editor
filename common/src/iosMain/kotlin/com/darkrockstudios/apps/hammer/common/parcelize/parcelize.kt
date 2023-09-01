@@ -8,6 +8,8 @@ import kotlinx.datetime.Instant
 
 internal actual object InstantParceler : Parceler<Instant>
 
+internal actual object NullableInstantParceler : Parceler<Instant?>
+
 internal actual object StringResourceParceler : Parceler<StringResource?>
 /*
 private const val RESOURCE_ID_KEY = "stringResource"

@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRe
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.createProjectBackup
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -84,6 +86,8 @@ val mainModule = module {
 	singleOf(::ClientProjectsSynchronizer)
 
 	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
+
+	singleOf(::ProjectMetadataRepositoryOkio) bind ProjectMetadataRepository::class
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }

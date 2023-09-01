@@ -14,6 +14,17 @@ internal actual object InstantParceler : Parceler<Instant> {
 	}
 }
 
+internal actual object NullableInstantParceler : Parceler<Instant?> {
+	override fun create(parcel: Parcel): Instant =
+		Instant.fromEpochSeconds(parcel.readLong())
+
+	override fun Instant?.write(parcel: Parcel, flags: Int) {
+		if (this != null) {
+			parcel.writeLong(epochSeconds)
+		}
+	}
+}
+
 internal actual object StringResourceParceler : Parceler<StringResource?> {
 	override fun create(parcel: Parcel): StringResource = StringResource(parcel.readInt())
 
