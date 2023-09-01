@@ -1,0 +1,6 @@
+[entry]
+id = 1
+name = "Entry 1"
+type = "PERSON"
+text = "This is a person entry"
+tags = ["tag1", "tag2"]

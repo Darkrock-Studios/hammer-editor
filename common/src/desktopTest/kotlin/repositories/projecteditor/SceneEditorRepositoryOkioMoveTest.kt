@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
@@ -23,7 +24,6 @@ import createProject
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
@@ -38,7 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
@@ -48,6 +47,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
+	private lateinit var metadataRepository: ProjectMetadataRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -103,6 +103,9 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 		projectSynchronizer = mockk()
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
+		metadataRepository = mockk(relaxed = true)
+
+
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
 				rootDir.toPath().div(PROJ_DIR).toHPath()
@@ -129,8 +132,8 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
-			toml = toml,
-			idRepository = idRepository
+			idRepository = idRepository,
+			metadataRepository = metadataRepository,
 		)
 
 		runBlocking {

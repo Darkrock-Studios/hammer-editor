@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
@@ -30,7 +30,7 @@ internal fun SaveDraftDialog(
 	val mainDispatcher = rememberMainDispatcher()
 	var draftName by remember { mutableStateOf("") }
 
-	MpDialog(
+	SimpleDialog(
 		visible = state.isSavingDraft,
 		title = MR.strings.save_draft_dialog_title.get(),
 		onCloseRequest = {

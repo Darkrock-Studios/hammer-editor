@@ -1,11 +1,14 @@
 package repositories.projecteditor
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -17,8 +20,8 @@ import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -28,7 +31,6 @@ import utils.callPrivate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
@@ -38,6 +40,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
 	private lateinit var idRepository: IdRepository
+	private lateinit var metadataRepository: ProjectMetadataRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -80,6 +83,15 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
+		metadataRepository = mockk(relaxed = true)
+		every { metadataRepository.loadMetadata(any()) } returns
+			ProjectMetadata(
+				info = Info(
+					created = Instant.DISTANT_FUTURE,
+					lastAccessed = Instant.DISTANT_FUTURE,
+				)
+			)
+
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
 				rootDir.toPath().div(PROJ_DIR).toHPath()
@@ -119,7 +131,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			toml = toml
+			metadataRepository = metadataRepository,
 		)
 
 		val expectedFilename = sceneFiles.entries.first().key
@@ -135,7 +147,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			toml = toml
+			metadataRepository = metadataRepository,
 		)
 
 		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
@@ -153,7 +165,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			toml = toml
+			metadataRepository = metadataRepository,
 		)
 
 		repo.initializeProjectEditor()

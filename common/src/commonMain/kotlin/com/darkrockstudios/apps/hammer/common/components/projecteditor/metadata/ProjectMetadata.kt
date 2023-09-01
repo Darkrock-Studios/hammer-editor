@@ -4,6 +4,7 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.arkivanov.essenty.parcelable.TypeParceler
 import com.darkrockstudios.apps.hammer.common.parcelize.InstantParceler
+import com.darkrockstudios.apps.hammer.common.parcelize.NullableInstantParceler
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
@@ -19,6 +20,9 @@ data class ProjectMetadata(
 
 @Parcelize
 @Serializable
+@TypeParceler<Instant, InstantParceler>()
+@TypeParceler<Instant?, NullableInstantParceler>()
 data class Info(
-	@TypeParceler<Instant, InstantParceler>() val created: Instant
+	val created: Instant,
+	val lastAccessed: Instant? = null,
 ) : Parcelable

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -12,12 +13,14 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.flow.first
 
 class ClientTimelineSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
 	private val timeLineRepository: TimeLineRepository,
+	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(projectDef, serverProjectApi) {
 
 	override suspend fun prepareForSync() {
@@ -87,12 +90,12 @@ class ClientTimelineSynchronizer(
 		val event = timeLineRepository.getTimelineEvent(id)
 		if (event != null) {
 			if (timeLineRepository.deleteEvent(event)) {
-				onLog(syncLogI("Deleted Timeline Event $id", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_event_deleted, id), projectDef))
 			} else {
-				onLog(syncLogE("Failed to delete timeline event $id", projectDef))
+				onLog(syncLogE(strRes.get(MR.strings.sync_event_delete_failed, id), projectDef))
 			}
 		} else {
-			onLog(syncLogE("Timeline event $id not found", projectDef))
+			onLog(syncLogE(strRes.get(MR.strings.sync_event_delete_failed_not_found, id), projectDef))
 		}
 	}
 

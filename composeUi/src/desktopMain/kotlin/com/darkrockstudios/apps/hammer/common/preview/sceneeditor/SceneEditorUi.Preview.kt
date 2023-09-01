@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.sceneeditor
+package com.darkrockstudios.apps.hammer.common.preview.sceneeditor
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable

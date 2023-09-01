@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -43,7 +42,7 @@ private fun LocalScene(
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
+			verticalArrangement = Arrangement.Center
 		) {
 			Text(
 				text = MR.strings.sync_conflict_title_scene_local.get(),
@@ -79,7 +78,7 @@ private fun RemoteScene(
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
+			verticalArrangement = Arrangement.Center
 		) {
 			Text(
 				text = MR.strings.sync_conflict_title_scene_remote.get(),

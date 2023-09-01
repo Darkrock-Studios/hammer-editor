@@ -1,5 +1,6 @@
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -18,8 +19,9 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		val observer = slot<(TimeLineOverview.State) -> Unit>()
 		val stateValue: Value<TimeLineOverview.State> = mockk()
-		every { stateValue.subscribe(capture(observer)) } just Runs
-		every { stateValue.unsubscribe(any()) } just Runs
+		every { stateValue.observe(capture(observer)) } returns mockk<Cancellation>().apply {
+			every { cancel() } just Runs
+		}
 		every { stateValue.value } returns data
 		every { component.state } returns stateValue
 

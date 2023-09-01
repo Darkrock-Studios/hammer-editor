@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -23,7 +22,6 @@ abstract class ProjectsRepository : KoinComponent {
 	abstract fun getProjectDirectory(projectName: String): HPath
 	abstract fun createProject(projectName: String): Result<Boolean>
 	abstract fun deleteProject(projectDef: ProjectDef): Boolean
-	abstract suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata?
 	abstract fun ensureProjectDirectory()
 
 	private data class Validator(

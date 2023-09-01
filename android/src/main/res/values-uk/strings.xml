@@ -10,6 +10,6 @@
     <string name="note_widget_button_description">Додати нотатку</string>
     <string name="note_widget_toast_no_projects">Немає проєктів</string>
     <string name="note_widget_toast_success">Додано нотатку</string>
-    <string name="note_widget_dialog_categories_dropdown">Категорії</string>
+    <string name="note_widget_dialog_projects_dropdown">Категорії</string>
     <string name="navdrawer_button">Навігаційна панель</string>
 </resources>

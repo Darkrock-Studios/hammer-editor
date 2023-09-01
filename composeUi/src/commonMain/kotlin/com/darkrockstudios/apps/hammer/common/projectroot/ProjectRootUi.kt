@@ -7,7 +7,6 @@ import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,11 +67,11 @@ fun FeatureContent(
 	Children(
 		modifier = modifier,
 		stack = routerState,
-		animation = stackAnimation { _, _, _ -> fade() },
+		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(component = child.component)
+				ProjectEditorUi(child.component)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component)

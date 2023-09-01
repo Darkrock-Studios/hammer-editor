@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
@@ -17,8 +18,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 
 /**
@@ -35,41 +38,52 @@ fun SceneTree(
 ) {
 	Box {
 		Row {
-			LazyColumn(
-				state = state.listState,
-				modifier = modifier.reorderableModifier(state)
-					.weight(1f),
-				contentPadding = contentPadding
-			) {
-				items(
-					count = state.summary.sceneTree.totalNodes,
-					key = { state.summary.sceneTree[it].value.id },
-					contentType = { state.summary.sceneTree[it].value.type }
-				) { index ->
-					val childNode = state.summary.sceneTree[index]
-					val shouldCollapseSelf = shouldCollapseNode(
-						index,
-						state.summary,
-						state.collapsedNodes
-					)
-					val nodeCollapsesChildren = state.collapsedNodes[childNode.value.id] ?: false
-
-					if (!childNode.value.isRootScene) {
-						SceneTreeNode(
-							node = childNode,
-							collapsed = shouldCollapseSelf, // need to take parent into account
-							nodeCollapsesChildren = nodeCollapsesChildren,
-							selectedId = state.selectedId,
-							toggleExpanded = state::toggleExpanded,
-							modifier = Modifier.wrapContentHeight()
-								.fillMaxWidth()
-								.animateItemPlacement(),
-							itemUi = itemUi
+			if (state.summary.sceneTree.totalNodes <= 1) {
+				Text(
+					text = "No Scenes",
+					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
+					textAlign = TextAlign.Center,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onBackground
+				)
+			} else {
+				LazyColumn(
+					state = state.listState,
+					modifier = modifier.reorderableModifier(state)
+						.weight(1f),
+					contentPadding = contentPadding
+				) {
+					items(
+						count = state.summary.sceneTree.totalNodes,
+						key = { state.summary.sceneTree[it].value.id },
+						contentType = { state.summary.sceneTree[it].value.type }
+					) { index ->
+						val childNode = state.summary.sceneTree[index]
+						val shouldCollapseSelf = shouldCollapseNode(
+							index,
+							state.summary,
+							state.collapsedNodes
 						)
+						val nodeCollapsesChildren =
+							state.collapsedNodes[childNode.value.id] ?: false
+
+						if (!childNode.value.isRootScene) {
+							SceneTreeNode(
+								node = childNode,
+								collapsed = shouldCollapseSelf, // need to take parent into account
+								nodeCollapsesChildren = nodeCollapsesChildren,
+								selectedId = state.selectedId,
+								toggleExpanded = state::toggleExpanded,
+								modifier = Modifier.wrapContentHeight()
+									.fillMaxWidth()
+									.animateItemPlacement(),
+								itemUi = itemUi
+							)
+						}
 					}
 				}
+				MpScrollBarList(state = state.listState)
 			}
-			MpScrollBarList(state = state.listState)
 		}
 		drawInsertLine(state)
 	}
@@ -150,7 +164,10 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 private val NESTING_INSET = 16f.dp
 
 @Composable
-private fun drawInsertLine(state: SceneTreeState, color: Color = MaterialTheme.colorScheme.secondary) {
+private fun drawInsertLine(
+	state: SceneTreeState,
+	color: Color = MaterialTheme.colorScheme.secondary
+) {
 	state.apply {
 		insertAt?.let { insertPos ->
 			val node = if (summary.sceneTree.totalChildren <= insertPos.coords.globalIndex) {

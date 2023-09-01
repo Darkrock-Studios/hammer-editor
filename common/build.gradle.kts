@@ -3,7 +3,7 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.parcelize)
-	//alias(libs.plugins.parcelize.darwin)
+	alias(libs.plugins.parcelize.darwin)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.moko.resources)
 }
@@ -42,6 +42,7 @@ kotlin {
 				api(project(":base"))
 
 				api(libs.decompose)
+				implementation(libs.essenty.parcelable)
 				api(libs.napier)
 				api(libs.coroutines.core)
 				api(libs.koin.core)
@@ -74,6 +75,7 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
+				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				api(libs.androidx.core.ktx)
 				api(libs.coroutines.android)
 				implementation(libs.koin.android)
@@ -82,6 +84,7 @@ kotlin {
 		}
 		val iosMain by getting {
 			dependencies {
+				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				//implementation(libs.parcelize.darwin.runtime)
 				api(libs.decompose)
 				api(libs.essenty)
@@ -96,6 +99,7 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
+				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(libs.slf4j.simple)
 				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)

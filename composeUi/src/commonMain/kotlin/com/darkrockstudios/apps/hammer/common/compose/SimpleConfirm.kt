@@ -1,8 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -10,8 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SimpleConfirm(
 	title: String,
@@ -41,24 +41,20 @@ fun SimpleConfirm(
 					modifier = Modifier.padding(Ui.Padding.XL)
 				)
 			}
-		} else null,
-		buttons = {
-			Row(
-				modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
-				horizontalArrangement = Arrangement.SpaceBetween
-			) {
-				Button(onClick = { onConfirm() }) {
-					Text("Yes")
-				}
-
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-				Button(onClick = { onDismiss() }) {
-					Text(
-						"No",
-						fontStyle = FontStyle.Italic
-					)
-				}
+		} else {
+			null
+		},
+		confirmButton = {
+			Button(onClick = { onConfirm() }) {
+				Text(MR.strings.confirm_dialog_positive.get())
+			}
+		},
+		dismissButton = {
+			Button(onClick = { onDismiss() }) {
+				Text(
+					MR.strings.confirm_dialog_negative.get(),
+					fontStyle = FontStyle.Italic
+				)
 			}
 		}
 	)

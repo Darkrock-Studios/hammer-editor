@@ -22,6 +22,7 @@ object Ui {
 		val M = 8.dp
 		val L = 12.dp
 		val XL = 16.dp
+		val XXL = 32.dp
 
 		val contents = PaddingValues(
 			top = XL,

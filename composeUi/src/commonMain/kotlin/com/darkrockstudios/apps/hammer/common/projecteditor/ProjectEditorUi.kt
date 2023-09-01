@@ -7,7 +7,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
@@ -46,7 +45,8 @@ fun ProjectEditorUi(
 		)
 
 		val detailsModifier = if (isMultiPane) {
-			Modifier.padding(start = LIST_PANE_WIDTH).requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
+			Modifier.padding(start = LIST_PANE_WIDTH)
+				.requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
 				.fillMaxHeight()
 		} else {
 			Modifier.fillMaxSize()
@@ -79,7 +79,6 @@ private fun SetMultiPane(component: ProjectEditor) {
 	}
 }
 
-@OptIn(ExperimentalDecomposeApi::class)
 @Composable
 private fun ListPane(
 	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>>,
@@ -90,6 +89,7 @@ private fun ListPane(
 	Children(
 		stack = state,
 		modifier = modifier,
+		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.List.Scenes ->
@@ -111,7 +111,7 @@ private fun DetailsPane(
 	Children(
 		stack = state,
 		modifier = modifier,
-		animation = stackAnimation { _, _, _ -> fade() }
+		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
 			is ProjectEditor.ChildDestination.Detail.None -> Box {}

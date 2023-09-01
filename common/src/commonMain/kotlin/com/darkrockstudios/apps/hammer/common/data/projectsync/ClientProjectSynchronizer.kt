@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -18,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +51,7 @@ class ClientProjectSynchronizer(
 	private val idRepository: IdRepository by projectInject()
 	private val backupRepository: ProjectBackupRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
+	private val strRes: StrRes by inject()
 
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
@@ -260,12 +263,12 @@ class ClientProjectSynchronizer(
 
 			yield()
 
-			onProgress(0.05f, syncLogI("Client Entity data calculated", projectDef))
+			onProgress(0.05f, syncLogI(strRes.get(MR.strings.sync_log_client_data_computed), projectDef))
 
 			val serverSyncData =
 				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew).getOrThrow()
 
-			onProgress(0.1f, syncLogI("Server data received", projectDef))
+			onProgress(0.1f, syncLogI(strRes.get(MR.strings.sync_log_server_data_loaded), projectDef))
 
 			clientSyncData = clientSyncData.copy(currentSyncId = serverSyncData.syncId)
 			saveSyncData(clientSyncData)
@@ -277,7 +280,7 @@ class ClientProjectSynchronizer(
 				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
 			val dirtyEntities = clientSyncData.dirty.toMutableList()
 
-			onProgress(0.2f, syncLogI("Client data loaded", projectDef))
+			onProgress(0.2f, syncLogI(strRes.get(MR.strings.sync_log_client_data_loaded), projectDef))
 
 			yield()
 
@@ -288,7 +291,10 @@ class ClientProjectSynchronizer(
 				val backupDef = backupRepository.createBackup(projectDef)
 
 				if (backupDef != null) {
-					onProgress(0.25f, syncLogI("Local Backup made: ${backupDef.path.name}", projectDef))
+					onProgress(
+						0.25f,
+						syncLogI(strRes.get(MR.strings.sync_log_backup_made, backupDef.path.name), projectDef)
+					)
 				} else {
 					throw IllegalStateException("Failed to make local backup")
 				}
@@ -348,13 +354,13 @@ class ClientProjectSynchronizer(
 				)
 			}
 
-			onProgress(ENTITY_END, syncLogI("Entities transferred", projectDef))
+			onProgress(ENTITY_END, syncLogI(strRes.get(MR.strings.sync_log_entities_transferred), projectDef))
 
 			finalizeSync()
 
 			yield()
 
-			onProgress(0.9f, syncLogI("Sync finalized", projectDef))
+			onProgress(0.9f, syncLogI(strRes.get(MR.strings.sync_log_finalized), projectDef))
 
 			val newLastId: Int?
 			val syncFinishedAt: Instant?
@@ -378,11 +384,11 @@ class ClientProjectSynchronizer(
 			yield()
 
 			if (endSyncResult.isFailure) {
-				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+				Napier.e(strRes.get(MR.strings.sync_log_failed), endSyncResult.exceptionOrNull())
 				allSuccess = false
 			} else {
 				if (allSuccess) {
-					onLog(syncLogI("Sync data saved", projectDef))
+					onLog(syncLogI(strRes.get(MR.strings.sync_log_data_saved), projectDef))
 
 					if (newLastId != null && syncFinishedAt != null) {
 						val finalSyncData = clientSyncData.copy(
@@ -395,10 +401,10 @@ class ClientProjectSynchronizer(
 						)
 						saveSyncData(finalSyncData)
 					} else {
-						onLog(syncLogE("Sync data not saved due to errors", projectDef))
+						onLog(syncLogE(strRes.get(MR.strings.sync_log_data_save_failed), projectDef))
 					}
 				} else {
-					onLog(syncLogE("Sync data not saved due to errors", projectDef))
+					onLog(syncLogE(strRes.get(MR.strings.sync_log_data_save_failed), projectDef))
 				}
 			}
 
@@ -411,7 +417,7 @@ class ClientProjectSynchronizer(
 			allSuccess
 		} catch (e: Exception) {
 			Napier.e("Sync failed: ${e.message}", e)
-			onLog(syncLogE("Sync failed: ${e.message}", projectDef))
+			onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_failed, e.message ?: "---"), projectDef))
 			endSync()
 			onComplete()
 
@@ -433,8 +439,7 @@ class ClientProjectSynchronizer(
 		var allSuccess = true
 
 		suspend fun onConflict(entity: ApiProjectEntity) {
-			val message =
-				"Encountered conflict for new Entity, this should not be possible! ID: ${entity.id} TYPE: ${entity.type}"
+			val message = strRes.get(MR.strings.sync_log_entity_conflict, entity.id, entity.type)
 			onLog(syncLogE(message, projectDef))
 			throw IllegalStateException(message)
 		}
@@ -592,11 +597,12 @@ class ClientProjectSynchronizer(
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
 		val result = serverProjectApi.deleteId(projectDef.name, id, syncId)
 		return if (result.isSuccess) {
-			onLog(syncLogI("Deleted ID $id on server", projectDef))
+			onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_delete_success, id), projectDef))
 			true
 		} else {
 			val message = result.exceptionOrNull()?.message
-			onLog(syncLogE("Failed to delete ID $id on server: $message", projectDef))
+
+			onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_delete_failed, id, message ?: "---"), projectDef))
 			false
 		}
 	}
@@ -638,7 +644,7 @@ class ClientProjectSynchronizer(
 				)
 			}
 		} else {
-			onLog(syncLogW("Failed to upload entity $id: type not owned by anything, probably deleted", projectDef))
+			onLog(syncLogW(strRes.get(MR.strings.sync_log_entity_upload_entity_not_owned, id), projectDef))
 			return true
 		}
 	}
@@ -683,26 +689,26 @@ class ClientProjectSynchronizer(
 			}
 
 			if (success) {
-				onLog(syncLogI("Entity $id downloaded", projectDef))
+				onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_download_success, id), projectDef))
 			} else {
-				onLog(syncLogE("Entity $id failed to download", projectDef))
+				onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_download_failed_general, id), projectDef))
 			}
 
 			success
 		} else {
 			when (entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
-					onLog(syncLogI("Entity $id not modified", projectDef))
+					onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_download_not_modified, id), projectDef))
 					true
 				}
 
 				is EntityNotFoundException -> {
-					onLog(syncLogW("Entity $id not found on server", projectDef))
+					onLog(syncLogW(strRes.get(MR.strings.sync_log_entity_download_failed_not_found, id), projectDef))
 					true
 				}
 
 				else -> {
-					val message = "Failed to download entity $id"
+					val message = strRes.get(MR.strings.sync_log_entity_download_failed_general, id)
 					Napier.e(message, entityResponse.exceptionOrNull())
 					onLog(syncLogE(message, projectDef))
 					false

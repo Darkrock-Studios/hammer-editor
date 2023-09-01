@@ -1,7 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.text.ClickableText
@@ -10,9 +17,23 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,16 +52,16 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NotesUi(
-	component: Notes
+	component: Notes,
+	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	val snackbarHostState = remember { SnackbarHostState() }
 
-	Box(modifier = Modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL)) {
+	Box(modifier = modifier.padding(horizontal = Ui.Padding.XL)) {
 		Column {
 			Text(
 				MR.strings.notes_header.get(),
@@ -53,7 +74,7 @@ fun NotesUi(
 			LazyVerticalStaggeredGrid(
 				columns = StaggeredGridCells.Adaptive(400.dp),
 				modifier = Modifier.fillMaxSize(),
-				contentPadding = PaddingValues(Ui.Padding.XL)
+				contentPadding = PaddingValues(horizontal = Ui.Padding.XL)
 			) {
 				if (state.notes.isEmpty()) {
 					item {
@@ -88,7 +109,6 @@ fun NotesUi(
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteItem(
 	note: NoteContent,

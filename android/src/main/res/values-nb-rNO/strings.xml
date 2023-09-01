@@ -7,7 +7,7 @@
     <string name="navdrawer_button">Navigasjonsskuff</string>
     <string name="note_widget_dialog_title">Legg til notat i:</string>
     <string name="note_widget_dialog_save_button">Lagre</string>
-    <string name="note_widget_dialog_categories_dropdown">Kategorier</string>
+    <string name="note_widget_dialog_projects_dropdown">Kategorier</string>
     <string name="note_widget_button_description">Legg til notat</string>
     <string name="note_widget_toast_no_projects">Ingen prosjekter</string>
     <string name="note_widget_toast_success">Notat tillagt</string>

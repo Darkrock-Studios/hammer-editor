@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
-import com.darkrockstudios.apps.hammer.common.compose.MpDialog
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
@@ -27,7 +27,7 @@ internal fun CreateNoteDialog(
 ) {
 	val strRes = rememberStrRes()
 
-	MpDialog(
+	SimpleDialog(
 		visible = true,
 		title = MR.strings.notes_create_header.get(),
 		onCloseRequest = { component.dismissCreate() }
@@ -36,7 +36,10 @@ internal fun CreateNoteDialog(
 		var newNoteText by remember { mutableStateOf("") }
 		var newNoteError by remember { mutableStateOf(false) }
 
-		Box(modifier = Modifier.wrapContentWidth().heightIn(100.dp, 300.dp).align(Alignment.CenterHorizontally)) {
+		Box(
+			modifier = Modifier.wrapContentWidth().heightIn(100.dp, 300.dp)
+				.align(Alignment.CenterHorizontally)
+		) {
 			Column(
 				modifier = Modifier
 					.width(IntrinsicSize.Max)

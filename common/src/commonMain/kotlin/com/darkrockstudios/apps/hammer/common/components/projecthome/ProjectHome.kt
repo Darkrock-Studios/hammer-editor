@@ -6,16 +6,18 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 interface ProjectHome : Router, HammerComponent {
 	val state: Value<State>
 
-	suspend fun exportProject(path: String)
+	suspend fun exportProject(path: String): HPath
 	fun beginProjectExport()
 	fun endProjectExport()
 	fun startProjectSync()
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
+	fun getExportStoryFileName(): String
 
 	data class State(
 		val projectDef: ProjectDef,

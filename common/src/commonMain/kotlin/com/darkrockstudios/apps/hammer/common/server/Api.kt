@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.server
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -18,7 +20,8 @@ import org.koin.core.component.inject
 
 abstract class Api(
 	private val httpClient: HttpClient,
-	private val globalSettingsRepository: GlobalSettingsRepository
+	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val strRes: StrRes,
 ) : KoinComponent {
 	protected val userId: Long?
 		get() = globalSettingsRepository.serverSettings?.userId
@@ -58,15 +61,23 @@ abstract class Api(
 			Napier.e("Failed to parse error response", e)
 			Result.failure(
 				HttpFailureException(
-					statusCode = outerResponse?.status ?: HttpStatusCode.InternalServerError,
+					statusCode = outerResponse?.status ?: HttpStatusCode.ExpectationFailed,
 					error = HttpResponseError(
 						error = "Failed to parse error response",
-						displayMessage = "Unknown Error",
+						displayMessage = strRes.get(MR.strings.network_request_failure_parse_body, path),
 					)
 				)
 			)
 		} catch (e: IOException) {
-			Result.failure(e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
+					error = HttpResponseError(
+						error = "Network Error",
+						displayMessage = strRes.get(MR.strings.network_request_failure_connection, path),
+					)
+				)
+			)
 		}
 	}
 
@@ -182,7 +193,9 @@ abstract class Api(
 class HttpFailureException(
 	val statusCode: HttpStatusCode,
 	val error: HttpResponseError
-) : Exception("HTTP Failure: $statusCode ${error.error}: ${error.displayMessage}")
+) : Exception("HTTP $statusCode ${error.error}: ${error.displayMessage}") {
+	override fun toString() = message ?: super.toString()
+}
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 

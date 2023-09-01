@@ -17,4 +17,11 @@ private class IosExternalFileIo(private val fileSystem: FileSystem) : ExternalFi
 			readByteArray()
 		}
 	}
+
+	override fun writeExternalFile(path: String, content: String) {
+		// TODO This is just the desktop implementation, probably won't work
+		fileSystem.write(path.toPath(), false) {
+			writeUtf8(content)
+		}
+	}
 }

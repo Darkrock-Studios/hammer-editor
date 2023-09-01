@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.koin.core.component.inject
 
 class ProjectHomeComponent(
@@ -65,17 +66,19 @@ class ProjectHomeComponent(
 		}
 	}
 
-	override suspend fun exportProject(path: String) {
+	override suspend fun exportProject(path: String): HPath {
 		val hpath = HPath(
 			path = path,
 			name = "",
 			isAbsolute = true
 		)
-		sceneEditorRepository.exportStory(hpath)
+		val filePath = sceneEditorRepository.exportStory(hpath)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
 		}
+
+		return filePath
 	}
 
 	override fun startProjectSync() = showProjectSync()
@@ -130,6 +133,8 @@ class ProjectHomeComponent(
 				}
 			}
 
+			yield()
+
 			val wordsByChapter = mutableMapOf<String, Int>()
 			tree.children.forEach { node ->
 				val chapterName = node.value.name
@@ -144,6 +149,8 @@ class ProjectHomeComponent(
 				wordsByChapter[chapterName] = wordsInChapter
 			}
 
+			yield()
+
 			encyclopediaRepository.loadEntries()
 			val entriesByType = mutableMapOf<EntryType, Int>()
 			encyclopediaRepository.entryListFlow.take(1).collect { entries ->
@@ -152,6 +159,8 @@ class ProjectHomeComponent(
 					entriesByType[type] = numEntriesOfType
 				}
 			}
+
+			yield()
 
 			withContext(dispatcherMain) {
 				_state.getAndUpdate {
@@ -170,6 +179,7 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	override fun getExportStoryFileName() = sceneEditorRepository.getExportStoryFileName()
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

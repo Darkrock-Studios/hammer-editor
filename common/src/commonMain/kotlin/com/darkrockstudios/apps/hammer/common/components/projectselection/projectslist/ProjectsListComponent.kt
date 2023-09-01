@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
@@ -18,12 +19,14 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.soywiz.kds.iterators.parallelMap
 import dev.icerock.moko.resources.StringResource
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Clock
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -40,6 +43,9 @@ class ProjectsListComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
+	private val projectMetadataRepository: ProjectMetadataRepository by inject()
+	private val strRes: StrRes by inject()
+	private val clock: Clock by inject()
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
@@ -95,8 +101,12 @@ class ProjectsListComponent(
 	override fun onCreate() {
 		super.onCreate()
 		watchSettingsUpdates()
-		loadProjectList()
 		initialProjectSync()
+	}
+
+	override fun onResume() {
+		super.onResume()
+		loadProjectList()
 	}
 
 	private fun initialProjectSync() {
@@ -137,14 +147,14 @@ class ProjectsListComponent(
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
 			val projectData = projects.mapNotNull { projectDef ->
-				val metadata = projectsRepository.loadMetadata(projectDef)
+				val metadata = projectMetadataRepository.loadMetadata(projectDef)
 				if (metadata != null) {
 					ProjectData(projectDef, metadata)
 				} else {
 					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
 					null
 				}
-			}
+			}.sortedByDescending { it.metadata.info.lastAccessed }
 
 			withContext(dispatcherMain) {
 				_state.getAndUpdate { it.copy(projects = projectData) }
@@ -153,7 +163,20 @@ class ProjectsListComponent(
 		}
 	}
 
-	override fun selectProject(projectDef: ProjectDef) = onProjectSelected(projectDef)
+	private fun updateLastAccessed(projectDef: ProjectDef) {
+		projectMetadataRepository.updateMetadata(projectDef) { metadata ->
+			metadata.copy(
+				info = metadata.info.copy(
+					lastAccessed = clock.now()
+				)
+			)
+		}
+	}
+
+	override fun selectProject(projectDef: ProjectDef) {
+		updateLastAccessed(projectDef)
+		onProjectSelected(projectDef)
+	}
 
 	override fun showCreate() {
 		_state.getAndUpdate { it.copy(showCreateDialog = true) }
@@ -201,8 +224,8 @@ class ProjectsListComponent(
 		}
 	}
 
-	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? {
-		return projectsRepository.loadMetadata(projectDef)
+	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata {
+		return projectMetadataRepository.loadMetadata(projectDef)
 	}
 
 	override fun onProjectNameUpdate(newProjectName: String) {
@@ -214,7 +237,7 @@ class ProjectsListComponent(
 		onLog: OnSyncLog,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit
 	): Boolean {
-		onLog(syncLogI("Syncing Project: ${projectDef.name}", projectDef))
+		onLog(syncLogI(strRes.get(MR.strings.sync_log_begin_project, projectDef.name), projectDef))
 
 		var success = false
 		temporaryProjectTask(projectDef) { projScope ->
@@ -225,7 +248,7 @@ class ProjectsListComponent(
 				onConflict = {
 					onLog(
 						syncLogW(
-							"There is a conflict in project: ${projectDef.name}, open that project and sync in order to resolve it",
+							strRes.get(MR.strings.sync_log_project_conflict, projectDef.name),
 							projectDef
 						)
 					)
@@ -282,7 +305,7 @@ class ProjectsListComponent(
 			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
-			onSyncLog(syncAccLogI("Syncing Account..."))
+			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_account)))
 
 			val success = projectsSynchronizer.syncProjects(::onSyncLog)
 
@@ -290,7 +313,7 @@ class ProjectsListComponent(
 
 			var allSuccess = success
 			if (success) {
-				onSyncLog(syncAccLogI("Syncing Projects..."))
+				onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_projects)))
 
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)

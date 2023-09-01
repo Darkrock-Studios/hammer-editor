@@ -34,8 +34,16 @@ fun ProjectSelectionUi(
 	val slot by component.slot.subscribeAsState()
 
 	when (val destination = slot.child?.instance) {
-		is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(destination.component, modifier)
-		is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(destination.component, modifier)
+		is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
+			destination.component,
+			modifier
+		)
+
+		is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
+			destination.component,
+			modifier
+		)
+
 		else -> throw IllegalArgumentException("Child cannot be null")
 	}
 }
@@ -55,7 +63,10 @@ fun ProjectSelectionFab(
 
 		is ProjectSelection.Destination.ProjectsListDestination -> {
 			FloatingActionButton(onClick = { destination.component.showCreate() }) {
-				Icon(imageVector = Icons.Filled.Create, MR.strings.projects_list_create_button.get())
+				Icon(
+					imageVector = Icons.Filled.Create,
+					MR.strings.projects_list_create_button.get()
+				)
 			}
 		}
 

@@ -26,19 +26,29 @@ dependencies {
 	implementation(libs.glance)
 	implementation(libs.glance.appwidget)
 	implementation(libs.glance.material3)
-
+	implementation(libs.androidx.datastore)
 	implementation(libs.work.runtime.ktx)
 	implementation(libs.material)
 	implementation(libs.appcompat)
+//	implementation(libs.lifecycle.runtime.ktx)
+//	implementation(platform(libs.compose.bom))
+//	implementation(libs.ui)
+//	implementation(libs.ui.graphics)
+//	implementation(libs.ui.tooling.preview)
+//	implementation(libs.material3)
 
 	androidTestImplementation(libs.junit)
 	androidTestImplementation(libs.junit.ktx)
 	androidTestImplementation(libs.core)
 	androidTestImplementation(libs.core.ktx)
 	androidTestImplementation(libs.androidx.runner)
+//	androidTestImplementation(platform(libs.compose.bom))
+//	androidTestImplementation(libs.ui.test.junit4)
 	androidTestUtil(libs.orchestrator)
 
 	implementation(libs.aboutlibraries.core)
+//	debugImplementation(libs.ui.tooling)
+//	debugImplementation(libs.ui.test.manifest)
 }
 
 android {
@@ -52,6 +62,9 @@ android {
 		versionName = libs.versions.app.get()
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+		vectorDrawables {
+			useSupportLibrary = true
+		}
 	}
 	buildFeatures {
 		compose = true
@@ -88,6 +101,12 @@ android {
 				getDefaultProguardFile("proguard-android-optimize.txt"),
 				File("proguard-rules.pro")
 			)
+		}
+	}
+	kotlinOptions.jvmTarget = libs.versions.jvm.get()
+	packaging {
+		resources {
+			excludes += "/META-INF/{AL2.0,LGPL2.1}"
 		}
 	}
 }

@@ -6,39 +6,34 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -49,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
@@ -69,6 +65,7 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val viewModel: ProjectRootViewModel by viewModels()
 
+	@OptIn(ExperimentalDecomposeApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -79,17 +76,14 @@ class ProjectRootActivity : AppCompatActivity() {
 		} else {
 			viewModel.setProjectDef(projectDef)
 
-			val menu = MutableValue(setOf<MenuDescriptor>())
-			val component = ProjectRootComponent(
-				componentContext = defaultComponentContext(),
-				projectDef = projectDef,
-				addMenu = { menuDescriptor ->
-					menu.value = mutableSetOf(menuDescriptor).apply { add(menuDescriptor) }
-				},
-				removeMenu = { menuId ->
-					menu.value = menu.value.filter { it.id != menuId }.toSet()
-				}
-			)
+			val component = retainedComponent { componentContext ->
+				ProjectRootComponent(
+					componentContext = componentContext,
+					projectDef = projectDef,
+					addMenu = { /* Not needed on Android */ },
+					removeMenu = { /* Not needed on Android */ }
+				)
+			}
 
 			setContent {
 				CompositionLocalProvider(LocalImageLoader provides imageLoader) {
@@ -112,7 +106,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					}
 
 					AppTheme(isDark, ::getDynamicColorScheme) {
-						Content(component, menu)
+						Content(component)
 					}
 				}
 			}
@@ -141,7 +135,6 @@ class ProjectRootActivity : AppCompatActivity() {
 	@Composable
 	private fun Content(
 		component: ProjectRoot,
-		menu: MutableValue<Set<MenuDescriptor>>
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
@@ -213,19 +206,19 @@ class ProjectRootViewModel : ViewModel() {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CompactNavigation(
 	component: ProjectRoot,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
+			Box(modifier = Modifier.fillMaxSize())
 			ProjectRootUi(
 				component,
-				modifier = Modifier.padding(innerPadding),
+				modifier = Modifier.rootElement(scaffoldPadding),
 			)
 		},
 		bottomBar = {
@@ -234,7 +227,12 @@ private fun CompactNavigation(
 					NavigationBarItem(
 						selected = item == router.active.instance.getLocationType(),
 						onClick = { component.showDestination(item) },
-						icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
+						icon = {
+							Icon(
+								imageVector = getDestinationIcon(item),
+								contentDescription = item.text.get()
+							)
+						},
 					)
 				}
 			}
@@ -245,21 +243,21 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectRoot,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
-			Row(modifier = Modifier.fillMaxSize()) {
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
+			Row(
+				modifier = Modifier.rootElement(scaffoldPadding)
+			) {
 				NavigationRail(
 					modifier = Modifier
 						.padding(top = Ui.Padding.M)
-						.background(Color.Blue)
 				) {
 					ProjectRoot.DestinationTypes.values().forEach { item ->
 						NavigationRailItem(
@@ -278,7 +276,7 @@ private fun MediumNavigation(
 					Spacer(modifier = Modifier.weight(1f))
 
 					Text(
-						"v${BuildMetadata.APP_VERSION}",
+						getAppVersionString(),
 						style = MaterialTheme.typography.labelSmall,
 						fontWeight = FontWeight.Thin,
 						modifier = Modifier
@@ -287,7 +285,7 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectRootUi(component, Modifier.padding(innerPadding))
+				ProjectRootUi(component, Modifier.padding(scaffoldPadding))
 			}
 		},
 		floatingActionButton = {
@@ -296,17 +294,17 @@ private fun MediumNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectRoot,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
-		modifier = Modifier.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			PermanentNavigationDrawer(
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
 					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
 						Spacer(Modifier.height(12.dp))
@@ -328,7 +326,7 @@ private fun ExpandedNavigation(
 						Spacer(modifier = Modifier.weight(1f))
 
 						Text(
-							"v${BuildMetadata.APP_VERSION}",
+							getAppVersionString(),
 							modifier = Modifier
 								.padding(Ui.Padding.L)
 								.align(Alignment.Start),
@@ -337,7 +335,7 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectRootUi(component, Modifier.padding(innerPadding))
+					ProjectRootUi(component, Modifier.rootElement(scaffoldPadding))
 				}
 			)
 		},

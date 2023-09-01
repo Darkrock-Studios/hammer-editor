@@ -1,28 +1,23 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import okio.FileSystem
-import okio.IOException
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
 	private val fileSystem: FileSystem,
-	private val toml: Toml,
 	globalSettingsRepository: GlobalSettingsRepository,
+	private val projectsMetadataRepository: ProjectMetadataRepository
 ) : ProjectsRepository() {
 
 	private var globalSettings = globalSettingsRepository.globalSettings
@@ -87,17 +82,14 @@ class ProjectsRepositoryOkio(
 					name = strippedName,
 					path = newProjectDir.toHPath()
 				)
-				val metadataPath = SceneEditorRepositoryOkio.getMetadataPath(newDef)
 
 				val metadata = ProjectMetadata(
 					info = Info(
-						created = Clock.System.now()
+						created = Clock.System.now(),
+						lastAccessed = Clock.System.now(),
 					)
 				)
-				val metalToml = toml.encodeToString(metadata)
-				fileSystem.write(metadataPath.toOkioPath(), mustCreate = true) {
-					writeUtf8(metalToml)
-				}
+				projectsMetadataRepository.saveMetadata(metadata, newDef)
 
 				Result.success(true)
 			}
@@ -116,21 +108,5 @@ class ProjectsRepositoryOkio(
 		} else {
 			false
 		}
-	}
-
-	override suspend fun loadMetadata(projectDef: ProjectDef): ProjectMetadata? {
-		val path = SceneEditorRepositoryOkio.getMetadataPath(projectDef).toOkioPath()
-
-		val metadata = try {
-			val metadataText = fileSystem.read(path) {
-				readUtf8()
-			}
-			toml.decodeFromString<ProjectMetadata>(metadataText)
-		} catch (e: IOException) {
-			Napier.e("Failed to project metadata")
-			null
-		}
-
-		return metadata
 	}
 }

@@ -13,4 +13,11 @@
     <string name="scene_editor_toast_save_successful">Lagret</string>
     <string name="scene_editor_body_placeholder">Begynn å skrive scenen din her</string>
     <string name="scene_editor_menu_item_save_draft">Lagre kladd</string>
+    <string name="scene_editor_rename_dialog_title">Gi scene nytt navn</string>
+    <string name="scene_editor_menu_group">Scene</string>
+    <string name="scene_editor_menu_item_view_drafts">Vis kladder</string>
+    <string name="scene_editor_menu_item_rename">Gi nytt navn</string>
+    <string name="scene_editor_menu_item_discard">Forkast</string>
+    <string name="scene_editor_menu_item_save">Lagre</string>
+    <string name="scene_editor_menu_item_close">Lukk</string>
 </resources>

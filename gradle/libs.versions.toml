@@ -2,13 +2,13 @@
 
 [versions]
 # App Versions
-app = "1.3.2"
-android_version_code = "17"
+app = "1.4.0"
+android_version_code = "18"
 data_version = "1.0"
 
 # Kotlin
 jvm = "17"
-kotlin = "1.8.22"
+kotlin = "1.9.0"
 
 # Android
 android_gradle_plugin = "8.0.0"
@@ -19,6 +19,7 @@ android_sdk_min = "26"
 # Other libraries
 activity-compose = "1.7.2"
 androidx-runner = "1.5.2"
+androidx-datastore = "1.0.0"
 appcompat = "1.6.1"
 appdirs = "1.2.1"
 cache4k = "0.9.0"
@@ -38,33 +39,35 @@ serialization_json = "1.5.1"
 coroutines = "1.7.3"
 datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
-jetpack_compose_compiler = "1.4.5"
-jetbrains_compose = "1.4.3"
+jetpack_compose_compiler = "1.5.2"
+jetbrains_compose = "1.5.0"
 jetbrains_kover = "0.6.1"
 
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
 
-decompose = "2.0.0"
-essenty = "1.1.0" # This should match what ever decompose is referncing internally
-parcelize_darwin = "0.1.4"
+decompose = "2.1.0-alpha-07"
+essenty = "1.2.0-alpha-06" # This should match what ever decompose is referncing internally
+parcelize_darwin = "0.2.0"
 
 mpfilepicker = "2.0.2"
 richtexteditor = "1.4.1"
 koalaplot-core = "0.3.0"
 image-loader = "1.5.1"
 
-koin_core = "3.4.2"
-koin_android = "3.4.2"
+koin_core = "3.4.3"
+koin_android = "3.4.3"
 koin_test = "3.4.1"
 koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
 koin_compose = "3.4.5"
 
-ktor = "2.3.1"
+cokoin = "1.0.0"
+
+ktor = "2.3.3"
 ktor_i18n = "2.0.0"
 
-okio = "3.3.0"
+okio = "3.4.0"
 slf4jSimple = "2.0.6"
 uuid = "0.7.0"
 work-runtime-ktx = "2.8.1"
@@ -83,6 +86,9 @@ buildconfig = "4.0.2"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "10.8.3"
+# These were added automatically, do we really need them?
+#lifecycle-runtime-ktx = "2.6.1"
+#compose-bom = "2023.03.00"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -116,8 +122,10 @@ mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpf
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
+decompose_android = { group = "com.arkivanov.decompose", name = "extensions-android", version.ref = "decompose" }
 
 essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
+essenty_parcelable = { group = "com.arkivanov.essenty", name = "parcelable", version.ref = "essenty" }
 datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 
 moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
@@ -131,6 +139,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 richtexteditor = { module = "com.darkrockstudios:richtexteditor", version.ref = "richtexteditor" }
 androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
+androidx_datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
 serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
@@ -147,6 +156,8 @@ koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin_
 koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref = "koin_sl4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin_compose" }
+
+cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
 ktoml = { group = "com.akuleshov7", name = "ktoml-core", version.ref = "ktoml" }
 
@@ -202,6 +213,19 @@ fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", ver
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
 aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
 aboutlibraries_compose = { group = "com.mikepenz", name = "aboutlibraries-compose", version.ref = "aboutlibraries" }
+
+#################
+# These were added automatically, do we really need them?
+#lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
+#compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+#ui = { group = "androidx.compose.ui", name = "ui" }
+#ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+#ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+#ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+#ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+#ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+#material3 = { group = "androidx.compose.material3", name = "material3" }
+#################
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

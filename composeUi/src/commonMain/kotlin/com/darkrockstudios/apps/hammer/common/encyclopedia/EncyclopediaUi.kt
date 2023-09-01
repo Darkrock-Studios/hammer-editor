@@ -17,24 +17,26 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 
 @Composable
-fun EncyclopediaUi(component: Encyclopedia) {
+fun EncyclopediaUi(
+	component: Encyclopedia,
+	modifier: Modifier = Modifier,
+) {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
 	val state by component.stack.subscribeAsState()
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+	BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 		Children(
 			stack = state,
 			modifier = Modifier,
-			animation = stackAnimation { _, _, _ -> fade() },
+			animation = stackAnimation { _ -> fade() },
 		) {
 			when (val child = it.instance) {
 				is Encyclopedia.Destination.BrowseEntriesDestination -> {
 					BrowseEntriesUi(
 						component = child.component,
 						scope = scope,
-						showCreate = component::showCreateEntry,
 						viewEntry = component::showViewEntry
 					)
 				}

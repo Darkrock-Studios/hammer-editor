@@ -118,7 +118,10 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectSelectionUi(component)
+				ProjectSelectionUi(
+					component,
+					Modifier.padding(start = Ui.Padding.XL, top = Ui.Padding.XL)
+				)
 			}
 		},
 		floatingActionButton = {
@@ -148,7 +151,10 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectSelectionUi(component, Modifier)
+					ProjectSelectionUi(
+						component,
+						Modifier.padding(start = Ui.Padding.XL, top = Ui.Padding.XL)
+					)
 				}
 			)
 		},

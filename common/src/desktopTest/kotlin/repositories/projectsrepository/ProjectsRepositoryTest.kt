@@ -1,10 +1,12 @@
 package repositories.projectsrepository
 
 import com.akuleshov7.ktoml.Toml
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -14,6 +16,7 @@ import io.mockk.*
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
@@ -31,6 +34,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	lateinit var globalSettingsRepository: GlobalSettingsRepository
 	lateinit var settingsFlow: SharedFlow<GlobalSettings>
 
+	private lateinit var metadataRepository: ProjectMetadataRepository
 	lateinit var settings: GlobalSettings
 
 	@Before
@@ -41,6 +45,15 @@ class ProjectsRepositoryTest : BaseTest() {
 		toml = createTomlSerializer()
 
 		globalSettingsRepository = mockk()
+
+		metadataRepository = mockk(relaxed = true)
+		every { metadataRepository.loadMetadata(any()) } returns
+			ProjectMetadata(
+				info = Info(
+					created = Instant.DISTANT_FUTURE,
+					lastAccessed = Instant.DISTANT_FUTURE,
+				)
+			)
 
 		settings = GlobalSettings(
 			projectsDirectory = (getDefaultRootDocumentDirectory().toPath() / "Projects").toHPath().path
@@ -63,8 +76,8 @@ class ProjectsRepositoryTest : BaseTest() {
 	fun `Initialize ProjectsRepository`() = runTest {
 		val repo = ProjectsRepositoryOkio(
 			fileSystem = ffs,
-			toml = toml,
-			globalSettingsRepository = globalSettingsRepository
+			globalSettingsRepository = globalSettingsRepository,
+			projectsMetadataRepository = metadataRepository,
 		)
 
 		advanceUntilIdle()
@@ -77,8 +90,8 @@ class ProjectsRepositoryTest : BaseTest() {
 	fun `Create New Project`() = runTest {
 		val repo = ProjectsRepositoryOkio(
 			fileSystem = ffs,
-			toml = toml,
-			globalSettingsRepository = globalSettingsRepository
+			globalSettingsRepository = globalSettingsRepository,
+			projectsMetadataRepository = metadataRepository,
 		)
 
 		val projectName = "Test Project"
@@ -90,7 +103,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		ffs.exists(projectPath)
 
 		val newDef = ProjectDef(projectName, projectPath.toHPath())
-		val metadataPath = SceneEditorRepositoryOkio.getMetadataPath(newDef)
+		val metadataPath = metadataRepository.getMetadataPath(newDef)
 		ffs.exists(metadataPath.toOkioPath())
 	}
 }

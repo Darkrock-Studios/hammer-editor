@@ -109,23 +109,30 @@ You can inject the various contexts as such:
 
 	// inject which ever dispatcher you need
 	val mainDispatcher = rememberMainDispatcher()
-	val defaultDispatcher = rememberDefaultDispatcher()
-	val ioDispatcher = rememberIoDispatcher()
-	
-	scope.launch(defaultDispatcher) { 
-		// Do stuff in background
-		withContext(mainDispatcher) {
-			// Back on main thread
-		}
+val defaultDispatcher = rememberDefaultDispatcher()
+val ioDispatcher = rememberIoDispatcher()
+
+scope.launch(defaultDispatcher) {
+	// Do stuff in background
+	withContext(mainDispatcher) {
+		// Back on main thread
 	}
+}
 ```
+
+## Synchronization
+
+The protocol for synchronizing data between client and server is outlined here:
+[SYNCING-PROTOCOL.md](docs/SYNCING-PROTOCOL.md)
 
 ## How to Release
 
 - Merge `develop` into `release`
-- Tag the latest commit to make the release from in the [semvar](https://semver.org) format of `v1.1.1`
+- Tag the latest commit to make the release from in the [semvar](https://semver.org) format
+  of `v1.1.1`
 - Push to origin
-- This will trigger the `release` action on GitHub which will create a new **Release**, and build all of the artifacts
+- This will trigger the `release` action on GitHub which will create a new **Release**, and build
+  all of the artifacts
 - Once the `release` action is complete open the new **Release** on GitHub
 - Click _Edit_
 - Enter change notes in the description field, this will be used as the change log in each store

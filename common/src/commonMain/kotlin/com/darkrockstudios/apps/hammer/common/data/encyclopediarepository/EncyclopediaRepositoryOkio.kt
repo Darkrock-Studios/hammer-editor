@@ -62,7 +62,7 @@ class EncyclopediaRepositoryOkio(
 	override fun findEntryPath(id: Int): HPath? {
 		var path: HPath? = null
 
-		val types = EntryType.values()
+		val types = EntryType.entries.toTypedArray()
 		for (type in types) {
 			val typeDir = getTypeDirectory(type).toOkioPath()
 			val files = fileSystem.listRecursively(typeDir)
@@ -168,7 +168,16 @@ class EncyclopediaRepositoryOkio(
 		val result = validateEntry(name, type, text, tags)
 		if (result != EntryError.NONE) return EntryResult(result)
 
-		val cleanedTags = tags.map { it.trim() }.filter { it.isNotEmpty() }
+		val cleanedTags = tags
+			.map { it.trim() }
+			.map {
+				if (it.startsWith("#")) {
+					it.substring(1)
+				} else {
+					it
+				}
+			}
+			.filter { it.isNotEmpty() }
 
 		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(

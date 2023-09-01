@@ -5,52 +5,60 @@
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
 	<application
-			android:name=".HammerApplication"
-			android:allowBackup="true"
-			android:icon="@mipmap/ic_launcher"
-			android:roundIcon="@mipmap/ic_launcher_round"
-			android:label="@string/app_name"
-			android:supportsRtl="true"
-			android:theme="@style/Theme.Hammer"
-			android:usesCleartextTraffic="true">
+		android:name=".HammerApplication"
+		android:allowBackup="true"
+		android:icon="@mipmap/ic_launcher"
+		android:label="@string/app_name"
+		android:roundIcon="@mipmap/ic_launcher_round"
+		android:supportsRtl="true"
+		android:theme="@style/Theme.Hammer"
+		android:usesCleartextTraffic="true">
 
 		<activity
-				android:name=".ProjectSelectActivity"
-				android:exported="true"
-				android:windowSoftInputMode="adjustResize">
+			android:name=".ProjectSelectActivity"
+			android:exported="true"
+			android:windowSoftInputMode="adjustResize">
 			<intent-filter>
-				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="android.intent.action.MAIN" />
 
-				<category android:name="android.intent.category.LAUNCHER"/>
-			</intent-filter>
-		</activity>
-
-		<activity
-				android:name=".ProjectRootActivity"
-				android:exported="true"
-				android:windowSoftInputMode="adjustResize">
-		</activity>
-
-		<activity
-				android:name=".widgets.AddNoteActivity"
-				android:exported="true"
-				android:label="@string/title_activity_add_note"
-				android:theme="@style/Theme.AppCompat.DayNight.Dialog"
-				android:windowSoftInputMode="adjustResize"
-				android:excludeFromRecents="true"
-		/>
-
-		<receiver
-				android:name=".widgets.AddNoteWidgetReceiver"
-				android:enabled="@bool/glance_appwidget_available"
-				android:exported="false">
-			<intent-filter>
-				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 
 			<meta-data
-					android:name="android.appwidget.provider"
-					android:resource="@xml/add_note_widget_info"/>
+				android:name="android.app.shortcuts"
+				android:resource="@xml/shortcuts" />
+		</activity>
+		<activity
+			android:name=".ProjectRootActivity"
+			android:exported="true"
+			android:windowSoftInputMode="adjustResize"></activity>
+		<activity
+			android:name=".widgets.AddNoteActivity"
+			android:excludeFromRecents="true"
+			android:exported="true"
+			android:label="@string/title_activity_add_note"
+			android:theme="@style/Theme.AppCompat.DayNight.Dialog"
+			android:windowSoftInputMode="adjustResize" />
+		<activity
+			android:name=".widgets.AddNoteWidgetConfigActivity"
+			android:exported="false"
+			android:label="@string/title_activity_add_note_widget_config">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+			</intent-filter>
+		</activity>
+
+		<receiver
+			android:name=".widgets.AddNoteWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/add_note_widget_info" />
 		</receiver>
 	</application>
 

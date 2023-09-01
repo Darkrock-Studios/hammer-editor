@@ -10,10 +10,24 @@
 
 	<string name="note_widget_dialog_title">Add Note to:</string>
 	<string name="note_widget_dialog_save_button">Save</string>
-	<string name="note_widget_dialog_categories_dropdown">Categories</string>
+	<string name="note_widget_dialog_cancel_button">Cancel</string>
+	<string name="note_widget_dialog_projects_dropdown">Projects</string>
+	<string name="note_widget_dialog_failure_bad_project">Project not found: %1$s</string>
+	<string name="note_widget_confirm_cancel_title">Discard Note?</string>
+	<string name="note_widget_confirm_cancel_positive">Discard</string>
+	<string name="note_widget_confirm_cancel_negative">Cancel</string>
 
 	<string name="note_widget_button_description">Add Note</string>
 
 	<string name="note_widget_toast_no_projects">No projects</string>
 	<string name="note_widget_toast_success">Note Added</string>
+
+	<string name="action_add_note_short_label">Add Note</string>
+	<string name="action_add_note_long_label">Add Story Note</string>
+	<string name="action_add_note_disabled">Adding notes is disabled right now</string>
+	<string name="title_activity_add_note_widget_config">Configure Widget</string>
+
+	<string name="note_widget_config_title">Configure Note Width:</string>
+	<string name="note_widget_config_project_checkbox">Add notes to specified project</string>
+	<string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
 </resources>

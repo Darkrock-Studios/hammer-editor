@@ -1,0 +1,6 @@
+[entry]
+id = 2
+name = "Entry 2"
+type = "PLACE"
+text = "This is a place entry"
+tags = ["tag1"]

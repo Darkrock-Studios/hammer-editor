@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -27,16 +26,14 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	component: BrowseEntries,
 	scope: CoroutineScope,
-	showCreate: () -> Unit,
 	viewEntry: (EntryDef) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
-	val types = remember { EntryType.values().toList() }
+	val types = remember { EntryType.entries }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	var searchText by remember { mutableStateOf(state.filterText ?: "") }
 
@@ -50,7 +47,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 	Column(modifier = Modifier.fillMaxSize()) {
 		Row(
-			modifier = Modifier.padding(Ui.Padding.XL),
+			modifier = Modifier.padding(horizontal = Ui.Padding.XL),
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			OutlinedTextField(

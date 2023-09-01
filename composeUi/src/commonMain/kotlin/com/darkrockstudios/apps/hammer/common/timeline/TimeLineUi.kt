@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
@@ -24,17 +23,20 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
-fun TimeLineUi(component: TimeLine) {
+fun TimeLineUi(
+	component: TimeLine,
+	modifier: Modifier = Modifier,
+) {
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
 
 	val state by component.stack.subscribeAsState()
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+	BoxWithConstraints(modifier = modifier) {
 		Children(
 			stack = state,
 			modifier = Modifier,
-			animation = stackAnimation { _, _, _ -> fade() },
+			animation = stackAnimation { _ -> fade() },
 		) {
 			when (val child = it.instance) {
 				is TimeLine.Destination.TimeLineOverviewDestination -> {

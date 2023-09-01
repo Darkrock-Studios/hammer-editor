@@ -20,11 +20,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import com.arkivanov.decompose.defaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.android.widgets.AddNoteActivity
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -55,14 +57,19 @@ class ProjectSelectActivity : AppCompatActivity() {
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
+	@OptIn(ExperimentalDecomposeApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 
-		val component = ProjectSelectionComponent(
-			componentContext = defaultComponentContext(),
-			onProjectSelected = ::onProjectSelected
-		)
+		handleIntent(intent)
+
+		val component = retainedComponent { componentContext ->
+			ProjectSelectionComponent(
+				componentContext = componentContext,
+				onProjectSelected = ::onProjectSelected
+			)
+		}
 
 		setContent {
 			CompositionLocalProvider(
@@ -92,6 +99,15 @@ class ProjectSelectActivity : AppCompatActivity() {
 				) {
 					ProjectSelectContent(component)
 				}
+			}
+		}
+	}
+
+	private fun handleIntent(intent: Intent?) {
+		if (intent != null) {
+			if (intent.action == Intent.ACTION_CREATE_NOTE) {
+				startActivity(Intent(this, AddNoteActivity::class.java))
+				finish()
 			}
 		}
 	}
@@ -142,19 +158,19 @@ fun ProjectSelectContent(component: ProjectSelection) {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun CompactNavigation(
 	component: ProjectSelection,
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			ProjectSelectionUi(
 				component,
-				modifier = Modifier.padding(innerPadding)
+				modifier = Modifier.rootElement(scaffoldPadding),
 			)
 		},
 		bottomBar = {
@@ -174,25 +190,28 @@ private fun CompactNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun MediumNavigation(
 	component: ProjectSelection
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			Row(
-				modifier = Modifier
-					.padding(innerPadding)
-					.fillMaxSize()
+				modifier = Modifier.rootElement(scaffoldPadding),
 			) {
 				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 					ProjectSelection.Locations.values().forEach { item ->
 						NavigationRailItem(
-							icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
+							icon = {
+								Icon(
+									imageVector = getLocationIcon(item),
+									contentDescription = item.text.get()
+								)
+							},
 							label = { Text(item.text.get()) },
 							selected = item == slot.child?.configuration?.location,
 							onClick = { component.showLocation(item) }
@@ -222,20 +241,20 @@ private fun MediumNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectSelection
 ) {
 	val slot by component.slot.subscribeAsState()
 	Scaffold(
-		modifier = Modifier
-			.fillMaxSize(),
-		content = { innerPadding ->
+		modifier = Modifier.defaultScaffold(),
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		content = { scaffoldPadding ->
 			val drawerState = rememberDrawerState(DrawerValue.Closed)
 			val scope = rememberCoroutineScope()
 			PermanentNavigationDrawer(
-				modifier = Modifier.padding(innerPadding),
+				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
 					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
 						NavigationDrawerContents(component, scope, slot, drawerState)
@@ -252,7 +271,6 @@ private fun ExpandedNavigation(
 	)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColumnScope.NavigationDrawerContents(
 	component: ProjectSelection,

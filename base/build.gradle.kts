@@ -38,6 +38,8 @@ kotlin {
 				//api("com.goncalossilva:murmurhash:0.4.0")
 				api(libs.cryptohash)
 				api(libs.korlibs.korio)
+				implementation(libs.okio)
+				implementation(libs.ktoml)
 			}
         }
 		val commonTest by getting {

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection.serversetupdialog
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material3.SnackbarHostState

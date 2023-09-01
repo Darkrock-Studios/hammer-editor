@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
 
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.soywiz.krypto.encoding.Base64
 import kotlinx.coroutines.flow.first
 import okio.FileSystem
@@ -23,6 +25,7 @@ import okio.FileSystem
 class ClientEncyclopediaSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
+	private val strRes: StrRes,
 	private val fileSystem: FileSystem
 ) : EntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(projectDef, serverProjectApi), ProjectScoped {
 
@@ -96,7 +99,7 @@ class ClientEncyclopediaSynchronizer(
 		val def = encyclopediaRepository.getEntryDef(id)
 		encyclopediaRepository.deleteEntry(def)
 
-		onLog(syncLogI("Deleted Encyclopedia ID $id from client", def.projectDef.name))
+		onLog(syncLogI(strRes.get(MR.strings.sync_encyclopedia_deleted, id), def.projectDef.name))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {

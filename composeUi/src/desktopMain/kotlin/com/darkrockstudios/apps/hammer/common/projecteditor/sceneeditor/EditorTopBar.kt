@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.Start
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -79,23 +82,28 @@ actual fun EditorTopBar(
 
 			val unsaved = state.sceneBuffer?.dirty == true
 			if (unsaved) {
-				Badge(
-					modifier = Modifier.align(Alignment.Top).padding(top = Ui.Padding.L)
-				) { Text(MR.strings.scene_editor_unsaved_chip.get()) }
+				Row(
+					modifier = Modifier.width(IntrinsicSize.Min),
+					horizontalArrangement = Arrangement.End,
+				) {
+					Badge(
+						modifier = Modifier.align(Alignment.Top).padding(top = Ui.Padding.L)
+					) { Text(MR.strings.scene_editor_unsaved_chip.get()) }
 
-				Spacer(modifier = Modifier.weight(1f))
+					Spacer(modifier = Modifier.weight(1f))
 
-				IconButton(onClick = {
-					scope.launch {
-						component.storeSceneContent()
-						scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
+					IconButton(onClick = {
+						scope.launch {
+							component.storeSceneContent()
+							scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
+						}
+					}) {
+						Icon(
+							Icons.Filled.Save,
+							contentDescription = MR.strings.scene_editor_save_button.get(),
+							tint = MaterialTheme.colorScheme.onSurface
+						)
 					}
-				}) {
-					Icon(
-						Icons.Filled.Save,
-						contentDescription = MR.strings.scene_editor_save_button.get(),
-						tint = MaterialTheme.colorScheme.onSurface
-					)
 				}
 			}
 

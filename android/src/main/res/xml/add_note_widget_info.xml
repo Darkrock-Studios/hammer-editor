@@ -9,4 +9,5 @@
 					android:initialLayout="@layout/add_note_widget_loading"
 					android:previewLayout="@layout/add_note_widget_preview"
 					android:widgetCategory="home_screen"
+	android:configure="com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetConfigActivity"
 />

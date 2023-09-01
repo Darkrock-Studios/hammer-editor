@@ -71,6 +71,7 @@ abstract class EncyclopediaRepository(
 		tags: List<String>
 	): EntryError {
 		return when {
+			name.trim().isEmpty() -> EntryError.NAME_TOO_SHORT
 			name.trim().length > MAX_NAME_SIZE -> EntryError.NAME_TOO_LONG
 			!ENTRY_NAME_PATTERN.matches(name.trim()) -> EntryError.NAME_INVALID_CHARACTERS
 			tags.any { it.length > MAX_TAG_SIZE } -> EntryError.TAG_TOO_LONG

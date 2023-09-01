@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.border
@@ -16,6 +16,9 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogContents
 
 @Preview
 @Composable

@@ -11,9 +11,9 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 - ~~**Localization Support:** Move all strings into localization files, get setup with community localization service.~~
 - **Quality of Life UI improvements:** The UI is ready for a second polish pass, focusing on quality of life
   improvements.
-    - Word Count in text editor
-    - Draft selection editor
-    - Lots of work on Merge Conflict editors when syncing
+	- Word Count in text editor
+	- ~~Draft selection editor~~
+	- Lots of work on Merge Conflict editors when syncing
     - General work for larger screen sizes
     - ~~Confirm save on more entity types beyond just scenes~~
 
@@ -27,8 +27,8 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 - **Encyclopedia Improvements:** usability improvements
     - Allow more characters to be used in the name
     - Allow changing of entry type after creation
-    - Allow tag removal, addition after creation
-    - Tag search in browser
+	- Allow tag removal, addition after creation
+	- ~~Tag search in encyclopedia browser~~
 - More unit testing across the board
 - ~~Release for **MacOS**~~
 

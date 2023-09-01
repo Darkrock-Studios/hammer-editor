@@ -10,11 +10,12 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 @Parcelize
+@TypeParceler<Instant, InstantParceler>()
 data class SyncLogMessage(
 	val message: String,
 	val level: SyncLogLevel,
 	val projectName: String?,
-	@TypeParceler<Instant, InstantParceler>() val timestamp: Instant
+	val timestamp: Instant
 ) : Parcelable
 
 fun syncLogD(message: String, projectName: String) = syncLog(message, projectName, SyncLogLevel.DEBUG)
