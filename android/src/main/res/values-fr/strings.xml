@@ -8,8 +8,20 @@
     <string name="navdrawer_button">Tiroir de navigation</string>
     <string name="note_widget_dialog_title">Ajouter une note à :</string>
     <string name="note_widget_dialog_save_button">Enregistrer</string>
-    <string name="note_widget_dialog_projects_dropdown">Catégories</string>
+    <string name="note_widget_dialog_projects_dropdown">Projets</string>
     <string name="note_widget_button_description">Ajouter une note</string>
     <string name="note_widget_toast_no_projects">Aucun projet</string>
     <string name="note_widget_toast_success">Note ajoutée</string>
+    <string name="note_widget_dialog_cancel_button">Annuler</string>
+    <string name="note_widget_dialog_failure_bad_project">Projet introuvable : %1$s</string>
+    <string name="note_widget_confirm_cancel_title">Rejeter la note \?</string>
+    <string name="note_widget_confirm_cancel_positive">Rejeter</string>
+    <string name="note_widget_confirm_cancel_negative">Annuler</string>
+    <string name="action_add_note_short_label">Ajouter une note</string>
+    <string name="action_add_note_long_label">Ajouter une note d\'histoire</string>
+    <string name="action_add_note_disabled">L\'ajout de notes est actuellement désactivé</string>
+    <string name="title_activity_add_note_widget_config">Configurer le Widget</string>
+    <string name="note_widget_config_project_checkbox">Ajouter des notes au projet spécifié</string>
+    <string name="note_widget_config_project_checkbox_explained">Si aucun projet n\'est sélectionné, il vous sera demandé de choisir un projet à chaque fois.</string>
+    <string name="note_widget_config_title">Configurer la largeur de la note :</string>
 </resources>

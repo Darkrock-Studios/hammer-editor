@@ -9,6 +9,7 @@
     <string name="note_widget_dialog_save_button">Salva</string>
     <string name="note_widget_toast_no_projects">Nessun Progetto</string>
     <string name="note_widget_toast_success">Nota Aggiunta</string>
-    <string name="note_widget_dialog_projects_dropdown">Categorie</string>
+    <string name="note_widget_dialog_projects_dropdown">Progetti</string>
     <string name="note_widget_button_description">Aggiungi Nota</string>
+    <string name="note_widget_dialog_failure_bad_project">Progetto non trovato: %1$s</string>
 </resources>

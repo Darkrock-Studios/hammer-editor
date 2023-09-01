@@ -14,4 +14,6 @@
     <string name="unsaved_dialog_positive_button">Ignorer et fermer</string>
     <string name="close_dialog_button">Fermer</string>
     <string name="more_menu_button">Plus</string>
+    <string name="network_request_failure_connection">Demande de réseau échouée : %1$s</string>
+    <string name="network_request_failure_parse_body">Échec de l\'analyse du corps de la réponse : %1$s</string>
 </resources>
