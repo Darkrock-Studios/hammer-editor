@@ -42,7 +42,7 @@ sealed interface ApiProjectEntity {
 		val name: String,
 		val entryType: String,
 		val text: String,
-		val tags: List<String>,
+		val tags: Set<String>,
 		val image: Image?,
 	) : ApiProjectEntity {
 		@Serializable

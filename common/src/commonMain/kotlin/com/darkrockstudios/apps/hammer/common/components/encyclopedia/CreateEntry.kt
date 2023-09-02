@@ -18,7 +18,7 @@ interface CreateEntry {
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 		imagePath: String?
 	): EntryResult
 

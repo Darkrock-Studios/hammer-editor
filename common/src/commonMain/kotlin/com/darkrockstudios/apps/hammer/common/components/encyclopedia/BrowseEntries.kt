@@ -8,10 +8,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 interface BrowseEntries {
 
 	val state: Value<State>
+	val filterText: Value<String>
 
 	data class State(
 		val entryDefs: List<EntryDef> = emptyList(),
-		val filterText: String? = null,
 		val filterType: EntryType? = null,
 	)
 
@@ -19,4 +19,6 @@ interface BrowseEntries {
 	fun getFilteredEntries(): List<EntryDef>
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 	fun getImagePath(entryDef: EntryDef): String?
+	fun addTagToSearch(tag: String)
+	fun clearFilterText()
 }

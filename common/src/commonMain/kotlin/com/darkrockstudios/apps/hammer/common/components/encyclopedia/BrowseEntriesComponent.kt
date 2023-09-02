@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -25,6 +26,9 @@ class BrowseEntriesComponent(
 
 	private val _state = MutableValue(BrowseEntries.State())
 	override val state: Value<BrowseEntries.State> = _state
+
+	private val _filterText = MutableValue("")
+	override val filterText: Value<String> = _filterText
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
@@ -78,16 +82,16 @@ class BrowseEntriesComponent(
 	override fun updateFilter(text: String?, type: EntryType?) {
 		_state.getAndUpdate { state ->
 			state.copy(
-				filterText = text,
 				filterType = type
 			)
 		}
+		_filterText.update { text ?: "" }
 	}
 
 	private val hashtagRegex = Regex("""#(\w+)""")
 	override fun getFilteredEntries(): List<EntryDef> {
 		val type = state.value.filterType
-		val text = state.value.filterText ?: ""
+		val text = filterText.value
 
 		val tags = hashtagRegex.findAll(text).map {
 			it.groupValues[1]
@@ -139,7 +143,7 @@ class BrowseEntriesComponent(
 					name = entryDef.name,
 					type = entryDef.type,
 					text = "ERROR",
-					tags = emptyList()
+					tags = emptySet()
 				)
 			}
 		}
@@ -151,5 +155,13 @@ class BrowseEntriesComponent(
 		} else {
 			null
 		}
+	}
+
+	override fun clearFilterText() {
+		_filterText.update { "" }
+	}
+
+	override fun addTagToSearch(tag: String) {
+		_filterText.update { "${filterText.value} #$tag" }
 	}
 }

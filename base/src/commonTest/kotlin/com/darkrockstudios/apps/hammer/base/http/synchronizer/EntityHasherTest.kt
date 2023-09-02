@@ -52,7 +52,7 @@ class EntityHasherTest {
 			name = "The Great Debate",
 			entryType = "person",
 			text = "Some great content",
-			tags = listOf("tag1", "tag2"),
+			tags = setOf("tag1", "tag2"),
 			image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
 				base64 = "skjdnviouwenvipnsdv",
 				fileExtension = "jpg"

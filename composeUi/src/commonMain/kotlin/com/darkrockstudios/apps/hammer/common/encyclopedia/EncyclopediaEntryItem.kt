@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -13,13 +16,16 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.Toys
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
-import com.darkrockstudios.apps.hammer.common.compose.TagRow
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
@@ -59,6 +64,7 @@ internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 	}
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
@@ -155,9 +161,29 @@ internal fun EncyclopediaEntryItem(
 
 						Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-						TagRow(
-							tags = content.tags,
-						)
+						FlowRow(
+							modifier = modifier,
+							horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+							verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+						) {
+							for (tag in content.tags) {
+								InputChip(
+									onClick = {
+										component.addTagToSearch(tag)
+									},
+									label = { Text(tag) },
+									leadingIcon = {
+										Icon(
+											Icons.Filled.Tag,
+											contentDescription = null,
+											tint = MaterialTheme.colorScheme.onSurface
+										)
+									},
+									enabled = true,
+									selected = false
+								)
+							}
+						}
 					} else {
 						Text(MR.strings.encyclopedia_entry_load_error.get())
 					}

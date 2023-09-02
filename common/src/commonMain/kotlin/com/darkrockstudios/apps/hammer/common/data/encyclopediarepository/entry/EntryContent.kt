@@ -9,7 +9,7 @@ data class EntryContent(
 	val name: String,
 	val type: EntryType,
 	val text: String,
-	val tags: List<String>
+	val tags: Set<String>
 ) {
 	fun toDef(projectDef: ProjectDef): EntryDef = EntryDef(
 		projectDef = projectDef,

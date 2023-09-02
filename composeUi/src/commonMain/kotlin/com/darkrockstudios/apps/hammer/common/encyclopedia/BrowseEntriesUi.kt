@@ -53,13 +53,13 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	val state by component.state.subscribeAsState()
 	val types = remember { EntryType.entries }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
-	var searchText by remember { mutableStateOf(state.filterText ?: "") }
+	val searchText by component.filterText.subscribeAsState()
 	val strRes = rememberStrRes()
 
 	val filteredEntries by remember(
 		Triple(
 			state.entryDefs,
-			state.filterText,
+			searchText,
 			state.filterType
 		)
 	) { mutableStateOf(component.getFilteredEntries()) }
@@ -72,8 +72,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			OutlinedTextField(
 				value = searchText,
 				onValueChange = {
-					searchText = it
-					component.updateFilter(searchText, selectedType)
+					component.updateFilter(it, selectedType)
 				},
 				label = { Text(MR.strings.encyclopedia_search_hint.get()) },
 				singleLine = true,
@@ -86,8 +85,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				),
 				trailingIcon = {
 					IconButton(onClick = {
-						searchText = ""
-						component.updateFilter(searchText, selectedType)
+						component.clearFilterText()
 					}) {
 						Icon(
 							imageVector = Icons.Filled.Clear,

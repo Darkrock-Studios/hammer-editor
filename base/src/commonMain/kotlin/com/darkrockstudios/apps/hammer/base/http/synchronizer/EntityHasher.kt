@@ -49,7 +49,7 @@ object EntityHasher {
 		name: String,
 		entryType: String,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?
 	): String {
 		val buf = buff()
@@ -59,7 +59,8 @@ object EntityHasher {
 		d.update(entryType, buf)
 		d.update(text, buf)
 
-		tags.forEach { tag ->
+		val sortedTags = tags.sorted()
+		sortedTags.forEach { tag ->
 			d.update(tag, buf)
 		}
 

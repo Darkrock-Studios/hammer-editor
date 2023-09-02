@@ -29,7 +29,7 @@ fun SimpleDialog(
 	onCloseRequest: () -> Unit,
 	visible: Boolean,
 	title: String,
-	modifier: Modifier = Modifier,
+	modifier: Modifier = Modifier.padding(Ui.Padding.XL),
 	content: @Composable ColumnScope.() -> Unit
 ) {
 	if (visible) {

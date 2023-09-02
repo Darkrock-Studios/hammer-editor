@@ -26,7 +26,11 @@ class ViewEntryComponent(
 	private val closeEntry: () -> Unit
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
-	private val _state = MutableValue(ViewEntry.State(entryDef = entryDef))
+	private val _state = MutableValue(
+		ViewEntry.State(
+			entryDef = entryDef
+		)
+	)
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
@@ -156,7 +160,7 @@ class ViewEntryComponent(
 	override suspend fun updateEntry(
 		name: String,
 		text: String,
-		tags: List<String>
+		tags: Set<String>
 	): EntryResult {
 		val result = encyclopediaRepository.updateEntry(state.value.entryDef, name, text, tags)
 		if (result.instance != null && result.error == EntryError.NONE) {
@@ -186,6 +190,58 @@ class ViewEntryComponent(
 				confirmClose = false
 			)
 		}
+	}
+
+	override fun removeTag(tag: String) {
+		scope.launch {
+			state.value.content?.apply {
+				val newTags = tags.toMutableSet()
+				newTags.remove(tag)
+
+				encyclopediaRepository.updateEntry(
+					state.value.entryDef,
+					name,
+					text,
+					newTags
+				)
+
+				reload()
+			}
+		}
+	}
+
+	override fun startTagAdd() {
+		_state.getAndUpdate {
+			it.copy(
+				showTagAdd = true
+			)
+		}
+	}
+
+	override fun endTagAdd() {
+		_state.getAndUpdate {
+			it.copy(
+				showTagAdd = false
+			)
+		}
+	}
+
+	override suspend fun addTags(tagInput: String) {
+		val newTags = tagInput.splitToSequence(" ")
+			.filter { it.isNotBlank() }
+			.toSet()
+
+		state.value.content?.apply {
+			encyclopediaRepository.updateEntry(
+				oldEntryDef = state.value.entryDef,
+				name = name,
+				text = text,
+				tags = tags + newTags,
+			)
+		}
+
+		endTagAdd()
+		reload()
 	}
 
 	private fun getMenuId(): String {

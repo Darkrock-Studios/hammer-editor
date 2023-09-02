@@ -20,13 +20,14 @@ interface ViewEntry {
 		val editText: Boolean = false,
 		val editName: Boolean = false,
 		val confirmClose: Boolean = false,
+		val showTagAdd: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 
 	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean
-	suspend fun updateEntry(name: String, text: String, tags: List<String>): EntryResult
+	suspend fun updateEntry(name: String, text: String, tags: Set<String>): EntryResult
 	suspend fun removeEntryImage(): Boolean
 	suspend fun setImage(path: String)
 
@@ -43,4 +44,8 @@ interface ViewEntry {
 	fun finishTextEdit()
 	fun confirmClose()
 	fun dismissConfirmClose()
+	fun removeTag(tag: String)
+	fun startTagAdd()
+	suspend fun addTags(tagInput: String)
+	fun endTagAdd()
 }

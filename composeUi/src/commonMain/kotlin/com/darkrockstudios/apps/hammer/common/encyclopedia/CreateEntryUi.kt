@@ -161,7 +161,7 @@ internal fun CreateEntryUi(
 									name = newEntryNameText,
 									type = selectedType,
 									text = newEntryContentText.text,
-									tags = newTagsText.splitToSequence(" ").toList(),
+									tags = newTagsText.splitToSequence(" ").toSet(),
 									imagePath = imagePath?.path
 								)
 

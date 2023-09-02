@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,14 +22,19 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
@@ -38,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,7 +59,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.TagRow
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
@@ -215,13 +223,14 @@ internal fun ViewEntryUi(
 						showDeleteImageDialog = component::showDeleteImageDialog
 					)
 					Contents(
-						modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+						modifier = Modifier.weight(1f).fillMaxHeight()
+							.verticalScroll(rememberScrollState()),
+						component = component,
 						state = state,
 						editText = state.editText,
 						entryText = entryText,
-						setEntryText = { entryText = it },
-						beginEdit = { component.startTextEdit() }
-					)
+						setEntryText = { entryText = it }
+					) { component.startTextEdit() }
 				}
 			} else {
 				Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -232,12 +241,12 @@ internal fun ViewEntryUi(
 					)
 					Contents(
 						modifier = Modifier.wrapContentHeight(),
+						component = component,
 						state = state,
 						editText = state.editText,
 						entryText = entryText,
-						setEntryText = { entryText = it },
-						beginEdit = { component.startTextEdit() }
-					)
+						setEntryText = { entryText = it }
+					) { component.startTextEdit() }
 				}
 			}
 		}
@@ -311,20 +320,23 @@ private fun Image(
 	}
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun Contents(
 	modifier: Modifier = Modifier,
+	component: ViewEntry,
 	state: ViewEntry.State,
 	editText: Boolean,
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	beginEdit: () -> Unit,
 ) {
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
 	val content = state.content
 
 	Column(
 		modifier = modifier
-			.wrapContentHeight()
 			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
 	) {
 		AssistChip(
@@ -343,38 +355,95 @@ private fun Contents(
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 		if (content != null) {
-			Column {
-				if (editText) {
-					OutlinedTextField(
-						value = entryText,
-						onValueChange = setEntryText,
-						modifier = Modifier.fillMaxWidth()
-							.padding(PaddingValues(bottom = Ui.Padding.XL)),
-						placeholder = { Text(text = MR.strings.encyclopedia_entry_body_empty_placeholder.get()) },
-						maxLines = 10,
-					)
-				} else {
-					val text = entryText.ifBlank {
-						MR.strings.encyclopedia_entry_body_empty_label.get()
-					}
-					Text(
-						text,
-						modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onBackground,
+			if (editText) {
+				OutlinedTextField(
+					value = entryText,
+					onValueChange = setEntryText,
+					modifier = Modifier.fillMaxWidth()
+						.padding(PaddingValues(bottom = Ui.Padding.XL)),
+					placeholder = { Text(text = MR.strings.encyclopedia_entry_body_empty_placeholder.get()) },
+					maxLines = 10,
+				)
+			} else {
+				val text = entryText.ifBlank {
+					MR.strings.encyclopedia_entry_body_empty_label.get()
+				}
+				Text(
+					text,
+					modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onBackground,
+				)
+			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			FlowRow(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+			) {
+				for (tag in content.tags) {
+					InputChip(
+						onClick = {
+							component.removeTag(tag)
+						},
+						label = { Text(tag) },
+						trailingIcon = {
+							Icon(
+								Icons.Filled.Delete,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.onSurface
+							)
+						},
+						enabled = true,
+						selected = false
 					)
 				}
 
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-				TagRow(
-					tags = content.tags,
-					modifier = Modifier.fillMaxWidth(),
-					alignment = Alignment.End
+				InputChip(
+					onClick = {
+						component.startTagAdd()
+					},
+					label = { Text(MR.strings.encyclopedia_entry_add_tag.get()) },
+					leadingIcon = {
+						Icon(
+							Icons.Filled.Add,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					enabled = true,
+					selected = false
 				)
 			}
 		} else {
 			CircularProgressIndicator()
+		}
+	}
+
+	SimpleDialog(
+		title = MR.strings.encyclopedia_entry_add_tags_dialog_title.get(),
+		visible = state.showTagAdd,
+		onCloseRequest = component::endTagAdd,
+	) {
+		var newTagsText by rememberSaveable { mutableStateOf("") }
+		TextField(
+			modifier = Modifier.fillMaxWidth()
+				.padding(PaddingValues(bottom = Ui.Padding.L)),
+			value = newTagsText,
+			onValueChange = { newTagsText = it },
+			placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) }
+		)
+		Button(onClick = {
+			scope.launch {
+				component.addTags(newTagsText)
+				withContext(mainDispatcher) {
+					newTagsText = ""
+				}
+			}
+		}) {
+			Text(MR.strings.encyclopedia_entry_add_tags_button.get())
 		}
 	}
 }

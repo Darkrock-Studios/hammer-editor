@@ -157,18 +157,10 @@ class EncyclopediaRepositoryOkio(
 		}
 	}
 
-	override suspend fun createEntry(
-		name: String,
-		type: EntryType,
-		text: String,
-		tags: List<String>,
-		imagePath: String?,
-		forceId: Int?
-	): EntryResult {
-		val result = validateEntry(name, type, text, tags)
-		if (result != EntryError.NONE) return EntryResult(result)
-
-		val cleanedTags = tags
+	private fun cleanTags(tags: Set<String>): Set<String> {
+		val regex = Regex("""[\w-]+""")
+		return tags
+			.asSequence()
 			.map { it.trim() }
 			.map {
 				if (it.startsWith("#")) {
@@ -178,6 +170,22 @@ class EncyclopediaRepositoryOkio(
 				}
 			}
 			.filter { it.isNotEmpty() }
+			.filter { regex.matches(it) }
+			.toSet()
+	}
+
+	override suspend fun createEntry(
+		name: String,
+		type: EntryType,
+		text: String,
+		tags: Set<String>,
+		imagePath: String?,
+		forceId: Int?
+	): EntryResult {
+		val result = validateEntry(name, type, text, tags)
+		if (result != EntryError.NONE) return EntryResult(result)
+
+		val cleanedTags = cleanTags(tags)
 
 		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(
@@ -278,7 +286,7 @@ class EncyclopediaRepositoryOkio(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 	): EntryResult {
 
 		val result = validateEntry(name, oldEntryDef.type, text, tags)
@@ -286,7 +294,7 @@ class EncyclopediaRepositoryOkio(
 
 		markForSynchronization(oldEntryDef)
 
-		val cleanedTags = tags.map { it.trim() }
+		val cleanedTags = cleanTags(tags)
 
 		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
 		fileSystem.delete(oldPath)

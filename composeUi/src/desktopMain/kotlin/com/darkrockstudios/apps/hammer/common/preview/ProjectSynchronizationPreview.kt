@@ -124,7 +124,7 @@ private fun RemotePreview() {
 		name = "Test",
 		entryType = "person",
 		text = "Test, Test, Test, Test, Test,Test,v,v,v,v,v,",
-		tags = listOf("tag1", "tag2"),
+		tags = setOf("tag1", "tag2"),
 		image = null
 	)
 

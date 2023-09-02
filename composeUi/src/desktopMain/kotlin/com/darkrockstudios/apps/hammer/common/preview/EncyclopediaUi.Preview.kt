@@ -60,6 +60,8 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 				entryDefs = entryDefs
 			)
 		)
+	override val filterText: Value<String>
+		get() = MutableValue("")
 
 	override fun updateFilter(text: String?, type: EntryType?) {}
 	override fun getFilteredEntries(): List<EntryDef> = entryDefs
@@ -70,11 +72,13 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 			name = entryDef.name,
 			type = entryDef.type,
 			text = "test test",
-			tags = listOf("one", "two")
+			tags = setOf("one", "two")
 		)
 	}
 
 	override fun getImagePath(entryDef: EntryDef) = null
+	override fun addTagToSearch(tag: String) {}
+	override fun clearFilterText() {}
 }
 
 @Preview
@@ -115,7 +119,7 @@ private fun CreateEntryPreview() {
 			name: String,
 			type: EntryType,
 			text: String,
-			tags: List<String>,
+			tags: Set<String>,
 			imagePath: String?
 		): EntryResult = EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 
@@ -152,7 +156,7 @@ private fun ViewEntryPreview() {
 		override fun getImagePath(entryDef: EntryDef) = null
 		override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 		override suspend fun deleteEntry(entryDef: EntryDef) = true
-		override suspend fun updateEntry(name: String, text: String, tags: List<String>) =
+		override suspend fun updateEntry(name: String, text: String, tags: Set<String>) =
 			EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 
 		override suspend fun removeEntryImage() = true
@@ -169,6 +173,10 @@ private fun ViewEntryPreview() {
 		override fun finishTextEdit() {}
 		override fun confirmClose() {}
 		override fun dismissConfirmClose() {}
+		override fun removeTag(tag: String) {}
+		override fun startTagAdd() {}
+		override suspend fun addTags(tagInput: String) {}
+		override fun endTagAdd() {}
 	}
 	val scope = rememberCoroutineScope()
 	val snackbarHostState = remember { SnackbarHostState() }
@@ -222,7 +230,7 @@ private fun fakeEntryContent(): EntryContent = EntryContent(
 	id = 0,
 	type = EntryType.PERSON,
 	text = "Lots of text text to show how things look and thats pretty cool",
-	tags = listOf("one", "two")
+	tags = setOf("one", "two")
 )
 
 private val entryDefs = listOf(

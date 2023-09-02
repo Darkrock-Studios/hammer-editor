@@ -8,7 +8,7 @@ fun fakeEntry() = EntryContent(
 	type = EntryType.PERSON,
 	name = "Test Name",
 	text = "Entry content",
-	tags = listOf("tag1", "tag2")
+	tags = setOf("tag1", "tag2")
 )
 
 fun entry1() = EntryContent(
@@ -16,5 +16,5 @@ fun entry1() = EntryContent(
 	type = EntryType.PERSON,
 	name = "Entry 1",
 	text = "This is a person entry",
-	tags = listOf("tag1", "tag2")
+	tags = setOf("tag1", "tag2")
 )

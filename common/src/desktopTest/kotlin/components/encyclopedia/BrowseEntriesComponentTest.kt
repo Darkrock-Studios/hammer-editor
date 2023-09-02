@@ -71,12 +71,12 @@ class BrowseEntriesComponentTest : BaseTest() {
 	@Test
 	fun `Test Load Entries`() = runTest {
 		val entries = listOf(
-			Triple(EntryType.PERSON, "Bob Robert", listOf("one", "two")),
-			Triple(EntryType.PERSON, "Jason Splaptap", emptyList<String>()),
-			Triple(EntryType.PERSON, "123 Hj ss", listOf("two")),
-			Triple(EntryType.EVENT, "Big thing", listOf("two")),
-			Triple(EntryType.PLACE, "Super Bob", emptyList<String>()),
-			Triple(EntryType.THING, "Wobble Bobble", listOf("cool")),
+			Triple(EntryType.PERSON, "Bob Robert", setOf("one", "two")),
+			Triple(EntryType.PERSON, "Jason Splaptap", emptySet<String>()),
+			Triple(EntryType.PERSON, "123 Hj ss", setOf("two")),
+			Triple(EntryType.EVENT, "Big thing", setOf("two")),
+			Triple(EntryType.PLACE, "Super Bob", emptySet<String>()),
+			Triple(EntryType.THING, "Wobble Bobble", setOf("cool")),
 		)
 		setupFlow(*entries.toTypedArray())
 
@@ -218,16 +218,16 @@ class BrowseEntriesComponentTest : BaseTest() {
 
 	private suspend fun setupDefaultFlow() {
 		setupFlow(
-			Triple(EntryType.PERSON, "Bob Robert", listOf("one", "two")),
-			Triple(EntryType.PERSON, "Jason Splaptap", emptyList<String>()),
-			Triple(EntryType.PERSON, "123 Hj ss", listOf("two", "three")),
-			Triple(EntryType.EVENT, "Big thing", listOf("three")),
-			Triple(EntryType.PERSON, "Super Bob", emptyList<String>()),
-			Triple(EntryType.PLACE, "Super Bobs House", listOf("three")),
+			Triple(EntryType.PERSON, "Bob Robert", setOf("one", "two")),
+			Triple(EntryType.PERSON, "Jason Splaptap", emptySet<String>()),
+			Triple(EntryType.PERSON, "123 Hj ss", setOf("two", "three")),
+			Triple(EntryType.EVENT, "Big thing", setOf("three")),
+			Triple(EntryType.PERSON, "Super Bob", emptySet<String>()),
+			Triple(EntryType.PLACE, "Super Bobs House", setOf("three")),
 		)
 	}
 
-	private suspend fun setupFlow(vararg data: Triple<EntryType, String, List<String>>) {
+	private suspend fun setupFlow(vararg data: Triple<EntryType, String, Set<String>>) {
 		val flow = MutableSharedFlow<List<EntryDef>>(replay = 1, extraBufferCapacity = 1)
 		entryListFlow = flow
 
@@ -246,7 +246,7 @@ class BrowseEntriesComponentTest : BaseTest() {
 		}
 	}
 
-	private fun createFakeEntries(vararg data: Triple<EntryType, String, List<String>>): List<EntryContainer> {
+	private fun createFakeEntries(vararg data: Triple<EntryType, String, Set<String>>): List<EntryContainer> {
 		var id = 1
 		return data.map { (type, name, tags) ->
 			EntryContainer(

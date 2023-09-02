@@ -47,7 +47,7 @@ class CreateEntryComponent(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 		imagePath: String?
 	): EntryResult {
 		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)

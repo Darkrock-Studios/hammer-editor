@@ -57,7 +57,7 @@ abstract class EncyclopediaRepository(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 		imagePath: String?,
 		forceId: Int? = null
 	): EntryResult
@@ -68,7 +68,7 @@ abstract class EncyclopediaRepository(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: List<String>
+		tags: Set<String>
 	): EntryError {
 		return when {
 			name.trim().isEmpty() -> EntryError.NAME_TOO_SHORT
@@ -93,7 +93,7 @@ abstract class EncyclopediaRepository(
 		oldEntryDef: EntryDef,
 		name: String,
 		text: String,
-		tags: List<String>,
+		tags: Set<String>,
 	): EntryResult
 
 	abstract suspend fun reIdEntry(oldId: Int, newId: Int)
