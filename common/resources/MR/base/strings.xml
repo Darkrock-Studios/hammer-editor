@@ -25,4 +25,6 @@
 
 	<string name="confirm_dialog_positive">Yes</string>
 	<string name="confirm_dialog_negative">No</string>
+
+	<string name="image_failed_to_load">Image Error</string>
 </resources>

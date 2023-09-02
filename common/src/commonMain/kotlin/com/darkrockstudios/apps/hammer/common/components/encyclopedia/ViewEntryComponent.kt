@@ -43,12 +43,9 @@ class ViewEntryComponent(
 		}
 	}
 
-	init {
-		backHandler.register(backButtonHandler)
-	}
-
 	override fun onCreate() {
 		super.onCreate()
+		backHandler.register(backButtonHandler)
 		reload()
 	}
 
