@@ -1,6 +1,5 @@
 package components.projectselection
 
-import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
@@ -20,6 +19,7 @@ import io.mockk.InternalPlatformDsl.toStr
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.koin.dsl.bind

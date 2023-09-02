@@ -39,7 +39,7 @@ kotlin {
 				api(libs.cryptohash)
 				api(libs.korlibs.korio)
 				implementation(libs.okio)
-				implementation(libs.ktoml)
+				implementation(libs.tomlkt)
 			}
         }
 		val commonTest by getting {

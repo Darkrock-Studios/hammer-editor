@@ -1,6 +1,5 @@
 package repositories.timeline
 
-import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
@@ -25,6 +24,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.junit.Test

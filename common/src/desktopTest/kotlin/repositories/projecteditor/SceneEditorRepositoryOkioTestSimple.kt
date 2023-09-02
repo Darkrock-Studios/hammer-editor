@@ -1,6 +1,5 @@
 package repositories.projecteditor
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -22,6 +21,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After

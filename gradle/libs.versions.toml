@@ -34,10 +34,10 @@ kotlinx_cli = "0.3.5"
 kwebCore = "1.4.6"
 material = "1.9.0"
 orchestrator = "1.4.2"
-serialization = "1.5.1"
-serialization_json = "1.5.1"
+serialization = "1.6.0"
+serialization_json = "1.6.0"
 coroutines = "1.7.3"
-datetime = "0.3.2" # This is being held back to 0.3.2 due to ios support not working in later versions
+datetime = "0.4.0" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
 jetpack_compose_compiler = "1.5.2"
 jetbrains_compose = "1.5.0"
@@ -75,9 +75,10 @@ work-runtime-ktx = "2.8.1"
 multiplatform_window_size = "0.2.0"
 mockk = "1.13.7"
 
-kotlinx_atomicfu = "0.21.0"
+kotlinx_atomicfu = "0.22.0"
 
 ktoml = "0.4.0"
+tomlkt = "0.3.0"
 
 krypto = "3.4.0"
 
@@ -86,9 +87,6 @@ buildconfig = "4.0.2"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "10.8.3"
-# These were added automatically, do we really need them?
-#lifecycle-runtime-ktx = "2.6.1"
-#compose-bom = "2023.03.00"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -160,6 +158,7 @@ koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", versi
 cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
 ktoml = { group = "com.akuleshov7", name = "ktoml-core", version.ref = "ktoml" }
+tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 
 ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor_client_auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }

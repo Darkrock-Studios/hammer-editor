@@ -1,6 +1,5 @@
 package repositories.timeline
 
-import com.akuleshov7.ktoml.Toml
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
@@ -13,12 +12,12 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.koin.dsl.bind
@@ -39,7 +38,6 @@ abstract class TimeLineTestBase : BaseTest() {
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Before
 	override fun setup() {
 		super.setup()

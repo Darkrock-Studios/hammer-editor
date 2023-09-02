@@ -3,7 +3,6 @@ package repositories.projecteditor
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -22,6 +21,7 @@ import createProject
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After

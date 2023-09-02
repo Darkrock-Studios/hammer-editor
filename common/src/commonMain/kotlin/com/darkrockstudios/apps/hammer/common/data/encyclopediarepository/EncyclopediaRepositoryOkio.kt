@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -19,6 +18,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path

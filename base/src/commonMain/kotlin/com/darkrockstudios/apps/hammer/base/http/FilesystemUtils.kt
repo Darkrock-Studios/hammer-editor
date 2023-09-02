@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.base.http
 
-import com.akuleshov7.ktoml.Toml
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path

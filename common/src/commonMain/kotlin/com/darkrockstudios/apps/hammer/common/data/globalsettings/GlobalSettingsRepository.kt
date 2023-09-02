@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -17,6 +16,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.component.KoinComponent

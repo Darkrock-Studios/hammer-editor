@@ -1,9 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import kotlinx.serialization.Serializable
+import net.peanuuutz.tomlkt.TomlLiteralString
 
 @Serializable
 data class GlobalSettings(
+	@TomlLiteralString
 	val projectsDirectory: String,
 	val uiTheme: UiTheme = UiTheme.FollowSystem,
 	val automaticBackups: Boolean = true,

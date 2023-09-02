@@ -54,7 +54,7 @@ kotlin {
 				api(libs.serialization.core)
 				api(libs.serialization.json)
 				api(libs.datetime)
-				implementation(libs.ktoml)
+				implementation(libs.tomlkt)
 				api(libs.essenty)
 				implementation(libs.cache4k)
 				api(libs.moko.resources)

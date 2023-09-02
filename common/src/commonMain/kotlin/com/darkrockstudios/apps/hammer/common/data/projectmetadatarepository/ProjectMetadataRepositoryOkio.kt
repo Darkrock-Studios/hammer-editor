@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -11,6 +10,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.datetime.Clock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 

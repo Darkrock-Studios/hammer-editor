@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
@@ -14,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
 

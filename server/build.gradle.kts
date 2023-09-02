@@ -69,7 +69,7 @@ dependencies {
 	implementation(libs.kweb.core)
 	implementation(libs.ktor.server.websockets)
 
-	implementation(libs.ktoml)
+	implementation(libs.tomlkt)
 	implementation(libs.resources)
 
 	testImplementation(libs.ktor.server.testsjvm)

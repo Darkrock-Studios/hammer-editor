@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
-import com.akuleshov7.ktoml.Toml
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
 
