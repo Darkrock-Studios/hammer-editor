@@ -225,7 +225,7 @@ private fun GenericStatsBlock(label: String, content: @Composable () -> Unit) {
 	}
 }
 
-private val entryTypes = EntryType.values()
+private val entryTypes = EntryType.entries
 private val colors = generateHueColorPalette(entryTypes.size)
 
 @OptIn(ExperimentalKoalaPlotApi::class)
@@ -234,8 +234,9 @@ private fun EncyclopediaChart(
 	modifier: Modifier = Modifier,
 	state: ProjectHome.State
 ) {
+	// TODO this chart library is so full of bugs... having zero here crashes?! Add .01f
 	val values =
-		remember(state.encyclopediaEntriesByType) { state.encyclopediaEntriesByType.map { it.value.toFloat() } }
+		remember(state.encyclopediaEntriesByType) { state.encyclopediaEntriesByType.map { it.value.toFloat() + .01f } }
 
 	if (values.isNotEmpty() && values.sum() > 0f) {
 		PieChart(

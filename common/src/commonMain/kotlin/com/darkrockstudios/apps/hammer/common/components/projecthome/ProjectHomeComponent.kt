@@ -154,7 +154,7 @@ class ProjectHomeComponent(
 			encyclopediaRepository.loadEntries()
 			val entriesByType = mutableMapOf<EntryType, Int>()
 			encyclopediaRepository.entryListFlow.take(1).collect { entries ->
-				EntryType.values().forEach { type ->
+				EntryType.entries.forEach { type ->
 					val numEntriesOfType = entries.count { it.type == type }
 					entriesByType[type] = numEntriesOfType
 				}
