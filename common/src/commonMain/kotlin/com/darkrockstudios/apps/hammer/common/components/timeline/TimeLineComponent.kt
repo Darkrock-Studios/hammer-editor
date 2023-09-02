@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.popWhile
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
@@ -66,7 +71,10 @@ class TimeLineComponent(
 		return ViewTimeLineEventComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
-			eventId = config.eventId
+			eventId = config.eventId,
+			closeEvent = ::showOverview,
+			addMenu = addMenu,
+			removeMenu = removeMenu,
 		)
 	}
 
@@ -106,7 +114,9 @@ class TimeLineComponent(
 		}
 	}
 
-	init {
+	override fun onCreate() {
+		super.onCreate()
+
 		backHandler.register(backButtonHandler)
 
 		stack.observe(lifecycle) {

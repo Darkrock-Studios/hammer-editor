@@ -21,4 +21,10 @@
 
 	<string name="timeline_view_discard_title">Discard Changes?</string>
 	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
+
+	<string name="timeline_view_menu_group">Event</string>
+	<string name="timeline_view_menu_delete">Delete</string>
+
+	<string name="timeline_view_confirm_delete_title">Delete Timeline Event?</string>
+	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
 </resources>

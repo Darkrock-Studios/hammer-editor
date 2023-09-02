@@ -30,7 +30,10 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 		val component = ViewTimeLineEventComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			eventId = eventId
+			eventId = eventId,
+			closeEvent = {},
+			addMenu = {},
+			removeMenu = {},
 		)
 		lifecycleCallbacks[1].onCreate()
 		advanceUntilIdle()

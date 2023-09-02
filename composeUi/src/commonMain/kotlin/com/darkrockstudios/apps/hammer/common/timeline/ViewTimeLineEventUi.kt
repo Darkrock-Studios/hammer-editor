@@ -128,6 +128,8 @@ fun ViewTimeLineEventUi(
 					}
 				}
 
+				ViewEventMenuUi(component)
+
 				if (screen.needsExplicitClose) {
 					IconButton(
 						onClick = {
@@ -196,6 +198,18 @@ fun ViewTimeLineEventUi(
 		) {
 			closeConfirm = false
 			closeEvent()
+		}
+	}
+
+	if (state.confirmDelete) {
+		SimpleConfirm(
+			title = MR.strings.timeline_view_confirm_delete_title.get(),
+			message = MR.strings.timeline_view_confirm_delete_message.get(),
+			onDismiss = { component.endDeleteEvent() }
+		) {
+			scope.launch {
+				component.deleteEvent()
+			}
 		}
 	}
 }
