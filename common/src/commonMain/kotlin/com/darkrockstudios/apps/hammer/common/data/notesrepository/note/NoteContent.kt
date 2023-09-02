@@ -6,6 +6,7 @@ import com.arkivanov.essenty.parcelable.TypeParceler
 import com.darkrockstudios.apps.hammer.common.parcelize.InstantParceler
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import net.peanuuutz.tomlkt.TomlMultilineString
 
 @TypeParceler<Instant, InstantParceler>()
 @Parcelize
@@ -13,5 +14,6 @@ import kotlinx.serialization.Serializable
 data class NoteContent(
 	val id: Int,
 	val created: Instant,
+	@TomlMultilineString
 	val content: String
 ) : Parcelable
