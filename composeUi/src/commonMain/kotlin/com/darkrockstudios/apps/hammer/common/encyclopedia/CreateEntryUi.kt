@@ -81,6 +81,7 @@ internal fun CreateEntryUi(
 					modifier = Modifier.fillMaxWidth(),
 					padding = Ui.Padding.XL,
 					items = types,
+					getText = { strRes.get(it.toStringResource()) },
 					defaultIndex = types.indexOf(EntryType.PERSON)
 				) { item ->
 					if (item != null) {
@@ -99,7 +100,8 @@ internal fun CreateEntryUi(
 				)
 
 				TextField(
-					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
+					modifier = Modifier.fillMaxWidth()
+						.padding(PaddingValues(bottom = Ui.Padding.L)),
 					value = newTagsText,
 					onValueChange = { newTagsText = it },
 					placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) }
@@ -108,7 +110,8 @@ internal fun CreateEntryUi(
 				OutlinedTextField(
 					value = newEntryContentText,
 					onValueChange = { newEntryContentText = it },
-					modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.L)),
+					modifier = Modifier.fillMaxWidth()
+						.padding(PaddingValues(bottom = Ui.Padding.L)),
 					placeholder = { Text(text = MR.strings.encyclopedia_create_entry_body_hint.get()) },
 					maxLines = 10,
 				)
@@ -121,7 +124,9 @@ internal fun CreateEntryUi(
 					contentAlignment = Alignment.Center
 				) {
 					if (imagePath != null) {
-						Box(modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)) {
+						Box(
+							modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)
+						) {
 							ImageItem(
 								modifier = Modifier.size(128.dp).background(Color.LightGray),
 								path = imagePath?.path
@@ -206,7 +211,8 @@ internal fun CreateEntryUi(
 					}
 
 					Button(
-						modifier = Modifier.weight(1f).padding(PaddingValues(start = Ui.Padding.XL)),
+						modifier = Modifier.weight(1f)
+							.padding(PaddingValues(start = Ui.Padding.XL)),
 						onClick = { component.confirmClose() }
 					) {
 						Text(MR.strings.encyclopedia_create_entry_cancel_button.get())

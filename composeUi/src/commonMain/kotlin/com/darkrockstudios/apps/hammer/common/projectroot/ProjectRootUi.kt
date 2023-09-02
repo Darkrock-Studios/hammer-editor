@@ -1,13 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Dataset
+import androidx.compose.material.icons.filled.Dock
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -102,10 +108,10 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 	}
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ProjectRootFab(
 	component: ProjectRoot,
+	modifier: Modifier = Modifier,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 
@@ -125,15 +131,15 @@ fun ProjectRootFab(
 		}
 
 		is ProjectRoot.Destination.NotesDestination -> {
-			NotesFab(instance.component)
+			NotesFab(instance.component, modifier)
 		}
 
 		is ProjectRoot.Destination.EncyclopediaDestination -> {
-			BrowseEntriesFab(instance.component)
+			BrowseEntriesFab(instance.component, modifier)
 		}
 
 		is ProjectRoot.Destination.TimeLineDestination -> {
-			TimelineFab(instance.component)
+			TimelineFab(instance.component, modifier)
 		}
 
 		is ProjectRoot.Destination.HomeDestination -> {

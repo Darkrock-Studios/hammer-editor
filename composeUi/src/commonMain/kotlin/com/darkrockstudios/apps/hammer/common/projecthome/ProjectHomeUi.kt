@@ -243,7 +243,7 @@ private fun EncyclopediaChart(
 			values = values,
 			label = { index ->
 				Text(
-					entryTypes[index].text,
+					entryTypes[index].toStringResource().get(),
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface
 				)

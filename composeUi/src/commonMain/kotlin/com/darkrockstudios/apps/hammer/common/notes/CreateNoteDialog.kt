@@ -56,6 +56,7 @@ internal fun CreateNoteDialog(
 					value = newNoteText,
 					onValueChange = { newNoteText = it },
 					modifier = Modifier.weight(1f),
+					maxLines = 10,
 					isError = newNoteError,
 				)
 

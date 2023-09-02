@@ -9,8 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -19,6 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun <T> ExposedDropDown(
 	items: List<T>,
+	getText: ((T) -> String)? = null,
 	modifier: Modifier = Modifier,
 	padding: Dp = 16.dp,
 	defaultIndex: Int = 0,
@@ -42,7 +51,13 @@ fun <T> ExposedDropDown(
 			} else {
 				selectedIndex
 			}
-			items[index].toString()
+
+			val item = items[index]
+			if (getText != null) {
+				getText(item)
+			} else {
+				item.toString()
+			}
 		}
 
 		val indexOffset = if (noneOption != null) {
@@ -80,13 +95,19 @@ fun <T> ExposedDropDown(
 			}
 
 			items.forEachIndexed { index, item ->
+				val text = if (getText != null) {
+					getText(item)
+				} else {
+					item.toString()
+				}
+
 				DropdownMenuItem(
 					onClick = {
 						selectedIndex = index + indexOffset
 						itemsExpanded = false
 						onValueChanged(items[index])
 					},
-					text = { Text(text = item.toString()) }
+					text = { Text(text = text) }
 				)
 			}
 		}

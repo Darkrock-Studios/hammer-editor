@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.Modifier
@@ -35,18 +36,14 @@ fun Modifier.rootElement(
 			.consumeWindowInsets(scaffoldPadding)
 			.systemBarsPadding()
 	)
-	/*
+}
+
+fun Modifier.fab(): Modifier {
 	return this.then(
-		fillMaxSize()
-			.padding(scaffoldPadding)
+		Modifier
 			.systemBarsPadding()
 			.navigationBarsPadding()
-			.consumeWindowInsets(sysBarInsets)
-			.consumeWindowInsets(navBars)
-			.imePadding()
-			.fillMaxSize()
-			)
-		*/
+	)
 }
 
 fun Modifier.defaultScaffold(): Modifier {

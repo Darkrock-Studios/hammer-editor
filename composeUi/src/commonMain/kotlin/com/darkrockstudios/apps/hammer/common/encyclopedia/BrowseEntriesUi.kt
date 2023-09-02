@@ -1,14 +1,31 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -22,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +54,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	val types = remember { EntryType.entries }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	var searchText by remember { mutableStateOf(state.filterText ?: "") }
+	val strRes = rememberStrRes()
 
 	val filteredEntries by remember(
 		Triple(
@@ -70,7 +89,10 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 						searchText = ""
 						component.updateFilter(searchText, selectedType)
 					}) {
-						Icon(imageVector = Icons.Filled.Clear, MR.strings.encyclopedia_search_clear_button.get())
+						Icon(
+							imageVector = Icons.Filled.Clear,
+							MR.strings.encyclopedia_search_clear_button.get()
+						)
 					}
 				},
 			)
@@ -78,6 +100,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			Spacer(Modifier.width(Ui.Padding.XL))
 
 			ExposedDropDown(
+				getText = { strRes.get(it.toStringResource()) },
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
 				padding = Ui.Padding.XL,
 				items = types,
@@ -122,11 +145,13 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 @Composable
 fun BrowseEntriesFab(
 	component: Encyclopedia,
+	modifier: Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
-	when (val child = stack.active.instance) {
+	when (stack.active.instance) {
 		is Encyclopedia.Destination.BrowseEntriesDestination -> {
 			FloatingActionButton(
+				modifier = modifier,
 				onClick = component::showCreateEntry,
 			) {
 				Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())

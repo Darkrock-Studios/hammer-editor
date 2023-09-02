@@ -208,8 +208,10 @@ fun NoteItem(
 @Composable
 fun NotesFab(
 	component: Notes,
+	modifier: Modifier,
 ) {
 	FloatingActionButton(
+		modifier = modifier,
 		onClick = { component.showCreate() },
 	) {
 		Icon(Icons.Filled.Create, MR.strings.notes_create_note_button.get())

@@ -81,11 +81,11 @@ fun TimelineFab(
 	modifier: Modifier = Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
-	when (val child = stack.active.instance) {
+	when (stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
 			FloatingActionButton(
 				onClick = component::showCreateEvent,
-				modifier = Modifier.testTag(TIME_LINE_CREATE_TAG)
+				modifier = modifier.testTag(TIME_LINE_CREATE_TAG)
 			) {
 				Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
 			}

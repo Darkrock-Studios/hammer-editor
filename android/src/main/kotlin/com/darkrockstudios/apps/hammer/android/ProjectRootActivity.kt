@@ -238,7 +238,7 @@ private fun CompactNavigation(
 			}
 		},
 		floatingActionButton = {
-			ProjectRootFab(component)
+			ProjectRootFab(component, Modifier.fab())
 		}
 	)
 }
@@ -289,7 +289,7 @@ private fun MediumNavigation(
 			}
 		},
 		floatingActionButton = {
-			ProjectRootFab(component)
+			ProjectRootFab(component, Modifier.fab())
 		}
 	)
 }
@@ -306,7 +306,11 @@ private fun ExpandedNavigation(
 			PermanentNavigationDrawer(
 				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
-					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
+					PermanentDrawerSheet(
+						modifier = Modifier
+							.wrapContentWidth()
+							.width(IntrinsicSize.Min)
+					) {
 						Spacer(Modifier.height(12.dp))
 						ProjectRoot.DestinationTypes.values().forEach { item ->
 							NavigationDrawerItem(
@@ -340,7 +344,7 @@ private fun ExpandedNavigation(
 			)
 		},
 		floatingActionButton = {
-			ProjectRootFab(component)
+			ProjectRootFab(component, Modifier.fab())
 		}
 	)
 }

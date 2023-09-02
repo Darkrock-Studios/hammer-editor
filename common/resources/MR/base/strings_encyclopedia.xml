@@ -1,17 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="encyclopedia_search_hint">Search by Name or #hastag</string>
-    <string name="encyclopedia_search_clear_button">Clear</string>
-    <string name="encyclopedia_category_all">All</string>
-    <string name="encyclopedia_browse_list_empty">No Entries Found</string>
-    <string name="encyclopedia_create_button">Create Entry</string>
-    <string name="encyclopedia_create_entry_header">Create New Entry</string>
-    <string name="encyclopedia_create_entry_type_label">Type:</string>
-    <string name="encyclopedia_create_entry_name_label">Name</string>
-    <string name="encyclopedia_create_entry_tags_label">Tags (space seperated)</string>
-    <string name="encyclopedia_create_entry_body_hint">Describe your entry</string>
-    <string name="encyclopedia_create_entry_remove_image_button">Remove Image</string>
-    <string name="encyclopedia_create_entry_select_image_button">Select Image</string>
+	<string name="encyclopedia_search_hint">Search by Name or #hastag</string>
+	<string name="encyclopedia_search_clear_button">Clear</string>
+	<string name="encyclopedia_category_all">All</string>
+
+	<string name="encyclopedia_category_person">Person</string>
+	<string name="encyclopedia_category_place">Place</string>
+	<string name="encyclopedia_category_thing">Thing</string>
+	<string name="encyclopedia_category_event">Event</string>
+	<string name="encyclopedia_category_idea">Idea</string>
+
+	<string name="encyclopedia_browse_list_empty">No Entries Found</string>
+	<string name="encyclopedia_create_button">Create Entry</string>
+	<string name="encyclopedia_create_entry_header">Create New Entry</string>
+	<string name="encyclopedia_create_entry_type_label">Type:</string>
+	<string name="encyclopedia_create_entry_name_label">Name</string>
+	<string name="encyclopedia_create_entry_tags_label">Tags (space seperated)</string>
+	<string name="encyclopedia_create_entry_body_hint">Describe your entry</string>
+	<string name="encyclopedia_create_entry_remove_image_button">Remove Image</string>
+	<string name="encyclopedia_create_entry_select_image_button">Select Image</string>
     <string name="encyclopedia_create_entry_create_button">Create</string>
     <string name="encyclopedia_create_entry_cancel_button">Cancel</string>
     <string name="encyclopedia_create_entry_toast_success">Entry Created</string>

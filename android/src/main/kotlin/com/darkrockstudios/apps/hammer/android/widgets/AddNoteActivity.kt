@@ -1,20 +1,41 @@
 package com.darkrockstudios.apps.hammer.android.widgets
 
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material3.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -22,10 +43,14 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.KoinComponent
@@ -35,8 +60,9 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsMetadataRepository: ProjectMetadataRepository by inject()
+	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 
-	@OptIn(ExperimentalMaterial3Api::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
@@ -76,6 +102,25 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
 				var confirmCancel by rememberSaveable { mutableStateOf(false) }
 
+				val settingsState by globalSettings.subscribeAsState()
+				val isDark = when (settingsState.uiTheme) {
+					UiTheme.Light -> false
+					UiTheme.Dark -> true
+					UiTheme.FollowSystem -> isSystemInDarkTheme()
+				}
+
+				// Dynamic color is available on Android 12+
+				val localCtx = LocalContext.current
+				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
+					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+					return when {
+						dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
+						dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
+						else -> null
+					}
+				}
+
+
 				BackHandler(true) {
 					if (noteText.isNotBlank()) {
 						confirmCancel = true
@@ -84,12 +129,15 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					}
 				}
 
-				AppTheme {
+				AppTheme(
+					useDarkTheme = isDark,
+					getOverrideColorScheme = ::getDynamicColorScheme
+				) {
 					Box {
 						if (confirmCancel.not()) {
-							Card(
-								elevation = 2.dp,
-								shape = RoundedCornerShape(20.dp)
+							OutlinedCard(
+								modifier = Modifier.height(IntrinsicSize.Min),
+								elevation = CardDefaults.outlinedCardElevation(Ui.Elevation.MEDIUM),
 							) {
 								Column(
 									modifier = Modifier
@@ -120,7 +168,8 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 									OutlinedTextField(
 										value = noteText,
 										onValueChange = { noteText = it },
-										modifier = Modifier.heightIn(128.dp)
+										modifier = Modifier.heightIn(128.dp),
+										maxLines = 10
 									)
 									Spacer(modifier = Modifier.size(Ui.Padding.L))
 									Row(
@@ -156,12 +205,11 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 								}
 							}
 						} else {
-							Card(
+							OutlinedCard(
 								modifier = Modifier
 									.wrapContentSize()
 									.align(Alignment.Center),
-								elevation = 2.dp,
-								shape = RoundedCornerShape(20.dp)
+								elevation = CardDefaults.outlinedCardElevation(Ui.Elevation.MEDIUM),
 							) {
 								Column(
 									modifier = Modifier

@@ -164,15 +164,19 @@ private fun ConfigUi(
 			Text(
 				stringResource(R.string.note_widget_config_title),
 				style = MaterialTheme.typography.headlineMedium,
-				color = MaterialTheme.colorScheme.onBackground
+				color = MaterialTheme.colorScheme.onBackground,
 			)
 
 			Row(verticalAlignment = Alignment.CenterVertically) {
 				Checkbox(checked = specificProject, onCheckedChange = { specificProject = it })
-				Text(stringResource(id = R.string.note_widget_config_project_checkbox))
+				Text(
+					text = stringResource(id = R.string.note_widget_config_project_checkbox),
+					color = MaterialTheme.colorScheme.onBackground,
+				)
 			}
 			Text(
 				text = stringResource(id = R.string.note_widget_config_project_checkbox_explained),
+				color = MaterialTheme.colorScheme.onBackground,
 				fontStyle = FontStyle.Italic,
 			)
 			Spacer(modifier = Modifier.size(Ui.Padding.M))

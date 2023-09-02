@@ -42,7 +42,6 @@ import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -179,13 +178,18 @@ private fun CompactNavigation(
 					NavigationBarItem(
 						selected = item == slot.child?.configuration?.location,
 						onClick = { component.showLocation(item) },
-						icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
+						icon = {
+							Icon(
+								imageVector = getLocationIcon(item),
+								contentDescription = item.text.get()
+							)
+						},
 					)
 				}
 			}
 		},
 		floatingActionButton = {
-			ProjectSelectionFab(component)
+			ProjectSelectionFab(component, Modifier.fab())
 		}
 	)
 }
@@ -195,7 +199,6 @@ private fun CompactNavigation(
 private fun MediumNavigation(
 	component: ProjectSelection
 ) {
-	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -203,41 +206,71 @@ private fun MediumNavigation(
 			Row(
 				modifier = Modifier.rootElement(scaffoldPadding),
 			) {
-				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-					ProjectSelection.Locations.values().forEach { item ->
-						NavigationRailItem(
-							icon = {
-								Icon(
-									imageVector = getLocationIcon(item),
-									contentDescription = item.text.get()
-								)
-							},
-							label = { Text(item.text.get()) },
-							selected = item == slot.child?.configuration?.location,
-							onClick = { component.showLocation(item) }
-						)
-					}
-
-					Spacer(modifier = Modifier.weight(1f))
-
-					val versionText = remember { getAppVersionString() }
-
-					Text(
-						versionText,
-						style = MaterialTheme.typography.labelSmall,
-						fontWeight = FontWeight.Thin,
-						modifier = Modifier
-							.align(Start)
-							.padding(Ui.Padding.L)
-					)
-				}
+				CollapsedNavigationDrawer(component)
 
 				ProjectSelectionUi(component)
 			}
 		},
 		floatingActionButton = {
-			ProjectSelectionFab(component)
+			ProjectSelectionFab(component, Modifier.fab())
 		}
+	)
+}
+
+@Composable
+private fun CollapsedNavigationDrawer(component: ProjectSelection) {
+	val slot by component.slot.subscribeAsState()
+
+	NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+		ProjectSelection.Locations.values().forEach { item ->
+			NavigationRailItem(
+				icon = {
+					Icon(
+						imageVector = getLocationIcon(item),
+						contentDescription = item.text.get()
+					)
+				},
+				label = { Text(item.text.get()) },
+				selected = item == slot.child?.configuration?.location,
+				onClick = { component.showLocation(item) }
+			)
+		}
+
+		Spacer(modifier = Modifier.weight(1f))
+
+		val versionText = remember { getAppVersionString() }
+
+		Text(
+			versionText,
+			style = MaterialTheme.typography.labelSmall,
+			fontWeight = FontWeight.Thin,
+			modifier = Modifier
+				.align(Start)
+				.padding(Ui.Padding.L)
+		)
+	}
+}
+
+@Composable
+private fun ExpandedNavigationDrawer(
+	component: ProjectSelection,
+	scaffoldPadding: PaddingValues,
+	content: @Composable () -> Unit
+) {
+	val slot by component.slot.subscribeAsState()
+
+	PermanentNavigationDrawer(
+		modifier = Modifier.rootElement(scaffoldPadding),
+		drawerContent = {
+			PermanentDrawerSheet(
+				modifier = Modifier
+					.width(IntrinsicSize.Min)
+					.wrapContentWidth()
+			) {
+				NavigationDrawerContents(component, slot)
+			}
+		},
+		content = content
 	)
 }
 
@@ -246,27 +279,16 @@ private fun MediumNavigation(
 private fun ExpandedNavigation(
 	component: ProjectSelection
 ) {
-	val slot by component.slot.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
 		content = { scaffoldPadding ->
-			val drawerState = rememberDrawerState(DrawerValue.Closed)
-			val scope = rememberCoroutineScope()
-			PermanentNavigationDrawer(
-				modifier = Modifier.rootElement(scaffoldPadding),
-				drawerContent = {
-					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
-						NavigationDrawerContents(component, scope, slot, drawerState)
-					}
-				},
-				content = {
-					ProjectSelectionUi(component, Modifier)
-				}
-			)
+			ExpandedNavigationDrawer(component, scaffoldPadding) {
+				ProjectSelectionUi(component)
+			}
 		},
 		floatingActionButton = {
-			ProjectSelectionFab(component)
+			ProjectSelectionFab(component, Modifier.fab())
 		}
 	)
 }
@@ -274,18 +296,16 @@ private fun ExpandedNavigation(
 @Composable
 private fun ColumnScope.NavigationDrawerContents(
 	component: ProjectSelection,
-	scope: CoroutineScope,
 	slot: ChildSlot<ProjectSelection.Config, ProjectSelection.Destination>,
-	drawerState: DrawerState,
 ) {
 	Spacer(Modifier.height(12.dp))
+
 	ProjectSelection.Locations.values().forEach { item ->
 		NavigationDrawerItem(
 			icon = { Icon(getLocationIcon(item), contentDescription = item.text.get()) },
 			label = { Text(item.name) },
 			selected = item == slot.child?.configuration?.location,
 			onClick = {
-				scope.launch { drawerState.close() }
 				component.showLocation(item)
 			},
 			modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)

@@ -53,6 +53,7 @@ fun ProjectSelectionUi(
 @Composable
 fun ProjectSelectionFab(
 	component: ProjectSelection,
+	modifier: Modifier = Modifier,
 ) {
 	val slot by component.slot.subscribeAsState()
 
@@ -62,7 +63,10 @@ fun ProjectSelectionFab(
 		}
 
 		is ProjectSelection.Destination.ProjectsListDestination -> {
-			FloatingActionButton(onClick = { destination.component.showCreate() }) {
+			FloatingActionButton(
+				modifier = modifier,
+				onClick = { destination.component.showCreate() }
+			) {
 				Icon(
 					imageVector = Icons.Filled.Create,
 					MR.strings.projects_list_create_button.get()
