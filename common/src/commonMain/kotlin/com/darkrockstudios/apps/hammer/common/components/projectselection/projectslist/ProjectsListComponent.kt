@@ -276,24 +276,25 @@ class ProjectsListComponent(
 		}
 	}
 
-	private fun syncProgressStatus(projectName: String, status: ProjectsList.Status, progress: Float? = null) {
-		_state.getAndUpdate {
-			val projStatus = it.syncState.projectsStatus[projectName]!!
+	private suspend fun syncProgressStatus(projectName: String, status: ProjectsList.Status, progress: Float? = null) =
+		withContext(mainDispatcher) {
+			_state.getAndUpdate {
+				val projStatus = it.syncState.projectsStatus[projectName]!!
 
-			val map = it.syncState.projectsStatus.toMutableMap()
-			val updatedMap = projStatus.copy(
-				status = status,
-				progress = progress ?: projStatus.progress
-			)
-			map[projectName] = updatedMap
-
-			it.copy(
-				syncState = it.syncState.copy(
-					projectsStatus = map
+				val map = it.syncState.projectsStatus.toMutableMap()
+				val updatedMap = projStatus.copy(
+					status = status,
+					progress = progress ?: projStatus.progress
 				)
-			)
+				map[projectName] = updatedMap
+
+				it.copy(
+					syncState = it.syncState.copy(
+						projectsStatus = map
+					)
+				)
+			}
 		}
-	}
 
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
