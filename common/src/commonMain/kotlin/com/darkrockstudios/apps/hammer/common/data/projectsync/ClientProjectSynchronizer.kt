@@ -11,7 +11,11 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -21,7 +25,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import io.ktor.utils.io.*
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
@@ -52,6 +56,7 @@ class ClientProjectSynchronizer(
 	private val backupRepository: ProjectBackupRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val strRes: StrRes by inject()
+	private val clock: Clock by inject()
 
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
@@ -77,14 +82,25 @@ class ClientProjectSynchronizer(
 		scope.launch {
 			for (conflict in conflictResolution) {
 				when (conflict) {
-					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(conflict)
-					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(conflict)
-					is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.conflictResolution.send(conflict)
+					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(
+						conflict
+					)
+
+					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(
+						conflict
+					)
+
+					is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.conflictResolution.send(
+						conflict
+					)
+
 					is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.conflictResolution.send(
 						conflict
 					)
 
-					is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.conflictResolution.send(conflict)
+					is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.conflictResolution.send(
+						conflict
+					)
 				}
 			}
 		}
@@ -99,9 +115,9 @@ class ClientProjectSynchronizer(
 	}
 
 	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.serverIsSetup() &&
-			globalSettingsRepository.globalSettings.automaticSyncing &&
-			networkConnectivity.hasActiveConnection() &&
-			needsSync()
+		globalSettingsRepository.globalSettings.automaticSyncing &&
+		networkConnectivity.hasActiveConnection() &&
+		needsSync()
 
 	suspend fun isEntityDirty(id: Int): Boolean {
 		val syncData = loadSyncData()
@@ -197,7 +213,12 @@ class ClientProjectSynchronizer(
 
 				for ((ii, id) in clientSyncData.newIds.withIndex()) {
 					if (id <= serverSyncData.lastId) {
-						onLog(syncLogI("ID $id already exists on server, re-assigning", projectDef.name))
+						onLog(
+							syncLogI(
+								"ID $id already exists on server, re-assigning",
+								projectDef.name
+							)
+						)
 						val newId = ++serverLastId
 
 						// Re-ID this currently local only Entity
@@ -207,7 +228,8 @@ class ClientProjectSynchronizer(
 						// If we have a dirty record for this ID, update it
 						val dirtyIndex = clientSyncData.dirty.indexOfFirst { it.id == id }
 						if (dirtyIndex > -1) {
-							updatedDirty[dirtyIndex] = clientSyncData.dirty[dirtyIndex].copy(id = newId)
+							updatedDirty[dirtyIndex] =
+								clientSyncData.dirty[dirtyIndex].copy(id = newId)
 						}
 
 						// If this is a locally deleted ID, update it
@@ -223,7 +245,7 @@ class ClientProjectSynchronizer(
 
 				clientSyncData.copy(
 					newIds = updatedNewIds,
-					lastId = updatedNewIds.max(),
+					lastId = idRepository.peekNextId() - 1,
 					dirty = updatedDirty,
 					deletedIds = localDeletedIds
 				)
@@ -263,24 +285,36 @@ class ClientProjectSynchronizer(
 
 			yield()
 
-			onProgress(0.05f, syncLogI(strRes.get(MR.strings.sync_log_client_data_computed), projectDef))
+			onProgress(
+				0.05f,
+				syncLogI(strRes.get(MR.strings.sync_log_client_data_computed), projectDef)
+			)
 
 			val serverSyncData =
-				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew).getOrThrow()
+				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew)
+					.getOrThrow()
 
-			onProgress(0.1f, syncLogI(strRes.get(MR.strings.sync_log_server_data_loaded), projectDef))
+			onProgress(
+				0.1f,
+				syncLogI(strRes.get(MR.strings.sync_log_server_data_loaded), projectDef)
+			)
 
 			clientSyncData = clientSyncData.copy(currentSyncId = serverSyncData.syncId)
 			saveSyncData(clientSyncData)
 
 			val combinedDeletions = serverSyncData.deletedIds + clientSyncData.deletedIds
 			val serverDeletedIds =
-				serverSyncData.deletedIds.filter { clientSyncData.deletedIds.contains(it).not() }.toSet()
+				serverSyncData.deletedIds.filter { clientSyncData.deletedIds.contains(it).not() }
+					.toSet()
 			val newlyDeletedIds =
-				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }.toSet()
+				clientSyncData.deletedIds.filter { serverSyncData.deletedIds.contains(it).not() }
+					.toSet()
 			val dirtyEntities = clientSyncData.dirty.toMutableList()
 
-			onProgress(0.2f, syncLogI(strRes.get(MR.strings.sync_log_client_data_loaded), projectDef))
+			onProgress(
+				0.2f,
+				syncLogI(strRes.get(MR.strings.sync_log_client_data_loaded), projectDef)
+			)
 
 			yield()
 
@@ -293,7 +327,10 @@ class ClientProjectSynchronizer(
 				if (backupDef != null) {
 					onProgress(
 						0.25f,
-						syncLogI(strRes.get(MR.strings.sync_log_backup_made, backupDef.path.name), projectDef)
+						syncLogI(
+							strRes.get(MR.strings.sync_log_backup_made, backupDef.path.name),
+							projectDef
+						)
 					)
 				} else {
 					throw IllegalStateException("Failed to make local backup")
@@ -304,7 +341,10 @@ class ClientProjectSynchronizer(
 
 			// Resolve ID conflicts
 			val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
-			val maxId = (resolvedClientSyncData.newIds + resolvedClientSyncData.lastId + serverSyncData.lastId).max()
+			val maxId = (resolvedClientSyncData.newIds +
+				resolvedClientSyncData.lastId +
+				serverSyncData.lastId
+				).max()
 			val newClientIds = resolvedClientSyncData.newIds
 
 			// Handle IDs newly deleted on server
@@ -320,7 +360,11 @@ class ClientProjectSynchronizer(
 					successfullyDeletedIds.add(id)
 				}
 			}
-			val failedDeletes = newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
+			val failedDeletes =
+				newlyDeletedIds.filter { successfullyDeletedIds.contains(it).not() }.toSet()
+			if (failedDeletes.isNotEmpty()) {
+				Napier.d("Failed to Delete IDs: ${failedDeletes.joinToString(",")}")
+			}
 
 			// Remove any dirty that were deleted
 			combinedDeletions.forEach { deletedId ->
@@ -354,7 +398,10 @@ class ClientProjectSynchronizer(
 				)
 			}
 
-			onProgress(ENTITY_END, syncLogI(strRes.get(MR.strings.sync_log_entities_transferred), projectDef))
+			onProgress(
+				ENTITY_END,
+				syncLogI(strRes.get(MR.strings.sync_log_entities_transferred), projectDef)
+			)
 
 			finalizeSync()
 
@@ -366,8 +413,9 @@ class ClientProjectSynchronizer(
 			val syncFinishedAt: Instant?
 			// If we failed, send up nulls
 			if (allSuccess) {
+				Napier.d("All success! new maxId: $maxId")
 				newLastId = maxId
-				syncFinishedAt = Clock.System.now()
+				syncFinishedAt = clock.now()
 			} else {
 				newLastId = null
 				syncFinishedAt = null
@@ -401,7 +449,12 @@ class ClientProjectSynchronizer(
 						)
 						saveSyncData(finalSyncData)
 					} else {
-						onLog(syncLogE(strRes.get(MR.strings.sync_log_data_save_failed), projectDef))
+						onLog(
+							syncLogE(
+								strRes.get(MR.strings.sync_log_data_save_failed),
+								projectDef
+							)
+						)
 					}
 				} else {
 					onLog(syncLogE(strRes.get(MR.strings.sync_log_data_save_failed), projectDef))
@@ -417,7 +470,12 @@ class ClientProjectSynchronizer(
 			allSuccess
 		} catch (e: Exception) {
 			Napier.e("Sync failed: ${e.message}", e)
-			onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_failed, e.message ?: "---"), projectDef))
+			onLog(
+				syncLogE(
+					strRes.get(MR.strings.sync_log_entity_failed, e.message ?: "---"),
+					projectDef
+				)
+			)
 			endSync()
 			onComplete()
 
@@ -501,9 +559,10 @@ class ClientProjectSynchronizer(
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			allSuccess =
 				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId))) {
-					Napier.d("Upload ID $thisId")
+					Napier.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${serverSyncData.lastId})")
 					val originalHash = localIsDirty?.originalHash
-					val success = uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+					val success =
+						uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
 
 					if (success) {
 						dirtyEntities.find { it.id == thisId }?.let { dirty ->
@@ -602,7 +661,15 @@ class ClientProjectSynchronizer(
 		} else {
 			val message = result.exceptionOrNull()?.message
 
-			onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_delete_failed, id, message ?: "---"), projectDef))
+			onLog(
+				syncLogE(
+					strRes.get(
+						MR.strings.sync_log_entity_delete_failed,
+						id,
+						message ?: "---"
+					), projectDef
+				)
+			)
 			false
 		}
 	}
@@ -617,8 +684,22 @@ class ClientProjectSynchronizer(
 		val type = findEntityType(id)
 		if (type != null) {
 			return when (type) {
-				EntityType.Scene -> sceneSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
-				EntityType.Note -> noteSynchronizer.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+				EntityType.Scene -> sceneSynchronizer.uploadEntity(
+					id,
+					syncId,
+					originalHash,
+					onConflict,
+					onLog
+				)
+
+				EntityType.Note -> noteSynchronizer.uploadEntity(
+					id,
+					syncId,
+					originalHash,
+					onConflict,
+					onLog
+				)
+
 				EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(
 					id,
 					syncId,
@@ -644,7 +725,12 @@ class ClientProjectSynchronizer(
 				)
 			}
 		} else {
-			onLog(syncLogW(strRes.get(MR.strings.sync_log_entity_upload_entity_not_owned, id), projectDef))
+			onLog(
+				syncLogW(
+					strRes.get(MR.strings.sync_log_entity_upload_entity_not_owned, id),
+					projectDef
+				)
+			)
 			return true
 		}
 	}
@@ -676,34 +762,75 @@ class ClientProjectSynchronizer(
 		return if (entityResponse.isSuccess) {
 			val serverEntity = entityResponse.getOrThrow().entity
 			val success = when (serverEntity) {
-				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(serverEntity, syncId, onLog)
-				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(serverEntity, syncId, onLog)
-				is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.storeEntity(serverEntity, syncId, onLog)
+				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(
+					serverEntity,
+					syncId,
+					onLog
+				)
+
+				is ApiProjectEntity.NoteEntity -> noteSynchronizer.storeEntity(
+					serverEntity,
+					syncId,
+					onLog
+				)
+
+				is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.storeEntity(
+					serverEntity,
+					syncId,
+					onLog
+				)
+
 				is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.storeEntity(
 					serverEntity,
 					syncId,
 					onLog
 				)
 
-				is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.storeEntity(serverEntity, syncId, onLog)
+				is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.storeEntity(
+					serverEntity,
+					syncId,
+					onLog
+				)
 			}
 
 			if (success) {
-				onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_download_success, id), projectDef))
+				onLog(
+					syncLogI(
+						strRes.get(MR.strings.sync_log_entity_download_success, id),
+						projectDef
+					)
+				)
 			} else {
-				onLog(syncLogE(strRes.get(MR.strings.sync_log_entity_download_failed_general, id), projectDef))
+				onLog(
+					syncLogE(
+						strRes.get(MR.strings.sync_log_entity_download_failed_general, id),
+						projectDef
+					)
+				)
 			}
 
 			success
 		} else {
 			when (entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
-					onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_download_not_modified, id), projectDef))
+					onLog(
+						syncLogI(
+							strRes.get(MR.strings.sync_log_entity_download_not_modified, id),
+							projectDef
+						)
+					)
 					true
 				}
 
 				is EntityNotFoundException -> {
-					onLog(syncLogW(strRes.get(MR.strings.sync_log_entity_download_failed_not_found, id), projectDef))
+					onLog(
+						syncLogW(
+							strRes.get(
+								MR.strings.sync_log_entity_download_failed_not_found,
+								id
+							), projectDef
+						)
+					)
 					true
 				}
 
@@ -718,12 +845,21 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun reIdEntry(oldId: Int, newId: Int) {
-		val type = findEntityType(oldId) ?: throw IllegalArgumentException("Entity $oldId not found for reId")
+		val type = findEntityType(oldId)
+			?: throw IllegalArgumentException("Entity $oldId not found for reId")
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
-			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(oldId = oldId, newId = newId)
-			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(
+				oldId = oldId,
+				newId = newId
+			)
+
+			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.reIdEntity(
+				oldId = oldId,
+				newId = newId
+			)
+
 			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
 	}
