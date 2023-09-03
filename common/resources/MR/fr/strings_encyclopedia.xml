@@ -28,7 +28,7 @@
     <string name="encyclopedia_entry_name_hint">Nom</string>
     <string name="encyclopedia_entry_close_button">Fermer l’entrée</string>
     <string name="encyclopedia_category_all">Tout</string>
-    <string name="encyclopedia_search_hint">Rechercher par nom</string>
+    <string name="encyclopedia_search_hint">Rechercher par nom ou #hashtag</string>
     <string name="encyclopedia_create_entry_header">Créer une nouvelle entrée</string>
     <string name="encyclopedia_create_entry_toast_too_long">Le nom de l’entrée est trop long. Max %1$d</string>
     <string name="encyclopedia_create_entry_toast_invalid_name">Le nom de l’entrée doit être alphanumérique</string>
@@ -38,4 +38,13 @@
     <string name="encyclopedia_entry_menu_delete">Supprimer l’entrée</string>
     <string name="encyclopedia_entry_menu_remove_image">Retirer l’image</string>
     <string name="encyclopedia_entry_menu_add_image">Ajouter une image</string>
+    <string name="encyclopedia_category_person">Personne</string>
+    <string name="encyclopedia_category_place">Lieu</string>
+    <string name="encyclopedia_category_event">Évènement</string>
+    <string name="encyclopedia_category_idea">Idée</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_short">L\'étiquette est trop courte</string>
+    <string name="encyclopedia_entry_add_tags_dialog_title">Ajouter des étiquettes</string>
+    <string name="encyclopedia_entry_add_tag">Ajouter</string>
+    <string name="encyclopedia_entry_add_tags_button">Ajouter des étiquettes</string>
+    <string name="encyclopedia_category_thing">Chose</string>
 </resources>

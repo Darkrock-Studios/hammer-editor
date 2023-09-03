@@ -13,4 +13,6 @@
     <string name="draft_list_empty">Aucun brouillon trouvé</string>
     <string name="draft_list_item_created">Créé : %1$s</string>
     <string name="draft_compare_current_accept_button">Prendre la fusionnée</string>
+    <string name="draft_compare_tab_title_draft">Brouillon</string>
+    <string name="draft_compare_tab_title_current">Actuel</string>
 </resources>

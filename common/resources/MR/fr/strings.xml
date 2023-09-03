@@ -16,4 +16,7 @@
     <string name="more_menu_button">Plus</string>
     <string name="network_request_failure_connection">Demande de réseau échouée : %1$s</string>
     <string name="network_request_failure_parse_body">Échec de l\'analyse du corps de la réponse : %1$s</string>
+    <string name="confirm_dialog_positive">Oui</string>
+    <string name="confirm_dialog_negative">No</string>
+    <string name="image_failed_to_load">Erreur d\'image</string>
 </resources>
