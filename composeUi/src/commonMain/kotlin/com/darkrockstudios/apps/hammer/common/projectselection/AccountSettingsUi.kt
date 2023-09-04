@@ -36,7 +36,6 @@ internal fun AccountSettingsUi(
 
 	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
 	var showDirectoryPicker by remember { mutableStateOf(false) }
-	var showLibraries by remember { mutableStateOf(false) }
 	val snackbarHostState = remember { SnackbarHostState() }
 	val scope = rememberCoroutineScope()
 
@@ -164,20 +163,8 @@ internal fun AccountSettingsUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 					ServerSettingsUi(component, scope, snackbarHostState)
-
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-					Button({
-						showLibraries = true
-					}) {
-						Text("Libraries")
-					}
 				}
 			}
-		}
-
-		LibrariesUi(showLibraries) {
-			showLibraries = false
 		}
 
 		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))

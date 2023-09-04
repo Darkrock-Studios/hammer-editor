@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="about_description">A simple tool for building stories.</string>
+	<string name="about_description_line_two">A free and open source project.</string>
+
+	<string name="about_community_header">Community</string>
+	<string name="about_community_discord_link">Discord</string>
+	<string name="about_community_reddit_link">Reddit</string>
+	<string name="about_community_github_link">Github</string>
+
+	<string name="about_attribution_header">Attribution</string>
+	<string name="about_attribution_libraries_button">Libraries</string>
+</resources>

@@ -3,17 +3,28 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.base.DISCORD_URL
+import com.darkrockstudios.apps.hammer.base.GITHUB_URL
+import com.darkrockstudios.apps.hammer.base.REDDIT_URL
 import com.darkrockstudios.apps.hammer.plugins.kweb.KwebLocalizer
 import com.darkrockstudios.apps.hammer.plugins.kweb.src
 import com.darkrockstudios.apps.hammer.plugins.kweb.text
 import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
-import kweb.*
+import kweb.a
 import kweb.components.Component
+import kweb.div
+import kweb.h1
+import kweb.h2
+import kweb.h3
+import kweb.i
+import kweb.img
+import kweb.p
 import kweb.plugins.fomanticUI.fomantic
 import kweb.routing.RouteReceiver
-import java.util.*
+import kweb.span
+import java.util.Locale
 
 fun RouteReceiver.homePage(
 	scope: CoroutineScope,
@@ -221,21 +232,21 @@ private fun Component.footer(translator: KwebLocalizer, availableLocales: List<L
 	div(fomantic.ui.inverted.vertical.segment) {
 		div(fomantic.ui.center.aligned.text.container) {
 			div(fomantic.row) {
-				a(href = "https://github.com/Wavesonics/hammer-editor/") {
+				a(href = GITHUB_URL) {
 					i(fomantic.icon).addClasses("github")
 					span().text("home.footer.github", loc)
 				}
 
 				span().text(" ")
 
-				a(href = "https://discord.gg/GTmgjZcupk") {
+				a(href = DISCORD_URL) {
 					i(fomantic.icon).addClasses("discord")
 					span().text("home.footer.discord", loc)
 				}
 
 				span().text(" ")
 
-				a(href = "https://www.reddit.com/r/hammereditor/") {
+				a(href = REDDIT_URL) {
 					i(fomantic.icon).addClasses("reddit")
 					span().text("home.footer.reddit", loc)
 				}

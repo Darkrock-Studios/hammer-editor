@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
@@ -21,6 +22,7 @@ fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
 		ProjectSelection.Locations.Projects -> Icons.Filled.LibraryBooks
 		ProjectSelection.Locations.Settings -> Icons.Filled.Settings
+		ProjectSelection.Locations.AboutApp -> Icons.Filled.Info
 	}
 }
 
@@ -40,6 +42,11 @@ fun ProjectSelectionUi(
 		)
 
 		is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
+			destination.component,
+			modifier
+		)
+
+		is ProjectSelection.Destination.AboutAppDestination -> AboutAppUi(
 			destination.component,
 			modifier
 		)
@@ -74,6 +81,10 @@ fun ProjectSelectionFab(
 			}
 		}
 
-		else -> throw IllegalArgumentException("Child cannot be null")
+		is ProjectSelection.Destination.AboutAppDestination -> {
+			/* none */
+		}
+
+		null -> throw IllegalArgumentException("Child cannot be null")
 	}
 }

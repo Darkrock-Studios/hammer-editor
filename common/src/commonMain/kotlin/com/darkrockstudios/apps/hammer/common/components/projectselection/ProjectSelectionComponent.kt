@@ -5,10 +5,12 @@ import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutAppComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
@@ -18,6 +20,7 @@ class ProjectSelectionComponent(
 ) : ProjectSelection, ComponentBase(componentContext) {
 
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
+	private val urlLauncher: UrlLauncher by inject()
 
 	private val navigation = SlotNavigation<ProjectSelection.Config>()
 	override val slot = componentContext.childSlot(
@@ -56,12 +59,19 @@ class ProjectSelectionComponent(
 					)
 				)
 			}
+
+			ProjectSelection.Config.AboutApp -> {
+				ProjectSelection.Destination.AboutAppDestination(
+					AboutAppComponent(componentContext, urlLauncher)
+				)
+			}
 		}
 
 	override fun showLocation(location: ProjectSelection.Locations) {
 		when (location) {
 			ProjectSelection.Locations.Projects -> navigation.activate(ProjectSelection.Config.ProjectsList)
 			ProjectSelection.Locations.Settings -> navigation.activate(ProjectSelection.Config.AccountSettings)
+			ProjectSelection.Locations.AboutApp -> navigation.activate(ProjectSelection.Config.AboutApp)
 		}
 	}
 }

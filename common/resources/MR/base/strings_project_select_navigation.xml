@@ -2,5 +2,6 @@
 <resources>
 	<string name="project_select_nav_projects_list">Projects</string>
 	<string name="project_select_nav_account_settings">Settings</string>
+	<string name="project_select_nav_about_app">About</string>
 	<string name="project_libraries_dialog_title">Libraries</string>
 </resources>
