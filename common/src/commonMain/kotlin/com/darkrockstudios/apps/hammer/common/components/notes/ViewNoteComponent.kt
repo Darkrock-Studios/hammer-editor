@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -26,17 +27,19 @@ class ViewNoteComponent(
 	private val _noteText = MutableValue("")
 	override val noteText: Value<String> = _noteText
 
-	override fun discardEdit() {
-		_state.getAndUpdate {
-			it.copy(
-				isEditing = false
-			)
+	private val backButtonHandler = BackCallback {
+		if (isEditingAndDirty()) {
+			confirmDiscard()
+		} else if (state.value.isEditing) {
+			discardEdit()
+		} else {
+			dismissView()
 		}
-		_noteText.update { _state.value.note?.content ?: "" }
 	}
 
 	override fun onCreate() {
 		super.onCreate()
+		backHandler.register(backButtonHandler)
 
 		loadInitialContent()
 	}
@@ -93,6 +96,47 @@ class ViewNoteComponent(
 
 	override fun isEditingAndDirty(): Boolean {
 		return state.value.isEditing && (state.value.note?.content != noteText.value)
+	}
+
+	override fun discardEdit() {
+		_state.getAndUpdate {
+			it.copy(
+				isEditing = false
+			)
+		}
+		_noteText.update { _state.value.note?.content ?: "" }
+	}
+
+	override fun confirmDiscard() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmDiscard = true
+			)
+		}
+	}
+
+	override fun cancelDiscard() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmDiscard = false
+			)
+		}
+	}
+
+	override fun confirmClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = true
+			)
+		}
+	}
+
+	override fun cancelClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = false
+			)
+		}
 	}
 
 	private fun loadInitialContent() {

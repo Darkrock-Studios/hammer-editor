@@ -25,11 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
@@ -52,8 +49,6 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
-	var discardConfirm by rememberSaveable { mutableStateOf(false) }
-	var closeConfirm by rememberSaveable { mutableStateOf(false) }
 	val noteText by component.noteText.subscribeAsState()
 
 	Card(
@@ -82,7 +77,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 
 					IconButton(onClick = {
 						if (component.isEditingAndDirty()) {
-							closeConfirm = true
+							component.confirmClose()
 						} else {
 							component.closeNote()
 						}
@@ -126,7 +121,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 								)
 							}
 							IconButton(onClick = {
-								discardConfirm = true
+								component.confirmDiscard()
 							}) {
 								Icon(
 									Icons.Filled.Cancel,
@@ -158,23 +153,23 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 		}
 	}
 
-	if (discardConfirm || closeConfirm) {
+	if (state.confirmDiscard || state.confirmClose) {
 		SimpleConfirm(
 			title = MR.strings.notes_discard_dialog_title.get(),
 			message = MR.strings.notes_discard_dialog_message.get(),
 			onDismiss = {
-				discardConfirm = false
-				closeConfirm = false
+				component.cancelDiscard()
+				component.cancelClose()
 			}
 		) {
 			component.discardEdit()
 
-			if (closeConfirm) {
+			if (state.confirmClose) {
 				component.closeNote()
 			}
 
-			discardConfirm = false
-			closeConfirm = false
+			component.cancelDiscard()
+			component.cancelClose()
 		}
 	}
 

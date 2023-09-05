@@ -22,9 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
@@ -39,10 +41,11 @@ fun CreateNoteUi(
 	modifier: Modifier,
 	snackbarState: SnackbarHostState
 ) {
+	val state by component.state.subscribeAsState()
+	val noteText by component.noteText.subscribeAsState()
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val strRes = rememberStrRes()
-	var newNoteText by remember { mutableStateOf("") }
 	var newNoteError by remember { mutableStateOf(false) }
 
 	Card(
@@ -61,8 +64,8 @@ fun CreateNoteUi(
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 			OutlinedTextField(
-				value = newNoteText,
-				onValueChange = { newNoteText = it },
+				value = noteText,
+				onValueChange = { component.onTextChanged(it) },
 				modifier = Modifier.fillMaxWidth()
 					.widthIn(max = TextEditorDefaults.MAX_WIDTH)
 					.weight(1f),
@@ -84,7 +87,7 @@ fun CreateNoteUi(
 
 				Button(onClick = {
 					scope.launch {
-						val result = component.createNote(newNoteText)
+						val result = component.createNote(noteText)
 						newNoteError = !result.isSuccess
 						when (result) {
 							NoteError.TOO_LONG -> scope.launch {
@@ -97,7 +100,7 @@ fun CreateNoteUi(
 
 							NoteError.NONE -> {
 								withContext(mainDispatcher) {
-									newNoteText = ""
+									component.clearText()
 								}
 								scope.launch {
 									snackbarState.showSnackbar(strRes.get(MR.strings.notes_create_toast_success))
@@ -109,6 +112,19 @@ fun CreateNoteUi(
 					Text(MR.strings.notes_create_create_button.get())
 				}
 			}
+		}
+	}
+
+	if (state.confirmDiscard) {
+		SimpleConfirm(
+			title = MR.strings.notes_discard_dialog_title.get(),
+			message = MR.strings.notes_discard_dialog_message.get(),
+			onDismiss = {
+				component.cancelDiscard()
+			}
+		) {
+			component.clearText()
+			component.closeCreate()
 		}
 	}
 }

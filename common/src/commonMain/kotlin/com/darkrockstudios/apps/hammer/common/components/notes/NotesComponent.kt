@@ -111,10 +111,6 @@ class NotesComponent(
 		)
 	}
 
-	private fun closeNote() {
-		navigation.pop()
-	}
-
 	private val backButtonHandler = BackCallback {
 		if (!isAtRoot()) {
 			navigation.pop()

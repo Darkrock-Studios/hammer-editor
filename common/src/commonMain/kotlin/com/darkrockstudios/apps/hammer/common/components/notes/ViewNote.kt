@@ -11,6 +11,8 @@ interface ViewNote {
 	data class State(
 		val projectDef: ProjectDef,
 		val note: NoteContent? = null,
+		val confirmDiscard: Boolean = false,
+		val confirmClose: Boolean = false,
 		val confirmDelete: Boolean = false,
 		val isEditing: Boolean = false
 	)
@@ -24,4 +26,8 @@ interface ViewNote {
 	fun closeNote()
 	fun beginEdit()
 	fun isEditingAndDirty(): Boolean
+	fun confirmDiscard()
+	fun cancelDiscard()
+	fun confirmClose()
+	fun cancelClose()
 }
