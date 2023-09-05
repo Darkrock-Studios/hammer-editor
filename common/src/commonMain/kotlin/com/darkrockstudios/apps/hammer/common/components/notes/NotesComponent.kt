@@ -84,7 +84,7 @@ class NotesComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			onShowCreate = ::showCreateNote,
-			onViewNote = ::showViewNote
+			onViewNote = ::showViewNote,
 		)
 	}
 
@@ -96,7 +96,8 @@ class NotesComponent(
 			componentContext = componentContext,
 			projectDef = projectDef,
 			noteId = config.noteId,
-			dismissView = ::showBrowse
+			dismissView = ::showBrowse,
+			updateShouldClose = updateShouldClose,
 		)
 	}
 
@@ -107,7 +108,8 @@ class NotesComponent(
 		return CreateNoteComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
-			dismissCreate = ::showBrowse
+			dismissCreate = ::showBrowse,
+			updateShouldClose = updateShouldClose,
 		)
 	}
 

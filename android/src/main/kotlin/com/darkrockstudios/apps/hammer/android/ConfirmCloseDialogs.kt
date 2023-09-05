@@ -1,61 +1,64 @@
 package com.darkrockstudios.apps.hammer.android
 
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.LifecycleCoroutineScope
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import kotlinx.coroutines.launch
 
-fun AppCompatActivity.confirmUnsavedScenesDialog(component: ProjectRoot) {
-	AlertDialog.Builder(this)
-		.setTitle(MR.strings.unsaved_scenes_dialog_title.resourceId)
-		.setMessage(MR.strings.unsaved_scenes_dialog_message.resourceId)
-		.setNegativeButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
+@Composable
+fun ConfirmUnsavedScenesDialog(
+	component: ProjectRoot,
+	lifecycleScope: LifecycleCoroutineScope
+) {
+	SimpleConfirm(
+		title = MR.strings.unsaved_scenes_dialog_title.get(),
+		message = MR.strings.unsaved_scenes_dialog_message.get(),
+		positiveButton = MR.strings.unsaved_entity_dialog_positive_button.get(),
+		negativeButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
+		onNegative = {
+			component.closeRequestDealtWith(CloseConfirm.Scenes)
+		},
+		onDismiss = {
+			component.cancelCloseRequest()
+		}
+	) {
+		lifecycleScope.launch {
+			component.storeDirtyBuffers()
 			component.closeRequestDealtWith(CloseConfirm.Scenes)
 		}
-		.setNeutralButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
-			component.cancelCloseRequest()
-			dialog.dismiss()
-		}
-		.setPositiveButton(MR.strings.unsaved_scenes_dialog_positive_button.resourceId) { _, _ ->
-			lifecycleScope.launch {
-				component.storeDirtyBuffers()
-				component.closeRequestDealtWith(CloseConfirm.Scenes)
-			}
-		}
-		.create()
-		.show()
+	}
 }
 
-fun AppCompatActivity.confirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
-	AlertDialog.Builder(this)
-		.setTitle(MR.strings.unsaved_encyclopedia_dialog_title.getString(this))
-		.setMessage(MR.strings.unsaved_encyclopedia_dialog_message.getString(this))
-		.setPositiveButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
-			component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
-		}
-		.setNegativeButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
+@Composable
+fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
+	SimpleConfirm(
+		title = MR.strings.unsaved_encyclopedia_dialog_title.get(),
+		message = MR.strings.unsaved_encyclopedia_dialog_message.get(),
+		positiveButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
+		negativeButton = MR.strings.unsaved_entity_dialog_neutral_button.get(),
+		onDismiss = {
 			component.cancelCloseRequest()
-			dialog.dismiss()
 		}
-		.create()
-		.show()
+	) {
+		component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+	}
 }
 
-fun AppCompatActivity.confirmCloseUnsavedNotesDialog(component: ProjectRoot) {
-	AlertDialog.Builder(this)
-		.setTitle(MR.strings.unsaved_notes_dialog_title.getString(this))
-		.setMessage(MR.strings.unsaved_notes_dialog_message.getString(this))
-		.setPositiveButton(MR.strings.unsaved_scenes_dialog_negative_button.resourceId) { _, _ ->
-			component.closeRequestDealtWith(CloseConfirm.Notes)
-		}
-		.setNegativeButton(MR.strings.unsaved_scenes_dialog_neutral_button.resourceId) { dialog, _ ->
+@Composable
+fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot) {
+	SimpleConfirm(
+		title = MR.strings.unsaved_notes_dialog_title.get(),
+		message = MR.strings.unsaved_notes_dialog_message.get(),
+		positiveButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
+		negativeButton = MR.strings.unsaved_entity_dialog_neutral_button.get(),
+		onDismiss = {
 			component.cancelCloseRequest()
-			dialog.dismiss()
 		}
-		.create()
-		.show()
+	) {
+		component.closeRequestDealtWith(CloseConfirm.Notes)
+	}
 }
-

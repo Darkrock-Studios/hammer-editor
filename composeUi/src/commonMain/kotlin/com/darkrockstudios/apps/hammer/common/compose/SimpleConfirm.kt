@@ -16,7 +16,10 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 fun SimpleConfirm(
 	title: String,
 	message: String? = null,
+	positiveButton: String? = null,
+	negativeButton: String? = null,
 	implicitCancel: Boolean = true,
+	onNegative: (() -> Unit)? = null,
 	onDismiss: () -> Unit,
 	onConfirm: () -> Unit,
 ) {
@@ -46,13 +49,19 @@ fun SimpleConfirm(
 		},
 		confirmButton = {
 			Button(onClick = { onConfirm() }) {
-				Text(MR.strings.confirm_dialog_positive.get())
+				Text(positiveButton ?: MR.strings.confirm_dialog_positive.get())
 			}
 		},
 		dismissButton = {
-			Button(onClick = { onDismiss() }) {
+			Button(onClick = {
+				if (onNegative != null) {
+					onNegative()
+				} else {
+					onDismiss()
+				}
+			}) {
 				Text(
-					MR.strings.confirm_dialog_negative.get(),
+					negativeButton ?: MR.strings.confirm_dialog_negative.get(),
 					fontStyle = FontStyle.Italic
 				)
 			}

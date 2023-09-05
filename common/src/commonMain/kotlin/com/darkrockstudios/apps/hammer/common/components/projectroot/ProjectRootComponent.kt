@@ -9,10 +9,15 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -52,7 +57,9 @@ class ProjectRootComponent(
 	override val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ProjectRoot.ModalDestination>>
 		get() = modalRouter.state
 
-	init {
+	override fun onCreate() {
+		super.onCreate()
+
 		projectEditor.subscribeToBufferUpdates(null, scope) {
 			updateCloseConfirmRequirement()
 		}
@@ -63,7 +70,7 @@ class ProjectRootComponent(
 	private fun handleSyncDialogCompletion() {
 		scope.launch {
 			// Listen for the sync dialog closing, if we are in the process of closing, mark it as dealt with
-			modalRouterState.subscribe {
+			modalRouterState.observe {
 				if (it.child?.configuration == ProjectRootModalRouter.Config.None
 					&& closeRequestHandlers.value.isNotEmpty()
 				) {
@@ -143,7 +150,9 @@ class ProjectRootComponent(
 			}
 
 			list.add(CloseConfirm.Complete)
-			_closeRequestHandlers.update { list }
+			withContext(dispatcherMain) {
+				_closeRequestHandlers.update { list }
+			}
 		}
 	}
 

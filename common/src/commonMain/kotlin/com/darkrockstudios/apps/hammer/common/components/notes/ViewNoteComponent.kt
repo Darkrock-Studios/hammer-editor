@@ -16,7 +16,8 @@ class ViewNoteComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val noteId: Int,
-	private val dismissView: () -> Unit
+	private val dismissView: () -> Unit,
+	private val updateShouldClose: () -> Unit
 ) : ProjectComponentBase(projectDef, componentContext), ViewNote {
 
 	private val notesRepository: NotesRepository by projectInject()
@@ -46,6 +47,7 @@ class ViewNoteComponent(
 
 	override fun onContentChanged(newContent: String) {
 		_noteText.update { newContent }
+		updateShouldClose()
 	}
 
 	override suspend fun storeNoteUpdate() {
@@ -63,6 +65,8 @@ class ViewNoteComponent(
 					isEditing = false
 				)
 			}
+
+			updateShouldClose()
 		} else {
 			Napier.w("Failed to update note content! Not was null")
 		}
@@ -105,6 +109,7 @@ class ViewNoteComponent(
 			)
 		}
 		_noteText.update { _state.value.note?.content ?: "" }
+		updateShouldClose()
 	}
 
 	override fun confirmDiscard() {

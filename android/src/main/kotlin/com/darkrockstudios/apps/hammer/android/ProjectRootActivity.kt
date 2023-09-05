@@ -159,18 +159,17 @@ class ProjectRootActivity : AppCompatActivity() {
 		}
 
 		if (shouldConfirmClose.isNotEmpty()) {
-			val item = shouldConfirmClose.first()
-			when (item) {
+			when (shouldConfirmClose.first()) {
 				CloseConfirm.Scenes -> {
-					confirmUnsavedScenesDialog(component)
+					ConfirmUnsavedScenesDialog(component, lifecycleScope)
 				}
 
 				CloseConfirm.Notes -> {
-					confirmCloseUnsavedNotesDialog(component)
+					ConfirmCloseUnsavedNotesDialog(component)
 				}
 
 				CloseConfirm.Encyclopedia -> {
-					confirmCloseUnsavedEncyclopediaDialog(component)
+					ConfirmCloseUnsavedEncyclopediaDialog(component)
 				}
 
 				CloseConfirm.Sync -> {

@@ -15,7 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 class CreateNoteComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val dismissCreate: () -> Unit
+	private val dismissCreate: () -> Unit,
+	private val updateShouldClose: () -> Unit
 ) : ProjectComponentBase(projectDef, componentContext), CreateNote {
 
 	private val _state = MutableValue(CreateNote.State())
@@ -41,10 +42,12 @@ class CreateNoteComponent(
 
 	override fun onTextChanged(newText: String) {
 		_noteText.update { newText }
+		updateShouldClose()
 	}
 
 	override fun clearText() {
 		_noteText.update { "" }
+		updateShouldClose()
 	}
 
 	override suspend fun createNote(noteText: String): NoteError {
