@@ -3,9 +3,6 @@
     <string name="app_name">Hammer</string>
     <string name="unsaved_scenes_dialog_title">存的场景</string>
     <string name="unsaved_scenes_dialog_message">保存未保存的场景\?</string>
-    <string name="unsaved_scenes_dialog_negative_button">不保存退出</string>
-    <string name="unsaved_scenes_dialog_neutral_button">取消</string>
-    <string name="unsaved_scenes_dialog_positive_button">保存并退出</string>
     <string name="unsaved_encyclopedia_dialog_title">未保存的百科全书条目</string>
     <string name="unsaved_encyclopedia_dialog_message">丢弃条目？</string>
     <string name="unsaved_notes_dialog_title">未保存注释</string>

@@ -13,4 +13,6 @@
     <string name="draft_list_close_button">Fechar Rascunhos</string>
     <string name="draft_compare_draft_subheader">Copiar as partes desejadas no texto atual ou aceitar tudo.</string>
     <string name="draft_list_header">%1$s Rascunhos:</string>
+    <string name="draft_compare_tab_title_draft">Rascunho</string>
+    <string name="draft_compare_tab_title_current">Atual</string>
 </resources>

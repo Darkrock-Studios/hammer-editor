@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
-    <string name="unsaved_scenes_dialog_neutral_button">Abbrechen</string>
     <string name="unsaved_scenes_dialog_title">Nicht gespeicherte Szenen</string>
-    <string name="unsaved_scenes_dialog_positive_button">Speichern und schließen</string>
     <string name="unsaved_scenes_dialog_message">Ungespeicherte Szenen speichern\?</string>
-    <string name="unsaved_scenes_dialog_negative_button">Verwerfen und schließen</string>
     <string name="unsaved_encyclopedia_dialog_title">Ungespeicherter Enzyklopädie Eintrag</string>
     <string name="unsaved_encyclopedia_dialog_message">Eintrag verwerfen\?</string>
     <string name="unsaved_notes_dialog_title">Ungespeicherte Notiz</string>

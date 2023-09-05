@@ -12,4 +12,16 @@
     <string name="navdrawer_button">Gaveta de Navegação</string>
     <string name="note_widget_dialog_title">Adicionar Nota à:</string>
     <string name="note_widget_dialog_save_button">Salvar</string>
+    <string name="note_widget_dialog_cancel_button">Cancelar</string>
+    <string name="note_widget_dialog_failure_bad_project">Projeto não encontrado: %1$s</string>
+    <string name="note_widget_confirm_cancel_title">Descartar Nota\?</string>
+    <string name="note_widget_confirm_cancel_positive">Descartar</string>
+    <string name="note_widget_confirm_cancel_negative">Cancelar</string>
+    <string name="action_add_note_short_label">Adicionar Nota</string>
+    <string name="title_activity_add_note_widget_config">Configurar Widget</string>
+    <string name="note_widget_config_title">Configurar a Largura da Nota:</string>
+    <string name="note_widget_config_project_checkbox_explained">Será solicitado que você escolha um projeto sempre que não tiver um projeto selecionado.</string>
+    <string name="action_add_note_long_label">Adicionar Nota de História</string>
+    <string name="note_widget_config_project_checkbox">Adicionar notas ao projeto especificado</string>
+    <string name="action_add_note_disabled">A adição de notas está desabilitada agora</string>
 </resources>

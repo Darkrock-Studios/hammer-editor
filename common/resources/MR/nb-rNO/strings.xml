@@ -4,13 +4,10 @@
     <string name="unsaved_scenes_dialog_message">Lagre ulagrede scener\?</string>
     <string name="unsaved_scenes_dialog_title">Ulagrede scener</string>
     <string name="unsaved_notes_dialog_title">Ulagret notat</string>
-    <string name="unsaved_scenes_dialog_positive_button">Lagre og lukk</string>
-    <string name="unsaved_scenes_dialog_neutral_button">Avbryt</string>
     <string name="unsaved_notes_dialog_message">Forkast notat\?</string>
     <string name="unsaved_dialog_positive_button">Forkast og lukk</string>
     <string name="unsaved_encyclopedia_dialog_message">Forkast oppføring\?</string>
     <string name="unsaved_encyclopedia_dialog_title">Ulagret leksikonsoppføring</string>
-    <string name="unsaved_scenes_dialog_negative_button">Forkast og lukk</string>
     <string name="unsaved_dialog_negative_button">Avbryt</string>
     <string name="close_dialog_button">Lukk</string>
     <string name="more_menu_button">Mer</string>

@@ -2,9 +2,6 @@
 <resources>
     <string name="app_name">Hammer</string>
     <string name="unsaved_scenes_dialog_title">Scene Non Salvate</string>
-    <string name="unsaved_scenes_dialog_negative_button">Annulla e chiudi</string>
-    <string name="unsaved_scenes_dialog_neutral_button">Annulla</string>
-    <string name="unsaved_scenes_dialog_positive_button">Salva e chiudi</string>
     <string name="unsaved_notes_dialog_title">Nota Non Salvata</string>
     <string name="unsaved_notes_dialog_message">Scarta nota\?</string>
     <string name="unsaved_dialog_negative_button">Annulla</string>

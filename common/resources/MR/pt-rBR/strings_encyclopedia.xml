@@ -21,7 +21,7 @@
     <string name="encyclopedia_entry_close_button">Fechar Inscrição</string>
     <string name="encyclopedia_entry_menu_group">Inscrição</string>
     <string name="encyclopedia_entry_menu_delete">Deletar Inscrição</string>
-    <string name="encyclopedia_search_hint">Procurar por Nome</string>
+    <string name="encyclopedia_search_hint">Procurar por Nome ou #hashtag</string>
     <string name="encyclopedia_search_clear_button">Limpar</string>
     <string name="encyclopedia_create_entry_body_hint">Descreva sua inscrição</string>
     <string name="encyclopedia_create_entry_name_label">Nome</string>
@@ -38,4 +38,13 @@
     <string name="encyclopedia_entry_discard_message">Você perderá quaisquer alterações feitas.</string>
     <string name="encyclopedia_entry_delete_image_message">Isso não pode ser desfeito!</string>
     <string name="encyclopedia_entry_menu_add_image">Adicionar Imagem</string>
+    <string name="encyclopedia_entry_add_tags_dialog_title">Adicionar Etiquetas</string>
+    <string name="encyclopedia_entry_add_tag">Adicionar</string>
+    <string name="encyclopedia_entry_add_tags_button">Adicionar Etiquetas</string>
+    <string name="encyclopedia_category_person">Pessoa</string>
+    <string name="encyclopedia_category_place">Lugar</string>
+    <string name="encyclopedia_category_thing">Coisa</string>
+    <string name="encyclopedia_category_event">Evento</string>
+    <string name="encyclopedia_category_idea">Ideia</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_short">A etiqueta é muito curta</string>
 </resources>
