@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.notes
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.notes.Notes
+import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -12,9 +12,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun ConfirmDeleteDialog(
+internal fun ConfirmDeleteNoteDialog(
 	note: NoteContent,
-	component: Notes,
+	component: ViewNote,
 	snackbarHostState: SnackbarHostState,
 	scope: CoroutineScope,
 ) {

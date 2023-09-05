@@ -2,14 +2,14 @@ package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dataset
-import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,7 +40,7 @@ private val WIDE_SCREEN_THRESHOLD = 700.dp
 fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	return when (location) {
 		ProjectRoot.DestinationTypes.Editor -> Icons.Filled.Edit
-		ProjectRoot.DestinationTypes.Notes -> Icons.Filled.Dock
+		ProjectRoot.DestinationTypes.Notes -> Icons.Filled.Notes
 		ProjectRoot.DestinationTypes.Encyclopedia -> Icons.Filled.Dataset
 		ProjectRoot.DestinationTypes.TimeLine -> Icons.Filled.CalendarMonth
 		ProjectRoot.DestinationTypes.Home -> Icons.Filled.Home
@@ -55,8 +55,11 @@ fun ProjectRootUi(
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		FeatureContent(modifier.fillMaxSize(), component)
-		SnackbarHost(snackbarState, modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter))
+		FeatureContent(modifier.fillMaxSize(), component, snackbarState)
+		SnackbarHost(
+			snackbarState,
+			modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+		)
 	}
 
 	ModalContent(component) { message ->
@@ -68,6 +71,7 @@ fun ProjectRootUi(
 fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
+	snackbarState: SnackbarHostState,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 	Children(
@@ -80,7 +84,7 @@ fun FeatureContent(
 				ProjectEditorUi(child.component)
 
 			is ProjectRoot.Destination.NotesDestination ->
-				NotesUi(child.component)
+				NotesUi(child.component, snackbarState)
 
 			is ProjectRoot.Destination.EncyclopediaDestination ->
 				EncyclopediaUi(child.component)

@@ -97,6 +97,7 @@ internal class ProjectRootRouter(
 		return NotesComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
+			updateShouldClose = updateShouldClose,
 			addMenu = addMenu,
 			removeMenu = removeMenu
 		)

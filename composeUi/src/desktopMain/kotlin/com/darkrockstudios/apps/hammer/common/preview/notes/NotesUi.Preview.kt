@@ -1,19 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.runtime.Composable
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.components.notes.Notes
-import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.notes.NoteItem
-import com.darkrockstudios.apps.hammer.common.notes.NotesUi
-import kotlinx.datetime.Clock
-
+/*
 @Preview
 @Composable
 private fun NoteItemPreview() {
@@ -73,3 +60,4 @@ private fun fakeComponent(): Notes = object : Notes {
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 }
+*/

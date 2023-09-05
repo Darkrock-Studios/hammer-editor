@@ -37,7 +37,7 @@ class NotesRepositoryOkio(
 		return path.toHPath()
 	}
 
-	override fun loadNotes() {
+	override fun loadNotes(onLoaded: (() -> Unit)?) {
 		notesScope.launch {
 			val dir = getNotesDirectory().toOkioPath()
 			val files = fileSystem.listRecursively(dir)
@@ -45,6 +45,8 @@ class NotesRepositoryOkio(
 
 			val notes = noteFiles.map { path -> loadNote(path) }.toList()
 			updateNotes(notes)
+
+			onLoaded?.invoke()
 		}
 	}
 

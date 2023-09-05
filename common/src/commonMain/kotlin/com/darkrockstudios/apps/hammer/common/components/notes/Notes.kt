@@ -1,29 +1,36 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.parcelable.Parcelable
+import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface Notes : HammerComponent, Router {
-	val state: Value<State>
+	val stack: Value<ChildStack<Config, Destination>>
 
-	suspend fun createNote(noteText: String): NoteError
-	suspend fun deleteNote(id: Int)
-	suspend fun updateNote(noteContent: NoteContent)
+	sealed class Destination {
+		data class BrowseNotesDestination(val component: BrowseNotes) : Destination()
 
-	fun confirmDelete(note: NoteContent)
-	fun dismissConfirmDelete()
+		data class ViewNoteDestination(val component: ViewNote) : Destination()
 
-	fun showCreate()
-	fun dismissCreate()
+		data class CreateNoteDestination(val component: CreateNote) : Destination()
+	}
 
-	data class State(
-		val projectDef: ProjectDef,
-		val notes: List<NoteContent>,
-		val confirmDelete: NoteContent? = null,
-		val showCreate: Boolean = false
-	)
+	sealed class Config : Parcelable {
+		@Parcelize
+		data class BrowseNotesConfig(val projectDef: ProjectDef) : Config()
+
+		@Parcelize
+		data class ViewNoteConfig(val noteId: Int) : Config()
+
+		@Parcelize
+		data class CreateNoteConfig(val projectDef: ProjectDef) : Config()
+	}
+
+	fun showBrowse()
+	fun showViewNote(noteId: Int)
+	fun showCreateNote()
 }

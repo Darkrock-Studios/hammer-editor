@@ -38,6 +38,10 @@ abstract class NotesRepository(
 	 * `notesListFlow` should be used instead of this property.
 	 */
 	fun getNotes(): List<NoteContainer> = _notes
+	fun findNoteForId(id: Int): NoteContent? {
+		val foundContainer = _notes.find { it.note.id == id }
+		return foundContainer?.note
+	}
 
 	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
 		extraBufferCapacity = 1,
@@ -69,7 +73,7 @@ abstract class NotesRepository(
 
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath
-	abstract fun loadNotes()
+	abstract fun loadNotes(onLoaded: (() -> Unit)? = null)
 	abstract suspend fun createNote(noteText: String): NoteError
 	abstract suspend fun deleteNote(id: Int)
 	abstract suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
@@ -96,7 +100,7 @@ abstract class NotesRepository(
 		val NOTE_FILENAME_PATTERN = Regex("""note-(\d+)\.toml""")
 		const val NOTES_FILENAME_EXTENSION = ".toml"
 		const val NOTES_DIRECTORY = "notes"
-		const val MAX_NOTE_SIZE = 2048
+		const val MAX_NOTE_SIZE = 10000
 
 		fun getNoteFilenameFromId(id: Int): String {
 			return "note-$id.toml"
