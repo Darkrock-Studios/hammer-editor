@@ -65,7 +65,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 			) {
 				Text(
 					MR.strings.notes_view_header.get(),
-					style = MaterialTheme.typography.displayMedium
+					style = MaterialTheme.typography.displaySmall
 				)
 
 				Row {
@@ -140,7 +140,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 						noteText.markdownToAnnotatedString(),
 						modifier = Modifier.weight(1f),
 						style = MaterialTheme.typography.bodyMedium
-							.copy(color = MaterialTheme.colorScheme.onBackground),
+							.copy(color = MaterialTheme.colorScheme.onSurface),
 					) {
 						component.beginEdit()
 					}

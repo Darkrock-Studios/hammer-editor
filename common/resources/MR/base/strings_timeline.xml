@@ -12,6 +12,7 @@
 	<string name="timeline_create_toast_success">Event Created</string>
 	<string name="timeline_create_toast_failure">Failed to create event</string>
 
+	<string name="timeline_view_title">Event</string>
 	<string name="timeline_view_save_button">Save</string>
 	<string name="timeline_view_cancel_button">Cancel</string>
 	<string name="timeline_view_close_button">Close Entry</string>

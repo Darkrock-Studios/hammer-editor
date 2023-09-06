@@ -2,14 +2,12 @@ package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -63,16 +64,25 @@ fun ViewTimeLineEventUi(
 
 	val event = remember(state.event) { state.event }
 
-	Box(
-		modifier = modifier.fillMaxSize().padding(Ui.Padding.XL),
-		contentAlignment = Alignment.TopCenter
+	Card(
+		modifier = modifier.padding(Ui.Padding.XL)
+			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
+		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
-		Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
+		Column(
+			modifier = Modifier.padding(Ui.Padding.XL).widthIn(128.dp, 700.dp).wrapContentHeight()
+		) {
 			Row(
 				modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
 				horizontalArrangement = Arrangement.End,
 				verticalAlignment = Alignment.CenterVertically
 			) {
+				Text(
+					MR.strings.timeline_view_title.get(),
+					modifier = Modifier.weight(1f),
+					style = MaterialTheme.typography.displaySmall,
+				)
+
 				if (event != null && state.isEditing) {
 					IconButton(onClick = {
 						scope.launch(dispatcherDefault) {
@@ -145,8 +155,8 @@ fun ViewTimeLineEventUi(
 					} else {
 						Text(
 							date,
-							style = MaterialTheme.typography.displayMedium,
-							color = MaterialTheme.colorScheme.onBackground,
+							style = MaterialTheme.typography.headlineMedium,
+							color = MaterialTheme.colorScheme.onSurface,
 							modifier = Modifier.wrapContentHeight().fillMaxWidth()
 								.clickable { component.beginEdit() }
 						)
@@ -168,7 +178,7 @@ fun ViewTimeLineEventUi(
 					Text(
 						event.content,
 						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onBackground,
+						color = MaterialTheme.colorScheme.onSurface,
 						modifier = Modifier.wrapContentHeight().fillMaxWidth()
 							.clickable { component.beginEdit() }
 					)
