@@ -7,6 +7,7 @@ interface CreateTimeLineEvent {
 	val state: Value<State>
 
 	suspend fun createEvent(dateText: String?, contentText: String): Boolean
+	fun closeCreation()
 
 	data class State(
 		val projectDef: ProjectDef

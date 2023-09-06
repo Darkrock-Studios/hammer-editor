@@ -54,7 +54,6 @@ fun TimeLineUi(
 						component = child.component,
 						scope = scope,
 						snackbarHostState = snackbarHostState,
-						closeEvent = component::showOverview
 					)
 				}
 
@@ -64,7 +63,6 @@ fun TimeLineUi(
 						scope = scope,
 						modifier = Modifier.align(Alignment.TopCenter),
 						snackbarHostState = snackbarHostState,
-						close = component::showOverview
 					)
 				}
 			}

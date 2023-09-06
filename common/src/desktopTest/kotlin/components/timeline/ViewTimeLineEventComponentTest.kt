@@ -31,9 +31,10 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
 			eventId = eventId,
-			closeEvent = {},
+			onCloseEvent = {},
 			addMenu = {},
 			removeMenu = {},
+			updateShouldClose = {}
 		)
 		lifecycleCallbacks[1].onCreate()
 		advanceUntilIdle()
@@ -48,7 +49,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			date = date,
 			content = content
 		)
-		val success = component.updateEvent(updatedEvent)
+		val success = component.storeEvent(updatedEvent)
 		assertTrue(success, "Update event failed")
 
 		// After the update, it should save back to repository

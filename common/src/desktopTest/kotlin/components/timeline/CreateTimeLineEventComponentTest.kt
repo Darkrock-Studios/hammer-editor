@@ -52,6 +52,7 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 		val component = CreateTimeLineEventComponent(
 			componentContext = context,
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+			onClose = {}
 		)
 		val didCreate = component.createEvent(dateText = date, contentText = content)
 

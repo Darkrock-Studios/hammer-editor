@@ -76,11 +76,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 					}
 
 					IconButton(onClick = {
-						if (component.isEditingAndDirty()) {
-							component.confirmClose()
-						} else {
-							component.closeNote()
-						}
+						component.confirmClose()
 					}) {
 						Icon(
 							Icons.Filled.Close,

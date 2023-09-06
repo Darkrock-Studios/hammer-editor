@@ -12,6 +12,7 @@ import io.github.aakira.napier.Napier
 class CreateTimeLineEventComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
+	private val onClose: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), CreateTimeLineEvent {
 
 	private val timeLineRepository: TimeLineRepository by projectInject()
@@ -36,4 +37,7 @@ class CreateTimeLineEventComponent(
 		return true
 	}
 
+	override fun closeCreation() {
+		onClose()
+	}
 }

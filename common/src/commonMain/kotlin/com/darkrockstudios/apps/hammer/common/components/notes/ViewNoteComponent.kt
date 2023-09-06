@@ -133,10 +133,14 @@ class ViewNoteComponent(
 	}
 
 	override fun confirmClose() {
-		_state.getAndUpdate {
-			it.copy(
-				confirmClose = true
-			)
+		if (isEditingAndDirty()) {
+			_state.getAndUpdate {
+				it.copy(
+					confirmClose = true
+				)
+			}
+		} else {
+			dismissView()
 		}
 	}
 

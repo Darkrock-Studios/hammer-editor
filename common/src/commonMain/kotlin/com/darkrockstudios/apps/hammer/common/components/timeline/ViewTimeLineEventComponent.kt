@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -20,19 +21,24 @@ import kotlinx.coroutines.withContext
 class ViewTimeLineEventComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	eventId: Int,
-	private val closeEvent: () -> Unit,
+	override val eventId: Int,
+	private val onCloseEvent: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val updateShouldClose: () -> Unit
 ) : ProjectComponentBase(projectDef, componentContext), ViewTimeLineEvent {
 
 	private val mainDispatcher by injectMainDispatcher()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 
-	override val eventId: Int = eventId
-
 	private val _state = MutableValue(ViewTimeLineEvent.State())
 	override val state: Value<ViewTimeLineEvent.State> = _state
+
+	private val _dateText = MutableValue("")
+	override val dateText: Value<String> = _dateText
+
+	private val _contentText = MutableValue("")
+	override val contentText: Value<String> = _contentText
 
 	override fun onCreate() {
 		super.onCreate()
@@ -67,6 +73,8 @@ class ViewTimeLineEventComponent(
 						event = event
 					)
 				}
+				_contentText.update { event?.content ?: "" }
+				_dateText.update { event?.date ?: "" }
 			}
 		}
 	}
@@ -75,8 +83,28 @@ class ViewTimeLineEventComponent(
 		return "view-timeline-event"
 	}
 
-	override suspend fun updateEvent(event: TimeLineEvent): Boolean {
-		return timeLineRepository.updateEvent(event)
+	override fun onEventTextChanged(text: String) {
+		_contentText.update { text }
+		updateShouldClose()
+	}
+
+	override fun onDateTextChanged(text: String) {
+		_dateText.update { text }
+		updateShouldClose()
+	}
+
+	override suspend fun storeEvent(event: TimeLineEvent): Boolean {
+		val success = timeLineRepository.updateEvent(event)
+
+		if (success) {
+			_state.getAndUpdate {
+				it.copy(
+					isEditing = false
+				)
+			}
+		}
+
+		return success
 	}
 
 	override fun startDeleteEvent() {
@@ -129,6 +157,13 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
+	override fun isEditingAndDirty(): Boolean {
+		return state.value.isEditing && (
+			state.value.event?.content != contentText.value ||
+				state.value.event?.date != dateText.value
+			)
+	}
+
 	private fun removeEntryMenu() {
 		removeMenu(getMenuId())
 		_state.getAndUpdate {
@@ -136,6 +171,70 @@ class ViewTimeLineEventComponent(
 				menuItems = emptySet()
 			)
 		}
+	}
+
+	override fun confirmDiscard() {
+		if (isEditingAndDirty()) {
+			_state.getAndUpdate {
+				it.copy(
+					confirmDiscard = true
+				)
+			}
+		} else {
+			discardEdit()
+		}
+	}
+
+	override fun beginEdit() {
+		_state.getAndUpdate {
+			it.copy(
+				isEditing = true
+			)
+		}
+	}
+
+	override fun discardEdit() {
+		_state.getAndUpdate {
+			it.copy(
+				isEditing = false,
+				confirmDiscard = false,
+			)
+		}
+		_contentText.update { _state.value.event?.content ?: "" }
+		_dateText.update { _state.value.event?.date ?: "" }
+		updateShouldClose()
+	}
+
+	override fun cancelDiscard() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmDiscard = false
+			)
+		}
+	}
+
+	override fun confirmClose() {
+		if (isEditingAndDirty()) {
+			_state.getAndUpdate {
+				it.copy(
+					confirmClose = true
+				)
+			}
+		} else {
+			onCloseEvent()
+		}
+	}
+
+	override fun cancelClose() {
+		_state.getAndUpdate {
+			it.copy(
+				confirmClose = false
+			)
+		}
+	}
+
+	override fun closeEvent() {
+		onCloseEvent()
 	}
 
 	override fun onStart() {

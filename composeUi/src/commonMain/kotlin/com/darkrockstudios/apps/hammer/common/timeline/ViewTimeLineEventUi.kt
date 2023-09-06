@@ -1,56 +1,67 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewTimeLineEventUi(
 	component: ViewTimeLineEvent,
 	modifier: Modifier = Modifier,
 	scope: CoroutineScope,
 	snackbarHostState: SnackbarHostState,
-	closeEvent: () -> Unit
 ) {
 	val strRes = rememberStrRes()
 
-	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	var editDate by rememberSaveable { mutableStateOf(false) }
-	var eventDateText by rememberSaveable(state.event) { mutableStateOf(state.event?.date ?: "") }
+	val dateText by component.dateText.subscribeAsState()
+	val eventText by component.contentText.subscribeAsState()
 
-	var editContent by rememberSaveable { mutableStateOf(false) }
-	var eventText by rememberSaveable(state.event) { mutableStateOf(state.event?.content ?: "") }
-
-	val screen = LocalScreenCharacteristic.current
 	val event = remember(state.event) { state.event }
-
-	var discardConfirm by rememberSaveable { mutableStateOf(false) }
-	var closeConfirm by rememberSaveable { mutableStateOf(false) }
 
 	Box(
 		modifier = modifier.fillMaxSize().padding(Ui.Padding.XL),
@@ -62,23 +73,22 @@ fun ViewTimeLineEventUi(
 				horizontalArrangement = Arrangement.End,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				if (event != null && (editDate || editContent)) {
+				if (event != null && state.isEditing) {
 					IconButton(onClick = {
 						scope.launch(dispatcherDefault) {
-							component.updateEvent(
+							val success = component.storeEvent(
 								event.copy(
-									date = eventDateText,
+									date = dateText,
 									content = eventText
 								)
 							)
 
-							withContext(dispatcherMain) {
-								editDate = false
-								editContent = false
-							}
-
-							scope.launch {
-								snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
+							if (success) {
+								scope.launch {
+									snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
+								}
+							} else {
+								// TODO do something about error states here
 							}
 						}
 					}) {
@@ -90,9 +100,7 @@ fun ViewTimeLineEventUi(
 					}
 
 					IconButton(onClick = {
-						scope.launch {
-							discardConfirm = true
-						}
+						component.confirmDiscard()
 					}) {
 						Icon(
 							Icons.Filled.Cancel,
@@ -101,62 +109,37 @@ fun ViewTimeLineEventUi(
 						)
 					}
 
-					if (screen.needsExplicitClose) {
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-						Divider(
-							color = MaterialTheme.colorScheme.outline,
-							modifier = Modifier.fillMaxHeight().width(1.dp)
-								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
-						)
+					Divider(
+						color = MaterialTheme.colorScheme.outline,
+						modifier = Modifier.fillMaxHeight().width(1.dp)
+							.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+					)
 
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
-					}
-
-					if (discardConfirm) {
-						SimpleConfirm(
-							title = MR.strings.timeline_view_discard_title.get(),
-							message = MR.strings.timeline_view_discard_message.get(),
-							onDismiss = { discardConfirm = false }
-						) {
-							eventDateText = event.date ?: ""
-							eventText = event.content
-							editDate = false
-							editContent = false
-
-							discardConfirm = false
-						}
-					}
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 				}
 
 				ViewEventMenuUi(component)
 
-				if (screen.needsExplicitClose) {
-					IconButton(
-						onClick = {
-							if (editDate || editContent) {
-								closeConfirm = true
-							} else {
-								closeEvent()
-							}
-						},
-					) {
-						Icon(
-							Icons.Filled.Close,
-							contentDescription = MR.strings.timeline_view_close_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					}
+				IconButton(
+					onClick = { component.confirmClose() },
+				) {
+					Icon(
+						Icons.Filled.Close,
+						contentDescription = MR.strings.timeline_view_close_button.get(),
+						tint = MaterialTheme.colorScheme.onSurface
+					)
 				}
 			}
 
 			if (event != null) {
 				event.date?.let { date ->
-					if (editDate) {
+					if (state.isEditing) {
 						TextField(
 							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-							value = eventDateText,
-							onValueChange = { eventDateText = it },
+							value = dateText,
+							onValueChange = { component.onDateTextChanged(it) },
 							placeholder = { Text(MR.strings.timeline_view_date_label.get()) }
 						)
 					} else {
@@ -165,17 +148,17 @@ fun ViewTimeLineEventUi(
 							style = MaterialTheme.typography.displayMedium,
 							color = MaterialTheme.colorScheme.onBackground,
 							modifier = Modifier.wrapContentHeight().fillMaxWidth()
-								.clickable { editDate = true }
+								.clickable { component.beginEdit() }
 						)
 					}
 				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-				if (editContent) {
+				if (state.isEditing) {
 					OutlinedTextField(
 						value = eventText,
-						onValueChange = { eventText = it },
+						onValueChange = { component.onEventTextChanged(it) },
 						modifier = Modifier.fillMaxWidth()
 							.padding(PaddingValues(bottom = Ui.Padding.XL)),
 						placeholder = { Text(text = MR.strings.timeline_view_content_placeholder.get()) },
@@ -187,21 +170,30 @@ fun ViewTimeLineEventUi(
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,
 						modifier = Modifier.wrapContentHeight().fillMaxWidth()
-							.clickable { editContent = true }
+							.clickable { component.beginEdit() }
 					)
 				}
 			}
 		}
 	}
 
-	if (closeConfirm) {
+	if (state.confirmClose) {
 		SimpleConfirm(
 			title = MR.strings.timeline_view_discard_title.get(),
 			message = MR.strings.timeline_view_discard_message.get(),
-			onDismiss = { closeConfirm = false }
+			onDismiss = { component.cancelClose() }
 		) {
-			closeConfirm = false
-			closeEvent()
+			component.closeEvent()
+		}
+	}
+
+	if (state.confirmDiscard) {
+		SimpleConfirm(
+			title = MR.strings.timeline_view_discard_title.get(),
+			message = MR.strings.timeline_view_discard_message.get(),
+			onDismiss = { component.cancelDiscard() }
+		) {
+			component.discardEdit()
 		}
 	}
 

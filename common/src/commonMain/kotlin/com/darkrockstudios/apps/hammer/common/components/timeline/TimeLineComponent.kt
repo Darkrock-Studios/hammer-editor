@@ -72,9 +72,10 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			eventId = config.eventId,
-			closeEvent = ::showOverview,
+			onCloseEvent = ::showOverview,
 			addMenu = addMenu,
 			removeMenu = removeMenu,
+			updateShouldClose = updateShouldClose,
 		)
 	}
 
@@ -84,7 +85,8 @@ class TimeLineComponent(
 	): CreateTimeLineEvent {
 		return CreateTimeLineEventComponent(
 			componentContext = componentContext,
-			projectDef = config.projectDef
+			projectDef = config.projectDef,
+			onClose = ::showOverview
 		)
 	}
 
