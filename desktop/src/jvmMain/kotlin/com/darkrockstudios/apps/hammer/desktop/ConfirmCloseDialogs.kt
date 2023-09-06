@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
@@ -41,10 +40,10 @@ internal fun confirmCloseUnsavedScenesDialog(
 				modifier = Modifier.fillMaxWidth(),
 			) {
 				Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-					Text(MR.strings.unsaved_scenes_dialog_positive_button.get())
+					Text(MR.strings.unsaved_entity_dialog_positive_button.get())
 				}
 				Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-					Text(MR.strings.unsaved_scenes_dialog_negative_button.get())
+					Text(MR.strings.unsaved_entity_dialog_negative_button.get())
 				}
 				Button(onClick = {
 					dismissDialog(
@@ -52,7 +51,7 @@ internal fun confirmCloseUnsavedScenesDialog(
 						ApplicationState.CloseType.None
 					)
 				}) {
-					Text(MR.strings.unsaved_scenes_dialog_neutral_button.get())
+					Text(MR.strings.unsaved_entity_dialog_neutral_button.get())
 				}
 			}
 		},
