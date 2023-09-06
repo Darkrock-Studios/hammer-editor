@@ -22,7 +22,7 @@ fun NotesUi(
 		modifier = Modifier,
 		animation = stackAnimation { _ -> fade() },
 	) {
-		when (val dest = stack.active.instance) {
+		when (val dest = it.instance) {
 			is Notes.Destination.BrowseNotesDestination -> {
 				BrowseNotesUi(dest.component, modifier)
 			}
