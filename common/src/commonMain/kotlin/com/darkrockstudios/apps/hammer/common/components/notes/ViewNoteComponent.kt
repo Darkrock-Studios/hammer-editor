@@ -113,10 +113,14 @@ class ViewNoteComponent(
 	}
 
 	override fun confirmDiscard() {
-		_state.getAndUpdate {
-			it.copy(
-				confirmDiscard = true
-			)
+		if (isEditingAndDirty()) {
+			_state.getAndUpdate {
+				it.copy(
+					confirmDiscard = true
+				)
+			}
+		} else {
+			discardEdit()
 		}
 	}
 

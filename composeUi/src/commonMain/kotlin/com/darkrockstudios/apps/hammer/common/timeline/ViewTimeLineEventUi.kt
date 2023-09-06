@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,7 +47,7 @@ fun ViewTimeLineEventUi(
 	var eventText by rememberSaveable(state.event) { mutableStateOf(state.event?.content ?: "") }
 
 	val screen = LocalScreenCharacteristic.current
-	val event = state.event
+	val event = remember(state.event) { state.event }
 
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
 	var closeConfirm by rememberSaveable { mutableStateOf(false) }
@@ -163,7 +164,8 @@ fun ViewTimeLineEventUi(
 							date,
 							style = MaterialTheme.typography.displayMedium,
 							color = MaterialTheme.colorScheme.onBackground,
-							modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { editDate = true }
+							modifier = Modifier.wrapContentHeight().fillMaxWidth()
+								.clickable { editDate = true }
 						)
 					}
 				}
@@ -174,7 +176,8 @@ fun ViewTimeLineEventUi(
 					OutlinedTextField(
 						value = eventText,
 						onValueChange = { eventText = it },
-						modifier = Modifier.fillMaxWidth().padding(PaddingValues(bottom = Ui.Padding.XL)),
+						modifier = Modifier.fillMaxWidth()
+							.padding(PaddingValues(bottom = Ui.Padding.XL)),
 						placeholder = { Text(text = MR.strings.timeline_view_content_placeholder.get()) },
 						maxLines = 10,
 					)
@@ -183,7 +186,8 @@ fun ViewTimeLineEventUi(
 						event.content,
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.wrapContentHeight().fillMaxWidth().clickable { editContent = true }
+						modifier = Modifier.wrapContentHeight().fillMaxWidth()
+							.clickable { editContent = true }
 					)
 				}
 			}
