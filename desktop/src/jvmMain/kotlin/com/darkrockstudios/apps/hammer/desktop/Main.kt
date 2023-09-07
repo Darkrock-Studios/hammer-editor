@@ -58,7 +58,7 @@ private fun handleArguments(args: Array<String>) {
 fun main(args: Array<String>) {
 	handleArguments(args)
 
-	Napier.base(DebugAntilog())
+	Napier.base(DebugAntilog(handler = listOf(FileLogger())))
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())

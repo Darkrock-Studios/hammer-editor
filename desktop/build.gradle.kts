@@ -63,7 +63,7 @@ compose.desktop {
 			windows {
 				menuGroup = "Hammer"
 				shortcut = true
-				console = true
+				console = false
 
 				iconFile.set(project.file("icons/windows.ico"))
 			}
