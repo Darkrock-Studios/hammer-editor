@@ -3,6 +3,9 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
@@ -13,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,9 +26,12 @@ import org.koin.core.component.inject
 class AccountSettingsComponent(
 	componentContext: ComponentContext,
 	override val showProjectDirectory: Boolean,
-) : AccountSettings, SavableComponent<AccountSettings.State>(componentContext) {
+) : AccountSettings,
+	ComponentToaster by ComponentToasterImpl(),
+	SavableComponent<AccountSettings.State>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
+	private val strRes: StrRes by inject()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
@@ -234,7 +241,6 @@ class AccountSettingsComponent(
 		shouldRemoveLocalContent: Boolean
 	) {
 		cancelSetupJob()
-		_state.getAndUpdate { it.copy(toast = null) }
 
 		serverSetupJob = scope.launch {
 			withContext(mainDispatcher) {
@@ -258,9 +264,7 @@ class AccountSettingsComponent(
 					}
 				}
 
-				withContext(mainDispatcher) {
-					_state.getAndUpdate { it.copy(toast = "Server setup Failed: $message") }
-				}
+				showToast(MR.strings.settings_server_setup_toast_failure, message)
 			} else {
 				if (shouldRemoveLocalContent) {
 					removeLocalContent()
@@ -274,18 +278,19 @@ class AccountSettingsComponent(
 							it.copy(
 								serverSetup = false,
 								serverWorking = false,
-								toast = "Server setup successfully!"
 							)
 						}
+						showToast(MR.strings.settings_server_setup_toast_success)
 					} else {
+						val message = result.exceptionOrNull()?.message
+							?: strRes.get(MR.strings.settings_server_setup_toast_failure_unknown)
 						_state.getAndUpdate {
-							val message = result.exceptionOrNull()?.message ?: "Unknown error"
 							it.copy(
 								serverError = message,
 								serverWorking = false,
-								toast = "Server setup failed: $message"
 							)
 						}
+						showToast(scope, MR.strings.settings_server_setup_toast_failure, message)
 					}
 				}
 			}

@@ -201,7 +201,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 		)
 	}
 
-	Toaster(state.toast, snackbarHostState)
+	Toaster(component, snackbarHostState)
 
 	ServerSetupDialog(component, scope)
 }

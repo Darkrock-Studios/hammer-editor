@@ -4,6 +4,8 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
@@ -22,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.soywiz.kds.iterators.parallelMap
-import dev.icerock.moko.resources.StringResource
+import com.soywiz.korio.async.launch
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -35,8 +37,9 @@ import kotlin.collections.set
 class ProjectsListComponent(
 	componentContext: ComponentContext,
 	private val onProjectSelected: (projectDef: ProjectDef) -> Unit
-) : ProjectsList, SavableComponent<ProjectsList.State>(componentContext) {
-
+) : ProjectsList,
+	SavableComponent<ProjectsList.State>(componentContext),
+	ComponentToaster by ComponentToasterImpl() {
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
@@ -59,12 +62,6 @@ class ProjectsListComponent(
 		)
 	}
 	override val state: Value<ProjectsList.State> = _state
-
-	private fun showToast(message: StringResource) {
-		_state.getAndUpdate {
-			it.copy(toast = message)
-		}
-	}
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
@@ -202,11 +199,7 @@ class ProjectsListComponent(
 			hideCreate()
 		} else {
 			(result.exceptionOrNull() as? ProjectCreationFailedException)?.errorMessage?.let { message ->
-				_state.getAndUpdate {
-					it.copy(
-						toast = message
-					)
-				}
+				showToast(scope, message)
 			}
 
 			Napier.e("Failed to create Project: $projectName")
@@ -408,9 +401,9 @@ class ProjectsListComponent(
 		scope.launch {
 			syncProjects { success ->
 				if (success) {
-					showToast(MR.strings.projects_list_toast_sync_complete)
+					showToast(scope, MR.strings.projects_list_toast_sync_complete)
 				} else {
-					showToast(MR.strings.projects_list_toast_sync_failed)
+					showToast(scope, MR.strings.projects_list_toast_sync_failed)
 				}
 			}
 		}

@@ -1,13 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Dataset
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -55,11 +52,13 @@ fun ProjectRootUi(
 	val scope = rememberCoroutineScope()
 	val snackbarState = remember { SnackbarHostState() }
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		FeatureContent(modifier.fillMaxSize(), component, snackbarState)
-		SnackbarHost(
-			snackbarState,
-			modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-		)
+		Box {
+			FeatureContent(modifier.fillMaxSize(), component, snackbarState)
+			SnackbarHost(
+				snackbarState,
+				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+			)
+		}
 	}
 
 	ModalContent(component) { message ->
@@ -81,19 +80,19 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(child.component)
+				ProjectEditorUi(child.component, snackbarState)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component, snackbarState)
 
 			is ProjectRoot.Destination.EncyclopediaDestination ->
-				EncyclopediaUi(child.component)
+				EncyclopediaUi(child.component, snackbarState)
 
 			is ProjectRoot.Destination.TimeLineDestination ->
-				TimeLineUi(child.component)
+				TimeLineUi(child.component, snackbarState)
 
 			is ProjectRoot.Destination.HomeDestination ->
-				ProjectHomeUi(child.component)
+				ProjectHomeUi(child.component, snackbarState)
 		}
 	}
 }

@@ -39,7 +39,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SceneListUi(
 	component: SceneList,
-	modifier: Modifier = Modifier
+	snackbarHostState: SnackbarHostState,
+	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()

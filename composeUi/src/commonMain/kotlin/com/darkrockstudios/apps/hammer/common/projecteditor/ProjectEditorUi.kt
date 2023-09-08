@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +26,7 @@ private val LIST_PANE_WIDTH = 300.dp
 @Composable
 fun ProjectEditorUi(
 	component: ProjectEditor,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	BoxWithConstraints(modifier = modifier) {
@@ -41,6 +43,7 @@ fun ProjectEditorUi(
 		//val shouldShowList = (!isMultiPane && !component.isDetailShown()) || isMultiPane
 		ListPane(
 			routerState = component.listRouterState,
+			snackbarHostState = snackbarHostState,
 			modifier = listModifier,
 		)
 
@@ -54,6 +57,7 @@ fun ProjectEditorUi(
 		// Detail
 		DetailsPane(
 			state = detailsState,
+			snackbarHostState = snackbarHostState,
 			modifier = detailsModifier,
 		)
 	}
@@ -65,7 +69,7 @@ fun ProjectEditorUi(
 @Composable
 private fun SetMultiPane(component: ProjectEditor) {
 	/*
-	// On first, I didn't like how this worked out, may try again later
+	// On first try, I didn't like how this worked out, may try again later
 	val windowSizeClass = calculateWindowSizeClass()
 	val isWide = when (windowSizeClass.widthSizeClass) {
 		WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> false
@@ -82,6 +86,7 @@ private fun SetMultiPane(component: ProjectEditor) {
 @Composable
 private fun ListPane(
 	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>>,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier
 ) {
 	val state by routerState.subscribeAsState()
@@ -95,6 +100,7 @@ private fun ListPane(
 			is ProjectEditor.ChildDestination.List.Scenes ->
 				SceneListUi(
 					component = child.component,
+					snackbarHostState = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
 				)
 
@@ -106,6 +112,7 @@ private fun ListPane(
 @Composable
 private fun DetailsPane(
 	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier,
 ) {
 	Children(
@@ -118,6 +125,7 @@ private fun DetailsPane(
 			is ProjectEditor.ChildDestination.Detail.EditorDestination -> {
 				SceneEditorUi(
 					component = child.component,
+					snackbarHostState = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
 				)
 			}

@@ -1,21 +1,28 @@
 package com.darkrockstudios.apps.hammer.common.preview.sceneeditor
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
+import dev.icerock.moko.resources.StringResource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 @Preview
 @Composable
 fun SceneEditorUiPreview() {
 	val component = fakeComponent()
-	SceneEditorUi(component)
+	val snackbarHostState = remember { SnackbarHostState() }
+	SceneEditorUi(component, snackbarHostState)
 }
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(
@@ -49,5 +56,8 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginSaveDraft() {}
 	override fun endSaveDraft() {}
 	override suspend fun saveDraft(draftName: String) = true
+	override val toast = MutableSharedFlow<ToastMessage>()
+	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: StringResource, vararg params: Any) {}
 	override fun closeEditor() {}
 }

@@ -9,7 +9,6 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
@@ -30,13 +29,13 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
 
 	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
 	var showDirectoryPicker by remember { mutableStateOf(false) }
-	val snackbarHostState = remember { SnackbarHostState() }
 	val scope = rememberCoroutineScope()
 
 	val windowSizeClass = calculateWindowSizeClass()
@@ -166,8 +165,6 @@ internal fun AccountSettingsUi(
 				}
 			}
 		}
-
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 
 	DirectoryPicker(showDirectoryPicker) { path ->

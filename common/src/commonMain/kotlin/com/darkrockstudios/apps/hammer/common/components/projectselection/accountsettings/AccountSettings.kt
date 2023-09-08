@@ -3,11 +3,12 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
-interface AccountSettings {
+interface AccountSettings : ComponentToaster {
 	val showProjectDirectory: Boolean
 	val state: Value<State>
 
@@ -58,6 +59,5 @@ interface AccountSettings {
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
-		val toast: String? = null
 	) : Parcelable
 }

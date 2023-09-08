@@ -7,11 +7,15 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.android.ProjectSelectContent
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import dev.icerock.moko.resources.StringResource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 
 val projectListComponent = object : ProjectsList {
@@ -34,6 +38,9 @@ val projectListComponent = object : ProjectsList {
 	override fun cancelProjectsSync() {}
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? = null
 	override fun onProjectNameUpdate(newProjectName: String) {}
+	override val toast = MutableSharedFlow<ToastMessage>()
+	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: StringResource, vararg params: Any) {}
 }
 
 val component = object : ProjectSelection {

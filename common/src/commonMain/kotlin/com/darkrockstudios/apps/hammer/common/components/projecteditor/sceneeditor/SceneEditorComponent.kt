@@ -5,6 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -26,7 +28,9 @@ class SceneEditorComponent(
 	private val removeMenu: (id: String) -> Unit,
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
-) : ProjectComponentBase(originalSceneItem.projectDef, componentContext), SceneEditor {
+) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
+	ComponentToaster by ComponentToasterImpl(),
+	SceneEditor {
 
 	private val projectEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
@@ -194,11 +198,7 @@ class SceneEditorComponent(
 				}
 			} else {
 				(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
-					_state.getAndUpdate {
-						it.copy(
-							toast = message
-						)
-					}
+					showToast(message)
 				}
 			}
 		}

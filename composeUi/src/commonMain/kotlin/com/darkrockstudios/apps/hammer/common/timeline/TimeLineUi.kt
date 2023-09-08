@@ -5,11 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,11 +23,10 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 @Composable
 fun TimeLineUi(
 	component: TimeLine,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
-
 	val state by component.stack.subscribeAsState()
 
 	BoxWithConstraints(modifier = modifier) {
@@ -67,8 +64,6 @@ fun TimeLineUi(
 				}
 			}
 		}
-
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }
 

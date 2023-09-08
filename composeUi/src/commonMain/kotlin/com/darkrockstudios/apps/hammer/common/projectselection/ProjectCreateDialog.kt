@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -16,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Unit) {
 	SimpleDialog(

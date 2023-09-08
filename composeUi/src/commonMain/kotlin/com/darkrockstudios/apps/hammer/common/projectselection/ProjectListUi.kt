@@ -44,14 +44,14 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun ProjectListUi(
 	component: ProjectsList,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier
 ) {
 	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
-	val snackbarHostState = remember { SnackbarHostState() }
 
-	Toaster(state.toast, snackbarHostState)
+	Toaster(component, snackbarHostState)
 
 	val colModifier: Modifier = when (windowSizeClass.widthSizeClass) {
 		WindowWidthSizeClass.Compact -> modifier.fillMaxWidth()
@@ -128,8 +128,6 @@ fun ProjectListUi(
 				MpScrollBarList(state = listState)
 			}
 		}
-
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 
 	ProjectCreateDialog(state.showCreateDialog, component) {

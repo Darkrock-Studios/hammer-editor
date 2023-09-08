@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.Padded
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -19,6 +20,10 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogContents
+import dev.icerock.moko.resources.StringResource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 @Preview
 @Composable
@@ -71,7 +76,9 @@ private val fakeProjectsList = object : ProjectsList {
 			)
 		)
 	)
-
+	override val toast: Flow<ToastMessage> = MutableSharedFlow()
+	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: StringResource, vararg params: Any) {}
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
 	override fun showCreate() {}

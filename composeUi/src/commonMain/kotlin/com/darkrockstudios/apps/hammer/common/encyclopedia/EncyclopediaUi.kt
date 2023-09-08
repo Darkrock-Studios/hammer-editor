@@ -2,11 +2,9 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,11 +17,10 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 @Composable
 fun EncyclopediaUi(
 	component: Encyclopedia,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
-
 	val state by component.stack.subscribeAsState()
 
 	BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -62,7 +59,5 @@ fun EncyclopediaUi(
 				}
 			}
 		}
-
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }

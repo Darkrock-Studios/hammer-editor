@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.arkivanov.essenty.parcelable.TypeParceler
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -13,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.parcelize.StringResourceParceler
 import dev.icerock.moko.resources.StringResource
 
-interface ProjectsList : HammerComponent {
+interface ProjectsList : HammerComponent, ComponentToaster {
 	val state: Value<State>
 
 	fun loadProjectList()
@@ -38,7 +39,6 @@ interface ProjectsList : HammerComponent {
 		val syncState: SyncState = SyncState(),
 		val showCreateDialog: Boolean = false,
 		val createDialogProjectName: String = "",
-		val toast: StringResource? = null
 	) : Parcelable
 
 	@Parcelize

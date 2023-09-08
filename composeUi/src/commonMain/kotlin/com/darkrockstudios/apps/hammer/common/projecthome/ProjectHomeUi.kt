@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -19,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import dev.icerock.moko.resources.compose.stringResource
@@ -37,12 +39,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProjectHomeUi(
 	component: ProjectHome,
+	snackbarHostState: SnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
 
 	Box(modifier = modifier) {
 		if (screen.isWide) {
@@ -76,8 +78,6 @@ fun ProjectHomeUi(
 				}
 			)
 		}
-
-		SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
 	}
 }
 

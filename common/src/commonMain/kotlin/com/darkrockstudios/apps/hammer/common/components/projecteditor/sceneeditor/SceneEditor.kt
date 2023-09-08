@@ -2,14 +2,14 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneedi
 
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
-import dev.icerock.moko.resources.StringResource
 
-interface SceneEditor : HammerComponent {
+interface SceneEditor : HammerComponent, ComponentToaster {
 	val state: Value<State>
 	var lastForceUpdate: MutableValue<Long>
 
@@ -31,7 +31,6 @@ interface SceneEditor : HammerComponent {
 		val sceneBuffer: SceneBuffer? = null,
 		val isEditingName: Boolean = false,
 		val isSavingDraft: Boolean = false,
-		val toast: StringResource? = null,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 }

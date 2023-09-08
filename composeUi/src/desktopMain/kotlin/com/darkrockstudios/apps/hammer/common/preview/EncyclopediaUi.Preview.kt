@@ -103,7 +103,8 @@ private fun EncyclopediaUiPreview() {
 		override fun isAtRoot() = true
 		override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	}
-	EncyclopediaUi(component)
+	val snackbarHostState = remember { SnackbarHostState() }
+	EncyclopediaUi(component, snackbarHostState)
 }
 
 @Preview
