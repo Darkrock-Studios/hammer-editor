@@ -1,0 +1,7 @@
+- Added About screen
+- Overhauled Notes UI
+- Added Delete Scene menu option
+- Fixed App exit confirmation dialogs on Android
+- Rewrote Toast notification system
+- Huge number of library upgrades
+- Desktop clients now keep log files (will help diagnose crashes)
