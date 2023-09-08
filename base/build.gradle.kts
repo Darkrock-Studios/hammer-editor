@@ -14,12 +14,12 @@ repositories {
 }
 
 kotlin {
-    android()
-    jvm("desktop") {
-        compilations.all {
+    androidTarget()
+	jvm("desktop") {
+		compilations.all {
 			kotlinOptions.jvmTarget = libs.versions.jvm.get()
-        }
-    }
+		}
+	}
     ios {
 
     }

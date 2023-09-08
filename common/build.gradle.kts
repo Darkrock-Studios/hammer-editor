@@ -12,7 +12,7 @@ group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
 kotlin {
-	android()
+	androidTarget()
 	jvm("desktop") {
 		compilations.all {
 			kotlinOptions.jvmTarget = libs.versions.jvm.get()
