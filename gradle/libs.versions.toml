@@ -60,7 +60,7 @@ koin_android = "3.4.3"
 koin_test = "3.4.1"
 koin_sl4j = "3.4.1"
 koin_ktor = "3.4.1"
-koin_compose = "3.4.5"
+koin_compose = "3.4.6"
 
 cokoin = "1.0.0"
 
