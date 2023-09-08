@@ -10,7 +10,7 @@ group = "com.darkrockstudios.apps.hammer.composeui"
 version = libs.versions.app.get()
 
 kotlin {
-	android()
+	androidTarget()
 	jvm("desktop") {
 		compilations.all {
 			kotlinOptions.jvmTarget = libs.versions.jvm.get()
@@ -36,7 +36,9 @@ kotlin {
 				api(libs.decompose.compose)
 				api(libs.richtexteditor)
 				api(libs.mpfilepicker)
-				api(libs.image.loader)
+				api(libs.imageloader)
+				api(libs.imageloader.moko)
+				api(libs.imageloader.blur)
 				implementation(libs.koalaplot.core)
 				api(libs.moko.resources.compose)
 				implementation(libs.aboutlibraries.core)

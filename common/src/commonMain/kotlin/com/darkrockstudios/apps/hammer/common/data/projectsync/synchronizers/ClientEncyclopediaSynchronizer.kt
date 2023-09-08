@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.soywiz.krypto.encoding.Base64
+import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.flow.first
 import okio.FileSystem
 

@@ -5,12 +5,10 @@ import com.darkrockstudios.apps.hammer.common.compose.NullDataInterceptor
 import com.darkrockstudios.apps.hammer.common.getImageCacheDirectory
 import com.eygraber.uri.Uri
 import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.cache.disk.DiskCache
-import com.seiko.imageloader.cache.memory.MemoryCache
-import com.seiko.imageloader.cache.memory.maxSizePercent
 import com.seiko.imageloader.component.decoder.SkiaImageDecoder
 import com.seiko.imageloader.component.mapper.Mapper
 import com.seiko.imageloader.component.setupDefaultComponents
+import com.seiko.imageloader.defaultImageResultMemoryCache
 import com.seiko.imageloader.option.Options
 import com.seiko.imageloader.util.LogPriority
 import okio.FileSystem
@@ -27,16 +25,14 @@ internal fun generateImageLoader(fileSystem: FileSystem): ImageLoader {
 		logger = ImageLoaderNapierLogger(LogPriority.WARN)
 		interceptor {
 			addInterceptor(NullDataInterceptor)
-			memoryCache {
-				MemoryCache {
-					maxSizePercent(0.25)
-				}
+			// cache 100 success image result, without bitmap
+			defaultImageResultMemoryCache()
+			memoryCacheConfig {
+				maxSizeBytes(32 * 1024 * 1024) // 32MB
 			}
-			diskCache {
-				DiskCache(fileSystem) {
-					directory(getImageCacheDirectory().toPath())
-					maxSizeBytes(128L * 1024 * 1024) // 512MB
-				}
+			diskCacheConfig {
+				directory(getImageCacheDirectory().toPath())
+				maxSizeBytes(512L * 1024 * 1024) // 512MB
 			}
 		}
 	}

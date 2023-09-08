@@ -14,11 +14,15 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import com.soywiz.krypto.encoding.Base64
 import io.github.aakira.napier.Napier
+import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch

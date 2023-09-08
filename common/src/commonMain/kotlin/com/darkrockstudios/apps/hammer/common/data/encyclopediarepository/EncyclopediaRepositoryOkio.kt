@@ -13,8 +13,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.soywiz.krypto.encoding.Base64
 import io.github.aakira.napier.Napier
+import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString

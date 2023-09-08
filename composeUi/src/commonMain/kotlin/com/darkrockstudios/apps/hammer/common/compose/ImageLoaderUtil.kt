@@ -37,7 +37,6 @@ object NullDataInterceptor : Interceptor {
 		val data = chain.request.data
 		if (data === NullRequestData || data is String && data.isEmpty()) {
 			return ImageResult.Painter(
-				request = chain.request,
 				painter = EmptyPainter,
 			)
 		}

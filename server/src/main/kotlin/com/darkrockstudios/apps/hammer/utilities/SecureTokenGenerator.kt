@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.utilities
 
-import com.soywiz.krypto.SecureRandom
-import com.soywiz.krypto.encoding.Base64
+import korlibs.crypto.SecureRandom
+import korlibs.crypto.encoding.Base64
 
 class SecureTokenGenerator(private val length: Int) {
 	fun generateToken(): String {

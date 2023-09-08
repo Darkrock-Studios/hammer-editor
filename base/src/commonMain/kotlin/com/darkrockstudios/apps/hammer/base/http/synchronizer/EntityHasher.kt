@@ -4,8 +4,8 @@ import com.appmattus.crypto.Algorithm
 import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.soywiz.krypto.encoding.Base64
-import com.soywiz.krypto.encoding.base64Url
+import korlibs.crypto.encoding.Base64
+import korlibs.crypto.encoding.base64Url
 import kotlinx.datetime.Instant
 
 object EntityHasher {

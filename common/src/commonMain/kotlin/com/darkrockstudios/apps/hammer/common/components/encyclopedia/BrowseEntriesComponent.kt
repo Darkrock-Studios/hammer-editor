@@ -32,9 +32,9 @@ class BrowseEntriesComponent(
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
-	private val entryContentCache = Cache.Builder()
+	private val entryContentCache = Cache.Builder<Int, EntryContainer>()
 		.maximumCacheSize(20)
-		.build<Int, EntryContainer>()
+		.build()
 	private val indexByTag = mutableMapOf<String, MutableSet<Int>>()
 
 	override fun onCreate() {
