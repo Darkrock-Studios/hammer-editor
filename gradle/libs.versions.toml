@@ -77,7 +77,7 @@ mockk = "1.13.7"
 
 kotlinx_atomicfu = "0.22.0"
 
-ktoml = "0.4.0"
+ktoml = "0.5.0"
 tomlkt = "0.3.0"
 
 krypto = "3.4.0"
