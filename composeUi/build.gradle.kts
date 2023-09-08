@@ -97,9 +97,11 @@ android {
 }
 
 koverReport {
-	filters {
-		includes {
-			packages("com.darkrockstudios.apps.hammer.*")
+	defaults {
+		filters {
+			includes {
+				packages("com.darkrockstudios.apps.hammer.*")
+			}
 		}
 	}
 }

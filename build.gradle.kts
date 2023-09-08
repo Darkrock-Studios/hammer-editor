@@ -41,10 +41,14 @@ plugins {
 	alias(libs.plugins.kotlinx.atomicfu)
 }
 
-koverMerged {
-	dependencies {
-		kover(project(":base"))
-		kover(project(":common"))
-		kover(project(":server"))
+dependencies {
+	kover(project(":base"))
+	kover(project(":common"))
+	kover(project(":server"))
+}
+
+koverReport {
+	defaults {
+
 	}
 }

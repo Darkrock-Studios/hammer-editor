@@ -36,10 +36,10 @@ And for the Server:
 
 #### Checking code coverage
 
-`gradlew koverMergedHtmlReport`
+`gradlew koverHtmlReport`
 
 The results of which will be here:
-[Code Coverage Report](./build/reports/kover/merged/html/index.html)
+[Code Coverage Report](./build/reports/kover/html/index.html)
 
 ## Writing Tests
 
