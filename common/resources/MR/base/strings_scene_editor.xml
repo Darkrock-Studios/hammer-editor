@@ -18,6 +18,7 @@
     <string name="scene_editor_menu_item_view_drafts">View Drafts</string>
     <string name="scene_editor_menu_item_rename">Rename</string>
     <string name="scene_editor_menu_item_discard">Discard</string>
+	<string name="scene_editor_menu_item_delete">Delete</string>
     <string name="scene_editor_menu_item_save">Save</string>
     <string name="scene_editor_menu_item_close">Close</string>
 </resources>

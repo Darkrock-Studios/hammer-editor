@@ -8,8 +8,16 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
@@ -32,7 +40,7 @@ class SceneEditorComponent(
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
 
-	private val projectEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 
 	private val mainDispatcher by injectMainDispatcher()
@@ -58,7 +66,7 @@ class SceneEditorComponent(
 		bufferUpdateSubscription?.cancel()
 
 		bufferUpdateSubscription =
-			projectEditor.subscribeToBufferUpdates(sceneDef, scope, ::onBufferUpdate)
+			sceneEditor.subscribeToBufferUpdates(sceneDef, scope, ::onBufferUpdate)
 	}
 
 	private suspend fun onBufferUpdate(sceneBuffer: SceneBuffer) = withContext(dispatcherMain) {
@@ -73,16 +81,16 @@ class SceneEditorComponent(
 
 	override fun loadSceneContent() {
 		_state.getAndUpdate {
-			val buffer = projectEditor.loadSceneBuffer(sceneDef)
+			val buffer = sceneEditor.loadSceneBuffer(sceneDef)
 			it.copy(sceneBuffer = buffer)
 		}
 	}
 
 	override suspend fun storeSceneContent() =
-		projectEditor.storeSceneBuffer(sceneDef)
+		sceneEditor.storeSceneBuffer(sceneDef)
 
 	override fun onContentChanged(content: PlatformRichText) {
-		projectEditor.onContentChanged(
+		sceneEditor.onContentChanged(
 			SceneContent(
 				scene = sceneDef,
 				platformRepresentation = content
@@ -117,7 +125,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.d("Scene buffer discard selected")
-			projectEditor.discardSceneBuffer(sceneDef)
+			sceneEditor.discardSceneBuffer(sceneDef)
 			forceUpdate()
 		}
 
@@ -128,6 +136,15 @@ class SceneEditorComponent(
 		) {
 			Napier.d("Scene rename selected")
 			beginSceneNameEdit()
+		}
+
+		val deleteItem = MenuItemDescriptor(
+			"scene-editor-delete",
+			MR.strings.scene_editor_menu_item_delete,
+			""
+		) {
+			Napier.i("Scene delete selected")
+			beginDelete()
 		}
 
 		val draftsItem = MenuItemDescriptor(
@@ -148,7 +165,15 @@ class SceneEditorComponent(
 			beginSaveDraft()
 		}
 
-		val menuItems = setOf(renameItem, saveItem, discardItem, draftsItem, saveDraftItem, closeItem)
+		val menuItems = setOf(
+			renameItem,
+			saveItem,
+			discardItem,
+			deleteItem,
+			draftsItem,
+			saveDraftItem,
+			closeItem
+		)
 		val menu = MenuDescriptor(
 			getMenuId(),
 			MR.strings.scene_editor_menu_group,
@@ -189,7 +214,7 @@ class SceneEditorComponent(
 
 			if (result.isSuccess) {
 				endSceneNameEdit()
-				projectEditor.renameScene(sceneDef, newName)
+				sceneEditor.renameScene(sceneDef, newName)
 
 				_state.getAndUpdate {
 					it.copy(
@@ -200,6 +225,24 @@ class SceneEditorComponent(
 				(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
 					showToast(message)
 				}
+			}
+		}
+	}
+
+	override fun beginDelete() {
+		_state.getAndUpdate { it.copy(confirmDelete = true) }
+	}
+
+	override fun endDelete() {
+		_state.getAndUpdate { it.copy(confirmDelete = false) }
+	}
+
+	override fun doDelete() {
+		scope.launch {
+			sceneEditor.deleteScene(state.value.sceneItem)
+			withContext(mainDispatcher) {
+				endDelete()
+				closeSceneEditor()
 			}
 		}
 	}

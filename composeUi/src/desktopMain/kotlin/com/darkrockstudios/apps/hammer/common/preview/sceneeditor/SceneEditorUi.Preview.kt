@@ -59,4 +59,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
 	override fun closeEditor() {}
+	override fun beginDelete() {}
+	override fun endDelete() {}
+	override fun doDelete() {}
 }

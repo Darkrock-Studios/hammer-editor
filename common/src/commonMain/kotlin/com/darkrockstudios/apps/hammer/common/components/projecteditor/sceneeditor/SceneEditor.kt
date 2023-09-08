@@ -25,12 +25,16 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun beginSaveDraft()
 	fun endSaveDraft()
 	suspend fun saveDraft(draftName: String): Boolean
+	fun beginDelete()
+	fun endDelete()
+	fun doDelete()
 
 	data class State(
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
 		val isEditingName: Boolean = false,
 		val isSavingDraft: Boolean = false,
+		val confirmDelete: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 }
