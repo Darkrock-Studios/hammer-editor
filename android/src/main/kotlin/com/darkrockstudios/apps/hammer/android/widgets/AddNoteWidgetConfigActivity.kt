@@ -46,8 +46,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.soywiz.korio.async.launch
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class AddNoteWidgetConfigActivity : ComponentActivity() {
