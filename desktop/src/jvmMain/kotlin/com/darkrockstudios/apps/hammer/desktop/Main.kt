@@ -36,6 +36,7 @@ import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
+import java.util.logging.ConsoleHandler
 
 private fun handleArguments(args: Array<String>) {
 	val parser = ArgParser("hammer")
@@ -58,7 +59,7 @@ private fun handleArguments(args: Array<String>) {
 fun main(args: Array<String>) {
 	handleArguments(args)
 
-	Napier.base(DebugAntilog(handler = listOf(FileLogger())))
+	Napier.base(DebugAntilog(handler = listOf(FileLogger(), ConsoleHandler())))
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
