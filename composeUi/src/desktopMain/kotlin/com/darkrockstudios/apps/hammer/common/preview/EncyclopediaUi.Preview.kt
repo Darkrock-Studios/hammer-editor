@@ -4,9 +4,7 @@ import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -103,8 +102,8 @@ private fun EncyclopediaUiPreview() {
 		override fun isAtRoot() = true
 		override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	}
-	val snackbarHostState = remember { SnackbarHostState() }
-	EncyclopediaUi(component, snackbarHostState)
+	val rootSnackbar = rememberRootSnackbarHostState()
+	EncyclopediaUi(component, rootSnackbar)
 }
 
 @Preview
@@ -128,13 +127,13 @@ private fun CreateEntryPreview() {
 		override fun dismissConfirmClose() {}
 	}
 	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
+	val rootSnackbar = rememberRootSnackbarHostState()
 
 	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		CreateEntryUi(
 			component = component,
 			scope = scope,
-			snackbarHostState = snackbarHostState,
+			rootSnackbar = rootSnackbar,
 			modifier = Modifier.align(Alignment.Center)
 		) {
 
@@ -180,7 +179,7 @@ private fun ViewEntryPreview() {
 		override fun endTagAdd() {}
 	}
 	val scope = rememberCoroutineScope()
-	val snackbarHostState = remember { SnackbarHostState() }
+	val rootSnackbar = rememberRootSnackbarHostState()
 
 	Column {
 		AppTheme {
@@ -194,7 +193,7 @@ private fun ViewEntryPreview() {
 					component = component,
 					scope = scope,
 					closeEntry = {},
-					snackbarHostState = snackbarHostState
+					rootSnackbar = rootSnackbar
 				)
 			}
 		}
@@ -212,7 +211,7 @@ private fun ViewEntryPreview() {
 					component = component,
 					scope = scope,
 					closeEntry = {},
-					snackbarHostState = snackbarHostState
+					rootSnackbar = rootSnackbar
 				)
 			}
 		}

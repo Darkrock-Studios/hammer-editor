@@ -11,18 +11,19 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
+fun ServerSettingsUi(
+	component: AccountSettings,
+	scope: CoroutineScope,
+	rootSnackbar: RootSnackbarHostState
+) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
@@ -165,9 +166,9 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 			Button(onClick = {
 				scope.launch {
 					if (component.authTest()) {
-						snackbarHostState.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_success))
+						rootSnackbar.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_success))
 					} else {
-						snackbarHostState.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_failure))
+						rootSnackbar.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_failure))
 					}
 				}
 			}) {
@@ -201,7 +202,7 @@ fun ServerSettingsUi(component: AccountSettings, scope: CoroutineScope, snackbar
 		)
 	}
 
-	Toaster(component, snackbarHostState)
+	Toaster(component, rootSnackbar)
 
 	ServerSetupDialog(component, scope)
 }

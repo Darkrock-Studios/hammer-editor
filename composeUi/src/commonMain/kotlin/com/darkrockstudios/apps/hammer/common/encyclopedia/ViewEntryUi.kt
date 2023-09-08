@@ -37,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -58,6 +57,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -79,7 +79,7 @@ internal fun ViewEntryUi(
 	component: ViewEntry,
 	scope: CoroutineScope,
 	modifier: Modifier = Modifier,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	closeEntry: () -> Unit,
 ) {
 	val strRes = rememberStrRes()
@@ -165,7 +165,7 @@ internal fun ViewEntryUi(
 								}
 							}
 
-							reportSaveResult(result, snackbarHostState, scope, strRes)
+							reportSaveResult(result, rootSnackbar, scope, strRes)
 						}
 					}) {
 						Icon(
@@ -281,7 +281,7 @@ internal fun ViewEntryUi(
 					withContext(dispatcherMain) {
 						closeEntry()
 					}
-					snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_delete_toast))
+					rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_delete_toast))
 				}
 			}
 			component.closeDeleteEntryDialog()
@@ -450,14 +450,14 @@ private fun Contents(
 
 private fun reportSaveResult(
 	result: EntryResult,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	scope: CoroutineScope,
 	strRes: StrRes
 ) {
 	scope.launch {
 		when (result.error) {
 			EntryError.NAME_TOO_LONG -> scope.launch {
-				snackbarHostState.showSnackbar(
+				rootSnackbar.showSnackbar(
 					strRes.get(
 						MR.strings.encyclopedia_create_entry_toast_too_long,
 						EncyclopediaRepository.MAX_NAME_SIZE
@@ -466,13 +466,13 @@ private fun reportSaveResult(
 			}
 
 			EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
-				snackbarHostState.showSnackbar(
+				rootSnackbar.showSnackbar(
 					strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
 				)
 			}
 
 			EntryError.TAG_TOO_LONG -> scope.launch {
-				snackbarHostState.showSnackbar(
+				rootSnackbar.showSnackbar(
 					strRes.get(
 						MR.strings.encyclopedia_create_entry_toast_tag_too_long,
 						EncyclopediaRepository.MAX_TAG_SIZE
@@ -481,7 +481,7 @@ private fun reportSaveResult(
 			}
 
 			EntryError.NAME_TOO_SHORT -> scope.launch {
-				snackbarHostState.showSnackbar(
+				rootSnackbar.showSnackbar(
 					strRes.get(
 						MR.strings.encyclopedia_create_entry_toast_tag_too_short,
 					)
@@ -489,8 +489,8 @@ private fun reportSaveResult(
 			}
 
 			EntryError.NONE -> {
-				scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
-				snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
+				scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
+				rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
 			}
 		}
 	}

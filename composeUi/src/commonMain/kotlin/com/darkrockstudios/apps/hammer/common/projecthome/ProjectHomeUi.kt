@@ -18,11 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
-import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import dev.icerock.moko.resources.compose.stringResource
@@ -39,7 +36,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProjectHomeUi(
 	component: ProjectHome,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
@@ -61,7 +58,7 @@ fun ProjectHomeUi(
 					modifier = Modifier.weight(1f),
 					component = component,
 					scope = scope,
-					snackbarHostState = snackbarHostState
+					rootSnackbar = rootSnackbar
 				)
 			}
 		} else {
@@ -73,7 +70,7 @@ fun ProjectHomeUi(
 						modifier = Modifier.fillMaxWidth(),
 						component = component,
 						scope = scope,
-						snackbarHostState = snackbarHostState
+						rootSnackbar = rootSnackbar
 					)
 				}
 			)
@@ -316,7 +313,7 @@ private fun Actions(
 	modifier: Modifier,
 	component: ProjectHome,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState
+	rootSnackbar: RootSnackbarHostState
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
@@ -327,7 +324,7 @@ private fun Actions(
 		toastMessage?.let { message ->
 			if (message.isNotBlank()) {
 				scope.launch {
-					snackbarHostState.showSnackbar(message)
+					rootSnackbar.showSnackbar(message)
 				}
 			}
 		}
@@ -368,7 +365,7 @@ private fun Actions(
 		}
 	}
 
-	ExportDirectoryPicker(state.showExportDialog, component, scope, snackbarHostState)
+	ExportDirectoryPicker(state.showExportDialog, component, scope, rootSnackbar)
 }
 
 @Composable
@@ -376,5 +373,5 @@ expect fun ExportDirectoryPicker(
 	show: Boolean,
 	component: ProjectHome,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 )

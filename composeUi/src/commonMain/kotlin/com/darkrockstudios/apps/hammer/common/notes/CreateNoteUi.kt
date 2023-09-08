@@ -13,7 +13,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -39,7 +39,7 @@ import kotlinx.coroutines.withContext
 fun CreateNoteUi(
 	component: CreateNote,
 	modifier: Modifier,
-	snackbarState: SnackbarHostState
+	rootSnackbar: RootSnackbarHostState
 ) {
 	val state by component.state.subscribeAsState()
 	val noteText by component.noteText.subscribeAsState()
@@ -91,11 +91,11 @@ fun CreateNoteUi(
 						newNoteError = !result.isSuccess
 						when (result) {
 							NoteError.TOO_LONG -> scope.launch {
-								snackbarState.showSnackbar(strRes.get(MR.strings.notes_create_toast_too_long))
+								rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_too_long))
 							}
 
 							NoteError.EMPTY -> scope.launch {
-								snackbarState.showSnackbar(strRes.get(MR.strings.notes_create_toast_empty))
+								rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_empty))
 							}
 
 							NoteError.NONE -> {
@@ -103,7 +103,7 @@ fun CreateNoteUi(
 									component.clearText()
 								}
 								scope.launch {
-									snackbarState.showSnackbar(strRes.get(MR.strings.notes_create_toast_success))
+									rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_success))
 								}
 							}
 						}

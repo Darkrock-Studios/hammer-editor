@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -18,12 +17,13 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stac
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
 fun TimeLineUi(
 	component: TimeLine,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
@@ -50,7 +50,7 @@ fun TimeLineUi(
 						modifier = Modifier.align(Alignment.TopCenter),
 						component = child.component,
 						scope = scope,
-						snackbarHostState = snackbarHostState,
+						rootSnackbar = rootSnackbar,
 					)
 				}
 
@@ -59,7 +59,7 @@ fun TimeLineUi(
 						component = child.component,
 						scope = scope,
 						modifier = Modifier.align(Alignment.TopCenter),
-						snackbarHostState = snackbarHostState,
+						rootSnackbar = rootSnackbar,
 					)
 				}
 			}

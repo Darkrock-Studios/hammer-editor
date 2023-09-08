@@ -1,12 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -18,16 +12,13 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
-import com.darkrockstudios.apps.hammer.common.compose.TopBar
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-actual fun EditorTopBar(component: SceneEditor, snackbarHostState: SnackbarHostState) {
+actual fun EditorTopBar(component: SceneEditor, rootSnackbar: RootSnackbarHostState) {
 	val state by component.state.subscribeAsState()
 	val title = remember { derivedStateOf { state.sceneItem.name } }
 	val scope = rememberCoroutineScope()
@@ -55,7 +46,7 @@ actual fun EditorTopBar(component: SceneEditor, snackbarHostState: SnackbarHostS
 				IconButton(onClick = {
 					scope.launch {
 						component.storeSceneContent()
-						scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
+						scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
 					}
 				}) {
 					Icon(

@@ -15,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -41,7 +41,7 @@ fun CreateTimeLineEventUi(
 	component: CreateTimeLineEvent,
 	scope: CoroutineScope,
 	modifier: Modifier,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val strRes = rememberStrRes()
 
@@ -87,10 +87,10 @@ fun CreateTimeLineEventUi(
 				Button(onClick = {
 					scope.launch {
 						if (component.createEvent(dateText, contentText)) {
-							launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_create_toast_success)) }
+							launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.timeline_create_toast_success)) }
 							component.closeCreation()
 						} else {
-							launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_create_toast_failure)) }
+							launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.timeline_create_toast_failure)) }
 						}
 					}
 				}) {

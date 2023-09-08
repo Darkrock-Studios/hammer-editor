@@ -1,11 +1,25 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -13,18 +27,18 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.richtexteditor.model.Style
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
-import kotlinx.coroutines.launch
 
 @Composable
 fun SceneEditorUi(
 	component: SceneEditor,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
@@ -41,13 +55,13 @@ fun SceneEditorUi(
 		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
 	}
 
-	Toaster(component, snackbarHostState)
+	Toaster(component, rootSnackbar)
 
 	Box(modifier = modifier) {
 		Column(
 			modifier = Modifier.fillMaxHeight(),
 		) {
-			EditorTopBar(component, snackbarHostState)
+			EditorTopBar(component, rootSnackbar)
 
 			Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 				EditorAction(
@@ -112,6 +126,6 @@ fun SceneEditorUi(
 	}
 
 	SaveDraftDialog(state, component) { message ->
-		scope.launch { snackbarHostState.showSnackbar(message) }
+		rootSnackbar.showSnackbar(message)
 	}
 }

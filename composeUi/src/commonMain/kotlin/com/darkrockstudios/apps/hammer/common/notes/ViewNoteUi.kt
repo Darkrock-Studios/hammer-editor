@@ -20,7 +20,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -44,7 +44,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarHostState) {
+fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackbarHostState) {
 	val state by component.state.subscribeAsState()
 
 	val scope = rememberCoroutineScope()
@@ -171,7 +171,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, snackbarState: SnackbarH
 
 	if (state.confirmDelete) {
 		state.note?.let { note ->
-			ConfirmDeleteNoteDialog(note, component, snackbarState, scope)
+			ConfirmDeleteNoteDialog(note, component, rootSnackbar, scope)
 		}
 	}
 }

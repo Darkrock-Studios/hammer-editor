@@ -28,10 +28,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -44,14 +41,14 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun ProjectListUi(
 	component: ProjectsList,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier
 ) {
 	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
 
-	Toaster(component, snackbarHostState)
+	Toaster(component, rootSnackbar)
 
 	val colModifier: Modifier = when (windowSizeClass.widthSizeClass) {
 		WindowWidthSizeClass.Compact -> modifier.fillMaxWidth()

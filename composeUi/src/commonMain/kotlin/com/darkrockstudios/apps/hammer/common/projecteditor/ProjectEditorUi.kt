@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +15,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor.SceneEditorUi
@@ -26,7 +26,7 @@ private val LIST_PANE_WIDTH = 300.dp
 @Composable
 fun ProjectEditorUi(
 	component: ProjectEditor,
-	snackbarHostState: SnackbarHostState,
+	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	BoxWithConstraints(modifier = modifier) {
@@ -86,7 +86,7 @@ private fun SetMultiPane(component: ProjectEditor) {
 @Composable
 private fun ListPane(
 	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>>,
-	snackbarHostState: SnackbarHostState,
+	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier
 ) {
 	val state by routerState.subscribeAsState()
@@ -112,7 +112,7 @@ private fun ListPane(
 @Composable
 private fun DetailsPane(
 	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
-	snackbarHostState: SnackbarHostState,
+	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
 ) {
 	Children(
@@ -125,7 +125,7 @@ private fun DetailsPane(
 			is ProjectEditor.ChildDestination.Detail.EditorDestination -> {
 				SceneEditorUi(
 					component = child.component,
-					snackbarHostState = snackbarHostState,
+					rootSnackbar = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
 				)
 			}

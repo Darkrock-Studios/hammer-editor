@@ -17,6 +17,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
@@ -152,7 +153,7 @@ internal fun AccountSettingsUi(
 						Button(onClick = {
 							scope.launch {
 								component.reinstallExampleProject()
-								snackbarHostState.showSnackbar(successMessage)
+								rootSnackbar.showSnackbar(successMessage)
 							}
 						}) {
 							Text(MR.strings.settings_example_project_button.get())
@@ -161,7 +162,7 @@ internal fun AccountSettingsUi(
 
 					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-					ServerSettingsUi(component, scope, snackbarHostState)
+					ServerSettingsUi(component, scope, rootSnackbar)
 				}
 			}
 		}

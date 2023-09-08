@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -13,11 +12,12 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 
 @Composable
 fun EncyclopediaUi(
 	component: Encyclopedia,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
@@ -43,7 +43,7 @@ fun EncyclopediaUi(
 						modifier = Modifier.align(Alignment.TopCenter),
 						component = child.component,
 						scope = scope,
-						snackbarHostState = snackbarHostState,
+						rootSnackbar = rootSnackbar,
 						closeEntry = component::showBrowse
 					)
 				}
@@ -53,7 +53,7 @@ fun EncyclopediaUi(
 						component = child.component,
 						scope = scope,
 						modifier = Modifier.align(Alignment.TopCenter),
-						snackbarHostState = snackbarHostState,
+						rootSnackbar = rootSnackbar,
 						close = component::showBrowse
 					)
 				}

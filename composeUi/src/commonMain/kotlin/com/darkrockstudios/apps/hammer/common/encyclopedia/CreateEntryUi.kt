@@ -2,12 +2,32 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,8 +41,13 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.ImageItem
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -33,12 +58,11 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateEntryUi(
 	component: CreateEntry,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier,
 	close: () -> Unit
 ) {
@@ -167,7 +191,7 @@ internal fun CreateEntryUi(
 
 								when (result.error) {
 									EntryError.NAME_TOO_LONG -> scope.launch {
-										snackbarHostState.showSnackbar(
+										rootSnackbar.showSnackbar(
 											strRes.get(
 												MR.strings.encyclopedia_create_entry_toast_too_long,
 												EncyclopediaRepository.MAX_NAME_SIZE
@@ -176,13 +200,13 @@ internal fun CreateEntryUi(
 									}
 
 									EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
-										snackbarHostState.showSnackbar(
+										rootSnackbar.showSnackbar(
 											strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
 										)
 									}
 
 									EntryError.TAG_TOO_LONG -> scope.launch {
-										snackbarHostState.showSnackbar(
+										rootSnackbar.showSnackbar(
 											strRes.get(
 												MR.strings.encyclopedia_create_entry_toast_tag_too_long,
 												EncyclopediaRepository.MAX_TAG_SIZE
@@ -191,7 +215,7 @@ internal fun CreateEntryUi(
 									}
 
 									EntryError.NAME_TOO_SHORT -> scope.launch {
-										snackbarHostState.showSnackbar(
+										rootSnackbar.showSnackbar(
 											strRes.get(
 												MR.strings.encyclopedia_create_entry_toast_tag_too_short,
 											)
@@ -201,7 +225,7 @@ internal fun CreateEntryUi(
 									EntryError.NONE -> {
 										newEntryNameText = ""
 										close()
-										scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
+										scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
 									}
 								}
 							}

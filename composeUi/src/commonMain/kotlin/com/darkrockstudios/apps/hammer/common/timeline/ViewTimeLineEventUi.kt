@@ -26,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -39,6 +38,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -52,7 +52,7 @@ fun ViewTimeLineEventUi(
 	component: ViewTimeLineEvent,
 	modifier: Modifier = Modifier,
 	scope: CoroutineScope,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val strRes = rememberStrRes()
 
@@ -95,7 +95,7 @@ fun ViewTimeLineEventUi(
 
 							if (success) {
 								scope.launch {
-									snackbarHostState.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
+									rootSnackbar.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
 								}
 							} else {
 								// TODO do something about error states here

@@ -4,13 +4,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Dataset
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -20,7 +21,9 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
@@ -30,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
-import kotlinx.coroutines.launch
 
 private val WIDE_SCREEN_THRESHOLD = 700.dp
 
@@ -49,20 +51,19 @@ fun ProjectRootUi(
 	component: ProjectRoot,
 	modifier: Modifier = Modifier,
 ) {
-	val scope = rememberCoroutineScope()
-	val snackbarState = remember { SnackbarHostState() }
+	val rootSnackbar = rememberRootSnackbarHostState()
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
 		Box {
-			FeatureContent(modifier.fillMaxSize(), component, snackbarState)
+			FeatureContent(modifier.fillMaxSize(), component, rootSnackbar)
 			SnackbarHost(
-				snackbarState,
+				rootSnackbar.snackbarHostState,
 				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
 			)
 		}
 	}
 
 	ModalContent(component) { message ->
-		scope.launch { snackbarState.showSnackbar(message) }
+		rootSnackbar.showSnackbar(message)
 	}
 }
 
@@ -70,7 +71,7 @@ fun ProjectRootUi(
 fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
-	snackbarState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 	Children(
@@ -80,19 +81,19 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(child.component, snackbarState)
+				ProjectEditorUi(child.component, rootSnackbar)
 
 			is ProjectRoot.Destination.NotesDestination ->
-				NotesUi(child.component, snackbarState)
+				NotesUi(child.component, rootSnackbar)
 
 			is ProjectRoot.Destination.EncyclopediaDestination ->
-				EncyclopediaUi(child.component, snackbarState)
+				EncyclopediaUi(child.component, rootSnackbar)
 
 			is ProjectRoot.Destination.TimeLineDestination ->
-				TimeLineUi(child.component, snackbarState)
+				TimeLineUi(child.component, rootSnackbar)
 
 			is ProjectRoot.Destination.HomeDestination ->
-				ProjectHomeUi(child.component, snackbarState)
+				ProjectHomeUi(child.component, rootSnackbar)
 		}
 	}
 }

@@ -11,11 +11,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +21,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
@@ -39,20 +38,20 @@ fun ProjectSelectionUi(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier
 ) {
-	val snackbarHostState = remember { SnackbarHostState() }
+	val rootSnackbar = rememberRootSnackbarHostState()
 	val slot by component.slot.subscribeAsState()
 
 	Box {
 		when (val destination = slot.child?.instance) {
 			is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
 				destination.component,
-				snackbarHostState,
+				rootSnackbar,
 				modifier
 			)
 
 			is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
 				destination.component,
-				snackbarHostState,
+				rootSnackbar,
 				modifier
 			)
 
@@ -65,7 +64,7 @@ fun ProjectSelectionUi(
 		}
 
 		SnackbarHost(
-			snackbarHostState,
+			rootSnackbar.snackbarHostState,
 			modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
 		)
 	}

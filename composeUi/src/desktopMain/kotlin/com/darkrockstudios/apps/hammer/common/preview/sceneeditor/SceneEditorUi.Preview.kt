@@ -1,13 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.preview.sceneeditor
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -21,8 +20,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 @Composable
 fun SceneEditorUiPreview() {
 	val component = fakeComponent()
-	val snackbarHostState = remember { SnackbarHostState() }
-	SceneEditorUi(component, snackbarHostState)
+	val rootSnackbar = rememberRootSnackbarHostState()
+	SceneEditorUi(component, rootSnackbar)
 }
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(

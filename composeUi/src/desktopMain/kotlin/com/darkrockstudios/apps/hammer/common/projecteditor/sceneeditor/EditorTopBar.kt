@@ -22,6 +22,7 @@ import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
 @Composable
 actual fun EditorTopBar(
 	component: SceneEditor,
-	snackbarHostState: SnackbarHostState,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
@@ -95,7 +96,7 @@ actual fun EditorTopBar(
 					IconButton(onClick = {
 						scope.launch {
 							component.storeSceneContent()
-							scope.launch { snackbarHostState.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
+							rootSnackbar.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful))
 						}
 					}) {
 						Icon(
