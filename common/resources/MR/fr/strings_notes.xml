@@ -18,4 +18,5 @@
     <string name="notes_delete_message">Cette action ne peut pas être annulée !</string>
     <string name="notes_delete_toast_success">Note %1$s supprimée</string>
     <string name="notes_create_note_button">Créer une note</string>
+    <string name="notes_view_header">Note</string>
 </resources>
