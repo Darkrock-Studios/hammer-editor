@@ -64,7 +64,7 @@ koin_compose = "3.4.6"
 
 cokoin = "1.0.0"
 
-ktor = "2.3.3"
+ktor = "2.3.4"
 ktor_i18n = "2.0.0"
 
 okio = "3.4.0"
