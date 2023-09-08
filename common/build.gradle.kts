@@ -147,11 +147,13 @@ android {
 	}
 }
 
-kover {
+koverReport {
 	filters {
-		classes {
-			includes += "com.darkrockstudios.apps.hammer.*"
-			excludes += listOf(
+		includes {
+			packages("com.darkrockstudios.apps.hammer.*")
+		}
+		excludes {
+			packages(
 				"com.darkrockstudios.apps.hammer.util.*",
 				"com.darkrockstudios.apps.hammer.parcelize.*",
 				"com.darkrockstudios.apps.hammer.fileio.*",

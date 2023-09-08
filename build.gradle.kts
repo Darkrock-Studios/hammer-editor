@@ -11,6 +11,7 @@ buildscript {
 		classpath(libs.moko.resources.generator)
 		classpath(libs.kotlinx.atomicfu.plugin)
 		classpath(libs.parcelize.darwin)
+		classpath(libs.jetbrains.kover)
     }
 }
 
@@ -41,10 +42,9 @@ plugins {
 }
 
 koverMerged {
-	enable()
-	filters {
-		projects {
-			excludes += listOf(":android", ":desktop", ":composeUi")
-		}
+	dependencies {
+		kover(project(":base"))
+		kover(project(":common"))
+		kover(project(":server"))
 	}
 }

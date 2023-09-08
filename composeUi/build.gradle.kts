@@ -94,10 +94,10 @@ android {
 	}
 }
 
-kover {
+koverReport {
 	filters {
-		classes {
-			includes += "com.darkrockstudios.apps.hammer.*"
+		includes {
+			packages("com.darkrockstudios.apps.hammer.*")
 		}
 	}
 }

@@ -213,6 +213,8 @@ resources = { group = "io.herrera.kevin", name = "resource", version.ref = "reso
 aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
 aboutlibraries_compose = { group = "com.mikepenz", name = "aboutlibraries-compose", version.ref = "aboutlibraries" }
 
+jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin", version.ref = "jetbrains_kover" }
+
 #################
 # These were added automatically, do we really need them?
 #lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
