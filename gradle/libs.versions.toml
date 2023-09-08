@@ -80,7 +80,7 @@ kotlinx_atomicfu = "0.22.0"
 ktoml = "0.5.0"
 tomlkt = "0.3.0"
 
-krypto = "3.4.0"
+krypto = "4.0.10"
 
 sqldelight = "2.0.0"
 buildconfig = "4.1.2"
