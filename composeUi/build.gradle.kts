@@ -39,6 +39,7 @@ kotlin {
 				api(libs.imageloader)
 				api(libs.imageloader.moko)
 				api(libs.imageloader.blur)
+				api(libs.koin.compose)
 				implementation(libs.koalaplot.core)
 				api(libs.moko.resources.compose)
 				implementation(libs.aboutlibraries.core)
@@ -56,7 +57,6 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
-				api(libs.koin.compose)
 			}
 		}
 		val desktopMain by getting {

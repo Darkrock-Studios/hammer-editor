@@ -54,7 +54,7 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 ) {
 	var tabState by rememberSaveable { mutableStateOf(0) }
 	val titles = remember {
-		listOf(MR.strings.sync_conflict_tab_local, MR.strings.sync_conflict_tab_remote)
+		listOf(MR.strings.sync_conflict_tab_remote, MR.strings.sync_conflict_tab_local)
 	}
 
 	Column(modifier = modifier) {
@@ -69,13 +69,13 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 		}
 
 		if (tabState == 0) {
-			LocalEntity(
+			RemoteEntity(
 				modifier = Modifier.weight(1f),
 				entityConflict = entityConflict,
 				component = component
 			)
 		} else if (tabState == 1) {
-			RemoteEntity(
+			LocalEntity(
 				modifier = Modifier.weight(1f),
 				entityConflict = entityConflict,
 				component = component
@@ -93,13 +93,13 @@ private fun <T : ApiProjectEntity> ExpandedConflictUi(
 	RemoteEntity: EntityUi<T>,
 ) {
 	Row(modifier = modifier) {
-		LocalEntity(
+		RemoteEntity(
 			modifier = Modifier.weight(1f),
 			entityConflict = entityConflict,
 			component = component
 		)
 
-		RemoteEntity(
+		LocalEntity(
 			modifier = Modifier.weight(1f),
 			entityConflict = entityConflict,
 			component = component

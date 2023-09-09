@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
+	<string name="sync_project_dialog_title">Project Synchronization</string>
+
 	<string name="sync_conflict_scene_title">Scene Conflict</string>
 	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
 	<string name="sync_conflict_note_title">Note Conflict</string>
@@ -17,6 +19,10 @@
 	<string name="sync_conflict">Conflict</string>
 	<string name="sync_conflict_local_entry">Local Entry:</string>
 	<string name="sync_conflict_local_use_button">Use Local</string>
+
+	<string name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually
+		merge the two by copying parts of the remote into your local copy, and then taking that.
+	</string>
 
 	<string name="sync_conflict_remote_entry">Remote Entry:</string>
 	<string name="sync_conflict_remote_use_button">Use Remote</string>
@@ -36,12 +42,15 @@
 
 	<string name="sync_conflict_title_scene_remote">Remote Scene:</string>
 	<string name="sync_conflict_title_scene_local">Local Scene:</string>
+	<string name="sync_conflict_title_scene_field_name">Name</string>
+	<string name="sync_conflict_title_scene_field_content">Scene Content</string>
 
 	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
 	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>
 
 	<string name="sync_conflict_title_note_remote">Remote Note:</string>
 	<string name="sync_conflict_title_note_local">Local Note:</string>
+	<string name="sync_conflict_title_note_field_name">Note Content</string>
 
 	<string name="sync_conflict_title_timeline_event_remote">Remote Event:</string>
 	<string name="sync_conflict_title_timeline_event_local">Local Event:</string>

@@ -43,7 +43,7 @@ internal fun ProjectSynchronization(
 	val state by component.state.subscribeAsState()
 
 	SimpleDialog(
-		title = "Project Synchronization",
+		title = MR.strings.sync_project_dialog_title.get(),
 		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
 		visible = true,
 		// TODO this size is a hold over from the old Dialog, maybe we dont need it

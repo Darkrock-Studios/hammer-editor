@@ -2,8 +2,11 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Density
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
@@ -12,7 +15,19 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
 import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.common.util.StrResImpl
 import kotlinx.datetime.Clock
+import org.koin.dsl.bind
+import org.koin.dsl.module
+
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+private fun expandedSize(): WindowSizeClass {
+	return WindowSizeClass.calculateFromSize(
+		size = Size.Zero.copy(1920f, 1280f),
+		density = Density(1f)
+	)
+}
 
 @Preview
 @Composable
@@ -34,7 +49,7 @@ private fun SceneConflictPreview() {
 		clientScene = serverScene
 	)
 
-	ProjectSynchronizationPreview(conflict)
+	ProjectSynchronizationPreview(conflict, expandedSize())
 }
 
 @Preview
@@ -54,19 +69,27 @@ private fun NoteConflictPreview() {
 		clientNote = serverEntity
 	)
 
-	ProjectSynchronizationPreview(conflict)
+	ProjectSynchronizationPreview(conflict, expandedSize())
 }
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview
 @Composable
-private fun ProjectSynchronizationPreview(conflict: ProjectSync.EntityConflict<*>) {
-	val screenCharacteristics = calculateWindowSizeClass()
-	ProjectSynchronizationContent(
-		component = previewProjectSyncComponent(conflict),
-		showSnackbar = {},
-		screenCharacteristics = screenCharacteristics
-	)
+private fun ProjectSynchronizationPreview(
+	conflict: ProjectSync.EntityConflict<*>,
+	screenCharacteristics: WindowSizeClass = calculateWindowSizeClass()
+) {
+	KoinApplicationPreview(
+		{
+			modules(listOf(module { single { StrResImpl() } bind StrRes::class }))
+		}
+	) {
+		ProjectSynchronizationContent(
+			component = previewProjectSyncComponent(conflict),
+			showSnackbar = {},
+			screenCharacteristics = screenCharacteristics
+		)
+	}
 }
 
 private fun previewProjectSyncComponent(conflict: ProjectSync.EntityConflict<*>?): ProjectSync {

@@ -7,10 +7,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
@@ -38,6 +41,9 @@ private fun LocalNote(
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.NoteEntity>,
 	component: ProjectSync
 ) {
+	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.NoteEntity
+	var contentTextValue by remember(entity) { mutableStateOf(entity?.content ?: "") }
+
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -45,19 +51,31 @@ private fun LocalNote(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_scene_local.get(),
+				text = MR.strings.sync_conflict_title_note_local.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
-			Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+			Button(onClick = {
+				component.resolveConflict(
+					entityConflict.clientEntity.copy(
+						content = contentTextValue
+					)
+				)
+			}) {
 				Text(MR.strings.sync_conflict_local_use_button.get())
 			}
 		}
-		SelectionContainer {
-			Text(
-				entityConflict.clientEntity.content,
-				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-			)
-		}
+		Text(
+			text = MR.strings.sync_conflict_merge_explained.get(),
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic
+		)
+		Spacer(Modifier.size(Ui.Padding.XL))
+		TextField(
+			value = contentTextValue,
+			onValueChange = { contentTextValue = it },
+			placeholder = { Text(MR.strings.sync_conflict_title_note_field_name.get()) },
+			label = { Text(MR.strings.sync_conflict_title_note_field_name.get()) }
+		)
 	}
 }
 
@@ -74,13 +92,19 @@ private fun RemoteNote(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_scene_remote.get(),
+				text = MR.strings.sync_conflict_title_note_remote.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
 				Text(MR.strings.sync_conflict_remote_use_button.get())
 			}
 		}
+		Spacer(Modifier.size(Ui.Padding.XL))
+		Text(
+			MR.strings.sync_conflict_title_note_field_name.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			fontWeight = FontWeight.Bold
+		)
 		SelectionContainer {
 			Text(
 				entityConflict.serverEntity.content,
