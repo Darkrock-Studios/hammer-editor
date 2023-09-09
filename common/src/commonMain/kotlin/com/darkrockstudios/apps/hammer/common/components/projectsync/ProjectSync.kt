@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import dev.icerock.moko.resources.StringResource
 
@@ -9,7 +10,7 @@ interface ProjectSync {
 	val state: Value<State>
 
 	fun syncProject(onComplete: (Boolean) -> Unit)
-	fun resolveConflict(resolvedEntity: ApiProjectEntity)
+	fun resolveConflict(resolvedEntity: ApiProjectEntity): EntityMergeError?
 	fun endSync()
 	fun cancelSync()
 	fun showLog(show: Boolean)
@@ -52,5 +53,27 @@ interface ProjectSync {
 			serverEntry: ApiProjectEntity.SceneDraftEntity,
 			clientEntry: ApiProjectEntity.SceneDraftEntity
 		) : EntityConflict<ApiProjectEntity.SceneDraftEntity>(serverEntry, clientEntry)
+	}
+
+	sealed class EntityMergeError {
+		class SceneMergeError(
+			val nameError: Msg? = null,
+		) : EntityMergeError()
+
+		class NoteMergeError(
+			val noteError: Msg? = null,
+		) : EntityMergeError()
+
+		class TimelineEventMergeError(
+		) : EntityMergeError()
+
+		class EncyclopediaEntryMergeError(
+			val nameError: Msg? = null,
+			val contentError: Msg? = null,
+		) : EntityMergeError()
+
+		class SceneDraftMergeError(
+			val nameError: Msg? = null,
+		) : EntityMergeError()
 	}
 }

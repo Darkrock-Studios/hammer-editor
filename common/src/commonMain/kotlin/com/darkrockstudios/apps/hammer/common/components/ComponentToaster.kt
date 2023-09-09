@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components
 
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
@@ -12,7 +13,9 @@ interface ComponentToaster {
 	val toast: Flow<ToastMessage>
 
 	fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any)
+	fun showToast(scope: CoroutineScope, message: Msg)
 	suspend fun showToast(message: StringResource, vararg params: Any)
+	suspend fun showToast(message: Msg)
 }
 
 class ComponentToasterImpl : ComponentToaster, KoinComponent {
@@ -27,8 +30,16 @@ class ComponentToasterImpl : ComponentToaster, KoinComponent {
 		}
 	}
 
+	override fun showToast(scope: CoroutineScope, message: Msg) {
+		showToast(scope, message.r, *message.args)
+	}
+
 	override suspend fun showToast(message: StringResource, vararg params: Any) {
 		_toast.emit(ToastMessage(message, params))
+	}
+
+	override suspend fun showToast(message: Msg) {
+		showToast(message.r, *message.args)
 	}
 }
 

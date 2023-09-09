@@ -16,4 +16,6 @@
     <string name="draft_list_header">%1$s Drafts:</string>
     <string name="draft_list_empty">No Drafts Found</string>
     <string name="draft_list_item_created">Created: %1$s</string>
+
+	<string name="scene_draft_invalid_name">Invalid name</string>
 </resources>

@@ -9,7 +9,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
@@ -52,8 +56,8 @@ private fun LocalEvent(
 	component: ProjectSync
 ) {
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.TimelineEventEntity
-	var dateTextValue by remember(entity) { mutableStateOf(entity?.date ?: "") }
-	var contentTextValue by remember(entity) { mutableStateOf(entity?.content ?: "") }
+	var dateTextValue by rememberSaveable(entity) { mutableStateOf(entity?.date ?: "") }
+	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
 
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(

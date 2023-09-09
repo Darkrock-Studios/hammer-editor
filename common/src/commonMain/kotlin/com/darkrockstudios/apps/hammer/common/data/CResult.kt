@@ -52,15 +52,17 @@ sealed class ClientResult<out T> {
 
 typealias Msg = ClientMessage
 
-class ClientMessage private constructor(
+class ClientMessage(
 	res: StringResource,
-	inArgs: List<Any>
+	vararg inArgs: Any
 ) {
 	val r: StringResource = res
-	val args: Array<Any> = inArgs.toTypedArray()
+	val args: Array<out Any> = inArgs
 
 	fun text(strRes: StrRes): String = strRes.get(r, *args)
 }
+
+fun StringResource.toMsg(): Msg = Msg(this)
 
 /**
  * Convince method that smart casts the SResult to either Success

@@ -427,7 +427,7 @@ abstract class SceneEditorRepository(
 		return sceneTree.findOrNull { it.id == id }?.parent?.value
 	}
 
-	fun validateSceneName(sceneName: String): Result<Boolean> = ProjectsRepository.validateFileName(sceneName)
+	fun validateSceneName(sceneName: String): CResult<Unit> = ProjectsRepository.validateFileName(sceneName)
 
 	abstract fun getHpath(sceneItem: SceneItem): HPath
 

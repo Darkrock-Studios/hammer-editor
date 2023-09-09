@@ -118,7 +118,9 @@ private fun previewProjectSyncComponent(conflict: ProjectSync.EntityConflict<*>?
 	val compoent = object : ProjectSync {
 		override val state = MutableValue(ProjectSync.State())
 		override fun syncProject(onComplete: (Boolean) -> Unit) {}
-		override fun resolveConflict(resolvedEntity: ApiProjectEntity) {}
+		override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+			return null
+		}
 		override fun endSync() {}
 		override fun cancelSync() {}
 		override fun showLog(show: Boolean) {}
@@ -182,7 +184,9 @@ private fun RemotePreview() {
 			)
 
 			override fun syncProject(onComplete: (Boolean) -> Unit) {}
-			override fun resolveConflict(resolvedEntity: ApiProjectEntity) {}
+			override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+				return null
+			}
 			override fun endSync() {}
 			override fun cancelSync() {}
 			override fun showLog(show: Boolean) {}

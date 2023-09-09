@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import dev.icerock.moko.resources.StringResource
@@ -20,7 +22,7 @@ abstract class ProjectsRepository : KoinComponent {
 	abstract fun getProjectsDirectory(): HPath
 	abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef>
 	abstract fun getProjectDirectory(projectName: String): HPath
-	abstract fun createProject(projectName: String): Result<Boolean>
+	abstract fun createProject(projectName: String): CResult<Unit>
 	abstract fun deleteProject(projectDef: ProjectDef): Boolean
 	abstract fun ensureProjectDirectory()
 
@@ -48,7 +50,7 @@ abstract class ProjectsRepository : KoinComponent {
 			) { it.length <= MAX_FILENAME_LENGTH },
 		)
 
-		fun validateFileName(fileName: String?): Result<Boolean> {
+		fun validateFileName(fileName: String?): CResult<Unit> {
 			return if (fileName != null) {
 				var error: StringResource? = null
 				for (validator in fileNameValidations) {
@@ -60,13 +62,17 @@ abstract class ProjectsRepository : KoinComponent {
 
 				if (error == null) {
 					Napier.i("$fileName was valid")
-					Result.success(true)
+					CResult.success()
 				} else {
 					Napier.i("$fileName was invalid: $error")
-					Result.failure(ValidationFailedException(error))
+					CResult.failure(ValidationFailedException(error))
 				}
 			} else {
-				Result.failure(ValidationFailedException(MR.strings.create_project_error_null_filename))
+				CResult.failure(
+					error = "",
+					displayMessage = MR.strings.create_project_error_null_filename.toMsg(),
+					exception = ValidationFailedException(MR.strings.create_project_error_null_filename)
+				)
 			}
 		}
 	}

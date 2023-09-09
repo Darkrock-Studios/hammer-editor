@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
@@ -30,11 +31,7 @@ import org.junit.After
 import org.junit.Before
 import projectNames
 import utils.BaseTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class ProjectsRepositoryTest : BaseTest() {
 
@@ -90,9 +87,9 @@ class ProjectsRepositoryTest : BaseTest() {
 
 	private fun assertFailure(filename: String?, error: StringResource) {
 		val result = ProjectsRepository.validateFileName(filename)
-		assert(result.isFailure)
 
-		val exception = result.exceptionOrNull() as? ValidationFailedException
+		assertTrue(isFailure(result))
+		val exception = result.exception as? ValidationFailedException
 		assertNotNull(exception)
 
 		assertEquals(error, exception.errorMessage)

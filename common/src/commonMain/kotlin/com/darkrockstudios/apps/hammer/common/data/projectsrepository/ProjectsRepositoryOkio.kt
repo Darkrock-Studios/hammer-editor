@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -67,14 +69,14 @@ class ProjectsRepositoryOkio(
 		return projectDir.toHPath()
 	}
 
-	override fun createProject(projectName: String): Result<Boolean> {
+	override fun createProject(projectName: String): CResult<Unit> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
-		return if (result.isSuccess) {
+		return if (isSuccess(result)) {
 			val projectsDir = getProjectsDirectory().toOkioPath()
 			val newProjectDir = projectsDir.div(strippedName)
 			if (fileSystem.exists(newProjectDir)) {
-				Result.failure(ProjectCreationFailedException(MR.strings.create_project_error_already_exists))
+				CResult.failure(ProjectCreationFailedException(MR.strings.create_project_error_already_exists))
 			} else {
 				fileSystem.createDirectory(newProjectDir)
 
@@ -91,11 +93,13 @@ class ProjectsRepositoryOkio(
 				)
 				projectsMetadataRepository.saveMetadata(metadata, newDef)
 
-				Result.success(true)
+				CResult.success()
 			}
 		} else {
-			Result.failure(
-				ProjectCreationFailedException((result.exceptionOrNull() as? ValidationFailedException)?.errorMessage)
+			CResult.failure(
+				error = result.error,
+				displayMessage = result.displayMessage,
+				exception = ProjectCreationFailedException(result.displayMessage?.r)
 			)
 		}
 	}

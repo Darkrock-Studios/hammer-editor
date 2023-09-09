@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
@@ -20,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
 import korlibs.crypto.encoding.Base64
@@ -104,15 +107,41 @@ class ProjectSyncComponent(
 		}
 	}
 
-	override fun resolveConflict(resolvedEntity: ApiProjectEntity) {
-		projectSynchronizer.resolveConflict(resolvedEntity)
+	override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+		val error = when (resolvedEntity) {
+			is ApiProjectEntity.EncyclopediaEntryEntity -> {
+				null
+			}
 
-		_state.getAndUpdate {
-			it.copy(
-				entityConflict = null,
-				conflictTitle = null,
-			)
+			is ApiProjectEntity.NoteEntity -> {
+				validateNoteEntity(resolvedEntity)
+			}
+
+			is ApiProjectEntity.SceneDraftEntity -> {
+				validateSceneDraft(resolvedEntity)
+			}
+
+			is ApiProjectEntity.SceneEntity -> {
+				validateScene(resolvedEntity)
+			}
+
+			is ApiProjectEntity.TimelineEventEntity -> {
+				null
+			}
 		}
+
+		if (error == null) {
+			projectSynchronizer.resolveConflict(resolvedEntity)
+
+			_state.getAndUpdate {
+				it.copy(
+					entityConflict = null,
+					conflictTitle = null,
+				)
+			}
+		}
+
+		return error
 	}
 
 	override fun endSync() {
@@ -316,6 +345,42 @@ class ProjectSyncComponent(
 					conflictTitle = MR.strings.sync_conflict_scene_title
 				)
 			}
+		}
+	}
+
+	private fun validateNoteEntity(resolvedEntity: ApiProjectEntity.NoteEntity): ProjectSync.EntityMergeError.NoteMergeError? {
+		val error = notesRepository.validateNote(resolvedEntity.content)
+		return when (error) {
+			NoteError.NONE -> null
+			NoteError.EMPTY -> ProjectSync.EntityMergeError.NoteMergeError(
+				noteError = MR.strings.notes_create_toast_empty.toMsg()
+			)
+
+			NoteError.TOO_LONG -> ProjectSync.EntityMergeError.NoteMergeError(
+				noteError = MR.strings.notes_create_toast_too_long.toMsg()
+			)
+		}
+	}
+
+	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSync.EntityMergeError.SceneMergeError? {
+		val result = sceneEditorRepository.validateSceneName(resolvedEntity.name)
+		return if (isSuccess(result)) {
+			null
+		} else {
+			ProjectSync.EntityMergeError.SceneMergeError(
+				nameError = result.displayMessage
+			)
+		}
+	}
+
+	private fun validateSceneDraft(resolvedEntity: ApiProjectEntity.SceneDraftEntity): ProjectSync.EntityMergeError.SceneDraftMergeError? {
+		val result = SceneDraftRepository.validDraftName(resolvedEntity.name)
+		return if (result) {
+			null
+		} else {
+			ProjectSync.EntityMergeError.SceneDraftMergeError(
+				nameError = MR.strings.scene_draft_invalid_name.toMsg()
+			)
 		}
 	}
 }

@@ -6,6 +6,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -38,12 +39,7 @@ import org.junit.Test
 import utils.BaseTest
 import utils.callPrivate
 import utils.getPrivateProperty
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
@@ -221,7 +217,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, Invalid Scene Name`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns Result.failure(errorException)
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(errorException)
 
 		repo.initializeProjectEditor()
 
@@ -234,7 +230,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, Under Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
 		repo.initializeProjectEditor()
 
@@ -255,7 +251,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Scene, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
 		repo.initializeProjectEditor()
 
@@ -280,7 +276,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Group, In Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
 		repo.initializeProjectEditor()
 		verifyTreeAndFilesystem()
@@ -299,7 +295,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Create Group, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns Result.success(true)
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
 		repo.initializeProjectEditor()
 

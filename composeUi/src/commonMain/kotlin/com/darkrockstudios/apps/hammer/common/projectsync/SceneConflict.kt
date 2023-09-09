@@ -9,7 +9,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
@@ -19,6 +23,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 
 @Composable
 internal fun SceneConflict(
@@ -41,9 +46,11 @@ private fun LocalScene(
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.SceneEntity>,
 	component: ProjectSync
 ) {
+	val strRes = rememberStrRes()
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.SceneEntity
-	var nameTextValue by remember(entity) { mutableStateOf(entity?.name ?: "") }
-	var contentTextValue by remember(entity) { mutableStateOf(entity?.content ?: "") }
+	var nameTextValue by rememberSaveable(entity) { mutableStateOf(entity?.name ?: "") }
+	var nameError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
+	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
 
 	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
@@ -56,12 +63,16 @@ private fun LocalScene(
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = {
-				component.resolveConflict(
+				val error = component.resolveConflict(
 					entityConflict.clientEntity.copy(
 						name = nameTextValue,
 						content = contentTextValue
 					)
 				)
+
+				if (error is ProjectSync.EntityMergeError.SceneMergeError) {
+					nameError = error.nameError?.text(strRes)
+				}
 			}) {
 				Text(MR.strings.sync_conflict_local_use_button.get())
 			}
@@ -76,7 +87,14 @@ private fun LocalScene(
 			value = nameTextValue,
 			onValueChange = { nameTextValue = it },
 			placeholder = { Text(MR.strings.sync_conflict_title_scene_field_name.get()) },
-			label = { Text(MR.strings.sync_conflict_title_scene_field_name.get()) }
+			label = { Text(MR.strings.sync_conflict_title_scene_field_name.get()) },
+			isError = (nameError != null),
+		)
+		Text(
+			nameError ?: "",
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic,
+			color = MaterialTheme.colorScheme.error
 		)
 		Spacer(Modifier.size(Ui.Padding.XL))
 		TextField(

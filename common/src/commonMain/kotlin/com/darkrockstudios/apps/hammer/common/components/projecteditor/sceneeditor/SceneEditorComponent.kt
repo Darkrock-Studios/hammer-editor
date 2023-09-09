@@ -8,19 +8,10 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
-import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
@@ -212,7 +203,7 @@ class SceneEditorComponent(
 		withContext(mainDispatcher) {
 			val result = ProjectsRepository.validateFileName(newName)
 
-			if (result.isSuccess) {
+			if (isSuccess(result)) {
 				endSceneNameEdit()
 				sceneEditor.renameScene(sceneDef, newName)
 
@@ -222,8 +213,8 @@ class SceneEditorComponent(
 					)
 				}
 			} else {
-				(result.exceptionOrNull() as? ValidationFailedException)?.errorMessage?.let { message ->
-					showToast(message)
+				result.displayMessage?.let { msg ->
+					showToast(msg)
 				}
 			}
 		}

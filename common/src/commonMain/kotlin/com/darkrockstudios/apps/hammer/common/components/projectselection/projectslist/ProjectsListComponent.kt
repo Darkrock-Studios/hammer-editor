@@ -12,17 +12,10 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogW
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -32,15 +25,8 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
@@ -203,7 +189,7 @@ class ProjectsListComponent(
 
 	override fun createProject(projectName: String) {
 		val result = projectsRepository.createProject(projectName)
-		if (result.isSuccess) {
+		if (isSuccess(result)) {
 			if (projectsSynchronizer.isServerSynchronized()) {
 				projectsSynchronizer.createProject(projectName)
 			}
@@ -211,8 +197,8 @@ class ProjectsListComponent(
 			loadProjectList()
 			hideCreate()
 		} else {
-			(result.exceptionOrNull() as? ProjectCreationFailedException)?.errorMessage?.let { message ->
-				showToast(scope, message)
+			result.displayMessage?.let { msg ->
+				showToast(scope, msg)
 			}
 
 			Napier.e("Failed to create Project: $projectName")
