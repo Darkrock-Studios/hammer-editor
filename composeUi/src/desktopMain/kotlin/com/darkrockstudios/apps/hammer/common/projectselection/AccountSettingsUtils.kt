@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import dev.icerock.moko.resources.StringResource
@@ -57,5 +58,7 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun updateServerPassword(password: String) {}
 		override val toast = MutableSharedFlow<ToastMessage>()
 		override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+		override fun showToast(scope: CoroutineScope, message: Msg) {}
 		override suspend fun showToast(message: StringResource, vararg params: Any) {}
+		override suspend fun showToast(message: Msg) {}
 	}

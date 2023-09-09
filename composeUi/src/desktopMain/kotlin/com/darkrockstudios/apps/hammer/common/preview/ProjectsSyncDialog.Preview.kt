@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -78,7 +79,9 @@ private val fakeProjectsList = object : ProjectsList {
 	)
 	override val toast: Flow<ToastMessage> = MutableSharedFlow()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: Msg) {}
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
 	override fun showCreate() {}

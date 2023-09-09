@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -57,7 +58,9 @@ private fun fakeComponent() = object : SceneEditor {
 	override suspend fun saveDraft(draftName: String) = true
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: Msg) {}
 	override fun closeEditor() {}
 	override fun beginDelete() {}
 	override fun endDelete() {}
