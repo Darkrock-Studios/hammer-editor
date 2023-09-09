@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import dev.icerock.moko.resources.StringResource
@@ -40,7 +41,9 @@ val projectListComponent = object : ProjectsList {
 	override fun onProjectNameUpdate(newProjectName: String) {}
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: Msg) {}
 }
 
 val component = object : ProjectSelection {
