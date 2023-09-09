@@ -20,25 +20,28 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 ## Road to 1.0
 
 - **Rich Text Editor 2.0:** This is one of the biggest weaknesses currently. The current text editor is buggy, has poor
-  performance with lots of text, and only supports rich text through ugly hacks. We're waiting on `BasicTextfield2`
+  performance with lots of text, and only supports rich text through ugly hacks. We're waiting
+  on `BasicTextfield2`
   coming later this year to build a more robust editor on.
-    - Spell check
-    - Possibly grammar check
+	- Spell check
+	- Possibly grammar check
 - **Encyclopedia Improvements:** usability improvements
-    - Allow more characters to be used in the name
-    - Allow changing of entry type after creation
-	- Allow tag removal, addition after creation
+	- Allow more characters to be used in the name
+	- ~~Allow tag removal, addition after creation~~
 	- ~~Tag search in encyclopedia browser~~
 - More unit testing across the board
 - ~~Release for **MacOS**~~
+- **Outlines:** write a short outline for each scene. Be able to see an overview of your story by
+  reading only your
+  outlines in order.
+- **Scene Notes:** add extra notes to a scene, remind your self what story beats to hit, or what
+  tone to strike.
+- **Archive Scenes:** Alternative to deleting them, so they can be restored in the future.
 
 ## Post 1.0
 
 - Release for **iOS**
-- **Outlines:** write a short outline for each scene. Be able to see an overview of your story by reading only your
-  outlines in order.
 - **Hemingway Mode:** Provide a distraction free writing experience. Very little UI, no spell check, ect.
-- **Scene Notes:** add extra notes to a scene, remind your self what story beats to hit, or what tone to strike.
 - **Scene/Encyclopedia Integration:**
     - When you type the name of an entry in your encyclopedia, it will be hyper linked in-line to the entry.
     - See a summary of which characters or locations appear in the scene
@@ -48,6 +51,7 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 
 ## Further Future
 
-- **Editor Requests:** Create a request for someone to edit a scene. A link to generated, and they can read and suggest
+- **Editor Requests:** Create a request for someone to edit a scene. A link will be generated, and
+  they can read and suggest
   edits to the scene from a webpage. Then in-app, you can receive the edits and choose what to take.
 - **Publish on Web:** Publish a story as a simple webview you can link people to.
