@@ -1,25 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -49,6 +41,10 @@ private fun LocalEntry(
 	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
 	component: ProjectSync
 ) {
+	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.EncyclopediaEntryEntity
+	var nameTextValue by remember(entity) { mutableStateOf(entity?.name ?: "") }
+	var contentTextValue by remember(entity) { mutableStateOf(entity?.text ?: "") }
+
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -59,10 +55,24 @@ private fun LocalEntry(
 				text = MR.strings.sync_conflict_local_entry.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
-			Button(onClick = { component.resolveConflict(entityConflict.clientEntity) }) {
+			Button(onClick = {
+				component.resolveConflict(
+					entityConflict.clientEntity.copy(
+						name = nameTextValue,
+						text = contentTextValue
+					)
+				)
+			}) {
 				Text(MR.strings.sync_conflict_local_use_button.get())
 			}
 		}
+		Text(
+			text = MR.strings.sync_conflict_merge_explained.get(),
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic
+		)
+		Spacer(Modifier.size(Ui.Padding.XL))
+
 		SelectionContainer {
 			Text(
 				entityConflict.clientEntity.name,
@@ -77,15 +87,41 @@ private fun LocalEntry(
 				MR.strings.sync_conflict_encyclopedia_no_image.get(),
 			style = MaterialTheme.typography.bodyLarge
 		)
-		SelectionContainer {
-			Text(
-				entityConflict.clientEntity.text,
-				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-			)
-		}
+		Spacer(Modifier.size(Ui.Padding.XL))
+		TextField(
+			value = nameTextValue,
+			onValueChange = { nameTextValue = it },
+			placeholder = { Text(MR.strings.sync_conflict_encyclopedia_label_name.get()) },
+			label = { Text(MR.strings.sync_conflict_encyclopedia_label_name.get()) }
+		)
+		Spacer(Modifier.size(Ui.Padding.XL))
+		TextField(
+			value = contentTextValue,
+			onValueChange = { contentTextValue = it },
+			placeholder = { Text(MR.strings.sync_conflict_encyclopedia_label_content.get()) },
+			label = { Text(MR.strings.sync_conflict_encyclopedia_label_content.get()) }
+		)
+		Spacer(Modifier.size(Ui.Padding.XL))
+		Text(
+			MR.strings.sync_conflict_encyclopedia_label_tags.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			fontWeight = FontWeight.Bold
+		)
 		FlowRow {
 			entityConflict.clientEntity.tags.forEach { tag ->
-				SuggestionChip(onClick = {}, label = { Text(tag) })
+				InputChip(
+					onClick = {},
+					label = { Text(tag) },
+					leadingIcon = {
+						Icon(
+							Icons.Filled.Tag,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					enabled = true,
+					selected = false
+				)
 			}
 		}
 	}
@@ -160,6 +196,7 @@ fun RemoteEntry(
 			)
 		}
 
+		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
 			modifier = Modifier.padding(end = Ui.Padding.M),
 			text = MR.strings.sync_conflict_encyclopedia_label_content.get(),
@@ -172,9 +209,28 @@ fun RemoteEntry(
 				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
 			)
 		}
+
+		Spacer(Modifier.size(Ui.Padding.XL))
+		Text(
+			MR.strings.sync_conflict_encyclopedia_label_tags.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			fontWeight = FontWeight.Bold
+		)
 		FlowRow {
 			entityConflict.serverEntity.tags.forEach { tag ->
-				SuggestionChip(onClick = {}, label = { Text(tag) })
+				InputChip(
+					onClick = {},
+					label = { Text(tag) },
+					leadingIcon = {
+						Icon(
+							Icons.Filled.Tag,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					enabled = true,
+					selected = false
+				)
 			}
 		}
 	}

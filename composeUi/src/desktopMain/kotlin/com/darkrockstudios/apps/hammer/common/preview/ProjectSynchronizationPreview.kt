@@ -72,6 +72,28 @@ private fun NoteConflictPreview() {
 	ProjectSynchronizationPreview(conflict, expandedSize())
 }
 
+@Preview
+@Composable
+private fun TimelineConflictPreview() {
+	val serverEntity = ApiProjectEntity.TimelineEventEntity(
+		id = 1,
+		content = sceneContent,
+		date = "October 1st",
+		order = 1
+	)
+	val clientEntity = serverEntity.copy(
+		content = sceneContent.replace("to", "BOB"),
+		date = "November 2nd"
+	)
+
+	val conflict = ProjectSync.EntityConflict.TimelineEventConflict(
+		serverEvent = clientEntity,
+		clientEvent = serverEntity
+	)
+
+	ProjectSynchronizationPreview(conflict, expandedSize())
+}
+
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview
 @Composable
