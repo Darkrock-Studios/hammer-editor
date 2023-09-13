@@ -268,7 +268,7 @@ class ProjectSyncComponent(
 		val localEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 			id = local.id,
 			name = local.name,
-			entryType = local.type.name,
+			entryType = local.type.text,
 			text = local.text,
 			tags = local.tags,
 			image = image
