@@ -1,8 +1,14 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import okio.*
 import okio.Path.Companion.toPath
@@ -11,26 +17,45 @@ import java.util.logging.StreamHandler
 
 class FileLogger(
 	private val fileSystem: FileSystem = getPlatformFilesystem(),
-	private val clock: Clock = Clock.System
+	private val clock: Clock = Clock.System,
+	private val scope: CoroutineScope,
 ) : StreamHandler() {
 	private val getParentDir: Path = getConfigDirectory().toPath()
 	private val logsDir = getLogsDirectory()
 	private val logFileName = getLogFilename()
 	private val appendBuffer: BufferedSink
+	private val messageChannel = Channel<LogRecord>(
+		capacity = Channel.UNLIMITED,
+		onUndeliveredElement = {
+			// I don't think this should happen, so let's throw if it does, so we know
+			if (getInDevelopmentMode()) {
+				error("Undelivered log message! ${it.message}")
+			}
+		}
+	)
 
 	init {
 		appendBuffer = createLogFile().appendingSink().buffer()
-		cullLogs()
+
+		scope.launch {
+			cullLogs()
+			watchForLogs()
+		}
+	}
+
+	private suspend fun watchForLogs() {
+		messageChannel.consumeEach { record ->
+			writeLogMessage(record)
+			flush()
+		}
 	}
 
 	override fun publish(record: LogRecord?) {
 		super.publish(record)
 
 		if (record != null) {
-			writeLogMessage(record)
+			messageChannel.trySendBlocking(record)
 		}
-
-		flush()
 	}
 
 	private fun writeLogMessage(record: LogRecord) {

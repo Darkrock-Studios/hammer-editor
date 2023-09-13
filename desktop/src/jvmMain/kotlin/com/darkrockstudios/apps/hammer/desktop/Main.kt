@@ -30,9 +30,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
@@ -59,12 +57,16 @@ private fun handleArguments(args: Array<String>) {
 fun main(args: Array<String>) {
 	handleArguments(args)
 
-	Napier.base(DebugAntilog(handler = listOf(FileLogger(), ConsoleHandler())))
+	val appScope = CoroutineScope(Dispatchers.Default)
+	Napier.base(DebugAntilog(handler = listOf(FileLogger(scope = appScope), ConsoleHandler())))
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
 		modules(mainModule, imageLoadingModule, aboutLibrariesModule)
 	}
+
+	val scope = CoroutineScope(getDefaultDispatcher())
+	val mainDispatcher = getMainDispatcher()
 
 	val osThemeDetector = OsThemeDetector.getDetector()
 	if (osThemeDetector.isDark) {
@@ -72,9 +74,6 @@ fun main(args: Array<String>) {
 	} else {
 		LafManager.install(IntelliJTheme())
 	}
-
-	val scope = CoroutineScope(getDefaultDispatcher())
-	val mainDispatcher = getMainDispatcher()
 
 	// Listen and react to Global Settings updates
 	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
@@ -136,6 +135,8 @@ fun main(args: Array<String>) {
 	}
 
 	settingsUpdateJob.cancel()
+	scope.cancel("Program ending")
+	appScope.cancel("Program ending")
 }
 
 internal enum class ConfirmCloseResult {
