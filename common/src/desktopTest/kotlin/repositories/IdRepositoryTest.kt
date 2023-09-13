@@ -40,8 +40,7 @@ class IdRepositoryTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		json = createJsonSerializer()
-		projectSynchronizer = mockk()
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		projectSynchronizer = mockk(relaxed = true)
 
 		val testModule = module {
 			single { projectSynchronizer }
@@ -59,7 +58,7 @@ class IdRepositoryTest : BaseTest() {
 	@Test
 	fun `findNextId no entities`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
-		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
+		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
 
@@ -71,7 +70,7 @@ class IdRepositoryTest : BaseTest() {
 	@Test
 	fun `findNextId Scene Ids`() = runTest {
 		createProject(ffs, PROJECT_1_NAME)
-		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
+		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
 
@@ -84,6 +83,7 @@ class IdRepositoryTest : BaseTest() {
 	fun `findNextId Scene Ids - With larger Deleted Id`() = runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		// Last real ID is 7 in "Test Project 1"
+		every { projectSynchronizer.isServerSynchronized() } returns true
 		coEvery { projectSynchronizer.deletedIds() } returns setOf(8)
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
@@ -98,7 +98,7 @@ class IdRepositoryTest : BaseTest() {
 		val emptyProjectName = "Empty Project"
 		createProject(ffs, emptyProjectName)
 		val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()
-		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
+		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		val projectDef = ProjectDef(
 			name = emptyProjectName,

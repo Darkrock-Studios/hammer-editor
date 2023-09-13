@@ -30,8 +30,10 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 				lastId = max(lastId, highestId)
 			}
 
-			projectSynchronizer.deletedIds().maxOrNull()?.let { maxDeletedId ->
-				lastId = max(lastId, maxDeletedId)
+			if (projectSynchronizer.isServerSynchronized()) {
+				projectSynchronizer.deletedIds().maxOrNull()?.let { maxDeletedId ->
+					lastId = max(lastId, maxDeletedId)
+				}
 			}
 
 			nextId = if (lastId < 0) {
