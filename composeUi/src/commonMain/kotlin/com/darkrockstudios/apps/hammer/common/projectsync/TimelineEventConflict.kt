@@ -41,7 +41,7 @@ internal fun TimelineEventConflict(
 
 @Composable
 private fun getDateText(entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>): String {
-	val date = entityConflict.clientEntity.date
+	val date = entityConflict.serverEntity.date
 	return if (date.isNullOrBlank()) {
 		MR.strings.sync_conflict_timeline_event_missing_date.get()
 	} else {
