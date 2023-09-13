@@ -11,11 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -25,7 +21,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import io.ktor.utils.io.CancellationException
+import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
@@ -112,6 +108,10 @@ class ClientProjectSynchronizer(
 
 	suspend fun needsSync(): Boolean {
 		return loadSyncData().dirty.isNotEmpty()
+	}
+
+	suspend fun deletedIds(): Set<Int> {
+		return loadSyncData().deletedIds
 	}
 
 	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.serverIsSetup() &&
@@ -245,7 +245,7 @@ class ClientProjectSynchronizer(
 
 				clientSyncData.copy(
 					newIds = updatedNewIds,
-					lastId = idRepository.peekNextId() - 1,
+					lastId = updatedNewIds.max(),
 					dirty = updatedDirty,
 					deletedIds = localDeletedIds
 				)

@@ -12,9 +12,9 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
 import getProject1Def
 import getProjectsDirectory
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -26,7 +26,6 @@ import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class IdRepositoryTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var idRepository: IdRepository
@@ -60,6 +59,7 @@ class IdRepositoryTest : BaseTest() {
 	@Test
 	fun `findNextId no entities`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
+		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
 
@@ -71,12 +71,26 @@ class IdRepositoryTest : BaseTest() {
 	@Test
 	fun `findNextId Scene Ids`() = runTest {
 		createProject(ffs, PROJECT_1_NAME)
+		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
 
 		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
 
 		idRepository.findNextId()
 
-		assertEquals(idRepository.claimNextId(), 8, "Failed to find last scene ID")
+		assertEquals(8, idRepository.claimNextId(), "Failed to find last scene ID")
+	}
+
+	@Test
+	fun `findNextId Scene Ids - With larger Deleted Id`() = runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		// Last real ID is 7 in "Test Project 1"
+		coEvery { projectSynchronizer.deletedIds() } returns setOf(8)
+
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
+
+		idRepository.findNextId()
+
+		assertEquals(9, idRepository.claimNextId(), "Failed to find last entity ID")
 	}
 
 	@Test
@@ -84,6 +98,7 @@ class IdRepositoryTest : BaseTest() {
 		val emptyProjectName = "Empty Project"
 		createProject(ffs, emptyProjectName)
 		val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()
+		coEvery { projectSynchronizer.deletedIds() } returns emptySet()
 
 		val projectDef = ProjectDef(
 			name = emptyProjectName,

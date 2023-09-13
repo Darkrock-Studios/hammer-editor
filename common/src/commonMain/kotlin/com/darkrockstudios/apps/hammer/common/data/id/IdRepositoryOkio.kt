@@ -15,6 +15,6 @@ class IdRepositoryOkio(
 		SceneIdHandlerOkio(fileSystem),
 		NotesIdHandlerOkio(fileSystem),
 		EncyclopediaIdHandlerOkio(fileSystem),
-		TimeLineEventIdHandlerOkio(fileSystem, json)
+		TimeLineEventIdHandlerOkio(fileSystem, json),
 	)
 }
