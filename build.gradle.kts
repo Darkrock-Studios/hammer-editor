@@ -42,7 +42,7 @@ plugins {
 }
 
 dependencies {
-	kover(project(":base"))
+	//kover(project(":base"))
 	kover(project(":common"))
 	kover(project(":server"))
 }
