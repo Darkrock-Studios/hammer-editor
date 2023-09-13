@@ -43,7 +43,7 @@
     <string name="settings_server_setup_cancel_button">Cancel</string>
     <string name="settings_server_setup_toast_failure">Server setup Failed: %1$s</string>
     <string name="settings_server_setup_toast_failure_unknown">Unknown Error</string>
-    <string name="settings_server_setup_toast_success">Server setup Failed: %1$s</string>
+	<string name="settings_server_setup_toast_success">Server setup complete!</string>
     <string name="remove_local_dialog_title">Remove Local Content?</string>
     <string name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we
 		will attempt to merge your local content with the server content. If the content is unrelated, it could cause

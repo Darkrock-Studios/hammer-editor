@@ -16,7 +16,7 @@
 	<string name="notes_create_toast_too_long">Note was too long</string>
 	<string name="notes_create_toast_empty">Note was empty</string>
 	<string name="notes_delete_title">Delete Note?</string>
-	<string name="notes_delete_message">This action can not be undone!</string>
+	<string name="notes_delete_message">This action cannot be undone!</string>
 	<string name="notes_delete_toast_success">Note %1$s Deleted</string>
 
 	<string name="notes_view_header">Note</string>
