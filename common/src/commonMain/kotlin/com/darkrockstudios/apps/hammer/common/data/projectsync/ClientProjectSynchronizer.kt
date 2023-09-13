@@ -438,6 +438,10 @@ class ClientProjectSynchronizer(
 				if (allSuccess) {
 					onLog(syncLogI(strRes.get(MR.strings.sync_log_data_saved), projectDef))
 
+					// On all success, any dirty entities that weren't processed were not processed because the
+					// server felt they didn't need to be, so we can clear them now
+					dirtyEntities.clear()
+
 					if (newLastId != null && syncFinishedAt != null) {
 						val finalSyncData = clientSyncData.copy(
 							currentSyncId = null,
