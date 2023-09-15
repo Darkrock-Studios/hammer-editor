@@ -8,10 +8,10 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.testing.*
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.testing.testApplication
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.Before
@@ -26,6 +26,7 @@ class ApplicationTest : BaseTest() {
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var accountsComponent: AccountsComponent
 	private lateinit var adminComponent: AdminComponent
+	private lateinit var testModule: org.koin.core.module.Module
 
 	@Before
 	override fun setup() {
@@ -37,7 +38,7 @@ class ApplicationTest : BaseTest() {
 		accountsComponent = mockk()
 		adminComponent = mockk()
 
-		val testModule = module {
+		testModule = module {
 			single { accountsRepository }
 			single { projectRepository }
 			single { projectsRepository }
@@ -45,13 +46,12 @@ class ApplicationTest : BaseTest() {
 			single { adminComponent }
 			single { mockk<Json>() }
 		}
-		setupKoin(testModule)
-
 	}
 
 	@Test
 	fun testRoot() = testApplication {
 		application {
+			setupKtorTestKoin(this@ApplicationTest, testModule)
 			configureSecurity()
 			configureLocalization()
 			configureRouting()

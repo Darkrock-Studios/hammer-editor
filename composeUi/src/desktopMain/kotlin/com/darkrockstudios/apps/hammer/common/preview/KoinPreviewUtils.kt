@@ -11,7 +11,7 @@ fun KoinApplicationPreview(
 	application: KoinAppDeclaration,
 	content: @Composable () -> Unit
 ) {
-	val koinApplication = koinApplication(application)
+	val koinApplication = koinApplication(false, application)
 
 	GlobalContext.startKoin(koinApplication = koinApplication)
 	DisposableEffect(Unit) {

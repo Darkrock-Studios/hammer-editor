@@ -45,6 +45,7 @@ kotlin {
 				implementation(libs.essenty.parcelable)
 				api(libs.napier)
 				api(libs.coroutines.core)
+				api(platform(libs.koin.bom.get()))
 				api(libs.koin.core)
 				api(libs.okio)
 

@@ -61,6 +61,7 @@ dependencies {
 
 	implementation(libs.slf4j.simple)
 
+	implementation(platform(libs.koin.bom))
 	implementation(libs.bundles.koin.server)
 
 	implementation(libs.okio)

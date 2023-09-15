@@ -55,12 +55,7 @@ richtexteditor = "1.4.1"
 koalaplot-core = "0.3.0"
 image-loader = "1.6.7"
 
-koin_core = "3.4.3"
-koin_android = "3.4.3"
-koin_test = "3.4.3"
-koin_sl4j = "3.4.3"
-koin_ktor = "3.4.3"
-koin_compose = "3.4.6"
+koin_bom = "3.5.0"
 
 cokoin = "1.0.0"
 
@@ -151,12 +146,14 @@ coroutines_swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines
 coroutines_jdk8 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-jdk8", version.ref = "coroutines" }
 coroutines_test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
-koin_core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin_core" }
-koin_android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin_android" }
-koin_test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin_test" }
-koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j", version.ref = "koin_sl4j" }
-koin_ktor = { group = "io.insert-koin", name = "koin-ktor", version.ref = "koin_ktor" }
-koin_compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin_compose" }
+koin_bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin_bom" }
+koin_core = { group = "io.insert-koin", name = "koin-core" }
+koin_core_coroutines = { group = "io.insert-koin", name = "koin-core-coroutines" }
+koin_android = { group = "io.insert-koin", name = "koin-android" }
+koin_test = { group = "io.insert-koin", name = "koin-test" }
+koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j" }
+koin_ktor = { group = "io.insert-koin", name = "koin-ktor" }
+koin_compose = { group = "io.insert-koin", name = "koin-compose" }
 
 cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
@@ -250,7 +247,7 @@ parcelize_darwin = { id = "com.arkivanov.parcelize.darwin", version.ref = "parce
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
 
 [bundles]
-koin_server = ["koin_core", "koin_sl4j", "koin_ktor"]
+koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]
 ktor_client = [
 	"ktor_client_core",
 	"ktor_client_auth",
