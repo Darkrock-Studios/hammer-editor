@@ -85,6 +85,7 @@
 
 	<string name="sync_log_begin_account">Syncing Account...</string>
 	<string name="sync_log_begin_projects">Syncing Projects...</string>
+	<string name="sync_log_end_projects">Projects Sync Complete</string>
 	<string name="sync_log_begin_project">Syncing Project: %1$s</string>
 
 	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order

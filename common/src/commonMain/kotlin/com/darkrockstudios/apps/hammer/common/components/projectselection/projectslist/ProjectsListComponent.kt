@@ -335,6 +335,8 @@ class ProjectsListComponent(
 
 			callback(allSuccess)
 
+			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_end_projects)))
+
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
