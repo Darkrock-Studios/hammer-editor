@@ -22,7 +22,8 @@ WHERE token = ?;
 getTokenByInstallId:
 SELECT *
 FROM authToken
-WHERE installId = ?;
+WHERE userId = ?
+AND installId = ?;
 
 setToken:
 INSERT OR REPLACE INTO authToken(

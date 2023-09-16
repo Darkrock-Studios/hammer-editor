@@ -14,7 +14,6 @@ import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.just
 import io.mockk.mockk
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import org.junit.Before
@@ -72,7 +71,7 @@ class AccountsRepositoryTest : BaseTest() {
 		coEvery { accountDao.findAccount(any()) } returns account
 
 		val authToken = createAuthToken()
-		coEvery { authTokenDao.getTokenByInstallId(installId) } returns authToken
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns authToken
 
 		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
 

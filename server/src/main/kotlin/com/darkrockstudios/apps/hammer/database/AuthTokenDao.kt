@@ -29,8 +29,8 @@ class AuthTokenDao(database: Database) {
 		)
 	}
 
-	suspend fun getTokenByInstallId(installId: String): AuthToken? {
-		val query = queries.getTokenByInstallId(installId)
+	suspend fun getTokenByInstallId(userId: Long, installId: String): AuthToken? {
+		val query = queries.getTokenByInstallId(userId, installId)
 		return query.executeAsOneOrNull()
 	}
 }

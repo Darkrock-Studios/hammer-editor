@@ -5,11 +5,7 @@ import com.darkrockstudios.apps.hammer.AuthToken
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.utilities.Msg
-import com.darkrockstudios.apps.hammer.utilities.RandomString
-import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
-import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.*
 import korlibs.crypto.sha256
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toInstant
@@ -43,12 +39,14 @@ class AccountsRepository(
 	}
 
 	private suspend fun getAuthToken(userId: Long, installId: String): Token {
-		val existingToken = authTokenDao.getTokenByInstallId(installId)
+		val existingToken = authTokenDao.getTokenByInstallId(userId, installId)
 		return if (existingToken != null) {
-			if (existingToken.isExpired()) {
+			if (existingToken.userId != userId) {
+				error("Existing Token returned for installId `$installId` was for user: ${existingToken.userId} instead of user: $userId")
+			} else if (existingToken.isExpired()) {
 				createToken(userId = userId, installId = installId)
 			} else {
-				Token(existingToken.userId, existingToken.token, existingToken.refresh)
+				Token(userId = existingToken.userId, auth = existingToken.token, refresh = existingToken.refresh)
 			}
 		} else {
 			createToken(userId = userId, installId = installId)
@@ -130,7 +128,7 @@ class AccountsRepository(
 	}
 
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
-		val authToken = authTokenDao.getTokenByInstallId(installId)
+		val authToken = authTokenDao.getTokenByInstallId(userId, installId)
 		return if (authToken != null && authToken.refresh == refreshToken) {
 			val newToken = createToken(userId, installId)
 			SResult.success(
