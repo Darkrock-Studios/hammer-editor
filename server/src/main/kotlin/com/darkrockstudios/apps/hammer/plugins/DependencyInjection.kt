@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import io.ktor.server.application.*
 import kotlinx.coroutines.runBlocking
-import org.koin.core.context.GlobalContext
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
@@ -17,9 +16,6 @@ fun Application.configureDependencyInjection() {
 		slf4jLogger()
 
 		modules(mainModule(logger))
-
-		// TODO Remove this when Koin 3.5.1 is out
-		GlobalContext.startKoin(koinApplication = this)
 	}
 
 	val db: Database = get()

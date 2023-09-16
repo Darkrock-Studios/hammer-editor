@@ -55,7 +55,7 @@ richtexteditor = "1.4.1"
 koalaplot-core = "0.3.0"
 image-loader = "1.6.7"
 
-koin_bom = "3.5.0"
+koin_bom = "3.5.1"
 
 cokoin = "1.0.0"
 
