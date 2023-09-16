@@ -38,13 +38,13 @@ class AccountRepository(
 			accountApi.createAccount(
 				email = email,
 				password = password,
-				installId = "asd"
+				installId = newSettings.installId
 			)
 		} else {
 			accountApi.login(
 				email = email,
 				password = password,
-				installId = "asd"
+				installId = newSettings.installId
 			)
 		}
 
