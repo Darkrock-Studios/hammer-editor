@@ -5,3 +5,7 @@
 - Rewrote Toast notification system
 - Huge number of library upgrades
 - Desktop clients now keep log files (will help diagnose crashes)
+- Fix critical Server login bug returning wrong user ID
+- Fix scene syncing bugs
+- Entity sync conflict UI allows manual merging now
+- Many smaller bug fixes
