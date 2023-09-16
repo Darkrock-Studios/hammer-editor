@@ -111,7 +111,7 @@ class ClientProjectSynchronizer(
 	}
 
 	suspend fun deletedIds(): Set<Int> {
-		return loadSyncData().deletedIds
+		return loadSyncDataOrNull()?.deletedIds ?: emptySet()
 	}
 
 	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.serverIsSetup() &&
@@ -165,6 +165,15 @@ class ClientProjectSynchronizer(
 		)
 
 		return newData
+	}
+
+	private suspend fun loadSyncDataOrNull(): ProjectSynchronizationData? {
+		val path = getSyncDataPath()
+		return if (fileSystem.exists(path)) {
+			loadSyncData()
+		} else {
+			null
+		}
 	}
 
 	private suspend fun loadSyncData(): ProjectSynchronizationData {
@@ -621,6 +630,8 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun prepareForSync() {
+		idRepository.findNextId()
+
 		entitySynchronizers.forEach { it.prepareForSync() }
 
 		// Create the sync data if it doesnt exist yet
