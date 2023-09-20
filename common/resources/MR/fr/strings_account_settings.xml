@@ -41,4 +41,7 @@
     <string name="settings_server_setup_password_hint">Mot de passe</string>
     <string name="settings_server_setup_header">Configurer le serveur</string>
     <string name="remove_local_dialog_message">Devons-nous retirer votre contenu local actuel avant de procéder à la synchronisation \? Si ce n’est pas le cas, nous tenterons de fusionner votre contenu local avec le contenu du serveur. Si le contenu n’est pas lié, cela peut poser des problèmes.</string>
+    <string name="settings_server_setup_toast_failure_unknown">Erreur inconnue</string>
+    <string name="settings_server_setup_toast_success">Configuration du serveur complète !</string>
+    <string name="settings_server_setup_toast_failure">Échec de la configuration du serveur : %1$s</string>
 </resources>

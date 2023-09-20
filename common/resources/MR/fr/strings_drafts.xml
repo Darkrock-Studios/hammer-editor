@@ -15,4 +15,5 @@
     <string name="draft_compare_current_accept_button">Prendre la fusionnée</string>
     <string name="draft_compare_tab_title_draft">Brouillon</string>
     <string name="draft_compare_tab_title_current">Actuel</string>
+    <string name="scene_draft_invalid_name">Nom invalide</string>
 </resources>
