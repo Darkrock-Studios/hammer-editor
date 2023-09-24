@@ -48,7 +48,7 @@ moko_graphics = "0.9.0"
 
 decompose = "2.1.0"
 essenty = "1.2.0" # This should match what ever decompose is referncing internally
-parcelize_darwin = "0.2.1"
+parcelize_darwin = "0.2.2"
 
 mpfilepicker = "2.1.0"
 richtexteditor = "1.4.1"
