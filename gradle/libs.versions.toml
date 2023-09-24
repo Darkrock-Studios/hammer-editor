@@ -68,7 +68,7 @@ uuid = "0.8.1"
 work-runtime-ktx = "2.8.1"
 
 multiplatform_window_size = "0.3.1"
-mockk = "1.13.7"
+mockk = "1.13.8"
 
 kotlinx_atomicfu = "0.22.0"
 
