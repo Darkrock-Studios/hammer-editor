@@ -16,4 +16,7 @@
     <string name="confirm_dialog_positive">Sim</string>
     <string name="confirm_dialog_negative">Não</string>
     <string name="image_failed_to_load">Erro de Imagem</string>
+    <string name="unsaved_entity_dialog_neutral_button">Cancelar</string>
+    <string name="unsaved_entity_dialog_negative_button">Descartar e fechar</string>
+    <string name="unsaved_entity_dialog_positive_button">Salvar e fechar</string>
 </resources>

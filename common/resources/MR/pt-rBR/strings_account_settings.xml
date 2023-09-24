@@ -41,4 +41,7 @@
     <string name="settings_server_setup_password_hide">Ocultar senha</string>
     <string name="settings_server_setup_email_hint">E-Mail: usuario@exemplo.com</string>
     <string name="settings_server_setup_password_hint">Senha</string>
+    <string name="settings_server_setup_toast_failure_unknown">Erro Desconhecido</string>
+    <string name="settings_server_setup_toast_success">Configuração do servidor terminada!</string>
+    <string name="settings_server_setup_toast_failure">A configuração do servidor falhou: %1$s</string>
 </resources>
