@@ -40,7 +40,7 @@ coroutines = "1.7.3"
 datetime = "0.4.1" # This is being held back to 0.3.2 due to ios support not working in later versions
 napier = "2.6.1"
 jetpack_compose_compiler = "1.5.2"
-jetbrains_compose = "1.5.1"
+jetbrains_compose = "1.5.2"
 jetbrains_kover = "0.7.3"
 
 moko_resources = "0.23.0"
