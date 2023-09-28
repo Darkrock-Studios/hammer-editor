@@ -10,4 +10,18 @@
     <string name="note_widget_button_description">Agregar nota</string>
     <string name="note_widget_toast_no_projects">Sin proyectos</string>
     <string name="note_widget_toast_success">Nota agregada</string>
+    <string name="note_widget_confirm_cancel_title">¿Descartar la nota\?</string>
+    <string name="note_widget_confirm_cancel_negative">Cancelar</string>
+    <string name="overflow_menu_button">Más Menú</string>
+    <string name="note_widget_config_project_checkbox">Añadir unas notas al proyecto especificado</string>
+    <string name="note_widget_dialog_failure_bad_project">Proyecto no encontrado: %1$s</string>
+    <string name="action_add_note_short_label">Añadir una nota</string>
+    <string name="note_widget_dialog_cancel_button">Cancelar</string>
+    <string name="navdrawer_button">Cajón de navegación</string>
+    <string name="note_widget_confirm_cancel_positive">Descartar</string>
+    <string name="title_activity_add_note_widget_config">Configurar el widget</string>
+    <string name="action_add_note_disabled">Añadir las notas está desactivado en este momento</string>
+    <string name="note_widget_config_project_checkbox_explained">Si no se selecciona ningún proyecto, se te pedirá que elijas un proyecto de cada vez.</string>
+    <string name="action_add_note_long_label">Añadir una nota a la historia</string>
+    <string name="note_widget_config_title">Configurar el widget de notas:</string>
 </resources>

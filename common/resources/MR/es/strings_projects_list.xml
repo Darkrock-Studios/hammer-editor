@@ -2,8 +2,8 @@
 <resources>
     <string name="project_select_list_header">Proyectos:</string>
     <string name="project_select_project_list_empty">No se encontraron proyectos</string>
-    <string name="project_select_card_delete_button">Eliminar</string>
-    <string name="projects_list_create_button">Crear proyexto</string>
+    <string name="project_select_card_delete_button">Borrar</string>
+    <string name="projects_list_create_button">Crear el proyexto</string>
     <string name="account_sync_dialog_title">Sincronización</string>
     <string name="account_sync_dialog_status_pending">Pendiente</string>
     <string name="account_sync_dialog_status_error">Error</string>
@@ -11,21 +11,21 @@
     <string name="account_sync_dialog_status_canceled">Cancelado</string>
     <string name="delete_project_title">Eliminar proyecto</string>
     <string name="account_sync_dialog_cancel_button">Cancelar</string>
-    <string name="create_project_error_null_filename">Falta nombre del proyecto</string>
+    <string name="create_project_error_null_filename">Falta el nombre del proyecto</string>
     <string name="create_project_error_invalid_characters">El nombre del proyecto contiene caracteres inválidos</string>
-    <string name="create_project_error_blank">El nombre del proyecto estaba en blanco</string>
-    <string name="create_project_error_too_long">Nombre del proyecto muy largo</string>
+    <string name="create_project_error_blank">El nombre del proyecto se ha dejado en blanco</string>
+    <string name="create_project_error_too_long">Nombre del proyecto demasiado largo</string>
     <string name="create_project_error_already_exists">Este proyecto ya existe</string>
-    <string name="projects_list_sync_button">Sincronizar proyectos</string>
+    <string name="projects_list_sync_button">Sincronizar los proyectos</string>
     <string name="projects_list_toast_sync_failed">Error al sincronizar los proyectos</string>
-    <string name="account_sync_dialog_header">Sincronización de cuenta</string>
+    <string name="account_sync_dialog_header">Sincronización de la cuenta</string>
     <string name="account_sync_dialog_status_complete">Sincronización completada</string>
-    <string name="account_sync_log_title">Registro de sincronización</string>
-    <string name="delete_project_message">¿Confirma desear eliminar este proyecto\?:
+    <string name="account_sync_log_title">Registro de la sincronización</string>
+    <string name="delete_project_message">¿Estas seguro de que desea eliminar este proyecto\?:
 \n%1$s</string>
-    <string name="delete_project_confirm">Eliminar</string>
+    <string name="delete_project_confirm">Borrar</string>
     <string name="delete_project_cancel">Cancelar</string>
     <string name="create_project_title">Crear proyecto</string>
-    <string name="create_project_heading">Nuevo nombre del proyecto</string>
+    <string name="create_project_heading">Nombre del nuevo proyecto</string>
     <string name="create_project_button">Crear proyecto</string>
 </resources>

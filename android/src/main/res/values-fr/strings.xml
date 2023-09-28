@@ -20,8 +20,8 @@
     <string name="action_add_note_short_label">Ajouter une note</string>
     <string name="action_add_note_long_label">Ajouter une note d\'histoire</string>
     <string name="action_add_note_disabled">L\'ajout de notes est actuellement désactivé</string>
-    <string name="title_activity_add_note_widget_config">Configurer le Widget</string>
+    <string name="title_activity_add_note_widget_config">Configurer le widget</string>
     <string name="note_widget_config_project_checkbox">Ajouter des notes au projet spécifié</string>
     <string name="note_widget_config_project_checkbox_explained">Si aucun projet n\'est sélectionné, il vous sera demandé de choisir un projet à chaque fois.</string>
-    <string name="note_widget_config_title">Configurer la largeur de la note :</string>
+    <string name="note_widget_config_title">Configurer le widget de notes :</string>
 </resources>

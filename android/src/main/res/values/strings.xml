@@ -1,33 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">Hammer</string>
-	<string name="title_activity_add_note">Add Note</string>
-	<string name="loading">Loading…</string>
-	<string name="title_activity_configure_note_widget">Configure Widget</string>
-
-	<string name="overflow_menu_button">More Menu</string>
-	<string name="navdrawer_button">Navigation Drawer</string>
-
-	<string name="note_widget_dialog_title">Add Note to:</string>
-	<string name="note_widget_dialog_save_button">Save</string>
-	<string name="note_widget_dialog_cancel_button">Cancel</string>
-	<string name="note_widget_dialog_projects_dropdown">Projects</string>
-	<string name="note_widget_dialog_failure_bad_project">Project not found: %1$s</string>
-	<string name="note_widget_confirm_cancel_title">Discard Note?</string>
-	<string name="note_widget_confirm_cancel_positive">Discard</string>
-	<string name="note_widget_confirm_cancel_negative">Cancel</string>
-
-	<string name="note_widget_button_description">Add Note</string>
-
-	<string name="note_widget_toast_no_projects">No projects</string>
-	<string name="note_widget_toast_success">Note Added</string>
-
-	<string name="action_add_note_short_label">Add Note</string>
-	<string name="action_add_note_long_label">Add Story Note</string>
-	<string name="action_add_note_disabled">Adding notes is disabled right now</string>
-	<string name="title_activity_add_note_widget_config">Configure Widget</string>
-
-	<string name="note_widget_config_title">Configure Note Width:</string>
-	<string name="note_widget_config_project_checkbox">Add notes to specified project</string>
-	<string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
+    <string name="app_name">Hammer</string>
+    <string name="title_activity_add_note">Add Note</string>
+    <string name="loading">Loading…</string>
+    <string name="title_activity_configure_note_widget">Configure Widget</string>
+    <string name="overflow_menu_button">More Menu</string>
+    <string name="navdrawer_button">Navigation Drawer</string>
+    <string name="note_widget_dialog_title">Add Note to:</string>
+    <string name="note_widget_dialog_save_button">Save</string>
+    <string name="note_widget_dialog_cancel_button">Cancel</string>
+    <string name="note_widget_dialog_projects_dropdown">Projects</string>
+    <string name="note_widget_dialog_failure_bad_project">Project not found: %1$s</string>
+    <string name="note_widget_confirm_cancel_title">Discard Note?</string>
+    <string name="note_widget_confirm_cancel_positive">Discard</string>
+    <string name="note_widget_confirm_cancel_negative">Cancel</string>
+    <string name="note_widget_button_description">Add Note</string>
+    <string name="note_widget_toast_no_projects">No projects</string>
+    <string name="note_widget_toast_success">Note Added</string>
+    <string name="action_add_note_short_label">Add Note</string>
+    <string name="action_add_note_long_label">Add Story Note</string>
+    <string name="action_add_note_disabled">Adding notes is disabled right now</string>
+    <string name="title_activity_add_note_widget_config">Configure Widget</string>
+    <string name="note_widget_config_title">Configure Note Widget:</string>
+    <string name="note_widget_config_project_checkbox">Add notes to specified project</string>
+    <string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
 </resources>

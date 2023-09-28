@@ -3,16 +3,16 @@
     <string name="project_home_stat_header">Estadísticas:</string>
     <string name="project_home_stat_num_scenes">Escenas</string>
     <string name="project_home_stat_total_words">Total de palabras</string>
-    <string name="project_home_stat_chapter_words">Palabras por capítulo</string>
+    <string name="project_home_stat_chapter_words">Palabras en los capítulos</string>
     <string name="project_home_stat_chapter_words_x_axis">Capítulo</string>
     <string name="project_home_stat_chapter_words_y_axis">Palabras</string>
     <string name="project_home_actions_header">Acciones:</string>
     <string name="project_home_action_export">Exportar historia</string>
     <string name="project_home_action_backup">Respaldo</string>
-    <string name="project_home_stat_encyclopedia_entries">Entradas de la enciclopedia</string>
+    <string name="project_home_stat_encyclopedia_entries">Entradas en la enciclopedia</string>
     <string name="project_home_action_export_toast_success">Historia exportada</string>
     <string name="project_home_stat_created">Creado: %1$s</string>
     <string name="project_home_action_backup_toast_success">Respaldo creado: %1$s</string>
-    <string name="project_home_action_backup_toast_failure">Respaldo fallido</string>
+    <string name="project_home_action_backup_toast_failure">Copia de seguridad fallida</string>
     <string name="project_home_action_sync">Sincronizar historia</string>
 </resources>

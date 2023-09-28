@@ -11,5 +11,14 @@
     <string name="scene_editor_unsaved_chip">Sin guardar</string>
     <string name="scene_editor_save_button">Guardar</string>
     <string name="scene_editor_toast_save_successful">Guardado</string>
-    <string name="scene_editor_body_placeholder">Comienza a escribir tu escena aquí</string>
+    <string name="scene_editor_body_placeholder">Empieza a escribir tu escena aquí</string>
+    <string name="scene_editor_menu_item_rename">Cambiar el nombre</string>
+    <string name="scene_editor_menu_group">Escena</string>
+    <string name="scene_editor_rename_dialog_title">Cambiar el nombre de la escena</string>
+    <string name="scene_editor_menu_item_save_draft">Guardar el borrador</string>
+    <string name="scene_editor_menu_item_close">Cerrar</string>
+    <string name="scene_editor_menu_item_save">Guardar</string>
+    <string name="scene_editor_menu_item_delete">Borrar</string>
+    <string name="scene_editor_menu_item_view_drafts">Ver los borradores</string>
+    <string name="scene_editor_menu_item_discard">Descartar</string>
 </resources>

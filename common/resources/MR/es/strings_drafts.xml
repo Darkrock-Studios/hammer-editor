@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="draft_compare_cancel_button">Cancelar</string>
-    <string name="draft_compare_current_body_placeholder">Comienza escribiendo tu escena aquí</string>
+    <string name="draft_compare_current_body_placeholder">Empieza a escribir tu escena aquí</string>
     <string name="draft_compare_draft_body_placeholder">Borrador</string>
     <string name="draft_list_close_button">Cerrar borrador</string>
     <string name="draft_list_empty">Ningún borrador encontrado</string>
-    <string name="draft_compare_current_subheader">Copia partes del borrador aquí</string>
+    <string name="draft_compare_current_subheader">Copia las partes del borrador aquí</string>
     <string name="draft_compare_draft_header">Borrador: %1$s</string>
     <string name="draft_list_header">%1$s Borrador:</string>
     <string name="draft_list_item_created">Creado: %1$s</string>
-    <string name="draft_compare_draft_accept_button">Tomar todo este borrador</string>
-    <string name="draft_compare_draft_subheader">Copiar las partes deseadas a la versión actual, o aceptar todo esto.</string>
+    <string name="draft_compare_draft_accept_button">Coge todo de este borrador</string>
+    <string name="draft_compare_draft_subheader">Copia las partes deseadas en la corriente, o aceptarlas todas.</string>
+    <string name="draft_compare_current_header">Fusionar con la actual</string>
+    <string name="draft_compare_current_accept_button">Seleccionar los fusionados</string>
+    <string name="scene_draft_invalid_name">Nombre no válido</string>
+    <string name="draft_compare_tab_title_draft">Borrador</string>
+    <string name="draft_compare_tab_title_current">Actual</string>
 </resources>
