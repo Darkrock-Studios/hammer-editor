@@ -13,6 +13,11 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileNotFoundException
 import okio.FileSystem
 
+/**
+ * The `timeline.toml` file was a lie. It actually stored json because the original
+ * Toml serialization library had problems with arrays. Now that is solved, so we want
+ * to convert the json to actual toml.
+ */
 class Migration0_1(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
