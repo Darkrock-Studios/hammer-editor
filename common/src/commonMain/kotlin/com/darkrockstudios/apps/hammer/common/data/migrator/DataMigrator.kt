@@ -49,7 +49,7 @@ open class DataMigrator(
 		}
 	}
 
-	fun migrateProject(projectData: ProjectData, migrators: Map<Int, Migration>) {
+	private fun migrateProject(projectData: ProjectData, migrators: Map<Int, Migration>) {
 		val projectDataVersion = projectData.projectMetadata.info.dataVersion
 		if (projectDataVersion < latestProjectDataVersion) {
 			for (version in projectDataVersion + 1..latestProjectDataVersion) {
