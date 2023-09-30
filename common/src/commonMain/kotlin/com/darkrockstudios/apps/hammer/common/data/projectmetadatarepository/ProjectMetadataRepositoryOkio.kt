@@ -64,6 +64,8 @@ class ProjectMetadataRepositoryOkio(
 			info = Info(
 				created = Clock.System.now(),
 				lastAccessed = Clock.System.now(),
+				// We don't know the version, start at 0 so all migrators will run
+				dataVersion = 0
 			)
 		)
 

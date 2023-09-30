@@ -1,7 +1,6 @@
 package repositories.timeline
 
 import PROJECT_EMPTY_NAME
-import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -21,7 +20,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
@@ -37,7 +35,6 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
-	lateinit var json: Json
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 
 	@Before
@@ -46,7 +43,6 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		json = createJsonSerializer()
 		projectSynchronizer = mockk()
 
 		val testModule = module {
@@ -65,7 +61,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		val timeline = TimeLineContainer(
 			events = events
 		)
-		val text = json.encodeToString(timeline)
+		val text = toml.encodeToString(timeline)
 
 		println(text)
 
@@ -85,7 +81,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepo,
 			fileSystem = ffs,
-			json = json
+			toml = toml,
 		).initialize()
 
 		advanceUntilIdle()
@@ -104,7 +100,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepo,
 			fileSystem = ffs,
-			json = json
+			toml = toml,
 		).initialize()
 
 		val timeline = repo.loadTimeline()
@@ -122,7 +118,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepo,
 			fileSystem = ffs,
-			json = json
+			toml = toml,
 		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null
@@ -154,7 +150,7 @@ class TimeLineRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepo,
 			fileSystem = ffs,
-			json = json
+			toml = toml,
 		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null

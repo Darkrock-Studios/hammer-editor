@@ -25,4 +25,5 @@ data class ProjectMetadata(
 data class Info(
 	val created: Instant,
 	val lastAccessed: Instant? = null,
+	val dataVersion: Int = 0 // Default to 0, if we don't know the version, assume its the oldest
 ) : Parcelable

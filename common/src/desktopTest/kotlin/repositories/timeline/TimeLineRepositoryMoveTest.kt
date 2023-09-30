@@ -104,12 +104,12 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		projectDef: ProjectDef,
 		startingEvents: List<TimeLineEvent> = fakeEvents(),
 	): TimeLineRepository {
-		writeEventsToDisk(projectDef, startingEvents, ffs, json)
+		writeEventsToDisk(projectDef, startingEvents, ffs, toml)
 
 		val repo = TimeLineRepositoryOkio(
 			projectDef = projectDef,
 			fileSystem = ffs,
-			json = json,
+			toml = toml,
 			idRepository = idRepo,
 		)
 		repo.initialize()

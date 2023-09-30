@@ -23,11 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -39,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -92,6 +88,8 @@ val mainModule = module {
 	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
 
 	singleOf(::ProjectMetadataRepositoryOkio) bind ProjectMetadataRepository::class
+
+	includes(migratorModule)
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }

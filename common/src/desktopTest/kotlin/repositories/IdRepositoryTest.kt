@@ -2,7 +2,6 @@ package repositories
 
 import PROJECT_1_NAME
 import PROJECT_EMPTY_NAME
-import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
@@ -16,7 +15,6 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
@@ -31,7 +29,6 @@ class IdRepositoryTest : BaseTest() {
 	private lateinit var idRepository: IdRepository
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var toml: Toml
-	private lateinit var json: Json
 
 	@Before
 	override fun setup() {
@@ -39,7 +36,6 @@ class IdRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		json = createJsonSerializer()
 		projectSynchronizer = mockk(relaxed = true)
 
 		val testModule = module {
@@ -60,7 +56,7 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
-		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, toml)
 
 		idRepository.findNextId()
 
@@ -72,7 +68,7 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
-		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, toml)
 
 		idRepository.findNextId()
 
@@ -86,7 +82,7 @@ class IdRepositoryTest : BaseTest() {
 		every { projectSynchronizer.isServerSynchronized() } returns true
 		coEvery { projectSynchronizer.deletedIds() } returns setOf(8)
 
-		idRepository = IdRepositoryOkio(getProject1Def(), ffs, json)
+		idRepository = IdRepositoryOkio(getProject1Def(), ffs, toml)
 
 		idRepository.findNextId()
 
@@ -105,7 +101,7 @@ class IdRepositoryTest : BaseTest() {
 			path = projectPath
 		)
 
-		idRepository = IdRepositoryOkio(projectDef, ffs, json)
+		idRepository = IdRepositoryOkio(projectDef, ffs, toml)
 
 		idRepository.findNextId()
 

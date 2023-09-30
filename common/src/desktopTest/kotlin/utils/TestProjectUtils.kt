@@ -16,6 +16,8 @@ const val PROJECT_1_NAME = "Test Project 1"
 const val PROJECT_2_NAME = "Test Project 2"
 const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
 const val ENCYCLOPEDIA_ONLY_PROJECT_NAME = "Encyclopedia Only"
+const val MIGRATION_0_1 = "Migration 0 to 1"
+const val MIGRATION_0_1_ALREADY = "Migration 0 to 1 Already"
 val projectNames = listOf(
 	PROJECT_EMPTY_NAME,
 	OUT_OF_ORDER_PROJECT_NAME,

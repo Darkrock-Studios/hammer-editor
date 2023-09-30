@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineCo
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 
 fun fakeEvents(): List<TimeLineEvent> {
@@ -23,10 +23,10 @@ fun writeEventsToDisk(
 	projectDef: ProjectDef,
 	events: List<TimeLineEvent>,
 	ffs: FakeFileSystem,
-	json: Json,
+	toml: Toml,
 ) {
 	val timeline = TimeLineContainer(events)
-	val serialized = json.encodeToString(TimeLineContainer.serializer(), timeline)
+	val serialized = toml.encodeToString(TimeLineContainer.serializer(), timeline)
 
 	val file = TimeLineRepositoryOkio.getTimelineFile(projectDef).toOkioPath()
 	ffs.createDirectories(file.parent!!)

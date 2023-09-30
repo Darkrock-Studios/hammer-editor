@@ -2,19 +2,18 @@ package com.darkrockstudios.apps.hammer.common.data.id
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.handler.*
-import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 
 class IdRepositoryOkio(
 	projectDef: ProjectDef,
 	fileSystem: FileSystem,
-	//toml: Toml
-	json: Json
+	toml: Toml,
 ) : IdRepository(projectDef) {
 	override val idHandlers: List<IdHandler> = listOf(
 		SceneIdHandlerOkio(fileSystem),
 		NotesIdHandlerOkio(fileSystem),
 		EncyclopediaIdHandlerOkio(fileSystem),
-		TimeLineEventIdHandlerOkio(fileSystem, json),
+		TimeLineEventIdHandlerOkio(fileSystem, toml),
 	)
 }

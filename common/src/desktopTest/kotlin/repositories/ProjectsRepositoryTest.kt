@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
@@ -52,6 +53,7 @@ class ProjectsRepositoryTest : BaseTest() {
 				info = Info(
 					created = Instant.DISTANT_FUTURE,
 					lastAccessed = Instant.DISTANT_FUTURE,
+					dataVersion = PROJECT_DATA_VERSION,
 				)
 			)
 

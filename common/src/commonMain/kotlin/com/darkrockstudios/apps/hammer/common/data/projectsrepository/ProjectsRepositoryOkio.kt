@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -89,6 +90,7 @@ class ProjectsRepositoryOkio(
 					info = Info(
 						created = Clock.System.now(),
 						lastAccessed = Clock.System.now(),
+						dataVersion = PROJECT_DATA_VERSION
 					)
 				)
 				projectsMetadataRepository.saveMetadata(metadata, newDef)

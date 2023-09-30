@@ -64,3 +64,10 @@ inline fun <reified T : Any> FileSystem.readToml(path: Path, toml: Toml, clazz: 
 		toml.decodeFromString(clazz.serializer(), tomlStr)
 	}
 }
+
+inline fun <reified T> FileSystem.writeToml(path: Path, toml: Toml, obj: T) {
+	write(path) {
+		val jsonStr = toml.encodeToString<T>(obj)
+		writeUtf8(jsonStr)
+	}
+}

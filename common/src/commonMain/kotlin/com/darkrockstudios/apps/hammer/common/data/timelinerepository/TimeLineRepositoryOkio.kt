@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.FileNotFoundException
 import okio.FileSystem
 
@@ -16,13 +16,12 @@ class TimeLineRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	private val fileSystem: FileSystem,
-	//private val toml: Toml,
-	private val json: Json,
+	private val toml: Toml,
 ) : TimeLineRepository(projectDef, idRepository) {
 
 	override suspend fun loadTimeline(): TimeLineContainer {
 		val path = getTimelineFile()
-		return loadTimeline(path, fileSystem, json)
+		return loadTimeline(path, fileSystem, toml)
 	}
 
 	override suspend fun createEvent(content: String, date: String?, id: Int?, order: Int?): TimeLineEvent {
@@ -81,7 +80,7 @@ class TimeLineRepositoryOkio(
 		scope.launch {
 			val path = getTimelineFile().toOkioPath()
 			fileSystem.write(path) {
-				val timeLineToml = json.encodeToString(timeLine)
+				val timeLineToml = toml.encodeToString(timeLine)
 				writeUtf8(timeLineToml)
 			}
 
@@ -144,14 +143,14 @@ class TimeLineRepositoryOkio(
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
 		}
 
-		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, json: Json): TimeLineContainer {
+		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer {
 			val path = hpath.toOkioPath()
 			return if (fileSystem.exists(path)) {
 				try {
 					fileSystem.read(path) {
 						val timelineToml = readUtf8()
 						if (timelineToml.isNotBlank()) {
-							json.decodeFromString(timelineToml)
+							toml.decodeFromString(timelineToml)
 						} else {
 							TimeLineContainer(emptyList())
 						}

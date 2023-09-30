@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
@@ -64,6 +65,8 @@ fun main(args: Array<String>) {
 		logger(NapierLogger())
 		modules(mainModule, imageLoadingModule, aboutLibrariesModule)
 	}
+
+	getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
 
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
