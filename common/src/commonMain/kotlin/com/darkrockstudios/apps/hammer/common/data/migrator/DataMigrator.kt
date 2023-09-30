@@ -10,6 +10,7 @@ import okio.Path.Companion.toPath
 import org.koin.mp.KoinPlatform.getKoin
 import kotlin.collections.set
 
+// This is only open for testing purposes
 open class DataMigrator(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val projectsRepository: ProjectsRepository,

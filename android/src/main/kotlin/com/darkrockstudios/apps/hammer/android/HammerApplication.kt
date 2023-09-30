@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.android
 
 import android.app.Application
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
@@ -10,6 +11,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
+import org.koin.java.KoinJavaComponent
 
 class HammerApplication : Application() {
 	override fun onCreate() {
@@ -24,5 +26,7 @@ class HammerApplication : Application() {
 			androidContext(this@HammerApplication)
 			modules(mainModule, imageLoadingModule, aboutLibrariesModule)
 		}
+
+		KoinJavaComponent.getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
 	}
 }
