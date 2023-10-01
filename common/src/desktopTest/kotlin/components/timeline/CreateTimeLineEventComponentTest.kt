@@ -8,7 +8,7 @@ import getProjectDef
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.slot
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import repositories.timeline.TimeLineTestBase
@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
 
 class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `Create event`() = runTest {
 		val id = 0
@@ -32,7 +31,7 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 			)
 		)
 		val timeline = TimeLineContainer(originalEvents)
-		coEvery { timelineRepo.loadTimeline() } returns timeline
+		coEvery { timelineRepo.timelineFlow.first() } returns timeline
 
 		val date = "date"
 		val content = "content"

@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -43,7 +44,7 @@ class ViewTimeLineEventComponent(
 	override fun onCreate() {
 		super.onCreate()
 
-		loadEvent()
+		loadInitialEvent()
 		watchTimeLine()
 	}
 
@@ -62,9 +63,9 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
-	private fun loadEvent() {
+	private fun loadInitialEvent() {
 		scope.launch {
-			val events = timeLineRepository.loadTimeline().events
+			val events = timeLineRepository.timelineFlow.first().events
 			val event = events.find { it.id == eventId }
 
 			withContext(mainDispatcher) {

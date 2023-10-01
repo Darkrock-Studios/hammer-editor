@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -26,7 +27,7 @@ class TimeLineRepositoryOkio(
 
 	override suspend fun createEvent(content: String, date: String?, id: Int?, order: Int?): TimeLineEvent {
 		val eventId = id ?: idRepository.claimNextId()
-		val timeline = loadTimeline()
+		val timeline = timelineFlow.first()
 
 		val event = TimeLineEvent(
 			id = eventId,
@@ -50,7 +51,7 @@ class TimeLineRepositoryOkio(
 	}
 
 	override suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean): Boolean {
-		val timeline = loadTimeline()
+		val timeline = timelineFlow.first()
 
 		val events = timeline.events.toMutableList()
 		val originalIndex = events.indexOfFirst { it.id == event.id }
@@ -89,7 +90,7 @@ class TimeLineRepositoryOkio(
 	}
 
 	override suspend fun deleteEvent(event: TimeLineEvent): Boolean {
-		val timeline = loadTimeline()
+		val timeline = timelineFlow.first()
 
 		val events = timeline.events.toMutableList()
 		val index = events.indexOfFirst { it.id == event.id }
@@ -115,7 +116,7 @@ class TimeLineRepositoryOkio(
 	}
 
 	override suspend fun reIdEvent(oldId: Int, newId: Int) {
-		val timeline = loadTimeline()
+		val timeline = timelineFlow.first()
 
 		val events = timeline.events.toMutableList()
 		val index = events.indexOfFirst { it.id == oldId }

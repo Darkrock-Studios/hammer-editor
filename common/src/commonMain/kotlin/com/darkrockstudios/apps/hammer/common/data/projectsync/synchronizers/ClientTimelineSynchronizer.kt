@@ -75,13 +75,14 @@ class ClientTimelineSynchronizer(
 			content = serverEntity.content,
 		)
 
-		timeLineRepository.updateEvent(event, false)
+		timeLineRepository.updateEventForSync(event)
 
 		return true
 	}
 
 	override suspend fun finalizeSync() {
-		timeLineRepository.loadTimeline()
+		timeLineRepository.correctEventOrder()
+		timeLineRepository.storeTimeline()
 	}
 
 	override fun getEntityType() = EntityType.TimelineEvent

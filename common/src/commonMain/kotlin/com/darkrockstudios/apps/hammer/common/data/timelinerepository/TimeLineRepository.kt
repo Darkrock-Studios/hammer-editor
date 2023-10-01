@@ -55,6 +55,24 @@ abstract class TimeLineRepository(
 	abstract suspend fun deleteEvent(event: TimeLineEvent): Boolean
 	abstract fun getTimelineFile(): HPath
 
+	suspend fun updateEventForSync(event: TimeLineEvent) {
+		val timeline = timelineFlow.replayCache.first()
+		val events = timeline.events.toMutableList()
+		val originalIndex = events.indexOfFirst { it.id == event.id }
+
+		if (originalIndex != -1) {
+			events[originalIndex] = event
+		} else {
+			events.add(event)
+		}
+
+		val updatedTimeline = timeline.copy(
+			events = events
+		)
+
+		_timelineFlow.emit(updatedTimeline)
+	}
+
 	fun storeTimeline() {
 		storeTimeline(timelineFlow.replayCache.first())
 	}
@@ -153,14 +171,14 @@ abstract class TimeLineRepository(
 	suspend fun correctEventOrder(timeline: TimeLineContainer? = null) {
 		val originalTimeline = timeline ?: timelineFlow.first()
 
-		val events = originalTimeline.events.toMutableList()
+		val events = originalTimeline.events
 		val updatedEvents = events.sortedBy { it.order }
 
 		val updatedTimeline = originalTimeline.copy(
 			events = updatedEvents
 		)
 
-		storeTimeline(updatedTimeline)
+		_timelineFlow.emit(updatedTimeline)
 	}
 
 	/*
