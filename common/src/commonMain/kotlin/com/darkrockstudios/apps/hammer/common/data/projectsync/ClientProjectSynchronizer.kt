@@ -546,13 +546,17 @@ class ClientProjectSynchronizer(
 	): Boolean {
 		var allSuccess = true
 
-		// Add local IDs on top of server sequence
+		// Add dirty IDs that are not already in the update sequence
+		val dirtyEntityIds = dirtyEntities
+			.map { it.id }
+			.filter { id -> !serverSyncData.idSequence.contains(id) }
+		// Add local IDs on top of the server sequence
 		val combinedSequence = if (maxId > serverSyncData.lastId) {
 			val localIds = (serverSyncData.lastId + 1..maxId).toList()
-			serverSyncData.idSequence + localIds
+			serverSyncData.idSequence + dirtyEntityIds + localIds
 		} else {
-			serverSyncData.idSequence
-		}
+			serverSyncData.idSequence + dirtyEntityIds
+		}.toSet()
 
 		val totalIds = combinedSequence.size
 		var currentIndex = 0
