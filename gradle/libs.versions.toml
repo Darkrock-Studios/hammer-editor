@@ -46,7 +46,7 @@ jetbrains_kover = "0.7.3"
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
 
-decompose = "2.1.0"
+decompose = "2.1.2"
 essenty = "1.2.0" # This should match what ever decompose is referncing internally
 parcelize_darwin = "0.2.2"
 
