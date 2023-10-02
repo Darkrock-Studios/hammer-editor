@@ -13,8 +13,16 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import getProjectDef
-import io.mockk.*
+import io.mockk.CapturingSlot
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.confirmVerified
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.datetime.Clock
 import org.junit.Before
 import org.koin.dsl.module
@@ -282,8 +290,8 @@ class DataMigratorTest : BaseTest() {
 			projectMetadataRepository = projectMetadataRepository,
 		) {
 			override val latestProjectDataVersion = maxVersion
-			override val getMigrators = {
-				mutableMapOf(
+			override fun getMigrators(): Map<Int, Migration> {
+				return mutableMapOf(
 					1 to migrator1,
 					2 to migrator2,
 					3 to migrator3,
@@ -369,8 +377,8 @@ class DataMigratorTest : BaseTest() {
 			projectMetadataRepository = projectMetadataRepository,
 		) {
 			override val latestProjectDataVersion = maxVersion
-			override val getMigrators = {
-				mutableMapOf(
+			override fun getMigrators(): Map<Int, Migration> {
+				return mutableMapOf(
 					1 to migrator1,
 					2 to migrator2,
 					3 to migrator3,

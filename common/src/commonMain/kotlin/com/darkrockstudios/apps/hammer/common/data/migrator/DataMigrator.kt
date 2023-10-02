@@ -17,7 +17,13 @@ open class DataMigrator(
 	private val projectMetadataRepository: ProjectMetadataRepository,
 ) {
 	protected open val latestProjectDataVersion: Int = PROJECT_DATA_VERSION
-	protected open val getMigrators: (() -> Map<Int, Migration>) = ::getProductionMigrators
+	protected open fun getMigrators(): Map<Int, Migration> {
+		val migrators = mutableMapOf<Int, Migration>()
+
+		getKoin().get<Migration0_1>().addToMap(migrators)
+
+		return migrators
+	}
 
 	private fun getProjects(): List<ProjectData> {
 		val projDir = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
@@ -76,11 +82,3 @@ private fun Migration.addToMap(migrators: MutableMap<Int, Migration>) {
 }
 
 data class ProjectData(val projectDef: ProjectDef, val projectMetadata: ProjectMetadata)
-
-fun getProductionMigrators(): Map<Int, Migration> {
-	val migrators = mutableMapOf<Int, Migration>()
-
-	getKoin().get<Migration0_1>().addToMap(migrators)
-
-	return migrators
-}
