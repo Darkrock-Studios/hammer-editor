@@ -301,7 +301,8 @@ private fun WordsInChaptersChart(
 			xAxisLabels = { index -> (index + 1).toString() },
 			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
 			yAxisLabels = { it.toInt().toString() },
-			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface)
+			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
+			panZoomEnabled = false,
 		) {
 			VerticalBarChart(series = listOf(entries))
 		}
