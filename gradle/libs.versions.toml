@@ -62,7 +62,7 @@ cokoin = "1.0.0"
 ktor = "2.3.4"
 ktor_i18n = "2.0.0"
 
-okio = "3.5.0"
+okio = "3.6.0"
 slf4jSimple = "2.0.9"
 uuid = "0.8.1"
 work-runtime-ktx = "2.8.1"
