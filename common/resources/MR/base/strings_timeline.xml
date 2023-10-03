@@ -18,7 +18,8 @@
 	<string name="timeline_view_close_button">Close Entry</string>
 	<string name="timeline_view_date_label">Date</string>
 	<string name="timeline_view_content_placeholder">Describe your event</string>
-	<string name="timeline_view_toast_save_success">Cancel</string>
+	<string name="timeline_view_toast_save_success">Saved</string>
+	<string name="timeline_view_toast_save_failure">Failed to save</string>
 
 	<string name="timeline_view_discard_title">Discard Changes?</string>
 	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
