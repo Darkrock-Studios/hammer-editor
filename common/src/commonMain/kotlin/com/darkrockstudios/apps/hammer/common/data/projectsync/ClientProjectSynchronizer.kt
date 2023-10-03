@@ -553,9 +553,9 @@ class ClientProjectSynchronizer(
 		// Add local IDs on top of the server sequence
 		val combinedSequence = if (maxId > serverSyncData.lastId) {
 			val localIds = (serverSyncData.lastId + 1..maxId).toList()
-			serverSyncData.idSequence + dirtyEntityIds + localIds
+			serverSyncData.idSequence + localIds
 		} else {
-			serverSyncData.idSequence + dirtyEntityIds
+			serverSyncData.idSequence
 		}.toSet()
 
 		val totalIds = combinedSequence.size
