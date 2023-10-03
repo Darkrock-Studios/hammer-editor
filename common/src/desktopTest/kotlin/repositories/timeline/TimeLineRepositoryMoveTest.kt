@@ -134,7 +134,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 
 		advanceUntilIdle()
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
-		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
+		assertEquals(3, newEvents.indexOfFirst { it.id == first.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
 	}
@@ -162,7 +162,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		advanceUntilIdle()
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
 
-		assertEquals(3, newEvents.indexOf(first), "Moved item was not at the correct position")
+		assertEquals(3, newEvents.indexOfFirst { it.id == first.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
 	}
@@ -177,7 +177,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		assertTrue("Move timeline event failed") { moved }
 		advanceUntilIdle()
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
-		assertEquals(4, newEvents.indexOf(first), "Moved item was not at the correct position")
+		assertEquals(4, newEvents.indexOfFirst { it.id == first.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9)
 	}
@@ -192,7 +192,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		assertTrue("Move timeline event failed") { moved }
 		advanceUntilIdle()
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
-		assertEquals(1, newEvents.indexOf(four), "Moved item was not at the correct position")
+		assertEquals(1, newEvents.indexOfFirst { it.id == four.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 0, 4, 1, 2, 3, 5, 6, 7, 8, 9)
 	}
@@ -207,7 +207,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		assertTrue("Move timeline event failed") { moved }
 		advanceUntilIdle()
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
-		assertEquals(2, newEvents.indexOf(four), "Moved item was not at the correct position")
+		assertEquals(2, newEvents.indexOfFirst { it.id == four.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 0, 1, 4, 2, 3, 5, 6, 7, 8, 9)
 	}
@@ -224,7 +224,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
 
 		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 0, 9)
-		assertEquals(8, newEvents.indexOf(zero), "Moved item was not at the correct position")
+		assertEquals(8, newEvents.indexOfFirst { it.id == zero.id }, "Moved item was not at the correct position")
 	}
 
 	@Test
@@ -239,7 +239,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
 
 		verifyEventSequence(newEvents, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
-		assertEquals(9, newEvents.indexOf(zero), "Moved item was not at the correct position")
+		assertEquals(9, newEvents.indexOfFirst { it.id == zero.id }, "Moved item was not at the correct position")
 	}
 
 	@Test
@@ -254,7 +254,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
 
 		verifyEventSequence(newEvents, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8)
-		assertEquals(0, newEvents.indexOf(ten), "Moved item was not at the correct position")
+		assertEquals(0, newEvents.indexOfFirst { it.id == ten.id }, "Moved item was not at the correct position")
 	}
 
 	@Test
@@ -270,6 +270,6 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
 
 		verifyEventSequence(newEvents, 0, 9, 1, 2, 3, 4, 5, 6, 7, 8)
-		assertEquals(1, newEvents.indexOf(ten), "Moved item was not at the correct position")
+		assertEquals(1, newEvents.indexOfFirst { it.id == ten.id }, "Moved item was not at the correct position")
 	}
 }

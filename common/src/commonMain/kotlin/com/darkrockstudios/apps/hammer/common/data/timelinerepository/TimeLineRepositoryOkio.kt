@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
@@ -77,16 +76,14 @@ class TimeLineRepositoryOkio(
 		return true
 	}
 
-	override fun storeTimeline(timeLine: TimeLineContainer) {
-		scope.launch {
-			val path = getTimelineFile().toOkioPath()
-			fileSystem.write(path) {
-				val timeLineToml = toml.encodeToString(timeLine)
-				writeUtf8(timeLineToml)
-			}
-
-			_timelineFlow.emit(timeLine)
+	override suspend fun storeTimeline(timeLine: TimeLineContainer) {
+		val path = getTimelineFile().toOkioPath()
+		fileSystem.write(path) {
+			val timeLineToml = toml.encodeToString(timeLine)
+			writeUtf8(timeLineToml)
 		}
+
+		_timelineFlow.emit(timeLine)
 	}
 
 	override suspend fun deleteEvent(event: TimeLineEvent): Boolean {

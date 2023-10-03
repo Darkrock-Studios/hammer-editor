@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okio.Closeable
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -45,15 +46,19 @@ abstract class TimeLineRepository(
 			_timelineFlow.emit(timeline)
 		}
 
+		//saveOnChange()
+
 		return this
 	}
 
 	abstract suspend fun loadTimeline(): TimeLineContainer
 	abstract suspend fun createEvent(content: String, date: String?, id: Int? = null, order: Int? = null): TimeLineEvent
 	abstract suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean
-	protected abstract fun storeTimeline(timeLine: TimeLineContainer)
+	protected abstract suspend fun storeTimeline(timeLine: TimeLineContainer)
 	abstract suspend fun deleteEvent(event: TimeLineEvent): Boolean
 	abstract fun getTimelineFile(): HPath
+
+	//private var saveJob: Job? = null
 
 	suspend fun updateEventForSync(event: TimeLineEvent) {
 		val timeline = timelineFlow.replayCache.first()
@@ -73,7 +78,7 @@ abstract class TimeLineRepository(
 		_timelineFlow.emit(updatedTimeline)
 	}
 
-	fun storeTimeline() {
+	suspend fun storeTimeline() {
 		storeTimeline(timelineFlow.replayCache.first())
 	}
 
@@ -81,11 +86,20 @@ abstract class TimeLineRepository(
 		return timelineFlow.first().events.firstOrNull { it.id == id }
 	}
 
+//	private fun saveOnChange() {
+//		saveJob = scope.launch {
+//			timelineFlow.debounceUntilQuiescent(1000.milliseconds).collect { timeline ->
+//				storeTimeline(timeline)
+//			}
+//		}
+//	}
+
 	override fun close() {
-		timelineFlow.replayCache.lastOrNull()?.let { timeLineContainer ->
-			storeTimeline(timeLineContainer)
+		runBlocking {
+			storeTimeline(timelineFlow.first())
 		}
 
+		//saveJob?.cancel()
 		scope.cancel()
 	}
 
@@ -93,9 +107,6 @@ abstract class TimeLineRepository(
 
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		val originalTimeline = timelineFlow.first()
-
-		val originalEventOrder =
-			originalTimeline.events.mapIndexed { index, originalEvent -> Pair(originalEvent.id, index) }.toMap()
 
 		val events = originalTimeline.events.toMutableList()
 		val fromIndex = events.indexOfFirst { it.id == event.id }
@@ -128,28 +139,23 @@ abstract class TimeLineRepository(
 			}
 
 			if (moved) {
+				for (ii in 0..<events.size) {
+					val curEvent = events[ii]
+					if (curEvent.order != ii) {
+						// Set the correct new order for this event
+						events[ii] = curEvent.copy(order = ii)
+
+						// Mark for synchronization
+						val originalEvent = originalTimeline.events.first { it.id == curEvent.id }
+						markForSynchronization(originalEvent, originalEvent.order)
+					}
+				}
+
 				val updatedTimeline = originalTimeline.copy(
 					events = events
 				)
 
 				storeTimeline(updatedTimeline)
-
-				// Calculate events to be marked for update
-				val newEventOrder =
-					updatedTimeline.events.mapIndexed { index, updatedEvent -> Pair(updatedEvent.id, index) }
-				val changedOrder = newEventOrder.mapNotNull { (id, index) ->
-					if (originalEventOrder[id] != index) {
-						id
-					} else {
-						null
-					}
-				}
-				// Mark them for sync
-				changedOrder.forEach { id ->
-					val originalEvent = originalTimeline.events.first { it.id == id }
-					val originalOrder = originalEventOrder[id] ?: -1
-					markForSynchronization(originalEvent, originalOrder)
-				}
 			}
 
 			moved
@@ -168,6 +174,9 @@ abstract class TimeLineRepository(
 		}
 	}
 
+	/**
+	 * Sort the states by their order value, rather than the actual place in the serialized file.
+	 */
 	suspend fun correctEventOrder(timeline: TimeLineContainer? = null) {
 		val originalTimeline = timeline ?: timelineFlow.first()
 
@@ -180,16 +189,6 @@ abstract class TimeLineRepository(
 
 		_timelineFlow.emit(updatedTimeline)
 	}
-
-	/*
-	private fun saveOnChange() {
-		saveJob = scope.launch {
-			timelineFlow.debounceUntilQuiescent(1000.milliseconds).collect { timeline ->
-				storeTimeline()
-			}
-		}
-	}
-	*/
 
 	companion object {
 		const val TIMELINE_FILENAME = "timeline.toml"

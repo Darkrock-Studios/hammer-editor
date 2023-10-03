@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -28,20 +27,10 @@ class TimeLineOverviewComponent(
 	private val _state = MutableValue(TimeLineOverview.State(timeLine = null))
 	override val state: Value<TimeLineOverview.State> = _state
 
-	private var saveJob: Job? = null
-
 	override fun onCreate() {
 		super.onCreate()
 
 		watchTimeLine()
-	}
-
-	override fun onDestroy() {
-		super.onDestroy()
-
-		saveJob?.cancel()
-		// Save final
-		timeLineRepository.storeTimeline()
 	}
 
 	private fun watchTimeLine() {
