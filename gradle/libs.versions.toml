@@ -17,7 +17,7 @@ android_sdk_target = "34"
 android_sdk_min = "26"
 
 # Other libraries
-activity-compose = "1.7.2"
+activity-compose = "1.8.0"
 androidx-runner = "1.5.2"
 androidx-datastore = "1.0.0"
 appcompat = "1.6.1"
