@@ -97,6 +97,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 				""
 			}
 			assertEquals(event.id, expectedIds[index], "Timeline events out of order\n$info\n")
+			assertEquals(index, event.order, "Timeline Event Order incorrect")
 		}
 	}
 
