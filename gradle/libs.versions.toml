@@ -59,7 +59,7 @@ koin_bom = "3.5.1"
 
 cokoin = "1.0.0"
 
-ktor = "2.3.4"
+ktor = "2.3.5"
 ktor_i18n = "2.0.0"
 
 okio = "3.6.0"
