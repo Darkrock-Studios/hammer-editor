@@ -20,4 +20,5 @@
     <string name="scene_editor_menu_item_discard">Forkast</string>
     <string name="scene_editor_menu_item_save">Lagre</string>
     <string name="scene_editor_menu_item_close">Lukk</string>
+    <string name="scene_editor_menu_item_delete">Slett</string>
 </resources>
