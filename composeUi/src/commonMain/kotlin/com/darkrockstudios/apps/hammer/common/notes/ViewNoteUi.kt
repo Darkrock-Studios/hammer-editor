@@ -1,32 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -36,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
-import com.darkrockstudios.apps.hammer.common.data.text.markdownToAnnotatedString
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +36,9 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val noteText by component.noteText.subscribeAsState()
+	val annotatedNoteText = remember(noteText) {
+		AnnotatedString.Builder(noteText).toAnnotatedString()
+	}
 
 	Card(
 		modifier = modifier.padding(Ui.Padding.XL)
@@ -137,7 +126,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 					}
 				} else {
 					ClickableText(
-						noteText.markdownToAnnotatedString(),
+						annotatedNoteText,
 						modifier = Modifier.weight(1f),
 						style = MaterialTheme.typography.bodyMedium
 							.copy(color = MaterialTheme.colorScheme.onSurface),
