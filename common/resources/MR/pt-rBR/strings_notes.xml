@@ -18,4 +18,5 @@
     <string name="notes_delete_toast_success">A Nota %1$s foi Deletada</string>
     <string name="notes_note_item_action_delete">Deletar</string>
     <string name="notes_delete_message">Esta ação não pode ser desfeita!</string>
+    <string name="notes_view_header">Nota</string>
 </resources>

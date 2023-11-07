@@ -15,4 +15,5 @@
     <string name="draft_list_header">%1$s Rascunhos:</string>
     <string name="draft_compare_tab_title_draft">Rascunho</string>
     <string name="draft_compare_tab_title_current">Atual</string>
+    <string name="scene_draft_invalid_name">Nome inválido</string>
 </resources>
