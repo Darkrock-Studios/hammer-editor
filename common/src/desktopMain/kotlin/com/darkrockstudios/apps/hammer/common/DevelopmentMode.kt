@@ -5,4 +5,4 @@ fun setInDevelopmentMode(isDevelopment: Boolean) {
 	isDevelopmentMode = isDevelopment
 }
 
-actual fun getInDevelopmentMode() = isDevelopmentMode
+actual fun getInDevelopmentMode(): Boolean = isDevelopmentMode

@@ -1,3 +1,3 @@
 package com.darkrockstudios.apps.hammer.common
 
-actual fun getInDevelopmentMode() = BuildConfig.DEBUG
+actual fun getInDevelopmentMode(): Boolean = BuildConfig.DEBUG
