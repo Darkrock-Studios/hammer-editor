@@ -17,15 +17,14 @@ struct ProjectRootUi: View {
     
     private let component: ProjectRoot
 
-    @ObservedObject
-    private var routerState: ObservableValue<ChildStack<AnyObject, ProjectRootDestination<AnyObject>>>
-    private var stack: ChildStack<AnyObject, ProjectRootDestination<AnyObject>> { routerState.value }
+    private var routerState: StateValue<ChildStack<AnyObject, ProjectRootDestination<AnyObject>>>
+    private var stack: ChildStack<AnyObject, ProjectRootDestination<AnyObject>> { routerState.wrappedValue }
     
-    private var activeDestination: ProjectRootDestination<AnyObject> { routerState.value.active.instance }
+    private var activeDestination: ProjectRootDestination<AnyObject> { routerState.wrappedValue.active.instance }
     
     init(component: ProjectRoot, closeProject: @escaping () -> Void) {
         self.component = component
-        self.routerState = ObservableValue(component.routerState)
+        self.routerState = StateValue(component.routerState)
     }
     
     func destinationTitle(destination: ProjectRootDestination<some AnyObject>) -> String {
@@ -74,7 +73,9 @@ struct ProjectRootUi: View {
                 getTitle: { (destination) -> String in
                     destinationTitle(destination: destination)
                 },
-                onBack: {}, //stack.active.instance.onBack,
+                onBack: { (toIndex) in
+                    
+                }, //stack.active.instance.onBack,
                 childContent: { destination in
 
                     switch destination.component {
