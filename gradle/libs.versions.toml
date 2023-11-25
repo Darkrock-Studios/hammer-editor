@@ -39,14 +39,14 @@ serialization_json = "1.6.1"
 coroutines = "1.7.3"
 datetime = "0.4.1"
 napier = "2.6.1"
-jetpack_compose_compiler = "1.5.2"
+jetpack_compose_compiler = "1.5.4"
 jetbrains_compose = "1.5.11"
 jetbrains_kover = "0.7.4"
 
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
 
-decompose = "2.1.4"
+decompose = "2.2.0-beta02"
 essenty = "1.3.0" # This should match what ever decompose is referncing internally
 parcelize_darwin = "0.2.3"
 

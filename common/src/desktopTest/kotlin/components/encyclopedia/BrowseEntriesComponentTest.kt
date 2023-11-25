@@ -11,12 +11,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import getProject1Def
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.every
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
-import io.mockk.just
-import io.mockk.slot
 import korlibs.io.async.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -60,6 +56,8 @@ class BrowseEntriesComponentTest : BaseTest() {
 			single { encyclopediaRepository } bind EncyclopediaRepository::class
 		}
 		setupKoin(testModule)
+
+		every { lifecycle.state } returns Lifecycle.State.STARTED
 
 		every { context.lifecycle } returns lifecycle
 		every { context.backHandler } returns backHandler

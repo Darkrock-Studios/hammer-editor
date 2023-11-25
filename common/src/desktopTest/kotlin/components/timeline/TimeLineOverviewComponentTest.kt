@@ -76,6 +76,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 		}
 		setupKoin(testModule)
 
+		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
 		every {
 			lifecycle.subscribe(capture(lifecycleCallbacks))

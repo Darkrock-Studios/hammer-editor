@@ -60,6 +60,7 @@ abstract class TimeLineTestBase : BaseTest() {
 		//every { globalSettingsRepo.globalSettingsUpdates getProperty "globalSettingsUpdates" } propertyType SharedFlow::class answers { globalSettingsUpdates }
 		//every { globalSettingsRepo.globalSettingsUpdates } propertyType SharedFlow::class answers { globalSettingsUpdates }
 
+		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
 		every {
 			lifecycle.subscribe(capture(lifecycleCallbacks))

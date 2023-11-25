@@ -49,6 +49,7 @@ class ViewEntryComponentTest : BaseTest() {
 		}
 		setupKoin(testModule)
 
+		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
 		every { context.backHandler } returns backHandler
 		every { context.stateKeeper } returns stateKeeper
