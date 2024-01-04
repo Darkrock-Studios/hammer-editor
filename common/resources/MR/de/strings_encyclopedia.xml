@@ -19,7 +19,7 @@
     <string name="encyclopedia_create_entry_discard_title">Neuen Eintrag verwerfen\?</string>
     <string name="encyclopedia_entry_load_error">Fehler: Eintrag konnte nicht geladen werden!</string>
     <string name="encyclopedia_entry_body_empty_placeholder">Eintrag beschreiben</string>
-    <string name="encyclopedia_search_hint">Nach Name suchen</string>
+    <string name="encyclopedia_search_hint">Suche nach Name oder #hastag</string>
     <string name="encyclopedia_search_clear_button">Zurücksetzen</string>
     <string name="encyclopedia_entry_body_empty_label">Klicken um Beschreibung einzugeben</string>
     <string name="encyclopedia_entry_edit_cancel_button">Abbrechen</string>
@@ -38,4 +38,13 @@
     <string name="encyclopedia_entry_menu_delete">Eintrag Löschen</string>
     <string name="encyclopedia_entry_menu_remove_image">Bild Entfernen</string>
     <string name="encyclopedia_entry_menu_add_image">Bild Hinzufügen</string>
+    <string name="encyclopedia_entry_add_tags_button">Schlagwörter hinzufügen</string>
+    <string name="encyclopedia_category_thing">Sache</string>
+    <string name="encyclopedia_category_person">Person</string>
+    <string name="encyclopedia_entry_add_tags_dialog_title">Schlagwörter hinzufügen</string>
+    <string name="encyclopedia_category_idea">Idee</string>
+    <string name="encyclopedia_category_place">Platz</string>
+    <string name="encyclopedia_entry_add_tag">Hinzufügen</string>
+    <string name="encyclopedia_category_event">Begebenheit</string>
+    <string name="encyclopedia_create_entry_toast_tag_too_short">Schlagwort ist zu kurz</string>
 </resources>

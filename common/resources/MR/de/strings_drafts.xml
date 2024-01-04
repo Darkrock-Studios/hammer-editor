@@ -13,4 +13,7 @@
     <string name="draft_compare_draft_subheader">Kopieren der gewünschten Teile in den aktuellen Text, oder alles übernehmen.</string>
     <string name="draft_compare_draft_accept_button">Den ganzen Entwurf übernehmen</string>
     <string name="draft_compare_current_header">Mit aktuellem Text zusammenführen</string>
+    <string name="scene_draft_invalid_name">Ungültiger Name</string>
+    <string name="draft_compare_tab_title_draft">Entwurf</string>
+    <string name="draft_compare_tab_title_current">Derzeitig</string>
 </resources>

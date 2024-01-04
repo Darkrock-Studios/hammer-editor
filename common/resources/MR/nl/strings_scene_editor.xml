@@ -3,4 +3,22 @@
     <string name="save_draft_dialog_title">Ontwerp opslaan:</string>
     <string name="save_draft_dialog_name_hint">Naam ontwerp</string>
     <string name="save_draft_dialog_save_button">Opslaan</string>
+    <string name="scene_editor_rename_dialog_title">Hernoem scene</string>
+    <string name="save_draft_dialog_cancel_button">Annuleren</string>
+    <string name="save_draft_dialog_toast_success">Ontwerp opgeslagen</string>
+    <string name="scene_editor_toast_save_successful">Opgeslagen</string>
+    <string name="scene_editor_menu_item_rename">Hernoemen</string>
+    <string name="scene_editor_body_placeholder">Begin hier met het schrijven van uw scène</string>
+    <string name="scene_editor_menu_group">Scène</string>
+    <string name="scene_editor_name_hint">Naam scène</string>
+    <string name="scene_editor_menu_item_save_draft">Ontwerp opslaan</string>
+    <string name="scene_editor_menu_item_close">Sluiten</string>
+    <string name="scene_editor_menu_item_save">Opslaan</string>
+    <string name="scene_editor_unsaved_chip">Onopgeslagen</string>
+    <string name="scene_editor_menu_item_delete">Verwijderen</string>
+    <string name="scene_editor_menu_item_view_drafts">Ontwerpen bekijken</string>
+    <string name="scene_editor_rename_button">Hernoemen</string>
+    <string name="scene_editor_cancel_button">Annuleren</string>
+    <string name="scene_editor_save_button">Opslaan</string>
+    <string name="scene_editor_menu_item_discard">Weggooien</string>
 </resources>

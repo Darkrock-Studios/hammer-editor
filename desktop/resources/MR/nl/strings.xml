@@ -3,4 +3,6 @@
     <string name="account_window_title">Hamer - Projectselectie</string>
     <string name="project_window_title">Hamer - %1$s</string>
     <string name="project_window_menu_file">Bestand</string>
+    <string name="project_window_menu_item_exit">Sluit</string>
+    <string name="project_window_menu_item_close">Sluit project</string>
 </resources>

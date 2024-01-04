@@ -3,4 +3,20 @@
     <string name="notes_header">Notities</string>
     <string name="notes_list_empty">Geen notities gevonden</string>
     <string name="notes_create_note_button">Notitie creëren</string>
+    <string name="notes_note_item_action_delete">Verwijder</string>
+    <string name="notes_note_item_action_rename">Hernoem</string>
+    <string name="notes_note_item_action_cancel">Annuleren</string>
+    <string name="notes_create_header">Maak notitie</string>
+    <string name="notes_delete_message">Deze actie kan niet ongedaan worden gemaakt!</string>
+    <string name="notes_delete_toast_success">Opmerking %1$s verwijderd</string>
+    <string name="notes_create_toast_empty">Notitie was leeg</string>
+    <string name="notes_discard_dialog_title">Wijzigingen weggooien?</string>
+    <string name="notes_create_toast_too_long">Opmerking was te lang</string>
+    <string name="notes_create_cancel_button">Annuleren</string>
+    <string name="notes_view_header">Opmerking/notitie</string>
+    <string name="notes_create_create_button">Creëren</string>
+    <string name="notes_create_toast_success">Notitie gemaakt</string>
+    <string name="notes_delete_title">Opmerking verwijderen?</string>
+    <string name="notes_create_body_hint">Nieuwe opmerking/notitie:</string>
+    <string name="notes_discard_dialog_message">Alle wijzigingen die je hebt aangebracht, zullen verloren worden.</string>
 </resources>

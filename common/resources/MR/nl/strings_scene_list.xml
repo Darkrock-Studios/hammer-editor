@@ -3,4 +3,17 @@
     <string name="scene_list_header">Scènes:</string>
     <string name="scene_list_create_group_button">Groep creëren</string>
     <string name="scene_list_create_scene_button">Scène creëren</string>
+    <string name="scene_list_create_group_dialog_message">Groepsnaam</string>
+    <string name="scene_list_create_scene_dialog_title">Maak scene</string>
+    <string name="scene_list_create_group_dialog_title">Maak groep</string>
+    <string name="scene_list_create_scene_dialog_message">Naam scène</string>
+    <string name="group_cannot_delete_dialog_title">Groep kan niet worden verwijderd</string>
+    <string name="scene_group_item_collapsed">Groep ingevouwen</string>
+    <string name="scene_delete_dialog_dismiss_button">Verwerpen</string>
+    <string name="create_sceneitem_dialog_create_button">Creëren</string>
+    <string name="create_sceneitem_dialog_dismiss_button">Annuleren</string>
+    <string name="scene_delete_dialog_delete_button">Verwijderen</string>
+    <string name="scene_group_item_expanded">Groep uitgebreid</string>
+    <string name="scene_delete_dialog_title">Scène verwijderen</string>
+    <string name="scene_delete_dialog_message">Weet u zeker dat u deze scène wilt verwijderen: %1$s</string>
 </resources>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_heading">설정</string>
+    <string name="settings_projects_directory">프로젝트 폴더</string>
+    <string name="settings_theme_label">UI 테마</string>
+    <string name="settings_projects_directory_hint">프로젝트 폴더 경로</string>
+    <string name="settings_projects_directory_button">폴더 선택</string>
+    <string name="settings_example_project_header">예제 프로젝트</string>
+    <string name="settings_server_auto_sync">자동-동기화</string>
+    <string name="settings_example_project_button">재설치</string>
+    <string name="settings_server_authtest_toast_success">인증 테스트 성공</string>
+    <string name="settings_server_setup_create_button">만들기</string>
+    <string name="settings_server_modify_button">수정</string>
+    <string name="settings_server_setup_password_show">비밀번호 보이기</string>
+    <string name="settings_server_setup_cancel_button">취소</string>
+    <string name="settings_server_remove_server_button">서버 삭제</string>
+    <string name="remove_local_dialog_title">로컬 콘텐츠를 제거하시겠습니까?</string>
+    <string name="settings_server_max_backups">프로젝트 당 최대 백업 수</string>
+    <string name="settings_server_setup_password_hide">비밀번호 숨기기</string>
+    <string name="settings_example_project_description">기능이 어떻게 사용되는지 확인하시려면, 예제 프로젝트를 설치하세요.</string>
+    <string name="settings_example_project_success_message">예제 프로젝트가 생성되었습니다.</string>
+    <string name="settings_remove_server_dialog_message">서버를 삭제해도 후회하지 않으시겠습니까?</string>
+    <string name="settings_server_header">서버</string>
+    <string name="settings_remove_server_dialog_title">서버 삭제</string>
+    <string name="settings_server_setup_password_hint">Password</string>
+    <string name="settings_server_url_label">URL:</string>
+    <string name="settings_server_setup_toast_failure_unknown">알수 없는 오류</string>
+    <string name="settings_server_setup_header">서버 구성</string>
+    <string name="settings_server_setup_toast_success">서버 설정 성공!</string>
+    <string name="settings_server_setup_login_button">로그인</string>
+    <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
+    <string name="settings_data_version">Data: v%1$s</string>
+    <string name="settings_server_setup_url_hint">Server URL: myserver.com</string>
+    <string name="settings_server_description">다른 기기랑 동기화하기 위한 서버를 설정합니다.</string>
+    <string name="settings_server_setup_ssl_label">HTTPS?</string>
+    <string name="settings_server_sync_backup">동기화시 백업</string>
+    <string name="settings_server_reauth_button">다시 인증하기</string>
+    <string name="settings_server_sync_auto_close">성공시 동기화 대화창 닫기</string>
+    <string name="settings_server_email_label">E-mail:</string>
+    <string name="settings_server_unknown_error">오류</string>
+    <string name="settings_server_authtest_toast_failure">인증 테스트 실패</string>
+    <string name="settings_server_setup_toast_failure">서버 설정 실패: %1$s</string>
+    <string name="settings_server_test_auth_button">인증 테스트</string>
+    <string name="settings_server_setup_title">서버 설정</string>
+    <string name="settings_server_setup_button">설정</string>
+    <string name="remove_local_dialog_message">동기화하기 전에 현재 로컬 콘텐츠를 제거할까요? 제거하지 않으면, 서버 콘텐츠와 로컬 콘텐츠를 병합하려고 시도할 것입니다. 만약 콘텐츠가 관련이 없다면 문제가 발생할 수 있습니다.</string>
+</resources>

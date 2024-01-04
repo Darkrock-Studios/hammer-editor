@@ -14,8 +14,9 @@
     <string name="notes_create_toast_success">Notiz erstellt</string>
     <string name="notes_create_toast_empty">Notiz ist leer</string>
     <string name="notes_delete_title">Notiz löschen\?</string>
-    <string name="notes_delete_message">Notiz kann nicht wiederhergestellt werden!</string>
+    <string name="notes_delete_message">Diese Aktion kann nicht rückgängig gemacht werden!</string>
     <string name="notes_delete_toast_success">Notiz %1$s gelöscht</string>
     <string name="notes_discard_dialog_message">Alle Änderungen werden verloren gehen.</string>
     <string name="notes_create_toast_too_long">Notiz war zu lang</string>
+    <string name="notes_view_header">Notiz</string>
 </resources>

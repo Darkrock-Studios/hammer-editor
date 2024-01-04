@@ -3,4 +3,29 @@
     <string name="project_select_list_header">Projecten:</string>
     <string name="project_select_card_delete_button">Verwijderen</string>
     <string name="project_select_project_list_empty">Geen projecten gevonden</string>
+    <string name="projects_list_sync_button">Synchronizeer projecten</string>
+    <string name="projects_list_create_button">Maak project</string>
+    <string name="projects_list_toast_sync_complete">Projecten gesynchroniseerd</string>
+    <string name="create_project_title">Project creëren</string>
+    <string name="delete_project_confirm">Verwijderen</string>
+    <string name="account_sync_log_title">Synchronisatielogboek</string>
+    <string name="create_project_error_blank">De projectnaam is leeg gelaten</string>
+    <string name="account_sync_dialog_header">Account Sync</string>
+    <string name="create_project_error_invalid_characters">De projectnaam bevat ongeldige tekens</string>
+    <string name="account_sync_dialog_status_canceled">Geannuleerd</string>
+    <string name="create_project_error_already_exists">Project bestaat reeds</string>
+    <string name="account_sync_dialog_status_complete">Synchronisatie voltooid</string>
+    <string name="projects_list_toast_sync_failed">Synchronisatie van projecten mislukt</string>
+    <string name="create_project_button">Project creëren</string>
+    <string name="delete_project_title">Project verwijderen</string>
+    <string name="account_sync_dialog_status_error">Fout</string>
+    <string name="account_sync_dialog_cancel_button">Annuleren</string>
+    <string name="create_project_error_too_long">Projectnaam is te lang</string>
+    <string name="account_sync_dialog_title">Synchronisatie</string>
+    <string name="delete_project_message">Weet u zeker dat u dit project wilt verwijderen?
+\n%1$s</string>
+    <string name="delete_project_cancel">Annuleren</string>
+    <string name="create_project_error_null_filename">Ontbrekende projectnaam</string>
+    <string name="create_project_heading">Nieuwe projectnaam</string>
+    <string name="account_sync_dialog_status_pending">In afwachting van</string>
 </resources>

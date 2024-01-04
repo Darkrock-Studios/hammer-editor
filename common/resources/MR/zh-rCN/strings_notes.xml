@@ -18,4 +18,5 @@
     <string name="notes_create_body_hint">新笔记:</string>
     <string name="notes_create_create_button">新建</string>
     <string name="notes_create_cancel_button">取消</string>
+    <string name="notes_view_header">笔记</string>
 </resources>

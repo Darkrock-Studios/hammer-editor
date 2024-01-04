@@ -3,4 +3,16 @@
     <string name="project_home_stat_header">Gegevens:</string>
     <string name="project_home_stat_created">Gecreëerd: %1$s</string>
     <string name="project_home_stat_num_scenes">Scènes</string>
+    <string name="project_home_stat_encyclopedia_entries">Encyclopedie ingang</string>
+    <string name="project_home_stat_chapter_words">Aantal woorden per hoofdstuk</string>
+    <string name="project_home_stat_total_words">Totaal aantal woorden</string>
+    <string name="project_home_stat_chapter_words_y_axis">Worden</string>
+    <string name="project_home_action_backup_toast_success">Reservekopie gemaakt: %1$s</string>
+    <string name="project_home_action_export_toast_success">Verhaal geëxporteerd</string>
+    <string name="project_home_action_export">Verhaal exporteren</string>
+    <string name="project_home_action_backup_toast_failure">Reservekopie mislukt</string>
+    <string name="project_home_action_sync">Verhaal synchroniseren</string>
+    <string name="project_home_action_backup">Reservekopie</string>
+    <string name="project_home_actions_header">Handelingen:</string>
+    <string name="project_home_stat_chapter_words_x_axis">Hoofdstuk</string>
 </resources>

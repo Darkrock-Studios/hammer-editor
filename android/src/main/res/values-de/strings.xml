@@ -14,14 +14,14 @@
     <string name="note_widget_toast_success">Notiz hinzugefügt</string>
     <string name="note_widget_dialog_cancel_button">Abbrechen</string>
     <string name="note_widget_confirm_cancel_title">Notiz verwerfen\?</string>
-    <string name="note_widget_confirm_cancel_negative">Nein</string>
+    <string name="note_widget_confirm_cancel_negative">Abbrechen</string>
     <string name="note_widget_config_project_checkbox">Notizen dem gewählten Projekt hinzufügen</string>
     <string name="note_widget_dialog_failure_bad_project">Projekt konnte nicht gefunden werden: %1$s</string>
     <string name="action_add_note_short_label">Neue Notiz</string>
-    <string name="note_widget_confirm_cancel_positive">Ja</string>
+    <string name="note_widget_confirm_cancel_positive">Ablegen</string>
     <string name="title_activity_add_note_widget_config">Widget bearbeiten</string>
     <string name="action_add_note_disabled">Das Hinzufügen von Notizen ist deaktiviert</string>
     <string name="note_widget_config_project_checkbox_explained">Wenn kein Projekt gewählt ist, wird jedes Mal gefragt für welches Projekt die Notiz ist.</string>
     <string name="action_add_note_long_label">Neue Notiz hinzufügen</string>
-    <string name="note_widget_config_title">Notiz-Widget bearbeiten:</string>
+    <string name="note_widget_config_title">Notiz-Widget konfigurieren:</string>
 </resources>

@@ -3,4 +3,25 @@
     <string name="app_name">Hamer</string>
     <string name="title_activity_add_note">Notitie toevoegen</string>
     <string name="loading">Laden…</string>
+    <string name="overflow_menu_button">Meer</string>
+    <string name="navdrawer_button">Navigatiepaneel</string>
+    <string name="title_activity_configure_note_widget">Configureer widget</string>
+    <string name="note_widget_dialog_projects_dropdown">Projecten</string>
+    <string name="note_widget_confirm_cancel_title">Opmerking weggooien?</string>
+    <string name="note_widget_confirm_cancel_negative">Annuleren</string>
+    <string name="note_widget_button_description">Notitie toevoegen</string>
+    <string name="note_widget_config_project_checkbox">Notities toevoegen aan gespecificeerd project</string>
+    <string name="note_widget_dialog_failure_bad_project">Project niet gevonden: %1$s</string>
+    <string name="note_widget_toast_no_projects">Geen projecten</string>
+    <string name="action_add_note_short_label">Noot toevoegen</string>
+    <string name="note_widget_dialog_cancel_button">Annuleren</string>
+    <string name="note_widget_dialog_save_button">Opslaan</string>
+    <string name="note_widget_confirm_cancel_positive">Weggooien</string>
+    <string name="note_widget_toast_success">Notitie toegevoegd</string>
+    <string name="title_activity_add_note_widget_config">Widget configureren</string>
+    <string name="note_widget_dialog_title">Opmerking toevoegen aan:</string>
+    <string name="action_add_note_disabled">Notities toevoegen is nu uitgeschakeld</string>
+    <string name="note_widget_config_project_checkbox_explained">Als er geen project is geselecteerd, wordt je telkens gevraagd om een project te kiezen.</string>
+    <string name="action_add_note_long_label">Verhaalnoot toevoegen</string>
+    <string name="note_widget_config_title">Notitie-widget configureren:</string>
 </resources>

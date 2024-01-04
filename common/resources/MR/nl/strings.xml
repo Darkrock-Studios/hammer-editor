@@ -2,4 +2,21 @@
 <resources>
     <string name="app_name">Hamer</string>
     <string name="unsaved_scenes_dialog_title">Onopgeslagen scènes</string>
+    <string name="unsaved_encyclopedia_dialog_title">Niet bewaard Encyclopedie item</string>
+    <string name="unsaved_notes_dialog_title">Onopgeslagen notitie</string>
+    <string name="unsaved_encyclopedia_dialog_message">Vermelding weggooien?</string>
+    <string name="unsaved_scenes_dialog_message">Bewaar niet opgeslagen scenes?</string>
+    <string name="unsaved_entity_dialog_neutral_button">Annuleren</string>
+    <string name="more_menu_button">Meer</string>
+    <string name="network_request_failure_parse_body">Reactie niet geparseerd: %1$s</string>
+    <string name="unsaved_dialog_negative_button">Annuleren</string>
+    <string name="image_failed_to_load">Afbeeldingsfout</string>
+    <string name="unsaved_dialog_positive_button">Weggooien en afsluiten</string>
+    <string name="unsaved_entity_dialog_negative_button">Weggooien en afsluiten</string>
+    <string name="unsaved_entity_dialog_positive_button">Opslaan en afsluiten</string>
+    <string name="confirm_dialog_negative">Nee</string>
+    <string name="close_dialog_button">Sluit af</string>
+    <string name="unsaved_notes_dialog_message">Notitie weggooien?</string>
+    <string name="confirm_dialog_positive">Ja</string>
+    <string name="network_request_failure_connection">Netwerkverzoek mislukt: %1$s</string>
 </resources>

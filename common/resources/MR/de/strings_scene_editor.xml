@@ -20,4 +20,5 @@
     <string name="scene_editor_menu_item_rename">Umbenennen</string>
     <string name="scene_editor_menu_item_save">Speichern</string>
     <string name="scene_editor_menu_item_close">Schließen</string>
+    <string name="scene_editor_menu_item_delete">Löschen</string>
 </resources>

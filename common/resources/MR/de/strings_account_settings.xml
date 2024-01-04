@@ -41,4 +41,7 @@
     <string name="settings_server_authtest_toast_failure">Authentifizierungstest fehlgeschlagen</string>
     <string name="settings_remove_server_dialog_message">Sicher, dass der Server entfernt werden soll\?</string>
     <string name="remove_local_dialog_message">Sollen aktuelle lokale Inhalte vor der Synchronisierung entfernt werden\? Wenn nicht, wird versucht, die lokalen Inhalte mit Serverinhalten zusammenzuführen. Wenn die Inhalte nicht miteinander verknüpft sind, könnte dies zu Problemen führen.</string>
+    <string name="settings_server_setup_toast_failure_unknown">Unbekannter Fehler</string>
+    <string name="settings_server_setup_toast_success">Server-Einrichtung abgeschlossen!</string>
+    <string name="settings_server_setup_toast_failure">Server-Einrichtung fehlgeschlagen: %1$s</string>
 </resources>
