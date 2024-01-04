@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,7 +39,7 @@ fun <T> ExposedDropDown(
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
 		onExpandedChange = { isExpanded = it },
-		modifier = modifier.padding(Ui.Padding.XL).defaultMinSize(minWidth = 128.dp),
+		modifier = modifier.defaultMinSize(minWidth = 128.dp),
 	) {
 		TextField(
 			value = selectedText,
@@ -62,6 +61,20 @@ fun <T> ExposedDropDown(
 			expanded = isExpanded,
 			onDismissRequest = { isExpanded = false },
 		) {
+			if (noneOption != null) {
+				DropdownMenuItem(
+					modifier = Modifier.exposedDropdownSize(),
+					text = {
+						Text(text = noneOption)
+					},
+					onClick = {
+						onValueChanged(null)
+						selectedText = noneOption
+						isExpanded = false
+					}
+				)
+			}
+
 			items.forEach { item ->
 				val text = getItemText(item)
 

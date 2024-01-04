@@ -76,18 +76,12 @@ internal fun AccountSettingsUi(
 
 				Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
 					Spacer(modifier = Modifier.size(Ui.Padding.L))
+
 					Column(modifier = Modifier.padding(Ui.Padding.L)) {
-						Text(
-							MR.strings.settings_theme_label.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onBackground,
-						)
-
-						Spacer(modifier = Modifier.size(Ui.Padding.M))
-
 						val themeOptions = remember { UiTheme.entries }
 						ExposedDropDown(
 							modifier = Modifier.defaultMinSize(minWidth = 256.dp),
+							label = MR.strings.settings_theme_label.get(),
 							items = themeOptions,
 							defaultItem = state.uiTheme,
 						) { selectedTheme ->
@@ -95,12 +89,6 @@ internal fun AccountSettingsUi(
 								component.setUiTheme(selectedTheme)
 							}
 						}
-
-						Text(
-							stringResource(MR.strings.settings_data_version, getDataVersion()),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onBackground,
-						)
 					}
 
 					if (component.showProjectDirectory) {
@@ -163,6 +151,16 @@ internal fun AccountSettingsUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 					ServerSettingsUi(component, scope, rootSnackbar)
+
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+					Text(
+						stringResource(MR.strings.settings_data_version, getDataVersion()),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
+
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 				}
 			}
 		}
