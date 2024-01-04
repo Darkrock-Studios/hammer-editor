@@ -70,6 +70,8 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				},
 			) {}
 
+			Spacer(modifier = Modifier.size(Ui.Padding.L))
+
 			ExposedDropDown(
 				getText = { strRes.get(it.toStringResource()) },
 				label = MR.strings.encyclopedia_filter_by_category.get(),
