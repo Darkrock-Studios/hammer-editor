@@ -77,7 +77,7 @@ tomlkt = "0.3.7"
 
 krypto = "4.0.10"
 
-sqldelight = "2.0.0"
+sqldelight = "2.0.1"
 buildconfig = "4.2.0"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
