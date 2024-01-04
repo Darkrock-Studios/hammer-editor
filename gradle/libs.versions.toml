@@ -52,7 +52,7 @@ parcelize_darwin = "0.2.3"
 
 mpfilepicker = "3.0.0"
 richtexteditor = "1.4.1"
-koalaplot-core = "0.4.0"
+koalaplot-core = "0.5.1"
 image-loader = "1.7.1"
 
 koin_bom = "3.5.1"
