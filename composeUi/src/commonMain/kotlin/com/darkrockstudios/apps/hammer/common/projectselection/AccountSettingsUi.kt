@@ -26,7 +26,7 @@ import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
@@ -85,11 +85,11 @@ internal fun AccountSettingsUi(
 
 						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-						val themeOptions = remember { UiTheme.values().toList() }
+						val themeOptions = remember { UiTheme.entries }
 						ExposedDropDown(
 							modifier = Modifier.defaultMinSize(minWidth = 256.dp),
 							items = themeOptions,
-							defaultIndex = themeOptions.indexOf(state.uiTheme)
+							defaultItem = state.uiTheme,
 						) { selectedTheme ->
 							if (selectedTheme != null) {
 								component.setUiTheme(selectedTheme)

@@ -2,6 +2,7 @@
 <resources>
 	<string name="encyclopedia_search_hint">Search by Name or #hastag</string>
 	<string name="encyclopedia_search_clear_button">Clear</string>
+	<string name="encyclopedia_filter_by_category">Filter By</string>
 	<string name="encyclopedia_category_all">All</string>
 
 	<string name="encyclopedia_category_person">Person</string>

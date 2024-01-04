@@ -1,31 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.layout.BoxWithConstraintsScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -44,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 	component: BrowseEntries,
@@ -71,9 +55,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 		) {
 			OutlinedTextField(
 				value = searchText,
-				onValueChange = {
-					component.updateFilter(it, selectedType)
-				},
+				onValueChange = { component.updateFilter(it, selectedType) },
 				label = { Text(MR.strings.encyclopedia_search_hint.get()) },
 				singleLine = true,
 				placeholder = { Text(MR.strings.encyclopedia_search_hint.get()) },
@@ -99,11 +81,11 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 			ExposedDropDown(
 				getText = { strRes.get(it.toStringResource()) },
+				label = MR.strings.encyclopedia_filter_by_category.get(),
 				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
-				padding = Ui.Padding.XL,
 				items = types,
 				noneOption = MR.strings.encyclopedia_category_all.get(),
-				defaultIndex = state.filterType?.let { types.indexOf(state.filterType) + 1 } ?: 0
+				defaultItem = state.filterType
 			) { item ->
 				selectedType = item
 				component.updateFilter(searchText, selectedType)
