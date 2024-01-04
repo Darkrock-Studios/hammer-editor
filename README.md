@@ -12,7 +12,7 @@ A simple tool for building stories.
 ### Available on:
 
 [![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dcom.darkrockstudios.apps.hammer.android%26l%3DGoogle%2520Play%26m%3D%24version)](https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.darkrockstudios.apps.hammer.android?include_prereleases&logo=FDROID)](https://apt.izzysoft.de/fdroid/index/apk/com.darkrockstudios.apps.hammer.android)
+[![F-Droid](https://img.shields.io/f-droid/v/com.darkrockstudios.apps.hammer.android?logo=FDROID)](https://f-droid.org/en/packages/com.darkrockstudios.apps.hammer.android/)
 [![GitHub](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases&logo=github)](https://github.com/Wavesonics/hammer-editor/releases/latest)
 
 ### _**Note:** This is currently Alpha quality software, users beware!_
