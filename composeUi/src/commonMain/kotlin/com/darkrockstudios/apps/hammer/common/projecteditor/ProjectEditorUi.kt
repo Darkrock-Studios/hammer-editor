@@ -1,11 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
@@ -27,6 +33,7 @@ private val LIST_PANE_WIDTH = 300.dp
 fun ProjectEditorUi(
 	component: ProjectEditor,
 	snackbarHostState: RootSnackbarHostState,
+	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
 	BoxWithConstraints(modifier = modifier) {
@@ -34,8 +41,16 @@ fun ProjectEditorUi(
 		val detailsState by component.detailsRouterState.subscribeAsState()
 		val isMultiPane = state.isMultiPane
 
+		val editorDivider = rememberEditorDivider()
+		val dividerX =
+			if (editorDivider.x != Dp.Unspecified && navWidth != Dp.Unspecified) {
+				editorDivider.x - navWidth
+			} else {
+				LIST_PANE_WIDTH
+			}
+
 		val listModifier = if (isMultiPane) {
-			Modifier.requiredWidthIn(0.dp, LIST_PANE_WIDTH).fillMaxHeight()
+			Modifier.requiredWidthIn(0.dp, dividerX).fillMaxHeight()
 		} else {
 			Modifier.fillMaxSize()
 		}
@@ -48,8 +63,8 @@ fun ProjectEditorUi(
 		)
 
 		val detailsModifier = if (isMultiPane) {
-			Modifier.padding(start = LIST_PANE_WIDTH)
-				.requiredWidthIn(0.dp, maxWidth - LIST_PANE_WIDTH)
+			Modifier.padding(start = dividerX)
+				.requiredWidthIn(0.dp, maxWidth - dividerX)
 				.fillMaxHeight()
 		} else {
 			Modifier.fillMaxSize()

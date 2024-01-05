@@ -7,18 +7,47 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
@@ -154,7 +183,9 @@ class ProjectRootActivity : AppCompatActivity() {
 			}
 
 			WindowWidthSizeClass.Expanded -> {
-				ExpandedNavigation(component)
+				//ExpandedNavigation(component)
+				// TODO revisit this, I think tablets should still have the Expanded Nav
+				MediumNavigation(component)
 			}
 		}
 
@@ -218,11 +249,12 @@ private fun CompactNavigation(
 			ProjectRootUi(
 				component,
 				modifier = Modifier.rootElement(scaffoldPadding),
+				navWidth = 0.dp
 			)
 		},
 		bottomBar = {
 			NavigationBar {
-				ProjectRoot.DestinationTypes.values().forEach { item ->
+				ProjectRoot.DestinationTypes.entries.forEach { item ->
 					NavigationBarItem(
 						selected = item == router.active.instance.getLocationType(),
 						onClick = { component.showDestination(item) },
@@ -254,11 +286,17 @@ private fun MediumNavigation(
 			Row(
 				modifier = Modifier.rootElement(scaffoldPadding)
 			) {
+				val density = LocalDensity.current
+				var navRailWidth by remember { mutableStateOf<Dp>(0.dp) }
+
 				NavigationRail(
 					modifier = Modifier
+						.onSizeChanged {
+							navRailWidth = density.run { it.width.toDp() }
+						}
 						.padding(top = Ui.Padding.M)
 				) {
-					ProjectRoot.DestinationTypes.values().forEach { item ->
+					ProjectRoot.DestinationTypes.entries.forEach { item ->
 						NavigationRailItem(
 							label = { Text(item.text.get()) },
 							icon = {
@@ -284,7 +322,7 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectRootUi(component, Modifier.padding(scaffoldPadding))
+				ProjectRootUi(component, navRailWidth, Modifier.padding(scaffoldPadding))
 			}
 		},
 		floatingActionButton = {
@@ -302,6 +340,9 @@ private fun ExpandedNavigation(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
 		content = { scaffoldPadding ->
+			val density = LocalDensity.current
+			var navRailWidth by remember { mutableStateOf<Dp>(0.dp) }
+
 			PermanentNavigationDrawer(
 				modifier = Modifier.rootElement(scaffoldPadding),
 				drawerContent = {
@@ -309,9 +350,12 @@ private fun ExpandedNavigation(
 						modifier = Modifier
 							.wrapContentWidth()
 							.width(IntrinsicSize.Min)
+							.onSizeChanged {
+								navRailWidth = density.run { it.width.toDp() }
+							}
 					) {
 						Spacer(Modifier.height(12.dp))
-						ProjectRoot.DestinationTypes.values().forEach { item ->
+						ProjectRoot.DestinationTypes.entries.forEach { item ->
 							NavigationDrawerItem(
 								label = { Text(item.text.get()) },
 								icon = {
@@ -338,7 +382,7 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectRootUi(component, Modifier.rootElement(scaffoldPadding))
+					ProjectRootUi(component, navRailWidth, Modifier.rootElement(scaffoldPadding))
 				}
 			)
 		},

@@ -57,6 +57,7 @@ kotlin {
 		val androidMain by getting {
 			dependencies {
 				api(libs.koin.compose)
+				implementation(libs.androidx.window)
 			}
 		}
 		val desktopMain by getting {

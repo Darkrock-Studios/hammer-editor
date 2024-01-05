@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
@@ -34,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
 
-private val WIDE_SCREEN_THRESHOLD = 700.dp
+private val WIDE_SCREEN_THRESHOLD = 650.dp
 
 fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	return when (location) {
@@ -49,12 +50,13 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
+	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
 	val rootSnackbar = rememberRootSnackbarHostState()
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
 		Box {
-			FeatureContent(modifier.fillMaxSize(), component, rootSnackbar)
+			FeatureContent(modifier.fillMaxSize(), component, rootSnackbar, navWidth)
 			SnackbarHost(
 				rootSnackbar.snackbarHostState,
 				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
@@ -72,6 +74,7 @@ fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	navWidth: Dp = Dp.Unspecified,
 ) {
 	val routerState by component.routerState.subscribeAsState()
 	Children(
@@ -81,7 +84,7 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(child.component, rootSnackbar)
+				ProjectEditorUi(child.component, rootSnackbar, navWidth)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component, rootSnackbar)

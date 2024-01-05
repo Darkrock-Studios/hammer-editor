@@ -20,6 +20,7 @@ android_sdk_min = "26"
 activity-compose = "1.8.2"
 androidx-runner = "1.5.2"
 androidx-datastore = "1.0.0"
+androidx-window = "1.2.0"
 appcompat = "1.6.1"
 appdirs = "1.2.2"
 cache4k = "0.12.0"
@@ -136,6 +137,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 richtexteditor = { module = "com.darkrockstudios:richtexteditor", version.ref = "richtexteditor" }
 androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
 androidx_datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
+androidx_window = { module = "androidx.window:window", version.ref = "androidx-window" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
 serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
