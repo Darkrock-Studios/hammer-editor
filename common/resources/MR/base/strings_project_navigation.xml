@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
 	<string name="project_nav_home">Home</string>
-	<string name="project_nav_scene_editor">Editor</string>
+	<string name="project_nav_scene_editor">Story</string>
 	<string name="project_nav_notes">Notes</string>
 	<string name="project_nav_encyclopedia">Encyclopedia</string>
 	<string name="project_nav_time_line">Time Line</string>
