@@ -41,7 +41,7 @@ fun Modifier.rightBorder(strokeWidth: Dp, color: Color) = composed(
 			onDrawWithContent {
 				drawContent()
 
-				val height = size.width - strokeWidthPx / 2
+				val height = size.height - strokeWidthPx / 2
 				val width = size.width - strokeWidthPx / 2
 
 				drawLine(
