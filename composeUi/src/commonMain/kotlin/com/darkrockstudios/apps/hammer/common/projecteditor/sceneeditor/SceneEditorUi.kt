@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
@@ -90,6 +91,7 @@ fun SceneEditorUi(
 			) {
 				RichTextEditor(
 					modifier = Modifier
+						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 						.fillMaxHeight()
 						.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH)
 						.padding(horizontal = Ui.Padding.XL),
