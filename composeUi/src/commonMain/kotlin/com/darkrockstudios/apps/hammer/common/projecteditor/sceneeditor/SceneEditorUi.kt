@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
@@ -141,7 +142,11 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 	val state by component.state.subscribeAsState()
 
 	if (remainingWidth >= SCENE_METADATA_MIN_WIDTH) {
-		if (state.showMetadata) {
+		AnimatedVisibility(
+			visible = state.showMetadata,
+			enter = slideInHorizontally { it } + fadeIn(),
+			exit = slideOutHorizontally { it } + fadeOut(),
+		) {
 			Box(modifier = Modifier.padding(Ui.Padding.L)) {
 				SceneMetadataUi(
 					component = component.sceneMetadataComponent,
