@@ -102,9 +102,9 @@ fun SceneEditorUi(
 					},
 					textFieldStyle = defaultRichTextFieldStyle().copy(
 						placeholder = MR.strings.scene_editor_body_placeholder.get(),
-						textColor = MaterialTheme.colorScheme.onBackground,
-						placeholderColor = MaterialTheme.colorScheme.onBackground,
-						textStyle = MaterialTheme.typography.bodyMedium,
+						textColor = MaterialTheme.colorScheme.onSurface,
+						placeholderColor = MaterialTheme.colorScheme.onSurface,
+						textStyle = MaterialTheme.typography.bodyLarge,
 					),
 				)
 
