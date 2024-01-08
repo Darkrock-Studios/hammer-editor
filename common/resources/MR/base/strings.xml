@@ -3,7 +3,7 @@
     <string name="app_name">Hammer</string>
 
     <string name="unsaved_scenes_dialog_title">Unsaved Scenes</string>
-	<string name="unsaved_scenes_dialog_message">Save unsaved scenes?</string>
+	<string name="unsaved_scenes_dialog_message">What should be done with unsaved scenes?</string>
 
 	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
 	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
@@ -14,9 +14,9 @@
 	<string name="unsaved_dialog_negative_button">Cancel</string>
 	<string name="unsaved_dialog_positive_button">Discard and close</string>
 
-	<string name="unsaved_entity_dialog_negative_button">Discard and close</string>
+	<string name="unsaved_entity_dialog_negative_button">Discard</string>
 	<string name="unsaved_entity_dialog_neutral_button">Cancel</string>
-	<string name="unsaved_entity_dialog_positive_button">Save and close</string>
+	<string name="unsaved_entity_dialog_positive_button">Save</string>
 
 	<string name="close_dialog_button">Close</string>
 	<string name="more_menu_button">More</string>
