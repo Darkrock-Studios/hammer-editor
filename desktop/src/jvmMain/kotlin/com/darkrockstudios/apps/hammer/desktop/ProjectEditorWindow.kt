@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalComposeApi
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
