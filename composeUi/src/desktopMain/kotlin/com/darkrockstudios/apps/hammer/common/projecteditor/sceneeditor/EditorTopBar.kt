@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,6 +103,14 @@ actual fun EditorTopBar(
 						)
 					}
 				}
+			}
+
+			IconButton(onClick = component::toggleMetadataVisibility) {
+				Icon(
+					imageVector = Icons.Default.Info,
+					contentDescription = MR.strings.scene_editor_metadata_hide_button .get(),
+					tint = MaterialTheme.colorScheme.onBackground
+				)
 			}
 
 			IconButton(onClick = component::closeEditor) {

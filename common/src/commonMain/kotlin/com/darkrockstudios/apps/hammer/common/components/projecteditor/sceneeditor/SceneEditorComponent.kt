@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -8,6 +9,8 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
@@ -42,12 +45,18 @@ class SceneEditorComponent(
 	override var lastForceUpdate = MutableValue<Long>(0)
 	private var bufferUpdateSubscription: Job? = null
 
+	override val sceneMetadataComponent: SceneMetadata = SceneMetadataComponent(
+		componentContext = childContext("scene-${originalSceneItem.id}-metadata"),
+		originalSceneItem = originalSceneItem
+	)
+
 	private val sceneDef: SceneItem
 		get() = state.value.sceneItem
 
-	init {
-		loadSceneContent()
+	override fun onCreate() {
+		super.onCreate()
 
+		loadSceneContent()
 		subscribeToBufferUpdates()
 	}
 
@@ -55,9 +64,14 @@ class SceneEditorComponent(
 		Napier.d { "SceneEditorComponent start collecting buffer updates" }
 
 		bufferUpdateSubscription?.cancel()
-
 		bufferUpdateSubscription =
 			sceneEditor.subscribeToBufferUpdates(sceneDef, scope, ::onBufferUpdate)
+	}
+
+	override fun onDestroy() {
+		super.onDestroy()
+		bufferUpdateSubscription?.cancel()
+		bufferUpdateSubscription = null
 	}
 
 	private suspend fun onBufferUpdate(sceneBuffer: SceneBuffer) = withContext(dispatcherMain) {
@@ -267,6 +281,12 @@ class SceneEditorComponent(
 
 	override fun closeEditor() {
 		closeSceneEditor()
+	}
+
+	override fun toggleMetadataVisibility() {
+		_state.getAndUpdate { it.copy(
+			showMetadata = it.showMetadata.not()
+		) }
 	}
 
 	private fun getMenuId(): String {

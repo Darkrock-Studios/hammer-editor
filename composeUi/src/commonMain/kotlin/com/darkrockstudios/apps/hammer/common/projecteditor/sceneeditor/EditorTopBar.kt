@@ -5,4 +5,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneedit
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 
 @Composable
-expect fun EditorTopBar(component: SceneEditor, rootSnackbar: RootSnackbarHostState)
+expect fun EditorTopBar(
+	component: SceneEditor,
+	rootSnackbar: RootSnackbarHostState,
+)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,7 +19,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-actual fun EditorTopBar(component: SceneEditor, rootSnackbar: RootSnackbarHostState) {
+actual fun EditorTopBar(
+	component: SceneEditor,
+	rootSnackbar: RootSnackbarHostState,
+) {
 	val state by component.state.subscribeAsState()
 	val title = remember { derivedStateOf { state.sceneItem.name } }
 	val scope = rememberCoroutineScope()
@@ -56,6 +60,14 @@ actual fun EditorTopBar(component: SceneEditor, rootSnackbar: RootSnackbarHostSt
 					)
 				}
 			}
+		}
+
+		IconButton(onClick = component::toggleMetadataVisibility) {
+			Icon(
+				Icons.Filled.Info,
+				contentDescription = MR.strings.scene_editor_metadata_button.get(),
+				tint = MaterialTheme.colorScheme.onSurface
+			)
 		}
 	}
 

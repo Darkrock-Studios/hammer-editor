@@ -11,6 +11,7 @@
     <string name="scene_editor_cancel_button">Cancel</string>
     <string name="scene_editor_unsaved_chip">Unsaved</string>
     <string name="scene_editor_save_button">Save</string>
+	<string name="scene_editor_metadata_button">Scene Info</string>
     <string name="scene_editor_toast_save_successful">Saved</string>
     <string name="scene_editor_body_placeholder">Begin writing your scene here</string>
     <string name="scene_editor_menu_group">Scene</string>
@@ -21,4 +22,10 @@
 	<string name="scene_editor_menu_item_delete">Delete</string>
     <string name="scene_editor_menu_item_save">Save</string>
     <string name="scene_editor_menu_item_close">Close</string>
+
+	<string name="scene_editor_metadata_title">Metadata</string>
+	<string name="scene_editor_metadata_hide_button">Hide Info</string>
+	<string name="scene_editor_metadata_word_count_label">Words: </string>
+	<string name="scene_editor_metadata_advanced_header">Advanced</string>
+	<string name="scene_editor_metadata_entity_id">Entity ID: %1$d</string>
 </resources>

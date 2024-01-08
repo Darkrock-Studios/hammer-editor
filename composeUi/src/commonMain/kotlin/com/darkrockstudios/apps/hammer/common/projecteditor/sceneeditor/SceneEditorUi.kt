@@ -1,16 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecteditor.sceneeditor
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
@@ -22,15 +13,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.richtexteditor.model.Style
@@ -59,10 +49,10 @@ fun SceneEditorUi(
 
 	Toaster(component, rootSnackbar)
 
-	Box(modifier = modifier) {
-		Column(
-			modifier = Modifier.fillMaxHeight(),
-		) {
+	BoxWithConstraints(modifier = modifier) {
+		val boxWithConstraintsScope = this
+
+		Column(modifier = Modifier.fillMaxHeight()) {
 			EditorTopBar(component, rootSnackbar)
 
 			Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
@@ -123,6 +113,10 @@ fun SceneEditorUi(
 					state = verticalScrollState
 				)
 				*/
+				val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
+					boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+				}
+				SceneMetadataSidebar(component, remainingWidth)
 			}
 		}
 	}
@@ -137,6 +131,35 @@ fun SceneEditorUi(
 				component.doDelete()
 			} else {
 				component.endDelete()
+			}
+		}
+	}
+}
+
+@Composable
+private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
+	val state by component.state.subscribeAsState()
+
+	if (remainingWidth >= SCENE_METADATA_MIN_WIDTH) {
+		if (state.showMetadata) {
+			Box(modifier = Modifier.padding(Ui.Padding.L)) {
+				SceneMetadataUi(
+					component = component.sceneMetadataComponent,
+					modifier = Modifier.wrapContentWidth().fillMaxHeight(),
+					closeMetadata = component::toggleMetadataVisibility,
+				)
+			}
+		}
+	} else {
+		if (state.showMetadata) {
+			Dialog(onDismissRequest = component::toggleMetadataVisibility) {
+				Box(modifier = Modifier.padding(Ui.Padding.L)) {
+					SceneMetadataUi(
+						component = component.sceneMetadataComponent,
+						modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+						closeMetadata = component::toggleMetadataVisibility,
+					)
+				}
 			}
 		}
 	}

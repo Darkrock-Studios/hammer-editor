@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneedi
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
@@ -12,6 +13,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 interface SceneEditor : HammerComponent, ComponentToaster {
 	val state: Value<State>
 	var lastForceUpdate: MutableValue<Long>
+
+	val sceneMetadataComponent: SceneMetadata
 
 	fun closeEditor()
 	fun addEditorMenu()
@@ -28,6 +31,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun beginDelete()
 	fun endDelete()
 	fun doDelete()
+	fun toggleMetadataVisibility()
 
 	data class State(
 		val sceneItem: SceneItem,
@@ -35,6 +39,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val isEditingName: Boolean = false,
 		val isSavingDraft: Boolean = false,
 		val confirmDelete: Boolean = false,
+		val showMetadata: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 }

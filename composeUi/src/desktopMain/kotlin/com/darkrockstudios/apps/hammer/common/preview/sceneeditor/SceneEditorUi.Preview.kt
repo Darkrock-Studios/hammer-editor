@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
@@ -44,6 +45,9 @@ private fun fakeComponent() = object : SceneEditor {
 			)
 		)
 	override var lastForceUpdate = MutableValue(0L)
+	override val sceneMetadataComponent = object : SceneMetadata {
+		override val state = MutableValue(SceneMetadata.State(fakeSceneItem()))
+	}
 
 	override fun addEditorMenu() {}
 	override fun removeEditorMenu() {}
@@ -65,4 +69,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginDelete() {}
 	override fun endDelete() {}
 	override fun doDelete() {}
+	override fun toggleMetadataVisibility() {
+		TODO("Not yet implemented")
+	}
 }
