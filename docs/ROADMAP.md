@@ -11,10 +11,10 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 - ~~**Localization Support:** Move all strings into localization files, get setup with community localization service.~~
 - **Quality of Life UI improvements:** The UI is ready for a second polish pass, focusing on quality of life
   improvements.
-	- Word Count in text editor
+	- ~~Word Count in text editor~~
 	- ~~Draft selection editor~~
-	- Lots of work on Merge Conflict editors when syncing
-    - General work for larger screen sizes
+	- ~~Lots of work on Merge Conflict editors when syncing~~
+    - ~~General work for larger screen sizes~~
     - ~~Confirm save on more entity types beyond just scenes~~
 
 ## Road to 1.0
