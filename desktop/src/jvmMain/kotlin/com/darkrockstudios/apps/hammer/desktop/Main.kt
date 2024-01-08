@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.github.weisj.darklaf.LafManager
@@ -36,6 +37,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.logging.ConsoleHandler
+import java.util.logging.Level
 
 private fun handleArguments(args: Array<String>) {
 	val parser = ArgParser("hammer")
@@ -52,6 +54,17 @@ private fun handleArguments(args: Array<String>) {
 	setInDevelopmentMode(devMode)
 }
 
+private fun setupLogging(appScope: CoroutineScope) {
+	val consoleHandler = ConsoleHandler()
+	consoleHandler.level = if(getInDevelopmentMode()) {
+		Level.ALL
+	} else {
+		Level.INFO
+	}
+
+	Napier.base(DebugAntilog(handler = listOf(consoleHandler, FileLogger(scope = appScope))))
+}
+
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -59,7 +72,7 @@ fun main(args: Array<String>) {
 	handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)
-	Napier.base(DebugAntilog(handler = listOf(FileLogger(scope = appScope), ConsoleHandler())))
+	setupLogging(appScope)
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
