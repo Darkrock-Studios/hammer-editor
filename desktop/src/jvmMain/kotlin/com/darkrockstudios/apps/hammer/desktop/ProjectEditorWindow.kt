@@ -41,7 +41,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 ) {
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle) }
-	val windowState = rememberWindowState(size = DpSize(1000.dp, 1200.dp))
+	val windowState = rememberWindowState(size = coerceWindowSize(1000.dp, 1200.dp))
 	val closeRequest by app.closeRequest.subscribeAsState()
 
 	val component = remember<ProjectRoot> {
