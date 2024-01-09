@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataComponent
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -17,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.Scene
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
+import korlibs.memory.clamp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -286,6 +288,31 @@ class SceneEditorComponent(
 	override fun toggleMetadataVisibility() {
 		_state.getAndUpdate { it.copy(
 			showMetadata = it.showMetadata.not()
+		) }
+	}
+
+	private val MIN_FONT_SIZE = 8f
+	private val MAX_FONT_SIZE = 32f
+
+	override fun resetTextSize() {
+		_state.getAndUpdate { it.copy(
+			textSize = DEFAULT_FONT_SIZE
+		) }
+	}
+
+	override fun decreaseTextSize() {
+		val size = (state.value.textSize - 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+		Napier.d { "size: $size" }
+		_state.getAndUpdate { it.copy(
+			textSize = size
+		) }
+	}
+
+	override fun increaseTextSize() {
+		val size = (state.value.textSize + 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+Napier.d { "size: $size" }
+		_state.getAndUpdate { it.copy(
+			textSize = size
 		) }
 	}
 

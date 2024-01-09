@@ -16,7 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
@@ -82,6 +84,25 @@ fun SceneEditorUi(
 				) {
 					sceneText = sceneText.redo()
 				}
+
+				EditorAction(
+					iconRes = MR.images.icon_text_decrease,
+					active = false,
+				) {
+					component.decreaseTextSize()
+				}
+				EditorAction(
+					iconRes = MR.images.icon_text_increase,
+					active = false,
+				) {
+					component.increaseTextSize()
+				}
+				EditorAction(
+					iconRes = MR.images.icon_text_reset,
+					active = false,
+				) {
+					component.resetTextSize()
+				}
 			}
 
 			//val verticalScrollState = rememberScrollState(0)
@@ -104,7 +125,9 @@ fun SceneEditorUi(
 						placeholder = MR.strings.scene_editor_body_placeholder.get(),
 						textColor = MaterialTheme.colorScheme.onSurface,
 						placeholderColor = MaterialTheme.colorScheme.onSurface,
-						textStyle = MaterialTheme.typography.bodyLarge,
+						textStyle = MaterialTheme.typography.bodyLarge.copy(
+							fontSize = state.textSize.sp
+						),
 					),
 				)
 

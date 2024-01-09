@@ -32,6 +32,9 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun endDelete()
 	fun doDelete()
 	fun toggleMetadataVisibility()
+	fun decreaseTextSize()
+	fun increaseTextSize()
+	fun resetTextSize()
 
 	data class State(
 		val sceneItem: SceneItem,
@@ -41,5 +44,10 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val confirmDelete: Boolean = false,
 		val showMetadata: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
+		val textSize: Float = DEFAULT_FONT_SIZE
 	)
+
+	companion object {
+		const val DEFAULT_FONT_SIZE = 16f
+	}
 }

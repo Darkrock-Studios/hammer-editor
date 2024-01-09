@@ -69,7 +69,8 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginDelete() {}
 	override fun endDelete() {}
 	override fun doDelete() {}
-	override fun toggleMetadataVisibility() {
-		TODO("Not yet implemented")
-	}
+	override fun toggleMetadataVisibility() {}
+	override fun decreaseTextSize() {}
+	override fun increaseTextSize() {}
+	override fun resetTextSize() {}
 }
