@@ -9,11 +9,12 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projecteditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -23,6 +24,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import org.koin.core.component.inject
 
 
 class SceneEditorComponent(
@@ -36,6 +38,7 @@ class SceneEditorComponent(
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
 
+	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 
@@ -60,6 +63,23 @@ class SceneEditorComponent(
 
 		loadSceneContent()
 		subscribeToBufferUpdates()
+		watchSettings()
+	}
+
+	private fun watchSettings() {
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				if (settings.editorFontSize != _state.value.textSize) {
+					withContext(mainDispatcher) {
+						_state.getAndUpdate {
+							it.copy(
+								textSize = settings.editorFontSize
+							)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	private fun subscribeToBufferUpdates() {
@@ -286,34 +306,46 @@ class SceneEditorComponent(
 	}
 
 	override fun toggleMetadataVisibility() {
-		_state.getAndUpdate { it.copy(
-			showMetadata = it.showMetadata.not()
-		) }
+		_state.getAndUpdate {
+			it.copy(
+				showMetadata = it.showMetadata.not()
+			)
+		}
 	}
 
 	private val MIN_FONT_SIZE = 8f
 	private val MAX_FONT_SIZE = 32f
 
 	override fun resetTextSize() {
-		_state.getAndUpdate { it.copy(
-			textSize = DEFAULT_FONT_SIZE
-		) }
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(
+					editorFontSize = DEFAULT_FONT_SIZE
+				)
+			}
+		}
 	}
 
 	override fun decreaseTextSize() {
-		val size = (state.value.textSize - 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
-		Napier.d { "size: $size" }
-		_state.getAndUpdate { it.copy(
-			textSize = size
-		) }
+		scope.launch {
+			val size = (state.value.textSize - 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+			settingsRepository.updateSettings {
+				it.copy(
+					editorFontSize = size
+				)
+			}
+		}
 	}
 
 	override fun increaseTextSize() {
-		val size = (state.value.textSize + 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
-Napier.d { "size: $size" }
-		_state.getAndUpdate { it.copy(
-			textSize = size
-		) }
+		scope.launch {
+			val size = (state.value.textSize + 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+			settingsRepository.updateSettings {
+				it.copy(
+					editorFontSize = size
+				)
+			}
+		}
 	}
 
 	private fun getMenuId(): String {

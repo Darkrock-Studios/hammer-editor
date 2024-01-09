@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface SceneEditor : HammerComponent, ComponentToaster {
@@ -44,10 +45,6 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val confirmDelete: Boolean = false,
 		val showMetadata: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
-		val textSize: Float = DEFAULT_FONT_SIZE
+		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE
 	)
-
-	companion object {
-		const val DEFAULT_FONT_SIZE = 16f
-	}
 }

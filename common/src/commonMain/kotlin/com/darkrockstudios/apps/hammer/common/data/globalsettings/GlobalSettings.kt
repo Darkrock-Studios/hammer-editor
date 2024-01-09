@@ -12,10 +12,12 @@ data class GlobalSettings(
 	val autoCloseSyncDialog: Boolean = true,
 	val maxBackups: Int = DEFAULT_MAX_BACKUPS,
 	val automaticSyncing: Boolean = true,
-	val nux: NewUserExperience = NewUserExperience()
+	val nux: NewUserExperience = NewUserExperience(),
+	val editorFontSize: Float = DEFAULT_FONT_SIZE,
 ) {
 	companion object {
 		const val DEFAULT_MAX_BACKUPS = 50
+		const val DEFAULT_FONT_SIZE = 16f
 	}
 }
 
