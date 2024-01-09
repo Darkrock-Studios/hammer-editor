@@ -166,7 +166,10 @@ internal fun ApplicationScope.performClose(
 	closeType: ApplicationState.CloseType
 ) {
 	when (closeType) {
-		ApplicationState.CloseType.Application -> exitApplication()
+		ApplicationState.CloseType.Application -> {
+			app.closeProject()
+			exitApplication()
+		}
 		ApplicationState.CloseType.Project -> app.closeProject()
 		ApplicationState.CloseType.None -> {
 			/* noop */

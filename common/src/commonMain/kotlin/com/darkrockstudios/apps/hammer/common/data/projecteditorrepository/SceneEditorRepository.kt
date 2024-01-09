@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -441,6 +442,7 @@ abstract class SceneEditorRepository(
 		getSceneTempBufferContents().forEach {
 			clearTempScene(it.scene)
 		}
+		Napier.i("SceneEditorRepository Closed.")
 	}
 
 	fun getPathSegments(sceneItem: SceneItem): List<Int> {
