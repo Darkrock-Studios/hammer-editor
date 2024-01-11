@@ -2,6 +2,7 @@ package datamigrator
 
 import MIGRATION_0_1
 import MIGRATION_0_1_ALREADY
+import MIGRATION_0_1_NO_TIMELINE
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
@@ -18,6 +19,7 @@ import org.junit.Before
 import utils.BaseTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class Migration0_1Test : BaseTest() {
 	private lateinit var fakeFileSystem: FakeFileSystem
@@ -84,6 +86,25 @@ class Migration0_1Test : BaseTest() {
 			),
 			timeLineContainer.events[2]
 		)
+	}
+
+	@Test
+	fun `Normal Migration - No Timeline`() {
+		val toml = createTomlSerializer()
+
+		val projDef = getProjectDef(MIGRATION_0_1_NO_TIMELINE)
+		createProject(fakeFileSystem, MIGRATION_0_1_NO_TIMELINE)
+
+		val migrator = Migration0_1(
+			fakeFileSystem,
+			toml,
+			createJsonSerializer()
+		)
+
+		migrator.migrate(projDef)
+
+		val path = TimeLineRepositoryOkio.getTimelineFile(projDef).toOkioPath()
+		assertFalse(fakeFileSystem.exists(path))
 	}
 
 	@Test

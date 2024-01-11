@@ -18,6 +18,7 @@ const val OUT_OF_ORDER_PROJECT_NAME = "Out Of Order"
 const val ENCYCLOPEDIA_ONLY_PROJECT_NAME = "Encyclopedia Only"
 const val MIGRATION_0_1 = "Migration 0 to 1"
 const val MIGRATION_0_1_ALREADY = "Migration 0 to 1 Already"
+const val MIGRATION_0_1_NO_TIMELINE = "Migration 0 to 1 No Timeline"
 val projectNames = listOf(
 	PROJECT_EMPTY_NAME,
 	OUT_OF_ORDER_PROJECT_NAME,

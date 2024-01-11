@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import io.github.aakira.napier.Napier
 import okio.Path.Companion.toPath
 import org.koin.mp.KoinPlatform.getKoin
 import kotlin.collections.set
@@ -37,6 +38,8 @@ open class DataMigrator(
 	fun handleDataMigration() {
 		if (checkIfMigrationNeeded()) {
 			doMigration()
+		} else {
+			Napier.d("No projects need migration. Skipping.")
 		}
 	}
 
@@ -48,6 +51,7 @@ open class DataMigrator(
 	}
 
 	private fun doMigration() {
+		Napier.i("Migrating projects to version: $latestProjectDataVersion")
 		val projects = getProjects()
 		val migrators = getMigrators()
 
@@ -62,6 +66,7 @@ open class DataMigrator(
 			for (version in projectDataVersion + 1..latestProjectDataVersion) {
 				val migrator =
 					migrators[version] ?: error("Migrator not found for data version: $version")
+				Napier.i("Migrating project: '${projectData.projectDef.name}' From: $projectDataVersion To: $version")
 				migrator.migrate(projectData.projectDef)
 
 				// Mark that this version migration was successful
