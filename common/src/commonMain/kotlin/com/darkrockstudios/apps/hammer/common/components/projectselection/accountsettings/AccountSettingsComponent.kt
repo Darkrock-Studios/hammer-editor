@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -21,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
+import org.koin.core.component.get
 import org.koin.core.component.inject
 
 class AccountSettingsComponent(
@@ -121,6 +123,10 @@ class AccountSettingsComponent(
 			}
 
 			projectsRepository.ensureProjectDirectory()
+
+			// Migrate the new project directory if needed
+			val dataMigrator: DataMigrator = get<DataMigrator>()
+			dataMigrator.handleDataMigration()
 
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
