@@ -77,6 +77,8 @@ open class DataMigrator(
 						)
 					)
 				}
+
+				Napier.i("'${projectData.projectDef.name}' migration complete.")
 			}
 		}
 	}
