@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
@@ -45,8 +45,10 @@ private fun fakeComponent() = object : SceneEditor {
 			)
 		)
 	override var lastForceUpdate = MutableValue(0L)
-	override val sceneMetadataComponent = object : SceneMetadata {
-		override val state = MutableValue(SceneMetadata.State(fakeSceneItem()))
+	override val sceneMetadataComponent = object : SceneMetadataPanel {
+		override val state = MutableValue(SceneMetadataPanel.State(fakeSceneItem()))
+		override fun updateOutline(text: String) {}
+		override fun updateNotes(text: String) {}
 	}
 
 	override fun addEditorMenu() {}

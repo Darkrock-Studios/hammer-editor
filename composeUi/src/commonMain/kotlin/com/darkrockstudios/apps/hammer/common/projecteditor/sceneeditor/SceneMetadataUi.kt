@@ -10,14 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
-val SCENE_METADATA_MIN_WIDTH = 256.dp
+val SCENE_METADATA_MIN_WIDTH = 300.dp
 @Composable
 fun SceneMetadataUi(
-	component: SceneMetadata,
+	component: SceneMetadataPanel,
 	modifier: Modifier = Modifier,
 	closeMetadata: () -> Unit
 ) {
@@ -55,6 +55,26 @@ fun SceneMetadataUi(
 					style = MaterialTheme.typography.labelLarge,
 				)
 			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			OutlinedTextField(
+				value = state.metadata.outline,
+				onValueChange = component::updateOutline,
+				modifier = Modifier.heightIn(128.dp),
+				maxLines = 10,
+				placeholder = { Text("Outline") }
+			)
+
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			OutlinedTextField(
+				value = state.metadata.notes,
+				onValueChange = component::updateNotes,
+				modifier = Modifier.heightIn(128.dp),
+				maxLines = 10,
+				placeholder = { Text("Notes") }
+			)
 
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 

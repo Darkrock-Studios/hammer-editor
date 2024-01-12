@@ -9,33 +9,55 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
-class SceneMetadataComponent(
+class SceneMetadataPanelComponent(
 	componentContext: ComponentContext,
 	private val originalSceneItem: SceneItem,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
-	SceneMetadata {
+	SceneMetadataPanel {
 
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val _state = MutableValue(
-		SceneMetadata.State(originalSceneItem)
+		SceneMetadataPanel.State(originalSceneItem)
 	)
-	override val state: Value<SceneMetadata.State> = _state
+	override val state: Value<SceneMetadataPanel.State> = _state
 
 	private var bufferUpdateSubscription: Job? = null
+
+	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
+		extraBufferCapacity = 1,
+		replay = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	private val metadataStoreFlow: SharedFlow<SceneMetadata> = _metadataUpdateFlow
+	private var metadataStoreJob: Job? = null
 
 	override fun onCreate() {
 		super.onCreate()
 		subscribeToBufferUpdates()
+		startMetadataStore()
 
 		scope.launch {
 			sceneEditor.getSceneBuffer(originalSceneItem)?.let { sceneBuf ->
 				onBufferUpdate(sceneBuf)
+			}
+
+			val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+			_state.getAndUpdate {
+				it.copy(
+					metadata = metadata
+				)
 			}
 		}
 	}
@@ -47,6 +69,14 @@ class SceneMetadataComponent(
 
 		bufferUpdateSubscription =
 			sceneEditor.subscribeToBufferUpdates(originalSceneItem, scope, ::onBufferUpdate)
+	}
+
+	private fun startMetadataStore() {
+		metadataStoreJob = scope.launch {
+			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
+				sceneEditor.storeMetadata(metadata, originalSceneItem.id)
+			}
+		}
 	}
 
 	private suspend fun onBufferUpdate(sceneBuffer: SceneBuffer) = withContext(dispatcherDefault) {
@@ -73,9 +103,37 @@ class SceneMetadataComponent(
 		}
 	}
 
+	override fun updateOutline(text: String) {
+		_state.getAndUpdate {
+			val updated = it.metadata.copy(outline = text)
+			if (_metadataUpdateFlow.tryEmit(updated).not()) {
+				Napier.w { "Failed to emit metadataUpdate for Outline" }
+			}
+			it.copy(
+				metadata = updated
+			)
+		}
+	}
+
+	override fun updateNotes(text: String) {
+		_state.getAndUpdate {
+			val updated = it.metadata.copy(notes = text)
+			if (_metadataUpdateFlow.tryEmit(updated).not()) {
+				Napier.w { "Failed to emit metadataUpdate for Notes" }
+			}
+			it.copy(
+				metadata = it.metadata.copy(notes = text)
+			)
+		}
+	}
+
 	override fun onDestroy() {
 		super.onDestroy()
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription = null
+	}
+
+	companion object {
+		val STORE_COOL_DOWN = 500.milliseconds
 	}
 }

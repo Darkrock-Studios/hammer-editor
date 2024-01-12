@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.Pro
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -31,6 +33,7 @@ abstract class SceneEditorRepository(
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer,
 	protected val metadataRepository: ProjectMetadataRepository,
+	protected val metadataDatasource: SceneMetadataDatasource,
 ) : Closeable, KoinComponent {
 
 	val rootScene = SceneItem(
@@ -452,6 +455,14 @@ abstract class SceneEditorRepository(
 
 	abstract fun rationalizeTree()
 	abstract fun reIdScene(oldId: Int, newId: Int)
+
+	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata {
+		return metadataDatasource.loadMetadata(sceneId) ?: SceneMetadata()
+	}
+
+	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+		metadataDatasource.storeMetadata(metadata, sceneId)
+	}
 
 	companion object {
 		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\d\p{L}+ _']+)-(\d+)(\.md)?(?:\.temp)?""")

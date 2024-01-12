@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -21,9 +22,16 @@ class SceneEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
-	metadataRepository: ProjectMetadataRepository,
+	projectMetadataRepository: ProjectMetadataRepository,
+	sceneMetadataDatasource: SceneMetadataDatasource,
 	private val fileSystem: FileSystem,
-) : SceneEditorRepository(projectDef, idRepository, projectSynchronizer, metadataRepository) {
+) : SceneEditorRepository(
+	projectDef,
+	idRepository,
+	projectSynchronizer,
+	projectMetadataRepository,
+	sceneMetadataDatasource
+) {
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
@@ -807,7 +815,7 @@ class SceneEditorRepositoryOkio(
 				writeUtf8(markdown)
 			}
 
-			Napier.e("Stored temp scene: (${sceneItem.name})")
+			Napier.d("Stored temp scene: (${sceneItem.name})")
 
 			true
 		} catch (e: IOException) {

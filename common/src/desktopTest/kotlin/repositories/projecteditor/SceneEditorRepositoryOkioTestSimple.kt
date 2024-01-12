@@ -6,11 +6,12 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -42,6 +43,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 	private lateinit var projectDef: ProjectDef
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataRepository
+	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -94,6 +96,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 				)
 			)
 
+		metadataDatasource = mockk(relaxed = true)
+
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
 				rootDir.toPath().div(PROJ_DIR).toHPath()
@@ -133,7 +137,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			metadataRepository = metadataRepository,
+			projectMetadataRepository = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
 		)
 
 		val expectedFilename = sceneFiles.entries.first().key
@@ -149,7 +154,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			metadataRepository = metadataRepository,
+			projectMetadataRepository = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
 		)
 
 		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
@@ -167,7 +173,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			metadataRepository = metadataRepository,
+			projectMetadataRepository = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
 		)
 
 		repo.initializeProjectEditor()

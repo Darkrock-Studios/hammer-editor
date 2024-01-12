@@ -6,11 +6,12 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -48,6 +49,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataRepository
+	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -104,7 +106,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		metadataRepository = mockk(relaxed = true)
-
+		metadataDatasource = mockk(relaxed = true)
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -133,7 +135,8 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			metadataRepository = metadataRepository,
+			projectMetadataRepository = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
 		)
 
 		runBlocking {
