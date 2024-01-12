@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projecteditorrepository
+package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
