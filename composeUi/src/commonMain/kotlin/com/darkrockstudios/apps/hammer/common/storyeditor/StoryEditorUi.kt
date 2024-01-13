@@ -27,7 +27,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 private val LIST_PANE_WIDTH = 300.dp
 
 @Composable
-fun ProjectEditorUi(
+fun StoryEditorUi(
 	component: ProjectEditor,
 	snackbarHostState: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,

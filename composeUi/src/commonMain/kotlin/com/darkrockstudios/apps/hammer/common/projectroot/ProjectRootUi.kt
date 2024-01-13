@@ -27,7 +27,7 @@ import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
-import com.darkrockstudios.apps.hammer.common.storyeditor.ProjectEditorUi
+import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
 
@@ -80,7 +80,7 @@ fun FeatureContent(
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
-				ProjectEditorUi(child.component, rootSnackbar, navWidth)
+				StoryEditorUi(child.component, rootSnackbar, navWidth)
 
 			is ProjectRoot.Destination.NotesDestination ->
 				NotesUi(child.component, rootSnackbar)
