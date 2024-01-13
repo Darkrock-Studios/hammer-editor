@@ -26,7 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun BoxWithConstraintsScope.BrowseEntriesUi(
+fun BrowseEntriesUi(
 	component: BrowseEntries,
 	scope: CoroutineScope,
 	viewEntry: (EntryDef) -> Unit
@@ -47,8 +47,9 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 
 	Column(modifier = Modifier.fillMaxSize()) {
 		Row(
-			modifier = Modifier.padding(horizontal = Ui.Padding.XL),
-			verticalAlignment = Alignment.CenterVertically
+			modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.XL),
+			verticalAlignment = Alignment.CenterVertically,
+			//horizontalArrangement = Arrangement.SpaceBetween,
 		) {
 			SearchBar(
 				query = searchText,
@@ -57,7 +58,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				placeholder = { Text(MR.strings.encyclopedia_search_hint.get()) },
 				active = false,
 				onActiveChange = {},
-				modifier = Modifier.moveFocusOnTab().weight(1f),
+				modifier = Modifier.moveFocusOnTab().weight(1f).padding(end = Ui.Padding.L),
 				trailingIcon = {
 					IconButton(onClick = {
 						component.clearFilterText()
@@ -70,12 +71,10 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 				},
 			) {}
 
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
-
 			ExposedDropDown(
 				getText = { strRes.get(it.toStringResource()) },
 				label = MR.strings.encyclopedia_filter_by_category.get(),
-				modifier = Modifier.widthIn(min = 64.dp, max = 128.dp).moveFocusOnTab(),
+				modifier = Modifier.width(128.dp).moveFocusOnTab(),
 				items = types,
 				noneOption = MR.strings.encyclopedia_category_all.get(),
 				defaultItem = state.filterType

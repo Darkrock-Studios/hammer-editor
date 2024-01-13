@@ -37,7 +37,7 @@ fun <T> ExposedDropDown(
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
 		onExpandedChange = { isExpanded = it },
-		modifier = modifier,
+		modifier = Modifier,
 	) {
 		TextField(
 			value = selectedText,
@@ -52,7 +52,7 @@ fun <T> ExposedDropDown(
 				}
 			},
 			colors = ExposedDropdownMenuDefaults.textFieldColors(),
-			modifier = Modifier.menuAnchor(),
+			modifier = modifier.menuAnchor(),
 		)
 
 		ExposedDropdownMenu(
