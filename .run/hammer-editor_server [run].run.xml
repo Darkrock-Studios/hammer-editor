@@ -11,14 +11,15 @@
 			<option name="taskNames">
 				<list>
 					<option value="run"/>
+					<option value="--args=&quot;--dev&quot;"/>
 				</list>
 			</option>
-			<option name="vmOptions"/>
+			<option name="vmOptions" value=""/>
 		</ExternalSystemSettings>
 		<ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
 		<ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
 		<DebugAllEnabled>false</DebugAllEnabled>
-		<ForceTestExec>false</ForceTestExec>
+		<RunAsTest>false</RunAsTest>
 		<method v="2"/>
 	</configuration>
 </component>

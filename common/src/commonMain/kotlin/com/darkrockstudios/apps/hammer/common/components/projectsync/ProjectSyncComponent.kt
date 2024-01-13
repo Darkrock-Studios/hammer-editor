@@ -15,12 +15,12 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -323,6 +323,8 @@ class ProjectSyncComponent(
 		val local = sceneEditorRepository.getSceneItemFromId(serverEntity.id)
 			?: throw IllegalStateException("Failed to get local scene")
 
+		val metadata = sceneEditorRepository.loadSceneMetadata(serverEntity.id)
+
 		val path = sceneEditorRepository.getPathSegments(local)
 		val content = sceneEditorRepository.loadSceneMarkdownRaw(local)
 
@@ -332,7 +334,9 @@ class ProjectSyncComponent(
 			name = local.name,
 			order = local.order,
 			content = content,
-			path = path
+			path = path,
+			outline = metadata.outline,
+			notes = metadata.notes,
 		)
 
 		withContext(mainDispatcher) {

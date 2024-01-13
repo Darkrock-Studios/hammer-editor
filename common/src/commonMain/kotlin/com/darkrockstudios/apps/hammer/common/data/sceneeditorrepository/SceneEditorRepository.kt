@@ -87,6 +87,7 @@ abstract class SceneEditorRepository(
 
 	protected suspend fun markForSynchronization(scene: SceneItem) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+			val metadata = metadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
 			val content = loadSceneMarkdownRaw(scene)
 			val hash = EntityHasher.hashScene(
@@ -95,7 +96,9 @@ abstract class SceneEditorRepository(
 				path = pathSegments,
 				name = scene.name,
 				type = scene.type.toApiType(),
-				content = content
+				content = content,
+				outline = metadata?.outline ?: "",
+				notes = metadata?.notes ?: "",
 			)
 			projectSynchronizer.markEntityAsDirty(scene.id, hash)
 		}
@@ -106,7 +109,7 @@ abstract class SceneEditorRepository(
 	suspend fun cleanupSceneOrder() {
 		val groups = sceneTree.filter {
 			it.value.type == SceneItem.Type.Group ||
-					it.value.type == SceneItem.Type.Root
+				it.value.type == SceneItem.Type.Root
 		}
 
 		groups.forEach { node ->
@@ -401,7 +404,7 @@ abstract class SceneEditorRepository(
 			val sceneName = captures.groupValues[2]
 			val sceneId = captures.groupValues[3].toInt()
 			val isSceneGroup = !(captures.groupValues.size >= 5
-					&& captures.groupValues[4] == SCENE_FILENAME_EXTENSION)
+				&& captures.groupValues[4] == SCENE_FILENAME_EXTENSION)
 
 			val sceneItem = SceneItem(
 				projectDef = projectDef,
@@ -461,6 +464,10 @@ abstract class SceneEditorRepository(
 	}
 
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+		val scene = getSceneItemFromId(sceneId)
+			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
+		markForSynchronization(scene)
+
 		metadataDatasource.storeMetadata(metadata, sceneId)
 	}
 

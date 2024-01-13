@@ -28,4 +28,10 @@
 	<string name="scene_editor_metadata_word_count_label">Words: </string>
 	<string name="scene_editor_metadata_advanced_header">Advanced</string>
 	<string name="scene_editor_metadata_entity_id">Entity ID: %1$d</string>
+
+	<string name="scene_editor_metadata_outline_label">Outline</string>
+	<string name="scene_editor_metadata_outline_placeholder">A short description of what happens in the scene.</string>
+
+	<string name="scene_editor_metadata_notes_label">Notes</string>
+	<string name="scene_editor_metadata_notes_placeholder">Notes to your self.</string>
 </resources>

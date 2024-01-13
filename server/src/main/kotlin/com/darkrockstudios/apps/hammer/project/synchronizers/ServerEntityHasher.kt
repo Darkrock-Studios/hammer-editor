@@ -12,7 +12,9 @@ fun serverEntityHash(serverEntity: ApiProjectEntity): String {
 				order = serverEntity.order,
 				path = serverEntity.path,
 				type = serverEntity.sceneType,
-				content = serverEntity.content
+				content = serverEntity.content,
+				outline = serverEntity.outline,
+				notes = serverEntity.notes,
 			)
 		}
 

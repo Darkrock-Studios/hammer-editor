@@ -38,7 +38,9 @@ private fun SceneConflictPreview() {
 		order = 1,
 		name = "Scene Name",
 		path = listOf(3, 5),
-		content = sceneContent
+		content = sceneContent,
+		outline = "",
+		notes = "",
 	)
 	val clientEntity = serverScene.copy(
 		content = sceneContent.replace("to", "BOB")

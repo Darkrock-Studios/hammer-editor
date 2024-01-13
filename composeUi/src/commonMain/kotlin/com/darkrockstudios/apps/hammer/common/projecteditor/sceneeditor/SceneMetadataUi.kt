@@ -11,19 +11,24 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
+val SCENE_METADATA_MAX_WIDTH = 600.dp
+
 @Composable
-fun SceneMetadataUi(
+fun SceneMetadataPanelUi(
 	component: SceneMetadataPanel,
 	modifier: Modifier = Modifier,
 	closeMetadata: () -> Unit
 ) {
 	val state by component.state.subscribeAsState()
 
-	Card(modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
+	Card(
+		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
 		elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM)
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
@@ -42,7 +47,7 @@ fun SceneMetadataUi(
 				)
 			}
 
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
+			SpacerL()
 
 			Row {
 				Text(
@@ -56,24 +61,38 @@ fun SceneMetadataUi(
 				)
 			}
 
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			SpacerXL()
 
 			OutlinedTextField(
 				value = state.metadata.outline,
 				onValueChange = component::updateOutline,
-				modifier = Modifier.heightIn(128.dp),
+				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
 				maxLines = 10,
-				placeholder = { Text("Outline") }
+				label = { Text(MR.strings.scene_editor_metadata_outline_label.get()) },
+				placeholder = {
+					Text(
+						MR.strings.scene_editor_metadata_outline_placeholder.get(),
+						style = MaterialTheme.typography.bodyLarge,
+					)
+				},
+				textStyle = MaterialTheme.typography.bodyLarge,
 			)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			SpacerXL()
 
 			OutlinedTextField(
 				value = state.metadata.notes,
 				onValueChange = component::updateNotes,
-				modifier = Modifier.heightIn(128.dp),
+				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
 				maxLines = 10,
-				placeholder = { Text("Notes") }
+				label = { Text(MR.strings.scene_editor_metadata_notes_label.get()) },
+				placeholder = {
+					Text(
+						MR.strings.scene_editor_metadata_notes_placeholder.get(),
+						style = MaterialTheme.typography.bodyLarge,
+					)
+				},
+				textStyle = MaterialTheme.typography.bodyLarge,
 			)
 
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))

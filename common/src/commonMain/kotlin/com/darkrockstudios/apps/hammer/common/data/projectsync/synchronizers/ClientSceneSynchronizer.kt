@@ -11,9 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
-import com.darkrockstudios.apps.hammer.common.data.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
@@ -39,6 +39,8 @@ class ClientSceneSynchronizer(
 			""
 		}
 
+		val metadata = sceneEditorRepository.loadSceneMetadata(id)
+
 		return ApiProjectEntity.SceneEntity(
 			id = id,
 			name = scene.name,
@@ -46,6 +48,8 @@ class ClientSceneSynchronizer(
 			sceneType = scene.type.toApiType(),
 			content = contents,
 			path = path,
+			outline = metadata.outline,
+			notes = metadata.notes,
 		)
 	}
 
@@ -65,13 +69,17 @@ class ClientSceneSynchronizer(
 			val pathSegments = sceneEditorRepository.getScenePathSegments(scenePath).pathSegments
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
+			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
+
 			EntityHasher.hashScene(
 				id = sceneItem.id,
 				name = sceneItem.name,
 				order = sceneItem.order,
 				path = pathSegments,
 				type = sceneItem.type.toApiType(),
-				content = sceneContent
+				content = sceneContent,
+				outline = metadata.outline,
+				notes = metadata.notes,
 			)
 		} else {
 			null

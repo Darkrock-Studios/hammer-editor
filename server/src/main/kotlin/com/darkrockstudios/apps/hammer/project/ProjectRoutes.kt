@@ -1,14 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
-import com.darkrockstudios.apps.hammer.base.http.DeleteIdsResponse
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_HASH
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_TYPE
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ORIGINAL_HASH
-import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
-import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
-import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
+import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -17,19 +9,13 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.principal
-import io.ktor.server.request.receive
-import io.ktor.server.request.receiveParameters
-import io.ktor.server.request.receiveStream
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
-import io.ktor.util.logging.Logger
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.util.logging.*
 import korlibs.io.compression.deflate.GZIP
 import korlibs.io.compression.uncompress
 import kotlinx.coroutines.withContext
@@ -37,7 +23,9 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
+import kotlin.IllegalArgumentException
 import kotlin.coroutines.CoroutineContext
+import kotlin.toString
 
 fun Route.projectRoutes(logger: Logger) {
 	authenticate(USER_AUTH) {
@@ -153,6 +141,7 @@ private fun Route.uploadEntity() {
 	val projectRepository: ProjectRepository = get()
 
 	post("/upload_entity/{entityId}") {
+		val log = call.application.log
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val entityId = call.parameters["entityId"]?.toIntOrNull()
@@ -212,6 +201,11 @@ private fun Route.uploadEntity() {
 				} else {
 					val e = result.exception
 					if (e is EntityConflictException) {
+						if (call.application.environment.developmentMode) {
+							val serverHash = serverEntityHash(e.entity)
+							log.info("Conflict for ID $entityId client provided original hash: $originalHash server hash: $serverHash")
+						}
+
 						when (val conflictedEntity = e.entity) {
 							is ApiProjectEntity.SceneEntity -> call.respond(status = HttpStatusCode.Conflict, conflictedEntity)
 							is ApiProjectEntity.NoteEntity -> call.respond(status = HttpStatusCode.Conflict, conflictedEntity)

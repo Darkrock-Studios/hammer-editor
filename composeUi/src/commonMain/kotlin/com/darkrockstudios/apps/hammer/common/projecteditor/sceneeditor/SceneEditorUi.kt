@@ -7,16 +7,9 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -24,7 +17,10 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.richtexteditor.model.Style
@@ -173,9 +169,9 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 			exit = slideOutHorizontally { it } + fadeOut(),
 		) {
 			Box(modifier = Modifier.padding(Ui.Padding.L)) {
-				SceneMetadataUi(
+				SceneMetadataPanelUi(
 					component = component.sceneMetadataComponent,
-					modifier = Modifier.wrapContentWidth().fillMaxHeight(),
+					modifier = Modifier.wrapContentWidth().widthIn(max = SCENE_METADATA_MAX_WIDTH).fillMaxHeight(),
 					closeMetadata = component::toggleMetadataVisibility,
 				)
 			}
@@ -184,7 +180,7 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 		if (state.showMetadata) {
 			Dialog(onDismissRequest = component::toggleMetadataVisibility) {
 				Box(modifier = Modifier.padding(Ui.Padding.L)) {
-					SceneMetadataUi(
+					SceneMetadataPanelUi(
 						component = component.sceneMetadataComponent,
 						modifier = Modifier.fillMaxWidth().fillMaxHeight(),
 						closeMetadata = component::toggleMetadataVisibility,

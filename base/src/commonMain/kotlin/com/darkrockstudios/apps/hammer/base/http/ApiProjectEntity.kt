@@ -15,7 +15,9 @@ sealed interface ApiProjectEntity {
 		val order: Int,
 		val name: String,
 		val path: List<Int>,
-		val content: String
+		val content: String,
+		val outline: String,
+		val notes: String,
 	) : ApiProjectEntity
 
 	@Serializable

@@ -7,10 +7,10 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -82,7 +82,9 @@ class SceneSynchronizerTest : BaseTest() {
 			order = 0,
 			name = "Test Scene",
 			path = listOf(0),
-			content = "Scene Content"
+			content = "Scene Content",
+			outline = "",
+			notes = "",
 		)
 		val filePath = HPath("/", "", true)
 		val clientEntity = SceneItem.fromApiEntity(serverEntity, def)
@@ -141,7 +143,9 @@ class SceneSynchronizerTest : BaseTest() {
 			order = 0,
 			name = "Test Scene",
 			path = listOf(0),
-			content = "Scene Content"
+			content = "Scene Content",
+			outline = "",
+			notes = "",
 		)
 		val oldContent = "old Scene Content"
 		val clientEntity = SceneItem.fromApiEntity(serverEntity.copy(content = oldContent), def)
@@ -183,7 +187,9 @@ class SceneSynchronizerTest : BaseTest() {
 			order = 0,
 			name = "Test Scene",
 			path = listOf(0),
-			content = "Scene Content"
+			content = "Scene Content",
+			outline = "",
+			notes = "",
 		)
 
 		val clientSceneEntity = SceneItem(
@@ -246,7 +252,9 @@ class SceneSynchronizerTest : BaseTest() {
 			order = 0,
 			name = "Test Group",
 			path = listOf(0),
-			content = "Scene Content"
+			content = "Scene Content",
+			outline = "",
+			notes = "",
 		)
 		val oldName = "old Group Name"
 		val clientEntity = SceneItem.fromApiEntity(serverEntity, def).copy(name = oldName)
@@ -287,7 +295,9 @@ class SceneSynchronizerTest : BaseTest() {
 			order = 0,
 			name = "Test Group",
 			path = listOf(0),
-			content = "Scene Content"
+			content = "Scene Content",
+			outline = "",
+			notes = "",
 		)
 		val clientEntity = SceneItem.fromApiEntity(serverEntity, def)
 

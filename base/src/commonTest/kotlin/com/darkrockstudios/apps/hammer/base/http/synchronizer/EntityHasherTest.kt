@@ -15,10 +15,12 @@ class EntityHasherTest {
 			path = listOf(0, 1),
 			name = "Test",
 			type = ApiSceneType.Scene,
-			content = "Content"
+			content = "Content",
+			outline = "outline",
+			notes = "notes",
 		)
 
-		assertEquals("FKO1hY5N5aqEfYKCF2RnMQ", hash)
+		assertEquals("qGhcS1Xj9KYoYAQnobh9AQ", hash)
 	}
 
 	@Test

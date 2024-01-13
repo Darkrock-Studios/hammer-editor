@@ -21,7 +21,9 @@ class ServerSceneSynchronizer(
 			path = entity.path,
 			name = entity.name,
 			type = entity.sceneType,
-			content = entity.content
+			content = entity.content,
+			outline = entity.outline,
+			notes = entity.notes,
 		)
 	}
 

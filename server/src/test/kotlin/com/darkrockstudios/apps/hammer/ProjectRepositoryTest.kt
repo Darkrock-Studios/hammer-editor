@@ -30,7 +30,6 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
@@ -232,6 +231,8 @@ class ProjectRepositoryTest : BaseTest() {
 			order = 1,
 			path = emptyList(),
 			content = "Test Content",
+			outline = "",
+			notes = "",
 		)
 	}
 
