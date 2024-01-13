@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -22,14 +23,14 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 	syncAutomaticSync = true,
 	syncAutomaticBackups = true,
 	syncAutoCloseDialog = true,
-	maxBackups = 50
+	maxBackups = 50,
 )
 
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
 	object : AccountSettings {
 		override val showProjectDirectory: Boolean = true
 		override val state = MutableValue(state)
-
+		override val platformSettings = object : PlatformSettings {}
 		override fun setProjectsDir(path: String) {}
 		override fun setUiTheme(theme: UiTheme) {}
 		override suspend fun reinstallExampleProject() {}

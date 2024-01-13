@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettings
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -15,4 +17,5 @@ actual val platformModule = module {
 	singleOf(::StrResImpl) bind StrRes::class
 	singleOf(::DeviceLocaleResolver)
 	singleOf(::UrlLauncherAndroid) bind UrlLauncher::class
+	factory { params -> AndroidPlatformSettings(componentContext = params.get()) } bind PlatformSettings::class
 }

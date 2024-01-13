@@ -49,4 +49,6 @@
 		will attempt to merge your local content with the server content. If the content is unrelated, it could cause
 		problems.
 	</string>
+	<string name="settings_platform_settings_title">Platform Settings</string>
+	<string name="settings_keep_screen_on">Keep screen on</string>
 </resources>

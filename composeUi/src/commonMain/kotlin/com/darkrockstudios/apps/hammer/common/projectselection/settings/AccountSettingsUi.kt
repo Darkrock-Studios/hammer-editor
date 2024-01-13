@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -151,6 +151,10 @@ internal fun AccountSettingsUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 					ServerSettingsUi(component, scope, rootSnackbar)
+
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+					PlatformSettingsUi(component.platformSettings)
 
 					Spacer(modifier = Modifier.size(Ui.Padding.XL))
 

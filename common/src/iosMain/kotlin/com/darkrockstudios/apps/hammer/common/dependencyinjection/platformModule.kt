@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.IosSettingsComponent
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.StrResImpl
@@ -13,4 +15,5 @@ actual val platformModule = module {
 	singleOf(::NetworkConnectivity)
 	singleOf(::StrResImpl) bind StrRes::class
 	singleOf(::UrlLauncherDarwin) bind UrlLauncher::class
+	factory { params -> IosSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class
 }

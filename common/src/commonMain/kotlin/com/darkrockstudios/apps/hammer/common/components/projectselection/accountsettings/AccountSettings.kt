@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 interface AccountSettings : ComponentToaster {
 	val showProjectDirectory: Boolean
 	val state: Value<State>
+	val platformSettings: PlatformSettings
 
 	fun setProjectsDir(path: String)
 	fun setUiTheme(theme: UiTheme)

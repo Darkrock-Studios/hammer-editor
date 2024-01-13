@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 class AccountSettingsComponent(
 	componentContext: ComponentContext,
@@ -42,6 +43,8 @@ class AccountSettingsComponent(
 
 	private var serverSetupJob: Job? = null
 
+	override val platformSettings: PlatformSettings by inject { parametersOf(componentContext) }
+
 	private val _state by savableState {
 		AccountSettings.State(
 			projectsDir = projectsRepository.getProjectsDirectory(),
@@ -49,7 +52,7 @@ class AccountSettingsComponent(
 			syncAutomaticSync = globalSettingsRepository.globalSettings.automaticSyncing,
 			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
 			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
-			maxBackups = globalSettingsRepository.globalSettings.maxBackups
+			maxBackups = globalSettingsRepository.globalSettings.maxBackups,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -244,7 +247,7 @@ class AccountSettingsComponent(
 		email: String,
 		password: String,
 		create: Boolean,
-		shouldRemoveLocalContent: Boolean
+		removeLocalContent: Boolean
 	) {
 		cancelSetupJob()
 
@@ -272,7 +275,7 @@ class AccountSettingsComponent(
 
 				showToast(MR.strings.settings_server_setup_toast_failure, message)
 			} else {
-				if (shouldRemoveLocalContent) {
+				if (removeLocalContent) {
 					removeLocalContent()
 				}
 

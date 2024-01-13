@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
 
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
