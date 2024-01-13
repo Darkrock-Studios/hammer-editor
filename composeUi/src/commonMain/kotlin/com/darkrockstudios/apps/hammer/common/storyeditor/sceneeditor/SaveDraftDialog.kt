@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get

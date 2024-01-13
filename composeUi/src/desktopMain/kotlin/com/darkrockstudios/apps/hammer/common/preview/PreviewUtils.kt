@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.runtime.Composable
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT

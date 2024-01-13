@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
@@ -9,8 +9,8 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE

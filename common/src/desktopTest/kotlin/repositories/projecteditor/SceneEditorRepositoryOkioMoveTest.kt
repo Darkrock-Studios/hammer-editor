@@ -140,7 +140,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 		)
 
 		runBlocking {
-			repo.initializeProjectEditor()
+			repo.initializeSceneEditor()
 		}
 	}
 

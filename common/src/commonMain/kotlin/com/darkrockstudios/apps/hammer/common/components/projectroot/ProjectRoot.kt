@@ -7,9 +7,9 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
@@ -42,7 +42,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 
 		override fun shouldConfirmClose() = component.shouldConfirmClose()
 
-		data class EditorDestination(override val component: ProjectEditor) : Destination<ProjectEditor>()
+		data class EditorDestination(override val component: StoryEditor) : Destination<StoryEditor>()
 
 		data class NotesDestination(override val component: Notes) : Destination<Notes>()
 

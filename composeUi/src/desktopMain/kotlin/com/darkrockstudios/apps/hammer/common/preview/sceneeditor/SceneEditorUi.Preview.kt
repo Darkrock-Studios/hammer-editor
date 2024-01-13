@@ -5,8 +5,8 @@ import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText

@@ -1,8 +1,8 @@
 package repositories
 
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository

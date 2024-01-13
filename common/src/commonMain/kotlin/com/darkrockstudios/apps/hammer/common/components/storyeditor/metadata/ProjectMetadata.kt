@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata
 
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText

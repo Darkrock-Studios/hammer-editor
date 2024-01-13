@@ -7,9 +7,9 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.savableState
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess

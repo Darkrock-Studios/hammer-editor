@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.SceneItem

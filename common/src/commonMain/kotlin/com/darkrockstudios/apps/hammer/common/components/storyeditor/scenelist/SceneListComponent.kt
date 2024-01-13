@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue

@@ -1,9 +1,9 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer

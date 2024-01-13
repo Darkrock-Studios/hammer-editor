@@ -12,10 +12,10 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.notes.NotesComponent
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHomeComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditorComponent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -73,8 +73,8 @@ internal class ProjectRootRouter(
 			)
 		}
 
-	private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): ProjectEditor {
-		val editor = ProjectEditorComponent(
+	private fun editorComponent(config: Config.EditorConfig, componentContext: ComponentContext): StoryEditor {
+		val editor = StoryEditorComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			addMenu = addMenu,

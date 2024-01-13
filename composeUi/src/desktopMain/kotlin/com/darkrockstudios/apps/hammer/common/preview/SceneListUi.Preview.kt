@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem

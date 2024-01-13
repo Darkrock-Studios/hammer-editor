@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftsList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem

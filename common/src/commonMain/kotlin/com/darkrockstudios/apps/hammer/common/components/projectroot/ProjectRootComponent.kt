@@ -9,13 +9,9 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,7 +23,7 @@ class ProjectRootComponent(
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val synchronizer: ClientProjectSynchronizer by projectInject()
-	private val projectEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
@@ -60,7 +56,7 @@ class ProjectRootComponent(
 	override fun onCreate() {
 		super.onCreate()
 
-		projectEditor.subscribeToBufferUpdates(null, scope) {
+		sceneEditor.subscribeToBufferUpdates(null, scope) {
 			updateCloseConfirmRequirement()
 		}
 
@@ -111,11 +107,11 @@ class ProjectRootComponent(
 	}
 
 	override fun hasUnsavedBuffers(): Boolean {
-		return projectEditor.hasDirtyBuffers()
+		return sceneEditor.hasDirtyBuffers()
 	}
 
 	override suspend fun storeDirtyBuffers() {
-		projectEditor.storeAllBuffers()
+		sceneEditor.storeAllBuffers()
 	}
 
 	override fun isAtRoot() = router.isAtRoot() && modalRouter.isAtRoot()

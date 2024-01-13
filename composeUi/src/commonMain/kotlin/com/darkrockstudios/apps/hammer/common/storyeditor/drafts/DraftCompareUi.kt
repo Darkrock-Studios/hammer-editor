@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui

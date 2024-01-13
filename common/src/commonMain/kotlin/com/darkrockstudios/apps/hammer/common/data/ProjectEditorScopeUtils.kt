@@ -52,7 +52,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
 		val projectEditor: SceneEditorRepository = projScope.get { parametersOf(projectDef) }
-		projectEditor.initializeProjectEditor()
+		projectEditor.initializeSceneEditor()
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()

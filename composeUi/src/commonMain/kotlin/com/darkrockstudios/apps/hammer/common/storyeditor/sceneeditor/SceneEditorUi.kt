@@ -16,7 +16,7 @@ import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster

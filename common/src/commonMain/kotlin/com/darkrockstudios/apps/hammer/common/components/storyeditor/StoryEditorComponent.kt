@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -17,14 +17,14 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-class ProjectEditorComponent(
+class StoryEditorComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	addMenu: (menu: MenuDescriptor) -> Unit,
 	removeMenu: (id: String) -> Unit,
-) : ProjectComponentBase(projectDef, componentContext), ProjectEditor {
+) : ProjectComponentBase(projectDef, componentContext), StoryEditor {
 
-	private val projectEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
 		replay = 1,
@@ -54,18 +54,18 @@ class ProjectEditorComponent(
 			onSceneSelected = ::onSceneSelected
 		)
 
-	override val listRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>> =
+	override val listRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.List>> =
 		listRouter.state
 
-	override val detailsRouterState: Value<ChildStack<*, ProjectEditor.ChildDestination.Detail>> =
+	override val detailsRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.Detail>> =
 		detailsRouter.state
 
 	override fun isDetailShown(): Boolean {
-		return detailsRouterState.value.active.instance !is ProjectEditor.ChildDestination.Detail.None
+		return detailsRouterState.value.active.instance !is StoryEditor.ChildDestination.Detail.None
 	}
 
-	private val _state = MutableValue(ProjectEditor.State(projectDef))
-	override val state: Value<ProjectEditor.State> = _state
+	private val _state = MutableValue(StoryEditor.State(projectDef))
+	override val state: Value<StoryEditor.State> = _state
 
 	override fun closeDetails(): Boolean {
 		return if (isMultiPaneMode() && detailsRouter.isShown()) {
@@ -123,7 +123,7 @@ class ProjectEditorComponent(
 	private fun isMultiPaneMode(): Boolean = _state.value.isMultiPane
 
 	override fun hasUnsavedBuffers(): Boolean {
-		return projectEditor.hasDirtyBuffers()
+		return sceneEditor.hasDirtyBuffers()
 	}
 
 	override fun isAtRoot(): Boolean {
@@ -131,7 +131,7 @@ class ProjectEditorComponent(
 	}
 
 	override suspend fun storeDirtyBuffers() {
-		projectEditor.storeAllBuffers()
+		sceneEditor.storeAllBuffers()
 	}
 
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
@@ -158,7 +158,7 @@ class ProjectEditorComponent(
 			_shouldCloseRoot.tryEmit(!isDetailShown())
 		}
 
-		projectEditor.subscribeToBufferUpdates(null, scope) {
+		sceneEditor.subscribeToBufferUpdates(null, scope) {
 			backButtonHandler.isEnabled = isDetailShown()
 		}
 	}

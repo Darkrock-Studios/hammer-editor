@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
@@ -168,7 +168,7 @@ abstract class SceneEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	suspend fun initializeProjectEditor(): SceneEditorRepository {
+	suspend fun initializeSceneEditor(): SceneEditorRepository {
 		val root = loadSceneTree()
 		sceneTree.setRoot(root)
 

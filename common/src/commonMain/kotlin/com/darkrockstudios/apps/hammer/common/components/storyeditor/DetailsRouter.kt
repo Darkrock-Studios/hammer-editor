@@ -1,16 +1,16 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompareComponent
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftsList
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftsListComponent
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditorComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompareComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsListComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
@@ -33,24 +33,24 @@ internal class DetailsRouter(
 		childFactory = ::createChild
 	)
 
-	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.Detail>>
+	val state: Value<ChildStack<Config, StoryEditor.ChildDestination.Detail>>
 		get() = stack
 
 	private fun createChild(
 		config: Config,
 		componentContext: ComponentContext
-	): ProjectEditor.ChildDestination.Detail =
+	): StoryEditor.ChildDestination.Detail =
 		when (config) {
-			is Config.None -> ProjectEditor.ChildDestination.Detail.None
-			is Config.SceneEditor -> ProjectEditor.ChildDestination.Detail.EditorDestination(
+			is Config.None -> StoryEditor.ChildDestination.Detail.None
+			is Config.SceneEditor -> StoryEditor.ChildDestination.Detail.EditorDestination(
 				sceneEditor(componentContext = componentContext, sceneDef = config.sceneDef)
 			)
 
-			is Config.DraftsList -> ProjectEditor.ChildDestination.Detail.DraftsDestination(
+			is Config.DraftsList -> StoryEditor.ChildDestination.Detail.DraftsDestination(
 				draftsList(componentContext = componentContext, sceneDef = config.sceneDef)
 			)
 
-			is Config.DraftCompare -> ProjectEditor.ChildDestination.Detail.DraftCompareDestination(
+			is Config.DraftCompare -> StoryEditor.ChildDestination.Detail.DraftCompareDestination(
 				draftCompare(
 					componentContext = componentContext,
 					sceneDef = config.sceneDef,

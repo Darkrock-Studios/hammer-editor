@@ -12,8 +12,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.*

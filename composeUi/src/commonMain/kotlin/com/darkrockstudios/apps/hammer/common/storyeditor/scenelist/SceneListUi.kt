@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui

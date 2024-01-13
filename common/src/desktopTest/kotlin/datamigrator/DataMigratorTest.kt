@@ -2,8 +2,8 @@ package datamigrator
 
 import PROJECT_1_NAME
 import PROJECT_2_NAME
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
@@ -13,16 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import getProjectDef
-import io.mockk.CapturingSlot
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.confirmVerified
-import io.mockk.every
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.spyk
-import io.mockk.verify
 import kotlinx.datetime.Clock
 import org.junit.Before
 import org.koin.dsl.module

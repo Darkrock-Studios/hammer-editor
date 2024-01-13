@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository
 
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import net.peanuuutz.tomlkt.Toml

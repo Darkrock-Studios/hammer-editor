@@ -5,8 +5,8 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
 import com.arkivanov.essenty.parcelable.TypeParceler
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent

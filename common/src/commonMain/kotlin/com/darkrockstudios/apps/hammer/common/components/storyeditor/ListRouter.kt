@@ -1,11 +1,11 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.parcelable.Parcelable
 import com.arkivanov.essenty.parcelable.Parcelize
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneListComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneListComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,13 +25,13 @@ internal class ListRouter(
 		childFactory = ::createChild
 	)
 
-	val state: Value<ChildStack<Config, ProjectEditor.ChildDestination.List>>
+	val state: Value<ChildStack<Config, StoryEditor.ChildDestination.List>>
 		get() = stack
 
-	private fun createChild(config: Config, componentContext: ComponentContext): ProjectEditor.ChildDestination.List =
+	private fun createChild(config: Config, componentContext: ComponentContext): StoryEditor.ChildDestination.List =
 		when (config) {
-			is Config.List -> ProjectEditor.ChildDestination.List.Scenes(sceneList(componentContext))
-			is Config.None -> ProjectEditor.ChildDestination.List.None
+			is Config.List -> StoryEditor.ChildDestination.List.Scenes(sceneList(componentContext))
+			is Config.None -> StoryEditor.ChildDestination.List.None
 		}
 
 	private fun sceneList(componentContext: ComponentContext): SceneListComponent =

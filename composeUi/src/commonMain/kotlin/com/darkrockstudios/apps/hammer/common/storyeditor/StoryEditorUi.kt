@@ -15,7 +15,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stac
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.ProjectEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
@@ -28,7 +28,7 @@ private val LIST_PANE_WIDTH = 300.dp
 
 @Composable
 fun StoryEditorUi(
-	component: ProjectEditor,
+	component: StoryEditor,
 	snackbarHostState: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
@@ -80,7 +80,7 @@ fun StoryEditorUi(
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-private fun SetMultiPane(component: ProjectEditor) {
+private fun SetMultiPane(component: StoryEditor) {
 	/*
 	// On first try, I didn't like how this worked out, may try again later
 	val windowSizeClass = calculateWindowSizeClass()
@@ -98,7 +98,7 @@ private fun SetMultiPane(component: ProjectEditor) {
 
 @Composable
 private fun ListPane(
-	routerState: Value<ChildStack<*, ProjectEditor.ChildDestination.List>>,
+	routerState: Value<ChildStack<*, StoryEditor.ChildDestination.List>>,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier
 ) {
@@ -110,21 +110,21 @@ private fun ListPane(
 		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
-			is ProjectEditor.ChildDestination.List.Scenes ->
+			is StoryEditor.ChildDestination.List.Scenes ->
 				SceneListUi(
 					component = child.component,
 					snackbarHostState = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
 				)
 
-			is ProjectEditor.ChildDestination.List.None -> Box {}
+			is StoryEditor.ChildDestination.List.None -> Box {}
 		}
 	}
 }
 
 @Composable
 private fun DetailsPane(
-	state: ChildStack<*, ProjectEditor.ChildDestination.Detail>,
+	state: ChildStack<*, StoryEditor.ChildDestination.Detail>,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
 ) {
@@ -134,8 +134,8 @@ private fun DetailsPane(
 		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
-			is ProjectEditor.ChildDestination.Detail.None -> Box {}
-			is ProjectEditor.ChildDestination.Detail.EditorDestination -> {
+			is StoryEditor.ChildDestination.Detail.None -> Box {}
+			is StoryEditor.ChildDestination.Detail.EditorDestination -> {
 				SceneEditorUi(
 					component = child.component,
 					rootSnackbar = snackbarHostState,
@@ -143,11 +143,11 @@ private fun DetailsPane(
 				)
 			}
 
-			is ProjectEditor.ChildDestination.Detail.DraftsDestination -> {
+			is StoryEditor.ChildDestination.Detail.DraftsDestination -> {
 				DraftsListUi(component = child.component)
 			}
 
-			is ProjectEditor.ChildDestination.Detail.DraftCompareDestination -> {
+			is StoryEditor.ChildDestination.Detail.DraftCompareDestination -> {
 				DraftCompareUi(component = child.component)
 			}
 		}

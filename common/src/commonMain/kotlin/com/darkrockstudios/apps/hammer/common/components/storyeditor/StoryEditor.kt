@@ -1,18 +1,18 @@
-package com.darkrockstudios.apps.hammer.common.components.projecteditor
+package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.drafts.DraftsList
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import kotlinx.coroutines.flow.SharedFlow
 
-interface ProjectEditor : AppCloseManager, Router, HammerComponent {
+interface StoryEditor : AppCloseManager, Router, HammerComponent {
 	val listRouterState: Value<ChildStack<*, ChildDestination.List>>
 	val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 

@@ -4,8 +4,8 @@ import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.projecteditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -159,8 +159,8 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	}
 
 	/**
-	 * Load a project who's scene's have irregular order numbers
-	 * On `initializeProjectEditor()` the orders will be cleaned up
+	 * Load a project whose scene's have irregular order numbers
+	 * On `initializeSceneEditor()` the orders will be cleaned up
 	 */
 	@Test
 	fun `Cleanup Scene Order`() = runTest {
@@ -168,7 +168,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		val beforeSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val afterSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
 
@@ -226,7 +226,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(errorException)
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val sceneName = "New Scene"
 		val newScene = repo.createScene(null, sceneName)
@@ -239,7 +239,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		verifyTreeAndFilesystem()
 
@@ -260,7 +260,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		verifyTreeAndFilesystem()
 
@@ -285,7 +285,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 		verifyTreeAndFilesystem()
 
 		val groupName = "New Group"
@@ -304,7 +304,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		verifyTreeAndFilesystem()
 
@@ -328,7 +328,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Delete Scene, In Root`() = runTest {
 		configure(PROJECT_2_NAME)
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val sceneId = 6
 		val scenePreDelete = repo.getSceneItemFromId(sceneId)
@@ -351,7 +351,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Delete Scene, In Group`() = runTest {
 		configure(PROJECT_2_NAME)
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val sceneId = 3
 		val scenePreDelete = repo.getSceneItemFromId(sceneId)
@@ -374,7 +374,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Delete Group, In Root, With Children`() = runTest {
 		configure(PROJECT_2_NAME)
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val groupId = 2
 		val groupPreDelete = repo.getSceneItemFromId(groupId)
@@ -397,7 +397,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 	fun `Delete Group, In Root, No Children`() = runTest {
 		configure(PROJECT_2_NAME)
 
-		repo.initializeProjectEditor()
+		repo.initializeSceneEditor()
 
 		val groupId = 8
 		val groupPreDelete = repo.getSceneItemFromId(groupId)
