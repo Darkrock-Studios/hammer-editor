@@ -75,7 +75,7 @@ internal fun BoxWithConstraintsScope.BrowseEntriesUi(
 			ExposedDropDown(
 				getText = { strRes.get(it.toStringResource()) },
 				label = MR.strings.encyclopedia_filter_by_category.get(),
-				modifier = Modifier.defaultMinSize(minWidth = 128.dp),
+				modifier = Modifier.widthIn(min = 64.dp, max = 128.dp).moveFocusOnTab(),
 				items = types,
 				noneOption = MR.strings.encyclopedia_category_all.get(),
 				defaultItem = state.filterType

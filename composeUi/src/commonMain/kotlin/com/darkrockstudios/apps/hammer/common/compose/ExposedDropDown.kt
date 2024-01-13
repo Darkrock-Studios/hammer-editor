@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -8,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +37,7 @@ fun <T> ExposedDropDown(
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
 		onExpandedChange = { isExpanded = it },
-		modifier = modifier.defaultMinSize(minWidth = 128.dp),
+		modifier = modifier,
 	) {
 		TextField(
 			value = selectedText,
@@ -79,7 +77,7 @@ fun <T> ExposedDropDown(
 				val text = getItemText(item)
 
 				DropdownMenuItem(
-					modifier = Modifier.exposedDropdownSize(),
+					modifier = Modifier,
 					text = {
 						Text(text = text)
 					},
