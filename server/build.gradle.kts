@@ -60,6 +60,7 @@ dependencies {
 	implementation(libs.ktor.network.tlscertificates)
 
 	implementation(libs.slf4j.simple)
+	//implementation(libs.logback.classic)
 
 	implementation(platform(libs.koin.bom))
 	implementation(libs.bundles.koin.server)

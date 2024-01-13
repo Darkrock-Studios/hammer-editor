@@ -83,6 +83,7 @@ buildconfig = "5.3.3"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "10.10.0"
+logback_classic = "1.4.14"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -216,6 +217,7 @@ aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", ve
 aboutlibraries_compose = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutlibraries" }
 
 jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin", version.ref = "jetbrains_kover" }
+#logback_classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback_classic" }
 
 #################
 # These were added automatically, do we really need them?
