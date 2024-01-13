@@ -77,7 +77,7 @@ fun <T> ExposedDropDown(
 				val text = getItemText(item)
 
 				DropdownMenuItem(
-					modifier = Modifier,
+					modifier = Modifier.exposedDropdownSize(),
 					text = {
 						Text(text = text)
 					},

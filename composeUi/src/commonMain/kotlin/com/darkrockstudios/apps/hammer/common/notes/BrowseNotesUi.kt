@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -27,40 +28,32 @@ import kotlinx.datetime.toLocalDateTime
 fun BrowseNotesUi(component: BrowseNotes, modifier: Modifier) {
 	val state by component.state.subscribeAsState()
 
-	Box(modifier = modifier.padding(horizontal = Ui.Padding.XL)) {
-		Column {
-			Text(
-				MR.strings.notes_header.get(),
-				style = MaterialTheme.typography.headlineLarge,
-				color = MaterialTheme.colorScheme.onBackground
-			)
+	Column(modifier = modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
+		HeaderUi(MR.strings.notes_header, "\uD83D\uDCD1")
 
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-			LazyVerticalStaggeredGrid(
-				columns = StaggeredGridCells.Adaptive(400.dp),
-				modifier = Modifier.fillMaxSize(),
-				contentPadding = PaddingValues(horizontal = Ui.Padding.XL)
-			) {
-				if (state.notes.isEmpty()) {
-					item {
-						Text(
-							MR.strings.notes_list_empty.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onBackground
-						)
-					}
+		LazyVerticalStaggeredGrid(
+			columns = StaggeredGridCells.Adaptive(400.dp),
+			modifier = Modifier.fillMaxSize(),
+			contentPadding = PaddingValues(horizontal = Ui.Padding.XL)
+		) {
+			if (state.notes.isEmpty()) {
+				item {
+					Text(
+						MR.strings.notes_list_empty.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground
+					)
 				}
+			}
 
-				items(
-					count = state.notes.size,
-				) { index ->
-					val note = state.notes[index]
-					NoteItem(
-						note = note,
-					) {
-						component.viewNote(note.id)
-					}
+			items(
+				count = state.notes.size,
+			) { index ->
+				val note = state.notes[index]
+				NoteItem(
+					note = note,
+				) {
+					component.viewNote(note.id)
 				}
 			}
 		}

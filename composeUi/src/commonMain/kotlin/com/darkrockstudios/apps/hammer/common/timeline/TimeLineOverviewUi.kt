@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
@@ -42,13 +43,9 @@ fun TimeLineOverviewUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	Box(modifier = Modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL)) {
+	Box(modifier = Modifier.fillMaxSize().padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
 		Column(modifier = Modifier.widthIn(0.dp, 700.dp).align(Alignment.Center).fillMaxWidth()) {
-			Text(
-				MR.strings.timeline_title.get(),
-				style = MaterialTheme.typography.headlineLarge,
-				color = MaterialTheme.colorScheme.onBackground
-			)
+			HeaderUi(MR.strings.timeline_title, "\uD83D\uDCC5")
 
 			val events = state.timeLine?.events ?: emptyList()
 			if (events.isEmpty()) {

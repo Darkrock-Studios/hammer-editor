@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecteditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -65,24 +66,11 @@ fun SceneListUi(
 			Row(
 				modifier = Modifier.fillMaxWidth()
 					.wrapContentHeight()
-					.padding(horizontal = Ui.Padding.L),
+					.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L),
 				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
+				verticalAlignment = Alignment.Top
 			) {
-				Row {
-					Text(
-						"\uD83D\uDCDD ",
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.padding(end = Ui.Padding.L)
-					)
-					Text(
-						MR.strings.scene_list_header.get(),
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.weight(1f)
-					)
-				}
+				HeaderUi(MR.strings.scene_list_header, "\uD83D\uDCDD")
 
 				if (expandOrCollapse) {
 					ElevatedButton(onClick = {
@@ -107,9 +95,9 @@ fun SceneListUi(
 				modifier = Modifier.fillMaxSize(),
 				state = treeState,
 				itemUi = { node: TreeValue<SceneItem>,
-						   toggleExpanded: (nodeId: Int) -> Unit,
-						   collapsed: Boolean,
-						   draggable: Modifier ->
+				           toggleExpanded: (nodeId: Int) -> Unit,
+				           collapsed: Boolean,
+				           draggable: Modifier ->
 
 					SceneNode(
 						sceneNode = node,
