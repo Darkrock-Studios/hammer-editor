@@ -4,11 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Dataset
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,9 +25,9 @@ import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
-import com.darkrockstudios.apps.hammer.common.projecteditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
+import com.darkrockstudios.apps.hammer.common.storyeditor.ProjectEditorUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
 

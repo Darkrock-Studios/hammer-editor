@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -81,6 +82,11 @@ fun ProjectHomeUi(
 private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
 
 @Composable
+private fun Header() {
+
+}
+
+@Composable
 private fun Stats(
 	modifier: Modifier,
 	state: ProjectHome.State,
@@ -93,11 +99,20 @@ private fun Stats(
 	) {
 		item(span = spanAll) {
 			Column {
-				Text(
-					state.projectDef.name,
-					style = MaterialTheme.typography.displayMedium,
-					color = MaterialTheme.colorScheme.onSurface
-				)
+				val screen = LocalScreenCharacteristic.current
+				when (screen.windowWidthClass) {
+					WindowWidthSizeClass.Compact -> {
+						HeaderUi(state.projectDef.name, "\uD83C\uDFE1", Modifier.padding(top = Ui.Padding.L))
+					}
+
+					else -> {
+						Text(
+							state.projectDef.name,
+							style = MaterialTheme.typography.displayMedium,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					}
+				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 

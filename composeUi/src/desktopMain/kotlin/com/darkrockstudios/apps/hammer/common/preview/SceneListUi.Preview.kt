@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.projecteditor.scenelist.SceneItem
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneItem
 
 /*
 @Preview
