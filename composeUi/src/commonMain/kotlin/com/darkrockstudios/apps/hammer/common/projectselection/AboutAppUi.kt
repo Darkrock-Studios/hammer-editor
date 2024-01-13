@@ -17,6 +17,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -38,6 +40,7 @@ import dev.icerock.moko.resources.compose.painterResource
 @Composable
 fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 	var showLibraries by remember { mutableStateOf(false) }
+	val screen = LocalScreenCharacteristic.current
 
 	Box(modifier = modifier.fillMaxSize()) {
 		ElevatedCard(
@@ -54,10 +57,18 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 						painter = painterResource(MR.images.hammer_icon),
 						contentDescription = null
 					)
-					Text(
-						text = MR.strings.app_name.get(),
-						style = MaterialTheme.typography.displayLarge,
-					)
+
+					if(screen.windowWidthClass == WindowWidthSizeClass.Compact) {
+						Text(
+							text = MR.strings.app_name.get(),
+							style = MaterialTheme.typography.displaySmall,
+						)
+					} else {
+						Text(
+							text = MR.strings.app_name.get(),
+							style = MaterialTheme.typography.displayLarge,
+						)
+					}
 				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.M))
