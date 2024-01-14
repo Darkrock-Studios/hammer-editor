@@ -7,13 +7,12 @@ import com.arkivanov.essenty.parcelable.Parcelable
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import dev.icerock.moko.parcelize.Parcelize
 
-class IosSettingsComponent(componentContext: ComponentContext): PlatformSettings,
-	SavableComponent<IosSettingsComponent.PlatformState>(componentContext){
+class IosSettingsComponent(componentContext: ComponentContext) : PlatformSettings,
+	SavableComponent<IosSettingsComponent.PlatformState>(componentContext) {
 
 	private val _state = MutableValue(PlatformState())
 	override val state: Value<PlatformState> = _state
 
 	@Parcelize
-	class PlatformState(
-	) : Parcelable
+	class PlatformState : Parcelable
 }

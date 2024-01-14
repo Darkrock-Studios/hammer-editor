@@ -2,45 +2,18 @@ package com.darkrockstudios.apps.hammer.android
 
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.PermanentDrawerSheet
-import androidx.compose.material3.PermanentNavigationDrawer
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
@@ -73,7 +46,9 @@ import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.russhwolf.settings.Settings
 import com.seiko.imageloader.ImageLoader
 import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
@@ -86,6 +61,7 @@ import org.koin.java.KoinJavaComponent.getKoin
 
 class ProjectRootActivity : AppCompatActivity() {
 
+	private val settings: Settings by inject()
 	private val imageLoader: ImageLoader by inject()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val mainDispatcher by injectMainDispatcher()
@@ -152,6 +128,20 @@ class ProjectRootActivity : AppCompatActivity() {
 				}
 			}
 		}
+	}
+
+	public override fun onResume() {
+		super.onResume()
+
+		val keepScreenOn = settings.getBoolean(AndroidSettingsKeys.KEY_SCREEN_ON, false)
+		if (keepScreenOn) {
+			window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+		}
+	}
+
+	public override fun onPause() {
+		super.onPause()
+		window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 	}
 
 	override fun onStop() {

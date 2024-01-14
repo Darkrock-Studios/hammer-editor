@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -90,6 +91,8 @@ val mainModule = module {
 	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
 
 	singleOf(::ProjectMetadataRepositoryOkio) bind ProjectMetadataRepository::class
+
+	singleOf(::Settings) bind Settings::class
 
 	includes(migratorModule)
 

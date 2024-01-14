@@ -30,6 +30,8 @@ dependencies {
 	implementation(libs.work.runtime.ktx)
 	implementation(libs.material)
 	implementation(libs.appcompat)
+	implementation(libs.multiplatform.settings)
+
 //	implementation(libs.lifecycle.runtime.ktx)
 //	implementation(platform(libs.compose.bom))
 //	implementation(libs.ui)

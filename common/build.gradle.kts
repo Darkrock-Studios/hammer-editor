@@ -63,6 +63,7 @@ kotlin {
 				implementation(libs.kotlinx.atomicfu)
 				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)
+				implementation(libs.multiplatform.settings)
 			}
 		}
 		val commonTest by getting {
