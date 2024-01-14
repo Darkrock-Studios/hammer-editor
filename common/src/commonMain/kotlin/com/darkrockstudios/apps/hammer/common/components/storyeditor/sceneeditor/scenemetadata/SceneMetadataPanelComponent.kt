@@ -10,14 +10,18 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import kotlin.time.Duration.Companion.milliseconds
 
 class SceneMetadataPanelComponent(
@@ -26,6 +30,7 @@ class SceneMetadataPanelComponent(
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	SceneMetadataPanel {
 
+	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val _state = MutableValue(
@@ -131,6 +136,10 @@ class SceneMetadataPanelComponent(
 		super.onDestroy()
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription = null
+
+		appScope.launch {
+			sceneEditor.storeMetadata(state.value.metadata, originalSceneItem.id)
+		}
 	}
 
 	companion object {

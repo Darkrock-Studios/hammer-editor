@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -49,15 +50,15 @@ fun SceneMetadataPanelUi(
 
 			SpacerL()
 
-			Row {
+			Row(modifier = Modifier.align(Alignment.End)) {
 				Text(
 					MR.strings.scene_editor_metadata_word_count_label.get(),
-					style = MaterialTheme.typography.labelLarge,
+					style = MaterialTheme.typography.headlineSmall,
 				)
 
 				Text(
 					"${state.wordCount}",
-					style = MaterialTheme.typography.labelLarge,
+					style = MaterialTheme.typography.headlineSmall,
 				)
 			}
 
@@ -67,7 +68,7 @@ fun SceneMetadataPanelUi(
 				value = state.metadata.outline,
 				onValueChange = component::updateOutline,
 				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
-				maxLines = 10,
+				maxLines = 4,
 				label = { Text(MR.strings.scene_editor_metadata_outline_label.get()) },
 				placeholder = {
 					Text(
@@ -84,7 +85,7 @@ fun SceneMetadataPanelUi(
 				value = state.metadata.notes,
 				onValueChange = component::updateNotes,
 				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
-				maxLines = 10,
+				maxLines = 4,
 				label = { Text(MR.strings.scene_editor_metadata_notes_label.get()) },
 				placeholder = {
 					Text(
@@ -95,7 +96,7 @@ fun SceneMetadataPanelUi(
 				textStyle = MaterialTheme.typography.bodyLarge,
 			)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+			SpacerXL()
 
 			Text(
 				MR.strings.scene_editor_metadata_advanced_header.get(),

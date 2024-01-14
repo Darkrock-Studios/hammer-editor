@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
@@ -76,7 +77,7 @@ fun main(args: Array<String>) {
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
-		modules(mainModule, imageLoadingModule, aboutLibrariesModule)
+		modules(mainModule, imageLoadingModule, aboutLibrariesModule, appModule(appScope))
 	}
 
 	getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
