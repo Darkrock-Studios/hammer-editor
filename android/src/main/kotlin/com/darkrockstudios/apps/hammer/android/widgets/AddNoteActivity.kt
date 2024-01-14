@@ -46,6 +46,8 @@ import androidx.work.WorkManager
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -163,7 +165,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 										)
 									}
 
-									Spacer(modifier = Modifier.size(Ui.Padding.L))
+									SpacerL()
 
 									OutlinedTextField(
 										value = noteText,
@@ -171,7 +173,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 										modifier = Modifier.heightIn(128.dp),
 										maxLines = 10
 									)
-									Spacer(modifier = Modifier.size(Ui.Padding.L))
+									SpacerL()
 									Row(
 										modifier = Modifier.fillMaxWidth(),
 										horizontalArrangement = Arrangement.SpaceBetween
@@ -222,7 +224,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 										color = MaterialTheme.colorScheme.onBackground
 									)
 
-									Spacer(modifier = Modifier.size(Ui.Padding.L))
+									SpacerL()
 
 									Row(
 										modifier = Modifier.fillMaxWidth(),
@@ -234,7 +236,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 											Text(stringResource(R.string.note_widget_confirm_cancel_negative))
 										}
 
-										Spacer(modifier = Modifier.size(Ui.Padding.XL))
+										SpacerXL()
 
 										Button(
 											modifier = Modifier.width(IntrinsicSize.Max),

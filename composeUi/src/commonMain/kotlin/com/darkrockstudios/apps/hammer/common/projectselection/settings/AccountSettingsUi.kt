@@ -16,9 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
@@ -26,7 +24,7 @@ import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
@@ -75,7 +73,7 @@ internal fun AccountSettingsUi(
 				Divider(modifier = Modifier.fillMaxWidth())
 
 				Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-					Spacer(modifier = Modifier.size(Ui.Padding.L))
+					SpacerL()
 
 					Column(modifier = Modifier.padding(Ui.Padding.L)) {
 						val themeOptions = remember { UiTheme.entries }
@@ -92,7 +90,7 @@ internal fun AccountSettingsUi(
 					}
 
 					if (component.showProjectDirectory) {
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+						SpacerXL()
 
 						Column(modifier = Modifier.padding(Ui.Padding.M)) {
 							Text(
@@ -120,7 +118,7 @@ internal fun AccountSettingsUi(
 						}
 					}
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					SpacerXL()
 
 					Column(modifier = Modifier.padding(Ui.Padding.M)) {
 						Text(
@@ -148,15 +146,15 @@ internal fun AccountSettingsUi(
 						}
 					}
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					SpacerXL()
 
 					ServerSettingsUi(component, scope, rootSnackbar)
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					SpacerXL()
 
 					PlatformSettingsUi(component.platformSettings)
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					SpacerXL()
 
 					Text(
 						stringResource(MR.strings.settings_data_version, getDataVersion()),
@@ -164,7 +162,7 @@ internal fun AccountSettingsUi(
 						color = MaterialTheme.colorScheme.onBackground,
 					)
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					SpacerXL()
 				}
 			}
 		}
