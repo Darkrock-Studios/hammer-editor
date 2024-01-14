@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource.Companion.DIRECTORY
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -61,12 +62,12 @@ class SceneMetadataOkioDatasource(
 
 	companion object {
 		fun getMetadataDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
-			val projOkPath = projectDef.path.toOkioPath()
-			val sceneDirPath = projOkPath.div(DIRECTORY)
-			if (!fileSystem.exists(sceneDirPath)) {
-				fileSystem.createDirectories(sceneDirPath)
+			val sceneDir = SceneEditorRepositoryOkio.getSceneDirectory(projectDef, fileSystem).toOkioPath()
+			val metadataDirPath = sceneDir.div(DIRECTORY)
+			if (!fileSystem.exists(metadataDirPath)) {
+				fileSystem.createDirectories(metadataDirPath)
 			}
-			return sceneDirPath.toHPath()
+			return metadataDirPath.toHPath()
 		}
 
 		fun getMetadataFilenameFromId(id: Int): String {
