@@ -5,6 +5,6 @@ import platform.Foundation.*
 
 actual class DeviceLocaleResolver {
 	actual fun getCurrentLocale(): Locale {
-		return Locale.forLanguage(NSLocale.currentLocale.languageCode!!)
+		return Locale.forLanguage(NSLocale.currentLocale.languageCode)
 	}
 }

@@ -10,24 +10,27 @@ import SwiftUI
 import Hammer
 
 struct RootUi: View {
-    private let root: RootHolder
+    private let appDelegate: AppDelegate
 
     @ObservedObject
-    private var observableState: ObservableValue<RootState>
-    private var state: RootState { observableState.value }
+    private var observableState: ObservableValue<ChildSlot<IosRootConfig, IosRootDestination>>
+    private var slot: ChildSlot<IosRootConfig, IosRootDestination> { observableState.value }
 
-    init(_ root: RootHolder) {
-        self.root = root
-        observableState = ObservableValue(root.state)
+    init(_ appDelegate: AppDelegate) {
+        self.appDelegate = appDelegate
+        observableState = ObservableValue(appDelegate.root.slot)
     }
 
     var body: some View {
-        VStack {
-            if let holder = state.projectSelectComponent {
-                ProjectSelectionUi(projectSelectionComponent: holder.component)
-            } else if let holder = state.projectRootComponent {
-                ProjectRootUi(component: holder.component) {
-                    root.closeProject()
+        let child = slot.child
+        if(child != nil) {
+            VStack {
+                if let destination = child?.instance as? IosRootDestination.ProjectSelectDestination {
+                    ProjectSelectionUi(projectSelectionComponent: destination.component)
+                } else if let destination = child?.instance as? IosRootDestination.ProjectRootDestination {
+                    ProjectRootUi(component: destination.component) {
+                        appDelegate.root.closeProject()
+                    }
                 }
             }
         }

@@ -12,8 +12,9 @@ import Hammer
 
 @main
 struct app_iosApp: App {
-    @StateObject
-    var rootHolder = RootHolder()
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self)
+    var appDelegate: AppDelegate
     
     init() {
         Theme.navigationBarColors(background: .purple, titleColor: .white)
@@ -25,19 +26,17 @@ struct app_iosApp: App {
     
     var body: some SwiftUI.Scene {
             WindowGroup {
-                RootUi(rootHolder)
-                    .onAppear { LifecycleRegistryExtKt.resume(self.rootHolder.lifecycle) }
-                    .onDisappear { LifecycleRegistryExtKt.stop(self.rootHolder.lifecycle) }
+                RootUi(appDelegate)
             }
     }
 }
 
-struct Previews_app_iosApp_Previews: PreviewProvider {
-    static var previews: some View {
-        let rootHolder = RootHolder()
-            RootUi(rootHolder)
-                .onAppear { LifecycleRegistryExtKt.resume(rootHolder.lifecycle) }
-                .onDisappear { LifecycleRegistryExtKt.stop(rootHolder.lifecycle) }
-        }
-    }
+//struct Previews_app_iosApp_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let rootHolder = RootHolder()
+//            RootUi(rootHolder)
+//                .onAppear { LifecycleRegistryExtKt.resume(rootHolder.lifecycle) }
+//                .onDisappear { LifecycleRegistryExtKt.stop(rootHolder.lifecycle) }
+//        }
+//    }
 
