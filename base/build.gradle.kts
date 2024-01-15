@@ -20,9 +20,11 @@ kotlin {
 			kotlinOptions.jvmTarget = libs.versions.jvm.get()
 		}
 	}
-    ios {
+	iosX64()
+	iosArm64()
+	iosSimulatorArm64()
 
-    }
+	applyDefaultHierarchyTemplate()
 
     sourceSets {
         val commonMain by getting {
@@ -56,7 +58,7 @@ android {
 	compileSdk = libs.versions.android.sdk.compile.get().toInt()
     defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
-		targetSdk = libs.versions.android.sdk.target.get().toInt()
+	    lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 
     compileOptions {

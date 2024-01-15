@@ -83,7 +83,7 @@ android {
 	sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
 	defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
-		targetSdk = libs.versions.android.sdk.target.get().toInt()
+		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 	buildFeatures {
 		compose = true

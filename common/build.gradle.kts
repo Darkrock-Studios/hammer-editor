@@ -18,21 +18,27 @@ kotlin {
 			kotlinOptions.jvmTarget = libs.versions.jvm.get()
 		}
 	}
-	ios {
-		binaries {
-			framework {
-				baseName = "Hammer"
-				//transitiveExport = true
-				export(libs.decompose)
-				export(libs.essenty)
-				//export(libs.parcelize.darwin.runtime)
-				export(libs.coroutines.core)
-				export(libs.moko.resources)
-				export(libs.moko.graphics)
-				export(libs.napier)
-			}
+
+	listOf(
+		iosX64(),
+		iosArm64(),
+		iosSimulatorArm64()
+	).forEach { iosTarget ->
+		iosTarget.binaries.framework {
+			baseName = "Hammer"
+			//isStatic = true
+			//transitiveExport = true
+			export(libs.decompose)
+			export(libs.essenty)
+			//export(libs.parcelize.darwin.runtime)
+			export(libs.coroutines.core)
+			export(libs.moko.resources)
+			export(libs.moko.graphics)
+			export(libs.napier)
 		}
 	}
+
+	applyDefaultHierarchyTemplate()
 
 	sourceSets {
 		val commonMain by getting {
@@ -135,13 +141,13 @@ android {
 				"src/androidMain/res",
 				"src/commonMain/resources",
 				// https://github.com/icerockdev/moko-resources/issues/353#issuecomment-1179713713
-				File(buildDir, "generated/moko/androidMain/res")
+				File(layout.buildDirectory.asFile.get(), "generated/moko/androidMain/res")
 			)
 		}
 	}
 	defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
-		targetSdk = libs.versions.android.sdk.target.get().toInt()
+		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
