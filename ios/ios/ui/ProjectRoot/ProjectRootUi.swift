@@ -79,8 +79,8 @@ struct ProjectRootUi: View {
                 childContent: { destination in
 
                     switch destination.component {
-                    case is ProjectEditor:
-                        ProjectEditorUi(component: destination.component as! ProjectEditor, onBackPressed: {})
+                    case is StoryEditor:
+                        StoryEditorUi(component: destination.component as! StoryEditor, onBackPressed: {})
                     case is Notes:
                         Text("Notes")
                     case is Encyclopedia:

@@ -1,5 +1,5 @@
 //
-//  ProjectEditorUi.swift
+//  StoryEditorUi.swift
 //  ios
 //
 //  Created by Adam Brown on 6/5/22.
@@ -13,9 +13,9 @@ import Hammer
 private let listPaneWeight = CGFloat(0.4)
 private let detailsPaneWeight = CGFloat(0.6)
 
-struct ProjectEditorUi: View {
+struct StoryEditorUi: View {
     
-    init(component: ProjectEditor, onBackPressed: @escaping () -> Void) {
+    init(component: StoryEditor, onBackPressed: @escaping () -> Void) {
         self.component = component
         self.observedState = ObservableValue(component.state)
         self.listRouterState = ObservableValue(component.listRouterState)
@@ -26,20 +26,20 @@ struct ProjectEditorUi: View {
     private var onBackPressed: () -> Void
     
     @State
-    private var component: ProjectEditor
+    private var component: StoryEditor
     
     @ObservedObject
-    private var observedState: ObservableValue<ProjectEditorState>
+    private var observedState: ObservableValue<StoryEditorState>
     
     @ObservedObject
-    private var listRouterState: ObservableValue<ChildStack<AnyObject, ProjectEditorChildDestination.List>>
+    private var listRouterState: ObservableValue<ChildStack<AnyObject, StoryEditorChildDestination.List>>
     
     @ObservedObject
-    private var detailsRouterState: ObservableValue<ChildStack<AnyObject, ProjectEditorChildDestination.Detail>>
+    private var detailsRouterState: ObservableValue<ChildStack<AnyObject, StoryEditorChildDestination.Detail>>
     
-    private var state: ProjectEditorState { observedState.value }
-    private var activeListChild: ProjectEditorChildDestination.List { listRouterState.value.active.instance }
-    private var activeDetailsChild: ProjectEditorChildDestination.Detail { detailsRouterState.value.active.instance }
+    private var state: StoryEditorState { observedState.value }
+    private var activeListChild: StoryEditorChildDestination.List { listRouterState.value.active.instance }
+    private var activeDetailsChild: StoryEditorChildDestination.Detail { detailsRouterState.value.active.instance }
     
     var body: some View {
         NavigationView {
@@ -69,11 +69,11 @@ struct ProjectEditorUi: View {
 }
 
 /*
-struct ProjectEditorUi_Previews: PreviewProvider {
+struct StoryEditorUi_Previews: PreviewProvider {
     static var previews: some View {
-        ProjectEditorUi(
+        StoryEditorUi(
             componentHolder: ComponentHolder { context in
-                ProjectEditorComponent(
+                StoryEditorComponent(
                     componentContext: context,
                     projectDef: ProjectDefinition(name:"Test Proj", path: HPath(path: "/a/b", isAbsolute: true)),
                     addMenu: { menu in
@@ -93,12 +93,12 @@ struct ProjectEditorUi_Previews: PreviewProvider {
 */
 
 struct ListPane: View {
-    let listChild: ProjectEditorChildDestination.List
+    let listChild: StoryEditorChildDestination.List
     let isMultiPane: Bool
     
     var body: some View {
         switch listChild {
-        case let list as ProjectEditorChildDestination.ListScenes:
+        case let list as StoryEditorChildDestination.ListScenes:
             GeometryReader { metrics in
                 HStack {
                     SceneListUi(component: list.component)
@@ -116,13 +116,13 @@ struct ListPane: View {
 }
 
 struct DetailsPane: View {
-    let detailsChild: ProjectEditorChildDestination.Detail
+    let detailsChild: StoryEditorChildDestination.Detail
     let isMultiPane: Bool
     
     var body: some View {
 
         switch detailsChild {
-        case let details as ProjectEditorChildDestination.DetailEditorDestination:
+        case let details as StoryEditorChildDestination.DetailEditorDestination:
             GeometryReader { metrics in
                 HStack {
                     if isMultiPane {
