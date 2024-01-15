@@ -22,7 +22,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -137,8 +136,7 @@ internal fun AccountSettingsUi(
 
 						val successMessage = MR.strings.settings_example_project_success_message.get()
 						Button(onClick = {
-							scope.launch {
-								component.reinstallExampleProject()
+							component.reinstallExampleProject {
 								rootSnackbar.showSnackbar(successMessage)
 							}
 						}) {

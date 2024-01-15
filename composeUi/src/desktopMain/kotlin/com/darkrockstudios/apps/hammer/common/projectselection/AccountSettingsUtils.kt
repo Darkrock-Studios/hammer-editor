@@ -33,7 +33,7 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override val platformSettings = object : PlatformSettings {}
 		override fun setProjectsDir(path: String) {}
 		override fun setUiTheme(theme: UiTheme) {}
-		override suspend fun reinstallExampleProject() {}
+		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}
 		override fun setupServer(

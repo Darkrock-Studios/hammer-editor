@@ -107,8 +107,11 @@ class AccountSettingsComponent(
 		}
 	}
 
-	override suspend fun reinstallExampleProject() {
-		exampleProjectRepository.install()
+	override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {
+		scope.launch {
+			exampleProjectRepository.install()
+			onComplete(true)
+		}
 	}
 
 	override fun setProjectsDir(path: String) {

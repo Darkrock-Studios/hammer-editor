@@ -15,7 +15,7 @@ interface AccountSettings : ComponentToaster {
 
 	fun setProjectsDir(path: String)
 	fun setUiTheme(theme: UiTheme)
-	suspend fun reinstallExampleProject()
+	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
 	fun setupServer(
