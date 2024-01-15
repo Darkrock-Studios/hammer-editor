@@ -26,9 +26,9 @@ struct AccountSettingsUi: View {
         VStack {
             Text("Account Settings")
             
-            Button("Install Example") {
-                component.reinstallExampleProject { _ in
-                    Napier().d(message: "Instal did something", throwable: nil, tag: "Hammer")
+            Button("Install Example Project") {
+                component.reinstallExampleProject { success in
+                    Napier().d(message: "Install did something", throwable: nil, tag: "Hammer")
                 }
             }
             .buttonStyle(SelectButton())
