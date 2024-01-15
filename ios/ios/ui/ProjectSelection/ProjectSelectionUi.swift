@@ -26,12 +26,29 @@ struct ProjectSelectionUi: View {
     private var slot: ChildSlot<ProjectSelectionConfig, ProjectSelectionDestination> { observableState.value }
     
     var body: some View {
-        Text("")
+        HStack {
+            Button("Proj List") {
+                component.showLocation(location: ProjectSelectionLocations.projects)
+            }
+            .buttonStyle(SelectButton())
+            
+            Button("Sett") {
+                component.showLocation(location: ProjectSelectionLocations.settings)
+            }
+            .buttonStyle(SelectButton())
+            
+            Button("About") {
+                component.showLocation(location: ProjectSelectionLocations.aboutapp)
+            }
+            .buttonStyle(SelectButton())
+        }
     
         if let settings = slot.child?.instance as? ProjectSelectionDestination.AccountSettingsDestination {
             AccountSettingsUi(component: settings.component)
         } else if let projList = slot.child?.instance as? ProjectSelectionDestination.ProjectsListDestination {
             ProjectsListUi(component: projList.component)
+        } else if let about = slot.child?.instance as? ProjectSelectionDestination.AboutAppDestination {
+            AboutAppUi(component: about.component)
         } else {
             Text("error")
         }

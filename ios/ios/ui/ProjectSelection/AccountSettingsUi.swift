@@ -23,7 +23,16 @@ struct AccountSettingsUi: View {
     }
     
     var body: some View {
-        Text("Account Settings")
+        VStack {
+            Text("Account Settings")
+            
+            Button("Install Example") {
+                component.reinstallExampleProject { _ in
+                    Napier().d(message: "Instal did something", throwable: nil, tag: "Hammer")
+                }
+            }
+            .buttonStyle(SelectButton())
+        }
     }
 }
 
