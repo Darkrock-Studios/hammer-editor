@@ -64,7 +64,7 @@ ktor = "2.3.7"
 ktor_i18n = "2.0.0"
 
 okio = "3.7.0"
-slf4jSimple = "2.0.10"
+slf4jSimple = "2.0.11"
 uuid = "0.8.2"
 work-runtime-ktx = "2.9.0"
 
