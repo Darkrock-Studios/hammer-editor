@@ -21,7 +21,7 @@ jobs:
           java-version: 17
 
       - name: Gradle caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -81,7 +81,7 @@ jobs:
           java-version: 17
 
       - name: Gradle caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -134,7 +134,7 @@ jobs:
           java-version: 17
 
       - name: Gradle caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -187,7 +187,7 @@ jobs:
           java-version: 17
 
       - name: Gradle caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -242,7 +242,7 @@ jobs:
           java-version: 17
 
       - name: Gradle caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
