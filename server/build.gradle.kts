@@ -68,7 +68,6 @@ dependencies {
 	implementation(libs.okio)
 
 	implementation(libs.sqldelight.driver)
-	implementation(libs.sqldelight.driver)
 
 	implementation(libs.kweb.core)
 	implementation(libs.ktor.server.websockets)
