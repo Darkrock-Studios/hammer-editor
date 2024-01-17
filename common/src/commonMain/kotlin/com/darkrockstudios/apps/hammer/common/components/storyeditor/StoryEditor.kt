@@ -34,14 +34,14 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent {
 		sealed class List : ChildDestination() {
 			data class Scenes(val component: SceneList) : List()
 
-			object None : List()
+			data object None : List()
 		}
 
 		sealed class Detail : ChildDestination() {
 			data class EditorDestination(val component: SceneEditor) : Detail()
 			data class DraftsDestination(val component: DraftsList) : Detail()
 			data class DraftCompareDestination(val component: DraftCompare) : Detail()
-			object None : Detail()
+			data object None : Detail()
 		}
 	}
 }
