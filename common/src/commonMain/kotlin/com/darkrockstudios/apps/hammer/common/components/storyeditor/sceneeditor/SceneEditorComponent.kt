@@ -55,8 +55,7 @@ class SceneEditorComponent(
 		originalSceneItem = originalSceneItem
 	)
 
-	private val sceneDef: SceneItem
-		get() = state.value.sceneItem
+	private val sceneDef: SceneItem = state.value.sceneItem
 
 	override fun onCreate() {
 		super.onCreate()
@@ -64,6 +63,20 @@ class SceneEditorComponent(
 		loadSceneContent()
 		subscribeToBufferUpdates()
 		watchSettings()
+		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+	}
+
+	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
+		val newSceneItem = sceneSummary.sceneTree.findBy { it.id == sceneDef.id }
+		if (newSceneItem != null) {
+			_state.getAndUpdate {
+				it.copy(
+					sceneItem = newSceneItem.value
+				)
+			}
+		} else {
+			Napier.e("Scene ${sceneDef.id} no longer exists in the tree, this are probably going to break.")
+		}
 	}
 
 	private fun watchSettings() {
