@@ -1,16 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.animation.*
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,36 +46,6 @@ fun CollapsableSection(
 			exit = slideOutVertically() + fadeOut()
 		) {
 			body()
-		}
-	}
-}
-
-@Preview
-@Composable
-private fun CollapsableSectionPreview() {
-	Column {
-		CollapsableSection(
-			false,
-			Modifier.fillMaxWidth(),
-			header = { Text("Header") }
-		) {
-			Column {
-				Text("Body 1")
-				Text("Body 2")
-			}
-		}
-
-		SpacerL()
-
-		CollapsableSection(
-			true,
-			Modifier.fillMaxWidth(),
-			header = { Text("Header") }
-		) {
-			Column {
-				Text("Body 1")
-				Text("Body 2")
-			}
 		}
 	}
 }

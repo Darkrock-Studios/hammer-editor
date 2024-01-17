@@ -14,6 +14,7 @@ interface SceneList {
 
 	fun onSceneListUpdate(scenes: SceneSummary)
 	fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)
+	fun showOutlineOverview()
 
 	data class State(
 		val projectDef: ProjectDef,

@@ -23,4 +23,9 @@
     <string name="create_sceneitem_dialog_create_button">Create</string>
     <string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
     <string name="create_sceneitem_dialog_dismiss_button">Cancel</string>
+
+	<string name="scene_list_outline_overview_title">Story Outline</string>
+	<string name="scene_list_outline_overview_button">Outline Overview</string>
+	<string name="scene_list_outline_overview_none">&lt;no outline&gt;</string>
+	<string name="scene_list_outline_dismiss">Dismiss</string>
 </resources>

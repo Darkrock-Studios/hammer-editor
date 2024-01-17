@@ -1,13 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,9 +68,17 @@ fun SceneListUi(
 					.wrapContentHeight()
 					.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L),
 				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.Top
+				verticalAlignment = Alignment.CenterVertically
 			) {
 				HeaderUi(MR.strings.scene_list_header, "\uD83D\uDCDD")
+
+				IconButton(onClick = component::showOutlineOverview) {
+					Icon(
+						Icons.Filled.ViewList,
+						contentDescription = MR.strings.scene_list_outline_overview_button.get(),
+						tint = MaterialTheme.colorScheme.onSurface,
+					)
+				}
 
 				if (expandOrCollapse) {
 					ElevatedButton(onClick = {

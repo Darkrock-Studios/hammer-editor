@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -9,6 +13,7 @@ import com.arkivanov.decompose.value.observe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -51,14 +56,37 @@ class StoryEditorComponent(
 			componentContext = this,
 			projectDef = projectDef,
 			selectedSceneItem = selectedSceneItemFlow,
-			onSceneSelected = ::onSceneSelected
+			onSceneSelected = ::onSceneSelected,
+			showOutlineOverview = ::showOutlineOverview
 		)
 
-	override val listRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.List>> =
-		listRouter.state
+	private val dialogNavigation = SlotNavigation<StoryEditor.DialogConfig>()
+	private val dialogRouter = componentContext.childSlot(
+		source = dialogNavigation,
+		initialConfiguration = { StoryEditor.DialogConfig.None },
+		handleBackButton = false,
+	) { config, componentContext ->
+		createDialogChild(config, componentContext)
+	}
 
-	override val detailsRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.Detail>> =
-		detailsRouter.state
+	private fun createDialogChild(
+		dialogConfig: StoryEditor.DialogConfig,
+		componentContext: ComponentContext
+	): StoryEditor.ChildDestination.DialogDestination {
+		return when (dialogConfig) {
+			StoryEditor.DialogConfig.None ->
+				StoryEditor.ChildDestination.DialogDestination.None
+
+			StoryEditor.DialogConfig.OutlineOverview ->
+				StoryEditor.ChildDestination.DialogDestination.Outline(
+					OutlineOverviewComponent(componentContext, projectDef, ::dismissDialog)
+				)
+		}
+	}
+
+	override val listRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.List>> = listRouter.state
+	override val detailsRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.Detail>> = detailsRouter.state
+	override val dialogState: Value<ChildSlot<*, StoryEditor.ChildDestination.DialogDestination>> = dialogRouter
 
 	override fun isDetailShown(): Boolean {
 		return detailsRouterState.value.active.instance !is StoryEditor.ChildDestination.Detail.None
@@ -144,6 +172,14 @@ class StoryEditorComponent(
 				closeDetails()
 			}
 		}
+	}
+
+	override fun showOutlineOverview() {
+		dialogNavigation.activate(StoryEditor.DialogConfig.OutlineOverview)
+	}
+
+	override fun dismissDialog() {
+		dialogNavigation.activate(StoryEditor.DialogConfig.None)
 	}
 
 	init {

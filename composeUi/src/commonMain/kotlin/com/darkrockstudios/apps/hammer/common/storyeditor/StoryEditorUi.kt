@@ -33,6 +33,7 @@ fun StoryEditorUi(
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
+	val dialogState by component.dialogState.subscribeAsState()
 	BoxWithConstraints(modifier = modifier) {
 		val state by component.state.subscribeAsState()
 		val detailsState by component.detailsRouterState.subscribeAsState()
@@ -73,6 +74,15 @@ fun StoryEditorUi(
 			snackbarHostState = snackbarHostState,
 			modifier = detailsModifier,
 		)
+	}
+
+	when (val dest = dialogState.child?.instance) {
+		is StoryEditor.ChildDestination.DialogDestination.Outline -> {
+			OutlineOverviewUi(dest.component)
+		}
+
+		is StoryEditor.ChildDestination.DialogDestination.None -> {}
+		null -> {}
 	}
 
 	SetMultiPane(component)

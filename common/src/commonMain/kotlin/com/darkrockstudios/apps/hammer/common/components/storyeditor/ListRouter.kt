@@ -14,7 +14,8 @@ internal class ListRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
 	private val selectedSceneItem: SharedFlow<SceneItem?>,
-	private val onSceneSelected: (sceneDef: SceneItem) -> Unit
+	private val onSceneSelected: (sceneDef: SceneItem) -> Unit,
+	private val showOutlineOverview: () -> Unit,
 ) {
 	private val navigation = StackNavigation<Config>()
 
@@ -39,7 +40,8 @@ internal class ListRouter(
 			componentContext = componentContext,
 			projectDef = projectDef,
 			selectedSceneItem = selectedSceneItem,
-			sceneSelected = onSceneSelected
+			sceneSelected = onSceneSelected,
+			showOutlineOverviewDialog = showOutlineOverview,
 		)
 
 	fun moveToBackStack() {

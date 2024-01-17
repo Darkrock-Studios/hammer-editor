@@ -16,7 +16,8 @@ class SceneListComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	selectedSceneItem: SharedFlow<SceneItem?>,
-	private val sceneSelected: (sceneDef: SceneItem) -> Unit
+	private val sceneSelected: (sceneDef: SceneItem) -> Unit,
+	private val showOutlineOverviewDialog: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
 	private val projectEditor: SceneEditorRepository by projectInject()
@@ -137,5 +138,9 @@ class SceneListComponent(
 				)
 			)
 		}
+	}
+
+	override fun showOutlineOverview() {
+		showOutlineOverviewDialog()
 	}
 }
