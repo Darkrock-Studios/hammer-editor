@@ -73,7 +73,6 @@ mockk = "1.13.9"
 
 kotlinx_atomicfu = "0.23.1"
 
-ktoml = "0.5.0"
 tomlkt = "0.3.7"
 
 krypto = "4.0.10"
@@ -161,7 +160,6 @@ koin_compose = { group = "io.insert-koin", name = "koin-compose" }
 
 cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
-ktoml = { group = "com.akuleshov7", name = "ktoml-core", version.ref = "ktoml" }
 tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 
 ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
