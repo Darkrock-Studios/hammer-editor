@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -12,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -32,8 +36,8 @@ fun SceneMetadataPanelUi(
 		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
 		elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM)
 	) {
-		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-			Row {
+		Column(modifier = Modifier.padding(Ui.Padding.XL).verticalScroll(rememberScrollState())) {
+			Row(verticalAlignment = Alignment.CenterVertically) {
 				IconButton(onClick = closeMetadata) {
 					Icon(
 						imageVector = Icons.Default.Close,
@@ -49,6 +53,11 @@ fun SceneMetadataPanelUi(
 			}
 
 			SpacerL()
+
+			Text(
+				state.sceneItem.name,
+				style = MaterialTheme.typography.titleLarge,
+			)
 
 			Row(modifier = Modifier.align(Alignment.End)) {
 				Text(
@@ -98,13 +107,55 @@ fun SceneMetadataPanelUi(
 
 			SpacerXL()
 
-			Text(
-				MR.strings.scene_editor_metadata_advanced_header.get(),
-				style = MaterialTheme.typography.titleSmall,
+			CollapsableSection(
+				header = {
+					Text(
+						MR.strings.scene_editor_metadata_advanced_header.get(),
+						style = MaterialTheme.typography.titleMedium,
+					)
+				},
+				body = { AdvancedSection(state) }
 			)
+		}
+	}
+}
 
+@Composable
+fun AdvancedSection(state: SceneMetadataPanel.State) {
+	Column(modifier = Modifier.padding(Ui.Padding.L)) {
+		Text(
+			MR.strings.scene_editor_metadata_entity_id.get(),
+			style = MaterialTheme.typography.titleMedium,
+		)
+		SelectionContainer {
 			Text(
-				MR.strings.scene_editor_metadata_entity_id.get(state.sceneItem.id),
+				state.sceneItem.id.toString(),
+				style = MaterialTheme.typography.bodySmall,
+			)
+		}
+
+		SpacerL()
+
+		Text(
+			MR.strings.scene_editor_metadata_entity_filename.get(),
+			style = MaterialTheme.typography.titleMedium,
+		)
+		SelectionContainer {
+			Text(
+				state.filename,
+				style = MaterialTheme.typography.bodySmall,
+			)
+		}
+
+		SpacerL()
+
+		Text(
+			MR.strings.scene_editor_metadata_entity_path.get(),
+			style = MaterialTheme.typography.titleMedium,
+		)
+		SelectionContainer {
+			Text(
+				state.path,
 				style = MaterialTheme.typography.bodySmall,
 			)
 		}

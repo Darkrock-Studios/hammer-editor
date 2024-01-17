@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
@@ -34,7 +35,11 @@ class SceneMetadataPanelComponent(
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val _state = MutableValue(
-		SceneMetadataPanel.State(originalSceneItem)
+		SceneMetadataPanel.State(
+			originalSceneItem,
+			"",
+			""
+		)
 	)
 	override val state: Value<SceneMetadataPanel.State> = _state
 
@@ -58,12 +63,36 @@ class SceneMetadataPanelComponent(
 				onBufferUpdate(sceneBuf)
 			}
 
-			val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
-			_state.getAndUpdate {
-				it.copy(
-					metadata = metadata
-				)
-			}
+			loadSceneData()
+			loadMetadataData()
+
+			sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+		}
+	}
+
+	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
+		scope.launch {
+			loadSceneData()
+		}
+	}
+
+	private suspend fun loadMetadataData() {
+		val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+		_state.getAndUpdate {
+			it.copy(
+				metadata = metadata,
+			)
+		}
+	}
+
+	private suspend fun loadSceneData() {
+		val path = sceneEditor.getSceneFilePath(originalSceneItem.id)
+		val filename = sceneEditor.getSceneFilename(path)
+		_state.getAndUpdate {
+			it.copy(
+				filename = filename,
+				path = path.path
+			)
 		}
 	}
 

@@ -77,14 +77,14 @@ fun SceneListUi(
 						treeState.expandAll()
 						expandOrCollapse = false
 					}) {
-						Icon(Icons.Filled.ExpandMore, "Expand")
+						Icon(Icons.Filled.ExpandMore, MR.strings.expand.get())
 					}
 				} else {
 					ElevatedButton(onClick = {
 						treeState.collapseAll()
 						expandOrCollapse = true
 					}) {
-						Icon(Icons.Filled.ExpandLess, "Collapse")
+						Icon(Icons.Filled.ExpandLess, MR.strings.collapse.get())
 					}
 				}
 			}

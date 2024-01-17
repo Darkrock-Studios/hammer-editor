@@ -28,4 +28,7 @@
 	<string name="confirm_dialog_negative">No</string>
 
 	<string name="image_failed_to_load">Image Error</string>
+
+	<string name="expand">Expand</string>
+	<string name="collapse">Collapse</string>
 </resources>

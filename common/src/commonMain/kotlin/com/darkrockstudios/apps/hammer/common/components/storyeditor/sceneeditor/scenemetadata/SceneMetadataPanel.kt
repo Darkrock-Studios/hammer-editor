@@ -13,6 +13,8 @@ interface SceneMetadataPanel : HammerComponent {
 
 	data class State(
 		val sceneItem: SceneItem,
+		val filename: String = "",
+		val path: String = "",
 		val wordCount: Int = 0,
 		val metadata: SceneMetadata = SceneMetadata(),
 	)

@@ -182,7 +182,7 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 				Box(modifier = Modifier.padding(Ui.Padding.L)) {
 					SceneMetadataPanelUi(
 						component = component.sceneMetadataComponent,
-						modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
 						closeMetadata = component::toggleMetadataVisibility,
 					)
 				}
