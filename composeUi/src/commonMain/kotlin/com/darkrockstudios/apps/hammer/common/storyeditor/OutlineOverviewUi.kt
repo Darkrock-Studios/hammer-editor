@@ -1,29 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode.Companion.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import kotlinx.coroutines.launch
 
 @Composable
 fun OutlineOverviewUi(component: OutlineOverview) {
@@ -84,7 +77,7 @@ private fun ChapterOutlineUi(sceneOutline: OutlineOverview.OutlineItem.ChapterOu
 
 		Divider(
 			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.onSurface,
+			color = MaterialTheme.colorScheme.outline,
 		)
 	}
 }

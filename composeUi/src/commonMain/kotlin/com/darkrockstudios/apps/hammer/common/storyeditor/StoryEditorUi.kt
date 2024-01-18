@@ -49,7 +49,7 @@ fun StoryEditorUi(
 
 		val listModifier = if (isMultiPane) {
 			Modifier.requiredWidthIn(0.dp, dividerX).fillMaxHeight()
-				.rightBorder(1.dp, MaterialTheme.colorScheme.onBackground)
+				.rightBorder(1.dp, MaterialTheme.colorScheme.outline)
 		} else {
 			Modifier.fillMaxSize()
 		}

@@ -49,7 +49,7 @@ fun BrowseEntriesUi(
 		Row(
 			modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.XL),
 			verticalAlignment = Alignment.CenterVertically,
-			//horizontalArrangement = Arrangement.SpaceBetween,
+			horizontalArrangement = Arrangement.SpaceAround,
 		) {
 			SearchBar(
 				query = searchText,
