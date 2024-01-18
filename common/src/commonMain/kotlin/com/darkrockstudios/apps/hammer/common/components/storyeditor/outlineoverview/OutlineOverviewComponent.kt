@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OutlineOverviewComponent(
 	componentContext: ComponentContext,
@@ -69,10 +70,12 @@ class OutlineOverviewComponent(
 				}
 			}
 
-		_state.getAndUpdate {
-			it.copy(
-				overview = storyOutline
-			)
+		withContext(dispatcherMain) {
+			_state.getAndUpdate {
+				it.copy(
+					overview = storyOutline
+				)
+			}
 		}
 	}
 
