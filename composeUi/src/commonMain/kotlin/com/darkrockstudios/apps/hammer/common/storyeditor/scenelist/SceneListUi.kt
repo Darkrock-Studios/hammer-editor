@@ -1,15 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTree
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -51,14 +50,15 @@ fun SceneListUi(
 
 	var showCreateGroupDialog by remember { mutableStateOf<SceneItem?>(null) }
 	var showCreateSceneDialog by remember { mutableStateOf<SceneItem?>(null) }
-	var expandOrCollapse by remember { mutableStateOf(false) }
 
 	val treeState = rememberReorderableLazyListState(
-		summary = emptySceneSummary(state.projectDef),
+		summary = state.sceneSummary ?: emptySceneSummary(state.projectDef),
 		moveItem = { scope.launch { component.moveScene(it) } }
 	)
-	state.sceneSummary?.let { summary ->
-		treeState.updateSummary(summary)
+	LaunchedEffect(state.sceneSummary) {
+		state.sceneSummary?.let { summary ->
+			treeState.updateSummary(summary)
+		}
 	}
 
 	BoxWithConstraints {
@@ -72,29 +72,7 @@ fun SceneListUi(
 			) {
 				HeaderUi(MR.strings.scene_list_header, "\uD83D\uDCDD")
 
-				IconButton(onClick = component::showOutlineOverview) {
-					Icon(
-						Icons.Filled.ViewList,
-						contentDescription = MR.strings.scene_list_outline_overview_button.get(),
-						tint = MaterialTheme.colorScheme.onSurface,
-					)
-				}
-
-				if (expandOrCollapse) {
-					ElevatedButton(onClick = {
-						treeState.expandAll()
-						expandOrCollapse = false
-					}) {
-						Icon(Icons.Filled.ExpandMore, MR.strings.expand.get())
-					}
-				} else {
-					ElevatedButton(onClick = {
-						treeState.collapseAll()
-						expandOrCollapse = true
-					}) {
-						Icon(Icons.Filled.ExpandLess, MR.strings.collapse.get())
-					}
-				}
+				OverflowMenu(component, treeState)
 			}
 
 			Divider(modifier = Modifier.fillMaxWidth())
@@ -190,6 +168,57 @@ fun SceneListUi(
 					}
 				}
 			}
+		}
+	}
+}
+
+@Composable
+private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
+	var expandOrCollapse by rememberSaveable { mutableStateOf(false) }
+	var menuOpen by rememberSaveable { mutableStateOf(false) }
+	Box {
+		IconButton(onClick = { menuOpen = true }) {
+			Icon(
+				Icons.Filled.MoreVert,
+				contentDescription = MR.strings.more_menu_button.get(),
+				tint = MaterialTheme.colorScheme.onSurface
+			)
+		}
+
+		DropdownMenu(
+			expanded = menuOpen,
+			onDismissRequest = { menuOpen = false },
+		) {
+			if (expandOrCollapse) {
+				DropdownMenuItem(
+					text = { Text(MR.strings.expand.get()) },
+					leadingIcon = { Icon(Icons.Default.ExpandMore, MR.strings.expand.get()) },
+					onClick = {
+						menuOpen = false
+						expandOrCollapse = false
+						treeState.expandAll()
+					}
+				)
+			} else {
+				DropdownMenuItem(
+					text = { Text(MR.strings.collapse.get()) },
+					leadingIcon = { Icon(Icons.Default.ExpandLess, MR.strings.expand.get()) },
+					onClick = {
+						menuOpen = false
+						expandOrCollapse = true
+						treeState.collapseAll()
+					}
+				)
+			}
+
+			DropdownMenuItem(
+				text = { Text(MR.strings.scene_list_outline_overview_button.get()) },
+				leadingIcon = { Icon(Icons.Default.ViewList, MR.strings.scene_list_outline_overview_button.get()) },
+				onClick = {
+					menuOpen = false
+					component.showOutlineOverview()
+				}
+			)
 		}
 	}
 }
