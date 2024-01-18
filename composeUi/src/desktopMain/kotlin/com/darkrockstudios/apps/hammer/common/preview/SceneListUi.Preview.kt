@@ -3,57 +3,62 @@ package com.darkrockstudios.apps.hammer.common.preview
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneItem
+import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 
-/*
+
 @Preview
 @Composable
 fun SceneListUiPreview() {
-	val component = fakeComponent(
-		SceneList.State(
-			projectDef = fakeProjectDef(),
-			sceneSummary = fakeSceneSummary()
+	val snackbarHostState = rememberRootSnackbarHostState()
+
+	KoinApplicationPreview {
+		val component = fakeComponent(
+			SceneList.State(
+				projectDef = fakeProjectDef(),
+				sceneSummary = fakeSceneSummary()
+			)
 		)
-	)
-	SceneListUi(component)
+		SceneListUi(component, snackbarHostState)
+	}
 }
 
+private fun fakeSceneSummary(): SceneSummary {
+	val tree = Tree<SceneItem>()
+	val root = TreeNode(fakeScene(0, 0, SceneItem.Type.Root))
+	val one = TreeNode(fakeScene(1, 0))
+	root.addChild(one)
+	tree.setRoot(root)
 
-private fun fakeSceneSummary() = SceneSummary(
-	sceneTree = ImmutableTree(
-		root = TreeValue(fakeScene(0, 0)),
-		totalChildren = 3
-	),
-	hasDirtyBuffer = emptySet()
-)
-
-private fun fakeNode(id: Int, order: Int): TreeValue<SceneItem> {
-	return TreeValue(
-		value = fakeScene(id, order),
-		index = 0,
-
+	return SceneSummary(
+		tree.toImmutableTree(),
+		emptySet()
 	)
 }
-*/
 
 @OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
 private fun SceneItemPreview() {
-	Column {
+	Column(modifier = Modifier.padding(Ui.Padding.L)) {
 		SceneItem(
 			scene = fakeScene(0, 0),
 			draggable = Modifier,
-			depth = 0,
+			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = false,
 			onSceneSelected = {},
@@ -62,7 +67,7 @@ private fun SceneItemPreview() {
 		SceneItem(
 			scene = fakeScene(1, 1),
 			draggable = Modifier,
-			depth = 0,
+			depth = 1,
 			hasDirtyBuffer = true,
 			isSelected = false,
 			onSceneSelected = {},
@@ -71,7 +76,7 @@ private fun SceneItemPreview() {
 		SceneItem(
 			scene = fakeScene(2, 2),
 			draggable = Modifier,
-			depth = 0,
+			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = true,
 			onSceneSelected = {},
@@ -80,22 +85,17 @@ private fun SceneItemPreview() {
 	}
 }
 
-private fun fakeScene(id: Int, order: Int) = SceneItem(
+private fun fakeScene(
+	id: Int,
+	order: Int,
+	type: SceneItem.Type = SceneItem.Type.Scene,
+) = SceneItem(
 	projectDef = fakeProjectDef(),
-	type = SceneItem.Type.Scene,
+	type = type,
 	id = id,
 	name = "Test Scene $id",
 	order = order
 )
-
-private fun fakeGroup(id: Int, order: Int) = SceneItem(
-	projectDef = fakeProjectDef(),
-	type = SceneItem.Type.Group,
-	id = id,
-	name = "Test Scene $id",
-	order = order
-)
-
 
 private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override val state: Value<SceneList.State> = MutableValue(state)
@@ -107,4 +107,5 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override suspend fun deleteScene(scene: SceneItem) {}
 	override fun onSceneListUpdate(scenes: SceneSummary) {}
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {}
+	override fun showOutlineOverview() {}
 }

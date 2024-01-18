@@ -11,21 +11,13 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
-import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.common.util.StrResImpl
-import org.koin.dsl.bind
-import org.koin.dsl.module
 
 @Preview
 @Composable
 fun BrowseEntriesUiPreview() {
 	val scope = rememberCoroutineScope()
 
-	KoinApplicationPreview(
-		{
-			modules(listOf(module { single { StrResImpl() } bind StrRes::class }))
-		}
-	) {
+	KoinApplicationPreview {
 		BrowseEntriesUi(
 			component = component,
 			scope = scope,

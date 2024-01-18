@@ -15,11 +15,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
 import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
-import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.common.util.StrResImpl
 import kotlinx.datetime.Clock
-import org.koin.dsl.bind
-import org.koin.dsl.module
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 private fun expandedSize(): WindowSizeClass {
@@ -103,11 +99,7 @@ private fun ProjectSynchronizationPreview(
 	conflict: ProjectSync.EntityConflict<*>,
 	screenCharacteristics: WindowSizeClass = calculateWindowSizeClass()
 ) {
-	KoinApplicationPreview(
-		{
-			modules(listOf(module { single { StrResImpl() } bind StrRes::class }))
-		}
-	) {
+	KoinApplicationPreview {
 		ProjectSynchronizationContent(
 			component = previewProjectSyncComponent(conflict),
 			showSnackbar = {},
