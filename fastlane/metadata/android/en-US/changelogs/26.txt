@@ -1,0 +1,10 @@
+- Added Scene Metadata:
+   + Outlines, write a sentence or two about what happens in the scene
+   + Notes, notes to your self about the scene
+   + Word count
+- Added Story Outline overview: View your story in outline mode
+- Added Font size control in Scene editor
+- Encyclopedia Search UI updates
+- Android folding device support
+- UI polish and tweaks
+- Loads of bug and crash fixes
