@@ -31,7 +31,7 @@ class ProjectMetadataRepositoryOkio(
 			}
 			toml.decodeFromString(metadataText)
 		} catch (e: IOException) {
-			Napier.e("Failed to project metadata")
+			Napier.e("Failed to load project metadata: ${path.toHPath().path}")
 
 			// Delete any old corrupt file if we got here
 			fileSystem.delete(path, false)
