@@ -95,14 +95,18 @@ class BrowseEntriesComponent(
 
 		val tags = hashtagRegex.findAll(text).map {
 			it.groupValues[1]
-		}.toSet()
+		}.filter { it.isNotBlank() }.toSet()
 
 		// Remove hashtags
 		var searchTerms = text
 		tags.forEach {
 			searchTerms = searchTerms.replace("#$it", "")
 		}
-		// Remove all white space
+
+		// Remove any remaining empty hashtags
+		searchTerms = searchTerms.replace("#", "")
+
+		// Remove all whitespace
 		searchTerms = searchTerms.replace(" ", "")
 
 		return state.value.entryDefs.filter { entry ->
