@@ -98,6 +98,9 @@ kotlin {
 				api(libs.essenty)
 				api(libs.moko.resources)
 				api(libs.ktor.client.darwin)
+				// TODO Remove this when there is a better way to read zip files on iOS
+				// this library is quite big
+				implementation(libs.korge.core)
 			}
 		}
 		val iosTest by getting

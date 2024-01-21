@@ -20,6 +20,7 @@
 		6689C303285415AD00760649 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C302285415AD00760649 /* Theme.swift */; };
 		6689C30528544E5900760649 /* app_iosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C30428544E5900760649 /* app_iosApp.swift */; };
 		6689C3072854505A00760649 /* RootUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6689C3062854505A00760649 /* RootUi.swift */; };
+		6691BABB2B5C7D15002F2145 /* alice_in_wonderland_zip in Resources */ = {isa = PBXBuildFile; fileRef = 6691BABA2B5C7D15002F2145 /* alice_in_wonderland_zip */; };
 		66A6D2A52B55C1ED0049724C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A6D2A42B55C1ED0049724C /* AppDelegate.swift */; };
 		66A6D2A72B55D9C30049724C /* AboutAppUi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A6D2A62B55D9C30049724C /* AboutAppUi.swift */; };
 		66BDED7E2B0EC71500D33A73 /* StateValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BDED7D2B0EC71500D33A73 /* StateValue.swift */; };
@@ -56,6 +57,7 @@
 		6689C302285415AD00760649 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		6689C30428544E5900760649 /* app_iosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = app_iosApp.swift; sourceTree = "<group>"; };
 		6689C3062854505A00760649 /* RootUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootUi.swift; sourceTree = "<group>"; };
+		6691BABA2B5C7D15002F2145 /* alice_in_wonderland_zip */ = {isa = PBXFileReference; lastKnownFileType = file; name = alice_in_wonderland_zip; path = ../common/src/commonMain/resources/raw/alice_in_wonderland_zip; sourceTree = "<group>"; };
 		66A6D2A42B55C1ED0049724C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		66A6D2A62B55D9C30049724C /* AboutAppUi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutAppUi.swift; sourceTree = "<group>"; };
 		66BDED7D2B0EC71500D33A73 /* StateValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateValue.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 		7555FF72242A565900829871 = {
 			isa = PBXGroup;
 			children = (
+				6691BABA2B5C7D15002F2145 /* alice_in_wonderland_zip */,
 				7555FF7D242A565900829871 /* ios */,
 				7555FF94242A565B00829871 /* iosTests */,
 				7555FF9F242A565B00829871 /* iosUITests */,
@@ -265,6 +268,7 @@
 			files = (
 				7555FF8B242A565B00829871 /* LaunchScreen.storyboard in Resources */,
 				7555FF88242A565B00829871 /* Preview Assets.xcassets in Resources */,
+				6691BABB2B5C7D15002F2145 /* alice_in_wonderland_zip in Resources */,
 				7555FF85242A565B00829871 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
