@@ -124,10 +124,18 @@ class BrowseEntriesComponent(
 			val tagOk = if (tags.isEmpty()) {
 				true
 			} else {
-				tags.any { tag -> (indexByTag[tag]?.contains(entry.id) == true) }
+				tags.any { tag ->
+					val partialTag = indexByTag.keys.any { curTag ->
+						curTag.startsWith(tag, true) && (indexByTag[curTag]?.contains(entry.id) == true)
+					}
+
+					val exactMatch = (indexByTag[tag]?.contains(entry.id) == true)
+
+					partialTag || exactMatch
+				}
 			}
 
-			typeOk && (textOk && tagOk)
+			typeOk && textOk && tagOk
 		}
 	}
 
