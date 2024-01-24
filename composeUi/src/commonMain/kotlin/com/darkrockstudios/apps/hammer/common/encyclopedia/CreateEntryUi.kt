@@ -81,7 +81,7 @@ internal fun CreateEntryUi(
 					modifier = Modifier.fillMaxWidth(),
 					items = types,
 					getText = { strRes.get(it.toStringResource()) },
-					defaultItem = EntryType.PERSON
+					selectedItem = selectedType,
 				) { item ->
 					if (item != null) {
 						selectedType = item

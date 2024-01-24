@@ -77,7 +77,7 @@ fun BrowseEntriesUi(
 				modifier = Modifier.width(128.dp).moveFocusOnTab(),
 				items = types,
 				noneOption = MR.strings.encyclopedia_category_all.get(),
-				defaultItem = state.filterType
+				selectedItem = state.filterType
 			) { item ->
 				selectedType = item
 				component.updateFilter(searchText, selectedType)

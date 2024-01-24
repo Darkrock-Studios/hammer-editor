@@ -80,7 +80,7 @@ internal fun AccountSettingsUi(
 							modifier = Modifier.defaultMinSize(minWidth = 256.dp),
 							label = MR.strings.settings_theme_label.get(),
 							items = themeOptions,
-							defaultItem = state.uiTheme,
+							selectedItem = state.uiTheme,
 						) { selectedTheme ->
 							if (selectedTheme != null) {
 								component.setUiTheme(selectedTheme)

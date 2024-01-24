@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 @Composable
 fun <T> ExposedDropDown(
 	items: List<T>,
-	defaultItem: T?,
+	selectedItem: T?,
 	label: String? = null,
 	getText: ((T) -> String)? = null,
 	modifier: Modifier = Modifier,
@@ -32,7 +32,7 @@ fun <T> ExposedDropDown(
 	}
 
 	var isExpanded by rememberSaveable { mutableStateOf(false) }
-	var selectedText by rememberSaveable { mutableStateOf(getItemText(defaultItem)) }
+	var selectedText by rememberSaveable(selectedItem) { mutableStateOf(getItemText(selectedItem)) }
 
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
