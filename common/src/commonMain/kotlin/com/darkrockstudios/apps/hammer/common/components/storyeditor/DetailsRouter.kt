@@ -21,6 +21,7 @@ internal class DetailsRouter(
 	private val selectedSceneItem: MutableSharedFlow<SceneItem?>,
 	private val removeMenu: (id: String) -> Unit,
 	private val closeDetails: () -> Unit,
+	private val openFocusMode: (SceneItem) -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
@@ -66,7 +67,8 @@ internal class DetailsRouter(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			closeSceneEditor = closeDetails,
-			showDraftsList = ::showDraftsList
+			showDraftsList = ::showDraftsList,
+			showFocusMode = openFocusMode,
 		)
 
 	private fun draftsList(componentContext: ComponentContext, sceneDef: SceneItem): DraftsList =

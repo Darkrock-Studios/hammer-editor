@@ -23,6 +23,8 @@
     <string name="scene_editor_menu_item_save">Save</string>
     <string name="scene_editor_menu_item_close">Close</string>
 
+	<string name="scene_editor_focus_mode_button">Enter Focus Mode</string>
+
 	<string name="scene_editor_metadata_title">Metadata</string>
 	<string name="scene_editor_metadata_hide_button">Hide Info</string>
 	<string name="scene_editor_metadata_word_count_label">Words: </string>

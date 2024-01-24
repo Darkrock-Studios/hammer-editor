@@ -26,8 +26,7 @@ internal class ListRouter(
 		childFactory = ::createChild
 	)
 
-	val state: Value<ChildStack<Config, StoryEditor.ChildDestination.List>>
-		get() = stack
+	val state: Value<ChildStack<Config, StoryEditor.ChildDestination.List>> = stack
 
 	private fun createChild(config: Config, componentContext: ComponentContext): StoryEditor.ChildDestination.List =
 		when (config) {

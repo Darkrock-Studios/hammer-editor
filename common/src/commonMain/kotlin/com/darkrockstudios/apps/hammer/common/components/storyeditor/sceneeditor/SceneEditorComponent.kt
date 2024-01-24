@@ -17,15 +17,12 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
-import korlibs.memory.clamp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import org.koin.core.component.inject
-
 
 class SceneEditorComponent(
 	componentContext: ComponentContext,
@@ -34,6 +31,7 @@ class SceneEditorComponent(
 	private val removeMenu: (id: String) -> Unit,
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
+	private val showFocusMode: (SceneItem) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
@@ -41,8 +39,6 @@ class SceneEditorComponent(
 	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
-
-	private val mainDispatcher by injectMainDispatcher()
 
 	private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
 	override val state: Value<SceneEditor.State> = _state
@@ -83,7 +79,7 @@ class SceneEditorComponent(
 		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
 				if (settings.editorFontSize != _state.value.textSize) {
-					withContext(mainDispatcher) {
+					withContext(dispatcherMain) {
 						_state.getAndUpdate {
 							it.copy(
 								textSize = settings.editorFontSize
@@ -205,6 +201,24 @@ class SceneEditorComponent(
 			beginSaveDraft()
 		}
 
+		val metadataItem = MenuItemDescriptor(
+			"scene-editor-toggle-metadata",
+			MR.strings.scene_editor_metadata_button,
+			""
+		) {
+			Napier.i("Toggle Metadata")
+			toggleMetadataVisibility()
+		}
+
+		val focusModeItem = MenuItemDescriptor(
+			"scene-editor-focus-mode",
+			MR.strings.scene_editor_focus_mode_button,
+			""
+		) {
+			Napier.i("Enter Focus Mode")
+			enterFocusMode()
+		}
+
 		val menuItems = setOf(
 			renameItem,
 			saveItem,
@@ -212,7 +226,9 @@ class SceneEditorComponent(
 			deleteItem,
 			draftsItem,
 			saveDraftItem,
-			closeItem
+			metadataItem,
+			focusModeItem,
+			closeItem,
 		)
 		val menu = MenuDescriptor(
 			getMenuId(),
@@ -249,7 +265,7 @@ class SceneEditorComponent(
 	}
 
 	override suspend fun changeSceneName(newName: String) {
-		withContext(mainDispatcher) {
+		withContext(dispatcherMain) {
 			val result = ProjectsRepository.validateFileName(newName)
 
 			if (isSuccess(result)) {
@@ -280,7 +296,7 @@ class SceneEditorComponent(
 	override fun doDelete() {
 		scope.launch {
 			sceneEditor.deleteScene(state.value.sceneItem)
-			withContext(mainDispatcher) {
+			withContext(dispatcherMain) {
 				endDelete()
 				closeSceneEditor()
 			}
@@ -326,9 +342,6 @@ class SceneEditorComponent(
 		}
 	}
 
-	private val MIN_FONT_SIZE = 8f
-	private val MAX_FONT_SIZE = 32f
-
 	override fun resetTextSize() {
 		scope.launch {
 			settingsRepository.updateSettings {
@@ -339,9 +352,13 @@ class SceneEditorComponent(
 		}
 	}
 
+	override fun enterFocusMode() {
+		showFocusMode(sceneDef)
+	}
+
 	override fun decreaseTextSize() {
 		scope.launch {
-			val size = (state.value.textSize - 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+			val size = decreaseEditorTextSize(state.value.textSize)
 			settingsRepository.updateSettings {
 				it.copy(
 					editorFontSize = size
@@ -352,7 +369,7 @@ class SceneEditorComponent(
 
 	override fun increaseTextSize() {
 		scope.launch {
-			val size = (state.value.textSize + 1f).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+			val size = increaseEditorTextSize(state.value.textSize)
 			settingsRepository.updateSettings {
 				it.copy(
 					editorFontSize = size

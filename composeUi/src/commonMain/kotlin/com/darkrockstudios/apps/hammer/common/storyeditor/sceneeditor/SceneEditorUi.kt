@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
-import com.darkrockstudios.richtexteditor.model.Style
 import com.darkrockstudios.richtexteditor.ui.RichTextEditor
 import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
 
@@ -55,51 +54,13 @@ fun SceneEditorUi(
 		Column(modifier = Modifier.fillMaxHeight()) {
 			EditorTopBar(component, rootSnackbar)
 
-			Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
-				EditorAction(
-					iconRes = MR.images.icon_bold,
-					active = sceneText.currentStyles.contains(Style.Bold),
-				) {
-					sceneText = sceneText.insertStyle(Style.Bold)
-				}
-				EditorAction(
-					iconRes = MR.images.icon_italic,
-					active = sceneText.currentStyles.contains(Style.Italic),
-				) {
-					sceneText = sceneText.insertStyle(Style.Italic)
-				}
-				EditorAction(
-					iconRes = MR.images.icon_undo,
-					active = sceneText.isUndoAvailable
-				) {
-					sceneText = sceneText.undo()
-				}
-				EditorAction(
-					iconRes = MR.images.icon_redo,
-					active = sceneText.isRedoAvailable
-				) {
-					sceneText = sceneText.redo()
-				}
-
-				EditorAction(
-					iconRes = MR.images.icon_text_decrease,
-					active = false,
-				) {
-					component.decreaseTextSize()
-				}
-				EditorAction(
-					iconRes = MR.images.icon_text_increase,
-					active = false,
-				) {
-					component.increaseTextSize()
-				}
-				EditorAction(
-					iconRes = MR.images.icon_text_reset,
-					active = false,
-				) {
-					component.resetTextSize()
-				}
-			}
+			EditorToolBar(
+				sceneText = sceneText,
+				setSceneText = { sceneText = it },
+				decreaseTextSize = component::decreaseTextSize,
+				increaseTextSize = component::increaseTextSize,
+				resetTextSize = component::resetTextSize,
+			)
 
 			//val verticalScrollState = rememberScrollState(0)
 			Row(

@@ -108,6 +108,14 @@ actual fun EditorTopBar(
 				)
 			}
 
+			IconButton(onClick = component::enterFocusMode) {
+				Icon(
+					imageVector = Icons.Default.Fullscreen,
+					contentDescription = MR.strings.scene_editor_focus_mode_button.get(),
+					tint = MaterialTheme.colorScheme.onBackground
+				)
+			}
+
 			IconButton(onClick = component::closeEditor) {
 				Icon(
 					imageVector = Icons.Default.Close,

@@ -2,11 +2,9 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +25,7 @@ actual fun EditorTopBar(
 	val title = remember { derivedStateOf { state.sceneItem.name } }
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
+	val screen = LocalScreenCharacteristic.current
 
 	TopBar(
 		title = title,
@@ -62,12 +61,24 @@ actual fun EditorTopBar(
 			}
 		}
 
-		IconButton(onClick = component::toggleMetadataVisibility) {
-			Icon(
-				Icons.Filled.Info,
-				contentDescription = MR.strings.scene_editor_metadata_button.get(),
-				tint = MaterialTheme.colorScheme.onSurface
-			)
+		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
+			IconButton(onClick = component::toggleMetadataVisibility) {
+				Icon(
+					Icons.Filled.Info,
+					contentDescription = MR.strings.scene_editor_metadata_button.get(),
+					tint = MaterialTheme.colorScheme.onSurface
+				)
+			}
+		}
+
+		if (screen.windowWidthClass == WindowWidthSizeClass.Expanded) {
+			IconButton(onClick = component::enterFocusMode) {
+				Icon(
+					imageVector = Icons.Default.Fullscreen,
+					contentDescription = MR.strings.scene_editor_focus_mode_button.get(),
+					tint = MaterialTheme.colorScheme.onBackground
+				)
+			}
 		}
 	}
 
@@ -78,7 +89,7 @@ actual fun EditorTopBar(
 	) {
 
 		var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
-		val scope = rememberCoroutineScope()
+		val dialogScope = rememberCoroutineScope()
 
 		TextField(
 			value = editSceneNameValue,
@@ -90,7 +101,7 @@ actual fun EditorTopBar(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween
 		) {
-			IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
+			IconButton(onClick = { dialogScope.launch { component.changeSceneName(editSceneNameValue) } }) {
 				Icon(
 					Icons.Filled.Check,
 					MR.strings.scene_editor_rename_button.get(),

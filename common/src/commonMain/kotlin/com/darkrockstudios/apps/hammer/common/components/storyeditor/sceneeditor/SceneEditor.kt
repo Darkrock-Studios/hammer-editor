@@ -36,6 +36,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun decreaseTextSize()
 	fun increaseTextSize()
 	fun resetTextSize()
+	fun enterFocusMode()
 
 	data class State(
 		val sceneItem: SceneItem,
