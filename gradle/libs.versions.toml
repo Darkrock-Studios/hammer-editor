@@ -71,7 +71,7 @@ work-runtime-ktx = "2.9.0"
 multiplatform_window_size = "0.3.2"
 mockk = "1.13.9"
 
-kotlinx_atomicfu = "0.23.1"
+kotlinx_atomicfu = "0.23.2"
 
 tomlkt = "0.3.7"
 
