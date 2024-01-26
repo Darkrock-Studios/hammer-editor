@@ -1,3 +1,5 @@
+import com.darkrockstudios.build.getVersionCode
+
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
 val RELEASE_KEY_ALIAS = System.getenv("RELEASE_KEY_ALIAS") ?: ""
@@ -60,7 +62,7 @@ android {
 		applicationId = "com.darkrockstudios.apps.hammer.android"
 		minSdk = libs.versions.android.sdk.min.get().toInt()
 		targetSdk = libs.versions.android.sdk.target.get().toInt()
-		versionCode = libs.versions.android.version.code.get().toInt()
+		versionCode = getVersionCode(libs.versions.app.get())
 		versionName = libs.versions.app.get()
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
