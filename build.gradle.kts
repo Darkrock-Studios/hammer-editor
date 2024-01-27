@@ -1,3 +1,6 @@
+import com.darkrockstudios.build.getVersionCode
+import java.util.*
+
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
@@ -49,5 +52,27 @@ dependencies {
 koverReport {
 	defaults {
 
+	}
+}
+
+tasks.register("prepareForRelease") {
+	doLast {
+		println("Creating new release")
+		println("Please enter new SemVar:")
+		val scanner = Scanner(System.`in`)
+		val semVarStr = scanner.nextLine()
+
+		val versionCode = getVersionCode(semVarStr)
+
+		println("Please enter new ChangeLog:")
+		// TODO Need a way to read a whole block of text here
+		val changeLog = scanner.nextLine()
+
+		// Write the changelog file
+		val rootDir: File = project.rootDir
+		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
+		val changeLogsDir = rootDir.resolve(changelogsPath)
+		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
+		changeLogFile.writeText(changeLog!!)
 	}
 }
