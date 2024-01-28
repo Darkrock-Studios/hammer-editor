@@ -32,6 +32,7 @@ jSystemThemeDetector = "3.8"
 junit = "1.1.5"
 kotlinx_cli = "0.3.6"
 kwebCore = "1.4.10"
+markdown = "0.6.0"
 material = "1.11.0"
 orchestrator = "1.4.2"
 serialization = "1.6.2"
@@ -114,6 +115,7 @@ kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", vers
 kotlin_test_junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-cli = { module = "org.jetbrains.kotlinx:kotlinx-cli", version.ref = "kotlinx_cli" }
 kweb-core = { module = "io.kweb:kweb-core", version.ref = "kwebCore" }
+markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpfilepicker" }

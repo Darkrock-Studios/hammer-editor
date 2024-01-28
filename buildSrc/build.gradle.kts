@@ -8,5 +8,6 @@ repositories {
 
 dependencies {
 	implementation(kotlin("stdlib"))
+	implementation(libs.markdown)
 	testImplementation(kotlin("test"))
 }
