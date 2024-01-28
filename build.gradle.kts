@@ -63,8 +63,14 @@ tasks.register("prepareForRelease") {
 			val regex = Regex(regexPattern, RegexOption.DOT_MATCHES_ALL)
 			val matchResult = regex.find(changelog)
 
-			return matchResult?.value?.trim()?.removeSuffix("--")
+			val versionChangelogWithHeader = matchResult?.value?.trim()?.removeSuffix("--")
 				?: throw IllegalArgumentException("Version $version not found in changelog")
+
+			// we don't want the top header with the version string in the fastlane file
+			return versionChangelogWithHeader.lines()
+				.drop(1) // Drop the first line (version string line)
+				.joinToString(separator = "\n")
+				.trim()
 		}
 
 		println("Creating new release")
@@ -85,7 +91,7 @@ tasks.register("prepareForRelease") {
 		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
-		changeLogFile.writeText(truncatedChangelog!!)
+		changeLogFile.writeText(truncatedChangelog)
 		println("Changelog for version $versionString written to ${changelogFile.absolutePath}")
 	}
 }
