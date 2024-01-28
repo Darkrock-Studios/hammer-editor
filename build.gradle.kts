@@ -56,23 +56,40 @@ koverReport {
 }
 
 tasks.register("prepareForRelease") {
+	val version: String? = project.findProperty("version") as String?
 	doLast {
-		println("Creating new release")
-		println("Please enter new SemVar:")
-		val scanner = Scanner(System.`in`)
-		val semVarStr = scanner.nextLine()
 
-		val versionCode = getVersionCode(semVarStr)
+		fun extractVersionChangelog(changelog: String, version: String): String {
+			val regexPattern = "## \\[$version\\](.*?)--"
+			val regex = Regex(regexPattern, RegexOption.DOT_MATCHES_ALL)
+			val matchResult = regex.find(changelog)
 
-		println("Please enter new ChangeLog:")
-		// TODO Need a way to read a whole block of text here
-		val changeLog = scanner.nextLine()
+			return matchResult?.value?.trim()?.removeSuffix("--") ?: throw IllegalArgumentException("Version $version not found in changelog")
+		}
 
-		// Write the changelog file
-		val rootDir: File = project.rootDir
-		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
-		val changeLogsDir = rootDir.resolve(changelogsPath)
-		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
-		changeLogFile.writeText(changeLog!!)
+		@TaskAction
+		fun writeVersionChangelog() {
+			println("Creating new release")
+			val versionString = version ?: throw IllegalArgumentException("Version not provided")
+			val versionCode = getVersionCode(versionString)
+			val changelogFile = File("${project.rootDir}/CHANGELOG.md")
+			val changelogText = changelogFile.readText()
+			val versionChangelog = extractVersionChangelog(changelogText, versionString)
+
+			val truncatedChangelog = if (versionChangelog.length > 500) {
+				"${versionChangelog.take(450)}...and more"
+			} else {
+				versionChangelog
+			}
+
+			// Write the changelog file
+			val rootDir: File = project.rootDir
+			val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
+			val changeLogsDir = rootDir.resolve(changelogsPath)
+			val changeLogFile = File(changeLogsDir, "$versionCode.txt")
+			changeLogFile.writeText(truncatedChangelog!!)
+			println("Changelog for version $versionString written to ${changelogFile.absolutePath}")
+		}
+
 	}
 }
