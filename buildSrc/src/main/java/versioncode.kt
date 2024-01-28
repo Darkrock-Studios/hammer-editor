@@ -46,7 +46,10 @@ internal data class SemVar(
 internal fun parseSemVar(semVarStr: String): SemVar {
 	val semVarPattern = Pattern.compile("""^(\d+)\.(\d+)\.(\d+)$""")
 	val matcher = semVarPattern.matcher(semVarStr)
-	matcher.find()
+
+	if (matcher.find().not()) {
+		error("Invalid SemVar string: $semVarStr")
+	}
 
 	return SemVar(
 		major = matcher.group(1).toInt(),

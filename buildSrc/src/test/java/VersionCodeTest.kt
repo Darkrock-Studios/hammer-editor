@@ -13,6 +13,11 @@ class VersionCodeTest {
 		assertEquals(3, semVar.patch)
 	}
 
+	@Test(expected = IllegalStateException::class)
+	fun `SemVar failed parsing`() {
+		val semVar = parseSemVar("asd")
+	}
+
 	@Test
 	fun `Create Version Code`() {
 		val semVar = parseSemVar("1.2.3")
