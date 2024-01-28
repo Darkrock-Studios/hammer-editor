@@ -75,7 +75,7 @@ tasks.register("prepareForRelease") {
 
 		println("Creating new release")
 		val versionString = version ?: throw IllegalArgumentException("Version not provided")
-		val versionCode = getVersionCode(versionString)
+		val versionCode = getVersionCode(versionString) // this will look for env vars
 		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
 		val changelogText = changelogFile.readText()
 		val versionChangelog = extractVersionChangelog(changelogText, versionString)
@@ -92,6 +92,6 @@ tasks.register("prepareForRelease") {
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
 		changeLogFile.writeText(truncatedChangelog)
-		println("Changelog for version $versionString written to ${changelogFile.absolutePath}")
+		println("Changelog for version $versionString written to $changelogsPath/$versionCode.txt")
 	}
 }
