@@ -1,29 +1,28 @@
 import com.darkrockstudios.build.getVersionCode
-import java.util.*
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
 buildscript {
-    repositories {
-        gradlePluginPortal()
+	repositories {
+		gradlePluginPortal()
 		mavenCentral()
-    }
+	}
 
-    dependencies {
+	dependencies {
 		classpath(libs.moko.resources.generator)
 		classpath(libs.kotlinx.atomicfu.plugin)
 		classpath(libs.parcelize.darwin)
 		classpath(libs.jetbrains.kover)
-    }
+	}
 }
 
 allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
-    }
+	repositories {
+		google()
+		mavenCentral()
+		maven("https://jitpack.io")
+	}
 }
 
 plugins {
@@ -56,40 +55,37 @@ koverReport {
 }
 
 tasks.register("prepareForRelease") {
-	val version: String? = project.findProperty("version") as String?
 	doLast {
+		val version: String? = project.findProperty("version") as String?
 
 		fun extractVersionChangelog(changelog: String, version: String): String {
 			val regexPattern = "## \\[$version\\](.*?)--"
 			val regex = Regex(regexPattern, RegexOption.DOT_MATCHES_ALL)
 			val matchResult = regex.find(changelog)
 
-			return matchResult?.value?.trim()?.removeSuffix("--") ?: throw IllegalArgumentException("Version $version not found in changelog")
+			return matchResult?.value?.trim()?.removeSuffix("--")
+				?: throw IllegalArgumentException("Version $version not found in changelog")
 		}
 
-		@TaskAction
-		fun writeVersionChangelog() {
-			println("Creating new release")
-			val versionString = version ?: throw IllegalArgumentException("Version not provided")
-			val versionCode = getVersionCode(versionString)
-			val changelogFile = File("${project.rootDir}/CHANGELOG.md")
-			val changelogText = changelogFile.readText()
-			val versionChangelog = extractVersionChangelog(changelogText, versionString)
+		println("Creating new release")
+		val versionString = version ?: throw IllegalArgumentException("Version not provided")
+		val versionCode = getVersionCode(versionString)
+		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
+		val changelogText = changelogFile.readText()
+		val versionChangelog = extractVersionChangelog(changelogText, versionString)
 
-			val truncatedChangelog = if (versionChangelog.length > 500) {
-				"${versionChangelog.take(450)}...and more"
-			} else {
-				versionChangelog
-			}
-
-			// Write the changelog file
-			val rootDir: File = project.rootDir
-			val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
-			val changeLogsDir = rootDir.resolve(changelogsPath)
-			val changeLogFile = File(changeLogsDir, "$versionCode.txt")
-			changeLogFile.writeText(truncatedChangelog!!)
-			println("Changelog for version $versionString written to ${changelogFile.absolutePath}")
+		val truncatedChangelog = if (versionChangelog.length > 500) {
+			"${versionChangelog.take(450)}...and more"
+		} else {
+			versionChangelog
 		}
 
+		// Write the changelog file
+		val rootDir: File = project.rootDir
+		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
+		val changeLogsDir = rootDir.resolve(changelogsPath)
+		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
+		changeLogFile.writeText(truncatedChangelog!!)
+		println("Changelog for version $versionString written to ${changelogFile.absolutePath}")
 	}
 }
