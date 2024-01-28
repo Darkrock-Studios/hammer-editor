@@ -27,11 +27,7 @@ private data class SemVar(
 		}
 
 		// Increment by one for release builds
-		val releasePatch = if (isRelease) {
-			patch + 1
-		} else {
-			patch
-		}
+		val releasePatch = patch + if (isRelease) 1 else 0
 
 		versionCode += (releasePatch * 100)
 		versionCode += (minor * 10_000)
