@@ -1,5 +1,4 @@
 import com.darkrockstudios.build.configureRelease
-import com.darkrockstudios.build.getVersionCode
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
@@ -74,20 +73,20 @@ tasks.register("prepareForRelease") {
 				.trim()
 		}
 
-		val releaseInfo = configureRelease(libs.versions.app.get())
+		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
 		println(releaseInfo)
 
 		println("Creating new release")
-		val versionString = version ?: throw IllegalArgumentException("Version not provided")
-		val versionCode = getVersionCode(versionString) // this will look for env vars
-		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
-		val changelogText = changelogFile.readText()
-		val versionChangelog = extractVersionChangelog(changelogText, versionString)
+//		val versionString = version ?: throw IllegalArgumentException("Version not provided")
+//		val versionCode = getVersionCode(versionString) // this will look for env vars
+//		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
+		//val versionChangelog = extractVersionChangelog(changelogText, versionString)
+		val versionCode = releaseInfo.semVar.createVersion(true, 0)
 
-		val truncatedChangelog = if (versionChangelog.length > 500) {
-			"${versionChangelog.take(450)}...and more"
+		val truncatedChangelog = if (releaseInfo.changeLog.length > 500) {
+			"${releaseInfo.changeLog.take(450)}...and more"
 		} else {
-			versionChangelog
+			releaseInfo.changeLog
 		}
 
 		// Write the changelog file
@@ -96,7 +95,7 @@ tasks.register("prepareForRelease") {
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
 		changeLogFile.writeText(truncatedChangelog)
-		println("Changelog for version $versionString written to $changelogsPath/$versionCode.txt")
+		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
 
 //		exec {
 //			commandLine 'cmd', '/c', 'whoami'
