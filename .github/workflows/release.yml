@@ -199,8 +199,12 @@ jobs:
       - name: Get last tag message
         id: get_tag
         run: |
-          MESSAGE=$(git log -1 --pretty=%B $(git describe --tags --abbrev=0))
-          echo "::set-output name=tag_message::$MESSAGE"
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
+          echo "Tag message: $TAG_MESSAGE"
+          echo "TAG_MESSAGE<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Package Server distributions
         run: ./gradlew :server:assembleDist
@@ -234,7 +238,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
-          body: ${{ steps.get_tag.outputs.tag_message }}
+          body: $TAG_MESSAGE
 
   android:
     runs-on: ubuntu-latest
