@@ -65,7 +65,7 @@ data class SemVar(
 	}
 
 	override fun toString(): String {
-		return "v$major.$minor.$patch"
+		return "$major.$minor.$patch"
 	}
 
 	enum class ReleaseType {

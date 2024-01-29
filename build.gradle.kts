@@ -1,4 +1,6 @@
 import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.writeChangelogMarkdown
+import com.darkrockstudios.build.writeSemvar
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
@@ -56,46 +58,33 @@ koverReport {
 
 tasks.register("prepareForRelease") {
 	doLast {
-		val version: String? = project.findProperty("version") as String?
-
-		fun extractVersionChangelog(changelog: String, version: String): String {
-			val regexPattern = "## \\[$version\\](.*?)--"
-			val regex = Regex(regexPattern, RegexOption.DOT_MATCHES_ALL)
-			val matchResult = regex.find(changelog)
-
-			val versionChangelogWithHeader = matchResult?.value?.trim()?.removeSuffix("--")
-				?: throw IllegalArgumentException("Version $version not found in changelog")
-
-			// we don't want the top header with the version string in the fastlane file
-			return versionChangelogWithHeader.lines()
-				.drop(1) // Drop the first line (version string line)
-				.joinToString(separator = "\n")
-				.trim()
-		}
-
 		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
-		println(releaseInfo)
 
 		println("Creating new release")
-//		val versionString = version ?: throw IllegalArgumentException("Version not provided")
-//		val versionCode = getVersionCode(versionString) // this will look for env vars
-//		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
-		//val versionChangelog = extractVersionChangelog(changelogText, versionString)
 		val versionCode = releaseInfo.semVar.createVersion(true, 0)
 
+		// Write the new version number
+		val versionsPath = "gradle/libs.versions.toml".replace("/", File.separator)
+		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, project.rootDir.resolve(versionsPath))
+
+		// Google Play has a hard limit of 500 characters
 		val truncatedChangelog = if (releaseInfo.changeLog.length > 500) {
-			"${releaseInfo.changeLog.take(450)}...and more"
+			"${releaseInfo.changeLog.take(480)}... and more"
 		} else {
 			releaseInfo.changeLog
 		}
 
-		// Write the changelog file
+		// Write the Fastlane changelog file
 		val rootDir: File = project.rootDir
 		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
 		changeLogFile.writeText(truncatedChangelog)
 		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
+
+		// Write the Global changelog file
+		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
+		writeChangelogMarkdown(releaseInfo, changelogFile)
 
 //		exec {
 //			commandLine 'cmd', '/c', 'whoami'

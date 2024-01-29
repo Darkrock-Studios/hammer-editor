@@ -1,15 +1,34 @@
 package com.darkrockstudios.build
 
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.parser.MarkdownParser
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import javax.swing.*
 
-fun markdown() {
-	val flavour = CommonMarkFlavourDescriptor()
-	val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString("")
+fun writeSemvar(oldSemVar: String, newSemVar: SemVar, versionFile: File) {
+	val versions = versionFile.readText()
+	val updated = versions.replace("app = \"$oldSemVar\"", "app = \"$newSemVar\"")
+	versionFile.writeText(updated)
+}
+
+fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
+	val currentChangelog = changelogFile.readText()
+	val withoutHeader = currentChangelog.substring(currentChangelog.indexOf('\n') + 1)
+
+	val now = Clock.System.now()
+	val date: LocalDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
+	val headerDate = "${date.year}-${date.monthNumber}-${date.dayOfMonth}"
+	val newEntry = "# [${releaseInfo.semVar}] $headerDate\n\n" + releaseInfo.changeLog + "\n\n"
+
+	val newChangeLog = "# Changelog\n\n" + newEntry + withoutHeader
+
+	changelogFile.writeText(newChangeLog)
+	println("CHANGELOG.md written")
 }
 
 data class ReleaseInfo(
