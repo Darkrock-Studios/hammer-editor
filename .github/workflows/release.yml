@@ -57,15 +57,11 @@ jobs:
           
           echo Successfully renamed file to "hammer.msi"
 
-      - name: Get tag message
+      - name: Get last tag message
+        id: get_tag
         run: |
-          tag_name=$(git describe --tags --exact-match)
-          tag_message=$(git tag -n10 -l $tag_name)
-          
-          echo "TAG_MESSAGE=$tag_message" >> $GITHUB_ENV
-          
-          echo "Tag: $tag_name"
-          echo "Tag message: $tag_message"
+          export MESSAGE=$(git log -1 --pretty=%B $(git describe --tags --abbrev=0))
+          echo "::set-output name=tag_message::$MESSAGE"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -77,7 +73,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
-          body: $TAG_MESSAGE
+          body: ${{ steps.get_tag.outputs.tag_message }}
 
   linux:
     runs-on: ubuntu-latest
