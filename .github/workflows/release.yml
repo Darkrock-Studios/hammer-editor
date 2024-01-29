@@ -225,7 +225,6 @@ jobs:
           echo "Tag: $TAG_NAME"
           echo "Tag message: $TAG_MESSAGE"
           
-          echo "Tag message: $TAG_MESSAGE"
           echo "TAG_MESSAGE<<EOF" >> $GITHUB_ENV
           echo "$TAG_MESSAGE" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
