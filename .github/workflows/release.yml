@@ -57,12 +57,6 @@ jobs:
           
           echo Successfully renamed file to "hammer.msi"
 
-      - name: Get last tag message
-        id: get_tag
-        run: |
-          export MESSAGE=$(git log -1 --pretty=%B $(git describe --tags --abbrev=0))
-          echo "::set-output name=tag_message::$MESSAGE"
-
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -73,7 +67,6 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
-          body: ${{ steps.get_tag.outputs.tag_message }}
 
   linux:
     runs-on: ubuntu-latest
@@ -203,6 +196,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Get last tag message
+        id: get_tag
+        run: |
+          MESSAGE=$(git log -1 --pretty=%B $(git describe --tags --abbrev=0))
+          echo "::set-output name=tag_message::$MESSAGE"
+
       - name: Package Server distributions
         run: ./gradlew :server:assembleDist
 
@@ -235,6 +234,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
+          body: ${{ steps.get_tag.outputs.tag_message }}
 
   android:
     runs-on: ubuntu-latest
