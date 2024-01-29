@@ -11,7 +11,7 @@ fun getVersionCode(semVarStr: String): Int {
 	return versionCode
 }
 
-internal data class SemVar(
+data class SemVar(
 	val major: Int,
 	val minor: Int,
 	val patch: Int,
@@ -40,6 +40,36 @@ internal data class SemVar(
 		versionCode += (major * 100_000_000)
 
 		return versionCode
+	}
+
+	fun incrementForRelease(type: ReleaseType): SemVar {
+		return when (type) {
+			ReleaseType.MAJOR -> SemVar(
+				major = major + 1,
+				minor = 0,
+				patch = 0,
+			)
+
+			ReleaseType.MINOR -> SemVar(
+				major = major,
+				minor = minor + 1,
+				patch = 0,
+			)
+
+			ReleaseType.PATCH -> SemVar(
+				major = major,
+				minor = minor,
+				patch = patch + 1,
+			)
+		}
+	}
+
+	override fun toString(): String {
+		return "v$major.$minor.$patch"
+	}
+
+	enum class ReleaseType {
+		MAJOR, MINOR, PATCH
 	}
 }
 

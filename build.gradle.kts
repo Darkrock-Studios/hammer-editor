@@ -1,3 +1,4 @@
+import com.darkrockstudios.build.configureRelease
 import com.darkrockstudios.build.getVersionCode
 
 group = "com.darkrockstudios.apps.hammer"
@@ -73,6 +74,9 @@ tasks.register("prepareForRelease") {
 				.trim()
 		}
 
+		val releaseInfo = configureRelease(libs.versions.app.get())
+		println(releaseInfo)
+
 		println("Creating new release")
 		val versionString = version ?: throw IllegalArgumentException("Version not provided")
 		val versionCode = getVersionCode(versionString) // this will look for env vars
@@ -93,5 +97,12 @@ tasks.register("prepareForRelease") {
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
 		changeLogFile.writeText(truncatedChangelog)
 		println("Changelog for version $versionString written to $changelogsPath/$versionCode.txt")
+
+//		exec {
+//			commandLine 'cmd', '/c', 'whoami'
+//			standardOutput = stdout
+//		}
+//		commandLine("git", "add", changeLogsDir.absolutePath)
+//		commandLine("git", "commit", "-m", "Added fastlane changelog for $versionString")
 	}
 }
