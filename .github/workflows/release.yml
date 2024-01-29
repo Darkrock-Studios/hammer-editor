@@ -224,10 +224,7 @@ jobs:
           TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
           echo "Tag: $TAG_NAME"
           echo "Tag message: $TAG_MESSAGE"
-          
-          echo "TAG_MESSAGE<<EOF" >> $GITHUB_ENV
-          echo "$TAG_MESSAGE" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "tag_message=$TAG_message" >> "$GITHUB_ENV"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -239,7 +236,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
-          body: "$TAG_MESSAGE"
+          body: "$tag_message"
 
   android:
     runs-on: ubuntu-latest
