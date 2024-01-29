@@ -224,7 +224,7 @@ jobs:
           TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
           echo "Tag: $TAG_NAME"
           echo "Tag message: $TAG_MESSAGE"
-          echo "tag_message=$TAG_message" >> "$GITHUB_ENV"
+          echo "tag_message=$TAG_MESSAGE" >> "$GITHUB_ENV"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
