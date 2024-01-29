@@ -196,16 +196,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Get last tag message
-        id: get_tag
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
-          echo "Tag message: $TAG_MESSAGE"
-          echo "TAG_MESSAGE<<EOF" >> $GITHUB_ENV
-          echo "$TAG_MESSAGE" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
       - name: Package Server distributions
         run: ./gradlew :server:assembleDist
 
@@ -227,6 +217,18 @@ jobs:
           fi
           mv "$file" "${file/server-*/server}.zip"
           echo "File renamed successfully."
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
+          echo "Tag: $TAG_NAME"
+          echo "Tag message: $TAG_MESSAGE"
+          
+          echo "Tag message: $TAG_MESSAGE"
+          echo "TAG_MESSAGE<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create Release
         uses: ncipollo/release-action@v1
