@@ -65,7 +65,8 @@ tasks.register("prepareForRelease") {
 
 		// Write the new version number
 		val versionsPath = "gradle/libs.versions.toml".replace("/", File.separator)
-		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, project.rootDir.resolve(versionsPath))
+		val versionsFile = project.rootDir.resolve(versionsPath)
+		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
 		// Google Play has a hard limit of 500 characters
 		val truncatedChangelog = if (releaseInfo.changeLog.length > 500) {
@@ -83,14 +84,20 @@ tasks.register("prepareForRelease") {
 		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
 
 		// Write the Global changelog file
-		val changelogFile = File("${project.rootDir}/CHANGELOG.md")
-		writeChangelogMarkdown(releaseInfo, changelogFile)
+		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
+		writeChangelogMarkdown(releaseInfo, globalChangelogFile)
 
-//		exec {
-//			commandLine 'cmd', '/c', 'whoami'
-//			standardOutput = stdout
-//		}
-//		commandLine("git", "add", changeLogsDir.absolutePath)
-//		commandLine("git", "commit", "-m", "Added fastlane changelog for $versionString")
+		// Commit the changes to the repo
+		exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }
+		exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }
+		exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }
+		exec { commandLine = listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}") }
+
+		// Merge develop into release
+		exec { commandLine = listOf("git", "checkout", "release") }
+		exec { commandLine = listOf("git", "merge", "develop") }
+
+		// Create the release tag
+		exec { commandLine = listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog) }
 	}
 }
