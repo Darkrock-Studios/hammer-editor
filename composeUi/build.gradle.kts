@@ -17,6 +17,8 @@ kotlin {
 		}
 	}
 
+	applyDefaultHierarchyTemplate()
+
 	sourceSets {
 		val commonMain by getting {
 			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
