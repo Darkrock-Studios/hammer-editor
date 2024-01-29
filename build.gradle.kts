@@ -101,6 +101,7 @@ tasks.register("prepareForRelease") {
 		exec { commandLine = listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog) }
 
 		// Push and begin the release process
+		exec { commandLine = listOf("git", "push", "origin", "--all") }
 		exec { commandLine = listOf("git", "push", "origin", "--tags") }
 	}
 }
