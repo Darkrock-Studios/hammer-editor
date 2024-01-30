@@ -221,9 +221,9 @@ jobs:
       - name: Get last tag message
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n10 -l "$TAG_NAME")
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
           echo "Tag: $TAG_NAME"
-          echo "Tag message: $TAG_MESSAGE"
+          echo -e "Tag message:\n$TAG_MESSAGE"
           echo "tag_message=$TAG_MESSAGE" >> "$GITHUB_ENV"
 
       - name: Create Release
