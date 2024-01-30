@@ -24,7 +24,16 @@ platform :android do
     )
   end
 
-  desc "Submit a new Alpha Build to Google Play Internal"
+  desc "Submit a new Build to Google Play Internal"
+  lane :internal do
+    gradle(
+      task: ":android:bundleRelease",
+      gradle_path: "./gradlew"
+    )
+    upload_to_play_store(track: 'internal')
+  end
+
+  desc "Submit a new Alpha Build to Google Play Close"
   lane :alpha do
     gradle(
       task: ":android:bundleRelease",
@@ -33,7 +42,7 @@ platform :android do
     upload_to_play_store(track: 'alpha')
   end
 
-  desc "Submit a new Beta Build to Google Play Internal"
+  desc "Submit a new Beta Build to Google Play Open"
   lane :beta do
     gradle(
       task: ":android:bundleRelease",

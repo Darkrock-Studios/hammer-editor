@@ -63,7 +63,7 @@ jobs:
       #    cat changelog.txt
 
       - name: Distribute app to Alpha track 🚀
-        run: bundle exec fastlane alpha
+        run: bundle exec fastlane internal
         env:
           RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
