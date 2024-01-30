@@ -56,13 +56,7 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      # Need to find a way to get the version code here
-      #- name: Write Changelog
-      #  run: |
-      #    echo "${{ EVENT_PAYLOAD.release.description }}" > fastlane/metadata/android/en-US/changelogs/14.txt
-      #    cat changelog.txt
-
-      - name: Distribute app to Alpha track 🚀
+      - name: Distribute app to Internal track 🚀
         run: bundle exec fastlane internal
         env:
           RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
