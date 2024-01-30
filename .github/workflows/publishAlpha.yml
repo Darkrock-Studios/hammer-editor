@@ -1,4 +1,4 @@
-name: PublTestish
+name: PublishAlpha
 on:
   release:
     types: [ published ]
