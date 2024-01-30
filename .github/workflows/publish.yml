@@ -6,6 +6,9 @@ on:
 jobs:
   publish-google-play:
     runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      RELEASE_BUILD: true
 
     steps:
       - uses: actions/checkout@v4
