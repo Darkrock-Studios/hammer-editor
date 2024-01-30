@@ -1,0 +1,67 @@
+name: PublTestish
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  publish-google-play:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
+          bundler-cache: true
+
+      - name: Cache Ruby - Bundler
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
+      - name: Install bundle
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Restore key
+        working-directory: /home/runner/work/hammer-editor/hammer-editor/
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
+          echo ${{ secrets.RELEASE_STORE_PASSWORD_BASE64 }} | base64 -d > passphrase
+          gpg -d --passphrase-file passphrase --batch release.keystore.asc > release.keystore
+
+      - name: Create Google Play Config file
+        run: |
+          echo "$PLAY_CONFIG_JSON" > play_config.json.b64
+          base64 -d -i play_config.json.b64 > play_config.json
+        env:
+          PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
+
+      # Need to find a way to get the version code here
+      #- name: Write Changelog
+      #  run: |
+      #    echo "${{ EVENT_PAYLOAD.release.description }}" > fastlane/metadata/android/en-US/changelogs/14.txt
+      #    cat changelog.txt
+
+      - name: Distribute app to Alpha track 🚀
+        run: bundle exec fastlane alpha
+        env:
+          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}

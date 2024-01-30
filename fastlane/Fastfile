@@ -24,7 +24,7 @@ platform :android do
     )
   end
 
-  desc "Submit a new Beta Build to Google Play Internal"
+  desc "Submit a new Alpha Build to Google Play Internal"
   lane :alpha do
     gradle(
       task: ":android:bundleRelease",
