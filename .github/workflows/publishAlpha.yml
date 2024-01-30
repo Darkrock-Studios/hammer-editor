@@ -1,7 +1,8 @@
 name: PublishAlpha
 on:
-  release:
-    types: [ published ]
+  push:
+    branches:
+      - develop
 
 jobs:
   publish-google-play:
