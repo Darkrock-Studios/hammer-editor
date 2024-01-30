@@ -236,7 +236,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
-          body: "$tag_message"
+          body: ${{ env.tag_message }}
 
   android:
     runs-on: ubuntu-latest
