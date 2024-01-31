@@ -6,38 +6,6 @@ on:
       - 'v*'
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Fetch tags
-        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-
-      - name: Get last tag message
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
-          
-          echo "Tag: $TAG_NAME"
-          echo -e "Tag message:\n$TAG_MESSAGE"
-          
-          echo "tag_message<<EOF" >> $GITHUB_ENV
-          echo "$TAG_MESSAGE" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: true
-          prerelease: true
-          allowUpdates: true
-          body: ${{ env.tag_message }}
-
   windows:
     runs-on: windows-latest
     permissions:
@@ -89,6 +57,21 @@ jobs:
           
           echo Successfully renamed file to "hammer.msi"
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -99,6 +82,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
+          body: ${{ env.tag_message }}
 
   linux:
     runs-on: ubuntu-latest
@@ -142,6 +126,21 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -152,6 +151,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb"
+          body: ${{ env.tag_message }}
 
   macos:
     runs-on: macos-latest
@@ -195,6 +195,21 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -205,6 +220,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
+          body: ${{ env.tag_message }}
 
   server:
     runs-on: ubuntu-latest
@@ -250,6 +266,21 @@ jobs:
           mv "$file" "${file/server-*/server}.zip"
           echo "File renamed successfully."
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -260,6 +291,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
+          body: ${{ env.tag_message }}
 
   android:
     runs-on: ubuntu-latest
@@ -299,6 +331,21 @@ jobs:
         run: |
           ./gradlew :android:assembleRelease
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -309,3 +356,4 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/android/build/outputs/apk/release/*.apk"
+          body: ${{ env.tag_message }}
