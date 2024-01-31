@@ -218,6 +218,9 @@ jobs:
           mv "$file" "${file/server-*/server}.zip"
           echo "File renamed successfully."
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
       - name: Get last tag message
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
@@ -229,7 +232,6 @@ jobs:
           echo "tag_message<<EOF" >> $GITHUB_ENV
           echo "$TAG_MESSAGE" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
 
       - name: Create Release
         uses: ncipollo/release-action@v1
