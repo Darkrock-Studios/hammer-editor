@@ -127,18 +127,19 @@ The protocol for synchronizing data between client and server is outlined here:
 
 ## How to Release
 
-- Increment app version `app` and `android_version_code` in `libs.versions.toml`
-- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
-  the `android_version_code`
-- Merge `develop` into `release`
-- Tag the latest commit to make the release from in the [semvar](https://semver.org) format
-  of `v1.1.1`
-- Push to origin
+- When `develop` is read to release, run: `./gradlew prepareForRelease`
+	- This will prepare your repo by doing the following:
+		- Increment app version `app` in `libs.versions.toml`
+		- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
+		  the android version code
+		- Merge `develop` into `release`
+		- Tag the latest commit to make the release from in the [semvar](https://semver.org) format
+		  of `v1.1.1`
+		- Push to origin
 - This will trigger the `release` action on GitHub which will create a new **Release**, and build
-  all of the artifacts
+  all the artifacts
 - Once the `release` action is complete open the new **Release** on GitHub
 - Click _Edit_
-- Enter change notes in the description field, this will be used as the change log in each store
 - Uncheck "_Set as a pre-release_" and instead check "_Set as the latest release_"
 - Click the **Publish Release** button
 - This will trigger the `publish` action which will upload artifacts to stores, deploy
