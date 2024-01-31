@@ -19,7 +19,7 @@
     <string name="encyclopedia_create_entry_discard_title">Neuen Eintrag verwerfen\?</string>
     <string name="encyclopedia_entry_load_error">Fehler: Eintrag konnte nicht geladen werden!</string>
     <string name="encyclopedia_entry_body_empty_placeholder">Eintrag beschreiben</string>
-    <string name="encyclopedia_search_hint">Suche nach Name oder #hastag</string>
+    <string name="encyclopedia_search_hint">Suche nach Name oder #hashtag</string>
     <string name="encyclopedia_search_clear_button">Zurücksetzen</string>
     <string name="encyclopedia_entry_body_empty_label">Klicken um Beschreibung einzugeben</string>
     <string name="encyclopedia_entry_edit_cancel_button">Abbrechen</string>

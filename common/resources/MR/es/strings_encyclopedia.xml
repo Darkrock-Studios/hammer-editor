@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="encyclopedia_search_hint">Buscar por nombre o por #hastag</string>
+    <string name="encyclopedia_search_hint">Buscar por nombre o por #hashtag</string>
     <string name="encyclopedia_search_clear_button">Borrar</string>
     <string name="encyclopedia_create_button">Crear entrada</string>
     <string name="encyclopedia_create_entry_header">Crear una nueva entrada</string>
