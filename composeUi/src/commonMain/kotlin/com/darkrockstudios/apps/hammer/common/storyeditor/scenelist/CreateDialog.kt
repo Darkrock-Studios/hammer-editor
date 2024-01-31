@@ -45,7 +45,8 @@ internal fun CreateDialog(
 				TextField(
 					value = nameText,
 					onValueChange = { nameText = it },
-					label = { Text(textLabel) }
+					label = { Text(textLabel) },
+					singleLine = true,
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))

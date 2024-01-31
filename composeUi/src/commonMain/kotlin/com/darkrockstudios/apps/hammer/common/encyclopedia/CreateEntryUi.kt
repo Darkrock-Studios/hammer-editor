@@ -95,7 +95,8 @@ internal fun CreateEntryUi(
 						.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.L)),
 					value = newEntryNameText,
 					onValueChange = { newEntryNameText = it },
-					placeholder = { Text(MR.strings.encyclopedia_create_entry_name_label.get()) }
+					placeholder = { Text(MR.strings.encyclopedia_create_entry_name_label.get()) },
+					singleLine = true
 				)
 
 				TextField(
@@ -103,7 +104,8 @@ internal fun CreateEntryUi(
 						.padding(PaddingValues(bottom = Ui.Padding.L)),
 					value = newTagsText,
 					onValueChange = { newTagsText = it },
-					placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) }
+					placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) },
+					singleLine = true
 				)
 
 				OutlinedTextField(

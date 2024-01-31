@@ -12,6 +12,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
@@ -33,9 +34,10 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 					value = state.createDialogProjectName,
 					onValueChange = { component.onProjectNameUpdate(it) },
 					label = { Text(MR.strings.create_project_heading.get()) },
+					singleLine = true,
 				)
 
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
+				SpacerL()
 
 				Button(onClick = {
 					component.createProject(state.createDialogProjectName)
