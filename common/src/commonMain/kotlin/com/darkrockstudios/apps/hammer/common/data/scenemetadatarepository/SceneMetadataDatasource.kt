@@ -12,6 +12,7 @@ interface SceneMetadataDatasource : Closeable {
 
 	fun getMetadataDirectory(): HPath
 	fun getMetadataPath(id: Int): HPath
+	fun reIdSceneMetadata(oldId: Int, newId: Int)
 
 	companion object {
 		const val DIRECTORY = ".metadata"

@@ -142,6 +142,8 @@ class SceneEditorRepositoryOkio(
 		val newPath = getSceneFilePath(newScene)
 
 		fileSystem.atomicMove(oldPath.toOkioPath(), newPath.toOkioPath())
+
+		metadataDatasource.reIdSceneMetadata(oldId, newId)
 	}
 
 	override fun getSceneDirectory() = getSceneDirectory(projectDef, fileSystem)

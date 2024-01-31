@@ -56,6 +56,16 @@ class SceneMetadataOkioDatasource(
 		return path.toHPath()
 	}
 
+	override fun reIdSceneMetadata(oldId: Int, newId: Int) {
+		val oldPath = getMetadataPath(oldId).toOkioPath()
+		val newPath = getMetadataPath(newId).toOkioPath()
+
+		if (fileSystem.exists(oldPath)) {
+			Napier.i("Re-ID of Scene Metadata. Old ID: $oldId New ID: $newId")
+			fileSystem.atomicMove(oldPath, newPath)
+		}
+	}
+
 	override fun close() {
 		metadataScope.cancel("Closing SceneMetadataOkioDatasource")
 	}
