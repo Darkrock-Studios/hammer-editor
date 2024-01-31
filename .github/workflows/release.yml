@@ -59,18 +59,20 @@ jobs:
 
       - name: Fetch tags
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        shell: bash
 
       - name: Get last tag message
         run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          $TAG_NAME = "${{ github.ref }}".Replace('refs/tags/', '')
+          $TAG_MESSAGE = git tag -n90 --format='%(contents)' $TAG_NAME
           
           echo "Tag: $TAG_NAME"
-          echo -e "Tag message:\n$TAG_MESSAGE"
+          echo "Tag message:`n$TAG_MESSAGE"
           
-          echo "tag_message<<EOF" >> $GITHUB_ENV
-          echo "$TAG_MESSAGE" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "tag_message<<EOF" | Out-File -Append -Encoding UTF8 $Env:GITHUB_ENV
+          echo $TAG_MESSAGE | Out-File -Append -Encoding UTF8 $Env:GITHUB_ENV
+          echo "EOF" | Out-File -Append -Encoding UTF8 $Env:GITHUB_ENV
+        shell: pwsh
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -195,6 +197,21 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Fetch tags
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Get last tag message
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
+          echo "Tag: $TAG_NAME"
+          echo -e "Tag message:\n$TAG_MESSAGE"
+          
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -205,6 +222,7 @@ jobs:
           artifactErrorsFailBuild: true
           allowUpdates: true
           artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
+          body: ${{ env.tag_message }}
 
   server:
     runs-on: ubuntu-latest
