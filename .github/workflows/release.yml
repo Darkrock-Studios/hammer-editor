@@ -222,9 +222,14 @@ jobs:
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+          
           echo "Tag: $TAG_NAME"
           echo -e "Tag message:\n$TAG_MESSAGE"
-          echo "tag_message=$TAG_MESSAGE" >> "$GITHUB_ENV"
+
+          echo "tag_message<<EOF" >> $GITHUB_ENV
+          echo "$TAG_MESSAGE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
 
       - name: Create Release
         uses: ncipollo/release-action@v1
