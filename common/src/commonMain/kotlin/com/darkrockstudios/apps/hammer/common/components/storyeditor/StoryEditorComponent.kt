@@ -15,11 +15,9 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -233,7 +231,9 @@ class StoryEditorComponent(
 		dialogNavigation.activate(StoryEditor.DialogConfig.None)
 	}
 
-	init {
+	override fun onCreate() {
+		super.onCreate()
+
 		backHandler.register(backButtonHandler)
 
 		detailsRouter.state.observe(lifecycle) {
@@ -247,6 +247,30 @@ class StoryEditorComponent(
 
 		sceneEditor.subscribeToBufferUpdates(null, scope) {
 			backButtonHandler.isEnabled = isDetailShown()
+		}
+
+		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+	}
+
+	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
+		// If we've got a scene detail showing, and the tree updated,
+		// see if the scene is no longer in the tree, that means it was
+		// deleted, and we need to close the scene details
+		if (detailsRouter.isShown()) {
+			val sceneItem = when (val config = detailsRouter.state.value.active.configuration) {
+				is DetailsRouter.Config.DraftCompare -> config.sceneDef
+				is DetailsRouter.Config.DraftsList -> config.sceneDef
+				is DetailsRouter.Config.SceneEditor -> config.sceneDef
+				DetailsRouter.Config.None -> null
+			}
+
+			if (sceneItem != null) {
+				val foundNode = sceneSummary.sceneTree.findBy { it.id == sceneItem.id }
+				if (foundNode == null) {
+					Napier.i { "Scene was deleted, closing Scene detail" }
+					closeDetails()
+				}
+			}
 		}
 	}
 }
