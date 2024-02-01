@@ -16,7 +16,7 @@ data class SemVar(
 	val minor: Int,
 	val patch: Int,
 ) {
-	val MAX_BUILDNUM = 10_000
+	private val MAX_BUILDNUM = 10_000
 
 	fun createVersion(
 		isRelease: Boolean,

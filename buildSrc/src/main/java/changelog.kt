@@ -9,6 +9,8 @@ import java.awt.event.WindowEvent
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import javax.swing.*
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 
 fun writeSemvar(oldSemVar: String, newSemVar: SemVar, versionFile: File) {
 	val versions = versionFile.readText()
@@ -35,6 +37,14 @@ data class ReleaseInfo(
 	val semVar: SemVar,
 	val changeLog: String,
 )
+
+class OnChangeListener(
+	val onChange: (e: DocumentEvent?) -> Unit
+) : DocumentListener {
+	override fun insertUpdate(e: DocumentEvent?) = onChange(e)
+	override fun removeUpdate(e: DocumentEvent?) = onChange(e)
+	override fun changedUpdate(e: DocumentEvent?) = onChange(e)
+}
 
 fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 	var result: ReleaseInfo? = null
@@ -104,11 +114,21 @@ fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 
 		val commitButton = JButton("Commit Changes")
 
+		val characterCount = JLabel("Characters: 0")
+
 		panel.add(JLabel("Change Log:"))
 		val changeLog = JTextArea().apply {
 			setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+			lineWrap = true
+			wrapStyleWord = true
 		}
+
+		changeLog.document.addDocumentListener(OnChangeListener { e ->
+			characterCount.text = "Characters: ${changeLog.document.length}"
+		})
+
 		panel.add(changeLog)
+		panel.add(characterCount)
 		panel.add(commitButton)
 
 		commitButton.addActionListener {
