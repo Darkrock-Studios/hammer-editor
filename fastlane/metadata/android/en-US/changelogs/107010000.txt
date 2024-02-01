@@ -1,0 +1,7 @@
+- New Feature: Focus Mode, edit a scene with less UI clutter
+- Improved Encyclopedia hashtag search, allow partial tag searching
+- Fix dropdown menu not showing selected item
+- Fixed Scene editor not closing when scene was deleted
+- Fix scene count in Project Home
+- Minor UI polish
+- DevOps: Greatly improved release process
