@@ -27,7 +27,7 @@ platform :android do
   desc "Submit a new Build to Google Play Internal"
   lane :internal do
     gradle(
-      task: ":android:bundleDebug",
+      task: ":android:bundleRelease",
       gradle_path: "./gradlew"
     )
     upload_to_play_store(track: 'internal')
