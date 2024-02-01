@@ -10,7 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 actual fun SceneItemActionContainer(
 	scene: SceneItem,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
-	itemContent: @Composable (modifier: Modifier) -> Unit
+	shouldNux: Boolean,
+	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
 	ContextMenuArea(
 		items = {

@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 @Composable
 expect fun SceneGroupActionContainer(
 	scene: SceneItem,
+	shouldNux: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,

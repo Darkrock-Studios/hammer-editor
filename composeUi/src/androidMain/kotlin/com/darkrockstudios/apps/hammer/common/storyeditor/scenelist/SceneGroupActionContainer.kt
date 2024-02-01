@@ -23,12 +23,15 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import kotlinx.coroutines.time.delay
+import java.time.Duration
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 actual fun SceneGroupActionContainer(
 	scene: SceneItem,
+	shouldNux: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
@@ -37,15 +40,24 @@ actual fun SceneGroupActionContainer(
 	val hapticFeedback = LocalHapticFeedback.current
 
 	var showMenu by remember { mutableStateOf(false) }
-	val swipeableState = rememberSwipeableState(0, confirmStateChange = { value ->
-		if (value == 1) {
+	val swipeableState = rememberSwipeableState(SwipeState.Initial, confirmStateChange = { value ->
+		if (value == SwipeState.Swiped) {
 			hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
 			showMenu = true
 		}
 		false
 	})
 	val sizePx = with(LocalDensity.current) { 50.dp.toPx() }
-	val anchors = mapOf(0f to 0, sizePx to 1) // Maps anchor points (in px) to states
+	val anchors = mapOf(0f to SwipeState.Initial, sizePx to SwipeState.Swiped)
+
+	if (shouldNux) {
+		LaunchedEffect(swipeableState) {
+			delay(Duration.ofMillis(500))
+			swipeableState.animateTo(SwipeState.Swiped)
+			delay(Duration.ofMillis(500))
+			swipeableState.animateTo(SwipeState.Initial)
+		}
+	}
 
 	Box(
 		modifier = Modifier
@@ -56,11 +68,12 @@ actual fun SceneGroupActionContainer(
 				orientation = Orientation.Horizontal
 			)
 	) {
-		val alpha = if (!(swipeableState.progress.to == 0 && swipeableState.progress.from == 0)) {
-			swipeableState.progress.fraction
-		} else {
-			0f
-		}
+		val alpha =
+			if (!(swipeableState.progress.to == SwipeState.Initial && swipeableState.progress.from == SwipeState.Initial)) {
+				swipeableState.progress.fraction
+			} else {
+				0f
+			}
 
 		Icon(
 			Icons.Filled.MenuOpen,

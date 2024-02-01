@@ -61,6 +61,7 @@ private fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = false,
+			shouldNux = false,
 			onSceneSelected = {},
 			onSceneAltClick = {}
 		)
@@ -70,6 +71,7 @@ private fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = true,
 			isSelected = false,
+			shouldNux = false,
 			onSceneSelected = {},
 			onSceneAltClick = {}
 		)
@@ -79,6 +81,7 @@ private fun SceneItemPreview() {
 			depth = 1,
 			hasDirtyBuffer = false,
 			isSelected = true,
+			shouldNux = false,
 			onSceneSelected = {},
 			onSceneAltClick = {}
 		)

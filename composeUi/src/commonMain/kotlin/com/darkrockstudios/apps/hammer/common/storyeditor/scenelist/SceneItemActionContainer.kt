@@ -8,5 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 expect fun SceneItemActionContainer(
 	scene: SceneItem,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
-	itemContent: @Composable (modifier: Modifier) -> Unit
+	shouldNux: Boolean = false,
+	itemContent: @Composable (modifier: Modifier) -> Unit,
 )

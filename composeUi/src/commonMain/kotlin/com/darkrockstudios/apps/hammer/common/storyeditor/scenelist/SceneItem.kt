@@ -24,6 +24,7 @@ internal fun SceneItem(
 	depth: Int,
 	hasDirtyBuffer: Boolean,
 	isSelected: Boolean,
+	shouldNux: Boolean,
 	onSceneSelected: (SceneItem) -> Unit,
 	onSceneAltClick: (SceneItem) -> Unit,
 ) {
@@ -40,7 +41,7 @@ internal fun SceneItem(
 		modifier = modifier.leftBorder(1.dp, MaterialTheme.colorScheme.outline)
 	}
 
-	SceneItemActionContainer(scene, onSceneAltClick) {
+	SceneItemActionContainer(scene, onSceneAltClick, shouldNux) {
 		Surface(
 			modifier = modifier,
 			color = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,

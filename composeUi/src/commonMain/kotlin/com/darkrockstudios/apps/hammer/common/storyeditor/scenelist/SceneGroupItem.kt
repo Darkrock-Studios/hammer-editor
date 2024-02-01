@@ -27,6 +27,7 @@ internal fun SceneGroupItem(
 	hasDirtyBuffer: Set<Int>,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
+	shouldNux: Boolean,
 	onSceneAltClick: (SceneItem) -> Unit,
 	onCreateSceneClick: (SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
@@ -44,6 +45,7 @@ internal fun SceneGroupItem(
 
 	SceneGroupActionContainer(
 		scene = scene,
+		shouldNux = shouldNux,
 		onSceneAltClick = onSceneAltClick,
 		onCreateSceneClick = onCreateSceneClick,
 		onCreateGroupClick = onCreateGroupClick,

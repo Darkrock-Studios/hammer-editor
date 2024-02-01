@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.re
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.random.Random
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -60,6 +61,10 @@ fun SceneListUi(
 			treeState.updateSummary(summary)
 		}
 	}
+
+	// 1 in 10 change of doing NUX
+	// TODO implement a real NUX system
+	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
 	BoxWithConstraints {
 		Column(modifier = modifier.fillMaxSize()) {
@@ -93,6 +98,7 @@ fun SceneListUi(
 						component = component,
 						toggleExpand = toggleExpanded,
 						collapsed = collapsed,
+						shouldNux = shouldNux,
 						sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
 						},
@@ -233,10 +239,13 @@ private fun SceneNode(
 	component: SceneList,
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
+	shouldNux: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
 	createScene: (SceneItem) -> Unit,
-	createGroup: (SceneItem) -> Unit
+	createGroup: (SceneItem) -> Unit,
 ) {
+	val doNux = (shouldNux && sceneNode.index == 1)
+
 	val scene = sceneNode.value
 	val isSelected = scene == state.selectedSceneItem
 	if (scene.type == SceneItem.Type.Scene) {
@@ -246,6 +255,7 @@ private fun SceneNode(
 			depth = sceneNode.depth,
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
+			shouldNux = doNux,
 			onSceneSelected = component::onSceneSelected,
 			onSceneAltClick = sceneDefDeleteTarget,
 		)
@@ -256,6 +266,7 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer,
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
+			shouldNux = doNux,
 			onSceneAltClick = sceneDefDeleteTarget,
 			onCreateGroupClick = createGroup,
 			onCreateSceneClick = createScene
