@@ -22,8 +22,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import kotlinx.coroutines.time.delay
-import java.time.Duration
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -46,14 +44,7 @@ actual fun SceneItemActionContainer(
 	val sizePx = with(LocalDensity.current) { 50.dp.toPx() }
 	val anchors = mapOf(0f to SwipeState.Initial, sizePx to SwipeState.Swiped)
 
-	if (shouldNux) {
-		LaunchedEffect(key1 = swipeableState) {
-			delay(Duration.ofMillis(500))
-			swipeableState.animateTo(SwipeState.Swiped)
-			delay(Duration.ofMillis(500))
-			swipeableState.animateTo(SwipeState.Initial)
-		}
-	}
+	SwipeNux(swipeableState, shouldNux)
 
 	Box(
 		modifier = Modifier
