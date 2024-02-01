@@ -1,10 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -14,9 +20,11 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stac
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
@@ -71,6 +79,7 @@ fun StoryEditorUi(
 		// Detail
 		DetailsPane(
 			state = detailsState,
+			isMultiPane = isMultiPane,
 			snackbarHostState = snackbarHostState,
 			modifier = detailsModifier,
 		)
@@ -91,6 +100,7 @@ private fun DialogUi(component: StoryEditor) {
 		is StoryEditor.ChildDestination.DialogDestination.OutlineDestination -> {
 			OutlineOverviewUi(dest.component)
 		}
+
 		is StoryEditor.ChildDestination.DialogDestination.None -> {}
 		null -> {}
 	}
@@ -156,6 +166,7 @@ private fun ListPane(
 @Composable
 private fun DetailsPane(
 	state: ChildStack<*, StoryEditor.ChildDestination.Detail>,
+	isMultiPane: Boolean,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
 ) {
@@ -165,7 +176,10 @@ private fun DetailsPane(
 		animation = stackAnimation { _ -> fade() },
 	) {
 		when (val child = it.instance) {
-			is StoryEditor.ChildDestination.Detail.None -> Box {}
+			is StoryEditor.ChildDestination.Detail.None -> {
+				EmptySceneEditor(isMultiPane)
+			}
+
 			is StoryEditor.ChildDestination.Detail.EditorDestination -> {
 				SceneEditorUi(
 					component = child.component,
@@ -180,6 +194,30 @@ private fun DetailsPane(
 
 			is StoryEditor.ChildDestination.Detail.DraftCompareDestination -> {
 				DraftCompareUi(component = child.component)
+			}
+		}
+	}
+}
+
+@Composable
+private fun EmptySceneEditor(isMultipane: Boolean) {
+	Box(modifier = Modifier.fillMaxSize()) {
+		if (isMultipane) {
+			Column(
+				modifier = Modifier.align(Alignment.Center),
+				horizontalAlignment = CenterHorizontally
+			) {
+				Icon(
+					Icons.Default.EditNote,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.size(96.dp)
+				)
+				Text(
+					MR.strings.scene_editor_no_scene_selected.get(),
+					style = MaterialTheme.typography.labelSmall,
+					color = MaterialTheme.colorScheme.onBackground
+				)
 			}
 		}
 	}

@@ -38,4 +38,6 @@
 
 	<string name="scene_editor_metadata_notes_label">Notes</string>
 	<string name="scene_editor_metadata_notes_placeholder">Notes to your self.</string>
+
+	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 </resources>
