@@ -25,7 +25,7 @@ fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
 	val now = Clock.System.now()
 	val date: LocalDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
 	val headerDate = "${date.year}-${date.monthNumber}-${date.dayOfMonth}"
-	val newEntry = "# [${releaseInfo.semVar}] $headerDate\n\n" + releaseInfo.changeLog + "\n\n"
+	val newEntry = "## [${releaseInfo.semVar}] - $headerDate\n\n" + releaseInfo.changeLog + "\n\n"
 
 	val newChangeLog = "# Changelog\n\n" + newEntry + withoutHeader
 

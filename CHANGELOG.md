@@ -1,6 +1,6 @@
 # Changelog
 
-# [1.7.0] 2024-1-31
+## [1.7.0] - 2024-1-31
 
 - New Feature: Focus Mode, edit a scene with less UI clutter
 - Improved Encyclopedia hashtag search, allow partial tag searching
