@@ -61,7 +61,7 @@ tasks.register("prepareForRelease") {
 		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
 
 		println("Creating new release")
-		val versionCode = releaseInfo.semVar.createVersion(true, 0)
+		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
 
 		// Write the new version number
 		val versionsPath = "gradle/libs.versions.toml".replace("/", File.separator)
@@ -102,6 +102,16 @@ tasks.register("prepareForRelease") {
 
 		// Push and begin the release process
 		exec { commandLine = listOf("git", "push", "origin", "--all") }
+		exec { commandLine = listOf("git", "push", "origin", "--tags") }
+	}
+}
+
+tasks.register("publishFdroid") {
+	doLast {
+		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure fdroid release")
+		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
+		exec { commandLine = listOf("git", "checkout", "release") }
+		exec { commandLine = listOf("git", "tag", "-a", "fdroid-${versionCode}") }
 		exec { commandLine = listOf("git", "push", "origin", "--tags") }
 	}
 }

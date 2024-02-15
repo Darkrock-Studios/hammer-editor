@@ -55,11 +55,9 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      # Need to find a way to get the version code here
-      #- name: Write Changelog
-      #  run: |
-      #    echo "${{ EVENT_PAYLOAD.release.description }}" > fastlane/metadata/android/en-US/changelogs/14.txt
-      #    cat changelog.txt
+      - name: Publish F-Droid
+        run: |
+          gradlew publishFdroid
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release

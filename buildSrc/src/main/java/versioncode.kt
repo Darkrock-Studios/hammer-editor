@@ -6,7 +6,7 @@ fun getVersionCode(semVarStr: String): Int {
 	val buildNumber = (System.getenv("BUILD_NUMBER")?.toIntOrNull() ?: 0)
 	val isRelease = (System.getenv("RELEASE_BUILD")?.toBoolean() == true)
 	val semVar = parseSemVar(semVarStr)
-	val versionCode = semVar.createVersion(isRelease, buildNumber)
+	val versionCode = semVar.createVersionCode(isRelease, buildNumber)
 
 	return versionCode
 }
@@ -18,7 +18,7 @@ data class SemVar(
 ) {
 	private val MAX_BUILDNUM = 10_000
 
-	fun createVersion(
+	fun createVersionCode(
 		isRelease: Boolean,
 		buildNumber: Int
 	): Int {
