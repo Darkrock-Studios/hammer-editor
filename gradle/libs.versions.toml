@@ -53,6 +53,7 @@ parcelize_darwin = "0.2.3"
 
 mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
+composericheditor = "1.0.0-rc01"
 koalaplot-core = "0.5.1"
 image-loader = "1.7.1"
 
@@ -138,6 +139,7 @@ orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestra
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 richtexteditor = { module = "com.darkrockstudios:richtexteditor", version.ref = "richtexteditor" }
+composericheditor = { module = "com.mohamedrejeb.richeditor:richeditor-compose", version.ref = "composericheditor" }
 androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
 androidx_datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
 androidx_window = { module = "androidx.window:window", version.ref = "androidx-window" }
