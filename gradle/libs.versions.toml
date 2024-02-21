@@ -41,7 +41,7 @@ coroutines = "1.7.3"
 datetime = "0.5.0"
 napier = "2.7.1"
 jetpack_compose_compiler = "1.5.4"
-jetbrains_compose = "1.5.11"
+jetbrains_compose = "1.5.12"
 jetbrains_kover = "0.7.5"
 
 moko_resources = "0.23.0"
