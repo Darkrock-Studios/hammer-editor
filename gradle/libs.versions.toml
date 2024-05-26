@@ -67,7 +67,7 @@ ktor_i18n = "2.0.0"
 
 okio = "3.8.0"
 slf4jSimple = "2.0.12"
-uuid = "0.8.2"
+uuid = "0.8.4"
 work-runtime-ktx = "2.9.0"
 
 multiplatform_window_size = "0.3.2"
