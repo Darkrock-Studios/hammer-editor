@@ -2,11 +2,10 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import kotlinx.serialization.Serializable
 
 interface Encyclopedia : Router {
 	val stack: Value<ChildStack<Config, Destination>>
@@ -19,14 +18,15 @@ interface Encyclopedia : Router {
 		data class CreateEntryDestination(val component: CreateEntry) : Destination()
 	}
 
-	sealed class Config : Parcelable {
-		@Parcelize
+	@Serializable
+	sealed class Config {
+		@Serializable
 		data class BrowseEntriesConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class ViewEntryConfig(val entryDef: EntryDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class CreateEntryConfig(val projectDef: ProjectDef) : Config()
 	}
 

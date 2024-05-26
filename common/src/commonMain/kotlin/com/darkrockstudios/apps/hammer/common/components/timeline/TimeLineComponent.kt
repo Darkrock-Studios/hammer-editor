@@ -1,14 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.pop
-import com.arkivanov.decompose.router.stack.popWhile
-import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.observe
+import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -29,7 +24,8 @@ class TimeLineComponent(
 		source = navigation,
 		initialConfiguration = TimeLine.Config.TimeLineOverviewConfig(projectDef = projectDef),
 		key = "TimeLineRouter",
-		childFactory = ::createChild
+		childFactory = ::createChild,
+		serializer = TimeLine.Config.serializer(),
 	)
 
 	override val stack: Value<ChildStack<TimeLine.Config, TimeLine.Destination>> = _stack
@@ -121,7 +117,7 @@ class TimeLineComponent(
 
 		backHandler.register(backButtonHandler)
 
-		stack.observe(lifecycle) {
+		stack.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}

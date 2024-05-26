@@ -3,16 +3,19 @@ package com.darkrockstudios.apps.hammer.common.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
+import kotlinx.serialization.KSerializer
 import org.koin.mp.KoinPlatformTools
 
-abstract class SavableComponent<S : Parcelable>(componentContext: ComponentContext) : ComponentBase(componentContext) {
+abstract class SavableComponent<S : Any>(componentContext: ComponentContext) : ComponentBase(componentContext) {
 
 	abstract val state: Value<S>
 
+	abstract fun getStateSerializer(): KSerializer<S>
+
 	override fun onCreate() {
+
 		super.onCreate()
-		stateKeeper.register(this::class.simpleName!!) { state.value }
+		stateKeeper.register(this::class.simpleName!!, getStateSerializer()) { state.value }
 	}
 
 	override fun onDestroy() {
@@ -21,14 +24,14 @@ abstract class SavableComponent<S : Parcelable>(componentContext: ComponentConte
 	}
 }
 
-inline fun <reified S : Parcelable> SavableComponent<S>.savableState(
+inline fun <reified S : Any> SavableComponent<S>.savableState(
 	crossinline newState: () -> S,
 ): Lazy<MutableValue<S>> =
 	lazy(KoinPlatformTools.defaultLazyMode()) {
 		MutableValue(
 			stateKeeper.consume(
 				key = this::class.simpleName!!,
-				clazz = S::class
+				strategy = getStateSerializer(),
 			) ?: newState()
 		)
 	}

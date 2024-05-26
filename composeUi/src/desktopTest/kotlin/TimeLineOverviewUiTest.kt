@@ -19,7 +19,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		val observer = slot<(TimeLineOverview.State) -> Unit>()
 		val stateValue: Value<TimeLineOverview.State> = mockk()
-		every { stateValue.observe(capture(observer)) } returns mockk<Cancellation>().apply {
+		every { stateValue.subscribe(capture(observer)) } returns mockk<Cancellation>().apply {
 			every { cancel() } just Runs
 		}
 		every { stateValue.value } returns data

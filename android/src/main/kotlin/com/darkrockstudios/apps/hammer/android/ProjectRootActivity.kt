@@ -25,11 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import com.arkivanov.decompose.ExperimentalDecomposeApi
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.essenty.statekeeper.getSerializable
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
@@ -70,12 +70,11 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val viewModel: ProjectRootViewModel by viewModels()
 
-	@OptIn(ExperimentalDecomposeApi::class)
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 
-		val projectDef = intent.getParcelableExtra<ProjectDef>(EXTRA_PROJECT)
+		val projectDef = intent.extras?.getSerializable(EXTRA_PROJECT, ProjectDef.serializer())
 		if (projectDef == null) {
 			finish()
 		} else {

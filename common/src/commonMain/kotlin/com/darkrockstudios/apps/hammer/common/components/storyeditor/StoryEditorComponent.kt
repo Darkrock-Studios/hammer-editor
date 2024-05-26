@@ -9,7 +9,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.observe
+import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -66,6 +66,7 @@ class StoryEditorComponent(
 		key = "dialogRouter",
 		initialConfiguration = { StoryEditor.DialogConfig.None },
 		handleBackButton = false,
+		serializer = StoryEditor.DialogConfig.serializer(),
 	) { config, componentContext ->
 		createDialogChild(config, componentContext)
 	}
@@ -91,6 +92,7 @@ class StoryEditorComponent(
 		key = "fullscreenRouter",
 		initialConfiguration = { StoryEditor.FullScreenConfig.None },
 		handleBackButton = false,
+		serializer = StoryEditor.FullScreenConfig.serializer(),
 	) { config, componentContext ->
 		createFullScreenChild(config, componentContext)
 	}
@@ -236,7 +238,7 @@ class StoryEditorComponent(
 
 		backHandler.register(backButtonHandler)
 
-		detailsRouter.state.observe(lifecycle) {
+		detailsRouter.state.subscribe(lifecycle) {
 			(it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
 				selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
 			}

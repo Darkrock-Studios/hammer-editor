@@ -66,7 +66,7 @@ class ProjectRootComponent(
 	private fun handleSyncDialogCompletion() {
 		scope.launch {
 			// Listen for the sync dialog closing, if we are in the process of closing, mark it as dealt with
-			modalRouterState.observe {
+			modalRouterState.subscribe {
 				if (it.child?.configuration == ProjectRootModalRouter.Config.None
 					&& closeRequestHandlers.value.isNotEmpty()
 				) {

@@ -29,7 +29,7 @@ kotlin {
 			//isStatic = true
 			//transitiveExport = true
 			export(libs.decompose)
-			export(libs.essenty)
+			export(libs.essenty.lifecycle)
 			//export(libs.parcelize.darwin.runtime)
 			export(libs.coroutines.core)
 			export(libs.moko.resources)
@@ -48,7 +48,6 @@ kotlin {
 				api(project(":base"))
 
 				api(libs.decompose)
-				implementation(libs.essenty.parcelable)
 				api(libs.napier)
 				api(libs.coroutines.core)
 				api(platform(libs.koin.bom.get()))
@@ -60,9 +59,9 @@ kotlin {
 
 				api(libs.serialization.core)
 				api(libs.serialization.json)
-				api(libs.datetime)
+				api(libs.kotlinx.datetime)
 				implementation(libs.tomlkt)
-				api(libs.essenty)
+				api(libs.bundles.essenty)
 				implementation(libs.cache4k)
 				api(libs.moko.resources)
 				api(libs.moko.graphics)
@@ -95,7 +94,7 @@ kotlin {
 				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				//implementation(libs.parcelize.darwin.runtime)
 				api(libs.decompose)
-				api(libs.essenty)
+				api(libs.bundles.essenty)
 				api(libs.moko.resources)
 				api(libs.ktor.client.darwin)
 				// TODO Remove this when there is a better way to read zip files on iOS

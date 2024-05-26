@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.observe
+import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -122,9 +122,10 @@ class EncyclopediaComponent(
 			source = navigation,
 			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
 			key = "EncyclopediaRouter",
-			childFactory = ::createChild
+			childFactory = ::createChild,
+			serializer = Encyclopedia.Config.serializer(),
 		)
-		stack.observe(lifecycle) {
+		stack.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}

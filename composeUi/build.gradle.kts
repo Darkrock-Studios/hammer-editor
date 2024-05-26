@@ -92,7 +92,7 @@ android {
 		compose = true
 	}
 	composeOptions {
-		kotlinCompilerExtensionVersion = libs.versions.jetpack.compose.compiler.get()
+		kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())

@@ -1,16 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
-import com.arkivanov.essenty.parcelable.TypeParceler
-import com.darkrockstudios.apps.hammer.common.parcelize.InstantParceler
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 
-@Parcelize
-@TypeParceler<Instant, InstantParceler>()
+@Serializable
 data class DraftDef(
 	val id: Int,
 	val sceneId: Int,
 	val draftTimestamp: Instant,
 	val draftName: String
-) : Parcelable
+)

@@ -7,7 +7,7 @@ data_version = "1.0"
 
 # Kotlin
 jvm = "17"
-kotlin = "1.9.22"
+kotlin = "1.9.23"
 
 # Android
 android_gradle_plugin = "8.2.2"
@@ -31,6 +31,7 @@ glance = "1.0.0"
 jSystemThemeDetector = "3.8"
 junit = "1.1.5"
 kotlinx_cli = "0.3.6"
+kotlinx_atomicfu = "0.23.2"
 kwebCore = "1.4.11"
 markdown = "0.6.1"
 material = "1.11.0"
@@ -40,20 +41,20 @@ serialization_json = "1.6.3"
 coroutines = "1.8.0"
 datetime = "0.5.0"
 napier = "2.7.1"
-jetpack_compose_compiler = "1.5.4"
-jetbrains_compose = "1.5.12"
+compose_compiler = "1.5.10"
+jetbrains_compose = "1.6.1"
 jetbrains_kover = "0.7.6"
 
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
 
-decompose = "2.2.2"
-essenty = "1.3.0" # This should match what ever decompose is referncing internally
+decompose = "3.0.0"
+essenty = "2.0.0" # This should match what ever decompose is referncing internally
 parcelize_darwin = "0.2.3"
 
 mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
-composericheditor = "1.0.0-rc01"
+composericheditor = "1.0.0-rc02"
 koalaplot-core = "0.5.1"
 image-loader = "1.7.1"
 
@@ -71,8 +72,6 @@ work-runtime-ktx = "2.9.0"
 
 multiplatform_window_size = "0.3.2"
 mockk = "1.13.9"
-
-kotlinx_atomicfu = "0.23.2"
 
 tomlkt = "0.3.7"
 
@@ -112,22 +111,28 @@ jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector"
 junit = { module = "androidx.test.ext:junit", version.ref = "junit" }
 junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "junit" }
 koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot-core" }
+
 kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin_test_junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
+
 kotlinx-cli = { module = "org.jetbrains.kotlinx:kotlinx-cli", version.ref = "kotlinx_cli" }
+kotlinx_datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx_atomicfu" }
+kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
+
 kweb-core = { module = "io.kweb:kweb-core", version.ref = "kwebCore" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpfilepicker" }
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
+
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
-decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose-jetbrains", version.ref = "decompose" }
+decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose", version.ref = "decompose" }
 decompose_android = { group = "com.arkivanov.decompose", name = "extensions-android", version.ref = "decompose" }
 
-essenty = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
-essenty_parcelable = { group = "com.arkivanov.essenty", name = "parcelable", version.ref = "essenty" }
-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+essenty_lifecycle = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
+essenty_lifecycle_coroutines = { group = "com.arkivanov.essenty", name = "lifecycle-coroutines", version.ref = "essenty" }
 
 moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
 moko_resources_compose = { group = "dev.icerock.moko", name = "resources-compose", version.ref = "moko_resources" }
@@ -202,9 +207,6 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" 
 uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
 
-kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx_atomicfu" }
-kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
-
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
 
@@ -278,4 +280,8 @@ ktor_server = [
 	"ktor_server_httpredirect",
 	"ktor_server_websockets",
 	"ktor_server_i18n",
+]
+essenty = [
+	"essenty_lifecycle",
+	"essenty_lifecycle_coroutines",
 ]

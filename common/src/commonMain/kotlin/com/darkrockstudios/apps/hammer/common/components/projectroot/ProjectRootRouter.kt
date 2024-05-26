@@ -6,8 +6,6 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
@@ -24,6 +22,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlin.coroutines.CoroutineContext
 
 internal class ProjectRootRouter(
@@ -44,7 +43,8 @@ internal class ProjectRootRouter(
 			source = navigation,
 			initialConfiguration = Config.HomeConfig(projectDef),
 			key = "ProjectRootRouter",
-			childFactory = ::createChild
+			childFactory = ::createChild,
+			serializer = Config.serializer()
 		)
 
 	private fun createChild(
@@ -168,20 +168,21 @@ internal class ProjectRootRouter(
 		navigation.subscribe { updateShouldClose() }
 	}
 
-	sealed class Config : Parcelable {
-		@Parcelize
+	@Serializable
+	sealed class Config {
+		@Serializable
 		data class EditorConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class NotesConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class EncyclopediaConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class TimeLineConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class HomeConfig(val projectDef: ProjectDef) : Config()
 	}
 }

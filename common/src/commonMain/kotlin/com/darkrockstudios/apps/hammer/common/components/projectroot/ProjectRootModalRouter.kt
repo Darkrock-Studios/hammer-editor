@@ -6,10 +6,9 @@ import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import kotlinx.serialization.Serializable
 
 class ProjectRootModalRouter(
 	componentContext: ComponentContext,
@@ -22,7 +21,8 @@ class ProjectRootModalRouter(
 			source = navigation,
 			initialConfiguration = { Config.None },
 			key = "ProjectRootModalRouter",
-			childFactory = ::createChild
+			childFactory = ::createChild,
+			serializer = Config.serializer(),
 		)
 
 	override fun isAtRoot(): Boolean {
@@ -50,11 +50,12 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
-	sealed class Config : Parcelable {
-		@Parcelize
-		object None : Config()
+	@Serializable
+	sealed class Config {
+		@Serializable
+		data object None : Config()
 
-		@Parcelize
-		object ProjectSync : Config()
+		@Serializable
+		data object ProjectSync : Config()
 	}
 }

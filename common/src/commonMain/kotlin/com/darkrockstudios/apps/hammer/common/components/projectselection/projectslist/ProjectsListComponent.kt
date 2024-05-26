@@ -61,6 +61,7 @@ class ProjectsListComponent(
 		)
 	}
 	override val state: Value<ProjectsList.State> = _state
+	override fun getStateSerializer() = ProjectsList.State.serializer()
 
 	private fun watchSettingsUpdates() {
 		scope.launch {

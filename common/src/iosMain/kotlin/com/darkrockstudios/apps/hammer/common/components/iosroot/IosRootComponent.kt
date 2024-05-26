@@ -18,6 +18,7 @@ class IosRootComponent(
 	private val navigation = SlotNavigation<IosRoot.Config>()
 	override val slot = componentContext.childSlot(
 		source = navigation,
+		serializer = IosRoot.Config.serializer(),
 		initialConfiguration = { IosRoot.Config.ProjectSelect },
 		handleBackButton = false,
 	) { config, componentContext ->

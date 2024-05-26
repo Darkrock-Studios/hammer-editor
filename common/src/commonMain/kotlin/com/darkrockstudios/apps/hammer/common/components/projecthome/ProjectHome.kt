@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import kotlinx.serialization.Serializable
 
 interface ProjectHome : Router, HammerComponent {
 	val state: Value<State>
@@ -19,6 +20,7 @@ interface ProjectHome : Router, HammerComponent {
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 	fun getExportStoryFileName(): String
 
+	@Serializable
 	data class State(
 		val projectDef: ProjectDef,
 		val created: String,

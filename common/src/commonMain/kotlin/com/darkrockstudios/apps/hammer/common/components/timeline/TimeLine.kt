@@ -2,10 +2,9 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import kotlinx.serialization.Serializable
 
 interface TimeLine : Router {
 
@@ -19,14 +18,15 @@ interface TimeLine : Router {
 		data class CreateEventDestination(val component: CreateTimeLineEvent) : Destination()
 	}
 
-	sealed class Config : Parcelable {
-		@Parcelize
+	@Serializable
+	sealed class Config {
+		@Serializable
 		data class TimeLineOverviewConfig(val projectDef: ProjectDef) : Config()
 
-		@Parcelize
+		@Serializable
 		data class ViewEventConfig(val projectDef: ProjectDef, val eventId: Int) : Config()
 
-		@Parcelize
+		@Serializable
 		data class CreateEventConfig(val projectDef: ProjectDef) : Config()
 	}
 

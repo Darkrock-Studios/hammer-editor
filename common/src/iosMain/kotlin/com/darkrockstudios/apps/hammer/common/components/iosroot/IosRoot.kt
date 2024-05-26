@@ -2,19 +2,19 @@ package com.darkrockstudios.apps.hammer.common.components.iosroot
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.parcelize.darwin.Parcelable
-import com.arkivanov.parcelize.darwin.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import kotlinx.serialization.Serializable
 
 interface IosRoot {
 	val slot: Value<ChildSlot<Config, Destination>>
 
-	sealed class Config : Parcelable {
-		@Parcelize
+	@Serializable
+	sealed class Config {
+		@Serializable
 		data object ProjectSelect : Config()
 
-		@Parcelize
+		@Serializable
 		data class ProjectRoot(val projectDef: ProjectDef) : Config()
 	}
 

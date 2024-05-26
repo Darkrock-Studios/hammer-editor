@@ -23,6 +23,7 @@ class BrowseNotesComponent(
 	private val _state =
 		MutableValue(BrowseNotes.State(projectDef = projectDef, notes = emptyList()))
 	override val state: Value<BrowseNotes.State> = _state
+	override fun getStateSerializer() = BrowseNotes.State.serializer()
 
 	override fun onCreate() {
 		super.onCreate()

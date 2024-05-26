@@ -53,7 +53,7 @@ dependencies {
 	implementation(libs.coroutines.core)
 	implementation(libs.coroutines.jdk8)
 	implementation(libs.serialization.jvm)
-	implementation(libs.datetime)
+	implementation(libs.kotlinx.datetime)
 	implementation(libs.kotlinx.cli)
 
 	implementation(libs.bundles.ktor.server)

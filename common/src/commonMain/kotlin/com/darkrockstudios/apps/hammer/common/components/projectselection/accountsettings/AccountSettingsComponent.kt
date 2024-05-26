@@ -56,6 +56,7 @@ class AccountSettingsComponent(
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
+	override fun getStateSerializer() = AccountSettings.State.serializer()
 
 	init {
 		watchSettingsUpdates()

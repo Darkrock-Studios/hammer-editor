@@ -1,16 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
+import kotlinx.serialization.Serializable
 
-@Parcelize
+@Serializable
 data class SceneItem(
 	val projectDef: ProjectDef,
 	val type: Type,
 	val id: Int,
 	val name: String,
 	val order: Int,
-) : Parcelable {
+) {
 	enum class Type(val isCollection: Boolean) {
 		Scene(false), Group(true), Root(true)
 	}
@@ -28,10 +27,10 @@ data class SceneItem(
 	}
 }
 
-@Parcelize
+@Serializable
 data class ScenePathSegments(
 	val pathSegments: List<Int>
-) : Parcelable {
+) {
 	val depth: Int
 		get() = pathSegments.size
 }

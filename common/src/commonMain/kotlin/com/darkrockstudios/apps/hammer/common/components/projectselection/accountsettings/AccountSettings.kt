@@ -1,12 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import kotlinx.serialization.Serializable
 
 interface AccountSettings : ComponentToaster {
 	val showProjectDirectory: Boolean
@@ -40,7 +39,7 @@ interface AccountSettings : ComponentToaster {
 	fun updateServerEmail(email: String)
 	fun updateServerPassword(password: String)
 
-	@Parcelize
+	@Serializable
 	data class State(
 		val projectsDir: HPath,
 		val location: ProjectSelection.Locations = ProjectSelection.Locations.Projects,
@@ -60,5 +59,5 @@ interface AccountSettings : ComponentToaster {
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
-	) : Parcelable
+	)
 }
