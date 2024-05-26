@@ -58,7 +58,7 @@ composericheditor = "1.0.0-rc02"
 koalaplot-core = "0.5.1"
 image-loader = "1.7.1"
 
-koin_bom = "3.5.3"
+koin_bom = "3.5.6"
 
 cokoin = "1.0.0"
 
