@@ -42,7 +42,7 @@ coroutines = "1.8.0"
 datetime = "0.5.0"
 napier = "2.7.1"
 compose_compiler = "1.5.10"
-jetbrains_compose = "1.6.1"
+jetbrains_compose = "1.6.10"
 jetbrains_kover = "0.7.6"
 
 moko_resources = "0.23.0"
