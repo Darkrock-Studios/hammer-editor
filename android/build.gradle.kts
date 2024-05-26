@@ -10,6 +10,7 @@ plugins {
 	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.jetbrains.compose)
+	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.aboutlibraries.plugin)
 }

@@ -1,6 +1,7 @@
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
+	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.jetbrains.kover)
@@ -87,12 +88,6 @@ android {
 	defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
 		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
-	}
-	buildFeatures {
-		compose = true
-	}
-	composeOptions {
-		kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())

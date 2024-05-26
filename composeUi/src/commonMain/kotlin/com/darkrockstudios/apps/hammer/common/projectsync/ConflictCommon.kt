@@ -1,13 +1,21 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -70,15 +78,15 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 
 		if (tabState == 0) {
 			RemoteEntity(
-				modifier = Modifier.weight(1f),
-				entityConflict = entityConflict,
-				component = component
+				Modifier.weight(1f),
+				entityConflict,
+				component
 			)
 		} else if (tabState == 1) {
 			LocalEntity(
-				modifier = Modifier.weight(1f),
-				entityConflict = entityConflict,
-				component = component
+				Modifier.weight(1f),
+				entityConflict,
+				component
 			)
 		}
 	}
@@ -94,15 +102,15 @@ private fun <T : ApiProjectEntity> ExpandedConflictUi(
 ) {
 	Row(modifier = modifier) {
 		RemoteEntity(
-			modifier = Modifier.weight(1f),
-			entityConflict = entityConflict,
-			component = component
+			Modifier.weight(1f),
+			entityConflict,
+			component
 		)
 
 		LocalEntity(
-			modifier = Modifier.weight(1f),
-			entityConflict = entityConflict,
-			component = component
+			Modifier.weight(1f),
+			entityConflict,
+			component
 		)
 	}
 }
