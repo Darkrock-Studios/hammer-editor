@@ -1,36 +1,73 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import dev.icerock.moko.resources.compose.stringResource
-import io.github.koalaplot.core.bar.DefaultBarChartEntry
-import io.github.koalaplot.core.bar.VerticalBarChart
+import io.github.koalaplot.core.bar.DefaultVerticalBar
+import io.github.koalaplot.core.bar.DefaultVerticalBarPlotEntry
+import io.github.koalaplot.core.bar.DefaultVerticalBarPosition
+import io.github.koalaplot.core.bar.VerticalBarPlot
+import io.github.koalaplot.core.bar.VerticalBarPlotEntry
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
-import io.github.koalaplot.core.xychart.*
+import io.github.koalaplot.core.xygraph.CategoryAxisModel
+import io.github.koalaplot.core.xygraph.FloatLinearAxisModel
+import io.github.koalaplot.core.xygraph.XYGraph
+import io.github.koalaplot.core.xygraph.autoScaleRange
+import io.github.koalaplot.core.xygraph.rememberAxisStyle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -102,7 +139,11 @@ private fun Stats(
 				val screen = LocalScreenCharacteristic.current
 				when (screen.windowWidthClass) {
 					WindowWidthSizeClass.Compact -> {
-						HeaderUi(state.projectDef.name, "\uD83C\uDFE1", Modifier.padding(top = Ui.Padding.L))
+						HeaderUi(
+							state.projectDef.name,
+							"\uD83C\uDFE1",
+							Modifier.padding(top = Ui.Padding.L)
+						)
 					}
 
 					else -> {
@@ -279,12 +320,14 @@ private fun WordsInChaptersChart(
 	modifier: Modifier = Modifier,
 	state: ProjectHome.State
 ) {
-	val entries = remember(state.wordsByChapter) {
+	val entries = remember<List<VerticalBarPlotEntry<Int, Float>>>(state.wordsByChapter) {
 		state.wordsByChapter.entries.mapIndexed { index, entry ->
-			DefaultBarChartEntry(
-				xValue = index,
-				yMin = 0f,
-				yMax = entry.value.toFloat()
+			DefaultVerticalBarPlotEntry<Int, Float>(
+				x = index,
+				y = DefaultVerticalBarPosition<Float>(
+					yMin = 0f,
+					yMax = entry.value.toFloat()
+				),
 			)
 		}
 	}
@@ -307,10 +350,10 @@ private fun WordsInChaptersChart(
 	}
 
 	if (state.wordsByChapter.size > 1) {
-		XYChart(
+		XYGraph<Int, Float>(
 			modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
 			xAxisModel = CategoryAxisModel(xAxis),
-			yAxisModel = LinearAxisModel(range = range),
+			yAxisModel = FloatLinearAxisModel(range = range),
 			xAxisTitle = MR.strings.project_home_stat_chapter_words_x_axis.get(),
 			yAxisTitle = MR.strings.project_home_stat_chapter_words_y_axis.get(),
 			xAxisLabels = { index -> (index + 1).toString() },
@@ -319,7 +362,10 @@ private fun WordsInChaptersChart(
 			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
 			panZoomEnabled = false,
 		) {
-			VerticalBarChart(series = listOf(entries))
+			VerticalBarPlot(
+				data = entries,
+				bar = { DefaultVerticalBar(SolidColor(colors.first())) }
+			)
 		}
 	}
 }
