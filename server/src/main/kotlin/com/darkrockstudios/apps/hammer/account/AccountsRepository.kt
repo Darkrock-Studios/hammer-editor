@@ -5,10 +5,15 @@ import com.darkrockstudios.apps.hammer.AuthToken
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.utilities.*
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.RandomString
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import korlibs.crypto.sha256
 import kotlinx.datetime.Clock
-import kotlinx.datetime.toInstant
+import kotlinx.datetime.Instant
+import kotlinx.datetime.format.DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET
 import kotlin.time.Duration.Companion.days
 
 class AccountsRepository(
@@ -215,5 +220,5 @@ class AccountNotFound(userId: Long) : Exception("User ID ($userId) not found")
 
 
 fun AuthToken.isExpired(): Boolean {
-	return expires.toInstant() < Clock.System.now()
+	return Instant.parse(expires, ISO_DATE_TIME_OFFSET) < Clock.System.now()
 }
