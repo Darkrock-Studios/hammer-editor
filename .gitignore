@@ -51,3 +51,4 @@ wix311/
 play_config.json
 fastlane/report.xml
 fastlane/README.md
+.kotlin
