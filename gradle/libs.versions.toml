@@ -56,7 +56,8 @@ mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
 composericheditor = "1.0.0-rc05"
 koalaplot-core = "0.6.0"
-image-loader = "1.7.1"
+image-loader = "1.8.0"
+image-loader-blur = "1.7.1"
 
 koin_bom = "3.5.6"
 
@@ -105,7 +106,7 @@ jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", versi
 
 imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref = "image-loader" }
 imageloader_moko = { group = "io.github.qdsfdhvh", name = "image-loader-extension-moko-resources", version.ref = "image-loader" }
-imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader" }
+imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
 
 jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
 junit = { module = "androidx.test.ext:junit", version.ref = "junit" }

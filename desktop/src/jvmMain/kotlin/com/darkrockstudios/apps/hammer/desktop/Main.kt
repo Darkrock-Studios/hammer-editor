@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -33,7 +38,11 @@ import io.github.aakira.napier.Napier
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
@@ -134,7 +143,7 @@ fun main(args: Array<String>) {
 
 		AppTheme(useDarkTheme = darkMode) {
 			CompositionLocalProvider(
-				LocalImageLoader provides imageLoader,
+				LocalImageLoader provides remember { imageLoader },
 			) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {
