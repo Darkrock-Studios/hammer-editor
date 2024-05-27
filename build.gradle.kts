@@ -51,9 +51,11 @@ dependencies {
 	kover(project(":server"))
 }
 
-koverReport {
-	defaults {
+kover {
+	reports {
+		total {
 
+		}
 	}
 }
 

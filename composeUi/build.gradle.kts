@@ -95,8 +95,8 @@ android {
 	}
 }
 
-koverReport {
-	defaults {
+kover {
+	reports {
 		filters {
 			includes {
 				packages("com.darkrockstudios.apps.hammer.*")
