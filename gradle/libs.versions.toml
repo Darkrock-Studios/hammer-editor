@@ -56,7 +56,7 @@ mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
 composericheditor = "1.0.0-rc05"
 koalaplot-core = "0.6.0"
-image-loader = "1.8.0"
+image-loader = "1.8.1"
 image-loader-blur = "1.7.7"
 
 koin_bom = "3.5.6"
