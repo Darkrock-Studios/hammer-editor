@@ -43,7 +43,7 @@ datetime = "0.6.0"
 napier = "2.7.1"
 compose_compiler = "1.5.14"
 jetbrains_compose = "1.6.11"
-jetbrains_kover = "0.8.0"
+jetbrains_kover = "0.8.1"
 
 moko_resources = "0.23.0"
 moko_graphics = "0.9.0"
