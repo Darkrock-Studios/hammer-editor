@@ -10,7 +10,7 @@ jvm = "17"
 kotlin = "2.0.0"
 
 # Android
-android_gradle_plugin = "8.4.1"
+android_gradle_plugin = "8.4.2"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
