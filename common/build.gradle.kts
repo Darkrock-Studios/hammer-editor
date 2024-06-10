@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -14,8 +16,8 @@ version = libs.versions.app.get()
 kotlin {
 	androidTarget()
 	jvm("desktop") {
-		compilations.all {
-			kotlinOptions.jvmTarget = libs.versions.jvm.get()
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
 	}
 
