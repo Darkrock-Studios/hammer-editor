@@ -5,6 +5,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.jetbrains.kover)
+	alias(libs.plugins.moko.resources)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -66,7 +67,6 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(compose.desktop.currentOs)
 				api(libs.jSystemThemeDetector)
 			}

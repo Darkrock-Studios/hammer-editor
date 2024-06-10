@@ -33,7 +33,6 @@ kotlin {
 		}
 		val jvmMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
@@ -93,9 +92,8 @@ compose.desktop {
 }
 
 multiplatformResources {
-	multiplatformResourcesClassName = "DR"
-	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer.desktop"
-	multiplatformResourcesSourceSet = "commonMain"
+	resourcesClassName.set("DR")
+	resourcesPackage.set("com.darkrockstudios.apps.hammer.desktop")
 }
 
 aboutLibraries {
