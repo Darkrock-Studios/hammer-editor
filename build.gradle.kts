@@ -14,7 +14,6 @@ buildscript {
 	dependencies {
 		classpath(libs.moko.resources.generator)
 		classpath(libs.kotlinx.atomicfu.plugin)
-		classpath(libs.parcelize.darwin)
 		classpath(libs.jetbrains.kover)
 	}
 }
@@ -40,7 +39,6 @@ plugins {
 	alias(libs.plugins.buildconfig) apply false
 	alias(libs.plugins.moko.resources) apply false
 	alias(libs.plugins.aboutlibraries.plugin) apply false
-	alias(libs.plugins.parcelize.darwin) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
 }

@@ -3,7 +3,6 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.parcelize)
-	alias(libs.plugins.parcelize.darwin)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.moko.resources)
 }
@@ -30,7 +29,6 @@ kotlin {
 			//transitiveExport = true
 			export(libs.decompose)
 			export(libs.essenty.lifecycle)
-			//export(libs.parcelize.darwin.runtime)
 			export(libs.coroutines.core)
 			export(libs.moko.resources)
 			export(libs.moko.graphics)
@@ -92,7 +90,6 @@ kotlin {
 		val iosMain by getting {
 			dependencies {
 				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
-				//implementation(libs.parcelize.darwin.runtime)
 				api(libs.decompose)
 				api(libs.bundles.essenty)
 				api(libs.moko.resources)
