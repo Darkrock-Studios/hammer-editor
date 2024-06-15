@@ -31,17 +31,17 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 	- ~~Tag search in encyclopedia browser~~
 - More unit testing across the board
 - ~~Release for **MacOS**~~
-- **Outlines:** write a short outline for each scene. Be able to see an overview of your story by
+- ~~**Outlines:** write a short outline for each scene. Be able to see an overview of your story by
   reading only your
-  outlines in order.
-- **Scene Notes:** add extra notes to a scene, remind your self what story beats to hit, or what
-  tone to strike.
+  outlines in order.~~
+- ~~**Scene Notes:** add extra notes to a scene, remind your self what story beats to hit, or what
+  tone to strike.~~
 - **Archive Scenes:** Alternative to deleting them, so they can be restored in the future.
 
 ## Post 1.0
 
 - Release for **iOS**
-- **Hemingway Mode:** Provide a distraction free writing experience. Very little UI, no spell check, ect.
+- ~~**Hemingway Mode:** Provide a distraction free writing experience. Very little UI, no spell check, ect.~~
 - **Scene/Encyclopedia Integration:**
     - When you type the name of an entry in your encyclopedia, it will be hyper linked in-line to the entry.
     - See a summary of which characters or locations appear in the scene

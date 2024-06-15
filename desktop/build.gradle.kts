@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val data_version: String by extra
 
@@ -18,8 +19,8 @@ version = libs.versions.app.get()
 
 kotlin {
 	jvm {
-		compilations.all {
-			kotlinOptions.jvmTarget = libs.versions.jvm.get()
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
 		withJava()
 	}
@@ -33,7 +34,6 @@ kotlin {
 		}
 		val jvmMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
@@ -93,9 +93,8 @@ compose.desktop {
 }
 
 multiplatformResources {
-	multiplatformResourcesClassName = "DR"
-	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer.desktop"
-	multiplatformResourcesSourceSet = "commonMain"
+	resourcesClassName.set("DR")
+	resourcesPackage.set("com.darkrockstudios.apps.hammer.desktop")
 }
 
 aboutLibraries {

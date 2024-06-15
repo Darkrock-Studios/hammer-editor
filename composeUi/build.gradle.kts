@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -5,6 +7,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.jetbrains.kover)
+	alias(libs.plugins.moko.resources)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -13,8 +16,8 @@ version = libs.versions.app.get()
 kotlin {
 	androidTarget()
 	jvm("desktop") {
-		compilations.all {
-			kotlinOptions.jvmTarget = libs.versions.jvm.get()
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
 	}
 
@@ -66,7 +69,6 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(compose.desktop.currentOs)
 				api(libs.jSystemThemeDetector)
 			}

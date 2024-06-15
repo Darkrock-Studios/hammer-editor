@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -13,8 +15,8 @@ version = libs.versions.app.get()
 kotlin {
 	androidTarget()
 	jvm("desktop") {
-		compilations.all {
-			kotlinOptions.jvmTarget = libs.versions.jvm.get()
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
 	}
 
@@ -80,7 +82,6 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				api(libs.androidx.core.ktx)
 				api(libs.coroutines.android)
 				implementation(libs.koin.android)
@@ -89,7 +90,6 @@ kotlin {
 		}
 		val iosMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				api(libs.decompose)
 				api(libs.bundles.essenty)
 				api(libs.moko.resources)
@@ -106,7 +106,6 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
-				dependsOn(commonMain) // TODO https://github.com/icerockdev/moko-resources/issues/557
 				implementation(libs.slf4j.simple)
 				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)
@@ -126,7 +125,7 @@ kotlin {
 }
 
 multiplatformResources {
-	multiplatformResourcesPackage = "com.darkrockstudios.apps.hammer"
+	resourcesPackage.set("com.darkrockstudios.apps.hammer")
 }
 
 android {
