@@ -56,6 +56,10 @@ dependencies {
 //	debugImplementation(libs.ui.test.manifest)
 }
 
+composeCompiler {
+	enableStrongSkippingMode = true
+}
+
 android {
 	namespace = "com.darkrockstudios.apps.hammer.android"
 	compileSdk = libs.versions.android.sdk.compile.get().toInt()
@@ -73,9 +77,6 @@ android {
 	}
 	buildFeatures {
 		compose = true
-	}
-	composeOptions {
-		kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
