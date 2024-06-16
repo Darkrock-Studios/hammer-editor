@@ -50,7 +50,7 @@ internal fun CreateEntryUi(
 	}
 	var newTagsText by rememberSaveable { mutableStateOf("") }
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
-	val types = rememberSaveable { EntryType.values().toList() }
+	val types = rememberSaveable { EntryType.entries }
 
 	var showFilePicker by rememberSaveable { mutableStateOf(false) }
 	var imagePath by rememberSaveable { mutableStateOf<MPFile<Any>?>(null) }

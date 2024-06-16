@@ -41,6 +41,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -154,12 +155,16 @@ private fun ConfigUi(
 		modifier = Modifier.fillMaxSize(),
 		horizontalAlignment = Alignment.CenterHorizontally
 	) {
-		var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
+		var selectedProject by rememberSaveable(
+			saver = serializableStateSaver(ProjectDef.serializer())
+		) {
+			mutableStateOf(projects.first())
+		}
 		var specificProject by rememberSaveable { mutableStateOf(true) }
 		Column(
 			modifier = Modifier
-				.padding(Ui.Padding.XL)
-				.width(IntrinsicSize.Max)
+                .padding(Ui.Padding.XL)
+                .width(IntrinsicSize.Max)
 		) {
 			Text(
 				stringResource(R.string.note_widget_config_title),

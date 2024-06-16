@@ -39,7 +39,7 @@ internal fun EncyclopediaEntryConflict(
 	)
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LocalEntry(
 	modifier: Modifier = Modifier,

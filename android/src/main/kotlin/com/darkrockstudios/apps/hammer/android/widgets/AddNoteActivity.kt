@@ -49,6 +49,7 @@ import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -101,7 +102,11 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 			setContent {
 				var noteText by rememberSaveable { mutableStateOf("") }
-				var selectedProject by rememberSaveable { mutableStateOf(projects.first()) }
+				var selectedProject by rememberSaveable(
+					saver = serializableStateSaver(ProjectDef.serializer())
+				) {
+					mutableStateOf(projects.first())
+				}
 				var confirmCancel by rememberSaveable { mutableStateOf(false) }
 
 				val settingsState by globalSettings.subscribeAsState()
