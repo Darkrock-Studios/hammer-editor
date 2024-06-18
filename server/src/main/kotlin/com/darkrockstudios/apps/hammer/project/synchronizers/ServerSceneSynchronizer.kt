@@ -35,7 +35,7 @@ class ServerSceneSynchronizer(
 		val entities = getEntityDefs(userId, projectDef)
 
 		// Sort by SceneType, we want directories first
-		val entityIds = entities.mapNotNull { def ->
+		val allEntities = entities.mapNotNull { def ->
 			val entityResult = loadEntity(userId, projectDef, def.id)
 			if (isSuccess(entityResult)) {
 				val entity = entityResult.data
@@ -45,12 +45,12 @@ class ServerSceneSynchronizer(
 				null
 			}
 		}
-			.sortedByDescending { it.second.ordinal }
+		val entityIds = allEntities.sortedByDescending { it.second.ordinal }
 			.map { it.first }
 			.filter { entityId ->
 				if (clientState != null) {
 					val entity = loadEntity(userId, projectDef, entityId)
-					if(isSuccess(entity)) {
+					if (isSuccess(entity)) {
 						val hash = hashEntity(entity.data)
 						val clientEntityState = clientState.entities.find { it.id == entityId }
 						clientEntityState?.hash != hash
