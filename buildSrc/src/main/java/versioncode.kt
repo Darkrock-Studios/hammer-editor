@@ -73,7 +73,7 @@ data class SemVar(
 	}
 }
 
-internal fun parseSemVar(semVarStr: String): SemVar {
+fun parseSemVar(semVarStr: String): SemVar {
 	val semVarPattern = Pattern.compile("""^(\d+)\.(\d+)\.(\d+)$""")
 	val matcher = semVarPattern.matcher(semVarStr)
 

@@ -1,4 +1,5 @@
 import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.parseSemVar
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
 
@@ -59,7 +60,8 @@ kover {
 
 tasks.register("prepareForRelease") {
 	doLast {
-		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
+		val releaseInfo =
+			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
 
 		println("Creating new release")
 		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
@@ -78,7 +80,8 @@ tasks.register("prepareForRelease") {
 
 		// Write the Fastlane changelog file
 		val rootDir: File = project.rootDir
-		val changelogsPath = "fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
+		val changelogsPath =
+			"fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
 		changeLogFile.writeText(truncatedChangelog)
@@ -92,27 +95,62 @@ tasks.register("prepareForRelease") {
 		exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }
-		exec { commandLine = listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}") }
+		exec {
+			commandLine =
+				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
+		}
 
 		// Merge develop into release
 		exec { commandLine = listOf("git", "checkout", "release") }
 		exec { commandLine = listOf("git", "merge", "develop") }
 
 		// Create the release tag
-		exec { commandLine = listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog) }
+		exec {
+			commandLine =
+				listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
+		}
 
 		// Push and begin the release process
 		exec { commandLine = listOf("git", "push", "origin", "--all") }
 		exec { commandLine = listOf("git", "push", "origin", "--tags") }
+
+		// Leave the repo back on develop
+		exec { commandLine = listOf("git", "checkout", "develop") }
 	}
 }
 
 tasks.register("publishFdroid") {
 	doLast {
-		val releaseInfo = configureRelease(libs.versions.app.get()) ?: error("Failed to configure fdroid release")
-		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
+		val semvarStr = libs.versions.app.get()
+		val curSemVar = parseSemVar(semvarStr)
+		val versionCode = curSemVar.createVersionCode(true, 0)
+		val tag = "fdroid-${versionCode}"
+
+		exec {
+			commandLine = listOf(
+				"git",
+				"config",
+				"--global",
+				"user.email",
+				"github-actions[bot]@users.noreply.github.com"
+			)
+		}
+		exec {
+			commandLine = listOf("git", "config", "--global", "user.name", "github-actions[bot]")
+		}
+
+		exec { commandLine = listOf("git", "fetch", "origin", "release") }
 		exec { commandLine = listOf("git", "checkout", "release") }
-		exec { commandLine = listOf("git", "tag", "-a", "fdroid-${versionCode}") }
-		exec { commandLine = listOf("git", "push", "origin", "--tags") }
+		exec {
+			commandLine = listOf(
+				"git",
+				"tag",
+				"-a",
+				tag,
+				"-m",
+				"FDroid release tag for $semvarStr"
+			)
+		}
+		exec { commandLine = listOf("git", "push", "origin", "tag", tag) }
 	}
 }
