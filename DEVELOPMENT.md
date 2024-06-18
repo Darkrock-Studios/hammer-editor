@@ -127,7 +127,9 @@ The protocol for synchronizing data between client and server is outlined here:
 
 ## How to Release
 
-- When `develop` is read to release, run: `./gradlew prepareForRelease`
+- Make sure your local repository is in a clean state, nothing outstanding
+- Change branch to `develop`
+- When `develop` is ready to release, run: `./gradlew prepareForRelease`
 	- This will prepare your repo by doing the following:
 		- Increment app version `app` in `libs.versions.toml`
 		- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
