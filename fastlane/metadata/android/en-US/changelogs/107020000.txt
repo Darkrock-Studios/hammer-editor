@@ -1,0 +1,3 @@
+- Tons of under the hood library upgrades
+- Should see some what better performance
+- Fixed critcal syncing bug on the server side

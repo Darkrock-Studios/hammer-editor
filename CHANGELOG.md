@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1] - 2024-6-18
+
+- Tons of under the hood library upgrades
+- Should see some what better performance
+- Fixed critcal syncing bug on the server side
+
+
 ## [1.7.0] - 2024-1-31
 
 - New Feature: Focus Mode, edit a scene with less UI clutter
