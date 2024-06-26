@@ -4,6 +4,8 @@ A simple tool for building stories.
 
 ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/develop/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
 
+![badge-kotlin]
+
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
 [![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
@@ -80,13 +82,11 @@ _Do not use the test environment for real data! It will get cleared from time-to
 
 Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
 
-![badge-kotlin]
-
 [![Redeploy](https://repology.org/badge/vertical-allrepos/hammer-editor.svg)](https://repology.org/project/hammer-editor/versions)
 
 <!-- TAG_DEPENDENCIES -->
 
-[badge-kotlin]: https://img.shields.io/badge/kotlin-1.9.0-blue.svg?logo=kotlin
+[badge-kotlin]: https://img.shields.io/badge/kotlin-blue.svg?logo=kotlin
 
 <!-- PLATFORMS -->
 
