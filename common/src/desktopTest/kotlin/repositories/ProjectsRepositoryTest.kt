@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
@@ -32,13 +32,17 @@ import org.junit.After
 import org.junit.Before
 import projectNames
 import utils.BaseTest
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ProjectsRepositoryTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var settingsRepo: GlobalSettingsRepository
-	private lateinit var projectsMetaRepo: ProjectMetadataRepository
+	private lateinit var projectsMetaRepo: ProjectMetadataDatasource
 	private lateinit var settings: GlobalSettings
 	private lateinit var toml: Toml
 

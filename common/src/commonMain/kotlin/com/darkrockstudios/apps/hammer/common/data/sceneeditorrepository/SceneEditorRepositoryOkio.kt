@@ -1,9 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
@@ -22,14 +29,14 @@ class SceneEditorRepositoryOkio(
 	projectDef: ProjectDef,
 	idRepository: IdRepository,
 	projectSynchronizer: ClientProjectSynchronizer,
-	projectMetadataRepository: ProjectMetadataRepository,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	sceneMetadataDatasource: SceneMetadataDatasource,
 	private val fileSystem: FileSystem,
 ) : SceneEditorRepository(
 	projectDef,
 	idRepository,
 	projectSynchronizer,
-	projectMetadataRepository,
+	projectMetadataDatasource,
 	sceneMetadataDatasource
 ) {
 

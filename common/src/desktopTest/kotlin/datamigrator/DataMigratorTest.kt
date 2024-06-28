@@ -10,11 +10,19 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import getProjectDef
-import io.mockk.*
+import io.mockk.CapturingSlot
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.confirmVerified
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.datetime.Clock
 import org.junit.Before
 import org.koin.dsl.module
@@ -33,7 +41,7 @@ class DataMigratorTest : BaseTest() {
 	private lateinit var projectsRepository: ProjectsRepository
 
 	@MockK(relaxed = true)
-	private lateinit var projectMetadataRepository: ProjectMetadataRepository
+	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@Before
 	override fun setup() {
@@ -50,7 +58,7 @@ class DataMigratorTest : BaseTest() {
 			)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_1_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_1_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -59,7 +67,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -70,7 +78,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -86,7 +94,7 @@ class DataMigratorTest : BaseTest() {
 			)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_1_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_1_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -95,7 +103,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -106,7 +114,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -128,7 +136,7 @@ class DataMigratorTest : BaseTest() {
 			)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_1_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_1_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -137,7 +145,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -148,7 +156,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		)
 
 		migrator.handleDataMigration()
@@ -181,11 +189,11 @@ class DataMigratorTest : BaseTest() {
 			)
 		)
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_1_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_1_NAME))
 		} returns proj1Meta
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -195,7 +203,7 @@ class DataMigratorTest : BaseTest() {
 
 		val updateMetaSlot = CapturingSlot<(ProjectMetadata) -> ProjectMetadata>()
 		every {
-			projectMetadataRepository.updateMetadata(
+			projectMetadataDatasource.updateMetadata(
 				any(),
 				capture(updateMetaSlot)
 			)
@@ -204,7 +212,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		)
 
 		migrator.handleDataMigration()
@@ -239,11 +247,11 @@ class DataMigratorTest : BaseTest() {
 			)
 		)
 		every {
-			projectMetadataRepository.loadMetadata(proj1def)
+			projectMetadataDatasource.loadMetadata(proj1def)
 		} returns proj1Meta
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -253,7 +261,7 @@ class DataMigratorTest : BaseTest() {
 
 		val updateMetaSlot = CapturingSlot<(ProjectMetadata) -> ProjectMetadata>()
 		every {
-			projectMetadataRepository.updateMetadata(
+			projectMetadataDatasource.updateMetadata(
 				any(),
 				capture(updateMetaSlot)
 			)
@@ -279,7 +287,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = object : DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {
@@ -326,11 +334,11 @@ class DataMigratorTest : BaseTest() {
 			)
 		)
 		every {
-			projectMetadataRepository.loadMetadata(proj1def)
+			projectMetadataDatasource.loadMetadata(proj1def)
 		} returns proj1Meta
 
 		every {
-			projectMetadataRepository.loadMetadata(getProjectDef(PROJECT_2_NAME))
+			projectMetadataDatasource.loadMetadata(getProjectDef(PROJECT_2_NAME))
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
@@ -340,7 +348,7 @@ class DataMigratorTest : BaseTest() {
 
 		val updateMetaSlot = CapturingSlot<(ProjectMetadata) -> ProjectMetadata>()
 		every {
-			projectMetadataRepository.updateMetadata(
+			projectMetadataDatasource.updateMetadata(
 				any(),
 				capture(updateMetaSlot)
 			)
@@ -366,7 +374,7 @@ class DataMigratorTest : BaseTest() {
 		val migrator = object : DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
-			projectMetadataRepository = projectMetadataRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {

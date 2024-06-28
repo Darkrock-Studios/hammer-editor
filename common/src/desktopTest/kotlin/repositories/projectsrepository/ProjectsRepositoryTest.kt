@@ -6,13 +6,19 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import io.mockk.*
+import io.mockk.Awaits
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -35,7 +41,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	lateinit var globalSettingsRepository: GlobalSettingsRepository
 	lateinit var settingsFlow: SharedFlow<GlobalSettings>
 
-	private lateinit var metadataRepository: ProjectMetadataRepository
+	private lateinit var metadataRepository: ProjectMetadataDatasource
 	lateinit var settings: GlobalSettings
 
 	@Before

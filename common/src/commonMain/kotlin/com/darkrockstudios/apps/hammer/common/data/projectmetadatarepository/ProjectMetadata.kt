@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 
-abstract class ProjectMetadataRepository(
+abstract class ProjectMetadataDatasource(
 	protected val fileSystem: FileSystem,
 	protected val toml: Toml
 ) {

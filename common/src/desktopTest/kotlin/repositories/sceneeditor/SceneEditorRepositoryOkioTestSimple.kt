@@ -1,4 +1,4 @@
-package repositories.projecteditor
+package repositories.sceneeditor
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
@@ -42,8 +42,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var projectDef: ProjectDef
 	private lateinit var idRepository: IdRepository
-	private lateinit var metadataRepository: ProjectMetadataRepository
-	private lateinit var metadataDatasource: SceneMetadataDatasource
+	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
+	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -57,6 +57,14 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 		"1-Scene 1-1.md" to "This is scene 1 content",
 		"2-Scene 2-2.md" to "This is scene 2 content",
 		"3-Scene 3-3.md" to "This is scene 3 content"
+	)
+
+	private val projectMetadata = ProjectMetadata(
+		info = Info(
+			created = Instant.DISTANT_FUTURE,
+			lastAccessed = Instant.DISTANT_FUTURE,
+			dataVersion = PROJECT_DATA_VERSION,
+		)
 	)
 
 	private fun populateProject(fs: FakeFileSystem) {
@@ -86,17 +94,10 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
-		metadataRepository = mockk(relaxed = true)
-		every { metadataRepository.loadMetadata(any()) } returns
-			ProjectMetadata(
-				info = Info(
-					created = Instant.DISTANT_FUTURE,
-					lastAccessed = Instant.DISTANT_FUTURE,
-					dataVersion = PROJECT_DATA_VERSION,
-				)
-			)
+		projectMetadataRepository = mockk(relaxed = true)
+		every { projectMetadataRepository.loadMetadata(any()) } returns projectMetadata
 
-		metadataDatasource = mockk(relaxed = true)
+		sceneMetadataDatasource = mockk(relaxed = true)
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -137,8 +138,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			projectMetadataRepository = metadataRepository,
-			sceneMetadataDatasource = metadataDatasource,
+			projectMetadataDatasource = projectMetadataRepository,
+			sceneMetadataDatasource = sceneMetadataDatasource,
 		)
 
 		val expectedFilename = sceneFiles.entries.first().key
@@ -154,8 +155,8 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			projectMetadataRepository = metadataRepository,
-			sceneMetadataDatasource = metadataDatasource,
+			projectMetadataDatasource = projectMetadataRepository,
+			sceneMetadataDatasource = sceneMetadataDatasource,
 		)
 
 		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
@@ -173,11 +174,15 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			projectMetadataRepository = metadataRepository,
-			sceneMetadataDatasource = metadataDatasource,
+			projectMetadataDatasource = projectMetadataRepository,
+			sceneMetadataDatasource = sceneMetadataDatasource,
 		)
 
 		repo.initializeSceneEditor()
+
+		val metadata = repo.getMetadata()
+
+		assertEquals(projectMetadata, metadata)
 
 		repo.close()
 	}

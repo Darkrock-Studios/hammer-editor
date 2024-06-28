@@ -13,9 +13,16 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogI
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogW
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -25,8 +32,15 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
@@ -45,7 +59,7 @@ class ProjectsListComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
-	private val projectMetadataRepository: ProjectMetadataRepository by inject()
+	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val strRes: StrRes by inject()
 	private val clock: Clock by inject()
 
@@ -144,7 +158,7 @@ class ProjectsListComponent(
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
 			val projectData = projects.mapNotNull { projectDef ->
-				val metadata = projectMetadataRepository.loadMetadata(projectDef)
+				val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 				if (metadata != null) {
 					ProjectData(projectDef, metadata)
 				} else {
@@ -161,7 +175,7 @@ class ProjectsListComponent(
 	}
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {
-		projectMetadataRepository.updateMetadata(projectDef) { metadata ->
+		projectMetadataDatasource.updateMetadata(projectDef) { metadata ->
 			metadata.copy(
 				info = metadata.info.copy(
 					lastAccessed = clock.now()
@@ -218,7 +232,7 @@ class ProjectsListComponent(
 	}
 
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata {
-		return projectMetadataRepository.loadMetadata(projectDef)
+		return projectMetadataDatasource.loadMetadata(projectDef)
 	}
 
 	override fun onProjectNameUpdate(newProjectName: String) {

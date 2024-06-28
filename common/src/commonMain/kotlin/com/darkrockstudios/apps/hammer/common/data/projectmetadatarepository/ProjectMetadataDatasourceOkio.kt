@@ -14,10 +14,10 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 
-class ProjectMetadataRepositoryOkio(
+class ProjectMetadataDatasourceOkio(
 	fileSystem: FileSystem,
 	toml: Toml
-) : ProjectMetadataRepository(fileSystem, toml) {
+) : ProjectMetadataDatasource(fileSystem, toml) {
 	override fun getMetadataPath(projectDef: ProjectDef): HPath {
 		return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
 	}

@@ -1,4 +1,4 @@
-package repositories.projecteditor
+package repositories.sceneeditor
 
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
@@ -6,7 +6,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
@@ -41,7 +41,7 @@ class SceneEditorRepositoryOkioLoadTest : BaseTest() {
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var idRepository: IdRepository
-	private lateinit var metadataRepository: ProjectMetadataRepository
+	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -103,7 +103,7 @@ class SceneEditorRepositoryOkioLoadTest : BaseTest() {
 			projectSynchronizer = projectSynchronizer,
 			fileSystem = ffs,
 			idRepository = idRepository,
-			projectMetadataRepository = metadataRepository,
+			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,
 		)
 	}

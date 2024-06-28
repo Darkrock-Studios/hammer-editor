@@ -1,8 +1,10 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
+	alias(libs.plugins.kotlin.powerassert)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.parcelize)
 	alias(libs.plugins.jetbrains.kover)
@@ -154,7 +156,6 @@ android {
 }
 
 kover {
-
 	reports {
 		filters {
 			includes {
@@ -169,4 +170,15 @@ kover {
 			}
 		}
 	}
+}
+
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
+powerAssert {
+	functions = listOf(
+		"kotlin.assert",
+		"kotlin.test.assertTrue",
+		"kotlin.test.assertEquals",
+		"kotlin.test.assertNull"
+	)
+	includedSourceSets = listOf("commonTest", "desktopTest")
 }

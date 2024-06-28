@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.migrator
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.github.aakira.napier.Napier
@@ -15,7 +15,7 @@ import kotlin.collections.set
 open class DataMigrator(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val projectsRepository: ProjectsRepository,
-	private val projectMetadataRepository: ProjectMetadataRepository,
+	private val projectMetadataDatasource: ProjectMetadataDatasource,
 ) {
 	protected open val latestProjectDataVersion: Int = PROJECT_DATA_VERSION
 	protected open fun getMigrators(): Map<Int, Migration> {
@@ -29,7 +29,7 @@ open class DataMigrator(
 	private fun getProjects(): List<ProjectData> {
 		val projDir = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
 		val projects = projectsRepository.getProjects(projDir.toHPath()).map { projDef ->
-			val metadata = projectMetadataRepository.loadMetadata(projDef)
+			val metadata = projectMetadataDatasource.loadMetadata(projDef)
 			ProjectData(projDef, metadata)
 		}
 		return projects
@@ -70,7 +70,7 @@ open class DataMigrator(
 				migrator.migrate(projectData.projectDef)
 
 				// Mark that this version migration was successful
-				projectMetadataRepository.updateMetadata(projectData.projectDef) { metadata ->
+				projectMetadataDatasource.updateMetadata(projectData.projectDef) { metadata ->
 					metadata.copy(
 						info = metadata.info.copy(
 							dataVersion = version

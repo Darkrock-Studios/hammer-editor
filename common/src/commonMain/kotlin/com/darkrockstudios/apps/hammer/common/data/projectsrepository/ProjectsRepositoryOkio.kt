@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -20,7 +20,7 @@ import okio.Path.Companion.toPath
 class ProjectsRepositoryOkio(
 	private val fileSystem: FileSystem,
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val projectsMetadataRepository: ProjectMetadataRepository
+	private val projectsMetadataRepository: ProjectMetadataDatasource
 ) : ProjectsRepository() {
 
 	private var globalSettings = globalSettingsRepository.globalSettings
