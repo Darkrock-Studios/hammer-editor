@@ -49,7 +49,7 @@ Most tests live in the `desktopTest` source set, but a few do live in `commonTes
 
 #### Testing utilities:
 
-`BaseTest` sets you up for injecting wit Koin and dealing with coroutines for testing.
+`BaseTest` sets you up for injecting with Koin and dealing with coroutines for testing.
 
 `TestProjectUtils.kt` has functions for generating test data.
 
