@@ -28,8 +28,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.Cli
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataOkioDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataOkioDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule

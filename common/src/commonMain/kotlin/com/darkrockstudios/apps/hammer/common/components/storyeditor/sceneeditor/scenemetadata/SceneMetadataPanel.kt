@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneedito
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface SceneMetadataPanel : HammerComponent {

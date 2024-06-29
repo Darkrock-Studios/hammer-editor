@@ -16,8 +16,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.Pro
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadata
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -202,11 +202,12 @@ abstract class SceneEditorRepository(
 		metadata.emit(newMetadata)
 
 		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN).collect { contentUpdate ->
-				if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
-					launchSaveJob(contentUpdate.content.scene)
+			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
+				.collect { contentUpdate ->
+					if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
+						launchSaveJob(contentUpdate.content.scene)
+					}
 				}
-			}
 		}
 
 		return this
@@ -251,7 +252,10 @@ abstract class SceneEditorRepository(
 	 * Anything that wishes to interact with scene content should use `loadSceneBuffer`
 	 * instead.
 	 */
-	abstract fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath = getSceneFilePath(sceneItem)): String
+	abstract fun loadSceneMarkdownRaw(
+		sceneItem: SceneItem,
+		scenePath: HPath = getSceneFilePath(sceneItem)
+	): String
 
 	/**
 	 * This should only be used for server syncing
@@ -447,7 +451,8 @@ abstract class SceneEditorRepository(
 		return sceneTree.findOrNull { it.id == id }?.parent?.value
 	}
 
-	fun validateSceneName(sceneName: String): CResult<Unit> = ProjectsRepository.validateFileName(sceneName)
+	fun validateSceneName(sceneName: String): CResult<Unit> =
+		ProjectsRepository.validateFileName(sceneName)
 
 	abstract fun getHpath(sceneItem: SceneItem): HPath
 

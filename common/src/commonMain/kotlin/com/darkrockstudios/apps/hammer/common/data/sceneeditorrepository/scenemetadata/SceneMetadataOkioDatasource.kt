@@ -1,11 +1,11 @@
-package com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository
+package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
-import com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository.SceneMetadataDatasource.Companion.DIRECTORY
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource.Companion.DIRECTORY
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope

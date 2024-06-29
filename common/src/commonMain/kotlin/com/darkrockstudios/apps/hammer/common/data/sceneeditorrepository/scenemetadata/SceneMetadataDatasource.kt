@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository
+package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath

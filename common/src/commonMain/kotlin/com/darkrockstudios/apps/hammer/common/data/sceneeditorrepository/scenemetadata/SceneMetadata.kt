@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.scenemetadatarepository
+package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata
 
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.TomlMultilineString
