@@ -1,9 +1,9 @@
-package com.darkrockstudios.apps.hammer
+package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utils.BaseTest
+import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.mockk
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json

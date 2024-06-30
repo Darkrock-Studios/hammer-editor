@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer
+package com.darkrockstudios.apps.hammer.utils
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant

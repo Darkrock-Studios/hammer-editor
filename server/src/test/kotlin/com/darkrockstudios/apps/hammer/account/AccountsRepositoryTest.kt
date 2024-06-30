@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.AuthToken
-import com.darkrockstudios.apps.hammer.BaseTest
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MAX_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MIN_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.database.AccountDao
@@ -10,6 +9,7 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
+import com.darkrockstudios.apps.hammer.utils.BaseTest
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.just

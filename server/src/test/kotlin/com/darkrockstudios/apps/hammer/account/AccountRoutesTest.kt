@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.BaseTest
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.setupKtorTestKoin
+import com.darkrockstudios.apps.hammer.utils.BaseTest
+import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.post
 import io.ktor.http.isSuccess
 import io.ktor.server.testing.testApplication

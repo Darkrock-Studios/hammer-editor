@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer
+package com.darkrockstudios.apps.hammer.utils
 
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
