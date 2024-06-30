@@ -14,4 +14,5 @@ interface ProjectsDatasource {
 	): ProjectsSyncData
 
 	fun deleteProject(userId: Long, projectName: String): Result<Unit>
+	fun createProject(userId: Long, projectName: String)
 }

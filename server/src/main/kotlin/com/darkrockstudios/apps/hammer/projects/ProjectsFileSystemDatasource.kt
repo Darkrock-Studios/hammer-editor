@@ -15,12 +15,6 @@ class ProjectsFileSystemDatasource(
 	private val json: Json,
 ) : ProjectsDatasource {
 
-	private fun getUserDirectory(userId: Long): Path {
-		return getUserDirectory(userId, fileSystem)
-	}
-
-	private fun getSyncDataPath(userId: Long): Path = getUserDirectory(userId) / DATA_FILE
-
 	override fun createUserData(userId: Long) {
 		val userDir = getUserDirectory(userId)
 
@@ -46,6 +40,12 @@ class ProjectsFileSystemDatasource(
 		out.closeEntry()
 		out.close()
 		*/
+	}
+
+	override fun createProject(userId: Long, projectName: String) {
+		val projectDef = ProjectDefinition(projectName)
+		val projectDir = ProjectRepository.getProjectDirectory(userId, projectDef, fileSystem)
+		fileSystem.createDirectories(projectDir)
 	}
 
 	override fun deleteProject(userId: Long, projectName: String): Result<Unit> {
@@ -102,6 +102,12 @@ class ProjectsFileSystemDatasource(
 			data
 		}
 	}
+
+	private fun getUserDirectory(userId: Long): Path {
+		return getUserDirectory(userId, fileSystem)
+	}
+
+	private fun getSyncDataPath(userId: Long): Path = getUserDirectory(userId) / DATA_FILE
 
 	companion object {
 		private const val DATA_DIRECTORY = "user_data"

@@ -88,6 +88,8 @@ class ProjectsRepository(
 				.not()
 		) return Result.failure(InvalidSyncIdException())
 
+		projectsDatasource.createProject(userId, projectName)
+
 		projectsDatasource.updateSyncData(userId) { data ->
 			data.copy(
 				deletedProjects = data.deletedProjects - projectName
