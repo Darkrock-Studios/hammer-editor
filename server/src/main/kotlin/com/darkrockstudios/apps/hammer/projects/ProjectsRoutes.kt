@@ -7,11 +7,14 @@ import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.call
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.get
 
 fun Route.projectsRoutes() {
@@ -46,7 +49,7 @@ private fun Route.beginProjectsSync() {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
-					error = "Missing Header",
+					error = "Begin Project Sync Failed",
 					displayMessage = message?.text(call) ?: "Unknown Error"
 				)
 			)

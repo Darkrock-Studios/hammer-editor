@@ -118,9 +118,6 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 			},
 			*modules
 		)
-
-		// TODO I guess this is not needed anymore?
-		//GlobalContext.startKoin(koinApplication = this@install)
 	}
 	baseTest.setupDispatchersFromKoin()
 }

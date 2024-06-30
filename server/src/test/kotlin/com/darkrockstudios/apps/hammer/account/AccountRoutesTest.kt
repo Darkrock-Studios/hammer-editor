@@ -10,7 +10,8 @@ import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.post
 import io.ktor.http.isSuccess
 import io.ktor.server.testing.testApplication
-import io.mockk.mockk
+import io.mockk.MockKAnnotations
+import io.mockk.impl.annotations.MockK
 import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.koin.dsl.module
@@ -18,24 +19,31 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 
 class AccountRoutesTest : BaseTest() {
+	@MockK
 	private lateinit var accountsRepository: AccountsRepository
+
+	@MockK
 	private lateinit var projectRepository: ProjectRepository
+
+	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
+
+	@MockK
 	private lateinit var accountsComponent: AccountsComponent
+
+	@MockK
 	private lateinit var adminComponent: AdminComponent
+
+	@MockK
 	private lateinit var json: Json
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@Before
 	override fun setup() {
 		super.setup()
 
-		accountsRepository = mockk()
-		projectRepository = mockk()
-		projectsRepository = mockk()
-		accountsComponent = mockk()
-		adminComponent = mockk()
-		json = mockk()
+		MockKAnnotations.init(this)
 
 		testModule = module {
 			single { accountsRepository }
