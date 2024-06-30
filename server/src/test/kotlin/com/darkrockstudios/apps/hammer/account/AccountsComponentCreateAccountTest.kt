@@ -6,7 +6,10 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -66,7 +69,7 @@ class AccountsComponentCreateAccountTest {
 		coVerify(exactly = 0) { whiteListRepository.isOnWhiteList(any()) }
 		confirmVerified(whiteListRepository)
 
-		verify { projectsRepository.createUserData(token.userId) }
+		coVerify { projectsRepository.createUserData(token.userId) }
 	}
 
 	@Test
@@ -92,7 +95,7 @@ class AccountsComponentCreateAccountTest {
 		assertTrue(isSuccess(result))
 		assertEquals(token, result.data)
 
-		verify { projectsRepository.createUserData(token.userId) }
+		coVerify { projectsRepository.createUserData(token.userId) }
 	}
 
 	@Test

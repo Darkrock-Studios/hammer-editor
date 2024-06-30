@@ -5,8 +5,13 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.project.synchronizers.*
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.getUserDirectory
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource.Companion.getUserDirectory
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -43,7 +48,6 @@ class ProjectRepository(
 		qualifier = named(PROJECT_SYNC_MANAGER)
 	)
 
-	fun getUserDirectory(userId: Long): Path = getUserDirectory(userId, fileSystem)
 	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
 		getEntityDirectory(userId, projectDef, fileSystem)
 

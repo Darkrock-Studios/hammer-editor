@@ -1,9 +1,11 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val app_version: String by extra
 
 plugins {
 	alias(libs.plugins.kotlin.jvm)
+	alias(libs.plugins.kotlin.powerassert)
 	alias(libs.plugins.ktor)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.sqldelight)
@@ -82,4 +84,15 @@ dependencies {
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
 	testImplementation(libs.ktor.server.testshostjvm)
+}
+
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
+powerAssert {
+	functions = listOf(
+		"kotlin.assert",
+		"kotlin.test.assertTrue",
+		"kotlin.test.assertEquals",
+		"kotlin.test.assertNull"
+	)
+	includedSourceSets = listOf("test")
 }

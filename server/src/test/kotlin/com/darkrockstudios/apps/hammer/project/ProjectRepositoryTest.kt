@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchroni
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
@@ -23,7 +22,6 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
@@ -139,7 +137,6 @@ class ProjectRepositoryTest : BaseTest() {
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `End Project Sync`() = runTest {
 		createProjectRepository().apply {
@@ -171,7 +168,6 @@ class ProjectRepositoryTest : BaseTest() {
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `End Project Sync - Invalid SyncId`() = runTest {
 		coEvery { projectSessionManager.findSession(any()) } returns null
@@ -182,7 +178,6 @@ class ProjectRepositoryTest : BaseTest() {
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	// TODO should probably move this to a SyncSession test
 	fun `loadEntity - Expired SyncId`() = runTest {
@@ -213,12 +208,8 @@ class ProjectRepositoryTest : BaseTest() {
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
 	fun `hasProject with invalid SyncId`() = runTest {
-		// Project does indeed exist, but the syncId is invalid
-		createProjectDir()
-
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
@@ -243,11 +234,5 @@ class ProjectRepositoryTest : BaseTest() {
 
 	private fun createProjectRepository(): ProjectRepository {
 		return ProjectRepository(fileSystem, Json, clock)
-	}
-
-	private fun createProjectDir() {
-		val userDir = ProjectsRepository.getUserDirectory(userId, fileSystem)
-		val projectDir = userDir / projectDefinition.name
-		fileSystem.createDirectories(projectDir)
 	}
 }

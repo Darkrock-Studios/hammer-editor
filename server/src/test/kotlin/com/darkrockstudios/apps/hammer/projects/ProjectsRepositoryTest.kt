@@ -1,49 +1,84 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import org.junit.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryTest : BaseTest() {
 	private val userId = 1L
 
-	private lateinit var fileSystem: FileSystem
 	private lateinit var clock: TestClock
 
 	private lateinit var projectsSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession>
+	private lateinit var projectSessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>
+
+	private lateinit var projectsRepository: ProjectsRepository
+	private lateinit var projectsDatasource: ProjectsDatasource
+
+	private val projectDefinition = ProjectDefinition("Test Project 1")
 
 	private fun createProjectsRepository(): ProjectsRepository {
-		return ProjectsRepository(fileSystem, Json, clock)
+		return ProjectsRepository(clock, projectsDatasource)
+	}
+
+	private fun mockCreateSession(syncId: String) {
+		val createSessionSlot =
+			slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
+		val key = ProjectSyncKey(userId, projectDefinition)
+		coEvery {
+			projectSessionManager.createNewSession(
+				key,
+				capture(createSessionSlot)
+			)
+		} coAnswers {
+			val session = createSessionSlot.captured(key, syncId)
+			session.syncId
+		}
 	}
 
 	@Before
 	override fun setup() {
 		super.setup()
 
-		fileSystem = FakeFileSystem()
 		clock = TestClock(Clock.System)
 
 		projectsSessionManager = mockk()
+		projectSessionManager = mockk()
+
+		projectsDatasource = mockk()
+		projectsRepository = mockk()
 
 		val testModule = module {
-			single { fileSystem } bind FileSystem::class
 			single { Json } bind Json::class
 			single { clock } bind TestClock::class
 
-			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(
+				named(
+					PROJECTS_SYNC_MANAGER
+				)
+			) {
 				projectsSessionManager
 			}
 		}
@@ -51,64 +86,75 @@ class ProjectsRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create User Data`() {
-		val userDir = ProjectsRepository.getUserDirectory(userId, fileSystem)
-		assertFalse { fileSystem.exists(userDir) }
-
-		createProjectsRepository().apply {
-			createUserData(userId)
-		}
-
-		assertTrue { fileSystem.exists(userDir) }
-
-		val dataFile = ProjectsRepository.getSyncDataPath(userId, fileSystem)
-		assertTrue { fileSystem.exists(dataFile) }
-	}
-
-	/*
-	@OptIn(ExperimentalCoroutinesApi::class)
-	@Test
 	fun `hasProject, no project`() = runTest {
+		val newSyncId = "new-sync-id"
+		val expectedData = ProjectsBeginSyncData(
+			syncId = newSyncId,
+			projects = emptySet(),
+			deletedProjects = emptySet()
+		)
+
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns newSyncId
+
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-		val projectDir = getProjectDirectory(userId, projectDefinition, fileSystem)
-		assertFalse { fileSystem.exists(projectDir) }
+		every { projectsDatasource.getProjects(userId) } returns emptySet()
+		every { projectsDatasource.loadSyncData(userId) } returns
+			ProjectsSyncData(
+				lastSync = Instant.DISTANT_PAST,
+				deletedProjects = emptySet()
+			)
 
-		val syncId = "sync-id"
+		mockCreateSession(newSyncId)
 
-		mockCreateSession(syncId)
+		createProjectsRepository().apply {
+			val beginResult = beginProjectsSync(userId)
+			assertTrue(isSuccess(beginResult))
 
-		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition)
-			assertTrue(beginResult.isSuccess)
+			verify(exactly = 1) { projectsDatasource.getProjects(userId) }
+			verify(exactly = 1) { projectsDatasource.loadSyncData(userId) }
 
-			assertFalse { fileSystem.exists(projectDir) }
-
-			val syncBegan = beginResult.getOrThrow()
-
-			coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
-			coEvery { projectSessionManager.validateSyncId(any(), any()) } returns true
-
-			val result = getProjectSyncData(userId, projectDefinition, syncBegan.syncId)
-			assertFalse(result.isSuccess)
+			val syncData = beginResult.data
+			assertEquals(expectedData, syncData)
 		}
 	}
 
-	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
-	fun `hasProject, project exists`() = runTest {
-		createProjectDir()
+	fun `hasProject, has projects`() = runTest {
+		val newSyncId = "new-sync-id"
 
-		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition)
-			assertTrue(beginResult.isSuccess)
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns newSyncId
 
-			val syncBegan = beginResult.getOrThrow()
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-			val result = getProjectSyncData(userId, projectDefinition, syncBegan.syncId)
-			assertTrue(result.isSuccess)
+		every { projectsDatasource.getProjects(userId) } returns setOf(
+			ProjectDefinition("Project 1"),
+			ProjectDefinition("Project 2"),
+		)
+
+		every { projectsDatasource.loadSyncData(userId) } returns
+			ProjectsSyncData(
+				lastSync = Instant.fromEpochSeconds(123),
+				deletedProjects = setOf("Project 3")
+			)
+
+		mockCreateSession(newSyncId)
+
+		createProjectsRepository().apply {
+			val beginResult = beginProjectsSync(userId)
+			assertTrue(isSuccess(beginResult))
+
+			val syncData = beginResult.data
+
+			val expectedData = ProjectsBeginSyncData(
+				syncId = syncData.syncId,
+				projects = setOf(ProjectDefinition("Project 1"), ProjectDefinition("Project 2")),
+				deletedProjects = setOf("Project 3")
+			)
+
+			assertEquals(expectedData, syncData)
 		}
 	}
-	*/
 }
