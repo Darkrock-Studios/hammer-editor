@@ -10,35 +10,34 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
+class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 
 	@Test
-	fun `Create Project, conflicting projects sync session`() = runTest {
+	fun `Delete Project, conflicting projects sync session`() = runTest {
 		val syncId = "sync-id"
 		val projectName = "Project Name"
 
 		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectsRepository().apply {
-			val result = createProject(userId, syncId, projectName)
+			val result = deleteProject(userId, syncId, projectName)
 			assertTrue(result.isFailure)
-			verify(exactly = 0) { projectsDatasource.createProject(any(), any()) }
+			verify(exactly = 0) { projectsDatasource.deleteProject(any(), any()) }
 			verify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
 
 	@Test
-	fun `Create Project, successful`() = runTest {
+	fun `Delete Project, successful`() = runTest {
 		val syncId = "sync-id"
 		val projectName = "Project Name"
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		every { projectsDatasource.createProject(userId, projectName) } returns Unit
+		every { projectsDatasource.deleteProject(userId, projectName) } returns Result.success(Unit)
 
 		val initialSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
 			deletedProjects = setOf(
-				projectName,
 				"Project 2"
 			),
 		)
@@ -54,15 +53,16 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		val expectedSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
 			deletedProjects = setOf(
-				"Project 2"
+				"Project 2",
+				projectName,
 			),
 		)
 
 		createProjectsRepository().apply {
-			val result = createProject(userId, syncId, projectName)
+			val result = deleteProject(userId, syncId, projectName)
 
 			assertTrue(result.isSuccess)
-			verify { projectsDatasource.createProject(userId, projectName) }
+			verify { projectsDatasource.deleteProject(userId, projectName) }
 			verify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)

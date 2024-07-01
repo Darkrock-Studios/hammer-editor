@@ -53,12 +53,6 @@ class ProjectsFileSystemDatasource(
 		val projectDir = ProjectRepository.getProjectDirectory(userId, projectDef, fileSystem)
 		fileSystem.deleteRecursively(projectDir)
 
-		updateSyncData(userId) { data ->
-			data.copy(
-				deletedProjects = data.deletedProjects + projectName
-			)
-		}
-
 		return Result.success(Unit)
 	}
 

@@ -80,6 +80,13 @@ class ProjectsRepository(
 		) return Result.failure(InvalidSyncIdException())
 
 		val result = projectsDatasource.deleteProject(userId, projectName)
+
+		projectsDatasource.updateSyncData(userId) { data ->
+			data.copy(
+				deletedProjects = data.deletedProjects + projectName
+			)
+		}
+
 		return result
 	}
 
