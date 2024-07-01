@@ -6,25 +6,31 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
 import io.mockk.every
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class ProjectsRepositoryHasProjectTest : ProjectsRepositoryBaseTest() {
+class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 	@Test
-	fun `hasProject, no project`() = runTest {
-		val newSyncId = "new-sync-id"
-		val expectedData = ProjectsBeginSyncData(
-			syncId = newSyncId,
-			projects = emptySet(),
-			deletedProjects = emptySet()
-		)
+	fun `Begin Sync, conflicting project sync session`() = runTest {
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		createProjectsRepository().apply {
+			val result = beginProjectsSync(userId)
+			assertTrue(result.isFailure)
+		}
+	}
+
+	@Test
+	fun `Begin Sync, existing session`() = runTest {
+		val newSyncId = "new-sync-id"
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns newSyncId
 
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
@@ -40,18 +46,12 @@ class ProjectsRepositoryHasProjectTest : ProjectsRepositoryBaseTest() {
 
 		createProjectsRepository().apply {
 			val beginResult = beginProjectsSync(userId)
-			assertTrue(isSuccess(beginResult))
-
-			verify(exactly = 1) { projectsDatasource.getProjects(userId) }
-			verify(exactly = 1) { projectsDatasource.loadSyncData(userId) }
-
-			val syncData = beginResult.data
-			assertEquals(expectedData, syncData)
+			assertFalse(isSuccess(beginResult))
 		}
 	}
 
 	@Test
-	fun `hasProject, has projects`() = runTest {
+	fun `Begin Sync, has projects`() = runTest {
 		val newSyncId = "new-sync-id"
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
