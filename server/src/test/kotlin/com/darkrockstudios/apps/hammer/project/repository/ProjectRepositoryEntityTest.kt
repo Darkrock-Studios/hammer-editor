@@ -9,9 +9,11 @@ import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
@@ -62,6 +64,79 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 			val exception = result.exception
 			assertTrue(exception is InvalidSyncIdException)
+		}
+	}
+
+	@Test
+	fun `Load Entity - Scene Entity`() = runTest {
+		val syncId = "sync-id"
+		val entityId = 1
+		val sceneEntity = createSceneEntity(1)
+
+		mockCreateSession(syncId)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+
+		coEvery {
+			projectDatasource.findEntityType(
+				entityId,
+				userId,
+				projectDefinition
+			)
+		} returns ApiProjectEntity.Type.SCENE
+
+		coEvery {
+			sceneSynchronizer.loadEntity(
+				userId,
+				projectDefinition,
+				entityId,
+			)
+		} returns SResult.success(sceneEntity)
+
+		createProjectRepository().apply {
+			val result = loadEntity(userId, projectDefinition, entityId, syncId)
+			assertTrue(isSuccess(result))
+			assertEquals(sceneEntity, result.data)
+		}
+	}
+
+	@Test
+	fun `Save Entity - Scene Entity`() = runTest {
+		val syncId = "sync-id"
+		val sceneEntity = createSceneEntity(1)
+
+		mockCreateSession(syncId)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+
+		coEvery {
+			sceneSynchronizer.saveEntity(
+				userId,
+				projectDefinition,
+				sceneEntity,
+				null,
+				false
+			)
+		} returns SResult.success(true)
+
+		createProjectRepository().apply {
+			val result =
+				saveEntity(userId, projectDefinition, createSceneEntity(1), null, syncId, false)
+			assertTrue { result.isSuccess }
+		}
+
+		coVerify {
+			sceneSynchronizer.saveEntity(
+				userId,
+				projectDefinition,
+				sceneEntity,
+				null,
+				false
+			)
 		}
 	}
 

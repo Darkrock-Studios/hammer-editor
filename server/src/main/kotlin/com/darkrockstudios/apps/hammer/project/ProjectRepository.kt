@@ -161,9 +161,6 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
-		// TODO how to move this to Datasource?
-		//ensureEntityDir(userId, projectDef)
-
 		val result = when (entity) {
 			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveEntity(
 				userId,
