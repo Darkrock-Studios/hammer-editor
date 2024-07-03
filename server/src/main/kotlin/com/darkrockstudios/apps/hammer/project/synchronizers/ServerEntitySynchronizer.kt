@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -131,7 +131,8 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	}
 
 	private fun getPath(userId: Long, projectDef: ProjectDefinition, entityId: Int): Path {
-		val entityDir = ProjectRepository.getEntityDirectory(userId, projectDef, fileSystem)
+		val entityDir =
+			ProjectFilesystemDatasource.getEntityDirectory(userId, projectDef, fileSystem)
 		val filename = "$entityId-$pathStub.json"
 		return entityDir / filename
 	}
@@ -142,7 +143,8 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	}
 
 	protected fun getEntityDefs(userId: Long, projectDef: ProjectDefinition): List<EntityDefinition> {
-		val entityDir = ProjectRepository.getEntityDirectory(userId, projectDef, fileSystem)
+		val entityDir =
+			ProjectFilesystemDatasource.getEntityDirectory(userId, projectDef, fileSystem)
 		val entities = fileSystem.list(entityDir).mapNotNull {
 			parseEntityFilename(it)
 		}.filter { it.type == entityType }

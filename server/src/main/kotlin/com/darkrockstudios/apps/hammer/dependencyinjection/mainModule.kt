@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -61,6 +63,7 @@ fun mainModule(logger: Logger) = module {
 	singleOf(::WhiteListRepository)
 
 	factoryOf(::ProjectsFileSystemDatasource) bind ProjectsDatasource::class
+	factoryOf(::ProjectFilesystemDatasource) bind ProjectDatasource::class
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)
@@ -75,7 +78,11 @@ fun mainModule(logger: Logger) = module {
 		SyncSessionManager(get())
 	}
 
-	single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+	single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(
+		named(
+			PROJECT_SYNC_MANAGER
+		)
+	) {
 		SyncSessionManager(get())
 	}
 }

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import io.mockk.coEvery
 import io.mockk.every
@@ -22,7 +23,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName)
 			assertTrue(result.isFailure)
-			verify(exactly = 0) { projectsDatasource.createProject(any(), any()) }
+			verify(exactly = 0) { projectDatasource.createProject(any(), any()) }
 			verify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
@@ -33,7 +34,12 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		val projectName = "Project Name"
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		every { projectsDatasource.createProject(userId, projectName) } returns Unit
+		every {
+			projectDatasource.createProject(
+				userId,
+				ProjectDefinition(projectName)
+			)
+		} returns Unit
 
 		val initialSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
@@ -62,7 +68,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 			val result = createProject(userId, syncId, projectName)
 
 			assertTrue(result.isSuccess)
-			verify { projectsDatasource.createProject(userId, projectName) }
+			verify { projectDatasource.createProject(userId, ProjectDefinition(projectName)) }
 			verify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)

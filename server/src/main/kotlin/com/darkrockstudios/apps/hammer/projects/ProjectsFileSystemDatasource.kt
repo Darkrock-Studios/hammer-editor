@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.defaultData
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
@@ -40,20 +39,6 @@ class ProjectsFileSystemDatasource(
 		out.closeEntry()
 		out.close()
 		*/
-	}
-
-	override fun createProject(userId: Long, projectName: String) {
-		val projectDef = ProjectDefinition(projectName)
-		val projectDir = ProjectRepository.getProjectDirectory(userId, projectDef, fileSystem)
-		fileSystem.createDirectories(projectDir)
-	}
-
-	override fun deleteProject(userId: Long, projectName: String): Result<Unit> {
-		val projectDef = ProjectDefinition(projectName)
-		val projectDir = ProjectRepository.getProjectDirectory(userId, projectDef, fileSystem)
-		fileSystem.deleteRecursively(projectDir)
-
-		return Result.success(Unit)
 	}
 
 	override fun updateSyncData(

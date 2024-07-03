@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -13,7 +15,8 @@ import org.koin.java.KoinJavaComponent.inject
 
 class ProjectsRepository(
 	private val clock: Clock,
-	private val projectsDatasource: ProjectsDatasource
+	private val projectsDatasource: ProjectsDatasource,
+	private val projectDatasource: ProjectDatasource,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -79,7 +82,7 @@ class ProjectsRepository(
 				.not()
 		) return Result.failure(InvalidSyncIdException())
 
-		val result = projectsDatasource.deleteProject(userId, projectName)
+		val result = projectDatasource.deleteProject(userId, projectName)
 
 		projectsDatasource.updateSyncData(userId) { data ->
 			data.copy(
@@ -95,7 +98,7 @@ class ProjectsRepository(
 				.not()
 		) return Result.failure(InvalidSyncIdException())
 
-		projectsDatasource.createProject(userId, projectName)
+		projectDatasource.createProject(userId, ProjectDefinition(projectName))
 
 		projectsDatasource.updateSyncData(userId) { data ->
 			data.copy(

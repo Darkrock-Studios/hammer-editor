@@ -6,32 +6,26 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
-import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource.Companion.getUserDirectory
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 
 class ProjectRepository(
-	private val fileSystem: FileSystem,
-	private val json: Json,
-	private val clock: Clock
+	private val clock: Clock,
+	private val projectDatasource: ProjectDatasource,
 ) : KoinComponent {
+
 	private val sceneSynchronizer: ServerSceneSynchronizer by inject()
 	private val noteSynchronizer: ServerNoteSynchronizer by inject()
 	private val timelineEventSynchronizer: ServerTimelineSynchronizer by inject()
@@ -48,41 +42,6 @@ class ProjectRepository(
 		qualifier = named(PROJECT_SYNC_MANAGER)
 	)
 
-	fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition): Path =
-		getEntityDirectory(userId, projectDef, fileSystem)
-
-	fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition): Path =
-		getProjectDirectory(userId, projectDef, fileSystem)
-
-	private fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition): Path {
-		val dir = getProjectDirectory(userId, projectDef)
-		return dir / SYNC_DATA_FILE
-	}
-
-	private fun getProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
-		val file = getProjectSyncDataPath(userId, projectDef)
-
-		return if (fileSystem.exists(file).not()) {
-			val newData = ProjectSyncData(
-				lastId = -1,
-				lastSync = Instant.DISTANT_PAST,
-				deletedIds = emptySet(),
-			)
-
-			fileSystem.write(file) {
-				val syncDataJson = json.encodeToString(newData)
-				writeUtf8(syncDataJson)
-			}
-
-			newData
-		} else {
-			val dataJson = fileSystem.read(file) {
-				readUtf8()
-			}
-			json.decodeFromString(dataJson)
-		}
-	}
-
 	suspend fun beginProjectSync(
 		userId: Long,
 		projectDef: ProjectDefinition,
@@ -90,7 +49,6 @@ class ProjectRepository(
 		lite: Boolean
 	): SResult<ProjectSynchronizationBegan> {
 
-		val projectDir = getProjectDirectory(userId, projectDef)
 		val syncKey = ProjectSyncKey(userId, projectDef)
 
 		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(syncKey)) {
@@ -99,14 +57,14 @@ class ProjectRepository(
 				Msg.r("api.project.sync.begin.error.session", userId)
 			)
 		} else {
-			if (!fileSystem.exists(projectDir)) {
-				createProject(userId, projectDef)
+			if (!projectDatasource.checkProjectExists(userId, projectDef)) {
+				projectDatasource.createProject(userId, projectDef)
 			}
 
-			var projectSyncData = getProjectSyncData(userId, projectDef)
+			var projectSyncData = projectDatasource.loadProjectSyncData(userId, projectDef)
 
 			if (projectSyncData.lastId < 0) {
-				val lastId = findLastId(userId, projectDef)
+				val lastId = projectDatasource.findLastId(userId, projectDef)
 				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
 			}
 
@@ -154,7 +112,7 @@ class ProjectRepository(
 			} else {
 				// Update sync data if it was sent
 				if (lastSync != null && lastId != null) {
-					updateSyncData(userId, projectDef) {
+					projectDatasource.updateSyncData(userId, projectDef) {
 						it.copy(
 							lastSync = lastSync,
 							lastId = lastId,
@@ -179,10 +137,8 @@ class ProjectRepository(
 				Msg.r("api.project.sync.end.invalidid", userId)
 			)
 
-		val projectDir = getProjectDirectory(userId, projectDef)
-
-		return if (fileSystem.exists(projectDir)) {
-			val projectSyncData = getProjectSyncData(userId, projectDef)
+		return if (projectDatasource.checkProjectExists(userId, projectDef)) {
+			val projectSyncData = projectDatasource.loadProjectSyncData(userId, projectDef)
 			SResult.success(
 				ProjectServerState(
 					lastSync = projectSyncData.lastSync,
@@ -205,7 +161,8 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
-		ensureEntityDir(userId, projectDef)
+		// TODO how to move this to Datasource?
+		//ensureEntityDir(userId, projectDef)
 
 		val result = when (entity) {
 			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveEntity(
@@ -260,14 +217,14 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
-		updateSyncData(userId, projectDef) {
+		projectDatasource.updateSyncData(userId, projectDef) {
 			it.copy(
 				deletedIds = it.deletedIds + entityId
 			)
 		}
 
 		val entityType: ApiProjectEntity.Type =
-			getEntityType(userId, projectDef, entityId) ?: return SResult.failure(
+			projectDatasource.getEntityType(userId, projectDef, entityId) ?: return SResult.failure(
 				"No type found",
 				exception = NoEntityTypeFound(entityId)
 			)
@@ -288,48 +245,6 @@ class ProjectRepository(
 		return SResult.success()
 	}
 
-	private fun getEntityType(userId: Long, projectDef: ProjectDefinition, entityId: Int): ApiProjectEntity.Type? {
-		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
-		val files = fileSystem.list(entityDir)
-		for (entityPath in files) {
-			ServerEntitySynchronizer.ENTITY_FILENAME_REGEX.matchEntire(entityPath.name)?.let { match ->
-				val id = match.groupValues[1].toInt()
-				if (id == entityId) {
-					val typeStr = match.groupValues[2]
-					ApiProjectEntity.Type.fromString(typeStr)?.let { type ->
-						return type
-					}
-				}
-			}
-		}
-		return null
-	}
-
-	private fun createProject(userId: Long, projectDef: ProjectDefinition) {
-		val projectDir = getProjectDirectory(userId, projectDef)
-		fileSystem.createDirectories(projectDir)
-
-		getProjectSyncDataPath(userId, projectDef).let { syncDataPath ->
-			if (fileSystem.exists(syncDataPath).not()) {
-				val data = ProjectSyncData(
-					lastSync = Instant.DISTANT_PAST,
-					lastId = 0,
-					deletedIds = emptySet()
-				)
-				val dataJson = json.encodeToString(data)
-
-				fileSystem.write(syncDataPath) {
-					writeUtf8(dataJson)
-				}
-			}
-		}
-	}
-
-	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
-		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
-		fileSystem.createDirectories(entityDir)
-	}
-
 	suspend fun loadEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
@@ -339,7 +254,7 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid sync id", exception = InvalidSyncIdException())
 
-		val type = findEntityType(entityId, userId, projectDef)
+		val type = projectDatasource.findEntityType(entityId, userId, projectDef)
 			?: return SResult.failure("EntityNotFound", exception = EntityNotFound(entityId))
 
 		return when (type) {
@@ -353,45 +268,6 @@ class ProjectRepository(
 			)
 
 			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.loadEntity(userId, projectDef, entityId)
-		}
-	}
-
-	private suspend fun findEntityType(
-		entityId: Int,
-		userId: Long,
-		projectDef: ProjectDefinition
-	): ApiProjectEntity.Type? {
-		val dir = getEntityDirectory(userId, projectDef)
-		fileSystem.list(dir).forEach { path ->
-			val def = ServerEntitySynchronizer.parseEntityFilename(path)
-			if (def?.id == entityId) {
-				return def.type
-			}
-		}
-		return null
-	}
-
-	private suspend fun findLastId(
-		userId: Long,
-		projectDef: ProjectDefinition
-	): Int? {
-		val dir = getEntityDirectory(userId, projectDef)
-		return fileSystem.list(dir)
-			.mapNotNull { path -> ServerEntitySynchronizer.parseEntityFilename(path) }
-			.maxByOrNull { def -> def.id }?.id
-	}
-
-	private fun updateSyncData(
-		userId: Long,
-		projectDef: ProjectDefinition,
-		action: (ProjectSyncData) -> ProjectSyncData
-	) {
-		val data = getProjectSyncData(userId, projectDef)
-		val updated = action(data)
-		val newSyncDataJson = json.encodeToString(updated)
-		val path = getProjectSyncDataPath(userId, projectDef)
-		fileSystem.write(path) {
-			writeUtf8(newSyncDataJson)
 		}
 	}
 
@@ -417,32 +293,6 @@ class ProjectRepository(
 		}
 
 		return updateSequence.toList()
-	}
-
-	companion object {
-		const val SYNC_DATA_FILE = "syncData.json"
-		const val ENTITY_DIR = "entities"
-
-		fun getProjectDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
-			val dir = getUserDirectory(userId, fileSystem)
-			return dir / projectDef.name
-		}
-
-		fun getEntityDirectory(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
-			val projDir = getProjectDirectory(userId, projectDef, fileSystem)
-			val dir = projDir / ENTITY_DIR
-
-			if (fileSystem.exists(dir).not()) {
-				fileSystem.createDirectories(dir)
-			}
-
-			return dir
-		}
-
-		fun getProjectSyncDataPath(userId: Long, projectDef: ProjectDefinition, fileSystem: FileSystem): Path {
-			val dir = getProjectDirectory(userId, projectDef, fileSystem)
-			return dir / SYNC_DATA_FILE
-		}
 	}
 }
 

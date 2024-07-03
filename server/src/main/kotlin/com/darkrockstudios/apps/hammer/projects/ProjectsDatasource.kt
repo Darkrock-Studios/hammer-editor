@@ -12,7 +12,4 @@ interface ProjectsDatasource {
 		userId: Long,
 		action: (ProjectsSyncData) -> ProjectsSyncData
 	): ProjectsSyncData
-
-	fun deleteProject(userId: Long, projectName: String): Result<Unit>
-	fun createProject(userId: Long, projectName: String)
 }

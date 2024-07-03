@@ -64,7 +64,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent {
 	}
 
 	sealed class ModalDestination {
-		object None : ModalDestination()
+		data object None : ModalDestination()
 
 		data class ProjectSync(val component: ProjectSyncComponent) : ModalDestination()
 	}

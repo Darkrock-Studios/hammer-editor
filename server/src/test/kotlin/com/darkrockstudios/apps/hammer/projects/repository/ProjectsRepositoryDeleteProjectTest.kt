@@ -22,7 +22,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = deleteProject(userId, syncId, projectName)
 			assertTrue(result.isFailure)
-			verify(exactly = 0) { projectsDatasource.deleteProject(any(), any()) }
+			verify(exactly = 0) { projectDatasource.deleteProject(any(), any()) }
 			verify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
@@ -33,7 +33,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		val projectName = "Project Name"
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		every { projectsDatasource.deleteProject(userId, projectName) } returns Result.success(Unit)
+		every { projectDatasource.deleteProject(userId, projectName) } returns Result.success(Unit)
 
 		val initialSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
@@ -62,7 +62,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 			val result = deleteProject(userId, syncId, projectName)
 
 			assertTrue(result.isSuccess)
-			verify { projectsDatasource.deleteProject(userId, projectName) }
+			verify { projectDatasource.deleteProject(userId, projectName) }
 			verify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)

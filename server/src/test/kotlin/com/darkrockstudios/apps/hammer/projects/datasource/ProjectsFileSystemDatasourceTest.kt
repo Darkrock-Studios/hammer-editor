@@ -47,51 +47,6 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create Project`() {
-		val userId = 1L
-		val projectName = "Test Project"
-
-		val userDir = ProjectsFileSystemDatasource.getUserDirectory(userId, fileSystem)
-		assertFalse(userDir.toString()) { fileSystem.exists(userDir) }
-
-		val datasource = ProjectsFileSystemDatasource(fileSystem, json)
-		datasource.createProject(userId, projectName)
-
-		val projectDir = userDir / projectName
-		assertTrue { fileSystem.exists(projectDir) }
-	}
-
-	@Test
-	fun `Delete Project`() {
-		val userId = 1L
-		val projectName = "Test Project"
-
-		val userDir = ProjectsFileSystemDatasource.getUserDirectory(userId, fileSystem)
-		val projectDir = userDir / projectName
-		val testFile1 = projectDir / "test1.txt"
-		val testFile2 = projectDir / "test2.txt"
-
-		fileSystem.createDirectories(projectDir)
-		fileSystem.write(testFile1) {
-			writeUtf8("test1")
-		}
-		fileSystem.write(testFile2) {
-			writeUtf8("test2")
-		}
-
-		assertTrue { fileSystem.exists(testFile1) }
-		assertTrue { fileSystem.exists(testFile2) }
-		assertTrue { fileSystem.exists(projectDir) }
-
-		val datasource = ProjectsFileSystemDatasource(fileSystem, json)
-		datasource.deleteProject(userId, projectName)
-
-		assertFalse { fileSystem.exists(testFile1) }
-		assertFalse { fileSystem.exists(testFile2) }
-		assertFalse { fileSystem.exists(projectDir) }
-	}
-
-	@Test
 	fun `Get Projects`() {
 		val userId = 1L
 		val projectName1 = "Test Project 1"

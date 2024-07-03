@@ -18,8 +18,10 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -51,6 +53,7 @@ class ProjectRepositoryTest : BaseTest() {
 	private lateinit var timelineEventSynchronizer: ServerTimelineSynchronizer
 	private lateinit var encyclopediaSynchronizer: ServerEncyclopediaSynchronizer
 	private lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
+	private lateinit var projectDatasource: ProjectDatasource
 
 	private lateinit var clientState: ClientEntityState
 
@@ -69,11 +72,24 @@ class ProjectRepositoryTest : BaseTest() {
 		timelineEventSynchronizer = mockk()
 		encyclopediaSynchronizer = mockk()
 		sceneDraftSynchronizer = mockk()
+		projectDatasource = mockk()
 
 		clientState = mockk()
 
-		coEvery { sceneSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
-		coEvery { noteSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
+		coEvery {
+			sceneSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
+		coEvery {
+			noteSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
 		coEvery {
 			timelineEventSynchronizer.getUpdateSequence(
 				userId,
@@ -88,7 +104,13 @@ class ProjectRepositoryTest : BaseTest() {
 				clientState
 			)
 		} returns emptyList()
-		coEvery { sceneDraftSynchronizer.getUpdateSequence(userId, projectDefinition, clientState) } returns emptyList()
+		coEvery {
+			sceneDraftSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
 
 		val testModule = module {
 			single { fileSystem } bind FileSystem::class
@@ -100,11 +122,19 @@ class ProjectRepositoryTest : BaseTest() {
 			single { sceneDraftSynchronizer }
 			single { clock } bind TestClock::class
 
-			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(
+				named(
+					PROJECTS_SYNC_MANAGER
+				)
+			) {
 				projectsSessionManager
 			}
 
-			single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+			single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(
+				named(
+					PROJECT_SYNC_MANAGER
+				)
+			) {
 				projectSessionManager
 			}
 		}
@@ -112,9 +142,15 @@ class ProjectRepositoryTest : BaseTest() {
 	}
 
 	private fun mockCreateSession(syncId: String) {
-		val createSessionSlot = slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
+		val createSessionSlot =
+			slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
 		val key = ProjectSyncKey(userId, projectDefinition)
-		coEvery { projectSessionManager.createNewSession(key, capture(createSessionSlot)) } coAnswers {
+		coEvery {
+			projectSessionManager.createNewSession(
+				key,
+				capture(createSessionSlot)
+			)
+		} coAnswers {
 			val session = createSessionSlot.captured(key, syncId)
 			session.syncId
 		}
@@ -122,10 +158,30 @@ class ProjectRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Begin Project Sync`() = runTest {
+		val syncId = "sync-id"
+		val syncData = ProjectSyncData(
+			lastSync = clock.now(),
+			lastId = 1,
+			deletedIds = emptySet()
+		)
+
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-		val syncId = "sync-id"
+		coEvery {
+			projectDatasource.checkProjectExists(
+				userId,
+				projectDefinition
+			)
+		} returns true
+
+		coEvery {
+			projectDatasource.loadProjectSyncData(
+				userId,
+				projectDefinition
+			)
+		} returns syncData
+
 		mockCreateSession(syncId)
 
 		createProjectRepository().apply {
@@ -141,11 +197,38 @@ class ProjectRepositoryTest : BaseTest() {
 	fun `End Project Sync`() = runTest {
 		createProjectRepository().apply {
 
+			val syncId = "sync-id"
+			val syncData = ProjectSyncData(
+				lastSync = clock.now(),
+				lastId = 1,
+				deletedIds = emptySet()
+			)
+
 			coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 			coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 			coEvery { projectSessionManager.terminateSession(any()) } returns true
 
-			val syncId = "sync-id"
+			coEvery {
+				projectDatasource.checkProjectExists(
+					userId,
+					projectDefinition
+				)
+			} returns true
+
+			coEvery {
+				projectDatasource.loadProjectSyncData(
+					userId,
+					projectDefinition
+				)
+			} returns syncData
+
+			coEvery {
+				projectDatasource.updateSyncData(
+					userId,
+					projectDefinition,
+					any(),
+				)
+			} just Runs
 
 			mockCreateSession(syncId)
 
@@ -154,7 +237,12 @@ class ProjectRepositoryTest : BaseTest() {
 			assertTrue(isSuccess(beginResult))
 
 			val syncBegan = beginResult.data
-			val session = ProjectSynchronizationSession(userId, projectDefinition, clock.now(), syncBegan.syncId)
+			val session = ProjectSynchronizationSession(
+				userId,
+				projectDefinition,
+				clock.now(),
+				syncBegan.syncId
+			)
 			coEvery { projectSessionManager.findSession(any()) } returns session
 
 			val endResult = endProjectSync(
@@ -183,15 +271,34 @@ class ProjectRepositoryTest : BaseTest() {
 	fun `loadEntity - Expired SyncId`() = runTest {
 		val entityId = 1
 		val syncId = "sync-id"
+		val syncData = ProjectSyncData(
+			lastSync = clock.now(),
+			lastId = 1,
+			deletedIds = emptySet()
+		)
 
 		mockCreateSession(syncId)
 
 		every { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
-				SResult.success(createSceneEntity(entityId))
+			SResult.success(createSceneEntity(entityId))
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
+
+		coEvery {
+			projectDatasource.checkProjectExists(
+				userId,
+				projectDefinition
+			)
+		} returns true
+
+		coEvery {
+			projectDatasource.loadProjectSyncData(
+				userId,
+				projectDefinition
+			)
+		} returns syncData
 
 		createProjectRepository().apply {
 			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
@@ -213,7 +320,7 @@ class ProjectRepositoryTest : BaseTest() {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
-		ProjectRepository(fileSystem, Json, clock).apply {
+		ProjectRepository(clock, projectDatasource).apply {
 			val result = getProjectSyncData(userId, projectDefinition, "invalid-id")
 			assertFalse(result.isSuccess)
 		}
@@ -233,6 +340,6 @@ class ProjectRepositoryTest : BaseTest() {
 	}
 
 	private fun createProjectRepository(): ProjectRepository {
-		return ProjectRepository(fileSystem, Json, clock)
+		return ProjectRepository(clock, projectDatasource)
 	}
 }
