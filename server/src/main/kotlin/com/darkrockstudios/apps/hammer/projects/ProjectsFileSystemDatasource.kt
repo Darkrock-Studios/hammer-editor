@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.Companion.defaultData
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import kotlinx.serialization.encodeToString

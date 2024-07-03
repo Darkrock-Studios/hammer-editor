@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
-import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
+import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import io.mockk.coEvery
 import io.mockk.every

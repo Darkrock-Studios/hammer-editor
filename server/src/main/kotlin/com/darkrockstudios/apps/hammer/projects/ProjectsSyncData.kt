@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.project
+package com.darkrockstudios.apps.hammer.projects
 
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable

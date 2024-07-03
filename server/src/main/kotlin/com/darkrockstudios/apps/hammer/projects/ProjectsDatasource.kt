@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectsSyncData
 
 interface ProjectsDatasource {
 	fun saveSyncData(userId: Long, data: ProjectsSyncData)
