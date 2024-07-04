@@ -2,7 +2,8 @@
 
 A simple tool for building stories.
 
-![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) [![codecov](https://codecov.io/gh/Wavesonics/hammer-editor/branch/develop/graph/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
+![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![codebeat badge](https://codebeat.co/badges/ff1a14c8-352e-495f-8b61-2d5d46061149)](https://codebeat.co/projects/github-com-wavesonics-hammer-editor-master) 
+[![codecov](https://codecov.io/github/wavesonics/hammer-editor/settings/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
 
 ![badge-kotlin]
 
