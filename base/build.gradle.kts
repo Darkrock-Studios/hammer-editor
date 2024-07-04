@@ -50,6 +50,7 @@ kotlin {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.kotlin.reflect)
+				implementation(libs.okio)
 			}
 		}
     }
