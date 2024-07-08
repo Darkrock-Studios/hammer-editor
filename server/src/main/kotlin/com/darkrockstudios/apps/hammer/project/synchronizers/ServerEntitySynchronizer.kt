@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -11,6 +12,7 @@ import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
+import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 import java.io.IOException
@@ -47,28 +49,20 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		originalHash: String?,
 		force: Boolean,
 	): EntityConflictException? {
+		if (force) return null
+
 		val path = getPath(userId = userId, projectDef = projectDef, entityId = entity.id)
+		if (!fileSystem.exists(path)) return null
 
-		return if (!force) {
-			if (fileSystem.exists(path)) {
-				val existingEntity = fileSystem.readJsonOrNull(path, json, entityClazz)
-				if (existingEntity != null) {
-					val existingHash = hashEntity(existingEntity)
+		val existingEntity = fileSystem.readJsonOrNull(path, json, entityClazz)
+			?: return null // Early exit if can't read entity
 
-					if (originalHash != null && existingHash != originalHash) {
-						EntityConflictException.fromEntity(existingEntity)
-					} else {
-						null
-					}
-				} else {
-					null
-				}
-			} else {
-				null
-			}
-		} else {
-			null
+		val existingHash = hashEntity(existingEntity)
+		if (originalHash != null && existingHash != originalHash) {
+			return EntityConflictException.fromEntity(existingEntity)
 		}
+
+		return null // No conflict
 	}
 
 	@OptIn(InternalSerializationApi::class)
@@ -125,6 +119,8 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 			SResult.failure(e)
 		} catch (e: IllegalArgumentException) {
 			SResult.failure(e)
+		} catch (e: FileNotFoundException) {
+			SResult.failure(EntityNotFound(entityId))
 		} catch (e: IOException) {
 			SResult.failure(e)
 		}
@@ -142,7 +138,10 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		fileSystem.delete(path, false)
 	}
 
-	protected fun getEntityDefs(userId: Long, projectDef: ProjectDefinition): List<EntityDefinition> {
+	protected fun getEntityDefs(
+		userId: Long,
+		projectDef: ProjectDefinition
+	): List<EntityDefinition> {
 		val entityDir =
 			ProjectFilesystemDatasource.getEntityDirectory(userId, projectDef, fileSystem)
 		val entities = fileSystem.list(entityDir).mapNotNull {

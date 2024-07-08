@@ -115,30 +115,6 @@ class ProjectFilesystemDatasource(
 		return null
 	}
 
-	override fun getEntityType(
-		userId: Long,
-		projectDef: ProjectDefinition,
-		entityId: Int
-	): ApiProjectEntity.Type? {
-		ensureEntityDir(userId, projectDef)
-
-		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
-		val files = fileSystem.list(entityDir)
-		for (entityPath in files) {
-			ServerEntitySynchronizer.ENTITY_FILENAME_REGEX.matchEntire(entityPath.name)
-				?.let { match ->
-					val id = match.groupValues[1].toInt()
-					if (id == entityId) {
-						val typeStr = match.groupValues[2]
-						ApiProjectEntity.Type.fromString(typeStr)?.let { type ->
-							return type
-						}
-					}
-				}
-		}
-		return null
-	}
-
 	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
 		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
 		fileSystem.createDirectories(entityDir)

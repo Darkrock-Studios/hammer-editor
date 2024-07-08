@@ -19,10 +19,4 @@ interface ProjectDatasource {
 		userId: Long,
 		projectDef: ProjectDefinition
 	): ApiProjectEntity.Type?
-
-	fun getEntityType(
-		userId: Long,
-		projectDef: ProjectDefinition,
-		entityId: Int
-	): ApiProjectEntity.Type?
 }

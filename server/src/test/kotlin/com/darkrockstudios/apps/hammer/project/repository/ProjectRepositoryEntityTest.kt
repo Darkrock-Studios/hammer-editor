@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project.repository
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.project.EntityTypeConflictException
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
@@ -12,8 +13,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
@@ -112,6 +115,13 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery {
+			projectDatasource.findEntityType(
+				any(),
+				any(),
+				any()
+			)
+		} returns ApiProjectEntity.Type.SCENE
 
 		coEvery {
 			sceneSynchronizer.saveEntity(
@@ -126,7 +136,79 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		createProjectRepository().apply {
 			val result =
 				saveEntity(userId, projectDefinition, createSceneEntity(1), null, syncId, false)
-			assertTrue { result.isSuccess }
+			assertTrue(isSuccess(result))
+		}
+
+		coVerify {
+			sceneSynchronizer.saveEntity(
+				userId,
+				projectDefinition,
+				sceneEntity,
+				null,
+				false
+			)
+		}
+	}
+
+	@Test
+	fun `Save Entity - Incorrect entity type`() = runTest {
+		val syncId = "sync-id"
+		val entityId = 1
+		val noteEntity = createNoteEntity(entityId)
+
+		mockCreateSession(syncId)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+
+		coEvery {
+			projectDatasource.findEntityType(
+				any(),
+				any(),
+				any()
+			)
+		} returns ApiProjectEntity.Type.SCENE
+
+		createProjectRepository().apply {
+			val result =
+				saveEntity(userId, projectDefinition, noteEntity, null, syncId, false)
+			assertFalse(isSuccess(result))
+			val exception = result.exception
+			assertTrue(exception is EntityTypeConflictException)
+			assertEquals(ApiProjectEntity.Type.SCENE, exception.existingType)
+			assertEquals(ApiProjectEntity.Type.NOTE, exception.submittedType)
+			assertEquals(entityId, exception.id)
+		}
+
+		coVerify(exactly = 0) { sceneSynchronizer.saveEntity(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `Save Entity - No existing entity type`() = runTest {
+		val syncId = "sync-id"
+		val sceneEntity = createSceneEntity(1)
+
+		mockCreateSession(syncId)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
+		coEvery {
+			sceneSynchronizer.saveEntity(
+				userId,
+				projectDefinition,
+				sceneEntity,
+				null,
+				false
+			)
+		} returns SResult.success(true)
+
+		createProjectRepository().apply {
+			val result =
+				saveEntity(userId, projectDefinition, sceneEntity, null, syncId, false)
+			assertTrue(isSuccess(result))
 		}
 
 		coVerify {
@@ -150,6 +232,14 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 			content = "Test Content",
 			outline = "",
 			notes = "",
+		)
+	}
+
+	private fun createNoteEntity(entityId: Int): ApiProjectEntity.NoteEntity {
+		return ApiProjectEntity.NoteEntity(
+			id = entityId,
+			content = "Test Note",
+			created = Instant.fromEpochSeconds(123)
 		)
 	}
 }

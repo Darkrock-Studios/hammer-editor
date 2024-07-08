@@ -51,7 +51,10 @@ class ProjectRepository(
 
 		val syncKey = ProjectSyncKey(userId, projectDef)
 
-		return if (projectsSessions.hasActiveSyncSession(userId) || sessionManager.hasActiveSyncSession(syncKey)) {
+		return if (
+			projectsSessions.hasActiveSyncSession(userId) ||
+			sessionManager.hasActiveSyncSession(syncKey)
+		) {
 			SResult.failure(
 				"begin sync failure: existing session",
 				Msg.r("api.project.sync.begin.error.session", userId)
@@ -68,14 +71,15 @@ class ProjectRepository(
 				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
 			}
 
-			val newSyncId = sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
-				ProjectSynchronizationSession(
-					userId = key.userId,
-					projectDef = key.projectDef,
-					started = clock.now(),
-					syncId = sync
-				)
-			}
+			val newSyncId =
+				sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
+					ProjectSynchronizationSession(
+						userId = key.userId,
+						projectDef = key.projectDef,
+						started = clock.now(),
+						syncId = sync
+					)
+				}
 
 			val updateSequence = getUpdateSequence(userId, projectDef, clientState, lite)
 			val syncBegan = ProjectSynchronizationBegan(
@@ -146,7 +150,10 @@ class ProjectRepository(
 				)
 			)
 		} else {
-			SResult.failure("Project does not exist", Msg.r("api.project.getproject.error.notfound"))
+			SResult.failure(
+				"Project does not exist",
+				Msg.r("api.project.getproject.error.notfound")
+			)
 		}
 	}
 
@@ -160,6 +167,18 @@ class ProjectRepository(
 	): SResult<Boolean> {
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
+
+		val existingType = projectDatasource.findEntityType(entity.id, userId, projectDef)
+		if (existingType != null && existingType != entity.type)
+			return SResult.failure(
+				"Entity type mismatch",
+				exception = EntityTypeConflictException(
+					id = entity.id,
+					existingType = existingType,
+					submittedType = entity.type
+				),
+				displayMessage = Msg.r("api.project.saveentity.error.typeconflict")
+			)
 
 		val result = when (entity) {
 			is ApiProjectEntity.SceneEntity -> sceneSynchronizer.saveEntity(
@@ -221,22 +240,42 @@ class ProjectRepository(
 		}
 
 		val entityType: ApiProjectEntity.Type =
-			projectDatasource.getEntityType(userId, projectDef, entityId) ?: return SResult.failure(
-				"No type found",
-				exception = NoEntityTypeFound(entityId)
-			)
+			projectDatasource.findEntityType(entityId, userId, projectDef)
+				?: return SResult.failure(
+					"No type found",
+					exception = NoEntityTypeFound(entityId)
+				)
 
 		when (entityType) {
-			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(userId, projectDef, entityId)
-			ApiProjectEntity.Type.NOTE -> noteSynchronizer.deleteEntity(userId, projectDef, entityId)
-			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.NOTE -> noteSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
 			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.deleteEntity(
 				userId,
 				projectDef,
 				entityId
 			)
 
-			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
 		}
 
 		return SResult.success()
@@ -255,23 +294,41 @@ class ProjectRepository(
 			?: return SResult.failure("EntityNotFound", exception = EntityNotFound(entityId))
 
 		return when (type) {
-			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
 			ApiProjectEntity.Type.NOTE -> noteSynchronizer.loadEntity(userId, projectDef, entityId)
-			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.TIMELINE_EVENT -> timelineEventSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
 			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> encyclopediaSynchronizer.loadEntity(
 				userId,
 				projectDef,
 				entityId
 			)
 
-			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.loadEntity(userId, projectDef, entityId)
+			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
 		}
 	}
 
-	private suspend fun validateSyncId(userId: Long, projectDef: ProjectDefinition, syncId: String): Boolean {
+	private suspend fun validateSyncId(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		syncId: String
+	): Boolean {
 		val syncKey = ProjectSyncKey(userId, projectDef)
 		return !projectsSessions.hasActiveSyncSession(userId) &&
-				sessionManager.validateSyncId(syncKey, syncId, true)
+			sessionManager.validateSyncId(syncKey, syncId, true)
 	}
 
 	private suspend fun getUpdateSequence(
@@ -283,18 +340,24 @@ class ProjectRepository(
 		val updateSequence = mutableSetOf<Int>()
 		if (lite.not()) {
 			updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-			updateSequence += sceneDraftSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += sceneDraftSynchronizer.getUpdateSequence(
+				userId,
+				projectDef,
+				clientState
+			)
 			updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-			updateSequence += timelineEventSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-			updateSequence += encyclopediaSynchronizer.getUpdateSequence(userId, projectDef, clientState)
+			updateSequence += timelineEventSynchronizer.getUpdateSequence(
+				userId,
+				projectDef,
+				clientState
+			)
+			updateSequence += encyclopediaSynchronizer.getUpdateSequence(
+				userId,
+				projectDef,
+				clientState
+			)
 		}
 
 		return updateSequence.toList()
 	}
 }
-
-data class ProjectServerState(val lastSync: Instant, val lastId: Int)
-
-class InvalidSyncIdException : Exception("Invalid sync id")
-class NoEntityTypeFound(val id: Int) : Exception("Could not find Type for Entity ID: $id")
-class EntityNotFound(val id: Int) : Exception("Entity $id not found on server")
