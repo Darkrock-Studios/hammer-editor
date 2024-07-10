@@ -2,13 +2,11 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import kotlinx.serialization.json.Json
-import okio.FileSystem
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 
 class ServerTimelineSynchronizer(
-	fileSystem: FileSystem,
-	json: Json,
-) : ServerEntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(fileSystem, json) {
+	datasource: ProjectDatasource,
+) : ServerEntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(datasource) {
 	override fun hashEntity(entity: ApiProjectEntity.TimelineEventEntity): String {
 		return EntityHasher.hashTimelineEvent(
 			id = entity.id,

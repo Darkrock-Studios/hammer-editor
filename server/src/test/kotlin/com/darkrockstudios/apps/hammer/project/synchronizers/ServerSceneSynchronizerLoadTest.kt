@@ -1,77 +1,54 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
-import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.project.EntityNotFound
-import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.utilities.isFailure
-import com.darkrockstudios.apps.hammer.utils.BaseTest
-import createProject
-import io.mockk.every
+import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import io.mockk.mockk
-import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import kotlin.reflect.KClass
 
-class ServerSceneSynchronizerLoadTest : BaseTest() {
+class ServerSceneSynchronizerLoadTest :
+	ServerEntitySynchronizerTest<ApiProjectEntity.SceneEntity, ServerSceneSynchronizer>() {
 
-	protected lateinit var fileSystem: FakeFileSystem
-	protected lateinit var json: Json
-	protected lateinit var log: io.ktor.util.logging.Logger
+	private lateinit var log: io.ktor.util.logging.Logger
+
+	override val entityType: ApiProjectEntity.Type = ApiProjectEntity.Type.SCENE
+	override val entityClazz: KClass<ApiProjectEntity.SceneEntity> =
+		ApiProjectEntity.SceneEntity::class
+	override val pathStub: String = "scene"
 
 	@Before
 	override fun setup() {
 		super.setup()
-
-		fileSystem = FakeFileSystem()
-		json = mockk()
-
-		log = mockk(relaxed = true)
+		log = mockk()
 	}
 
-	@Test
-	fun `Decode Scene JSON - SerializationException`() = runTest {
-		val userId = 1L
-		val entityId = 1
-		val projectDef = ProjectDefinition(PROJECT_1_NAME)
-
-		createProject(userId, projectDef.name, fileSystem)
-
-		val exception = SerializationException("test")
-		every { json.decodeFromString<ApiProjectEntity.SceneEntity>(any(), any()) } answers {
-			throw exception
-		}
-
-		val synchronizer = ServerSceneSynchronizer(fileSystem, json, log)
-		val result = synchronizer.loadEntity(userId, projectDef, entityId)
-		assertTrue(isFailure(result))
-		assertEquals(exception, result.exception)
+	override fun createSynchronizer(): ServerSceneSynchronizer {
+		return ServerSceneSynchronizer(datasource, log)
 	}
 
-	@Test
-	fun `Decode Scene JSON - Entity Not Found`() = runTest {
-		val userId = 1L
-		val entityId = 10 // Not a real Entity ID
-		val projectDef = ProjectDefinition(PROJECT_1_NAME)
+	override fun createNewEntity(): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
+			id = 1,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene",
+			path = listOf(0),
+			content = "Test Content",
+			outline = "Test Outline",
+			notes = "Test Notes",
+		)
+	}
 
-		createProject(userId, projectDef.name, fileSystem)
-
-		val exception = EntityNotFound(entityId)
-		every { json.decodeFromString<ApiProjectEntity.SceneEntity>(any(), any()) } answers {
-			throw exception
-		}
-
-		val synchronizer = ServerSceneSynchronizer(fileSystem, json, log)
-		val result = synchronizer.loadEntity(userId, projectDef, entityId)
-		assertTrue(isFailure(result))
-		val resultException = result.exception
-		assertIs<EntityNotFound>(resultException)
-		assertEquals(entityId, resultException.id)
+	override fun createExistingEntity(): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
+			id = 1,
+			sceneType = ApiSceneType.Scene,
+			order = 2,
+			name = "Test Scene Different",
+			path = listOf(0),
+			content = "Test Content Different",
+			outline = "Test Outline Different",
+			notes = "Test Notes Different",
+		)
 	}
 }

@@ -2,13 +2,11 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import kotlinx.serialization.json.Json
-import okio.FileSystem
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 
 class ServerEncyclopediaSynchronizer(
-	fileSystem: FileSystem,
-	json: Json,
-) : ServerEntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(fileSystem, json) {
+	datasource: ProjectDatasource,
+) : ServerEntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(datasource) {
 	override fun hashEntity(entity: ApiProjectEntity.EncyclopediaEntryEntity): String {
 		return EntityHasher.hashEncyclopediaEntry(
 			id = entity.id,

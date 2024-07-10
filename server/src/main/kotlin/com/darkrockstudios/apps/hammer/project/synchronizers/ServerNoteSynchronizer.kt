@@ -2,13 +2,11 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import kotlinx.serialization.json.Json
-import okio.FileSystem
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 
 class ServerNoteSynchronizer(
-	fileSystem: FileSystem,
-	json: Json,
-) : ServerEntitySynchronizer<ApiProjectEntity.NoteEntity>(fileSystem, json) {
+	datasource: ProjectDatasource,
+) : ServerEntitySynchronizer<ApiProjectEntity.NoteEntity>(datasource) {
 	override fun hashEntity(entity: ApiProjectEntity.NoteEntity): String {
 		return EntityHasher.hashNote(
 			id = entity.id,
@@ -18,6 +16,6 @@ class ServerNoteSynchronizer(
 	}
 
 	override val entityType = ApiProjectEntity.Type.NOTE
-	override val entityClazz = ApiProjectEntity.NoteEntity::class
-	override val pathStub = ApiProjectEntity.Type.NOTE.name.lowercase()
+	public override val entityClazz = ApiProjectEntity.NoteEntity::class
+	public override val pathStub = ApiProjectEntity.Type.NOTE.name.lowercase()
 }

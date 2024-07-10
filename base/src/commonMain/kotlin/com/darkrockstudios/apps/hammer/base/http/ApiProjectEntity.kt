@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.base.http
 
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 
+@Serializable
+@Polymorphic
 sealed interface ApiProjectEntity {
 	val type: Type
 	val id: Int

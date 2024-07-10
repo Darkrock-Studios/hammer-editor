@@ -1,26 +1,33 @@
 package com.darkrockstudios.apps.hammer.project.datasource
 
+import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.writeJson
+import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
+import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utils.BaseTest
+import createProject
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.Before
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ProjectFilesystemDatasourceTest : BaseTest() {
 
-	private lateinit var fileSystem: FileSystem
+	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var json: Json
 
 	private val userId = 1L
@@ -175,6 +182,57 @@ class ProjectFilesystemDatasourceTest : BaseTest() {
 
 		entityType = datasource.findEntityType(16, userId, projectDef)
 		assertEquals(ApiProjectEntity.Type.NOTE, entityType)
+	}
+
+	@Test
+	fun `Load Entity - Decode Scene JSON - SerializationException`() = runTest {
+		val userId = 1L
+		val entityId = 1
+		val projectDef = ProjectDefinition(PROJECT_1_NAME)
+
+		createProject(userId, projectDef.name, fileSystem)
+
+		json = mockk()
+
+		val exception = SerializationException("test")
+		every { json.decodeFromString<ApiProjectEntity.SceneEntity>(any(), any()) } answers {
+			throw exception
+		}
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+		val result = datasource.loadEntity(
+			userId,
+			projectDef,
+			entityId,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer()
+		)
+
+		assertTrue(isFailure(result))
+		assertEquals(exception, result.exception)
+	}
+
+	@Test
+	fun `Load Entity - Decode Scene JSON - Entity Not Found`() = runTest {
+		val userId = 1L
+		val entityId = 10 // Not a real Entity ID
+		val projectDef = ProjectDefinition(PROJECT_1_NAME)
+
+		createProject(userId, projectDef.name, fileSystem)
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+		val result = datasource.loadEntity(
+			userId,
+			projectDef,
+			entityId,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer()
+		)
+
+		assertTrue(isFailure(result))
+		val resultException = result.exception
+		assertIs<EntityNotFound>(resultException)
+		assertEquals(entityId, resultException.id)
 	}
 
 	private fun setupEntities() {

@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import org.junit.Test
@@ -34,7 +33,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 		mockCreateSession(syncId)
 
-		every { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
+		coEvery { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
 			SResult.success(createSceneEntity(entityId))
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false

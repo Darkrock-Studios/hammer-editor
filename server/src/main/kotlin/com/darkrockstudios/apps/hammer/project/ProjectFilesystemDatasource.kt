@@ -1,13 +1,17 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEntitySynchronizer
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource.Companion.getUserDirectory
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.datetime.Instant
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
+import java.io.IOException
 
 class ProjectFilesystemDatasource(
 	private val fileSystem: FileSystem,
@@ -96,7 +100,7 @@ class ProjectFilesystemDatasource(
 	): Int? {
 		val dir = getEntityDirectory(userId, projectDef)
 		return fileSystem.list(dir)
-			.mapNotNull { path -> ServerEntitySynchronizer.parseEntityFilename(path) }
+			.mapNotNull { path -> parseEntityFilename(path) }
 			.maxByOrNull { def -> def.id }?.id
 	}
 
@@ -107,12 +111,94 @@ class ProjectFilesystemDatasource(
 	): ApiProjectEntity.Type? {
 		val dir = getEntityDirectory(userId, projectDef)
 		fileSystem.list(dir).forEach { path ->
-			val def = ServerEntitySynchronizer.parseEntityFilename(path)
+			val def = parseEntityFilename(path)
 			if (def?.id == entityId) {
 				return def.type
 			}
 		}
 		return null
+	}
+
+	override suspend fun getEntityDefs(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		filter: (EntityDefinition) -> Boolean
+	): List<EntityDefinition> {
+		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
+		val entities = fileSystem.list(entityDir).mapNotNull {
+			parseEntityFilename(it)
+		}.filter(filter)
+		return entities
+	}
+
+	override suspend fun <T : ApiProjectEntity> storeEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entity: T,
+		entityType: ApiProjectEntity.Type,
+		serializer: KSerializer<T>,
+	): SResult<Boolean> {
+		return try {
+			val path = getPath(
+				userId = userId,
+				projectDef = projectDef,
+				entityId = entity.id,
+				entityType = entityType,
+			)
+			val jsonString: String = json.encodeToString(serializer, entity)
+			fileSystem.write(path) {
+				writeUtf8(jsonString)
+			}
+			SResult.success(true)
+		} catch (e: SerializationException) {
+			SResult.failure(e)
+		} catch (e: IllegalArgumentException) {
+			SResult.failure(e)
+		} catch (e: IOException) {
+			SResult.failure(e)
+		}
+	}
+
+	override suspend fun <T : ApiProjectEntity> loadEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		entityType: ApiProjectEntity.Type,
+		serializer: KSerializer<T>,
+	): SResult<T> {
+		val path = getPath(userId, entityType, projectDef, entityId)
+
+		return try {
+			val jsonString = fileSystem.read(path) {
+				readUtf8()
+			}
+
+			val scene = json.decodeFromString(serializer, jsonString)
+			SResult.success(scene)
+		} catch (e: SerializationException) {
+			SResult.failure(e)
+		} catch (e: IllegalArgumentException) {
+			SResult.failure(e)
+		} catch (e: FileNotFoundException) {
+			SResult.failure(EntityNotFound(entityId))
+		} catch (e: IOException) {
+			SResult.failure(e)
+		}
+	}
+
+	override suspend fun deleteEntity(
+		userId: Long,
+		entityType: ApiProjectEntity.Type,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): SResult<Unit> {
+		val path = getPath(userId, entityType, projectDef, entityId)
+		return try {
+			fileSystem.delete(path, false)
+			SResult.success()
+		} catch (e: IOException) {
+			SResult.failure(e)
+		}
 	}
 
 	private fun ensureEntityDir(userId: Long, projectDef: ProjectDefinition) {
@@ -133,9 +219,39 @@ class ProjectFilesystemDatasource(
 		return dir / SYNC_DATA_FILE
 	}
 
+	private fun getPath(
+		userId: Long,
+		entityType: ApiProjectEntity.Type,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): Path {
+		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
+		val filename = "$entityId-${getPath(entityType)}.json"
+		return entityDir / filename
+	}
+
+	private fun getPath(entityType: ApiProjectEntity.Type): String = entityType.name.lowercase()
+
 	companion object {
-		const val SYNC_DATA_FILE = "syncData.json"
-		const val ENTITY_DIR = "entities"
+		private val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z_]+).json$")
+		private const val SYNC_DATA_FILE = "syncData.json"
+		private const val ENTITY_DIR = "entities"
+
+		fun parseEntityFilename(path: Path): EntityDefinition? {
+			val filename = path.name
+			val match = ENTITY_FILENAME_REGEX.matchEntire(filename)
+			return if (match != null) {
+				val (id, typeStr) = match.destructured
+				val type = ApiProjectEntity.Type.fromString(typeStr)
+				if (type != null) {
+					EntityDefinition(id.toInt(), type)
+				} else {
+					null
+				}
+			} else {
+				null
+			}
+		}
 
 		fun getProjectDirectory(
 			userId: Long,

@@ -3,16 +3,18 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import kotlinx.serialization.json.Json
-import okio.FileSystem
 
 class ServerSceneSynchronizer(
-	fileSystem: FileSystem,
-	json: Json,
+	datasource: ProjectDatasource,
 	private val log: io.ktor.util.logging.Logger
-) : ServerEntitySynchronizer<ApiProjectEntity.SceneEntity>(fileSystem, json) {
+) : ServerEntitySynchronizer<ApiProjectEntity.SceneEntity>(datasource) {
+
+	override val entityType = ApiProjectEntity.Type.SCENE
+	override val entityClazz = ApiProjectEntity.SceneEntity::class
+	override val pathStub = ApiProjectEntity.Type.SCENE.name.lowercase()
 
 	override fun hashEntity(entity: ApiProjectEntity.SceneEntity): String {
 		return EntityHasher.hashScene(
@@ -27,12 +29,12 @@ class ServerSceneSynchronizer(
 		)
 	}
 
-	override fun getUpdateSequence(
+	override suspend fun getUpdateSequence(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = getEntityDefs(userId, projectDef)
+		val entities = datasource.getEntityDefs(userId, projectDef)
 
 		// Sort by SceneType, we want directories first
 		val allEntities = entities.mapNotNull { def ->
@@ -64,8 +66,4 @@ class ServerSceneSynchronizer(
 
 		return entityIds
 	}
-
-	override val entityType = ApiProjectEntity.Type.SCENE
-	override val entityClazz = ApiProjectEntity.SceneEntity::class
-	override val pathStub = ApiProjectEntity.Type.SCENE.name.lowercase()
 }

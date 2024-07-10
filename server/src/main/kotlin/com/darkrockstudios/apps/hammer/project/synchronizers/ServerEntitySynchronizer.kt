@@ -2,47 +2,47 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
-import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.project.EntityNotFound
+import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import okio.FileNotFoundException
-import okio.FileSystem
-import okio.Path
-import java.io.IOException
 import kotlin.reflect.KClass
 
+@OptIn(InternalSerializationApi::class)
 abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
-	protected val fileSystem: FileSystem,
-	protected val json: Json
+	protected val datasource: ProjectDatasource
 ) {
 	abstract val entityType: ApiProjectEntity.Type
 	abstract fun hashEntity(entity: T): String
-	protected abstract val entityClazz: KClass<T>
-	protected abstract val pathStub: String
+	abstract val entityClazz: KClass<T>
+	abstract val pathStub: String
 
-	private fun hashEntity(userId: Long, projectDef: ProjectDefinition, entityId: Int): String? {
-		val path = getPath(userId = userId, projectDef = projectDef, entityId = entityId)
+	private suspend fun hashEntity(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): String? {
+		val existingEntityResult =
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				entityId,
+				entityType,
+				entityClazz.serializer()
+			)
 
-		return if (fileSystem.exists(path)) {
-			val existingEntity = fileSystem.readJsonOrNull(path, json, entityClazz)
-			if (existingEntity != null) {
-				hashEntity(existingEntity)
-			} else {
-				null
-			}
+		return if (isSuccess(existingEntityResult)) {
+			val existingEntity = existingEntityResult.data
+			hashEntity(existingEntity)
 		} else {
 			null
 		}
 	}
 
-	protected fun checkForConflict(
+	private suspend fun checkForConflict(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entity: T,
@@ -51,22 +51,29 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	): EntityConflictException? {
 		if (force) return null
 
-		val path = getPath(userId = userId, projectDef = projectDef, entityId = entity.id)
-		if (!fileSystem.exists(path)) return null
+		val existingEntityResult = datasource.loadEntity(
+			userId,
+			projectDef,
+			entity.id,
+			entityType,
+			entityClazz.serializer()
+		)
 
-		val existingEntity = fileSystem.readJsonOrNull(path, json, entityClazz)
-			?: return null // Early exit if can't read entity
-
-		val existingHash = hashEntity(existingEntity)
-		if (originalHash != null && existingHash != originalHash) {
-			return EntityConflictException.fromEntity(existingEntity)
+		return if (isSuccess(existingEntityResult)) {
+			val existingEntity = existingEntityResult.data
+			val existingHash = hashEntity(existingEntity)
+			if (originalHash != null && existingHash != originalHash) {
+				EntityConflictException.fromEntity(existingEntity)
+			} else {
+				null
+			}
+		} else {
+			null
 		}
-
-		return null // No conflict
 	}
 
 	@OptIn(InternalSerializationApi::class)
-	fun saveEntity(
+	suspend fun saveEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entity: T,
@@ -81,81 +88,34 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 			force,
 		)
 		return if (conflict == null) {
-			try {
-				val path = getPath(userId = userId, projectDef = projectDef, entityId = entity.id)
-				val jsonString: String = json.encodeToString(entityClazz.serializer(), entity)
-				fileSystem.write(path) {
-					writeUtf8(jsonString)
-				}
-				SResult.success(true)
-			} catch (e: SerializationException) {
-				SResult.failure(e)
-			} catch (e: IllegalArgumentException) {
-				SResult.failure(e)
-			} catch (e: IOException) {
-				SResult.failure(e)
-			}
+			datasource.storeEntity(userId, projectDef, entity, entityType, entityClazz.serializer())
 		} else {
 			SResult.failure(conflict)
 		}
 	}
 
 	@OptIn(InternalSerializationApi::class)
-	fun loadEntity(
+	suspend fun loadEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		entityId: Int,
-	): SResult<T> {
-		val path = getPath(userId, projectDef, entityId)
+	): SResult<T> =
+		datasource.loadEntity(userId, projectDef, entityId, entityType, entityClazz.serializer())
 
-		return try {
-			val jsonString = fileSystem.read(path) {
-				readUtf8()
-			}
-
-			val scene = json.decodeFromString(entityClazz.serializer(), jsonString)
-			SResult.success(scene)
-		} catch (e: SerializationException) {
-			SResult.failure(e)
-		} catch (e: IllegalArgumentException) {
-			SResult.failure(e)
-		} catch (e: FileNotFoundException) {
-			SResult.failure(EntityNotFound(entityId))
-		} catch (e: IOException) {
-			SResult.failure(e)
-		}
-	}
-
-	private fun getPath(userId: Long, projectDef: ProjectDefinition, entityId: Int): Path {
-		val entityDir =
-			ProjectFilesystemDatasource.getEntityDirectory(userId, projectDef, fileSystem)
-		val filename = "$entityId-$pathStub.json"
-		return entityDir / filename
-	}
-
-	fun deleteEntity(userId: Long, projectDef: ProjectDefinition, entityId: Int) {
-		val path = getPath(userId, projectDef, entityId)
-		fileSystem.delete(path, false)
-	}
-
-	protected fun getEntityDefs(
+	suspend fun deleteEntity(
 		userId: Long,
-		projectDef: ProjectDefinition
-	): List<EntityDefinition> {
-		val entityDir =
-			ProjectFilesystemDatasource.getEntityDirectory(userId, projectDef, fileSystem)
-		val entities = fileSystem.list(entityDir).mapNotNull {
-			parseEntityFilename(it)
-		}.filter { it.type == entityType }
-		return entities
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): SResult<Unit> {
+		return datasource.deleteEntity(userId, entityType, projectDef, entityId)
 	}
 
-	open fun getUpdateSequence(
+	open suspend fun getUpdateSequence(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = getEntityDefs(userId, projectDef)
+		val entities = datasource.getEntityDefs(userId, projectDef) { it.type == entityType }
 			.filter { def ->
 				val clientEntityState = clientState?.entities?.find { it.id == def.id }
 				if (clientEntityState != null) {
@@ -168,29 +128,4 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 
 		return entities.map { it.id }
 	}
-
-	companion object {
-		val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z_]+).json$")
-
-		fun parseEntityFilename(path: Path): EntityDefinition? {
-			val filename = path.name
-			val match = ENTITY_FILENAME_REGEX.matchEntire(filename)
-			return if (match != null) {
-				val (id, typeStr) = match.destructured
-				val type = ApiProjectEntity.Type.fromString(typeStr)
-				if (type != null) {
-					EntityDefinition(id.toInt(), type)
-				} else {
-					null
-				}
-			} else {
-				null
-			}
-		}
-	}
 }
-
-data class EntityDefinition(
-	val id: Int,
-	val type: ApiProjectEntity.Type,
-)
