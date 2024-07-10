@@ -224,13 +224,7 @@ class ProjectFilesystemDatasource(
 		entityType: ApiProjectEntity.Type,
 		projectDef: ProjectDefinition,
 		entityId: Int
-	): Path {
-		val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
-		val filename = "$entityId-${getPath(entityType)}.json"
-		return entityDir / filename
-	}
-
-	private fun getPath(entityType: ApiProjectEntity.Type): String = entityType.name.lowercase()
+	): Path = getEntityPath(userId, entityType, projectDef, entityId, fileSystem)
 
 	companion object {
 		private val ENTITY_FILENAME_REGEX = Regex("^([0-9]+)-([a-zA-Z_]+).json$")
@@ -284,6 +278,21 @@ class ProjectFilesystemDatasource(
 		): Path {
 			val dir = getProjectDirectory(userId, projectDef, fileSystem)
 			return dir / SYNC_DATA_FILE
+		}
+
+		private fun getPathStub(entityType: ApiProjectEntity.Type): String =
+			entityType.name.lowercase()
+
+		fun getEntityPath(
+			userId: Long,
+			entityType: ApiProjectEntity.Type,
+			projectDef: ProjectDefinition,
+			entityId: Int,
+			fileSystem: FileSystem,
+		): Path {
+			val entityDir = getEntityDirectory(userId, projectDef, fileSystem)
+			val filename = "$entityId-${getPathStub(entityType)}.json"
+			return entityDir / filename
 		}
 	}
 }

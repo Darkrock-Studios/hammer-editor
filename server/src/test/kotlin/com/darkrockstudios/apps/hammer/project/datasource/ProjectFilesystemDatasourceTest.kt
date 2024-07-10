@@ -2,8 +2,10 @@ package com.darkrockstudios.apps.hammer.project.datasource
 
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.writeJson
+import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
@@ -185,6 +187,31 @@ class ProjectFilesystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Find Entity Defs`() = runTest {
+		setupEntities()
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+
+		val entityDefs = datasource.getEntityDefs(userId, projectDef) { true }
+		val expectedDefs = listOf(
+			EntityDefinition(1, ApiProjectEntity.Type.SCENE),
+			EntityDefinition(2, ApiProjectEntity.Type.SCENE),
+			EntityDefinition(4, ApiProjectEntity.Type.SCENE),
+			EntityDefinition(5, ApiProjectEntity.Type.SCENE),
+			EntityDefinition(6, ApiProjectEntity.Type.SCENE_DRAFT),
+			EntityDefinition(7, ApiProjectEntity.Type.SCENE_DRAFT),
+			EntityDefinition(10, ApiProjectEntity.Type.TIMELINE_EVENT),
+			EntityDefinition(12, ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY),
+			EntityDefinition(14, ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY),
+			EntityDefinition(15, ApiProjectEntity.Type.SCENE),
+			EntityDefinition(16, ApiProjectEntity.Type.NOTE),
+			EntityDefinition(20, ApiProjectEntity.Type.NOTE),
+		)
+
+		assertEquals(expectedDefs, entityDefs.sortedBy { it.id })
+	}
+
+	@Test
 	fun `Load Entity - Decode Scene JSON - SerializationException`() = runTest {
 		val userId = 1L
 		val entityId = 1
@@ -233,6 +260,82 @@ class ProjectFilesystemDatasourceTest : BaseTest() {
 		val resultException = result.exception
 		assertIs<EntityNotFound>(resultException)
 		assertEquals(entityId, resultException.id)
+	}
+
+	@Test
+	fun `Delete Entity`() = runTest {
+		val entityId = 1
+		setupEntities()
+
+		val path = ProjectFilesystemDatasource.getEntityPath(
+			userId = userId,
+			entityType = ApiProjectEntity.Type.SCENE,
+			projectDef = projectDef,
+			entityId = entityId,
+			fileSystem = fileSystem
+		)
+		assertTrue(fileSystem.exists(path))
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+		val result =
+			datasource.deleteEntity(userId, ApiProjectEntity.Type.SCENE, projectDef, entityId)
+		assertTrue(result.isSuccess)
+		assertFalse(fileSystem.exists(path))
+	}
+
+	@Test
+	fun `Delete Entity - Failure - Wrong Type`() = runTest {
+		val entityId = 1
+		setupEntities()
+
+		val path = ProjectFilesystemDatasource.getEntityPath(
+			userId = userId,
+			entityType = ApiProjectEntity.Type.SCENE,
+			projectDef = projectDef,
+			entityId = entityId,
+			fileSystem = fileSystem
+		)
+		assertTrue(fileSystem.exists(path))
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+		val result =
+			datasource.deleteEntity(userId, ApiProjectEntity.Type.NOTE, projectDef, entityId)
+		assertTrue(result.isSuccess)
+		assertTrue(fileSystem.exists(path))
+	}
+
+	@Test
+	fun `Store Entity - Scene Entity`() = runTest {
+		val entityId = 1
+		val entity = ApiProjectEntity.SceneEntity(
+			id = entityId,
+			name = "test",
+			content = "test content",
+			order = 0,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			outline = "outline",
+			notes = "notes",
+		)
+
+		val datasource = ProjectFilesystemDatasource(fileSystem, json)
+		val result = datasource.storeEntity(
+			userId,
+			projectDef,
+			entity,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer()
+		)
+		assertTrue(result.isSuccess)
+
+		val path = ProjectFilesystemDatasource.getEntityPath(
+			userId = userId,
+			entityType = ApiProjectEntity.Type.SCENE,
+			projectDef = projectDef,
+			entityId = entityId,
+			fileSystem = fileSystem
+		)
+		assertTrue(fileSystem.exists(path))
 	}
 
 	private fun setupEntities() {
