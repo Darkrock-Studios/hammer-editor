@@ -70,7 +70,7 @@ uuid = "0.8.4"
 work-runtime-ktx = "2.9.0"
 
 multiplatform_window_size = "0.5.0"
-mockk = "1.13.11"
+mockk = "1.13.12"
 
 tomlkt = "0.4.0"
 
