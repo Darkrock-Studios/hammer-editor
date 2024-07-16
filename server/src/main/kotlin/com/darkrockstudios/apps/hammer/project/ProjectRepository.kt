@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
@@ -272,7 +273,7 @@ class ProjectRepository(
 			)
 		}
 
-		if (deleteResult.isSuccess) {
+		if (isSuccess(deleteResult)) {
 			projectDatasource.updateSyncData(userId, projectDef) {
 				it.copy(
 					deletedIds = it.deletedIds + entityId

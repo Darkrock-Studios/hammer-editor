@@ -80,7 +80,6 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		mockCreateSession(syncId)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 
 		coEvery {
@@ -114,7 +113,6 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		mockCreateSession(syncId)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery {
 			projectDatasource.findEntityType(
@@ -160,7 +158,6 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		mockCreateSession(syncId)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 
 		coEvery {
@@ -193,7 +190,6 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		mockCreateSession(syncId)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
 		coEvery {
@@ -224,12 +220,25 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Delete Entity - Invalid SyncId`() = runTest {
+		val syncId = "sync-id"
+		val entityId = 1
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
+
+		createProjectRepository().apply {
+			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			assertFalse(isSuccess(result))
+		}
+	}
+
+	@Test
 	fun `Delete Entity - Not Found`() = runTest {
 		val syncId = "sync-id"
 		val entityId = 1
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
 		coEvery { projectDatasource.updateSyncData(any(), any(), any()) } just Runs
@@ -252,7 +261,6 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		val entityId = 1
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery {
 			projectDatasource.findEntityType(
