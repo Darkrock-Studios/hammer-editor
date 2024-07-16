@@ -78,12 +78,12 @@ class ServerSceneSynchronizerTest :
 				entityClazz.serializer()
 			)
 		} answers {
-			return@answers SResult.success(entities[entityIdSlot.captured - 1])
+			return@answers SResult.success(entities1[entityIdSlot.captured - 1])
 		}
 
 		val userId = 1L
 
-		val entities = entityDefs().filter { it.type == entityType }
+		val entities = entityDefs(entities1.size).filter { it.type == entityType }
 
 		coEvery {
 			datasource.getEntityDefs(userId, any(), any())
@@ -101,7 +101,7 @@ class ServerSceneSynchronizerTest :
 	fun `Get Scene Update Sequence - All the same`() = runTest {
 		val userId = 1L
 
-		val entityDefList = entityDefs()
+		val entityDefList = entityDefs(entities1.size)
 
 		coEvery {
 			datasource.getEntityDefs(userId, any(), any())
@@ -117,15 +117,13 @@ class ServerSceneSynchronizerTest :
 				entityClazz.serializer()
 			)
 		} answers {
-			return@answers SResult.success(entities[entityIdSlot.captured - 1])
+			return@answers SResult.success(entities1[entityIdSlot.captured - 1])
 		}
 
 		val clientState = ClientEntityState(
-			entities = setOf(
-				EntityHash(1, EntityHasher.hashEntity(entities[0])),
-				EntityHash(2, EntityHasher.hashEntity(entities[1])),
-				EntityHash(3, EntityHasher.hashEntity(entities[2])),
-			)
+			entities = List(entities1.size) {
+				EntityHash(it + 1, EntityHasher.hashEntity(entities1[it]))
+			}.toSet()
 		)
 
 		val synchronizer = createSynchronizer()
@@ -134,12 +132,84 @@ class ServerSceneSynchronizerTest :
 		assertEquals(emptyList(), result)
 	}
 
-	private val entities = listOf(
+	@OptIn(InternalSerializationApi::class)
+	@Test
+	fun `Get Scene Update Sequence - Reorder Groups`() = runTest {
+		val userId = 1L
+
+		val entityDefList = entityDefs(entities2.size)
+
+		coEvery {
+			datasource.getEntityDefs(userId, any(), any())
+		} returns entityDefList
+
+		val entityIdSlot = slot<Int>()
+		coEvery {
+			datasource.loadEntity(
+				userId,
+				any(),
+				capture(entityIdSlot),
+				any(),
+				entityClazz.serializer()
+			)
+		} answers {
+			return@answers SResult.success(entities2[entityIdSlot.captured - 1])
+		}
+
+		val clientState = ClientEntityState(
+			entities = emptySet()
+		)
+
+		val synchronizer = createSynchronizer()
+		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+
+		assertEquals(listOf(3, 1, 2, 4), result)
+	}
+
+	@OptIn(InternalSerializationApi::class)
+	@Test
+	fun `Get Scene Update Sequence - All different`() = runTest {
+		val userId = 1L
+
+		val entityDefList = entityDefs(entities1.size)
+
+		coEvery {
+			datasource.getEntityDefs(userId, any(), any())
+		} returns entityDefList
+
+		val entityIdSlot = slot<Int>()
+		coEvery {
+			datasource.loadEntity(
+				userId,
+				any(),
+				capture(entityIdSlot),
+				any(),
+				entityClazz.serializer()
+			)
+		} answers {
+			return@answers SResult.success(entities1[entityIdSlot.captured - 1])
+		}
+
+		val clientState = ClientEntityState(
+			entities = List(entities1.size) {
+				val e = entities1[it]
+				val different = e.copy(name = e.name + " Different")
+				EntityHash(it, EntityHasher.hashEntity(different))
+			}.toSet()
+		)
+
+		val synchronizer = createSynchronizer()
+		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+
+		assertEquals(entities1.map { it.id }, result)
+	}
+
+	private val entities1 = listOf(
 		ApiProjectEntity.SceneEntity(
 			id = 1,
 			sceneType = ApiSceneType.Scene,
 			order = 0,
-			name = "Test Scene",
+			name = "Test Scene 1",
 			path = listOf(0),
 			content = "Test Content",
 			outline = "Test Outline",
@@ -149,17 +219,17 @@ class ServerSceneSynchronizerTest :
 			id = 2,
 			sceneType = ApiSceneType.Scene,
 			order = 0,
-			name = "Test Scene",
+			name = "Test Scene 2",
 			path = listOf(0),
 			content = "Test Content",
 			outline = "Test Outline",
 			notes = "Test Notes",
 		),
 		ApiProjectEntity.SceneEntity(
-			id = 2,
+			id = 3,
 			sceneType = ApiSceneType.Scene,
 			order = 0,
-			name = "Test Scene",
+			name = "Test Scene 3",
 			path = listOf(0),
 			content = "Test Content",
 			outline = "Test Outline",
@@ -167,9 +237,50 @@ class ServerSceneSynchronizerTest :
 		)
 	)
 
-	private fun entityDefs() = listOf(
-		EntityDefinition(1, ApiProjectEntity.Type.SCENE),
-		EntityDefinition(2, ApiProjectEntity.Type.SCENE),
-		EntityDefinition(3, ApiProjectEntity.Type.SCENE),
+	private val entities2 = listOf(
+		ApiProjectEntity.SceneEntity(
+			id = 1,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene 1",
+			path = listOf(0),
+			content = "Test Content",
+			outline = "Test Outline",
+			notes = "Test Notes",
+		),
+		ApiProjectEntity.SceneEntity(
+			id = 4,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene 2",
+			path = listOf(0, 2),
+			content = "Test Content",
+			outline = "Test Outline",
+			notes = "Test Notes",
+		),
+		ApiProjectEntity.SceneEntity(
+			id = 3,
+			sceneType = ApiSceneType.Group,
+			order = 1,
+			name = "Test Scene 3",
+			path = listOf(0),
+			content = "Test Content",
+			outline = "Test Outline",
+			notes = "Test Notes",
+		),
+		ApiProjectEntity.SceneEntity(
+			id = 2,
+			sceneType = ApiSceneType.Scene,
+			order = 2,
+			name = "Test Scene 4",
+			path = listOf(0),
+			content = "Test Content",
+			outline = "Test Outline",
+			notes = "Test Notes",
+		),
 	)
+
+	private fun entityDefs(n: Int) = List(n) {
+		EntityDefinition(it + 1, ApiProjectEntity.Type.SCENE)
+	}
 }
