@@ -9,6 +9,7 @@ import io.mockk.coEvery
 import io.mockk.just
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -59,6 +60,56 @@ class ProjectRepositorySyncTest : ProjectRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
 			assertTrue(syncBegan.syncId.isNotBlank())
+		}
+	}
+
+	@Test
+	fun `Begin Project Sync - Update Sequence - Remove Dupes`() = runTest {
+		val syncId = "sync-id"
+		val syncData = ProjectSyncData(
+			lastSync = clock.now(),
+			lastId = 1,
+			deletedIds = emptySet()
+		)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
+
+		coEvery {
+			projectDatasource.checkProjectExists(
+				userId,
+				projectDefinition
+			)
+		} returns true
+
+		coEvery {
+			projectDatasource.loadProjectSyncData(
+				userId,
+				projectDefinition
+			)
+		} returns syncData
+
+		mockCreateSession(syncId)
+
+		coEvery { sceneSynchronizer.getUpdateSequence(any(), any(), any()) } returns listOf(1, 2, 3)
+		coEvery {
+			sceneDraftSynchronizer.getUpdateSequence(any(), any(), any())
+		} returns listOf(4, 5, 6)
+		coEvery { noteSynchronizer.getUpdateSequence(any(), any(), any()) } returns listOf(6, 7, 8)
+		coEvery {
+			timelineEventSynchronizer.getUpdateSequence(any(), any(), any())
+		} returns listOf(8, 9, 10, 11)
+		coEvery {
+			encyclopediaSynchronizer.getUpdateSequence(any(), any(), any())
+		} returns listOf(11, 12, 13, 14)
+
+		createProjectRepository().apply {
+			val result = beginProjectSync(userId, projectDefinition, clientState, false)
+
+			assertTrue(isSuccess(result))
+			val syncBegan = result.data
+			assertTrue(syncBegan.syncId.isNotBlank())
+			assertEquals((1..14).toList(), syncBegan.idSequence)
 		}
 	}
 
