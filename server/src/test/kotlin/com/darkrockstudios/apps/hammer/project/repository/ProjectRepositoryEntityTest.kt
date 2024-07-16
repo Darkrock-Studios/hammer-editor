@@ -9,8 +9,10 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.just
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import org.junit.Test
@@ -22,7 +24,7 @@ import kotlin.time.Duration.Companion.minutes
 class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 	@Test
-	fun `loadEntity - Expired SyncId`() = runTest {
+	fun `Load Entity - Expired SyncId`() = runTest {
 		val entityId = 1
 		val syncId = "sync-id"
 		val syncData = ProjectSyncData(
@@ -219,6 +221,70 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 				false
 			)
 		}
+	}
+
+	@Test
+	fun `Delete Entity - Not Found`() = runTest {
+		val syncId = "sync-id"
+		val entityId = 1
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
+		coEvery { projectDatasource.updateSyncData(any(), any(), any()) } just Runs
+		coEvery {
+			sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId)
+		} returns SResult.success()
+
+		createProjectRepository().apply {
+			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			assertFalse(isSuccess(result))
+		}
+
+		coVerify(exactly = 0) { projectDatasource.updateSyncData(any(), any(), any()) }
+		coVerify(exactly = 0) { sceneSynchronizer.deleteEntity(any(), any(), any()) }
+	}
+
+	@Test
+	fun `Delete Entity - Success - SceneEntity`() = runTest {
+		val syncId = "sync-id"
+		val entityId = 1
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns true
+		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery {
+			projectDatasource.findEntityType(
+				any(),
+				any(),
+				any()
+			)
+		} returns ApiProjectEntity.Type.SCENE
+
+		val existingDeletedIds = setOf(3)
+		lateinit var updatedSyncData: ProjectSyncData
+		coEvery { projectDatasource.updateSyncData(any(), any(), captureLambda()) } answers {
+			val data = ProjectSyncData(
+				lastSync = Instant.fromEpochSeconds(123),
+				lastId = 5,
+				deletedIds = existingDeletedIds
+			)
+			updatedSyncData = lambda<(ProjectSyncData) -> ProjectSyncData>().captured.invoke(data)
+		}
+		coEvery {
+			sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId)
+		} returns SResult.success()
+
+		createProjectRepository().apply {
+			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			assertTrue(isSuccess(result))
+		}
+
+		coVerify { projectDatasource.updateSyncData(userId, projectDefinition, any()) }
+		coVerify { sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId) }
+
+		assertEquals(setOf(3, entityId), updatedSyncData.deletedIds)
 	}
 
 	private fun createSceneEntity(entityId: Int): ApiProjectEntity.SceneEntity {

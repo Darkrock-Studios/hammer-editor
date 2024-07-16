@@ -233,12 +233,6 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
-		projectDatasource.updateSyncData(userId, projectDef) {
-			it.copy(
-				deletedIds = it.deletedIds + entityId
-			)
-		}
-
 		val entityType: ApiProjectEntity.Type =
 			projectDatasource.findEntityType(entityId, userId, projectDef)
 				?: return SResult.failure(
@@ -246,7 +240,7 @@ class ProjectRepository(
 					exception = NoEntityTypeFound(entityId)
 				)
 
-		when (entityType) {
+		val deleteResult = when (entityType) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(
 				userId,
 				projectDef,
@@ -278,7 +272,15 @@ class ProjectRepository(
 			)
 		}
 
-		return SResult.success()
+		if (deleteResult.isSuccess) {
+			projectDatasource.updateSyncData(userId, projectDef) {
+				it.copy(
+					deletedIds = it.deletedIds + entityId
+				)
+			}
+		}
+
+		return deleteResult
 	}
 
 	suspend fun loadEntity(
