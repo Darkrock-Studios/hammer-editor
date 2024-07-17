@@ -1,11 +1,20 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
-import com.darkrockstudios.apps.hammer.plugins.*
+import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
+import com.darkrockstudios.apps.hammer.plugins.configureHTTP
+import com.darkrockstudios.apps.hammer.plugins.configureLocalization
+import com.darkrockstudios.apps.hammer.plugins.configureMonitoring
+import com.darkrockstudios.apps.hammer.plugins.configureRouting
+import com.darkrockstudios.apps.hammer.plugins.configureSecurity
+import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.jetty.*
+import io.ktor.server.application.Application
+import io.ktor.server.engine.applicationEngineEnvironment
+import io.ktor.server.engine.connector
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.engine.sslConnector
+import io.ktor.server.jetty.Jetty
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import net.peanuuutz.tomlkt.Toml
@@ -69,7 +78,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean) {
 		}
 
 		module {
-			appMain(config)
+			appMain(config, FileSystem.SYSTEM)
 		}
 
 		developmentMode = devMode
@@ -90,8 +99,8 @@ private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
 }
 
-fun Application.appMain(config: ServerConfig) {
-	configureDependencyInjection()
+fun Application.appMain(config: ServerConfig, fileSystem: FileSystem) {
+	configureDependencyInjection(fileSystem)
 	configureSerialization()
 	configureMonitoring()
 	configureHTTP(config)

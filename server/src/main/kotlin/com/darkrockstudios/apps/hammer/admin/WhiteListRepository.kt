@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import io.ktor.util.*
+import io.ktor.util.toLowerCasePreservingASCIIRules
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -75,6 +75,7 @@ class WhiteListRepository(
 
 	private suspend fun storeConfig(config: WhiteListConfig) = withContext(ioDispatcher) {
 		val file = getConfigFile()
+		fileSystem.createDirectories(file.parent ?: error("Failed to get store directory"))
 		fileSystem.writeJson(file, json, config)
 	}
 

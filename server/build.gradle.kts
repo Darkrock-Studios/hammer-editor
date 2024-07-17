@@ -92,7 +92,8 @@ powerAssert {
 		"kotlin.assert",
 		"kotlin.test.assertTrue",
 		"kotlin.test.assertEquals",
-		"kotlin.test.assertNull"
+		"kotlin.test.assertNull",
+		"kotlin.test.assertContains",
 	)
 	includedSourceSets = listOf("test")
 }

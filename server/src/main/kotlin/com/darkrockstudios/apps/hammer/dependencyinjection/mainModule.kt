@@ -41,7 +41,10 @@ const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
 
-fun mainModule(logger: Logger) = module {
+fun mainModule(
+	logger: Logger,
+	filesystem: FileSystem,
+) = module {
 	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Unconfined }
 	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
@@ -51,7 +54,7 @@ fun mainModule(logger: Logger) = module {
 	singleOf(::createJsonSerializer) bind Json::class
 	single { Clock.System } bind Clock::class
 
-	single { FileSystem.SYSTEM } bind FileSystem::class
+	single { filesystem } bind FileSystem::class
 	singleOf(::SqliteDatabase) bind Database::class
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
