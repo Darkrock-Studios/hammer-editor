@@ -52,7 +52,7 @@ kotlin {
 				api(libs.decompose)
 				api(libs.napier)
 				api(libs.coroutines.core)
-				api(platform(libs.koin.bom.get()))
+				api(project.dependencies.platform(libs.koin.bom.get()))
 				api(libs.koin.core)
 				api(libs.okio)
 

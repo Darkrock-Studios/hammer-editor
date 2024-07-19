@@ -77,6 +77,9 @@ dependencies {
 	implementation(libs.tomlkt)
 	implementation(libs.resources)
 
+	testImplementation(libs.bundles.ktor.client)
+	testImplementation(libs.ktor.serialization.kotlinx.json)
+
 	testImplementation(libs.ktor.server.testsjvm)
 	testImplementation(libs.kotlin.test.junit)
 	testImplementation(libs.coroutines.test)

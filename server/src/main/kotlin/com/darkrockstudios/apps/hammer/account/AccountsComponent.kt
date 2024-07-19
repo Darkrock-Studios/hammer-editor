@@ -14,12 +14,17 @@ class AccountsComponent(
 	private val whiteListRepository: WhiteListRepository,
 	private val projectsRepository: ProjectsRepository,
 ) {
-	suspend fun createAccount(email: String, installId: String, password: String): ServerResult<Token> {
+	suspend fun createAccount(
+		email: String,
+		installId: String,
+		password: String
+	): ServerResult<Token> {
 		// If we dont have users, skip whitelist check
-		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email)) return ServerResult.failure(
-			"not on whitelist",
-			Msg.r("api.accounts.create.error.notonwhitelist")
-		)
+		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email))
+			return ServerResult.failure(
+				"not on whitelist",
+				Msg.r("api.accounts.create.error.notonwhitelist")
+			)
 
 		val result = accountsRepository.createAccount(email, installId, password)
 		if (isSuccess(result)) {
@@ -36,7 +41,11 @@ class AccountsComponent(
 		return accountsRepository.login(email, password, installId)
 	}
 
-	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
+	suspend fun refreshToken(
+		userId: Long,
+		installId: String,
+		refreshToken: String
+	): SResult<Token> {
 		if (checkIfWhiteListRejected(userId)) return WhiteListRejected()
 
 		return accountsRepository.refreshToken(userId, installId, refreshToken)
@@ -58,8 +67,8 @@ class AccountsComponent(
 
 	private suspend fun checkIfWhiteListRejected(account: Account): Boolean {
 		return !account.isAdmin &&
-				whiteListRepository.useWhiteList() &&
-				whiteListRepository.isOnWhiteList(account.email).not()
+			whiteListRepository.useWhiteList() &&
+			whiteListRepository.isOnWhiteList(account.email).not()
 	}
 }
 

@@ -99,8 +99,8 @@ private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
 }
 
-fun Application.appMain(config: ServerConfig, fileSystem: FileSystem) {
-	configureDependencyInjection(fileSystem)
+fun Application.appMain(config: ServerConfig, fileSystem: FileSystem, test: Boolean = false) {
+	configureDependencyInjection(fileSystem, test)
 	configureSerialization()
 	configureMonitoring()
 	configureHTTP(config)

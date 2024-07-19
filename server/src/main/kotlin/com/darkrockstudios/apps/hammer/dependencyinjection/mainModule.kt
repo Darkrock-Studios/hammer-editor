@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
+import com.darkrockstudios.apps.hammer.database.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
@@ -44,6 +45,7 @@ const val DISPATCHER_IO = "io-dispatcher"
 fun mainModule(
 	logger: Logger,
 	filesystem: FileSystem,
+	test: Boolean = false,
 ) = module {
 	single<CoroutineContext>(named(DISPATCHER_MAIN)) { Dispatchers.Unconfined }
 	single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
@@ -55,7 +57,11 @@ fun mainModule(
 	single { Clock.System } bind Clock::class
 
 	single { filesystem } bind FileSystem::class
-	singleOf(::SqliteDatabase) bind Database::class
+	if (test) {
+		singleOf(::SqliteTestDatabase) bind Database::class
+	} else {
+		singleOf(::SqliteDatabase) bind Database::class
+	}
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
 	singleOf(::WhiteListDao)

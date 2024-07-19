@@ -21,6 +21,7 @@ class SqliteDatabase(fileSystem: FileSystem) : Database {
 		if (!dbFile.parentFile.exists()) {
 			dbFile.parentFile.mkdirs()
 		}
+
 		driver = JdbcSqliteDriver(url = "jdbc:sqlite:" + dbFile.absolutePath)
 
 		if (!dbFile.exists()) {

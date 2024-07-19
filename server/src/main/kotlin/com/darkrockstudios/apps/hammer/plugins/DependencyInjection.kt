@@ -13,13 +13,13 @@ import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
-fun Application.configureDependencyInjection(fileSystem: FileSystem) {
+fun Application.configureDependencyInjection(fileSystem: FileSystem, test: Boolean) {
 	val logger = log
 
 	install(Koin) {
 		slf4jLogger()
 
-		modules(mainModule(logger, fileSystem))
+		modules(mainModule(logger, fileSystem, test))
 	}
 
 	val db: Database = get()
