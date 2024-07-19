@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -13,6 +15,8 @@ class AccountTest : EndToEndTest() {
 
 	@Test
 	fun `Create Account - First User - Whitelist - Success`(): Unit = runBlocking {
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem)
+		doStartServer()
 		client().apply {
 			val response = post(api("account/create")) {
 				setBody(

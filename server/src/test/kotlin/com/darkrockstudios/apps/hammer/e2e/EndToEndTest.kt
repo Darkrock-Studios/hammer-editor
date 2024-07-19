@@ -22,13 +22,14 @@ import org.junit.Before
  */
 abstract class EndToEndTest {
 
+	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
 	private lateinit var client: HttpClient
 	protected fun client() = client
 
 	@Before
-	fun setup() {
-		server = startServer()
+	open fun setup() {
+		fileSystem = FakeFileSystem()
 
 		client = HttpClient {
 			install(ContentNegotiation) {
@@ -48,8 +49,11 @@ abstract class EndToEndTest {
 	protected fun route(path: String): String = "http://127.0.0.1:8080/$path"
 	protected fun api(path: String): String = route("api/$path")
 
+	fun doStartServer() {
+		server = startServer()
+	}
+
 	private fun startServer(): JettyApplicationEngine {
-		val fileSystem = FakeFileSystem()
 		val environment = applicationEngineEnvironment {
 			connector {
 				port = 8080

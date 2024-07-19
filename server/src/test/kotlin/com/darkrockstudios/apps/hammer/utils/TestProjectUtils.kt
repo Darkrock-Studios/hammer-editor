@@ -2,6 +2,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utils.FileResourcesUtils
+import com.darkrockstudios.apps.hammer.utils.getUserDataDirectory
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -11,13 +12,8 @@ val projectNames = listOf(
 	PROJECT_1_NAME,
 )
 
-fun getRootDirectory(ffs: FakeFileSystem): Path {
-	val rootDir = ProjectsFileSystemDatasource.getRootDirectory(ffs)
-	return rootDir
-}
-
 fun createRootDirectory(ffs: FakeFileSystem) {
-	val rootDir = getRootDirectory(ffs)
+	val rootDir = getUserDataDirectory(ffs)
 	ffs.createDirectories(rootDir)
 }
 

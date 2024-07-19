@@ -34,7 +34,8 @@ object FileResourcesUtils {
 	fun copyResourceFolderToFakeFileSystem(
 		from: okio.Path,
 		to: okio.Path,
-		ffs: FakeFileSystem
+		ffs: FakeFileSystem,
+		includeFromDir: Boolean = true
 	) {
 		val clazz = FileResourcesUtils::class.java
 		val resFiles = getResourceFiles(clazz, from.toString())
@@ -46,7 +47,11 @@ object FileResourcesUtils {
 		resFiles.forEach { sourceFile ->
 			val relPath = sourceFile.toOkioPath().relativeTo(fromDir.toOkioPath())
 
-			var targetPath = to / from
+			var targetPath = if (includeFromDir) {
+				to / from
+			} else {
+				to
+			}
 			relPath.segments.forEach { segment ->
 				targetPath /= segment
 			}
