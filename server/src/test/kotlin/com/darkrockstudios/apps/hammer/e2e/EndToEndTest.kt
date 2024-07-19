@@ -20,7 +20,7 @@ import org.junit.Before
  * This will start up and tear down a server running on
  * port 8080, and writing to a FakeFileSystem.
  */
-abstract class E2eTest {
+abstract class EndToEndTest {
 
 	private lateinit var server: ApplicationEngine
 	private lateinit var client: HttpClient

@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class AccountTest : E2eTest() {
+class AccountTest : EndToEndTest() {
 
 	@Test
 	fun `Create Account - First User - Whitelist - Success`(): Unit = runBlocking {

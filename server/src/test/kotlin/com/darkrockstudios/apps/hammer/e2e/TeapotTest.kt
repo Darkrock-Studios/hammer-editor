@@ -6,7 +6,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertContains
 
-class TeapotTest : E2eTest() {
+class TeapotTest : EndToEndTest() {
 	@Test
 	fun `Teapot Endpoint`(): Unit = runBlocking {
 		client().apply {
