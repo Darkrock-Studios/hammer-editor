@@ -53,7 +53,7 @@ essenty = "2.1.0" # This should match what ever decompose is referncing internal
 mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
 composericheditor = "1.0.0-rc05"
-koalaplot-core = "0.6.1"
+koalaplot-core = "0.6.2"
 image-loader = "1.8.1"
 image-loader-blur = "1.7.7"
 
