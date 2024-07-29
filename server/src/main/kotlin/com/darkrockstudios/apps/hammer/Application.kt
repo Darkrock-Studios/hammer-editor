@@ -20,6 +20,7 @@ import kotlinx.cli.ArgType
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
+import org.koin.core.module.Module
 import java.io.File
 import java.security.KeyStore
 
@@ -78,7 +79,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean) {
 		}
 
 		module {
-			appMain(config, FileSystem.SYSTEM)
+			appMain(config)
 		}
 
 		developmentMode = devMode
@@ -99,8 +100,8 @@ private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
 }
 
-fun Application.appMain(config: ServerConfig, fileSystem: FileSystem, test: Boolean = false) {
-	configureDependencyInjection(fileSystem, test)
+fun Application.appMain(config: ServerConfig, addInModule: Module? = null) {
+	configureDependencyInjection(addInModule)
 	configureSerialization()
 	configureMonitoring()
 	configureHTTP(config)

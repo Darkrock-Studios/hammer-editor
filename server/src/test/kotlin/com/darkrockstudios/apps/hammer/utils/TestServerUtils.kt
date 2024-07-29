@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.utils
 
+import com.darkrockstudios.apps.hammer.e2e.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.Path
@@ -7,6 +8,8 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 
 const val SERVER_EMPTY_NO_WHITELIST = "EmptyServerNoWhitelist"
+const val SERVER_EMPTY_YES_WHITELIST = "EmptyServerYesWhitelist"
+const val SERVER_CONFIG_ONE = "ServerConfigOne"
 
 fun getUserDataDirectory(ffs: FakeFileSystem): Path {
 	val rootDir = ProjectsFileSystemDatasource.getRootDirectory(ffs)
@@ -16,7 +19,11 @@ fun getUserDataDirectory(ffs: FakeFileSystem): Path {
 /**
  * Create an in-mem project from a predefined resource
  */
-fun createTestServer(serverName: String, ffs: FakeFileSystem) {
+suspend fun createTestServer(
+	serverName: String,
+	ffs: FakeFileSystem,
+	testDatabase: SqliteTestDatabase
+) {
 	val rootDir = getRootDataDirectory(ffs)
 	ffs.createDirectories(rootDir)
 
@@ -24,6 +31,8 @@ fun createTestServer(serverName: String, ffs: FakeFileSystem) {
 		serverName.toPath(),
 		rootDir,
 		ffs,
-		false
+		includeFromDir = false
 	)
+
+	FileResourcesUtils.setupDatabase(serverName.toPath(), testDatabase)
 }

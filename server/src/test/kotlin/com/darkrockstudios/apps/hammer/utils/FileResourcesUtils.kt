@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.utils
 
+import com.darkrockstudios.apps.hammer.e2e.SqliteTestDatabase
+import okio.Path
 import okio.Path.Companion.toOkioPath
 import okio.fakefilesystem.FakeFileSystem
 import java.io.File
@@ -32,14 +34,15 @@ object FileResourcesUtils {
 
 	@Throws(IOException::class)
 	fun copyResourceFolderToFakeFileSystem(
-		from: okio.Path,
-		to: okio.Path,
+		from: Path,
+		to: Path,
 		ffs: FakeFileSystem,
+		filterBlackList: List<String> = listOf(".gitkeep", ".sql"),
 		includeFromDir: Boolean = true
 	) {
 		val clazz = FileResourcesUtils::class.java
 		val resFiles = getResourceFiles(clazz, from.toString())
-			.filter { it.name != ".gitkeep" }
+			.filter { file -> !filterBlackList.any { exclude -> file.name.endsWith(exclude) } }
 
 		val dirURL = clazz.classLoader.getResource(from.toString())!!
 		val fromDir = File(dirURL.toURI())
@@ -65,6 +68,21 @@ object FileResourcesUtils {
 					ffs.write(targetPath.normalized(), false) {
 						writeUtf8(reader.readText())
 					}
+				}
+			}
+		}
+	}
+
+	suspend fun setupDatabase(from: Path, database: SqliteTestDatabase) {
+		val clazz = FileResourcesUtils::class.java
+		val dbFiles = getResourceFiles(clazz, from.toString())
+			.filter { it.name.endsWith(".sql") }
+
+		dbFiles.forEach { sqlFile ->
+			sqlFile.bufferedReader().use { reader ->
+				val databaseSql = reader.readText()
+				databaseSql.split(";").filter { it.isNotBlank() }.map { it.trim() + ";" }.forEach {
+					database.executeAsync(it)
 				}
 			}
 		}

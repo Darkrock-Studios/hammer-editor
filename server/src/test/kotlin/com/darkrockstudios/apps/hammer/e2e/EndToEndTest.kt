@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.e2e
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.appMain
+import com.darkrockstudios.apps.hammer.database.Database
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.engine.ApplicationEngine
@@ -11,9 +12,11 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.jetty.Jetty
 import io.ktor.server.jetty.JettyApplicationEngine
 import kotlinx.serialization.json.Json
+import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.After
 import org.junit.Before
+import org.koin.dsl.bind
 
 /**
  * Base class for End to End Tests.
@@ -25,11 +28,16 @@ abstract class EndToEndTest {
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
 	private lateinit var client: HttpClient
+	private lateinit var testDatabase: SqliteTestDatabase
+
 	protected fun client() = client
+	protected fun database() = testDatabase
 
 	@Before
 	open fun setup() {
 		fileSystem = FakeFileSystem()
+		testDatabase = SqliteTestDatabase()
+		testDatabase.initialize()
 
 		client = HttpClient {
 			install(ContentNegotiation) {
@@ -60,9 +68,15 @@ abstract class EndToEndTest {
 				host = "0.0.0.0"
 			}
 
+			// Override the default database
+			val testModule = org.koin.dsl.module {
+				single { testDatabase } bind Database::class
+				single { fileSystem } bind FileSystem::class
+			}
+
 			val config = ServerConfig()
 			module {
-				appMain(config, fileSystem, true)
+				appMain(config, testModule)
 			}
 		}
 
