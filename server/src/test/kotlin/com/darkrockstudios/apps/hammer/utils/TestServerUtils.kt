@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.utils
 
-import com.darkrockstudios.apps.hammer.e2e.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.Path

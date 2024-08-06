@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.e2e
+package com.darkrockstudios.apps.hammer.e2e.util
 
 import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver

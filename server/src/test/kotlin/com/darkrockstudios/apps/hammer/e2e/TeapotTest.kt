@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.runBlocking

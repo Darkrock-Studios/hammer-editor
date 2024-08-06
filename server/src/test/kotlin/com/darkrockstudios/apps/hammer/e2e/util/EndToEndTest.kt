@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.e2e
+package com.darkrockstudios.apps.hammer.e2e.util
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.appMain
