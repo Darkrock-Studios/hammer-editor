@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.2] - 2024-8-14
+
+- Fixed Scene syncing for scenes with metadata (outlines and notes)
+
+
 ## [1.7.1] - 2024-6-18
 
 - Tons of under the hood library upgrades

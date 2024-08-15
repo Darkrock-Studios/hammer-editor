@@ -1,0 +1,1 @@
+- Fixed Scene syncing for scenes with metadata (outlines and notes)
