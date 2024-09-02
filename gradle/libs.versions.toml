@@ -36,8 +36,10 @@ kwebCore = "1.4.12"
 markdown = "0.7.3"
 material = "1.12.0"
 orchestrator = "1.5.0"
-serialization = "1.7.1"
-serialization_json = "1.7.1"
+
+serialization = "1.7.2"
+serialization_json = "1.7.2"
+
 coroutines = "1.8.1"
 datetime = "0.6.1"
 napier = "2.7.1"
