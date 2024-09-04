@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common
 
 import android.content.Context
+import android.os.Environment
 import kotlinx.coroutines.Dispatchers
 import okio.FileSystem
 import java.io.File
@@ -13,8 +14,19 @@ actual fun getPlatformName(): String {
 actual fun getHomeDirectory(): String = getDefaultRootDocumentDirectory()
 
 private lateinit var rootDocumentDirectory: File
-fun setDirectories(context: Context) {
+private lateinit var configDirectory: File
+fun setInternalDirectories(context: Context) {
 	rootDocumentDirectory = context.filesDir
+	configDirectory = context.filesDir
+	cacheDirectory = context.cacheDir
+}
+
+fun setExternalDirectories(context: Context) {
+	val path = Environment.getExternalStoragePublicDirectory(
+		Environment.DIRECTORY_DOCUMENTS
+	)
+	rootDocumentDirectory = path
+	configDirectory = context.filesDir
 	cacheDirectory = context.cacheDir
 }
 
@@ -28,7 +40,7 @@ actual fun getImageCacheDirectory(): String {
 }
 
 actual fun getDefaultRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
-actual fun getConfigDirectory(): String = File(rootDocumentDirectory, "config").absolutePath
+actual fun getConfigDirectory(): String = File(configDirectory, "config").absolutePath
 
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 

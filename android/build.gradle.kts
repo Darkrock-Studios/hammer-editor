@@ -56,10 +56,6 @@ dependencies {
 //	debugImplementation(libs.ui.test.manifest)
 }
 
-composeCompiler {
-	enableStrongSkippingMode = true
-}
-
 android {
 	namespace = "com.darkrockstudios.apps.hammer.android"
 	compileSdk = libs.versions.android.sdk.compile.get().toInt()

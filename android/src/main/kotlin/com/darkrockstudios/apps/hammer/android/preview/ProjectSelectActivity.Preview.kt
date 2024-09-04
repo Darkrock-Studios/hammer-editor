@@ -56,7 +56,6 @@ val component = object : ProjectSelection {
 				)
 			)
 		)
-	override val showProjectDirectory = true
 	override fun showLocation(location: ProjectSelection.Locations) {}
 }
 

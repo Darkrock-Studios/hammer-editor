@@ -121,6 +121,8 @@ class GlobalSettingsRepository(
 		return fileSystem.exists(getServerSettingsPath().toOkioPath())
 	}
 
+	fun defaultProjectDir() = GlobalSettingsRepository.defaultProjectDir().toHPath()
+
 	private fun getServerSettingsPath(): HPath {
 		return (globalSettings.projectsDirectory.toPath() / SERVER_FILE_NAME).toHPath()
 	}

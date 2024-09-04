@@ -65,6 +65,7 @@ kotlin {
 			dependencies {
 				api(libs.koin.compose)
 				implementation(libs.androidx.window)
+				implementation(libs.moko.permissions.compose)
 			}
 		}
 		val desktopMain by getting {

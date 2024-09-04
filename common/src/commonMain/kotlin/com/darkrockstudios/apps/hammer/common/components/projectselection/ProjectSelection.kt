@@ -13,8 +13,6 @@ import kotlinx.serialization.Serializable
 interface ProjectSelection : HammerComponent {
 	val slot: Value<ChildSlot<Config, Destination>>
 
-	val showProjectDirectory: Boolean
-
 	fun showLocation(location: Locations)
 
 	enum class Locations(val text: StringResource) {

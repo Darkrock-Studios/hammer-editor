@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
 import com.darkrockstudios.apps.hammer.utils.BaseTest
+import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.just
@@ -26,6 +27,7 @@ class AccountsRepositoryTest : BaseTest() {
 
 	private lateinit var accountDao: AccountDao
 	private lateinit var authTokenDao: AuthTokenDao
+	private lateinit var clock: TestClock
 
 	private val userId = 1L
 	private val email = "test@example.com"
@@ -56,6 +58,8 @@ class AccountsRepositoryTest : BaseTest() {
 
 		setupKoin()
 
+		clock = TestClock(Clock.System)
+
 		account = Account(
 			id = userId,
 			email = email,
@@ -73,7 +77,7 @@ class AccountsRepositoryTest : BaseTest() {
 		val authToken = createAuthToken()
 		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns authToken
 
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.login(email = email, installId = installId, password = password)
 		assertTrue { result.isSuccess }
@@ -82,7 +86,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Login - Wrong password`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.login(email = email, installId = installId, password = password + "4")
 		assertTrue { result.isFailure }
@@ -91,7 +95,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Login - No User`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.login(email = "no@account.com", installId = installId, password = "power1234")
 		assertTrue { result.isFailure }
@@ -103,7 +107,7 @@ class AccountsRepositoryTest : BaseTest() {
 		coEvery { accountDao.findAccount(any()) } returns null
 		coEvery { accountDao.createAccount(any(), any(), any(), any()) } returns userId
 		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
 		assertTrue(isSuccess(result))
@@ -115,7 +119,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Create Account - Failure - Existing Account`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.createAccount(email = email, installId = installId, password = password)
 		assertTrue { result.isFailure }
@@ -124,7 +128,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Create Account - Failure - Password Short`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -138,7 +142,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Create Account - Failure - Password Long`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -153,7 +157,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Create Account - Failure - Invalid Email`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.createAccount(
 			email = "notanemail",
@@ -169,7 +173,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Check Token - Success`() = runTest {
 		val token = createAuthToken()
 		coEvery { authTokenDao.getTokenByAuthToken(any()) } returns token
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
 		assertTrue(isSuccess(result))
@@ -179,7 +183,7 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Check Token - Failure`() = runTest {
 		coEvery { authTokenDao.getTokenByAuthToken(any()) } returns null
-		val accountsRepository = AccountsRepository(accountDao, authTokenDao)
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
 		assertTrue { result.isFailure }

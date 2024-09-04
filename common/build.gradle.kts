@@ -88,6 +88,7 @@ kotlin {
 				api(libs.coroutines.android)
 				implementation(libs.koin.android)
 				implementation(libs.ktor.client.okhttp)
+				implementation(libs.moko.permissions)
 			}
 		}
 		val iosMain by getting {

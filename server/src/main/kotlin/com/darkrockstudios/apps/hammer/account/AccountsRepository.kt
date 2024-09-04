@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.AuthToken
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
@@ -12,13 +11,12 @@ import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import korlibs.crypto.sha256
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.format.DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET
 import kotlin.time.Duration.Companion.days
 
 class AccountsRepository(
 	private val accountDao: AccountDao,
-	private val authTokenDao: AuthTokenDao
+	private val authTokenDao: AuthTokenDao,
+	private val clock: Clock,
 ) {
 	private val tokenLifetime = 30.days
 
@@ -48,7 +46,7 @@ class AccountsRepository(
 		return if (existingToken != null) {
 			if (existingToken.userId != userId) {
 				error("Existing Token returned for installId `$installId` was for user: ${existingToken.userId} instead of user: $userId")
-			} else if (existingToken.isExpired()) {
+			} else if (existingToken.isExpired(clock)) {
 				createToken(userId = userId, installId = installId)
 			} else {
 				Token(userId = existingToken.userId, auth = existingToken.token, refresh = existingToken.refresh)
@@ -125,7 +123,7 @@ class AccountsRepository(
 	suspend fun checkToken(userId: Long, token: String): SResult<Long> {
 		val authToken = authTokenDao.getTokenByAuthToken(token)
 
-		return if (authToken != null && authToken.userId == userId && !authToken.isExpired()) {
+		return if (authToken != null && authToken.userId == userId && !authToken.isExpired(clock)) {
 			SResult.success(authToken.userId)
 		} else {
 			SResult.failure("No valid token not found", Msg.r("api.accounts.login.error.notoken"))
@@ -197,28 +195,4 @@ class AccountsRepository(
 			return emailPattern.matches(trimmedInput)
 		}
 	}
-}
-
-open class CreateFailed(message: String) : Exception(message)
-class InvalidPassword(val result: AccountsRepository.Companion.PasswordResult) : CreateFailed("Invalid Password") {
-	companion object {
-		fun getMessage(result: AccountsRepository.Companion.PasswordResult): Msg = when (result) {
-			AccountsRepository.Companion.PasswordResult.TOO_SHORT -> Msg.r("api.accounts.create.error.password.tooshort")
-			AccountsRepository.Companion.PasswordResult.TOO_LONG -> Msg.r("api.accounts.create.error.password.toolong")
-			AccountsRepository.Companion.PasswordResult.NO_UPPERCASE -> Msg.r("api.accounts.create.error.password.nouppercase")
-			AccountsRepository.Companion.PasswordResult.NO_LOWERCASE -> Msg.r("api.accounts.create.error.password.nolowercase")
-			AccountsRepository.Companion.PasswordResult.NO_NUMBER -> Msg.r("api.accounts.create.error.password.nonumber")
-			AccountsRepository.Companion.PasswordResult.NO_SPECIAL -> Msg.r("api.accounts.create.error.password.nospecial")
-			else -> Msg.r("api.accounts.create.error.password.generic")
-		}
-	}
-}
-
-class LoginFailed(message: String) : Exception(message)
-
-class AccountNotFound(userId: Long) : Exception("User ID ($userId) not found")
-
-
-fun AuthToken.isExpired(): Boolean {
-	return Instant.parse(expires, ISO_DATE_TIME_OFFSET) < Clock.System.now()
 }

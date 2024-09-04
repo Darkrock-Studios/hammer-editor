@@ -7,13 +7,11 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 val defaultAccountSettingsComponentState = AccountSettings.State(
-	projectsDir = HPath("/test", "test", true),
 	location = ProjectSelection.Locations.Settings,
 	uiTheme = UiTheme.FollowSystem,
 	serverSetup = true,
@@ -28,10 +26,8 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
 	object : AccountSettings {
-		override val showProjectDirectory: Boolean = true
 		override val state = MutableValue(state)
 		override val platformSettings = object : PlatformSettings {}
-		override fun setProjectsDir(path: String) {}
 		override fun setUiTheme(theme: UiTheme) {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}

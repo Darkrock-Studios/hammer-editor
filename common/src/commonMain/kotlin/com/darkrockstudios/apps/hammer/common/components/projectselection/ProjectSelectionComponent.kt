@@ -15,7 +15,6 @@ import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
 	componentContext: ComponentContext,
-	override val showProjectDirectory: Boolean = false,
 	private val onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) : ProjectSelection, ComponentBase(componentContext) {
 
@@ -56,7 +55,6 @@ class ProjectSelectionComponent(
 				ProjectSelection.Destination.AccountSettingsDestination(
 					AccountSettingsComponent(
 						componentContext,
-						showProjectDirectory
 					)
 				)
 			}

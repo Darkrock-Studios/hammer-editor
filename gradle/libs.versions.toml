@@ -87,6 +87,8 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.2.0"
 korge_core = "5.4.0"
 
+moko-permissions = "0.18.0"
+
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -224,6 +226,9 @@ jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin
 
 multiplatform_settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatform_settings" }
 korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "korge-core" }
+
+moko-permissions = { group = "dev.icerock.moko", name = "permissions", version.ref = "moko-permissions" }
+moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-compose", version.ref = "moko-permissions" }
 
 #################
 # These were added automatically, do we really need them?

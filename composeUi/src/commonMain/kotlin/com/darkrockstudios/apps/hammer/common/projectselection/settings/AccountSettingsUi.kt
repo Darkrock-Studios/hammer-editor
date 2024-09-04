@@ -1,14 +1,28 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
@@ -16,11 +30,14 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
-import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 import dev.icerock.moko.resources.compose.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -32,8 +49,6 @@ internal fun AccountSettingsUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
-	var showDirectoryPicker by remember { mutableStateOf(false) }
 	val scope = rememberCoroutineScope()
 
 	val windowSizeClass = calculateWindowSizeClass()
@@ -88,35 +103,6 @@ internal fun AccountSettingsUi(
 						}
 					}
 
-					if (component.showProjectDirectory) {
-						SpacerXL()
-
-						Column(modifier = Modifier.padding(Ui.Padding.M)) {
-							Text(
-								MR.strings.settings_projects_directory.get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onBackground,
-							)
-
-							Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-							TextField(
-								value = projectsPathText,
-								onValueChange = { projectsPathText = it },
-								enabled = false,
-								label = {
-									Text(MR.strings.settings_projects_directory_hint.get())
-								}
-							)
-
-							Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-							Button(onClick = { showDirectoryPicker = true }) {
-								Text(MR.strings.settings_projects_directory_button.get())
-							}
-						}
-					}
-
 					SpacerXL()
 
 					Column(modifier = Modifier.padding(Ui.Padding.M)) {
@@ -163,15 +149,6 @@ internal fun AccountSettingsUi(
 					SpacerXL()
 				}
 			}
-		}
-	}
-
-	DirectoryPicker(showDirectoryPicker) { path ->
-		showDirectoryPicker = false
-
-		if (path != null) {
-			projectsPathText = path
-			component.setProjectsDir(projectsPathText)
 		}
 	}
 }

@@ -4,15 +4,12 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.serialization.Serializable
 
 interface AccountSettings : ComponentToaster {
-	val showProjectDirectory: Boolean
 	val state: Value<State>
 	val platformSettings: PlatformSettings
 
-	fun setProjectsDir(path: String)
 	fun setUiTheme(theme: UiTheme)
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
@@ -41,7 +38,6 @@ interface AccountSettings : ComponentToaster {
 
 	@Serializable
 	data class State(
-		val projectsDir: HPath,
 		val location: ProjectSelection.Locations = ProjectSelection.Locations.Projects,
 		val uiTheme: UiTheme,
 		val currentSsl: Boolean? = null,

@@ -12,23 +12,17 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okio.Path.Companion.toPath
-import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
 class AccountSettingsComponent(
 	componentContext: ComponentContext,
-	override val showProjectDirectory: Boolean,
 ) : AccountSettings,
 	ComponentToaster by ComponentToasterImpl(),
 	SavableComponent<AccountSettings.State>(componentContext) {
@@ -47,7 +41,6 @@ class AccountSettingsComponent(
 
 	private val _state by savableState {
 		AccountSettings.State(
-			projectsDir = projectsRepository.getProjectsDirectory(),
 			uiTheme = globalSettingsRepository.globalSettings.uiTheme,
 			syncAutomaticSync = globalSettingsRepository.globalSettings.automaticSyncing,
 			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
@@ -72,9 +65,7 @@ class AccountSettingsComponent(
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
-						val projectsPath = settings.projectsDirectory.toPath().toHPath()
 						it.copy(
-							projectsDir = projectsPath,
 							uiTheme = settings.uiTheme
 						)
 					}
@@ -112,34 +103,6 @@ class AccountSettingsComponent(
 		scope.launch {
 			exampleProjectRepository.install()
 			onComplete(true)
-		}
-	}
-
-	override fun setProjectsDir(path: String) {
-		val hpath = HPath(
-			path = path,
-			name = "",
-			isAbsolute = true
-		)
-
-		scope.launch {
-			globalSettingsRepository.updateSettings {
-				it.copy(
-					projectsDirectory = path
-				)
-			}
-
-			projectsRepository.ensureProjectDirectory()
-
-			// Migrate the new project directory if needed
-			val dataMigrator: DataMigrator = get<DataMigrator>()
-			dataMigrator.handleDataMigration()
-
-			withContext(mainDispatcher) {
-				_state.getAndUpdate {
-					it.copy(projectsDir = hpath)
-				}
-			}
 		}
 	}
 

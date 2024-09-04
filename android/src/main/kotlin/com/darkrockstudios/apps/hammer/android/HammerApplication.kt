@@ -7,7 +7,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
-import com.darkrockstudios.apps.hammer.common.setDirectories
+import com.darkrockstudios.apps.hammer.common.setExternalDirectories
+import com.darkrockstudios.apps.hammer.common.setInternalDirectories
+import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
+import com.russhwolf.settings.Settings
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -25,17 +28,33 @@ class HammerApplication : Application() {
 	override fun onCreate() {
 		super.onCreate()
 
-		setDirectories(this)
-
 		Napier.base(DebugAntilog())
+		initializeDirectories()
 
 		startKoin {
 			logger(NapierLogger())
 			androidContext(this@HammerApplication)
-			modules(mainModule, imageLoadingModule, aboutLibrariesModule, appModule(applicationScope))
+			modules(
+				mainModule,
+				imageLoadingModule,
+				aboutLibrariesModule,
+				appModule(applicationScope)
+			)
 		}
 
 		KoinJavaComponent.getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+	}
+
+	private fun initializeDirectories() {
+		val useInternalData = Settings().getBoolean(
+			AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE,
+			true
+		)
+		if (useInternalData) {
+			setInternalDirectories(this)
+		} else {
+			setExternalDirectories(this)
+		}
 	}
 
 	override fun onTerminate() {
