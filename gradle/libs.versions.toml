@@ -40,7 +40,7 @@ orchestrator = "1.5.0"
 serialization = "1.7.2"
 serialization_json = "1.7.3"
 
-coroutines = "1.8.1"
+coroutines = "1.9.0"
 datetime = "0.6.1"
 napier = "2.7.1"
 jetbrains_compose = "1.6.11"
