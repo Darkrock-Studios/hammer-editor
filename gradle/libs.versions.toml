@@ -46,7 +46,7 @@ napier = "2.7.1"
 jetbrains_compose = "1.6.11"
 jetbrains_kover = "0.8.3"
 
-moko_resources = "0.24.2"
+moko_resources = "0.24.3"
 moko_graphics = "0.10.0"
 
 decompose = "3.1.0"
