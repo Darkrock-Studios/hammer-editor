@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -33,7 +34,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var projectsDatasource: ProjectsDatasource
 	protected lateinit var projectDatasource: ProjectDatasource
 
-	protected val projectDefinition = ProjectDefinition("Test Project 1")
+	protected val projectDefinition = ProjectDefinition("Test Project 1", ProjectId("test-uuid-1"))
 
 	protected fun createProjectsRepository(): ProjectsRepository {
 		return ProjectsRepository(clock, projectsDatasource, projectDatasource)

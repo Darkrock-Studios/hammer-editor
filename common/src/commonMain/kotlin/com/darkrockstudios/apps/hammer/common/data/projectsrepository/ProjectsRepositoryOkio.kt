@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -9,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.loadProjectId
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -20,7 +22,7 @@ import okio.Path.Companion.toPath
 class ProjectsRepositoryOkio(
 	private val fileSystem: FileSystem,
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val projectsMetadataRepository: ProjectMetadataDatasource
+	private val projectsMetadataDatasource: ProjectMetadataDatasource
 ) : ProjectsRepository() {
 
 	private var globalSettings = globalSettingsRepository.globalSettings
@@ -56,6 +58,32 @@ class ProjectsRepositoryOkio(
 		getProjectsDirectory()
 	}
 
+	override fun removeProjectId(projectDef: ProjectDef) {
+		projectsMetadataDatasource.updateMetadata(projectDef) {
+			it.copy(info = it.info.copy(serverProjectId = null))
+		}
+	}
+
+	override fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
+		projectsMetadataDatasource.updateMetadata(projectDef) {
+			it.copy(info = it.info.copy(serverProjectId = projectId))
+		}
+	}
+
+	override fun getProjectId(projectDef: ProjectDef): ProjectId? {
+		val metadata = projectsMetadataDatasource.loadMetadata(projectDef)
+		return metadata.info.serverProjectId
+	}
+
+	override fun findProject(projectId: ProjectId): ProjectDef? {
+		val allProjects = getProjects()
+		val found = allProjects.find { project ->
+			val id = projectsMetadataDatasource.loadProjectId(project)
+			projectId == id
+		}
+		return found
+	}
+
 	override fun getProjects(projectsDir: HPath): List<ProjectDef> {
 		val projPath = projectsDir.toOkioPath()
 		return fileSystem.list(projPath)
@@ -70,7 +98,12 @@ class ProjectsRepositoryOkio(
 		return projectDir.toHPath()
 	}
 
-	override fun createProject(projectName: String): CResult<Unit> {
+	override fun getProjectDefinition(projectName: String): ProjectDef {
+		val projectDir = getProjectDirectory(projectName).toOkioPath()
+		return ProjectDef(projectName, projectDir.toHPath())
+	}
+
+	override fun createProject(projectName: String): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
 		return if (isSuccess(result)) {
@@ -93,9 +126,9 @@ class ProjectsRepositoryOkio(
 						dataVersion = PROJECT_DATA_VERSION
 					)
 				)
-				projectsMetadataRepository.saveMetadata(metadata, newDef)
+				projectsMetadataDatasource.saveMetadata(metadata, newDef)
 
-				CResult.success()
+				CResult.success(newDef)
 			}
 		} else {
 			CResult.failure(

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
@@ -8,7 +9,6 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent.inject
 
@@ -72,48 +72,61 @@ class ProjectsRepository(
 		}
 	}
 
-	private fun getDeletedProjects(userId: Long): Set<String> {
+	private suspend fun getDeletedProjects(userId: Long): Set<ProjectId> {
 		return projectsDatasource.loadSyncData(userId).deletedProjects
 	}
 
-	suspend fun deleteProject(userId: Long, syncId: String, projectName: String): Result<Unit> {
+	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
 		if (syncSessionManager.validateSyncId(userId, syncId, true)
 				.not()
-		) return Result.failure(InvalidSyncIdException())
+		) return SResult.failure(InvalidSyncIdException())
 
-		val result = projectDatasource.deleteProject(userId, projectName)
-
-		projectsDatasource.updateSyncData(userId) { data ->
-			data.copy(
-				deletedProjects = data.deletedProjects + projectName
-			)
+		val projectDef = projectsDatasource.getProject(userId, projectId)
+		return if (projectDef != null) {
+			val result = projectDatasource.deleteProject(userId, projectDef.uuid)
+			if (result.isSuccess) {
+				projectsDatasource.updateSyncData(userId) { data ->
+					data.copy(
+						deletedProjects = data.deletedProjects + projectDef.uuid
+					)
+				}
+				SResult.success()
+			} else {
+				SResult.failure(Exception("Server failed to delete project: $projectId"))
+			}
+		} else {
+			projectsDatasource.updateSyncData(userId) { data ->
+				data.copy(
+					deletedProjects = data.deletedProjects + projectId
+				)
+			}
+			SResult.success()
 		}
-
-		return result
 	}
 
-	suspend fun createProject(userId: Long, syncId: String, projectName: String): Result<Unit> {
+	suspend fun createProject(
+		userId: Long,
+		syncId: String,
+		projectName: String
+	): SResult<ProjectCreatedResult> {
 		if (syncSessionManager.validateSyncId(userId, syncId, true)
 				.not()
-		) return Result.failure(InvalidSyncIdException())
+		) return SResult.failure(InvalidSyncIdException())
 
-		projectDatasource.createProject(userId, ProjectDefinition(projectName))
+		val existingProject = projectDatasource.findProjectByName(userId, projectName)
+		val projectDef = existingProject ?: projectDatasource.createProject(userId, projectName)
+		val alreadyExists = (existingProject != null)
 
-		projectsDatasource.updateSyncData(userId) { data ->
-			data.copy(
-				deletedProjects = data.deletedProjects - projectName
+		return SResult.success(
+			ProjectCreatedResult(
+				project = projectDef,
+				alreadyExisted = alreadyExists
 			)
-		}
-
-		return Result.success(Unit)
+		)
 	}
 
-	companion object {
-		fun defaultData(userId: Long): ProjectsSyncData {
-			return ProjectsSyncData(
-				lastSync = Instant.DISTANT_PAST,
-				deletedProjects = emptySet()
-			)
-		}
-	}
+	data class ProjectCreatedResult(
+		val project: ProjectDefinition,
+		val alreadyExisted: Boolean,
+	)
 }

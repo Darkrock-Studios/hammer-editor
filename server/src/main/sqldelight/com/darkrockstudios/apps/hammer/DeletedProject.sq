@@ -1,0 +1,21 @@
+CREATE TABLE deleted_project (
+		user_id INTEGER NOT NULL,
+    	uuid TEXT NOT NULL,
+    	FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+getDeletedProjects:
+SELECT *
+FROM deleted_project
+WHERE user_id = :userId;
+
+addDeletedProject:
+INSERT INTO deleted_project(user_id, uuid)
+VALUES(:userId, :uuid);
+
+removeDeletedProject:
+DELETE FROM deleted_project
+WHERE user_id = :userId AND uuid = :uuid;
+
+hasDeletedProject:
+SELECT EXISTS(SELECT 1 FROM deleted_project WHERE user_id = :userId AND uuid = :uuid);

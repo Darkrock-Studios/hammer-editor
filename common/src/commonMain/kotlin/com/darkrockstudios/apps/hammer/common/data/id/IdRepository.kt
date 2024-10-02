@@ -20,6 +20,7 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 	private var nextId: Int = -1
 
 	fun peekNextId(): Int = nextId
+	fun peekLastId(): Int = nextId - 1
 
 	suspend fun findNextId() {
 		mutex.withLock {

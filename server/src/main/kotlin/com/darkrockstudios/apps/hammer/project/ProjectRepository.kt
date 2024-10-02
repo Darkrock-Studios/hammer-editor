@@ -14,7 +14,6 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
@@ -61,8 +60,8 @@ class ProjectRepository(
 				Msg.r("api.project.sync.begin.error.session", userId)
 			)
 		} else {
-			if (!projectDatasource.checkProjectExists(userId, projectDef)) {
-				projectDatasource.createProject(userId, projectDef)
+			if (projectDatasource.checkProjectExists(userId, projectDef).not()) {
+				return SResult.failure(ProjectNotFound(projectDef))
 			}
 
 			var projectSyncData = projectDatasource.loadProjectSyncData(userId, projectDef)
@@ -165,7 +164,7 @@ class ProjectRepository(
 		originalHash: String?,
 		syncId: String,
 		force: Boolean
-	): SResult<Boolean> {
+	): SResult<Unit> {
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
@@ -175,8 +174,8 @@ class ProjectRepository(
 				"Entity type mismatch",
 				exception = EntityTypeConflictException(
 					id = entity.id,
-					existingType = existingType,
-					submittedType = entity.type
+					existingType = existingType.toStringId(),
+					submittedType = entity.type.toStringId()
 				),
 				displayMessage = Msg.r("api.project.saveentity.error.typeconflict")
 			)
@@ -234,12 +233,8 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
-		val entityType: ApiProjectEntity.Type =
+		val entityType: ApiProjectEntity.Type? =
 			projectDatasource.findEntityType(entityId, userId, projectDef)
-				?: return SResult.failure(
-					"No type found",
-					exception = NoEntityTypeFound(entityId)
-				)
 
 		val deleteResult = when (entityType) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(
@@ -271,14 +266,14 @@ class ProjectRepository(
 				projectDef,
 				entityId
 			)
+
+			null -> SResult.success()
 		}
 
-		if (isSuccess(deleteResult)) {
-			projectDatasource.updateSyncData(userId, projectDef) {
-				it.copy(
-					deletedIds = it.deletedIds + entityId
-				)
-			}
+		projectDatasource.updateSyncData(userId, projectDef) {
+			it.copy(
+				deletedIds = it.deletedIds + entityId
+			)
 		}
 
 		return deleteResult

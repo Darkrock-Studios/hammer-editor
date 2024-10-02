@@ -12,6 +12,11 @@ class AccountDao(
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.accountQueries
 
+	suspend fun getAllAccounts(): List<Account> = withContext(ioDispatcher) {
+		val query = queries.getAllAccount()
+		return@withContext query.executeAsList()
+	}
+
 	suspend fun getAccount(id: Long): Account? = withContext(ioDispatcher) {
 		val query = queries.getAccount(id)
 		return@withContext query.executeAsOneOrNull()
@@ -25,7 +30,12 @@ class AccountDao(
 	suspend fun createAccount(email: String, salt: String, hashedPassword: String, isAdmin: Boolean): Long =
 		withContext(ioDispatcher) {
 			val newId = queries.transactionWithResult {
-				queries.createAccount(email = email, salt = salt, password_hash = hashedPassword, isAdmin = isAdmin)
+				queries.createAccount(
+					email = email,
+					salt = salt,
+					password_hash = hashedPassword,
+					is_admin = isAdmin
+				)
 				val rowId = queries.lastInsertedRowId().executeAsOne()
 				val account = queries.getByRowId(rowId).executeAsOne()
 				account.id

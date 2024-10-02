@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
@@ -25,9 +26,14 @@ import okio.FileSystem
 class ClientEncyclopediaSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 	private val fileSystem: FileSystem
-) : EntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(projectDef, serverProjectApi), ProjectScoped {
+) : EntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(
+	projectDef,
+	serverProjectApi,
+	projectMetadataDatasource
+), ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()

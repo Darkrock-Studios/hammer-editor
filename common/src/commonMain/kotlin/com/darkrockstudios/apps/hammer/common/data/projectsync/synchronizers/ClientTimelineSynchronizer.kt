@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
@@ -19,9 +20,14 @@ import kotlinx.coroutines.flow.first
 class ClientTimelineSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val timeLineRepository: TimeLineRepository,
 	private val strRes: StrRes,
-) : EntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(projectDef, serverProjectApi) {
+) : EntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(
+	projectDef,
+	serverProjectApi,
+	projectMetadataDatasource
+) {
 
 	override suspend fun prepareForSync() {
 		timeLineRepository.loadTimeline()
@@ -49,7 +55,8 @@ class ClientTimelineSynchronizer(
 
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.TimelineEventEntity {
 		val event =
-			timeLineRepository.getTimelineEvent(id) ?: throw IllegalStateException("Timeline event $id not found")
+			timeLineRepository.getTimelineEvent(id)
+				?: throw IllegalStateException("Timeline event $id not found")
 
 		return ApiProjectEntity.TimelineEventEntity(
 			id = id,
@@ -96,7 +103,12 @@ class ClientTimelineSynchronizer(
 				onLog(syncLogE(strRes.get(MR.strings.sync_event_delete_failed, id), projectDef))
 			}
 		} else {
-			onLog(syncLogE(strRes.get(MR.strings.sync_event_delete_failed_not_found, id), projectDef))
+			onLog(
+				syncLogE(
+					strRes.get(MR.strings.sync_event_delete_failed_not_found, id),
+					projectDef
+				)
+			)
 		}
 	}
 

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
@@ -20,8 +21,13 @@ import io.github.aakira.napier.Napier
 class ClientSceneDraftSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
-) : EntitySynchronizer<ApiProjectEntity.SceneDraftEntity>(projectDef, serverProjectApi), ProjectScoped {
+) : EntitySynchronizer<ApiProjectEntity.SceneDraftEntity>(
+	projectDef,
+	serverProjectApi,
+	projectMetadataDatasource
+), ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val sceneDraftRepository: SceneDraftRepository by projectInject()

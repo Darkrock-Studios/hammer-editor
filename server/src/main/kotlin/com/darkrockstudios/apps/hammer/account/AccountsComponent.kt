@@ -66,7 +66,7 @@ class AccountsComponent(
 	}
 
 	private suspend fun checkIfWhiteListRejected(account: Account): Boolean {
-		return !account.isAdmin &&
+		return !account.is_admin &&
 			whiteListRepository.useWhiteList() &&
 			whiteListRepository.isOnWhiteList(account.email).not()
 	}

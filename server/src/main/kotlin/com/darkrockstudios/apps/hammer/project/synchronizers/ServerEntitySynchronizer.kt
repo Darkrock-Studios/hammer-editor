@@ -79,7 +79,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		entity: T,
 		originalHash: String?,
 		force: Boolean,
-	): SResult<Boolean> {
+	): SResult<Unit> {
 		val conflict = checkForConflict(
 			userId,
 			projectDef,

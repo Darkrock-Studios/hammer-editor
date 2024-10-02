@@ -6,8 +6,10 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
+import io.ktor.server.application.Application
+import io.ktor.server.auth.Principal
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.bearer
 import org.koin.ktor.ext.inject
 
 const val USER_AUTH = "UserAuth"
@@ -26,7 +28,7 @@ fun Application.configureSecurity() {
 				if (isSuccess(result)) {
 					val okay = if (whitelistRepo.useWhiteList()) {
 						val account = accountRepo.getAccount(userId)
-						account.isAdmin || whitelistRepo.isOnWhiteList(account.email)
+						account.is_admin || whitelistRepo.isOnWhiteList(account.email)
 					} else {
 						true
 					}

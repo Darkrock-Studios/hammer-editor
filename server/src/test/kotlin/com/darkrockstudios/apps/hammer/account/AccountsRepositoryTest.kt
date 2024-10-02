@@ -1,14 +1,15 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.AuthToken
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MAX_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MIN_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.database.AccountDao
+import com.darkrockstudios.apps.hammer.database.AuthToken
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
+import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.Runs
@@ -41,8 +42,8 @@ class AccountsRepositoryTest : BaseTest() {
 	private lateinit var account: Account
 
 	private fun createAuthToken() = AuthToken(
-		userId = userId,
-		installId = installId,
+		user_id = userId,
+		install_id = installId,
 		token = bearerToken,
 		refresh = refreshToken,
 		created = (Clock.System.now() - 365.days).toISO8601(),
@@ -65,8 +66,9 @@ class AccountsRepositoryTest : BaseTest() {
 			email = email,
 			salt = salt,
 			password_hash = hashedPassword,
-			created = (Clock.System.now() - 128.days).toISO8601(),
-			isAdmin = true
+			created = (Clock.System.now() - 128.days).toSqliteDateTimeString(),
+			is_admin = true,
+			last_sync = Clock.System.now().toSqliteDateTimeString()
 		)
 	}
 

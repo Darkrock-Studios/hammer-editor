@@ -10,6 +10,7 @@ import okio.fakefilesystem.FakeFileSystem
 const val SERVER_EMPTY_NO_WHITELIST = "EmptyServerNoWhitelist"
 const val SERVER_EMPTY_YES_WHITELIST = "EmptyServerYesWhitelist"
 const val SERVER_CONFIG_ONE = "ServerConfigOne"
+const val TEST_SERVER_1 = "Test Server 1"
 
 fun getUserDataDirectory(ffs: FakeFileSystem): Path {
 	val rootDir = ProjectsFileSystemDatasource.getRootDirectory(ffs)

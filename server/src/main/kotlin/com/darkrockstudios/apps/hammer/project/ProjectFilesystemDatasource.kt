@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource.Companion.getUserDirectory
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -18,7 +19,7 @@ class ProjectFilesystemDatasource(
 	private val json: Json,
 ) : ProjectDatasource {
 
-	override fun checkProjectExists(
+	override suspend fun checkProjectExists(
 		userId: Long,
 		projectDef: ProjectDefinition,
 	): Boolean {
@@ -26,7 +27,13 @@ class ProjectFilesystemDatasource(
 		return fileSystem.exists(projectDir)
 	}
 
-	override fun createProject(userId: Long, projectDef: ProjectDefinition) {
+	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
+		error("Not implemented for FileSystem datasource")
+	}
+
+	override suspend fun createProject(userId: Long, projectName: String): ProjectDefinition {
+		val projectDef = ProjectDefinition(name = projectName, uuid = ProjectId.randomUUID())
+
 		val projectDir = getProjectDirectory(userId, projectDef)
 		fileSystem.createDirectories(projectDir)
 
@@ -46,17 +53,22 @@ class ProjectFilesystemDatasource(
 		}
 
 		ensureEntityDir(userId, projectDef)
+
+		return projectDef
 	}
 
-	override fun deleteProject(userId: Long, projectName: String): Result<Unit> {
-		val projectDef = ProjectDefinition(projectName)
+	override suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit> {
+		val projectDef = ProjectDefinition("", uuid = projectId)
 		val projectDir = getProjectDirectory(userId, projectDef, fileSystem)
 		fileSystem.deleteRecursively(projectDir)
 
-		return Result.success(Unit)
+		return SResult.success(Unit)
 	}
 
-	override fun loadProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData {
+	override suspend fun loadProjectSyncData(
+		userId: Long,
+		projectDef: ProjectDefinition
+	): ProjectSyncData {
 		val file = getProjectSyncDataPath(userId, projectDef)
 
 		return if (fileSystem.exists(file).not()) {
@@ -80,7 +92,7 @@ class ProjectFilesystemDatasource(
 		}
 	}
 
-	override fun updateSyncData(
+	override suspend fun updateSyncData(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		action: (ProjectSyncData) -> ProjectSyncData
@@ -137,7 +149,7 @@ class ProjectFilesystemDatasource(
 		entity: T,
 		entityType: ApiProjectEntity.Type,
 		serializer: KSerializer<T>,
-	): SResult<Boolean> {
+	): SResult<Unit> {
 		return try {
 			val path = getPath(
 				userId = userId,
@@ -149,7 +161,7 @@ class ProjectFilesystemDatasource(
 			fileSystem.write(path) {
 				writeUtf8(jsonString)
 			}
-			SResult.success(true)
+			SResult.success(Unit)
 		} catch (e: SerializationException) {
 			SResult.failure(e)
 		} catch (e: IllegalArgumentException) {

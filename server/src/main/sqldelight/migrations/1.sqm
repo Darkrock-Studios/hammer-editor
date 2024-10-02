@@ -1,0 +1,73 @@
+DROP TABLE authToken;
+
+CREATE TABLE tmp_account (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	email TEXT UNIQUE NOT NULL,
+	salt TEXT NOT NULL,
+	password_hash TEXT NOT NULL,
+	created TEXT DEFAULT (datetime('now')) NOT NULL,
+	is_admin INTEGER DEFAULT FALSE NOT NULL,
+	last_sync TEXT DEFAULT (datetime('now')) NOT NULL
+);
+
+INSERT INTO tmp_account (id, email, salt, password_hash, created, is_admin)
+SELECT id, email, salt, password_hash, created, isAdmin FROM account;
+
+DROP TABLE account;
+ALTER TABLE tmp_account RENAME TO account;
+
+CREATE TABLE auth_token(
+    user_id INTEGER NOT NULL,
+    install_id TEXT UNIQUE NOT NULL,
+    token TEXT PRIMARY KEY NOT NULL,
+    refresh TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    expires TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+ALTER TABLE whiteList RENAME TO white_list;
+
+CREATE TABLE project (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	uuid TEXT NOT NULL,
+	user_id INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	last_id INTEGER DEFAULT 0 NOT NULL,
+	last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	UNIQUE(name, user_id)
+);
+
+CREATE UNIQUE INDEX user_project_name_lookup
+ON project(user_id, name);
+
+CREATE TABLE story_entity (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	id INTEGER NOT NULL,
+	type TEXT NOT NULL,
+	content TEXT NOT NULL,
+	hash TEXT NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+	UNIQUE(user_id, project_id, id)
+);
+CREATE TABLE deleted_project (
+		user_id INTEGER NOT NULL,
+    	uuid TEXT NOT NULL,
+    	FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+CREATE TABLE deleted_entity (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	entity_id INTEGER NOT NULL,
+	deleted_at TEXT DEFAULT (datetime('now')) NOT NULL,
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+	UNIQUE(user_id, project_id, entity_id)
+);
+CREATE INDEX deleted_entity_lookup_all
+ON deleted_entity(user_id, project_id);
+
+CREATE UNIQUE INDEX deleted_entity_lookup
+ON deleted_entity(user_id, project_id, entity_id);

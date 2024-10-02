@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
@@ -221,10 +222,17 @@ class ProjectsListComponent(
 	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
+		val projectId = projectsRepository.getProjectId(projectDef)
+		val syncedProject = if (projectId != null) {
+			SyncedProjectDefinition(projectDef, projectId)
+		} else {
+			null
+		}
+
 		if (projectsRepository.deleteProject(projectDef)) {
 			Napier.i("Project deleted: ${projectDef.name}")
-			if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.deleteProject(projectDef)
+			if (syncedProject != null) {
+				projectsSynchronizer.deleteProject(syncedProject)
 			}
 
 			loadProjectList()

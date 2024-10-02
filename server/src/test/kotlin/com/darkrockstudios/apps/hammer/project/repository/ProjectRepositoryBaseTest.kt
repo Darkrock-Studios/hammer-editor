@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project.repository
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
@@ -31,7 +32,7 @@ import org.koin.dsl.module
 
 abstract class ProjectRepositoryBaseTest : BaseTest() {
 	protected val userId = 1L
-	protected val projectDefinition = ProjectDefinition("Test Project")
+	protected val projectDefinition = ProjectDefinition("Test Project", ProjectId("test-uuid"))
 
 	protected lateinit var fileSystem: FileSystem
 	protected lateinit var clock: TestClock

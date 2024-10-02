@@ -5,13 +5,21 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.*
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.loadProjectId
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -21,7 +29,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import io.ktor.utils.io.*
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
@@ -53,6 +61,7 @@ class ClientProjectSynchronizer(
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val strRes: StrRes by inject()
 	private val clock: Clock by inject()
+	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 
 	private val sceneSynchronizer: ClientSceneSynchronizer by projectInject()
 	private val noteSynchronizer: ClientNoteSynchronizer by projectInject()
@@ -78,25 +87,20 @@ class ClientProjectSynchronizer(
 		scope.launch {
 			for (conflict in conflictResolution) {
 				when (conflict) {
-					is ApiProjectEntity.SceneEntity -> sceneSynchronizer.conflictResolution.send(
-						conflict
-					)
+					is ApiProjectEntity.SceneEntity ->
+						sceneSynchronizer.conflictResolution.send(conflict)
 
-					is ApiProjectEntity.NoteEntity -> noteSynchronizer.conflictResolution.send(
-						conflict
-					)
+					is ApiProjectEntity.NoteEntity ->
+						noteSynchronizer.conflictResolution.send(conflict)
 
-					is ApiProjectEntity.TimelineEventEntity -> timelineSynchronizer.conflictResolution.send(
-						conflict
-					)
+					is ApiProjectEntity.TimelineEventEntity ->
+						timelineSynchronizer.conflictResolution.send(conflict)
 
-					is ApiProjectEntity.EncyclopediaEntryEntity -> encyclopediaSynchronizer.conflictResolution.send(
-						conflict
-					)
+					is ApiProjectEntity.EncyclopediaEntryEntity ->
+						encyclopediaSynchronizer.conflictResolution.send(conflict)
 
-					is ApiProjectEntity.SceneDraftEntity -> sceneDraftSynchronizer.conflictResolution.send(
-						conflict
-					)
+					is ApiProjectEntity.SceneDraftEntity ->
+						sceneDraftSynchronizer.conflictResolution.send(conflict)
 				}
 			}
 		}
@@ -285,6 +289,10 @@ class ClientProjectSynchronizer(
 		return try {
 			prepareForSync()
 
+			val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+			val serverProjectId = metadata.info.serverProjectId
+				?: error("Server project ID missing for: ${projectDef.name}")
+
 			var clientSyncData = loadSyncData()
 			val entityState = if (onlyNew) {
 				null
@@ -300,8 +308,13 @@ class ClientProjectSynchronizer(
 			)
 
 			val serverSyncData =
-				serverProjectApi.beginProjectSync(userId(), projectDef.name, entityState, onlyNew)
-					.getOrThrow()
+				serverProjectApi.beginProjectSync(
+					userId(),
+					projectDef.name,
+					serverProjectId,
+					entityState,
+					onlyNew
+				).getOrThrow()
 
 			onProgress(
 				0.1f,
@@ -350,9 +363,12 @@ class ClientProjectSynchronizer(
 
 			// Resolve ID conflicts
 			val resolvedClientSyncData = handleIdConflicts(clientSyncData, serverSyncData, onLog)
-			val maxId = (resolvedClientSyncData.newIds +
-				resolvedClientSyncData.lastId +
-				serverSyncData.lastId
+			val currentMaxId: Int = idRepository.let {
+				it.findNextId()
+				it.peekLastId()
+			}
+			val maxId: Int = (resolvedClientSyncData.newIds +
+				listOf(currentMaxId, serverSyncData.lastId, resolvedClientSyncData.lastId)
 				).max()
 			val newClientIds = resolvedClientSyncData.newIds
 
@@ -384,6 +400,15 @@ class ClientProjectSynchronizer(
 
 			onProgress(ENTITY_START, null)
 
+			val state = TransferState(
+				maxId = maxId,
+				combinedDeletions = combinedDeletions,
+				resolvedClientSyncData = clientSyncData,
+				serverSyncData = serverSyncData,
+				newClientIds = newClientIds,
+				dirtyEntities = dirtyEntities
+			)
+
 			// Transfer Entities
 			allSuccess = if (onlyNew) {
 				uploadNewEntities(
@@ -395,12 +420,7 @@ class ClientProjectSynchronizer(
 				)
 			} else {
 				fullEntityTransfer(
-					maxId,
-					combinedDeletions,
-					resolvedClientSyncData,
-					serverSyncData,
-					newClientIds,
-					dirtyEntities,
+					state,
 					onProgress,
 					onLog,
 					onConflict
@@ -422,8 +442,8 @@ class ClientProjectSynchronizer(
 			val syncFinishedAt: Instant?
 			// If we failed, send up nulls
 			if (allSuccess) {
-				Napier.d("All success! new maxId: $maxId")
-				newLastId = maxId
+				Napier.d("All success! new maxId: ${state.maxId}")
+				newLastId = state.maxId
 				syncFinishedAt = clock.now()
 			} else {
 				newLastId = null
@@ -433,6 +453,7 @@ class ClientProjectSynchronizer(
 			val endSyncResult = serverProjectApi.endProjectSync(
 				userId(),
 				projectDef.name,
+				serverProjectId,
 				serverSyncData.syncId,
 				newLastId,
 				syncFinishedAt,
@@ -456,9 +477,9 @@ class ClientProjectSynchronizer(
 							currentSyncId = null,
 							lastId = newLastId,
 							lastSync = syncFinishedAt,
-							dirty = dirtyEntities,
+							dirty = state.dirtyEntities,
 							newIds = emptyList(),
-							deletedIds = combinedDeletions
+							deletedIds = state.combinedDeletions
 						)
 						saveSyncData(finalSyncData)
 					} else {
@@ -534,12 +555,7 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun fullEntityTransfer(
-		maxId: Int,
-		combinedDeletions: Set<Int>,
-		resolvedClientSyncData: ProjectSynchronizationData,
-		serverSyncData: ProjectSynchronizationBegan,
-		newClientIds: List<Int>,
-		dirtyEntities: MutableList<EntityOriginalState>,
+		state: TransferState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>
@@ -547,15 +563,15 @@ class ClientProjectSynchronizer(
 		var allSuccess = true
 
 		// Add dirty IDs that are not already in the update sequence
-		val dirtyEntityIds = dirtyEntities
+		val dirtyEntityIds = state.dirtyEntities
 			.map { it.id }
-			.filter { id -> !serverSyncData.idSequence.contains(id) }
+			.filter { id -> !state.serverSyncData.idSequence.contains(id) }
 		// Add local IDs on top of the server sequence
-		val combinedSequence = if (maxId > serverSyncData.lastId) {
-			val localIds = (serverSyncData.lastId + 1..maxId).toList()
-			serverSyncData.idSequence + localIds
+		val combinedSequence = if (state.maxId > state.serverSyncData.lastId) {
+			val localIds = (state.serverSyncData.lastId + 1..state.maxId).toList()
+			state.serverSyncData.idSequence + localIds
 		} else {
-			serverSyncData.idSequence
+			state.serverSyncData.idSequence
 		}.toSet()
 
 		val totalIds = combinedSequence.size
@@ -563,27 +579,33 @@ class ClientProjectSynchronizer(
 
 		for (thisId in combinedSequence) {
 			++currentIndex
-			if (thisId in combinedDeletions) {
+			if (thisId in state.combinedDeletions) {
 				Napier.d("Skipping deleted ID $thisId")
 				continue
 			}
 			//Napier.d("Syncing ID $thisId")
 
-			val localIsDirty = resolvedClientSyncData.dirty.find { it.id == thisId }
-			val isNewlyCreated = newClientIds.contains(thisId)
+			val localIsDirty = state.resolvedClientSyncData.dirty.find { it.id == thisId }
+			val isNewlyCreated = state.newClientIds.contains(thisId)
 			val clientHasEntity = clientHasEntity(thisId)
 
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			allSuccess =
-				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > serverSyncData.lastId))) {
-					Napier.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${serverSyncData.lastId})")
+				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > state.serverSyncData.lastId))) {
+					Napier.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${state.serverSyncData.lastId})")
 					val originalHash = localIsDirty?.originalHash
 					val success =
-						uploadEntity(thisId, serverSyncData.syncId, originalHash, onConflict, onLog)
+						uploadEntity(
+							thisId,
+							state.serverSyncData.syncId,
+							originalHash,
+							onConflict,
+							onLog
+						)
 
 					if (success) {
-						dirtyEntities.find { it.id == thisId }?.let { dirty ->
-							dirtyEntities.remove(dirty)
+						state.dirtyEntities.find { it.id == thisId }?.let { dirty ->
+							state.dirtyEntities.remove(dirty)
 						}
 					} else {
 						Napier.d("Upload failed for ID $thisId")
@@ -594,11 +616,33 @@ class ClientProjectSynchronizer(
 				// Otherwise download the server's copy
 				else {
 					Napier.d("Download ID $thisId")
-					val downloadSuccess = downloadEntry(thisId, serverSyncData.syncId, onLog)
-					if (downloadSuccess.not()) {
-						Napier.d("Download failed for ID $thisId")
+					val downloadSuccess = downloadEntry(
+						thisId,
+						state.serverSyncData.syncId,
+						onLog,
+					)
+					val isFinalSuccess = if (isFailure(downloadSuccess)) {
+						if (downloadSuccess.exception is EntityNotFoundException) {
+							val entityId = downloadSuccess.exception.entityId
+							val entityExistsLocally = (findEntityType(entityId) != null)
+							if (entityExistsLocally.not()) {
+								Napier.i("Entity ID $entityId missing from both client and server, marking it as deleted")
+								deleteEntityRemote(thisId, state.serverSyncData.syncId, onLog)
+								state.combinedDeletions += entityId
+								true
+							} else {
+								// TODO what do we do here?
+								Napier.d("Entity ID $entityId missing from server, but it does exist locally, should we upload it? How did we get here?")
+								false
+							}
+						} else {
+							Napier.d("Download failed for ID $thisId")
+							false
+						}
+					} else {
+						downloadSuccess.isSuccess
 					}
-					allSuccess && downloadSuccess
+					allSuccess && isFinalSuccess
 				}
 			onProgress(ENTITY_START + (ENTITY_TOTAL * (currentIndex / totalIds.toFloat())), null)
 
@@ -608,13 +652,24 @@ class ClientProjectSynchronizer(
 		return allSuccess
 	}
 
+	private data class TransferState(
+		var maxId: Int,
+		var combinedDeletions: Set<Int>,
+		var resolvedClientSyncData: ProjectSynchronizationData,
+		var serverSyncData: ProjectSynchronizationBegan,
+		var newClientIds: List<Int>,
+		var dirtyEntities: MutableList<EntityOriginalState>,
+	)
+
 	private suspend fun endSync() {
 		try {
 			val syncId = loadSyncData().currentSyncId ?: throw IllegalStateException("No sync ID")
+			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
 				userId(),
 				projectDef.name,
+				serverProjectId,
 				syncId,
 				null,
 				null
@@ -673,7 +728,8 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val result = serverProjectApi.deleteId(projectDef.name, id, syncId)
+		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
+		val result = serverProjectApi.deleteId(projectDef.name, projectId, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_delete_success, id), projectDef))
 			true
@@ -769,10 +825,16 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	private suspend fun downloadEntry(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
+	private suspend fun downloadEntry(
+		id: Int,
+		syncId: String,
+		onLog: OnSyncLog
+	): CResult<Unit> {
 		val localEntityHash = getLocalEntityHash(id)
+		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 		val entityResponse = serverProjectApi.downloadEntity(
-			projectDef = projectDef,
+			projectName = projectDef.name,
+			projectId = serverProjectId,
 			entityId = id,
 			syncId = syncId,
 			localHash = localEntityHash
@@ -828,7 +890,7 @@ class ClientProjectSynchronizer(
 				)
 			}
 
-			success
+			CResult.success()
 		} else {
 			when (entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
@@ -838,7 +900,7 @@ class ClientProjectSynchronizer(
 							projectDef
 						)
 					)
-					true
+					CResult.success()
 				}
 
 				is EntityNotFoundException -> {
@@ -850,14 +912,16 @@ class ClientProjectSynchronizer(
 							), projectDef
 						)
 					)
-					true
+					CResult.failure(EntityNotFoundException(id))
 				}
 
 				else -> {
 					val message = strRes.get(MR.strings.sync_log_entity_download_failed_general, id)
 					Napier.e(message, entityResponse.exceptionOrNull())
 					onLog(syncLogE(message, projectDef))
-					false
+					CResult.failure(
+						entityResponse.exceptionOrNull() ?: IllegalStateException("Unknown error")
+					)
 				}
 			}
 		}

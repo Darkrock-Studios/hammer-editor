@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.toMsg
@@ -22,9 +23,16 @@ abstract class ProjectsRepository : KoinComponent {
 	abstract fun getProjectsDirectory(): HPath
 	abstract fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef>
 	abstract fun getProjectDirectory(projectName: String): HPath
-	abstract fun createProject(projectName: String): CResult<Unit>
+	abstract fun getProjectDefinition(projectName: String): ProjectDef
+	abstract fun createProject(projectName: String): CResult<ProjectDef>
 	abstract fun deleteProject(projectDef: ProjectDef): Boolean
 	abstract fun ensureProjectDirectory()
+
+	//abstract fun renameProject(projectDef: ProjectDef, newName: String): CResult<Unit>
+	abstract fun removeProjectId(projectDef: ProjectDef)
+	abstract fun setProjectId(projectDef: ProjectDef, projectId: ProjectId)
+	abstract fun getProjectId(projectDef: ProjectDef): ProjectId?
+	abstract fun findProject(projectId: ProjectId): ProjectDef?
 
 	private data class Validator(
 		val name: String,

@@ -15,7 +15,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.koin.core.context.GlobalContext
-import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -42,7 +41,7 @@ abstract class BaseTest : KoinTest {
 	@After
 	open fun tearDown() {
 		scope.cancel()
-		stopKoin()
+		GlobalContext.stopKoin()
 	}
 
 	/**
@@ -59,6 +58,7 @@ abstract class BaseTest : KoinTest {
 	 */
 	fun setupKoin(vararg modules: Module) {
 		val scheduler = scope.testScheduler
+		GlobalContext.stopKoin()
 		GlobalContext.startKoin {
 			modules(
 				module {

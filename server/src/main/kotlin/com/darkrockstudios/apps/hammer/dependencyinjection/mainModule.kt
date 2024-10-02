@@ -8,10 +8,15 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.database.DeletedEntityDao
+import com.darkrockstudios.apps.hammer.database.DeletedProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
+import com.darkrockstudios.apps.hammer.database.StoryEntityDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
+import com.darkrockstudios.apps.hammer.project.ProjectDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
-import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -20,8 +25,8 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchroni
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
-import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -58,14 +63,19 @@ fun mainModule(
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
 	singleOf(::WhiteListDao)
+	singleOf(::StoryEntityDao)
+	singleOf(::ProjectsDao)
+	singleOf(::ProjectDao)
+	singleOf(::DeletedProjectDao)
+	singleOf(::DeletedEntityDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectRepository)
 	singleOf(::WhiteListRepository)
 
-	factoryOf(::ProjectsFileSystemDatasource) bind ProjectsDatasource::class
-	factoryOf(::ProjectFilesystemDatasource) bind ProjectDatasource::class
+	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
+	factoryOf(::ProjectDatabaseDatasource) bind ProjectDatasource::class
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)

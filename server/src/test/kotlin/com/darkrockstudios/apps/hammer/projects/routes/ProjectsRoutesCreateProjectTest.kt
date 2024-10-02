@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.ProjectCreatedResult
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -19,6 +22,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 	@Test
 	fun `Projects - Create Project - Success`() = testApplication {
 		val projectName = "TestProject"
+		val projectId = ProjectId("uuid-1")
 		val syncId = "syncId-test"
 		val userId = 0L
 
@@ -30,7 +34,12 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 				syncId = syncId,
 				projectName = projectName,
 			)
-		} returns Result.success(Unit)
+		} returns SResult.success(
+			ProjectCreatedResult(
+				project = ProjectDefinition(projectName, projectId),
+				alreadyExisted = false
+			)
+		)
 
 		defaultApplication()
 
@@ -77,7 +86,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 				syncId = syncId,
 				projectName = projectName,
 			)
-		} returns Result.failure(InvalidSyncIdException())
+		} returns SResult.failure(InvalidSyncIdException())
 
 		defaultApplication()
 
@@ -103,7 +112,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 				syncId = syncId,
 				projectName = projectName,
 			)
-		} returns Result.failure(Exception())
+		} returns SResult.failure(Exception())
 
 		defaultApplication()
 

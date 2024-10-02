@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
@@ -29,13 +30,15 @@ class ClientSceneSynchronizer(
 	private val sceneEditorRepository: SceneEditorRepository,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
-	projectDef, serverProjectApi
+	projectDef, serverProjectApi, projectMetadataDatasource
 ) {
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.SceneEntity {
 		val scene =
-			sceneEditorRepository.getSceneItemFromId(id) ?: throw IllegalStateException("Scene missing for ID $id")
+			sceneEditorRepository.getSceneItemFromId(id)
+				?: throw IllegalStateException("Scene missing for ID $id")
 		val path = sceneEditorRepository.getPathSegments(scene)
 
 		val contents = if (scene.type == SceneItem.Type.Scene) {
@@ -169,7 +172,12 @@ class ClientSceneSynchronizer(
 
 				true
 			} else {
-				onLog(syncLogE(strRes.get(MR.strings.sync_scene_store_content_failed, id), projectDef))
+				onLog(
+					syncLogE(
+						strRes.get(MR.strings.sync_scene_store_content_failed, id),
+						projectDef
+					)
+				)
 				false
 			}
 		} else {
@@ -253,7 +261,12 @@ class ClientSceneSynchronizer(
 				onLog(syncLogE(strRes.get(MR.strings.sync_scene_delete_failed, id), projectDef))
 			}
 		} else {
-			onLog(syncLogE(strRes.get(MR.strings.sync_scene_delete_failed_not_found, id), projectDef))
+			onLog(
+				syncLogE(
+					strRes.get(MR.strings.sync_scene_delete_failed_not_found, id),
+					projectDef
+				)
+			)
 		}
 	}
 

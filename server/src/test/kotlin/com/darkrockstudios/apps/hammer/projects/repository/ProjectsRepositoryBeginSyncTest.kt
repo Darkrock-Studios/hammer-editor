@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
-import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import org.junit.Test
@@ -35,8 +35,8 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-		every { projectsDatasource.getProjects(userId) } returns emptySet()
-		every { projectsDatasource.loadSyncData(userId) } returns
+		coEvery { projectsDatasource.getProjects(userId) } returns emptySet()
+		coEvery { projectsDatasource.loadSyncData(userId) } returns
 			ProjectsSyncData(
 				lastSync = Instant.DISTANT_PAST,
 				deletedProjects = emptySet()
@@ -59,15 +59,15 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
-		every { projectsDatasource.getProjects(userId) } returns setOf(
-			ProjectDefinition("Project 1"),
-			ProjectDefinition("Project 2"),
+		coEvery { projectsDatasource.getProjects(userId) } returns setOf(
+			ProjectDefinition("Project 1", ProjectId("uuid-1")),
+			ProjectDefinition("Project 2", ProjectId("uuid-2")),
 		)
 
-		every { projectsDatasource.loadSyncData(userId) } returns
+		coEvery { projectsDatasource.loadSyncData(userId) } returns
 			ProjectsSyncData(
 				lastSync = Instant.fromEpochSeconds(123),
-				deletedProjects = setOf("Project 3")
+				deletedProjects = setOf(ProjectId("uuid-3"))
 			)
 
 		mockCreateSession(newSyncId)
@@ -80,8 +80,11 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 			val expectedData = ProjectsBeginSyncData(
 				syncId = syncData.syncId,
-				projects = setOf(ProjectDefinition("Project 1"), ProjectDefinition("Project 2")),
-				deletedProjects = setOf("Project 3")
+				projects = setOf(
+					ProjectDefinition("Project 1", ProjectId("uuid-1")),
+					ProjectDefinition("Project 2", ProjectId("uuid-2"))
+				),
+				deletedProjects = setOf(ProjectId("uuid-3"))
 			)
 
 			assertEquals(expectedData, syncData)

@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.projects.repository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -39,8 +38,8 @@ class ProjectsRepositoryEndSyncTest : ProjectsRepositoryBaseTest() {
 
 		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns syncId
 
-		every { projectsDatasource.getProjects(userId) } returns emptySet()
-		every { projectsDatasource.loadSyncData(userId) } returns
+		coEvery { projectsDatasource.getProjects(userId) } returns emptySet()
+		coEvery { projectsDatasource.loadSyncData(userId) } returns
 			ProjectsSyncData(
 				lastSync = Instant.DISTANT_PAST,
 				deletedProjects = emptySet()

@@ -1,0 +1,56 @@
+CREATE TABLE story_entity (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	id INTEGER NOT NULL,
+	type TEXT NOT NULL,
+	content TEXT NOT NULL,
+	hash TEXT NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+	UNIQUE(user_id, project_id, id)
+);
+
+getEntity:
+SELECT *
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND id = :id
+LIMIT 1;
+
+getAllEntities:
+SELECT *
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId
+ORDER BY id;
+
+getEntityDefs:
+SELECT id, type
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId
+ORDER BY id;
+
+findMaxEntityId:
+SELECT MAX(id)
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId;
+
+checkExists:
+SELECT EXISTS(
+	SELECT 1 FROM story_entity
+	WHERE user_id = :userId AND project_id = :projectId AND id = :id
+);
+
+getType:
+SELECT type FROM story_entity WHERE user_id = :userId AND project_id = :projectId AND id = :id;
+
+insertNew:
+INSERT INTO story_entity(user_id, project_id, id, type, content, hash)
+VALUES (:userId, :projectId, :id, :type, :content, :hash);
+
+update:
+UPDATE story_entity
+SET content = :content, hash = :hash
+WHERE user_id = :userId AND project_id = :projectId AND id = :id;
+
+deleteEntity:
+DELETE FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND id = :id;

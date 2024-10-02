@@ -120,6 +120,34 @@ scope.launch(defaultDispatcher) {
 }
 ```
 
+## Logging
+
+## Client
+
+On the client you can log using `Napier` it works on all supported platforms:
+
+```kotlin
+Napier.i("message")
+Napier.w("message")
+Napier.e("message")
+Napier.d("message")
+```
+
+## Server
+
+On server you can log anywhere you have access to the ktor `Application`
+
+```kotlin
+log.info("message")
+log.debug("message")
+```
+
+You can also access it from a ktor `Call` object:
+`call.application.environment.log.info("Hello from a Call!")`
+
+If you need logging below the HTTP layer 🤷 Pass the logger down? Idk we don't have a great solution
+for this yet.
+
 ## Synchronization
 
 The protocol for synchronizing data between client and server is outlined here:

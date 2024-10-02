@@ -41,7 +41,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	lateinit var globalSettingsRepository: GlobalSettingsRepository
 	lateinit var settingsFlow: SharedFlow<GlobalSettings>
 
-	private lateinit var metadataRepository: ProjectMetadataDatasource
+	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	lateinit var settings: GlobalSettings
 
 	@Before
@@ -53,8 +53,8 @@ class ProjectsRepositoryTest : BaseTest() {
 
 		globalSettingsRepository = mockk()
 
-		metadataRepository = mockk(relaxed = true)
-		every { metadataRepository.loadMetadata(any()) } returns
+		metadataDatasource = mockk(relaxed = true)
+		every { metadataDatasource.loadMetadata(any()) } returns
 			ProjectMetadata(
 				info = Info(
 					created = Instant.DISTANT_FUTURE,
@@ -85,7 +85,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		val repo = ProjectsRepositoryOkio(
 			fileSystem = ffs,
 			globalSettingsRepository = globalSettingsRepository,
-			projectsMetadataRepository = metadataRepository,
+			projectsMetadataDatasource = metadataDatasource,
 		)
 
 		advanceUntilIdle()
@@ -99,7 +99,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		val repo = ProjectsRepositoryOkio(
 			fileSystem = ffs,
 			globalSettingsRepository = globalSettingsRepository,
-			projectsMetadataRepository = metadataRepository,
+			projectsMetadataDatasource = metadataDatasource,
 		)
 
 		val projectName = "Test Project"
@@ -111,7 +111,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		ffs.exists(projectPath)
 
 		val newDef = ProjectDef(projectName, projectPath.toHPath())
-		val metadataPath = metadataRepository.getMetadataPath(newDef)
+		val metadataPath = metadataDatasource.getMetadataPath(newDef)
 		ffs.exists(metadataPath.toOkioPath())
 	}
 }

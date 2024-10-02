@@ -130,7 +130,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 				null,
 				false
 			)
-		} returns SResult.success(true)
+		} returns SResult.success(Unit)
 
 		createProjectRepository().apply {
 			val result =
@@ -174,8 +174,8 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 			assertFalse(isSuccess(result))
 			val exception = result.exception
 			assertTrue(exception is EntityTypeConflictException)
-			assertEquals(ApiProjectEntity.Type.SCENE, exception.existingType)
-			assertEquals(ApiProjectEntity.Type.NOTE, exception.submittedType)
+			assertEquals(ApiProjectEntity.Type.SCENE.toStringId(), exception.existingType)
+			assertEquals(ApiProjectEntity.Type.NOTE.toStringId(), exception.submittedType)
 			assertEquals(entityId, exception.id)
 		}
 
@@ -200,7 +200,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 				null,
 				false
 			)
-		} returns SResult.success(true)
+		} returns SResult.success(Unit)
 
 		createProjectRepository().apply {
 			val result =
@@ -248,10 +248,10 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
-			assertFalse(isSuccess(result))
+			assertTrue(isSuccess(result))
 		}
 
-		coVerify(exactly = 0) { projectDatasource.updateSyncData(any(), any(), any()) }
+		coVerify(exactly = 1) { projectDatasource.updateSyncData(any(), any(), any()) }
 		coVerify(exactly = 0) { sceneSynchronizer.deleteEntity(any(), any(), any()) }
 	}
 

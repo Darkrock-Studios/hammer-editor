@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
 import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
@@ -17,6 +18,7 @@ import io.ktor.server.engine.sslConnector
 import io.ktor.server.jetty.Jetty
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
+import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
@@ -45,7 +47,16 @@ fun main(args: Array<String>) {
 		loadConfig(it)
 	} ?: ServerConfig()
 
+	runDataMigrator()
+
 	startServer(config, devModeArg ?: false)
+}
+
+private fun runDataMigrator() {
+	val dataMigrator = DataMigrator()
+	runBlocking {
+		dataMigrator.runMigrations()
+	}
 }
 
 private fun loadConfig(path: String): ServerConfig {

@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
@@ -44,6 +45,9 @@ class SceneSynchronizerTest : BaseTest() {
 	@MockK
 	private lateinit var serverProjectApi: ServerProjectApi
 
+	@MockK
+	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
+
 	private val strRes: StrRes = object : StrRes {
 		override fun get(str: StringResource) = "test"
 		override fun get(str: StringResource, vararg args: Any) = "test"
@@ -67,6 +71,7 @@ class SceneSynchronizerTest : BaseTest() {
 		sceneEditorRepository = sceneEditorRepository,
 		draftRepository = draftRepository,
 		serverProjectApi = serverProjectApi,
+		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 

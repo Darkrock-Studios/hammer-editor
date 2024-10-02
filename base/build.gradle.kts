@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -17,14 +15,12 @@ repositories {
 
 kotlin {
     androidTarget()
-	jvm("desktop") {
-		compilerOptions {
-			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
-		}
-	}
+	jvm("desktop")
 	iosX64()
 	iosArm64()
 	iosSimulatorArm64()
+
+	jvmToolchain(libs.versions.jvm.get().toInt())
 
 	applyDefaultHierarchyTemplate()
 

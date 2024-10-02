@@ -34,7 +34,7 @@ class ServerSceneSynchronizer(
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = datasource.getEntityDefs(userId, projectDef)
+		val entities = datasource.getEntityDefs(userId, projectDef) { it.type == entityType }
 
 		// Sort by SceneType, we want directories first
 		val allEntities = entities.mapNotNull { def ->

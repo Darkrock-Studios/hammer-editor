@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -20,11 +23,15 @@ import kotlin.test.assertTrue
 class AccountTest : EndToEndTest() {
 
 	@Test
-	fun `Create Account - First User - Whitelist - Success`(): Unit = runBlocking {
+	fun `Create Account the First User with Whitelist enabled, who becomes Admin`(): Unit =
+		runBlocking {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
 		doStartServer()
 		client().apply {
 			val response = post(api("account/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
 				setBody(
 					FormDataContent(
 						Parameters.build {
@@ -51,6 +58,9 @@ class AccountTest : EndToEndTest() {
 		doStartServer()
 		client().apply {
 			val response = post(api("account/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
 				setBody(
 					FormDataContent(
 						Parameters.build {
@@ -72,6 +82,9 @@ class AccountTest : EndToEndTest() {
 		doStartServer()
 		client().apply {
 			val response = post(api("account/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
 				setBody(
 					FormDataContent(
 						Parameters.build {
@@ -93,6 +106,9 @@ class AccountTest : EndToEndTest() {
 		doStartServer()
 		client().apply {
 			val response = post(api("account/login")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
 				setBody(
 					FormDataContent(
 						Parameters.build {
@@ -119,6 +135,9 @@ class AccountTest : EndToEndTest() {
 		doStartServer()
 		client().apply {
 			val response = post(api("account/login")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
 				setBody(
 					FormDataContent(
 						Parameters.build {

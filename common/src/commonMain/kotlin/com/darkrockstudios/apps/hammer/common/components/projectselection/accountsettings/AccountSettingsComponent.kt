@@ -147,6 +147,9 @@ class AccountSettingsComponent(
 
 	override fun removeServer() {
 		globalSettingsRepository.deleteServerSettings()
+		projectsRepository.getProjects().forEach { projectDef ->
+			projectsRepository.removeProjectId(projectDef = projectDef)
+		}
 	}
 
 	override suspend fun setAutomaticBackups(value: Boolean) {

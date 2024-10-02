@@ -41,7 +41,8 @@ class AccountsComponentLoginTest {
 		salt = "123",
 		password_hash = "asd123s",
 		created = "11 oclock",
-		isAdmin = false
+		is_admin = false,
+		last_sync = "12 oclock",
 	)
 
 	@Before

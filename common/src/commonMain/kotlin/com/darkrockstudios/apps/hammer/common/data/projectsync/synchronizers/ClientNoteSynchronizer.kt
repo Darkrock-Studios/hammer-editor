@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
@@ -21,8 +22,13 @@ import kotlinx.coroutines.flow.first
 class ClientNoteSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
+	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
-) : EntitySynchronizer<ApiProjectEntity.NoteEntity>(projectDef, serverProjectApi), ProjectScoped {
+) : EntitySynchronizer<ApiProjectEntity.NoteEntity>(
+	projectDef,
+	serverProjectApi,
+	projectMetadataDatasource
+), ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val notesRepository: NotesRepository by projectInject()
@@ -39,7 +45,8 @@ class ClientNoteSynchronizer(
 
 	override suspend fun getEntityHash(id: Int): String {
 		val notes = notesRepository.getNotes()
-		val noteContainer = notes.firstOrNull { it.note.id == id } ?: throw IllegalStateException("Note $id not found")
+		val noteContainer = notes.firstOrNull { it.note.id == id }
+			?: throw IllegalStateException("Note $id not found")
 		return EntityHasher.hashNote(
 			id = noteContainer.note.id,
 			created = noteContainer.note.created,
@@ -48,7 +55,8 @@ class ClientNoteSynchronizer(
 	}
 
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.NoteEntity {
-		val note = notesRepository.getNoteFromId(id)?.note ?: throw IllegalStateException("Note $id not found")
+		val note = notesRepository.getNoteFromId(id)?.note
+			?: throw IllegalStateException("Note $id not found")
 		return ApiProjectEntity.NoteEntity(
 			id = id,
 			created = note.created,

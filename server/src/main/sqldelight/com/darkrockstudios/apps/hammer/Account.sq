@@ -4,10 +4,11 @@ CREATE TABLE account(
     salt TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
-    isAdmin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
+    is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL
 );
 
-selectAll:
+getAllAccount:
 SELECT *
 FROM account;
 
@@ -15,6 +16,16 @@ getAccount:
 SELECT *
 FROM account
 WHERE id = ?;
+
+getLastSync:
+SELECT last_sync
+FROM account
+WHERE id = ?;
+
+updateLastSync:
+UPDATE account
+SET last_sync = :newSyncTime
+WHERE id = :userId;
 
 getByRowId:
 SELECT *
@@ -30,10 +41,10 @@ count:
 SELECT COUNT(*) FROM account;
 
 createAccount:
-INSERT INTO account(email, salt, password_hash, isAdmin) VALUES (?, ?, ?, ?);
+INSERT INTO account(email, salt, password_hash, is_admin) VALUES (?, ?, ?, ?);
 
 setAdmin:
-UPDATE account SET isAdmin = ? WHERE id = ?;
+UPDATE account SET is_admin = ? WHERE id = ?;
 
 lastInsertedRowId:
 SELECT last_insert_rowid();

@@ -2,19 +2,25 @@ package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.account.accountRoutes
 import com.darkrockstudios.apps.hammer.admin.adminRoutes
+import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.call
+import io.ktor.server.application.log
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
 
 fun Application.configureRouting() {
 	val logger = log
 	routing {
-		route("api") {
+		route(API_ROUTE_PREFIX) {
 			accountRoutes()
 			projectsRoutes()
 			projectRoutes(logger)

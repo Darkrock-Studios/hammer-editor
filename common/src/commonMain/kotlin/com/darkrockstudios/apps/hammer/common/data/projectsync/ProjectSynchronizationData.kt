@@ -1,12 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class ProjectsSynchronizationData(
-	val deletedProjects: Set<String>,
-	val projectsToDelete: Set<String>,
+	val deletedProjects: Set<ProjectId>,
+	val projectsToDelete: Set<ProjectId>,
 	val projectsToCreate: Set<String>,
 )
 

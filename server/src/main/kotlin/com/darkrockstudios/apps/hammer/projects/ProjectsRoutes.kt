@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.projects
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
+import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -32,14 +34,19 @@ private fun Route.beginProjectsSync() {
 	val projectsRepository: ProjectsRepository = get()
 
 	get("/begin_sync") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val principal = call.principal<ServerUserIdPrincipal>()
+
+		if (principal == null) {
+			call.respond(HttpStatusCode.Unauthorized)
+			return@get
+		}
 
 		val result = projectsRepository.beginProjectsSync(principal.id)
 		if (isSuccess(result)) {
 			val syncData = result.data
 			val responseData = BeginProjectsSyncResponse(
 				syncId = syncData.syncId,
-				projects = syncData.projects.map { it.name }.toSet(),
+				projects = syncData.projects.map { it.toApi() }.toSet(),
 				deletedProjects = syncData.deletedProjects
 			)
 			call.respond(responseData)
@@ -80,15 +87,18 @@ private fun Route.endProjectSync() {
 private fun Route.deleteProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/{projectName}/delete") {
+	get("/delete") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectName = call.parameters["projectName"]
+		val projectIdRaw = call.parameters["projectId"]
 		val syncId = call.request.headers[HEADER_SYNC_ID]
 
-		if (projectName == null) {
+		if (projectIdRaw == null) {
 			call.respond(
 				status = HttpStatusCode.BadRequest,
-				HttpResponseError(error = "Missing Parameter", displayMessage = "projectName was missing")
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = "projectId was missing"
+				)
 			)
 		} else if (syncId == null) {
 			call.respond(
@@ -96,11 +106,12 @@ private fun Route.deleteProject() {
 				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
 			)
 		} else {
-			val result = projectsRepository.deleteProject(principal.id, syncId, projectName)
-			if (result.isSuccess) {
+			val result =
+				projectsRepository.deleteProject(principal.id, syncId, ProjectId(projectIdRaw))
+			if (isSuccess(result)) {
 				call.respond("Success")
 			} else {
-				when (val e = result.exceptionOrNull()) {
+				when (val e = result.exception) {
 					is InvalidSyncIdException -> {
 						call.respond(
 							status = HttpStatusCode.BadRequest,
@@ -140,10 +151,11 @@ private fun Route.createProject() {
 			)
 		} else {
 			val result = projectsRepository.createProject(principal.id, syncId, projectName)
-			if (result.isSuccess) {
-				call.respond("Success")
+			if (isSuccess(result)) {
+				val data = result.data
+				call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted))
 			} else {
-				when (val e = result.exceptionOrNull()) {
+				when (val e = result.exception) {
 					is InvalidSyncIdException -> {
 						call.respond(
 							status = HttpStatusCode.BadRequest,

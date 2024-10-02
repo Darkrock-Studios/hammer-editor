@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.AuthToken
+import com.darkrockstudios.apps.hammer.database.AuthToken
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 

@@ -1,9 +1,11 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import org.junit.Test
@@ -15,15 +17,15 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Delete Project, conflicting projects sync session`() = runTest {
 		val syncId = "sync-id"
-		val projectName = "Project Name"
+		val projectId = ProjectId("ProjectId")
 
 		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectsRepository().apply {
-			val result = deleteProject(userId, syncId, projectName)
+			val result = deleteProject(userId, syncId, projectId)
 			assertTrue(result.isFailure)
-			verify(exactly = 0) { projectDatasource.deleteProject(any(), any()) }
-			verify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
+			coVerify(exactly = 0) { projectDatasource.deleteProject(any(), any()) }
+			coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
 
@@ -31,19 +33,23 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 	fun `Delete Project, successful`() = runTest {
 		val syncId = "sync-id"
 		val projectName = "Project Name"
+		val projectId = ProjectId("project-id")
+		val projectDef = ProjectDefinition(projectName, projectId)
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		every { projectDatasource.deleteProject(userId, projectName) } returns Result.success(Unit)
+		coEvery { projectDatasource.deleteProject(userId, projectId) } returns SResult.success(
+			Unit
+		)
 
 		val initialSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
-			deletedProjects = setOf(
-				"Project 2"
-			),
+			deletedProjects = setOf(ProjectId("project-id-2")),
 		)
 
+		coEvery { projectsDatasource.getProject(userId, projectId) } returns projectDef
+
 		var updatedSyncData: ProjectsSyncData? = null
-		every { projectsDatasource.updateSyncData(userId, captureLambda()) } answers {
+		coEvery { projectsDatasource.updateSyncData(userId, captureLambda()) } answers {
 			lambda<(ProjectsSyncData) -> ProjectsSyncData>().captured.invoke(initialSyncData)
 				.apply {
 					updatedSyncData = this
@@ -53,17 +59,17 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		val expectedSyncData = ProjectsSyncData(
 			lastSync = Instant.DISTANT_PAST,
 			deletedProjects = setOf(
-				"Project 2",
-				projectName,
+				ProjectId("project-id-2"),
+				projectDef.uuid,
 			),
 		)
 
 		createProjectsRepository().apply {
-			val result = deleteProject(userId, syncId, projectName)
+			val result = deleteProject(userId, syncId, projectId)
 
 			assertTrue(result.isSuccess)
-			verify { projectDatasource.deleteProject(userId, projectName) }
-			verify { projectsDatasource.updateSyncData(userId, any()) }
+			coVerify { projectDatasource.deleteProject(userId, projectDef.uuid) }
+			coVerify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)
 		}

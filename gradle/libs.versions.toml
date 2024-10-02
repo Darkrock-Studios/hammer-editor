@@ -6,11 +6,11 @@ app = "1.7.2"
 data_version = "1.0"
 
 # Kotlin
-jvm = "17"
+jvm = "21"
 kotlin = "2.0.20"
 
 # Android
-android_gradle_plugin = "8.6.1"
+android_gradle_plugin = "8.7.0"
 android_sdk_compile = "34"
 android_sdk_target = "34"
 android_sdk_min = "26"
@@ -38,7 +38,6 @@ material = "1.12.0"
 orchestrator = "1.5.0"
 
 serialization = "1.7.3"
-serialization_json = "1.7.3"
 
 coroutines = "1.9.0"
 datetime = "0.6.1"
@@ -153,7 +152,7 @@ androidx_datastore = { module = "androidx.datastore:datastore-preferences", vers
 androidx_window = { module = "androidx.window:window", version.ref = "androidx-window" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }
 serialization_jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "serialization" }
-serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization_json" }
+serialization_json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 coroutines_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines_android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -196,6 +195,7 @@ ktor_server_authjvm = { group = "io.ktor", name = "ktor-server-auth-jvm", versio
 ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", version.ref = "ktor" }
 ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
+ktor_server_requestvalidation = { group = "io.ktor", name = "ktor-server-request-validation", version.ref = "ktor" }
 
 ktor_server_i18n = { group = "com.github.aymanizz", name = "ktor-i18n", version.ref = "ktor_i18n" }
 
@@ -284,6 +284,7 @@ ktor_server = [
 	"ktor_server_httpredirect",
 	"ktor_server_websockets",
 	"ktor_server_i18n",
+	"ktor_server_requestvalidation",
 ]
 essenty = [
 	"essenty_lifecycle",

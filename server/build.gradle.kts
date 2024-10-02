@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val app_version: String by extra
 
@@ -21,11 +20,17 @@ application {
 	applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+kotlin {
+	jvmToolchain(libs.versions.jvm.get().toInt())
+}
+
 sqldelight {
 	databases {
 		create("ServerDatabase") {
-			packageName.set("com.darkrockstudios.apps.hammer")
+			packageName.set("com.darkrockstudios.apps.hammer.database")
 			//dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
+			version = 2
+			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 	}
 }
@@ -43,10 +48,6 @@ kover {
 repositories {
 	google()
 	mavenCentral()
-}
-
-tasks.withType<KotlinCompile> {
-	kotlinOptions.jvmTarget = libs.versions.jvm.get()
 }
 
 dependencies {

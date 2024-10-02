@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.datasource
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
@@ -7,6 +8,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utils.BaseTest
+import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -31,7 +33,7 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create User Data`() {
+	fun `Create User Data`() = runTest {
 		val userId = 1L
 
 		val userDir = ProjectsFileSystemDatasource.getUserDirectory(userId, fileSystem)
@@ -47,7 +49,7 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Get Projects`() {
+	fun `Get Projects`() = runTest {
 		val userId = 1L
 		val projectName1 = "Test Project 1"
 		val projectName2 = "Test Project 2"
@@ -65,15 +67,15 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 
 		assertEquals(
 			setOf(
-				ProjectDefinition("Test Project 1"),
-				ProjectDefinition("Test Project 2"),
+				ProjectDefinition("Test Project 1", ProjectId("")),
+				ProjectDefinition("Test Project 2", ProjectId("")),
 			),
 			projects
 		)
 	}
 
 	@Test
-	fun `Save SyncData`() {
+	fun `Save SyncData`() = runTest {
 		val userId = 1L
 		val syncDataPath = ProjectsFileSystemDatasource.getSyncDataPath(userId, fileSystem)
 		fileSystem.createDirectories(syncDataPath.parent!!)
@@ -81,8 +83,8 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		val syncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(123),
 			deletedProjects = setOf(
-				"Test Project 1",
-				"Test Project 2",
+				ProjectId("project-id-1"),
+				ProjectId("project-id-2"),
 			)
 		)
 
@@ -94,7 +96,7 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Load SyncData`() {
+	fun `Load SyncData`() = runTest {
 		val userId = 1L
 		val syncDataPath = ProjectsFileSystemDatasource.getSyncDataPath(userId, fileSystem)
 		fileSystem.createDirectories(syncDataPath.parent!!)
@@ -102,8 +104,8 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		val syncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(123),
 			deletedProjects = setOf(
-				"Test Project 1",
-				"Test Project 2",
+				ProjectId("project-id-1"),
+				ProjectId("project-id-2"),
 			)
 		)
 
@@ -116,7 +118,7 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Update SyncData`() {
+	fun `Update SyncData`() = runTest {
 		val userId = 1L
 		val syncDataPath = ProjectsFileSystemDatasource.getSyncDataPath(userId, fileSystem)
 		fileSystem.createDirectories(syncDataPath.parent!!)
@@ -124,8 +126,8 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		val syncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(123),
 			deletedProjects = setOf(
-				"Test Project 1",
-				"Test Project 2",
+				ProjectId("project-id-1"),
+				ProjectId("project-id-2"),
 			)
 		)
 
@@ -135,16 +137,16 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		val loadedSyncData = datasource.updateSyncData(userId) { data ->
 			data.copy(
 				lastSync = Instant.fromEpochSeconds(456),
-				deletedProjects = data.deletedProjects + "Test Project 3"
+				deletedProjects = data.deletedProjects + ProjectId("project-id-3")
 			)
 		}
 
 		val updatedSyncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(456),
 			deletedProjects = setOf(
-				"Test Project 1",
-				"Test Project 2",
-				"Test Project 3",
+				ProjectId("project-id-1"),
+				ProjectId("project-id-2"),
+				ProjectId("project-id-3"),
 			)
 		)
 

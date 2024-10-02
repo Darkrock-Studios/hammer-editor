@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
@@ -14,6 +15,7 @@ import io.mockk.coVerify
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
@@ -25,11 +27,11 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 		val syncData = ProjectsBeginSyncData(
 			syncId = syncId,
 			projects = setOf(
-				ProjectDefinition("Project 1"),
-				ProjectDefinition("Project 2"),
+				ProjectDefinition("Project 1", ProjectId("uuid-1")),
+				ProjectDefinition("Project 2", ProjectId("uuid-2")),
 			),
 			deletedProjects = setOf(
-				"Project 3",
+				ProjectId("uuid-3"),
 			),
 		)
 
@@ -49,8 +51,11 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 			val responseBody = bodyAsText()
 			Json.decodeFromString<BeginProjectsSyncResponse>(responseBody).apply {
 				assertEquals(syncId, this.syncId)
-				assertEquals(syncData.projects.map { it.name }.toSet(), this.projects)
-				assertEquals(syncData.deletedProjects, this.deletedProjects)
+				assertEquals(syncData.projects.map { it.toApi() }.toSet(), this.projects)
+				syncData.deletedProjects.forEach { syncProject ->
+					val found = deletedProjects.any { it == syncProject }
+					assertTrue(found, "Deleted project not found: $syncProject")
+				}
 			}
 
 			coVerify { projectsRepository.beginProjectsSync(userId = userId) }
