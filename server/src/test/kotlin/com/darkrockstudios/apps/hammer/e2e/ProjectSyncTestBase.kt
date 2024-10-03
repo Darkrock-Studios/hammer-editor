@@ -31,14 +31,14 @@ import io.ktor.utils.io.core.toByteArray
 import korlibs.io.compression.compress
 import korlibs.io.compression.deflate.GZIP
 import kotlinx.serialization.json.Json
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import kotlin.test.assertEquals
 
 abstract class ProjectSyncTestBase : EndToEndTest() {
 
 	lateinit var json: Json
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

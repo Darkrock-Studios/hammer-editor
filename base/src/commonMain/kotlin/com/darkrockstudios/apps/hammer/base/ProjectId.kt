@@ -8,6 +8,7 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class ProjectId(val id: String) {
 	companion object {
+		fun fromUUID(uuid: UUID) = ProjectId(uuid.toString())
 		fun randomUUID() = ProjectId(UUID.randomUUID().toString())
 	}
 }

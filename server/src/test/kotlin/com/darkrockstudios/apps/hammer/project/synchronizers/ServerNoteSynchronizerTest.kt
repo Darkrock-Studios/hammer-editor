@@ -14,9 +14,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.reflect.KClass
-import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ServerNoteSynchronizerTest :
@@ -27,7 +27,7 @@ class ServerNoteSynchronizerTest :
 		ApiProjectEntity.NoteEntity::class
 	override val pathStub: String = "note"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 	}

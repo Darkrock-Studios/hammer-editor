@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import kotlin.reflect.KClass
 
 class ServerEncyclopediaEntrySynchronizerTest :
@@ -12,7 +12,7 @@ class ServerEncyclopediaEntrySynchronizerTest :
 		ApiProjectEntity.EncyclopediaEntryEntity::class
 	override val pathStub: String = "encyclopedia_entry"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 	}

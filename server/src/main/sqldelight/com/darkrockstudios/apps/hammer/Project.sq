@@ -25,8 +25,8 @@ createProject:
 INSERT INTO project(user_id, name, uuid)
 VALUES(:userId, :name, :uuid);
 
-hasProject:
-SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND name = :name);
+hasProjectById:
+SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND uuid = :projectId);
 
 updateProjectName:
 UPDATE project
@@ -38,7 +38,7 @@ UPDATE project
 SET last_id = :lastId, last_sync = :lastSync
 WHERE user_id = :userId AND name = :name;
 
-findSyncDataByName:
+findProjectByName:
 SELECT *
 FROM project
 WHERE user_id = :userId AND name = :name;

@@ -11,14 +11,18 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import encyclopedia.fakeEntry
 import getProject1Def
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
 import kotlinx.coroutines.test.runTest
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ViewEntryComponentTest : BaseTest() {
@@ -38,7 +42,7 @@ class ViewEntryComponentTest : BaseTest() {
 	@MockK
 	private lateinit var encyclopediaRepository: EncyclopediaRepository
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

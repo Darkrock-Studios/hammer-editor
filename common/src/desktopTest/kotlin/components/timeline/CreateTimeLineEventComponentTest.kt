@@ -10,7 +10,7 @@ import io.mockk.coVerify
 import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import repositories.timeline.TimeLineTestBase
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

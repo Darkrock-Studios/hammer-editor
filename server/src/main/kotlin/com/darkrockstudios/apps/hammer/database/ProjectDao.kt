@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
-import korlibs.io.util.UUID
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -41,16 +40,17 @@ class ProjectDao(
 		}
 	}
 
-	suspend fun hasProject(userId: Long, projectName: String): Boolean = withContext(ioDispatcher) {
-		queries.hasProject(userId, projectName).executeAsOne()
+	suspend fun hasProject(userId: Long, projectId: ProjectId): Boolean =
+		withContext(ioDispatcher) {
+			queries.hasProjectById(userId, projectId.id).executeAsOne()
 	}
 
 	suspend fun updateProjectName(
 		userId: Long,
-		projectUuid: UUID,
+		projectUuid: ProjectId,
 		newName: String
 	) = withContext(ioDispatcher) {
-		queries.updateProjectName(userId = userId, uuid = projectUuid.toString(), name = newName)
+		queries.updateProjectName(userId = userId, uuid = projectUuid.id, name = newName)
 	}
 
 	suspend fun updateSyncData(
@@ -71,7 +71,7 @@ class ProjectDao(
 		userId: Long,
 		projectName: String,
 	): Project? = withContext(ioDispatcher) {
-		queries.findSyncDataByName(userId, projectName)
+		queries.findProjectByName(userId, projectName)
 			.executeAsOneOrNull()
 	}
 

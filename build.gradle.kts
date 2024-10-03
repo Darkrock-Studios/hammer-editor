@@ -19,11 +19,21 @@ buildscript {
 	}
 }
 
+val xlibs = extensions.getByType<VersionCatalogsExtension>().named("libs")
+
 allprojects {
 	repositories {
 		google()
 		mavenCentral()
 		maven("https://jitpack.io")
+	}
+
+	tasks.withType<Test> {
+		useJUnitPlatform()
+	}
+
+	dependencies {
+		enforcedPlatform(xlibs.findLibrary("junit.bom").get())
 	}
 }
 

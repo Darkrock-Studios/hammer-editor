@@ -26,11 +26,13 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import kotlin.test.Test
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ProjectDatabaseDatasourceTest : BaseTest() {
@@ -43,7 +45,7 @@ class ProjectDatabaseDatasourceTest : BaseTest() {
 	private val userId = 1L
 	private val projectDef = ProjectDefinition("Test Project", ProjectId("Test UUID"))
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		json = createJsonSerializer()
@@ -87,15 +89,17 @@ class ProjectDatabaseDatasourceTest : BaseTest() {
 		setupAccount(testDatabase)
 		val datasource = createDatasource()
 
-		var result = testDatabase.serverDatabase.projectQueries.hasProject(1, projectDef.name)
-			.executeAsOne()
-		assertFalse(result)
+		var result = testDatabase.serverDatabase.projectQueries
+			.findProjectByName(1, projectDef.name)
+			.executeAsOneOrNull()
+		assertNull(result)
 
 		datasource.createProject(userId, projectDef.name)
 
-		result = testDatabase.serverDatabase.projectQueries.hasProject(1, projectDef.name)
-			.executeAsOne()
-		assertTrue(result)
+		result = testDatabase.serverDatabase.projectQueries
+			.findProjectByName(1, projectDef.name)
+			.executeAsOneOrNull()
+		assertNotNull(result)
 	}
 
 	@Test
@@ -107,7 +111,7 @@ class ProjectDatabaseDatasourceTest : BaseTest() {
 		assertTrue(isSuccess(result))
 
 		val projectExists = testDatabase.serverDatabase.projectQueries
-			.hasProject(userId, projectDef.name)
+			.hasProjectById(userId, projectDef.uuid.id)
 			.executeAsOne()
 		assertFalse(projectExists)
 
@@ -320,6 +324,23 @@ class ProjectDatabaseDatasourceTest : BaseTest() {
 			.checkExists(userId, 1, entityId.toLong())
 			.executeAsOne()
 		assertTrue(exists)
+	}
+
+	@Test
+	fun `Get Project`() = runTest {
+		setupEntities(testDatabase)
+		val datasource = createDatasource()
+		val project = datasource.getProject(userId, projectDef.uuid)
+		assertEquals(projectDef, project)
+	}
+
+	@Test
+	fun `Rename Project`() = runTest {
+		val newProjectName = "New Project Name"
+		setupEntities(testDatabase)
+		val datasource = createDatasource()
+		val success = datasource.renameProject(userId, projectDef.uuid, newProjectName)
+		assertTrue(success)
 	}
 
 	private fun setupAccount(testDatabase: SqliteTestDatabase) {

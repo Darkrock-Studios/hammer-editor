@@ -7,7 +7,9 @@ import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
+import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
@@ -26,6 +28,7 @@ fun Route.projectsRoutes() {
 			endProjectSync()
 			deleteProject()
 			createProject()
+			renameProject()
 		}
 	}
 }
@@ -116,6 +119,82 @@ private fun Route.deleteProject() {
 						call.respond(
 							status = HttpStatusCode.BadRequest,
 							HttpResponseError(error = "Error", displayMessage = "Invalid sync ID")
+						)
+					}
+
+					else -> {
+						call.respond(
+							status = HttpStatusCode.InternalServerError,
+							HttpResponseError(
+								error = "Error",
+								displayMessage = e?.message ?: "Unknown failure"
+							)
+						)
+					}
+				}
+			}
+		}
+	}
+}
+
+private fun Route.renameProject() {
+	val projectsRepository: ProjectsRepository = get()
+
+	get("/rename") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectIdRaw = call.parameters["projectId"]
+		val syncId = call.request.headers[HEADER_SYNC_ID]
+		val newProjectName = call.request.queryParameters["projectName"]
+
+		if (projectIdRaw == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = "projectId was missing"
+				)
+			)
+		} else if (syncId == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(error = "Missing Header", displayMessage = "syncId was missing")
+			)
+		} else {
+			val result =
+				projectsRepository.renameProject(
+					principal.id,
+					syncId,
+					ProjectId(projectIdRaw),
+					newProjectName
+				)
+			if (isSuccess(result)) {
+				call.respond("Success")
+			} else {
+				when (val e = result.exception) {
+					is InvalidSyncIdException -> {
+						call.respond(
+							status = HttpStatusCode.BadRequest,
+							HttpResponseError(error = "Error", displayMessage = "Invalid sync ID")
+						)
+					}
+
+					is InvalidProjectName -> {
+						call.respond(
+							status = HttpStatusCode.NotAcceptable,
+							HttpResponseError(
+								error = "Error",
+								displayMessage = "Invalid project name"
+							)
+						)
+					}
+
+					is ProjectNotFound -> {
+						call.respond(
+							status = HttpStatusCode.NotFound,
+							HttpResponseError(
+								error = "Error",
+								displayMessage = "Invalid project name"
+							)
 						)
 					}
 

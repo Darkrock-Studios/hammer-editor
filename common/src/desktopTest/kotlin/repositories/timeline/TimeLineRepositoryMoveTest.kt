@@ -26,8 +26,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
@@ -49,7 +49,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

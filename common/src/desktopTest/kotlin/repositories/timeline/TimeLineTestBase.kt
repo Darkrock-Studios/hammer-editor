@@ -11,7 +11,15 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import io.mockk.*
+import io.mockk.Awaits
+import io.mockk.CapturingSlot
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coJustAwait
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,7 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
@@ -38,7 +46,7 @@ abstract class TimeLineTestBase : BaseTest() {
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

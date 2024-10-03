@@ -14,8 +14,8 @@ import io.ktor.server.jetty.Jetty
 import io.ktor.server.jetty.JettyApplicationEngine
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.After
-import org.junit.Before
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
 
 /**
@@ -33,7 +33,7 @@ abstract class EndToEndTest {
 	protected fun client() = client
 	protected fun database() = testDatabase
 
-	@Before
+	@BeforeEach
 	open fun setup() {
 		fileSystem = FakeFileSystem()
 		testDatabase = SqliteTestDatabase()
@@ -46,7 +46,7 @@ abstract class EndToEndTest {
 		}
 	}
 
-	@After
+	@AfterEach
 	fun tearDown() {
 		server.stop(1, 1)
 	}

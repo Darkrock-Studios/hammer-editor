@@ -29,9 +29,9 @@ import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.getPrivateProperty
 import verifyCoords
@@ -94,7 +94,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 			}
 	}
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		ffs = FakeFileSystem()
@@ -144,7 +144,7 @@ class SceneEditorRepositoryOkioMoveTest : BaseTest() {
 		}
 	}
 
-	@After
+	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
 		repo.close()

@@ -73,7 +73,11 @@ class ProjectDatabaseDatasource(
 	}
 
 	override suspend fun checkProjectExists(userId: Long, projectDef: ProjectDefinition): Boolean {
-		return projectDao.hasProject(userId, projectDef.name)
+		return checkProjectExists(userId, projectDef.uuid)
+	}
+
+	override suspend fun checkProjectExists(userId: Long, projectId: ProjectId): Boolean {
+		return projectDao.hasProject(userId, projectId)
 	}
 
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
@@ -233,5 +237,31 @@ class ProjectDatabaseDatasource(
 			userId = userId,
 			projectId = projectId,
 		).filter { filter(it) }
+	}
+
+	override suspend fun renameProject(
+		userId: Long,
+		projectId: ProjectId,
+		newProjectName: String
+	): Boolean {
+		projectDao.updateProjectName(
+			userId = userId,
+			projectUuid = projectId,
+			newName = newProjectName,
+		)
+
+		return true
+	}
+
+	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
+		val projectData = projectDao.getProjectData(userId, projectId)
+		return if (projectData != null) {
+			ProjectDefinition.wrap(
+				name = projectData.name,
+				uuid = projectData.uuid,
+			)
+		} else {
+			null
+		}
 	}
 }

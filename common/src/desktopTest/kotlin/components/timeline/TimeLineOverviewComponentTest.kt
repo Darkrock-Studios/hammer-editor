@@ -13,7 +13,15 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import getProjectDef
-import io.mockk.*
+import io.mockk.Awaits
+import io.mockk.CapturingSlot
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coJustAwait
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,8 +33,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import repositories.timeline.fakeEvents
@@ -50,7 +58,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

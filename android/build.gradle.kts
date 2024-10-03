@@ -42,8 +42,8 @@ dependencies {
 //	implementation(libs.ui.tooling.preview)
 //	implementation(libs.material3)
 
-	androidTestImplementation(libs.junit)
-	androidTestImplementation(libs.junit.ktx)
+	androidTestImplementation(libs.androidx.junit)
+	androidTestImplementation(libs.androidx.junit.ktx)
 	androidTestImplementation(libs.core)
 	androidTestImplementation(libs.core.ktx)
 	androidTestImplementation(libs.androidx.runner)
@@ -54,6 +54,7 @@ dependencies {
 	implementation(libs.aboutlibraries.core)
 //	debugImplementation(libs.ui.tooling)
 //	debugImplementation(libs.ui.test.manifest)
+	testImplementation(libs.bundles.junit.jupiter)
 }
 
 android {

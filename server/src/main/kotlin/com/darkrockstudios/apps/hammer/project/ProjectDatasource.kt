@@ -10,7 +10,9 @@ interface ProjectDatasource {
 	suspend fun createProject(userId: Long, projectName: String): ProjectDefinition
 	suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit>
 	suspend fun checkProjectExists(userId: Long, projectDef: ProjectDefinition): Boolean
+	suspend fun checkProjectExists(userId: Long, projectId: ProjectId): Boolean
 	suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition?
+	suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition?
 	suspend fun updateSyncData(
 		userId: Long,
 		projectDef: ProjectDefinition,
@@ -52,4 +54,6 @@ interface ProjectDatasource {
 		projectDef: ProjectDefinition,
 		filter: (EntityDefinition) -> Boolean = { true }
 	): List<EntityDefinition>
+
+	suspend fun renameProject(userId: Long, projectId: ProjectId, newProjectName: String): Boolean
 }

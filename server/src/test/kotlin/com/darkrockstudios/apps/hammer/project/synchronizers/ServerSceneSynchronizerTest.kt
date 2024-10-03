@@ -14,9 +14,9 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.reflect.KClass
-import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ServerSceneSynchronizerTest :
@@ -29,7 +29,7 @@ class ServerSceneSynchronizerTest :
 		ApiProjectEntity.SceneEntity::class
 	override val pathStub: String = "scene"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		log = mockk()

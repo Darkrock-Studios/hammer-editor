@@ -13,9 +13,9 @@ import getProject1Def
 import kotlinx.datetime.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import utils.BaseTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -27,7 +27,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 
 	private lateinit var toml: Toml
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		fileSystem = FakeFileSystem()

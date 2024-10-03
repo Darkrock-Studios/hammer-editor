@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -77,9 +80,9 @@ class ProjectsRepository(
 	}
 
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
-		if (syncSessionManager.validateSyncId(userId, syncId, true)
-				.not()
-		) return SResult.failure(InvalidSyncIdException())
+		if (syncSessionManager.validateSyncId(userId, syncId, true).not()) return SResult.failure(
+			InvalidSyncIdException()
+		)
 
 		val projectDef = projectsDatasource.getProject(userId, projectId)
 		return if (projectDef != null) {
@@ -109,9 +112,11 @@ class ProjectsRepository(
 		syncId: String,
 		projectName: String
 	): SResult<ProjectCreatedResult> {
-		if (syncSessionManager.validateSyncId(userId, syncId, true)
-				.not()
-		) return SResult.failure(InvalidSyncIdException())
+		if (syncSessionManager.validateSyncId(userId, syncId, true).not())
+			return SResult.failure(InvalidSyncIdException())
+
+		if (validateProjectName(projectName).not())
+			return SResult.failure(InvalidProjectName(projectName))
 
 		val existingProject = projectDatasource.findProjectByName(userId, projectName)
 		val projectDef = existingProject ?: projectDatasource.createProject(userId, projectName)
@@ -123,6 +128,27 @@ class ProjectsRepository(
 				alreadyExisted = alreadyExists
 			)
 		)
+	}
+
+	suspend fun renameProject(
+		userId: Long,
+		syncId: String,
+		projectId: ProjectId,
+		newProjectName: String?,
+	): SResult<Unit> {
+		if (syncSessionManager.validateSyncId(userId, syncId, true).not())
+			return SResult.failure(InvalidSyncIdException())
+
+		if (!validateProjectName(newProjectName))
+			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
+
+		val existingProject = projectDatasource.checkProjectExists(userId, projectId)
+		return if (existingProject) {
+			projectDatasource.renameProject(userId, projectId, newProjectName)
+			SResult.success()
+		} else {
+			SResult.failure(ProjectNotFound(projectId))
+		}
 	}
 
 	data class ProjectCreatedResult(

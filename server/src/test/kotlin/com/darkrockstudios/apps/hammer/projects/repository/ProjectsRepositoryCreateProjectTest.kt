@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {

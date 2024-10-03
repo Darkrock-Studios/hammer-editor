@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import kotlin.reflect.KClass
 
 class ServerTimelineEventSynchronizerTest :
@@ -12,7 +12,7 @@ class ServerTimelineEventSynchronizerTest :
 		ApiProjectEntity.TimelineEventEntity::class
 	override val pathStub: String = "timeline_event"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 	}

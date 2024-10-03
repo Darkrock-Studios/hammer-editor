@@ -16,7 +16,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

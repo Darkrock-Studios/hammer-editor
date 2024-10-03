@@ -15,16 +15,16 @@ import createProject
 import getProjectDef
 import io.mockk.MockKAnnotations
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import utils.BaseTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 class Migration0_1Test : BaseTest() {
 	private lateinit var fakeFileSystem: FakeFileSystem
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)

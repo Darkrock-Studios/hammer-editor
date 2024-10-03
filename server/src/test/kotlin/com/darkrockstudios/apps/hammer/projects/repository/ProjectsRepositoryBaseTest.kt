@@ -17,7 +17,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -55,7 +55,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		}
 	}
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

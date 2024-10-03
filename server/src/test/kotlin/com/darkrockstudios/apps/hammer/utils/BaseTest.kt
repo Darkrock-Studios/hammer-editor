@@ -12,8 +12,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Before
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.koin.core.context.GlobalContext
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
@@ -33,12 +33,12 @@ abstract class BaseTest : KoinTest {
 	lateinit var ioTestDispatcher: TestDispatcher
 	lateinit var defaultTestDispatcher: TestDispatcher
 
-	@Before
+	@BeforeEach
 	open fun setup() {
 		Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
 	}
 
-	@After
+	@AfterEach
 	open fun tearDown() {
 		scope.cancel()
 		GlobalContext.stopKoin()

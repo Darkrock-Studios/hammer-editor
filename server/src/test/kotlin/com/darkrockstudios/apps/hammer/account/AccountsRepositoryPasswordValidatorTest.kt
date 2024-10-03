@@ -8,8 +8,8 @@ import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
 import kotlinx.datetime.Clock
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class AccountsRepositoryPasswordValidatorTest {
@@ -22,7 +22,7 @@ class AccountsRepositoryPasswordValidatorTest {
 
 	private lateinit var clock: TestClock
 
-	@Before
+	@BeforeEach
 	fun begin() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 		clock = TestClock(Clock.System)

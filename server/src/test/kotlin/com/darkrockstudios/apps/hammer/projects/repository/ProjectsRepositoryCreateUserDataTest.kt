@@ -5,7 +5,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
 class ProjectsRepositoryCreateUserDataTest : ProjectsRepositoryBaseTest() {
 

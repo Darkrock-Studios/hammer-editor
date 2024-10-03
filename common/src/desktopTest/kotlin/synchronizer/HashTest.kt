@@ -2,7 +2,7 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import kotlinx.datetime.Instant
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class HashTest {
 	@Test

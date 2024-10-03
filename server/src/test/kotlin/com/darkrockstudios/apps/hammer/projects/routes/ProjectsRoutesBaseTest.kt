@@ -16,7 +16,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
 import kotlinx.serialization.json.Json
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.module
 
 abstract class ProjectsRoutesBaseTest : BaseTest() {
@@ -46,7 +46,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 	protected val BEARER_TOKEN = "token-test"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

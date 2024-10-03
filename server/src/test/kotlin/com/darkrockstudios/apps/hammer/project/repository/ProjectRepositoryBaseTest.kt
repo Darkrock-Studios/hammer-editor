@@ -25,7 +25,7 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -49,7 +49,7 @@ abstract class ProjectRepositoryBaseTest : BaseTest() {
 
 	protected lateinit var clientState: ClientEntityState
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

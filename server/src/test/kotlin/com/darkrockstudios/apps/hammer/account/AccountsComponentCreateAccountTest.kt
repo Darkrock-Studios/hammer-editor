@@ -12,8 +12,8 @@ import io.mockk.coVerify
 import io.mockk.confirmVerified
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -37,7 +37,7 @@ class AccountsComponentCreateAccountTest {
 		refresh = "abc"
 	)
 
-	@Before
+	@BeforeEach
 	fun begin() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 	}

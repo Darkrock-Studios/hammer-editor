@@ -119,6 +119,7 @@ kotlin {
 		}
 		val desktopTest by getting {
 			dependencies {
+				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)
 				implementation(libs.mockk)
 				implementation(libs.koin.test)

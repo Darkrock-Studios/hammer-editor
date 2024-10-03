@@ -35,9 +35,9 @@ import kotlinx.datetime.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.callPrivate
 import utils.getPrivateProperty
@@ -95,7 +95,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 		}
 	}
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		ffs = FakeFileSystem()
@@ -135,7 +135,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 		setupKoin()
 	}
 
-	@After
+	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
 		repo.close()

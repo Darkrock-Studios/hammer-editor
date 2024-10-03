@@ -21,8 +21,8 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -45,7 +45,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	lateinit var fileSystem: FakeFileSystem
 	lateinit var toml: Toml
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

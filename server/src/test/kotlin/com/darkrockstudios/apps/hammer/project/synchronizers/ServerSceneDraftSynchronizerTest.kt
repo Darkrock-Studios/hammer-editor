@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import kotlinx.datetime.Instant
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import kotlin.reflect.KClass
 
 class ServerSceneDraftSynchronizerTest :
@@ -13,7 +13,7 @@ class ServerSceneDraftSynchronizerTest :
 		ApiProjectEntity.SceneDraftEntity::class
 	override val pathStub: String = "scene_draft"
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 	}

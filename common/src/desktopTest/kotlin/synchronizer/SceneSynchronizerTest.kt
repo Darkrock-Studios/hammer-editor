@@ -25,10 +25,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.fromApiEntity
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -56,7 +56,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private lateinit var rootNode: TreeNode<SceneItem>
 	private lateinit var tree: Tree<SceneItem>
 
-	@Before
+	@BeforeEach
 	fun begin() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)

@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.utilities.RandomString
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class TokenTest {

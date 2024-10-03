@@ -24,10 +24,10 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.datetime.Clock
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -43,7 +43,7 @@ class DataMigratorTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)

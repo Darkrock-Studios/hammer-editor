@@ -77,6 +77,9 @@ kotlin {
 
 		val desktopTest by getting {
 			dependencies {
+				implementation(libs.androidx.junit)
+				implementation(libs.junit.jupiter)
+				runtimeOnly(libs.junit.vintage.engine)
 				implementation(libs.mockk)
 			}
 		}

@@ -43,6 +43,10 @@ SELECT COUNT(*) FROM account;
 createAccount:
 INSERT INTO account(email, salt, password_hash, is_admin) VALUES (?, ?, ?, ?);
 
+testInsertAccount:
+INSERT INTO account(email, salt, password_hash, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
+
+
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
 

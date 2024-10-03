@@ -9,7 +9,7 @@ import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import repositories.timeline.TimeLineTestBase
 import repositories.timeline.fakeEvents
 import kotlin.test.assertTrue

@@ -13,8 +13,8 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import kotlin.test.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -24,7 +24,7 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 	private lateinit var fileSystem: FileSystem
 	private lateinit var json: Json
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

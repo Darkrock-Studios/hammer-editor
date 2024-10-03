@@ -13,9 +13,9 @@ import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
 import kotlinx.serialization.json.Json
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
-import kotlin.test.Test
 import kotlin.test.assertFalse
 
 class AccountRoutesTest : BaseTest() {
@@ -39,7 +39,7 @@ class AccountRoutesTest : BaseTest() {
 
 	private lateinit var testModule: org.koin.core.module.Module
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

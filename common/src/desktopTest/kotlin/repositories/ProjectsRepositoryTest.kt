@@ -28,11 +28,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.After
-import org.junit.Before
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import projectNames
 import utils.BaseTest
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -46,7 +46,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	private lateinit var settings: GlobalSettings
 	private lateinit var toml: Toml
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 		toml = createTomlSerializer()
@@ -77,7 +77,7 @@ class ProjectsRepositoryTest : BaseTest() {
 		setupKoin()
 	}
 
-	@After
+	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
 		ffs.checkNoOpenFiles()

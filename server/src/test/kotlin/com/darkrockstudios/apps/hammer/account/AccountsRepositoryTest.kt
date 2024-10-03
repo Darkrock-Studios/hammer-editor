@@ -18,8 +18,8 @@ import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
@@ -50,7 +50,7 @@ class AccountsRepositoryTest : BaseTest() {
 		expires = (Clock.System.now() + 30.days).toISO8601()
 	)
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

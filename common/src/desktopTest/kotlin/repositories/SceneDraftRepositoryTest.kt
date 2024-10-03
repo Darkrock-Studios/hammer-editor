@@ -1,6 +1,6 @@
 package repositories
 
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
 class SceneDraftRepositoryTest {
 

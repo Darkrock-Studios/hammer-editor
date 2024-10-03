@@ -22,8 +22,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -37,7 +37,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	lateinit var toml: Toml
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

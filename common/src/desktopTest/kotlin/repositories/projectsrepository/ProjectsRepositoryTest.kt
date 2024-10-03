@@ -26,8 +26,8 @@ import kotlinx.datetime.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
@@ -44,7 +44,7 @@ class ProjectsRepositoryTest : BaseTest() {
 	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	lateinit var settings: GlobalSettings
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

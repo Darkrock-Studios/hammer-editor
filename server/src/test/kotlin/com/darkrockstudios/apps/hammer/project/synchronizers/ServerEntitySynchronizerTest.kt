@@ -17,9 +17,9 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.reflect.KClass
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -39,7 +39,7 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 	abstract fun createNewEntity(): C
 	abstract fun createExistingEntity(): C
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

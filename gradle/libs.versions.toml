@@ -29,7 +29,8 @@ cryptohash = "1.0.2"
 darklafCore = "3.0.2"
 glance = "1.1.0"
 jSystemThemeDetector = "3.8"
-junit = "1.2.1"
+androix-junit = "1.2.1"
+junit = "5.11.1"
 kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.25.0"
 kwebCore = "1.4.12"
@@ -60,8 +61,6 @@ image-loader-blur = "1.7.7"
 
 koin_bom = "4.0.0"
 
-cokoin = "1.0.0"
-
 ktor = "2.3.12"
 ktor_i18n = "2.0.0"
 
@@ -84,7 +83,7 @@ resources = "1.1.0"
 aboutlibraries = "11.2.3"
 logback_classic = "1.4.14"
 multiplatform_settings = "1.2.0"
-korge_core = "5.4.0"
+korge-core = "5.4.0"
 
 moko-permissions = "0.18.0"
 
@@ -110,8 +109,15 @@ imageloader_moko = { group = "io.github.qdsfdhvh", name = "image-loader-extensio
 imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
 
 jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
-junit = { module = "androidx.test.ext:junit", version.ref = "junit" }
-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "junit" }
+androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androix-junit" }
+androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androix-junit" }
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+
 koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot-core" }
 
 kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
@@ -168,8 +174,6 @@ koin_test = { group = "io.insert-koin", name = "koin-test" }
 koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-compose" }
-
-cokoin = { group = "dev.burnoo", name = "cokoin", version.ref = "cokoin" }
 
 tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 
@@ -289,4 +293,9 @@ ktor_server = [
 essenty = [
 	"essenty_lifecycle",
 	"essenty_lifecycle_coroutines",
+]
+junit-jupiter = [
+	"junit-jupiter",
+	"junit-jupiter-engine",
+	"junit-jupiter-params",
 ]

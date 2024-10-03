@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.runBlocking
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

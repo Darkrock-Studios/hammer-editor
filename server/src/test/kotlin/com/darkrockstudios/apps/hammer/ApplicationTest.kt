@@ -16,9 +16,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
-import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApplicationTest : BaseTest() {
@@ -30,7 +30,7 @@ class ApplicationTest : BaseTest() {
 	private lateinit var adminComponent: AdminComponent
 	private lateinit var testModule: org.koin.core.module.Module
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

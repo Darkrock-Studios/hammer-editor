@@ -14,14 +14,19 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSyn
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import getProjectsDirectory
-import io.mockk.*
+import io.mockk.Awaits
 import io.mockk.InternalPlatformDsl.toStr
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
@@ -44,7 +49,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var exampleProjectRepository: ExampleProjectRepository
 	lateinit var projectsSynchronizer: ClientProjectsSynchronizer
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 

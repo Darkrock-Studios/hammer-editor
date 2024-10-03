@@ -82,12 +82,13 @@ dependencies {
 	testImplementation(libs.ktor.serialization.kotlinx.json)
 
 	testImplementation(libs.ktor.server.testsjvm)
-	testImplementation(libs.kotlin.test.junit)
 	testImplementation(libs.coroutines.test)
 	testImplementation(libs.mockk)
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
 	testImplementation(libs.ktor.server.testshostjvm)
+	testImplementation(libs.bundles.junit.jupiter)
+	testRuntimeOnly(libs.junit.jupiter.engine)
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)

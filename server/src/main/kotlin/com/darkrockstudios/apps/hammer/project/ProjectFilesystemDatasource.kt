@@ -27,6 +27,11 @@ class ProjectFilesystemDatasource(
 		return fileSystem.exists(projectDir)
 	}
 
+	override suspend fun checkProjectExists(userId: Long, projectId: ProjectId): Boolean {
+		TODO("Not yet implemented")
+		return false
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		error("Not implemented for FileSystem datasource")
 	}
@@ -141,6 +146,20 @@ class ProjectFilesystemDatasource(
 			parseEntityFilename(it)
 		}.filter(filter)
 		return entities
+	}
+
+	override suspend fun renameProject(
+		userId: Long,
+		projectId: ProjectId,
+		newProjectName: String
+	): Boolean {
+		TODO("Not yet implemented")
+		return false
+	}
+
+	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
+		TODO("Not yet implemented")
+		return null
 	}
 
 	override suspend fun <T : ApiProjectEntity> storeEntity(

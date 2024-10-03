@@ -17,9 +17,9 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -30,7 +30,7 @@ class IdRepositoryTest : BaseTest() {
 	private lateinit var projectSynchronizer: ClientProjectSynchronizer
 	private lateinit var toml: Toml
 
-	@Before
+	@BeforeEach
 	override fun setup() {
 		super.setup()
 
@@ -45,7 +45,7 @@ class IdRepositoryTest : BaseTest() {
 		setupKoin(testModule)
 	}
 
-	@After
+	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
 		ffs.checkNoOpenFiles()

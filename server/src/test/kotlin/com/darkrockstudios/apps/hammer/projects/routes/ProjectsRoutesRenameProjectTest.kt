@@ -4,7 +4,11 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
+import com.darkrockstudios.apps.hammer.project.InvalidProjectName
+import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -13,89 +17,108 @@ import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.coVerify
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import java.util.stream.Stream
 import kotlin.test.assertEquals
 
-class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
-
+class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 	@Test
-	fun `Projects - Delete Project - Success`() = testApplication {
+	fun `Rename a project successfully`() = testApplication {
 		val projectId = ProjectId("TestProjectId")
 		val syncId = "syncId-test"
 		val userId = 0L
+		val newName = "New Project Name"
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
-			projectsRepository.deleteProject(
+			projectsRepository.renameProject(
 				userId = userId,
 				syncId = syncId,
 				projectId = projectId,
+				newProjectName = newName
 			)
 		} returns SResult.success(Unit)
 
 		defaultApplication()
 
-		client.get("api/projects/0/delete") {
+		client.get("api/projects/0/rename") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 
 			parameter("projectId", projectId.id)
+			parameter("projectName", newName)
 		}.apply {
 			assertEquals(HttpStatusCode.OK, status)
 			coVerify {
-				projectsRepository.deleteProject(
+				projectsRepository.renameProject(
 					userId = userId,
 					syncId = syncId,
 					projectId = projectId,
+					newProjectName = newName
 				)
 			}
 		}
 	}
 
-	@Test
-	fun `Projects - Delete Project - Invalid Request`() = testApplication {
-		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
-
-		defaultApplication()
-
-		client.get("api/projects/0/delete") {
-			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
-			header("Authorization", "Bearer $BEARER_TOKEN")
-
-			parameter("projectId", "project-id-1")
-		}.apply {
-			assertEquals(HttpStatusCode.BadRequest, status)
+	companion object {
+		@JvmStatic
+		fun provideFailureTestData(): Stream<Arguments> {
+			return Stream.of(
+				Arguments.of(
+					SResult.failure<Unit>(InvalidProjectName("")),
+					HttpStatusCode.NotAcceptable
+				),
+				Arguments.of(
+					SResult.failure<Unit>(ProjectNotFound(ProjectId("TestProjectId"))),
+					HttpStatusCode.NotFound
+				),
+				Arguments.of(
+					SResult.failure<Unit>(
+						InvalidSyncIdException()
+					),
+					HttpStatusCode.BadRequest
+				),
+			)
 		}
 	}
 
-	@Test
-	fun `Projects - Delete Project - Failure - Repository Exception`() = testApplication {
+	@ParameterizedTest
+	@MethodSource("provideFailureTestData")
+	fun `Repository returned failure, ensure correct http status code returned`(
+		failure: ServerResult<Unit>,
+		expectedStatus: HttpStatusCode
+	) = testApplication {
 		val projectId = ProjectId("TestProjectId")
 		val syncId = "syncId-test"
 		val userId = 0L
+		val newName = "What Ever"
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
-			projectsRepository.deleteProject(
+			projectsRepository.renameProject(
 				userId = userId,
 				syncId = syncId,
 				projectId = projectId,
+				newProjectName = newName
 			)
-		} returns SResult.failure(Exception())
+		} returns failure
 
 		defaultApplication()
 
-		client.get("api/projects/0/delete") {
+		client.get("api/projects/0/rename") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 
-			parameter("projectId", projectId)
+			parameter("projectId", projectId.id)
+			parameter("projectName", newName)
 		}.apply {
-			assertEquals(HttpStatusCode.InternalServerError, status)
+			assertEquals(expectedStatus, status)
 		}
 	}
 }

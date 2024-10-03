@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.text
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class MarkdownTest {
