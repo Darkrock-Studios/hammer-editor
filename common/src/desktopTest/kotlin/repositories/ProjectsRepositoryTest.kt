@@ -3,10 +3,12 @@ package repositories
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -180,5 +182,23 @@ class ProjectsRepositoryTest : BaseTest() {
 
 		val deleteAgain = repo.deleteProject(projDef)
 		assertFalse(deleteAgain)
+	}
+
+	@Test
+	fun `Rename Project`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val repo = ProjectsRepositoryOkio(ffs, settingsRepo, projectsMetaRepo)
+
+		val projectName = projectNames[0]
+		val newProjectName = "New Project Name"
+		val projPath = getProjectsDirectory().div(projectName)
+		val projDef = ProjectDefinition(projectName, projPath.toHPath())
+
+		val newProjPath = getProjectsDirectory().div(newProjectName)
+
+		val result = repo.renameProject(projDef, newProjectName)
+		assertTrue(isSuccess(result))
+		assertEquals(ProjectDef(newProjectName, newProjPath.toHPath()), result.data)
+		assertTrue(ffs.exists(newProjPath))
 	}
 }

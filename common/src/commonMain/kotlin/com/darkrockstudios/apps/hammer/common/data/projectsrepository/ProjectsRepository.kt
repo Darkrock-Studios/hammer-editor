@@ -26,6 +26,7 @@ abstract class ProjectsRepository : KoinComponent {
 	abstract fun getProjectDefinition(projectName: String): ProjectDef
 	abstract fun createProject(projectName: String): CResult<ProjectDef>
 	abstract fun deleteProject(projectDef: ProjectDef): Boolean
+	abstract fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef>
 	abstract fun ensureProjectDirectory()
 
 	//abstract fun renameProject(projectDef: ProjectDef, newName: String): CResult<Unit>
@@ -85,6 +86,3 @@ abstract class ProjectsRepository : KoinComponent {
 		}
 	}
 }
-
-class ValidationFailedException(val errorMessage: StringResource) : IllegalArgumentException()
-class ProjectCreationFailedException(val errorMessage: StringResource?) : IllegalArgumentException()

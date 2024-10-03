@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import okio.FileSystem
+import okio.IOException
 import okio.Path.Companion.toPath
 
 class ProjectsRepositoryOkio(
@@ -136,6 +137,29 @@ class ProjectsRepositoryOkio(
 				displayMessage = result.displayMessage,
 				exception = ProjectCreationFailedException(result.displayMessage?.r)
 			)
+		}
+	}
+
+	override fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
+		if (validateFileName(newName).isFailure) {
+			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.InvalidName))
+		}
+
+		val projectDir = getProjectDirectory(projectDef.name).toOkioPath()
+		val newProjectDir = getProjectDirectory(newName).toOkioPath()
+		return if (fileSystem.exists(projectDir)) {
+			if (fileSystem.exists(newProjectDir).not()) {
+				try {
+					fileSystem.atomicMove(source = projectDir, target = newProjectDir)
+					CResult.success(ProjectDef(newName, newProjectDir.toHPath()))
+				} catch (e: IOException) {
+					CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.MoveFailed))
+				}
+			} else {
+				CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.AlreadyExists))
+			}
+		} else {
+			CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.SourceDoesNotExist))
 		}
 	}
 
