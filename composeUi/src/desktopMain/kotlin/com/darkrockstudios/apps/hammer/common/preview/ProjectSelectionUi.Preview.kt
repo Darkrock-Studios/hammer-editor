@@ -28,13 +28,13 @@ private fun ProjectCardPreview() {
 		Spacer(modifier = Modifier.size(32.dp))
 
 		AppTheme(false) {
-			ProjectCard(data, {}, {})
+			ProjectCard(data, {}, {}, {})
 		}
 
 		Spacer(modifier = Modifier.size(32.dp))
 
 		AppTheme(true) {
-			ProjectCard(data, {}, {})
+			ProjectCard(data, {}, {}, {})
 		}
 	}
 }

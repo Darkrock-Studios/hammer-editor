@@ -239,6 +239,20 @@ class ProjectsListComponent(
 		}
 	}
 
+	override fun renameProject(projectDef: ProjectDef, newName: String) {
+		val projectId = projectsRepository.getProjectId(projectDef)
+		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
+			Napier.i("Project renamed: ${projectDef.name}")
+			if (projectId != null) {
+				projectsSynchronizer.renameProject(projectId, newName)
+			}
+
+			loadProjectList()
+		} else {
+			Napier.e("Failed to rename Project: ${projectDef.name} to '$newName'")
+		}
+	}
+
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata {
 		return projectMetadataDatasource.loadMetadata(projectDef)
 	}

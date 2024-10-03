@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsync
 
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
@@ -58,18 +60,15 @@ class ClientProjectsSynchronizer(
 
 				yield()
 
+				syncRenamedProjects(clientSyncData, serverSyncData, onLog)
+
+				yield()
+
 				syncDeletedProjects(clientSyncData, serverSyncData, onLog)
 
 				yield()
 
-				// Remove client deleted projects the list of projects to sync
-				val updatedServerSyncData = serverSyncData.copy(
-					projects = serverSyncData.projects.filter { serverProj ->
-						clientSyncData.projectsToDelete.none { clientProj ->
-							clientProj.id == serverProj.uuid.id
-						}
-					}.toSet()
-				)
+				val updatedServerSyncData = processProjectSyncData(serverSyncData, clientSyncData)
 
 				val localProjects = projectsRepository.getProjects()
 				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog)
@@ -104,16 +103,119 @@ class ClientProjectsSynchronizer(
 		}
 	}
 
+	private fun processProjectSyncData(
+		serverSyncData: BeginProjectsSyncResponse,
+		clientSyncData: ProjectsSynchronizationData
+	): BeginProjectsSyncResponse {
+		// Remove client deleted projects the list of projects to sync
+		var updatedServerSyncData = serverSyncData.copy(
+			projects = serverSyncData.projects.filter { serverProj ->
+				clientSyncData.projectsToDelete.none { clientProj ->
+					clientProj.id == serverProj.uuid.id
+				}
+			}.toSet()
+		)
+
+		// Replace client renamed projects in the list of projects to sync
+		updatedServerSyncData = updatedServerSyncData.copy(
+			projects = serverSyncData.projects.map { serverProj ->
+				val renamed = clientSyncData.projectsToRename
+					.find { (clientProjId, _) -> clientProjId == serverProj.uuid }
+
+				if (renamed != null) {
+					serverProj.copy(name = renamed.newName)
+				} else {
+					serverProj
+				}
+			}.toSet()
+		)
+
+		return updatedServerSyncData
+	}
+
+	private suspend fun syncRenamedProjects(
+		clientSyncData: ProjectsSynchronizationData,
+		serverSyncData: BeginProjectsSyncResponse,
+		onLog: OnSyncLog,
+	) {
+		// Rename projects on the server
+		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
+			val result = serverProjectsApi.renameProject(projectId, serverSyncData.syncId, newName)
+			if (result.isSuccess) {
+				onLog(
+					syncAccLogI(
+						strRes.get(
+							MR.strings.sync_log_account_project_rename_server_success,
+							projectId.id
+						)
+					)
+				)
+				updateSyncData { syncData ->
+					syncData.copy(
+						projectsToRename = syncData.projectsToRename
+							.filterNot { it.projectId == projectId }.toSet(),
+					)
+				}
+			} else {
+				Napier.e("Failed to rename project: $projectId", result.exceptionOrNull())
+				onLog(
+					syncAccLogE(
+						strRes.get(
+							MR.strings.sync_log_account_project_rename_server_failure,
+							projectId
+						)
+					)
+				)
+			}
+		}
+	}
+
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		onLog: OnSyncLog,
 	) {
+		deleteServerProjects(clientSyncData, serverSyncData, onLog)
+		deleteLocalProjects(clientSyncData, serverSyncData, onLog)
+	}
+
+	/**
+	 * Delete local projects which the server has deleted
+	 */
+	private suspend fun deleteLocalProjects(
+		clientSyncData: ProjectsSynchronizationData,
+		serverSyncData: BeginProjectsSyncResponse,
+		onLog: OnSyncLog
+	) {
 		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { project ->
 			clientSyncData.deletedProjects.contains(project).not()
 		}
 
-		// Delete projects on the server
+		newlyDeletedProjects.forEach { projectId ->
+			val projectDef = projectsRepository.findProject(projectId)
+			if (projectDef != null) {
+				onLog(
+					syncAccLogI(
+						strRes.get(
+							MR.strings.sync_log_account_project_delete_client,
+							projectDef.name
+						)
+					)
+				)
+
+				projectsRepository.deleteProject(projectDef)
+			}
+		}
+	}
+
+	/**
+	 * Delete projects on the server which this client deleted locally
+	 */
+	private suspend fun deleteServerProjects(
+		clientSyncData: ProjectsSynchronizationData,
+		serverSyncData: BeginProjectsSyncResponse,
+		onLog: OnSyncLog
+	) {
 		clientSyncData.projectsToDelete.forEach { projectId ->
 			val result = serverProjectsApi.deleteProject(projectId, serverSyncData.syncId)
 			if (result.isSuccess) {
@@ -132,6 +234,7 @@ class ClientProjectsSynchronizer(
 					)
 				}
 			} else {
+				Napier.e("Failed to delete project: $projectId", result.exceptionOrNull())
 				onLog(
 					syncAccLogE(
 						strRes.get(
@@ -140,23 +243,6 @@ class ClientProjectsSynchronizer(
 						)
 					)
 				)
-			}
-		}
-
-		// Delete locally deleted projects from server
-		newlyDeletedProjects.forEach { projectId ->
-			val projectDef = projectsRepository.findProject(projectId)
-			if (projectDef != null) {
-				onLog(
-					syncAccLogI(
-						strRes.get(
-							MR.strings.sync_log_account_project_delete_client,
-							projectDef.name
-						)
-					)
-				)
-
-				projectsRepository.deleteProject(projectDef)
 			}
 		}
 	}
@@ -179,6 +265,60 @@ class ClientProjectsSynchronizer(
 			}
 		}
 
+		renameLocalProjectsFromServerChanges(
+			serverProjects,
+			localProjectsWithIds,
+			clientSyncData,
+			onLog
+		)
+
+		createProjectsOnServer(localProjectsWithIds, clientSyncData, serverSyncData, onLog)
+
+		createLocalProjectsFromServer(newServerProjects, onLog)
+	}
+
+	/**
+	 * Create local projects from server
+	 */
+	private suspend fun createLocalProjectsFromServer(
+		newServerProjects: List<ApiProjectDefinition>,
+		onLog: OnSyncLog
+	) {
+		newServerProjects.forEach { serverProject ->
+			val createResult = projectsRepository.createProject(serverProject.name)
+			if (isSuccess(createResult)) {
+				val projectDef = createResult.data
+				projectsRepository.setProjectId(projectDef, serverProject.uuid)
+				onLog(
+					syncAccLogI(
+						strRes.get(
+							MR.strings.sync_log_account_project_create_client,
+							serverProject.name
+						)
+					)
+				)
+			} else {
+				onLog(
+					syncAccLogW(
+						strRes.get(
+							MR.strings.sync_log_account_project_create_client_failure,
+							serverProject.toString(),
+						)
+					)
+				)
+			}
+		}
+	}
+
+	/**
+	 * Create projects on the server which this client has created locally
+	 */
+	private suspend fun createProjectsOnServer(
+		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
+		clientSyncData: ProjectsSynchronizationData,
+		serverSyncData: BeginProjectsSyncResponse,
+		onLog: OnSyncLog
+	) {
 		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
 			uuid == null
 		}.map { it.first.name }
@@ -217,30 +357,51 @@ class ClientProjectsSynchronizer(
 				)
 			}
 		}
+	}
 
-		// Create local projects from server
-		newServerProjects.forEach { serverProject ->
-			val createResult = projectsRepository.createProject(serverProject.name)
-			if (isSuccess(createResult)) {
-				val projectDef = createResult.data
-				projectsRepository.setProjectId(projectDef, serverProject.uuid)
-				onLog(
-					syncAccLogI(
-						strRes.get(
-							MR.strings.sync_log_account_project_create_client,
-							serverProject.name
+	/**
+	 * Rename projects on this client which the server has renamed
+	 */
+	private suspend fun renameLocalProjectsFromServerChanges(
+		serverProjects: Set<ApiProjectDefinition>,
+		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
+		clientSyncData: ProjectsSynchronizationData,
+		onLog: OnSyncLog
+	) {
+		val commonProjectsNotLocallyRenamed = serverProjects.mapNotNull { serverProject ->
+			localProjectsWithIds.find { it.second == serverProject.uuid }?.let { localProject ->
+				ProjectPair(serverProject, localProject.first)
+			}
+		}
+			.filterNot { clientSyncData.projectsToDelete.contains(it.serverProject.uuid) }
+			.filterNot {
+				clientSyncData.projectsToRename
+					.find { renamed -> renamed.projectId == it.serverProject.uuid } != null
+			}
+
+		// Handle projects that have been renamed on the server, but not on this client
+		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
+			if (serverProject.name != localProject.name) {
+				val result = projectsRepository.renameProject(localProject, serverProject.name)
+				if (isSuccess(result)) {
+					onLog(
+						syncAccLogI(
+							strRes.get(
+								MR.strings.sync_log_account_project_rename_client_from_server_success,
+								serverProject.name
+							)
 						)
 					)
-				)
-			} else {
-				onLog(
-					syncAccLogW(
-						strRes.get(
-							MR.strings.sync_log_account_project_create_client_failure,
-							serverProject.toString(),
+				} else {
+					onLog(
+						syncAccLogE(
+							strRes.get(
+								MR.strings.sync_log_account_project_rename_client_from_server_failure,
+								localProject.name
+							)
 						)
 					)
-				)
+				}
 			}
 		}
 	}
@@ -250,6 +411,19 @@ class ClientProjectsSynchronizer(
 			syncData.copy(
 				projectsToDelete = syncData.projectsToDelete + project.projectId,
 				projectsToCreate = syncData.projectsToCreate - project.projectDef.name,
+			)
+		}
+	}
+
+	fun renameProject(projectId: ProjectId, newName: String) {
+		val renamed = RenamedProject(projectId, newName)
+		updateSyncData { syncData ->
+			// Remove any old renames of this project and add this new one
+			val updated = syncData.projectsToRename
+				.filterNot { it.projectId == projectId } + renamed
+
+			syncData.copy(
+				projectsToRename = updated.toSet(),
 			)
 		}
 	}
@@ -310,6 +484,7 @@ class ClientProjectsSynchronizer(
 		val newData = ProjectsSynchronizationData(
 			deletedProjects = emptySet(),
 			projectsToDelete = emptySet(),
+			projectsToRename = emptySet(),
 			projectsToCreate = emptySet(),
 		)
 		saveSyncData(newData)
@@ -335,3 +510,8 @@ class ClientProjectsSynchronizer(
 		private const val SYNC_FILE_NAME = "sync.json"
 	}
 }
+
+private data class ProjectPair(
+	val serverProject: ApiProjectDefinition,
+	val localProject: ProjectDef,
+)

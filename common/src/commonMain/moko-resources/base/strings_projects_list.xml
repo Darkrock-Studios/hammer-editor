@@ -3,10 +3,12 @@
     <string name="project_select_list_header">Projects:</string>
     <string name="project_select_project_list_empty">No Projects Found</string>
     <string name="project_select_card_delete_button">Delete</string>
+	<string name="project_select_card_rename_button">Rename</string>
     <string name="projects_list_sync_button">Sync Projects</string>
     <string name="projects_list_create_button">Create Project</string>
     <string name="projects_list_toast_sync_complete">Projects synced</string>
     <string name="projects_list_toast_sync_failed">Failed to sync projects</string>
+	<string name="projects_list_item_more_button">More</string>
     <string name="account_sync_dialog_title">Synchronization</string>
     <string name="account_sync_dialog_header">Account Sync</string>
     <string name="account_sync_dialog_cancel_button">Cancel</string>
@@ -19,6 +21,9 @@
     <string name="delete_project_message">Are you sure you want to delete this project:\n%1$s</string>
     <string name="delete_project_confirm">Delete</string>
     <string name="delete_project_cancel">Cancel</string>
+	<string name="rename_project_title">Rename Project</string>
+	<string name="rename_project_heading">New Project Name</string>
+	<string name="rename_project_button">Rename Project</string>
     <string name="create_project_title">Create Project</string>
     <string name="create_project_heading">New Project Name</string>
     <string name="create_project_button">Create Project</string>

@@ -16,7 +16,11 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogD
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogD
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents
@@ -88,6 +92,7 @@ private val fakeProjectsList = object : ProjectsList {
 	override fun hideCreate() {}
 	override fun createProject(projectName: String) {}
 	override fun deleteProject(projectDef: ProjectDef) {}
+	override fun renameProject(projectDef: ProjectDef, newName: String) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
 	override fun showProjectsSync() {}
 	override fun hideProjectsSync() {}

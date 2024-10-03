@@ -1,10 +1,17 @@
-import androidx.compose.ui.test.*
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCard
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
-import io.mockk.*
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Rule
 import org.junit.Test
 
@@ -23,11 +30,14 @@ class ProjectCardTest {
 			ProjectCard(
 				projectData = data,
 				onProjectClick = {},
-				onProjectAltClick = onProjectAltClick
+				onProjectAltClick = onProjectAltClick,
+				onProjectRenameClick = {},
 			)
 		}
 
-		compose.onNodeWithContentDescription("Delete").performClick()
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Delete").performClick()
+
 		verify(exactly = 1) { onProjectAltClick(data.definition) }
 	}
 
@@ -42,7 +52,8 @@ class ProjectCardTest {
 			ProjectCard(
 				projectData = data,
 				onProjectClick = onProjectClick,
-				onProjectAltClick = {}
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
 			)
 		}
 
@@ -58,7 +69,8 @@ class ProjectCardTest {
 			ProjectCard(
 				projectData = data,
 				onProjectClick = {},
-				onProjectAltClick = {}
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
 			)
 		}
 

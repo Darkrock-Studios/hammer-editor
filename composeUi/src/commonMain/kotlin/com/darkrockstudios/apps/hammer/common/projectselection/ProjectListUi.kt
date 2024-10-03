@@ -1,41 +1,47 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.util.format
 import dev.icerock.moko.resources.compose.stringResource
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -46,7 +52,8 @@ fun ProjectListUi(
 ) {
 	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
-	var projectDefDeleteTarget by remember { mutableStateOf<ProjectDef?>(null) }
+	var projectDefDeleteTarget by rememberSaveable { mutableStateOf<ProjectDef?>(null) }
+	var projectDefRenameTarget by rememberSaveable { mutableStateOf<ProjectDef?>(null) }
 
 	Toaster(component, rootSnackbar)
 
@@ -117,9 +124,9 @@ fun ProjectListUi(
 						ProjectCard(
 							projectData = state.projects[index],
 							onProjectClick = component::selectProject,
-						) { project ->
-							projectDefDeleteTarget = project
-						}
+							onProjectAltClick = { project -> projectDefDeleteTarget = project },
+							onProjectRenameClick = { project -> projectDefRenameTarget = project },
+						)
 					}
 				}
 				MpScrollBarList(state = listState)
@@ -143,61 +150,11 @@ fun ProjectListUi(
 		)
 	}
 
+	ProjectRenameDialog(
+		component = component,
+		projectDef = projectDefRenameTarget,
+		close = { projectDefRenameTarget = null }
+	)
+
 	ProjectsSyncDialog(component)
-}
-
-val ProjectCardTestTag = "project-card"
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun ProjectCard(
-	projectData: ProjectData,
-	onProjectClick: (projectDef: ProjectDef) -> Unit,
-	onProjectAltClick: (projectDef: ProjectDef) -> Unit
-) {
-	Card(
-		modifier = Modifier
-			.fillMaxWidth()
-			.combinedClickable(
-				onClick = { onProjectClick(projectData.definition) },
-			)
-			.semantics { contentDescription = "Project Card for ${projectData.definition.name}" }
-			.testTag(ProjectCardTestTag),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-	) {
-		Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-			Row(modifier = Modifier.padding(bottom = Ui.Padding.S).fillMaxWidth()) {
-				Text(
-					projectData.definition.name,
-					modifier = Modifier.weight(1f),
-					style = MaterialTheme.typography.headlineMedium,
-					fontWeight = FontWeight.Bold,
-				)
-				IconButton(onClick = { onProjectAltClick(projectData.definition) }) {
-					Icon(
-						imageVector = Icons.Filled.Delete,
-						contentDescription = MR.strings.project_select_card_delete_button.get(),
-						modifier = Modifier.size(24.dp),
-					)
-				}
-			}
-
-			val date = remember(projectData.metadata.info) {
-				projectData.metadata.info.created.let { instant: Instant ->
-					val created = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-					created.format("dd MMM `yy")
-				}
-			}
-
-			Text(
-				date,
-				modifier = Modifier.padding(bottom = Ui.Padding.M, start = Ui.Padding.L),
-				style = MaterialTheme.typography.bodySmall
-			)
-			Divider(
-				modifier = Modifier.fillMaxWidth().height(1.dp),
-				color = MaterialTheme.colorScheme.outline
-			)
-		}
-	}
 }

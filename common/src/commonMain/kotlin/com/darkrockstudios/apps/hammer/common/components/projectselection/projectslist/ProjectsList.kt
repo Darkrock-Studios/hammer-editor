@@ -19,6 +19,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun hideCreate()
 	fun createProject(projectName: String)
 	fun deleteProject(projectDef: ProjectDef)
+	fun renameProject(projectDef: ProjectDef, newName: String)
 	fun syncProjects(callback: (Boolean) -> Unit)
 	fun showProjectsSync()
 	fun hideProjectsSync()

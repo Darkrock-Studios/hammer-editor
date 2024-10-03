@@ -47,6 +47,23 @@ class ServerProjectsApi(
 		)
 	}
 
+	suspend fun renameProject(
+		projectId: ProjectId,
+		syncId: String,
+		newName: String
+	): Result<String> {
+		return get(
+			path = "/api/projects/$userId/rename",
+			builder = {
+				headers {
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", projectId.id)
+				parameter("projectName", newName)
+			}
+		)
+	}
+
 	suspend fun createProject(
 		projectName: String,
 		syncId: String,

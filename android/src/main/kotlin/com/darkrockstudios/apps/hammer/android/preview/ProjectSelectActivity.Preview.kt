@@ -33,6 +33,7 @@ val projectListComponent = object : ProjectsList {
 	override fun hideCreate() {}
 	override fun createProject(projectName: String) {}
 	override fun deleteProject(projectDef: ProjectDef) {}
+	override fun renameProject(projectDef: ProjectDef, newName: String) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
 	override fun showProjectsSync() {}
 	override fun hideProjectsSync() {}

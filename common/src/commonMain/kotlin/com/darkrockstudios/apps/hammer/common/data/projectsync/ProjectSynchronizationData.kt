@@ -5,9 +5,16 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class RenamedProject(
+	val projectId: ProjectId,
+	val newName: String,
+)
+
+@Serializable
 data class ProjectsSynchronizationData(
 	val deletedProjects: Set<ProjectId>,
 	val projectsToDelete: Set<ProjectId>,
+	val projectsToRename: Set<RenamedProject>,
 	val projectsToCreate: Set<String>,
 )
 

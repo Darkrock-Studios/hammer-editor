@@ -55,6 +55,7 @@ dependencies {
 //	debugImplementation(libs.ui.tooling)
 //	debugImplementation(libs.ui.test.manifest)
 	testImplementation(libs.bundles.junit.jupiter)
+	androidTestImplementation(libs.bundles.junit.jupiter)
 }
 
 android {

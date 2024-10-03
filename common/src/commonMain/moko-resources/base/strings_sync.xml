@@ -81,6 +81,21 @@
 	</string>
 	<string name="sync_log_account_project_delete_server_failure">Failed to delete project on server: %1$s</string>
 	<string name="sync_log_account_project_delete_client">Deleting local project: %1$s</string>
+
+	<string name="sync_log_account_project_rename_server_success">Renaming server project:
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_rename_server_failure">Failed to rename project on
+		server: %1$s
+	</string>
+
+	<string name="sync_log_account_project_rename_client_from_server_success">Rename project from
+		server: %1$s
+	</string>
+	<string name="sync_log_account_project_rename_client_from_server_failure">Failed to rename
+		project from server: %1$s
+	</string>
+
 	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
