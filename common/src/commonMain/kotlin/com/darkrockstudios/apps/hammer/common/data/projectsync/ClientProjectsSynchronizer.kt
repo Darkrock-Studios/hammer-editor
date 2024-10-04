@@ -411,6 +411,9 @@ class ClientProjectsSynchronizer(
 			syncData.copy(
 				projectsToDelete = syncData.projectsToDelete + project.projectId,
 				projectsToCreate = syncData.projectsToCreate - project.projectDef.name,
+				projectsToRename = syncData.projectsToRename
+					.filterNot { it.projectId == project.projectId }
+					.toSet(),
 			)
 		}
 	}
