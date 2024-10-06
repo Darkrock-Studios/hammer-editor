@@ -12,11 +12,11 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
-import korlibs.io.util.UUID
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.days
+import kotlin.uuid.Uuid
 
 class TestAccount(
 	val email: String,
@@ -29,7 +29,7 @@ class TestAccount(
 
 class TestProject(
 	val name: String,
-	val uuid: UUID,
+	val uuid: Uuid,
 	val userId: Long,
 )
 
@@ -59,10 +59,10 @@ object E2eTestData {
 		)
 	}
 
-	val preDeletedProject1 = UUID.randomUUID()
+	val preDeletedProject1 = Uuid.random()
 	fun addDeletedProject(
 		userId: Long,
-		uuid: UUID,
+		uuid: Uuid,
 		database: SqliteTestDatabase
 	) {
 		database.serverDatabase.deletedProjectQueries.addDeletedProject(

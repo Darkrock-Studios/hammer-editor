@@ -1,14 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.accountrepository
 
-import com.benasher44.uuid.uuid4
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
-import io.ktor.client.*
-import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import kotlin.uuid.Uuid
 
 class AccountRepository(
 	private val globalSettingsRepository: GlobalSettingsRepository,
@@ -27,7 +27,7 @@ class AccountRepository(
 			ssl = ssl,
 			url = url,
 			email = email,
-			installId = uuid4().toString(),
+			installId = Uuid.random().toString(),
 			bearerToken = null,
 			refreshToken = null,
 		)

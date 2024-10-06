@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.insertDeletedEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.insertEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.preDeletedProject1
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
-import korlibs.io.util.UUID
+import kotlin.uuid.Uuid
 
 object TestDataSet1 {
 	val account1 = TestAccount(
@@ -20,7 +20,7 @@ object TestDataSet1 {
 	)
 	val project1 = TestProject(
 		name = "test-project",
-		uuid = UUID.randomUUID(),
+		uuid = Uuid.random(),
 		userId = 1,
 	)
 

@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
-import korlibs.io.util.UUID
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
+import kotlin.uuid.Uuid
 
 class ProjectsDatabaseDatasourceTest : BaseTest() {
 
@@ -67,9 +67,9 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 	fun `Get Projects`() = runTest {
 		val userId = 1L
 		val projectName1 = "Test Project 1"
-		val uuid1 = UUID.randomUUID().toString()
+		val uuid1 = Uuid.random().toString()
 		val projectName2 = "Test Project 2"
-		val uuid2 = UUID.randomUUID().toString()
+		val uuid2 = Uuid.random().toString()
 
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			"test@test.com",

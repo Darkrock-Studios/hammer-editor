@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import korlibs.io.lang.InvalidArgumentException
-import korlibs.io.util.UUID
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
@@ -23,6 +22,7 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.uuid.Uuid
 
 
 class ClientProjectsSynchronizer(
@@ -473,7 +473,7 @@ class ClientProjectsSynchronizer(
 		// Handling migration which replaced project names with UUIDs
 		val projectsToDelete = syncData.projectsToDelete.filter {
 			try {
-				UUID.invoke(it.id)
+				Uuid.parse(it.id)
 				true
 			} catch (e: InvalidArgumentException) {
 				Napier.w("Invalid UUID for deleted project: $it")
@@ -482,7 +482,7 @@ class ClientProjectsSynchronizer(
 		}
 		val deletedProjects = syncData.deletedProjects.filter {
 			try {
-				UUID.invoke(it.id)
+				Uuid.parse(it.id)
 				true
 			} catch (e: InvalidArgumentException) {
 				Napier.w("Invalid UUID for deleted project: $it")

@@ -28,6 +28,7 @@ kotlin {
 		all {
 			languageSettings {
 				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
+				optIn("kotlin.uuid.ExperimentalUuidApi")
 			}
 		}
 
@@ -39,7 +40,6 @@ kotlin {
 				implementation(libs.serialization.json)
 				//implementation("org.kotlincrypto.endians:endians:0.1.0")
 				//api("io.getstream:stream-result:1.1.0")
-				api(libs.uuid)
 				api(libs.korlibs.krypto)
 				//api("com.goncalossilva:murmurhash:0.4.0")
 				api(libs.cryptohash)

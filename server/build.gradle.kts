@@ -23,7 +23,10 @@ application {
 kotlin {
 	jvmToolchain(libs.versions.jvm.get().toInt())
 	compilerOptions {
-		freeCompilerArgs.add("-Xopt-in=kotlin.io.encoding.ExperimentalEncodingApi")
+		freeCompilerArgs.addAll(
+			"-Xopt-in=kotlin.io.encoding.ExperimentalEncodingApi",
+			"-Xopt-in=kotlin.uuid.ExperimentalUuidApi",
+		)
 	}
 }
 

@@ -24,6 +24,13 @@ kotlin {
 	applyDefaultHierarchyTemplate()
 
 	sourceSets {
+		all {
+			languageSettings {
+				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
+				optIn("kotlin.uuid.ExperimentalUuidApi")
+			}
+		}
+
 		val commonMain by getting {
 			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 			dependencies {
