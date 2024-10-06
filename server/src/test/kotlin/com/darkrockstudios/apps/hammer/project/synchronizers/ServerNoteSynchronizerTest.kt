@@ -60,7 +60,7 @@ class ServerNoteSynchronizerTest :
 		val entityDefList = entityDefs()
 
 		coEvery {
-			datasource.getEntityDefs(userId, any(), any())
+			datasource.getEntityDefsByType(userId, any(), any())
 		} returns entityDefList
 
 		val entityIdSlot = slot<Int>()
@@ -74,6 +74,16 @@ class ServerNoteSynchronizerTest :
 			)
 		} answers {
 			return@answers SResult.success(entities[entityIdSlot.captured - 1])
+		}
+		val entityHashIdSlot = slot<Int>()
+		coEvery {
+			datasource.loadEntityHash(
+				userId,
+				any(),
+				capture(entityHashIdSlot),
+			)
+		} answers {
+			return@answers SResult.success(EntityHasher.hashEntity(entities[entityHashIdSlot.captured - 1]))
 		}
 
 		val clientState = ClientEntityState(

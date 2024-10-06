@@ -2,7 +2,10 @@ package com.darkrockstudios.apps.hammer.e2e.util
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.appMain
+import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -17,6 +20,8 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
+import java.security.SecureRandom
+import kotlin.io.encoding.Base64
 
 /**
  * Base class for End to End Tests.
@@ -29,13 +34,22 @@ abstract class EndToEndTest {
 	private lateinit var server: ApplicationEngine
 	private lateinit var client: HttpClient
 	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var base64: Base64
+	private lateinit var contentEncryptor: AesGcmContentEncryptor
 
 	protected fun client() = client
 	protected fun database() = testDatabase
+	protected fun encryptor() = contentEncryptor
 
 	@BeforeEach
 	open fun setup() {
 		fileSystem = FakeFileSystem()
+		base64 = createTokenBase64()
+		val secureRandom = SecureRandom()
+		contentEncryptor = AesGcmContentEncryptor(
+			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom),
+			secureRandom
+		)
 		testDatabase = SqliteTestDatabase()
 		testDatabase.initialize()
 

@@ -51,19 +51,22 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	): EntityConflictException? {
 		if (force) return null
 
-		val existingEntityResult = datasource.loadEntity(
-			userId,
-			projectDef,
-			entity.id,
-			entityType,
-			entityClazz.serializer()
-		)
-
-		return if (isSuccess(existingEntityResult)) {
-			val existingEntity = existingEntityResult.data
-			val existingHash = hashEntity(existingEntity)
+		val existingEntityHashResult = datasource.loadEntityHash(userId, projectDef, entity.id)
+		return if (isSuccess(existingEntityHashResult)) {
+			val existingHash = existingEntityHashResult.data
 			if (originalHash != null && existingHash != originalHash) {
-				EntityConflictException.fromEntity(existingEntity)
+				val existingEntityResult = datasource.loadEntity(
+					userId,
+					projectDef,
+					entity.id,
+					entityType,
+					entityClazz.serializer()
+				)
+				if (isSuccess(existingEntityResult)) {
+					EntityConflictException.fromEntity(existingEntityResult.data)
+				} else {
+					null
+				}
 			} else {
 				null
 			}
@@ -115,17 +118,23 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = datasource.getEntityDefs(userId, projectDef) { it.type == entityType }
+		val entitiesIds = datasource.getEntityDefsByType(userId, projectDef, entityType)
 			.filter { def ->
 				val clientEntityState = clientState?.entities?.find { it.id == def.id }
 				if (clientEntityState != null) {
-					val serverHash = hashEntity(userId, projectDef, def.id)
-					clientEntityState.hash != serverHash
+					val hashResult = datasource.loadEntityHash(userId, projectDef, def.id)
+					if (isSuccess(hashResult)) {
+						val serverHash = hashResult.data
+						clientEntityState.hash != serverHash
+					} else {
+						true
+					}
 				} else {
 					true
 				}
 			}
+			.map { it.id }
 
-		return entities.map { it.id }
+		return entitiesIds
 	}
 }

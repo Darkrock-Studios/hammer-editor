@@ -37,6 +37,7 @@ kwebCore = "1.4.12"
 markdown = "0.7.3"
 material = "1.12.0"
 orchestrator = "1.5.0"
+cryptography = "0.3.1"
 
 serialization = "1.7.3"
 
@@ -100,6 +101,9 @@ darklaf-core = { module = "com.github.weisj:darklaf-core", version.ref = "darkla
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
+
+cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
+cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
 
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createTestScene
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.insertDeletedEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.insertEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.preDeletedProject1
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import korlibs.io.util.UUID
 
 object TestDataSet1 {
@@ -23,7 +24,7 @@ object TestDataSet1 {
 		userId = 1,
 	)
 
-	fun createFullDataset(database: SqliteTestDatabase) {
+	fun createFullDataset(database: SqliteTestDatabase, contentEncryptor: ContentEncryptor) {
 		createAccount(account1, database)
 		createProject(project1, database)
 
@@ -35,12 +36,13 @@ object TestDataSet1 {
 				projectId = 1,
 				entity = entity,
 				testDatabase = database,
+				contentEncryptor = contentEncryptor,
 			)
 		}
 
 		user1Project1DeletedEntities.forEach { entityId ->
 			insertDeletedEntity(
-				id = entityId.toLong(),
+				id = entityId,
 				userId = 1,
 				projectId = 1,
 				testDatabase = database,

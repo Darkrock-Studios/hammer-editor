@@ -1,13 +1,16 @@
 package com.darkrockstudios.apps.hammer.projects.datasource
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -19,6 +22,7 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
 
 class ProjectsDatabaseDatasourceTest : BaseTest() {
@@ -26,12 +30,16 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 	private lateinit var testDatabase: SqliteTestDatabase
 	private lateinit var json: Json
 	private lateinit var clock: TestClock
+	private lateinit var cipherSecretGenerator: SecureTokenGenerator
+	private lateinit var base64: Base64
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		json = createJsonSerializer()
 		clock = TestClock(Clock.System)
+		base64 = createTokenBase64()
+		cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, base64)
 
 		testDatabase = SqliteTestDatabase()
 		testDatabase.initialize()
@@ -67,6 +75,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			"test@test.com",
 			"salt",
 			"hash",
+			cipherSecretGenerator.generateToken(),
 			true
 		)
 		testDatabase.serverDatabase.projectQueries.createProject(
@@ -100,6 +109,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			"test@test.com",
 			"salt",
 			"hash",
+			cipherSecretGenerator.generateToken(),
 			true
 		)
 
@@ -136,6 +146,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			email = "test@test.com",
 			salt = "salt",
 			password_hash = "hash",
+			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = true,
 			created = instant.toSqliteDateTimeString(),
 			last_sync = instantLastUpdate.toSqliteDateTimeString()
@@ -171,6 +182,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			"test@test.com",
 			"salt",
 			"hash",
+			cipherSecretGenerator.generateToken(),
 			true
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(

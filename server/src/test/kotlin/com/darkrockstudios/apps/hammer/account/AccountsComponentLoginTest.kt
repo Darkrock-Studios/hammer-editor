@@ -40,6 +40,7 @@ class AccountsComponentLoginTest {
 		email = validEmail,
 		salt = "123",
 		password_hash = "asd123s",
+		cipher_secret = "abc",
 		created = "11 oclock",
 		is_admin = false,
 		last_sync = "12 oclock",

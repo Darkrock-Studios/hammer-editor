@@ -10,11 +10,11 @@ group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
 repositories {
-    mavenCentral()
+	mavenCentral()
 }
 
 kotlin {
-    androidTarget()
+	androidTarget()
 	jvm("desktop")
 	iosX64()
 	iosArm64()
@@ -24,12 +24,18 @@ kotlin {
 
 	applyDefaultHierarchyTemplate()
 
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
+	sourceSets {
+		all {
+			languageSettings {
+				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
+			}
+		}
+
+		val commonMain by getting {
+			dependencies {
 				implementation(libs.serialization.core)
 				implementation(libs.coroutines.core)
-	            implementation(libs.kotlinx.datetime)
+				implementation(libs.kotlinx.datetime)
 				implementation(libs.serialization.json)
 				//implementation("org.kotlincrypto.endians:endians:0.1.0")
 				//api("io.getstream:stream-result:1.1.0")
@@ -41,7 +47,7 @@ kotlin {
 				implementation(libs.okio)
 				implementation(libs.tomlkt)
 			}
-        }
+		}
 		val commonTest by getting {
 			dependencies {
 				implementation(kotlin("test"))
@@ -49,26 +55,26 @@ kotlin {
 				implementation(libs.okio)
 			}
 		}
-    }
+	}
 }
 
 android {
 	namespace = "com.darkrockstudios.apps.hammer.base"
 	compileSdk = libs.versions.android.sdk.compile.get().toInt()
-    defaultConfig {
+	defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
-	    lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
+		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
 	}
 
-    compileOptions {
+	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
 		targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
-    }
+	}
 }
 
 buildConfig {
-    className("BuildMetadata")
-    useKotlinOutput { internalVisibility = false }
+	className("BuildMetadata")
+	useKotlinOutput { internalVisibility = false }
 
 	buildConfigField("String", "APP_VERSION", "\"${libs.versions.app.get()}\"")
 	buildConfigField("String", "DATA_VERSION", "\"${libs.versions.data.version.get()}\"")
@@ -76,19 +82,19 @@ buildConfig {
 
 val GIT_TASK_NAME = "install-git-hooks"
 tasks.register<Copy>(GIT_TASK_NAME) {
-    from(layout.projectDirectory.file("../.gitHooks/pre-commit"))
-    into(layout.projectDirectory.dir("../.git/hooks"))
+	from(layout.projectDirectory.file("../.gitHooks/pre-commit"))
+	into(layout.projectDirectory.dir("../.git/hooks"))
 
-    doLast {
-        val file = layout.projectDirectory.file("../.git/hooks")
-        file.asFile.setExecutable(true)
-    }
+	doLast {
+		val file = layout.projectDirectory.file("../.git/hooks")
+		file.asFile.setExecutable(true)
+	}
 }
 
 afterEvaluate {
-    val gitTask = tasks[GIT_TASK_NAME]
-    for (task in tasks) {
-        if (task != gitTask)
-            task.dependsOn(gitTask)
-    }
+	val gitTask = tasks[GIT_TASK_NAME]
+	for (task in tasks) {
+		if (task != gitTask)
+			task.dependsOn(gitTask)
+	}
 }

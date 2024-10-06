@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
+import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import io.mockk.coEvery
@@ -86,8 +87,8 @@ class ServerSceneSynchronizerTest :
 		val entities = entityDefs(entities1.size).filter { it.type == entityType }
 
 		coEvery {
-			datasource.getEntityDefs(userId, any(), any())
-		} returns entities
+			datasource.getEntityDefsByType(userId, any(), any())
+		} answers { entities.filter { it.type == entityType } }
 
 		val synchronizer = createSynchronizer()
 		val result = synchronizer.getUpdateSequence(userId, mockk(), null)
@@ -103,9 +104,10 @@ class ServerSceneSynchronizerTest :
 
 		val entityDefList = entityDefs(entities1.size)
 
+		val entityTypeSlot = slot<ApiProjectEntity.Type>()
 		coEvery {
-			datasource.getEntityDefs(userId, any(), any())
-		} returns entityDefList
+			datasource.getEntityDefsByType(userId, any(), capture(entityTypeSlot))
+		} answers { entityDefList.filter { it.type == entityTypeSlot.captured } }
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
@@ -118,6 +120,17 @@ class ServerSceneSynchronizerTest :
 			)
 		} answers {
 			return@answers SResult.success(entities1[entityIdSlot.captured - 1])
+		}
+
+		val entityHashIdSlot = slot<Int>()
+		coEvery {
+			datasource.loadEntityHash(
+				userId,
+				any(),
+				capture(entityHashIdSlot),
+			)
+		} answers {
+			return@answers SResult.success(EntityHasher.hashEntity(entities1[entityHashIdSlot.captured - 1]))
 		}
 
 		val clientState = ClientEntityState(
@@ -140,8 +153,8 @@ class ServerSceneSynchronizerTest :
 		val entityDefList = entityDefs(entities2.size)
 
 		coEvery {
-			datasource.getEntityDefs(userId, any(), any())
-		} returns entityDefList
+			datasource.getEntityDefsByType(userId, any(), any())
+		} returns entityDefList.filter { it.type == entityType }
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
@@ -189,6 +202,15 @@ class ServerSceneSynchronizerTest :
 		} answers {
 			return@answers SResult.success(entities1[entityIdSlot.captured - 1])
 		}
+
+		coEvery {
+			datasource.getEntityDefsByType(userId, any(), any())
+		} returns entityDefList.filter { it.type == entityType }
+
+		val entityHashIdSlot = slot<Int>()
+		coEvery {
+			datasource.loadEntityHash(any(), any(), capture(entityHashIdSlot))
+		} answers { SResult.failure(EntityNotFound(entityHashIdSlot.captured)) }
 
 		val clientState = ClientEntityState(
 			entities = List(entities1.size) {

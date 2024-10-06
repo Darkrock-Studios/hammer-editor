@@ -85,6 +85,12 @@ class ProjectsRepositoryOkio(
 		return found
 	}
 
+	override fun findProject(projectName: String): ProjectDef? {
+		val allProjects = getProjects()
+		val found = allProjects.find { project -> project.name == projectName }
+		return found
+	}
+
 	override fun getProjects(projectsDir: HPath): List<ProjectDef> {
 		val projPath = projectsDir.toOkioPath()
 		return fileSystem.list(projPath)

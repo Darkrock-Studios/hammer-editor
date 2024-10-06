@@ -148,6 +148,14 @@ class ProjectFilesystemDatasource(
 		return entities
 	}
 
+	override suspend fun getEntityDefsByType(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		type: ApiProjectEntity.Type
+	): List<EntityDefinition> {
+		TODO("Not yet implemented")
+	}
+
 	override suspend fun renameProject(
 		userId: Long,
 		projectId: ProjectId,
@@ -215,6 +223,14 @@ class ProjectFilesystemDatasource(
 		} catch (e: IOException) {
 			SResult.failure(e)
 		}
+	}
+
+	override suspend fun loadEntityHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): SResult<String> {
+		TODO("Not yet implemented")
 	}
 
 	override suspend fun deleteEntity(

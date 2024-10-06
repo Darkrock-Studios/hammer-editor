@@ -21,7 +21,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	fun `A full ProjectSync where all entities are already up to date`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()
@@ -51,7 +51,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	fun `A full ProjectSync where two entities need processing`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()
@@ -65,18 +65,18 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 			entities = TestDataSet1.user1Project1Entities
 				.filter { entity -> entity.id != entityIdMissingFromClient }
 				.map { entity ->
-				if (entity.id == entityIdToUpdate) {
-					EntityHash(
-						id = entity.id,
-						hash = "not-up-to-date"
-					)
-				} else {
-					EntityHash(
-						id = entity.id,
-						hash = EntityHasher.hashEntity(entity)
-					)
-				}
-			}.toSet()
+					if (entity.id == entityIdToUpdate) {
+						EntityHash(
+							id = entity.id,
+							hash = "not-up-to-date"
+						)
+					} else {
+						EntityHash(
+							id = entity.id,
+							hash = EntityHasher.hashEntity(entity)
+						)
+					}
+				}.toSet()
 		)
 
 		client().apply {
@@ -103,8 +103,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 							entity.id,
 							null,
 						)
-						// TODO do better asserting here
-						assertEquals(entity.id, downloadResponse.id)
+						assertEquals(entity, downloadResponse)
 					}
 
 					entityIdToUpdate -> {
@@ -129,10 +128,99 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	}
 
 	@Test
+	fun `A full ProjectSync where client needs all entities`(): Unit = runBlocking {
+		val database = database()
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		TestDataSet1.createFullDataset(database, encryptor())
+		val userId = 1L
+		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		doStartServer()
+
+		val state = ClientEntityState(entities = emptySet())
+
+		client().apply {
+			// Begin Sync
+			val synchronizationBegan = projectSynchronizationBegan(userId, authToken, state)
+
+			println(synchronizationBegan)
+			assertEquals(
+				TestDataSet1.user1Project1Entities.map { it.id },
+				synchronizationBegan.idSequence
+			)
+			assertEquals(setOf(7), synchronizationBegan.deletedIds)
+
+			// Now walk the sequence and process entities
+			synchronizationBegan.idSequence.forEach { entityId ->
+				val entity = TestDataSet1.user1Project1Entities.find { it.id == entityId }!!
+
+				when (entity) {
+					is ApiProjectEntity.SceneEntity -> {
+						val downloadResponse: ApiProjectEntity.SceneEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							entity.id,
+							null,
+						)
+						assertEquals(entity, downloadResponse)
+					}
+
+					is ApiProjectEntity.NoteEntity -> {
+						val downloadResponse: ApiProjectEntity.NoteEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							entity.id,
+							null,
+						)
+						assertEquals(entity, downloadResponse)
+					}
+
+					is ApiProjectEntity.TimelineEventEntity -> {
+						val downloadResponse: ApiProjectEntity.TimelineEventEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							entity.id,
+							null,
+						)
+						assertEquals(entity, downloadResponse)
+					}
+
+					is ApiProjectEntity.EncyclopediaEntryEntity -> {
+						val downloadResponse: ApiProjectEntity.EncyclopediaEntryEntity =
+							downloadEntity(
+								userId,
+								authToken,
+								synchronizationBegan.syncId,
+								entity.id,
+								null,
+							)
+						assertEquals(entity, downloadResponse)
+					}
+
+					is ApiProjectEntity.SceneDraftEntity -> {
+						val downloadResponse: ApiProjectEntity.SceneDraftEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							entity.id,
+							null,
+						)
+						assertEquals(entity, downloadResponse)
+					}
+				}
+			}
+
+			endSyncRequest(userId, authToken, synchronizationBegan)
+		}
+	}
+
+	@Test
 	fun `A full ProjectSync where an entity has a conflict`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()
@@ -200,7 +288,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	fun `Client tries to download a deleted Entity during sync`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()
@@ -232,7 +320,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	fun `Client tries to begin sync while another sync is in progress`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val checkEntityId = 1
 		val authToken = createAuthToken(userId, "test-install-id", database = database)

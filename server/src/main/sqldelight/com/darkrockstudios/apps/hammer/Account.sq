@@ -3,6 +3,7 @@ CREATE TABLE account(
     email TEXT UNIQUE NOT NULL,
     salt TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    cipher_secret TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
     is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
     last_sync TEXT DEFAULT (datetime('now')) NOT NULL
@@ -41,14 +42,16 @@ count:
 SELECT COUNT(*) FROM account;
 
 createAccount:
-INSERT INTO account(email, salt, password_hash, is_admin) VALUES (?, ?, ?, ?);
+INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?, ?);
 
 testInsertAccount:
-INSERT INTO account(email, salt, password_hash, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
-
+INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?, ?);
 
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
 
 lastInsertedRowId:
 SELECT last_insert_rowid();
+
+migration_setCipherSecret:
+UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;

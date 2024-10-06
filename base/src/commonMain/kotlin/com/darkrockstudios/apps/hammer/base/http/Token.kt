@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.base.http
 
 import kotlinx.serialization.Serializable
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Serializable
 data class Token(
@@ -9,16 +11,23 @@ data class Token(
 	val refresh: String
 ) {
 	fun isValid(): Boolean {
-		return when {
-			auth.length != LENGTH -> false
-			!auth.matches(characters) -> false
-			auth.isBlank() -> false
-			else -> true
+		return validateToken(auth) && validateToken(refresh)
+	}
+
+	@OptIn(ExperimentalEncodingApi::class)
+	private fun validateToken(base64Encoded: String): Boolean {
+		return try {
+			val decoded = Base64
+				.UrlSafe
+				.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL)
+				.decode(base64Encoded)
+			decoded.size == LENGTH && decoded.all { it.toInt() in -128..128 }
+		} catch (e: IllegalArgumentException) {
+			false
 		}
 	}
 
 	companion object {
-		private val characters = Regex("[a-zA-Z0-9+/=]+")
-		const val LENGTH = 64
+		const val LENGTH = 16
 	}
 }

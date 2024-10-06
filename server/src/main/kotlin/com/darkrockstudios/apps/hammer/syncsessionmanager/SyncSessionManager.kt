@@ -4,10 +4,14 @@ import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
+import java.security.SecureRandom
 
-class SyncSessionManager<K, T : SynchronizationSession>(private val clock: Clock) {
-	val lock = Mutex()
-	private val syncIdGenerator = RandomString(30)
+class SyncSessionManager<K, T : SynchronizationSession>(
+	private val clock: Clock,
+	secureRandom: SecureRandom,
+) {
+	private val lock = Mutex()
+	private val syncIdGenerator = RandomString(30, secureRandom)
 	private val synchronizationSessions = mutableMapOf<K, T>()
 
 	fun findSession(key: K): T? = synchronizationSessions[key]

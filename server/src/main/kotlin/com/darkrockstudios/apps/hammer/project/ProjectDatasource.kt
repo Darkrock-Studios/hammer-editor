@@ -42,6 +42,12 @@ interface ProjectDatasource {
 		serializer: KSerializer<T>,
 	): SResult<T>
 
+	suspend fun loadEntityHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+	): SResult<String>
+
 	suspend fun deleteEntity(
 		userId: Long,
 		entityType: ApiProjectEntity.Type,
@@ -53,6 +59,12 @@ interface ProjectDatasource {
 		userId: Long,
 		projectDef: ProjectDefinition,
 		filter: (EntityDefinition) -> Boolean = { true }
+	): List<EntityDefinition>
+
+	suspend fun getEntityDefsByType(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		type: ApiProjectEntity.Type
 	): List<EntityDefinition>
 
 	suspend fun renameProject(userId: Long, projectId: ProjectId, newProjectName: String): Boolean

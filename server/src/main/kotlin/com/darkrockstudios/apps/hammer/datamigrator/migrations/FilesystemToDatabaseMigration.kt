@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.datamigrator.migrations
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.DeletedEntityDao
 import com.darkrockstudios.apps.hammer.database.DeletedProjectDao
@@ -9,11 +10,14 @@ import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.database.StoryEntityDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.ProjectDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -23,6 +27,8 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.context.startKoin
 import org.slf4j.LoggerFactory
+import java.security.SecureRandom
+
 
 class FilesystemToDatabaseMigration : DataMigration {
 
@@ -52,8 +58,16 @@ class FilesystemToDatabaseMigration : DataMigration {
 			modules(mainModule(LoggerFactory.getLogger(FilesystemToDatabaseMigration::class.java)))
 		}
 
+		val secureRandom = SecureRandom()
+		val base64 = createTokenBase64()
+		val cipherSaltGenerator = SecureTokenGenerator(16, base64)
+
 		val projectsFsDatasource = ProjectsFileSystemDatasource(fileSystem, json)
 		val projectFsDatasource = ProjectFilesystemDatasource(fileSystem, json)
+
+		val simpleAesKeyProvider =
+			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom)
+		val contentEncryptor = AesGcmContentEncryptor(simpleAesKeyProvider, secureRandom)
 
 		val accountDao = AccountDao(db)
 		val projectsDao = ProjectsDao(db)
@@ -66,13 +80,23 @@ class FilesystemToDatabaseMigration : DataMigration {
 		val projectDbDatasource =
 			ProjectDatabaseDatasource(
 				projectDao,
+				accountDao,
 				deletedProjectDao,
 				storyEntityDao,
 				deletedEntityDao,
+				contentEncryptor,
 				json
 			)
 
 		accountDao.getAllAccounts().forEach { account ->
+
+			// Create a new cipher secret for the account as it didn't exist before
+			val accountCipherSecret = cipherSaltGenerator.generateToken()
+			db.serverDatabase.accountQueries.migration_setCipherSecret(
+				id = account.id,
+				cipherSecret = accountCipherSecret
+			)
+
 			projectsDbDatasource.createUserData(account.id)
 
 			loadOldSyncData(account.id, projectsFsDatasource, fileSystem, json).let { data ->

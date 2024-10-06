@@ -5,13 +5,14 @@ CREATE TABLE tmp_account (
 	email TEXT UNIQUE NOT NULL,
 	salt TEXT NOT NULL,
 	password_hash TEXT NOT NULL,
+	cipher_secret TEXT NOT NULL,
 	created TEXT DEFAULT (datetime('now')) NOT NULL,
 	is_admin INTEGER DEFAULT FALSE NOT NULL,
 	last_sync TEXT DEFAULT (datetime('now')) NOT NULL
 );
 
-INSERT INTO tmp_account (id, email, salt, password_hash, created, is_admin)
-SELECT id, email, salt, password_hash, created, isAdmin FROM account;
+INSERT INTO tmp_account (id, email, salt, password_hash, cipher_secret, created, is_admin)
+SELECT id, email, salt, password_hash, '', created, isAdmin FROM account;
 
 DROP TABLE account;
 ALTER TABLE tmp_account RENAME TO account;
@@ -49,10 +50,15 @@ CREATE TABLE story_entity (
 	type TEXT NOT NULL,
 	content TEXT NOT NULL,
 	hash TEXT NOT NULL,
+	cipher TEXT,
 	FOREIGN KEY(user_id) REFERENCES account(id),
 	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
 	UNIQUE(user_id, project_id, id)
 );
+
+CREATE INDEX entity_def_by_type
+ON story_entity(user_id, project_id, type);
+
 CREATE TABLE deleted_project (
 		user_id INTEGER NOT NULL,
     	uuid TEXT NOT NULL,

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
@@ -48,7 +49,7 @@ class AccountTest : EndToEndTest() {
 			val token = Json.decodeFromString<Token>(body)
 			assertEquals(1, token.userId)
 			assertTrue(token.auth.isNotBlank())
-			assertEquals(64, token.auth.length)
+			assertEquals(Token.LENGTH, createTokenBase64().decode(token.auth).size)
 		}
 	}
 
@@ -125,7 +126,7 @@ class AccountTest : EndToEndTest() {
 			val token = Json.decodeFromString<Token>(body)
 			assertEquals(1, token.userId)
 			assertTrue(token.auth.isNotBlank())
-			assertEquals(64, token.auth.length)
+			assertEquals(Token.LENGTH, createTokenBase64().decode(token.auth).size)
 		}
 	}
 

@@ -1,10 +1,11 @@
 package com.darkrockstudios.apps.hammer.utilities
 
 import java.security.SecureRandom
-import java.util.*
 
-class RandomString(length: Int) {
-	private val random: Random = SecureRandom.getInstanceStrong()
+class RandomString(
+	length: Int,
+	private val random: SecureRandom
+) {
 	private val buf: CharArray
 
 	init {
@@ -18,6 +19,6 @@ class RandomString(length: Int) {
 	}
 
 	companion object {
-		private const val symbols = "abcdefghijklmnopqrstuvwxyzABCDEFGJKLMNPRSTUVWXYZ0123456789"
+		private const val symbols = "abcdefghijklmnopqrstuvwxyz-_ABCDEFGJKLMNPRSTUVWXYZ0123456789"
 	}
 }

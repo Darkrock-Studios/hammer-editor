@@ -1,2 +1,2 @@
-INSERT INTO "account" VALUES (1,'test@example.com','FAddx','3b19ed5baf33f5c94857f5ee26cdd7aaf86e7383fdb0b5e69078e38447526829','2023-09-16 06:25:38',1,'2023-09-16 06:25:38');
+INSERT INTO "account" VALUES (1,'test@example.com','FAddx','3b19ed5baf33f5c94857f5ee26cdd7aaf86e7383fdb0b5e69078e38447526829','J2UkIM9kCx3JXxrZJ0Wvcw','2023-09-16 06:25:38',1,'2023-09-16 06:25:38');
 INSERT INTO "white_list" VALUES ('test3@example.com');

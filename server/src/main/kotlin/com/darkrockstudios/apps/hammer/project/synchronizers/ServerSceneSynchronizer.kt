@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import kotlin.system.measureTimeMillis
 
 class ServerSceneSynchronizer(
 	datasource: ProjectDatasource,
@@ -34,35 +35,39 @@ class ServerSceneSynchronizer(
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = datasource.getEntityDefs(userId, projectDef) { it.type == entityType }
+		val entities = datasource.getEntityDefsByType(userId, projectDef, entityType)
 
 		// Sort by SceneType, we want directories first
-		val allEntities = entities.mapNotNull { def ->
-			val entityResult = loadEntity(userId, projectDef, def.id)
-			if (isSuccess(entityResult)) {
-				val entity = entityResult.data
-				Pair(def.id, entity.sceneType)
-			} else {
-				log.error("Failed to get entity $def.id: ${entityResult.error}")
-				null
-			}
-		}
-		val entityIds = allEntities.sortedByDescending { it.second.ordinal }
-			.map { it.first }
-			.filter { entityId ->
-				if (clientState != null) {
-					val entity = loadEntity(userId, projectDef, entityId)
-					if (isSuccess(entity)) {
-						val hash = hashEntity(entity.data)
-						val clientEntityState = clientState.entities.find { it.id == entityId }
-						clientEntityState?.hash != hash
+		val entityIds: List<Int>
+		val ms = measureTimeMillis {
+			entityIds = entities
+				.filter { entifyDef ->
+					val clientEntityState = clientState?.entities?.find { it.id == entifyDef.id }
+					if (clientEntityState != null) {
+						val hashResult = datasource.loadEntityHash(userId, projectDef, entifyDef.id)
+						if (isSuccess(hashResult)) {
+							val serverHash = hashResult.data
+							clientEntityState.hash != serverHash
+						} else {
+							true
+						}
 					} else {
 						true
 					}
-				} else {
-					true
 				}
-			}
+				.mapNotNull { entity ->
+					val result = loadEntity(userId, projectDef, entity.id)
+					if (isSuccess(result)) {
+						result.data
+					} else {
+						null
+					}
+				}
+				.sortedBy { it.id }
+				.sortedByDescending { it.sceneType.ordinal }
+				.map { it.id }
+		}
+		//println("------- getUpdateSequence: $ms ms")
 
 		return entityIds
 	}

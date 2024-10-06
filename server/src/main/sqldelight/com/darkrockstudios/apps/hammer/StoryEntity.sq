@@ -5,13 +5,23 @@ CREATE TABLE story_entity (
 	type TEXT NOT NULL,
 	content TEXT NOT NULL,
 	hash TEXT NOT NULL,
+	cipher TEXT,
 	FOREIGN KEY(user_id) REFERENCES account(id),
 	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
 	UNIQUE(user_id, project_id, id)
 );
 
+CREATE INDEX entity_def_by_type
+ON story_entity(user_id, project_id, type);
+
 getEntity:
 SELECT *
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND id = :id
+LIMIT 1;
+
+getEntityHash:
+SELECT hash
 FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId AND id = :id
 LIMIT 1;
@@ -26,6 +36,12 @@ getEntityDefs:
 SELECT id, type
 FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId
+ORDER BY id;
+
+getEntityDefsByType:
+SELECT id, type
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND type = :type
 ORDER BY id;
 
 findMaxEntityId:
@@ -43,12 +59,12 @@ getType:
 SELECT type FROM story_entity WHERE user_id = :userId AND project_id = :projectId AND id = :id;
 
 insertNew:
-INSERT INTO story_entity(user_id, project_id, id, type, content, hash)
-VALUES (:userId, :projectId, :id, :type, :content, :hash);
+INSERT INTO story_entity(user_id, project_id, id, type, content, hash, cipher)
+VALUES (:userId, :projectId, :id, :type, :content, :hash, :cipher);
 
 update:
 UPDATE story_entity
-SET content = :content, hash = :hash
+SET content = :content, hash = :hash, cipher = :cipher
 WHERE user_id = :userId AND project_id = :projectId AND id = :id;
 
 deleteEntity:

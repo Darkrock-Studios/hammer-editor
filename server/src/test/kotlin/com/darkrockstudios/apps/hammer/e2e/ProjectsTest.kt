@@ -43,7 +43,7 @@ class ProjectsTest : EndToEndTest() {
 	fun `Project Sync - Golden Path`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()
@@ -115,7 +115,7 @@ class ProjectsTest : EndToEndTest() {
 	fun `Project Sync - Rename Project`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
-		TestDataSet1.createFullDataset(database)
+		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database)
 		doStartServer()

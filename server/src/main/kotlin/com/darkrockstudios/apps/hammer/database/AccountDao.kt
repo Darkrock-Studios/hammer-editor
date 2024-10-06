@@ -27,12 +27,19 @@ class AccountDao(
 		return@withContext query.executeAsOneOrNull()
 	}
 
-	suspend fun createAccount(email: String, salt: String, hashedPassword: String, isAdmin: Boolean): Long =
+	suspend fun createAccount(
+		email: String,
+		salt: String,
+		hashedPassword: String,
+		cipherSecret: String,
+		isAdmin: Boolean
+	): Long =
 		withContext(ioDispatcher) {
 			val newId = queries.transactionWithResult {
 				queries.createAccount(
 					email = email,
 					salt = salt,
+					cipher_secret = cipherSecret,
 					password_hash = hashedPassword,
 					is_admin = isAdmin
 				)

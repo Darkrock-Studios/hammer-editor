@@ -11,24 +11,29 @@ import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import korlibs.crypto.sha256
 import kotlinx.datetime.Clock
+import java.security.SecureRandom
+import kotlin.io.encoding.Base64
 import kotlin.time.Duration.Companion.days
 
 class AccountsRepository(
 	private val accountDao: AccountDao,
 	private val authTokenDao: AuthTokenDao,
 	private val clock: Clock,
+	secureRandom: SecureRandom,
+	base64: Base64,
 ) {
 	private val tokenLifetime = 30.days
 
-	private val tokenGenerator = SecureTokenGenerator(Token.LENGTH)
-	private val saltGenerator = RandomString(5)
+	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
+	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
+	private val saltGenerator = RandomString(PASSWORD_SALT_LENGTH, secureRandom)
 
 	private suspend fun createToken(userId: Long, installId: String): Token {
 		val expires = clock.now() + tokenLifetime
 		val token = Token(
 			userId = userId,
-			auth = tokenGenerator.generateToken(),
-			refresh = tokenGenerator.generateToken()
+			auth = authTokenGenerator.generateToken(),
+			refresh = authTokenGenerator.generateToken()
 		)
 
 		authTokenDao.setToken(
@@ -87,6 +92,7 @@ class AccountsRepository(
 			else -> {
 				val salt = saltGenerator.nextString()
 				val hashedPassword = hashPassword(password = password, salt = salt)
+				val cipherSalt = cipherSaltGenerator.generateToken()
 
 				// First account on the server is automatically Admin
 				val numAccounts = accountDao.numAccounts()
@@ -96,6 +102,7 @@ class AccountsRepository(
 					email = email,
 					salt = salt,
 					hashedPassword = hashedPassword,
+					cipherSecret = cipherSalt,
 					isAdmin = isAdmin
 				)
 
@@ -174,6 +181,8 @@ class AccountsRepository(
 	companion object {
 		const val MIN_PASSWORD_LENGTH = 8
 		const val MAX_PASSWORD_LENGTH = 64
+		const val PASSWORD_SALT_LENGTH = 8
+		const val CIPHER_SALT_LENGTH = 16
 
 		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
 		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")

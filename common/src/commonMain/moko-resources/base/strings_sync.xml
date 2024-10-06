@@ -99,6 +99,9 @@
 	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
+	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
+		%1$s
+	</string>
 	<string name="sync_log_account_project_create_client_failure">Failed to create server project:
 		%1$s
 	</string>

@@ -285,27 +285,40 @@ class ClientProjectsSynchronizer(
 		onLog: OnSyncLog
 	) {
 		newServerProjects.forEach { serverProject ->
-			val createResult = projectsRepository.createProject(serverProject.name)
-			if (isSuccess(createResult)) {
-				val projectDef = createResult.data
-				projectsRepository.setProjectId(projectDef, serverProject.uuid)
+			val existingProject = projectsRepository.findProject(serverProject.name)
+			if (existingProject != null) {
+				projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_create_client,
+							MR.strings.sync_log_account_project_create_client_local,
 							serverProject.name
 						)
 					)
 				)
 			} else {
-				onLog(
-					syncAccLogW(
-						strRes.get(
-							MR.strings.sync_log_account_project_create_client_failure,
-							serverProject.toString(),
+				val createResult = projectsRepository.createProject(serverProject.name)
+				if (isSuccess(createResult)) {
+					val projectDef = createResult.data
+					projectsRepository.setProjectId(projectDef, serverProject.uuid)
+					onLog(
+						syncAccLogI(
+							strRes.get(
+								MR.strings.sync_log_account_project_create_client,
+								serverProject.name
+							)
 						)
 					)
-				)
+				} else {
+					onLog(
+						syncAccLogW(
+							strRes.get(
+								MR.strings.sync_log_account_project_create_client_failure,
+								serverProject.toString(),
+							)
+						)
+					)
+				}
 			}
 		}
 	}
