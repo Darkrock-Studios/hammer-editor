@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.encryption
 
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
+import com.mayakapps.kache.InMemoryKache
+import com.mayakapps.kache.KacheStrategy
 import okio.FileSystem
 import okio.internal.commonToUtf8String
 import java.security.SecureRandom
@@ -9,6 +11,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
+import kotlin.system.measureTimeMillis
 
 /**
  * This generates an AES key for each account as requested.
@@ -23,7 +26,12 @@ class SimpleFileBasedAesGcmKeyProvider(
 	private val SERVER_KEY_FILE_NAME = "server.secret"
 
 	private val secretPath = getRootDataDirectory(fileSystem) / SERVER_KEY_FILE_NAME
-	private var cachedSecret: String? = null
+	private var cachedServerSecret: String? = null
+
+	private val factory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+	private val cache = InMemoryKache<String, SecretKey>(maxSize = 10) {
+		strategy = KacheStrategy.LRU
+	}
 
 	private fun deriveAesKey(
 		serverSecret: String,
@@ -32,7 +40,6 @@ class SimpleFileBasedAesGcmKeyProvider(
 		keyLength: Int
 	): SecretKey {
 		val clientSecretBytes = base64.decode(clientSecret)
-		val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
 		val spec = PBEKeySpec(serverSecret.toCharArray(), clientSecretBytes, iterations, keyLength)
 		return SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
 	}
@@ -66,10 +73,22 @@ class SimpleFileBasedAesGcmKeyProvider(
 	}
 
 	override suspend fun getEncryptionKey(clientSecret: String): SecretKey {
-		val serverSecret = cachedSecret ?: getServerSecret()
-		cachedSecret = serverSecret
+		val serverSecret = cachedServerSecret ?: getServerSecret()
+		cachedServerSecret = serverSecret
 
-		return deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
+		val cachedKey = cache.get(serverSecret)
+		return if (cachedKey != null) {
+			cachedKey
+		} else {
+			val derivedKey: SecretKey
+			val ms = measureTimeMillis {
+				derivedKey =
+					deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
+			}
+			println("------- getEncryptionKey: $ms ms")
+			cache.put(clientSecret, derivedKey)
+			derivedKey
+		}
 	}
 
 	companion object {
