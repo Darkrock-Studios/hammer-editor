@@ -77,7 +77,7 @@ tomlkt = "0.4.0"
 
 krypto = "4.0.10"
 
-jna = "5.13.0" # This is a transitive dependency, remove it when we can
+jna = "5.15.0" # This is a transitive dependency, remove it when we can
 
 sqldelight = "2.0.2"
 buildconfig = "5.5.0"
@@ -114,7 +114,8 @@ imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref
 imageloader_moko = { group = "io.github.qdsfdhvh", name = "image-loader-extension-moko-resources", version.ref = "image-loader" }
 imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
 
-jna = { module = "net.java.dev.jna:jna-jpms", version.ref = "jna" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+jna-jpms = { module = "net.java.dev.jna:jna-jpms", version.ref = "jna" }
 jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androix-junit" }
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androix-junit" }

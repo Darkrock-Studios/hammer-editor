@@ -45,6 +45,13 @@ kotlin {
 				implementation(compose.desktop.currentOs)
 				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
+
+				implementation("net.java.dev.jna:jna") {
+					version { strictly("5.15.0") }
+				}
+				implementation("net.java.dev.jna:jna-jpms") {
+					version { strictly("5.15.0") }
+				}
 			}
 		}
 		val jvmTest by getting {

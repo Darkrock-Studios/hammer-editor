@@ -122,7 +122,6 @@ kotlin {
 				implementation(libs.appdirs)
 				api(libs.moko.resources.compose)
 				implementation(libs.ktor.client.java)
-				implementation(libs.jna)
 			}
 		}
 		val desktopTest by getting {
