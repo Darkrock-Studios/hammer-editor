@@ -11,7 +11,6 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
-import kotlin.system.measureTimeMillis
 
 /**
  * This generates an AES key for each account as requested.
@@ -80,12 +79,8 @@ class SimpleFileBasedAesGcmKeyProvider(
 		return if (cachedKey != null) {
 			cachedKey
 		} else {
-			val derivedKey: SecretKey
-			val ms = measureTimeMillis {
-				derivedKey =
+			val derivedKey: SecretKey =
 					deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
-			}
-			println("------- getEncryptionKey: $ms ms")
 			cache.put(clientSecret, derivedKey)
 			derivedKey
 		}

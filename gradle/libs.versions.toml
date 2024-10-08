@@ -6,6 +6,7 @@ app = "1.7.2"
 data_version = "1.0"
 
 # Kotlin
+jna = "5.13.0"
 jvm = "21"
 kache = "2.1.0"
 kotlin = "2.0.20"
@@ -112,6 +113,7 @@ imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref
 imageloader_moko = { group = "io.github.qdsfdhvh", name = "image-loader-extension-moko-resources", version.ref = "image-loader" }
 imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
 
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jSystemThemeDetector = { module = "com.github.Dansoftowner:jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androix-junit" }
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androix-junit" }
