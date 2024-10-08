@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0] - 2024-10-7
+
+- Major server refactor: All clients must re-authenticate
+- Server: User project data is now encrypted at rest
+- Feature: Projects can now be renamed
+- Android: Project data can be moved to public storage
+
+
 ## [1.7.2] - 2024-8-14
 
 - Fixed Scene syncing for scenes with metadata (outlines and notes)

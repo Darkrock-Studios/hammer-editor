@@ -1,0 +1,4 @@
+- Major server refactor: All clients must re-authenticate
+- Server: User project data is now encrypted at rest
+- Feature: Projects can now be renamed
+- Android: Project data can be moved to public storage
