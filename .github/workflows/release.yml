@@ -4,11 +4,10 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - release
 
 jobs:
   windows:
+    if: github.ref_name == 'release'
     runs-on: windows-latest
     permissions:
       contents: write
@@ -71,6 +70,7 @@ jobs:
           artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
 
   linux:
+    if: github.ref_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -124,6 +124,7 @@ jobs:
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb"
 
   macos:
+    if: github.ref_name == 'release'
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -177,6 +178,7 @@ jobs:
           artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
 
   server:
+    if: github.ref_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -232,6 +234,7 @@ jobs:
           artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
 
   android:
+    if: github.ref_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
