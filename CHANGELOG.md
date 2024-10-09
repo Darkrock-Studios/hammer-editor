@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2024-10-8
+
+- Removed ability to store files in public storage for Android
+
+
 ## [1.8.0] - 2024-10-7
 
 - Major server refactor: All clients must re-authenticate
