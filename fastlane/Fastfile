@@ -60,8 +60,7 @@ platform :android do
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",
       skip_upload_images: true,
-      skip_upload_screenshots: true,
-      release_status: 'draft'
+      skip_upload_screenshots: true
     )
   end
 end
