@@ -62,10 +62,12 @@ change on one device, overwriting a change on another device.
 ## Optional and Self hosted Syncing
 
 Syncing is entirely optional, you can install the client and use it on one device, or you can
-install the server and
-sync your data between devices. You could even use some other service to sync your data, like
-[syncthing](https://syncthing.net/). (_If you only care about Desktop platforms you could use
-Dropbox or Google Drive._)
+install the server and sync your data between devices. You could even use some other service to sync
+your data, like
+Dropbox, Google Drive or [syncthing](https://syncthing.net/). (_however these will only work for
+syncing between desktop
+computers. Mobile clients will have to use the built in syncing protocol._)
+
 It's all up to you. Instructions can be found [here](docs/HOW-TO-RUN-A-SERVER.md).
 
 If you don't know how, or just don't want to setup your own server, we're also running an official

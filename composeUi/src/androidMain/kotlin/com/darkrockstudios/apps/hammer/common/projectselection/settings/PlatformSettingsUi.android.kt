@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,35 +52,35 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 		color = MaterialTheme.colorScheme.onBackground,
 	)
 
-	if (state.dataStorageInternal.not()) {
-		Text(
-			projectsPathText,
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onBackground,
-		)
-	} else {
-		Text(
-			"Using Internal data storage",
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onBackground,
-		)
-	}
+//	if (state.dataStorageInternal.not()) {
+//		Text(
+//			projectsPathText,
+//			style = MaterialTheme.typography.bodySmall,
+//			color = MaterialTheme.colorScheme.onBackground,
+//		)
+//	} else {
+//		Text(
+//			"Using Internal data storage",
+//			style = MaterialTheme.typography.bodySmall,
+//			color = MaterialTheme.colorScheme.onBackground,
+//		)
+//	}
 
-	if (state.fileAccessGranted.not()) {
-		Button(onClick = component::promptForFileAccess) {
-			Text("Grant access")
-		}
-	} else {
-		if (state.dataStorageInternal) {
-			Button(onClick = component::setExternalStorage) {
-				Text("Switch to External Storage")
-			}
-		} else {
-			Button(onClick = component::setInternalStorage) {
-				Text("Switch to Internal Storage")
-			}
-		}
-	}
+//	if (state.fileAccessGranted.not()) {
+//		Button(onClick = component::promptForFileAccess) {
+//			Text("Grant access")
+//		}
+//	} else {
+//		if (state.dataStorageInternal) {
+//			Button(onClick = component::setExternalStorage) {
+//				Text("Switch to External Storage")
+//			}
+//		} else {
+//			Button(onClick = component::setInternalStorage) {
+//				Text("Switch to Internal Storage")
+//			}
+//		}
+//	}
 
 	// TODO this isn't working yet, probably need a different directory picker
 //	DirectoryPicker(showDirectoryPicker) { path ->
