@@ -15,7 +15,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
-import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import dev.icerock.moko.permissions.compose.BindEffect
 
@@ -44,13 +43,13 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 		)
 	}
 
-	SpacerL()
-
-	Text(
-		"Project data storage",
-		style = MaterialTheme.typography.headlineSmall,
-		color = MaterialTheme.colorScheme.onBackground,
-	)
+//	SpacerL()
+//
+//	Text(
+//		"Project data storage",
+//		style = MaterialTheme.typography.headlineSmall,
+//		color = MaterialTheme.colorScheme.onBackground,
+//	)
 
 //	if (state.dataStorageInternal.not()) {
 //		Text(
