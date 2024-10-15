@@ -8,7 +8,7 @@ data_version = "1.0"
 # Kotlin
 jvm = "21"
 kache = "2.1.0"
-kotlin = "2.0.20"
+kotlin = "2.0.21"
 
 # Android
 android_gradle_plugin = "8.7.1"
