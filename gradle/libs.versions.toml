@@ -71,7 +71,7 @@ slf4jSimple = "2.0.16"
 work-runtime-ktx = "2.9.1"
 
 multiplatform_window_size = "0.5.0"
-mockk = "1.13.12"
+mockk = "1.13.13"
 
 tomlkt = "0.4.0"
 
