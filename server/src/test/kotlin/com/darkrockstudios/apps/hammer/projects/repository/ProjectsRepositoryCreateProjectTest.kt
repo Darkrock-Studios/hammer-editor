@@ -20,7 +20,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName)
 			assertTrue(result.isFailure)
-			coVerify(exactly = 0) { projectDatasource.createProject(any(), any()) }
+			coVerify(exactly = 0) { projectEntityDatasource.createProject(any(), any()) }
 			coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
@@ -32,9 +32,9 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		val projectId = ProjectId("uuid-1")
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		coEvery { projectDatasource.findProjectByName(userId, projectName) } returns null
+		coEvery { projectEntityDatasource.findProjectByName(userId, projectName) } returns null
 		coEvery {
-			projectDatasource.createProject(
+			projectEntityDatasource.createProject(
 				userId,
 				projectName
 			)
@@ -44,7 +44,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 			val result = createProject(userId, syncId, projectName)
 
 			assertTrue(result.isSuccess)
-			coVerify { projectDatasource.createProject(userId, projectName) }
+			coVerify { projectEntityDatasource.createProject(userId, projectName) }
 		}
 	}
 }

@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -24,7 +24,7 @@ import kotlin.test.assertEquals
 class ApplicationTest : BaseTest() {
 
 	private lateinit var accountsRepository: AccountsRepository
-	private lateinit var projectRepository: ProjectRepository
+	private lateinit var projectEntityRepository: ProjectEntityRepository
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var accountsComponent: AccountsComponent
 	private lateinit var adminComponent: AdminComponent
@@ -35,14 +35,14 @@ class ApplicationTest : BaseTest() {
 		super.setup()
 
 		accountsRepository = mockk()
-		projectRepository = mockk()
+		projectEntityRepository = mockk()
 		projectsRepository = mockk()
 		accountsComponent = mockk()
 		adminComponent = mockk()
 
 		testModule = module {
 			single { accountsRepository }
-			single { projectRepository }
+			single { projectEntityRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }

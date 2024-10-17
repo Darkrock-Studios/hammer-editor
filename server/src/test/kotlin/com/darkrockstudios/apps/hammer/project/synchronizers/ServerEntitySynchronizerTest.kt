@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictExce
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
 abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEntitySynchronizer<C>>() :
 	BaseTest() {
 
-	protected lateinit var datasource: ProjectDatasource
+	protected lateinit var datasource: ProjectEntityDatasource
 
 	abstract val entityType: ApiProjectEntity.Type
 	abstract val entityClazz: KClass<C>

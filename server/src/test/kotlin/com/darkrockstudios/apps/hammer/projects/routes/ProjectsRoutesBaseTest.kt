@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -28,7 +28,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var whiteListRepository: WhiteListRepository
 
 	@MockK(relaxed = true)
-	protected lateinit var projectRepository: ProjectRepository
+	protected lateinit var projectEntityRepository: ProjectEntityRepository
 
 	@MockK(relaxed = true)
 	protected lateinit var projectsRepository: ProjectsRepository
@@ -55,7 +55,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 		testModule = module {
 			single { accountsRepository }
 			single { whiteListRepository }
-			single { projectRepository }
+			single { projectEntityRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }

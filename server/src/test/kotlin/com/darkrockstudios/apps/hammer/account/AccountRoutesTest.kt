@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.account
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -23,7 +23,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var accountsRepository: AccountsRepository
 
 	@MockK
-	private lateinit var projectRepository: ProjectRepository
+	private lateinit var projectEntityRepository: ProjectEntityRepository
 
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
@@ -47,7 +47,7 @@ class AccountRoutesTest : BaseTest() {
 
 		testModule = module {
 			single { accountsRepository }
-			single { projectRepository }
+			single { projectEntityRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }

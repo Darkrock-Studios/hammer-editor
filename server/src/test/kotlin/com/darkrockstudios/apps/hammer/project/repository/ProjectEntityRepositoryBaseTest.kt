@@ -4,9 +4,9 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
@@ -30,7 +30,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-abstract class ProjectRepositoryBaseTest : BaseTest() {
+abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 	protected val userId = 1L
 	protected val projectDefinition = ProjectDefinition("Test Project", ProjectId("test-uuid"))
 
@@ -45,7 +45,7 @@ abstract class ProjectRepositoryBaseTest : BaseTest() {
 	protected lateinit var timelineEventSynchronizer: ServerTimelineSynchronizer
 	protected lateinit var encyclopediaSynchronizer: ServerEncyclopediaSynchronizer
 	protected lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
-	protected lateinit var projectDatasource: ProjectDatasource
+	protected lateinit var projectEntityDatasource: ProjectEntityDatasource
 
 	protected lateinit var clientState: ClientEntityState
 
@@ -64,7 +64,7 @@ abstract class ProjectRepositoryBaseTest : BaseTest() {
 		timelineEventSynchronizer = mockk()
 		encyclopediaSynchronizer = mockk()
 		sceneDraftSynchronizer = mockk()
-		projectDatasource = mockk()
+		projectEntityDatasource = mockk()
 
 		clientState = mockk()
 
@@ -148,7 +148,7 @@ abstract class ProjectRepositoryBaseTest : BaseTest() {
 		}
 	}
 
-	protected fun createProjectRepository(): ProjectRepository {
-		return ProjectRepository(clock, projectDatasource)
+	protected fun createProjectRepository(): ProjectEntityRepository {
+		return ProjectEntityRepository(clock, projectEntityDatasource)
 	}
 }

@@ -14,10 +14,10 @@ import okio.FileSystem
 import okio.Path
 import java.io.IOException
 
-class ProjectFilesystemDatasource(
+class ProjectEntityFilesystemDatasource(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-) : ProjectDatasource {
+) : ProjectEntityDatasource {
 
 	override suspend fun checkProjectExists(
 		userId: Long,

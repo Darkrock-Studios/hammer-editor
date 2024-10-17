@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.project.repository
 
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -13,14 +13,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class ProjectRepositorySyncTest : ProjectRepositoryBaseTest() {
+class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
 	@Test
 	fun `getProjectSyncData with invalid SyncId`() = runTest {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
-		ProjectRepository(clock, projectDatasource).apply {
+		ProjectEntityRepository(clock, projectEntityDatasource).apply {
 			val result = getProjectSyncData(userId, projectDefinition, "invalid-id")
 			assertFalse(result.isSuccess)
 		}
@@ -39,14 +39,14 @@ class ProjectRepositorySyncTest : ProjectRepositoryBaseTest() {
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		coEvery {
-			projectDatasource.checkProjectExists(
+			projectEntityDatasource.checkProjectExists(
 				userId,
 				projectDefinition
 			)
 		} returns true
 
 		coEvery {
-			projectDatasource.loadProjectSyncData(
+			projectEntityDatasource.loadProjectSyncData(
 				userId,
 				projectDefinition
 			)
@@ -76,14 +76,14 @@ class ProjectRepositorySyncTest : ProjectRepositoryBaseTest() {
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		coEvery {
-			projectDatasource.checkProjectExists(
+			projectEntityDatasource.checkProjectExists(
 				userId,
 				projectDefinition
 			)
 		} returns true
 
 		coEvery {
-			projectDatasource.loadProjectSyncData(
+			projectEntityDatasource.loadProjectSyncData(
 				userId,
 				projectDefinition
 			)
@@ -129,21 +129,21 @@ class ProjectRepositorySyncTest : ProjectRepositoryBaseTest() {
 			coEvery { projectSessionManager.terminateSession(any()) } returns true
 
 			coEvery {
-				projectDatasource.checkProjectExists(
+				projectEntityDatasource.checkProjectExists(
 					userId,
 					projectDefinition
 				)
 			} returns true
 
 			coEvery {
-				projectDatasource.loadProjectSyncData(
+				projectEntityDatasource.loadProjectSyncData(
 					userId,
 					projectDefinition
 				)
 			} returns syncData
 
 			coEvery {
-				projectDatasource.updateSyncData(
+				projectEntityDatasource.updateSyncData(
 					userId,
 					projectDefinition,
 					any(),

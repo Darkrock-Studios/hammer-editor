@@ -24,7 +24,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = deleteProject(userId, syncId, projectId)
 			assertTrue(result.isFailure)
-			coVerify(exactly = 0) { projectDatasource.deleteProject(any(), any()) }
+			coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
 			coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 		}
 	}
@@ -37,7 +37,12 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		val projectDef = ProjectDefinition(projectName, projectId)
 
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		coEvery { projectDatasource.deleteProject(userId, projectId) } returns SResult.success(
+		coEvery {
+			projectEntityDatasource.deleteProject(
+				userId,
+				projectId
+			)
+		} returns SResult.success(
 			Unit
 		)
 
@@ -68,7 +73,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 			val result = deleteProject(userId, syncId, projectId)
 
 			assertTrue(result.isSuccess)
-			coVerify { projectDatasource.deleteProject(userId, projectDef.uuid) }
+			coVerify { projectEntityDatasource.deleteProject(userId, projectDef.uuid) }
 			coVerify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)

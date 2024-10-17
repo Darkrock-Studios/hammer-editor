@@ -21,9 +21,9 @@ import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
 
-class ProjectRepository(
+class ProjectEntityRepository(
 	private val clock: Clock,
-	private val projectDatasource: ProjectDatasource,
+	private val projectEntityDatasource: ProjectEntityDatasource,
 ) : KoinComponent {
 
 	private val sceneSynchronizer: ServerSceneSynchronizer by inject()
@@ -60,14 +60,14 @@ class ProjectRepository(
 				Msg.r("api.project.sync.begin.error.session", userId)
 			)
 		} else {
-			if (projectDatasource.checkProjectExists(userId, projectDef).not()) {
+			if (projectEntityDatasource.checkProjectExists(userId, projectDef).not()) {
 				return SResult.failure(ProjectNotFound(projectDef))
 			}
 
-			var projectSyncData = projectDatasource.loadProjectSyncData(userId, projectDef)
+			var projectSyncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
 
 			if (projectSyncData.lastId < 0) {
-				val lastId = projectDatasource.findLastId(userId, projectDef)
+				val lastId = projectEntityDatasource.findLastId(userId, projectDef)
 				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
 			}
 
@@ -116,7 +116,7 @@ class ProjectRepository(
 			} else {
 				// Update sync data if it was sent
 				if (lastSync != null && lastId != null) {
-					projectDatasource.updateSyncData(userId, projectDef) {
+					projectEntityDatasource.updateSyncData(userId, projectDef) {
 						it.copy(
 							lastSync = lastSync,
 							lastId = lastId,
@@ -141,8 +141,8 @@ class ProjectRepository(
 				Msg.r("api.project.sync.end.invalidid", userId)
 			)
 
-		return if (projectDatasource.checkProjectExists(userId, projectDef)) {
-			val projectSyncData = projectDatasource.loadProjectSyncData(userId, projectDef)
+		return if (projectEntityDatasource.checkProjectExists(userId, projectDef)) {
+			val projectSyncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
 			SResult.success(
 				ProjectServerState(
 					lastSync = projectSyncData.lastSync,
@@ -168,7 +168,7 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
-		val existingType = projectDatasource.findEntityType(entity.id, userId, projectDef)
+		val existingType = projectEntityDatasource.findEntityType(entity.id, userId, projectDef)
 		if (existingType != null && existingType != entity.type)
 			return SResult.failure(
 				"Entity type mismatch",
@@ -234,7 +234,7 @@ class ProjectRepository(
 			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
 		val entityType: ApiProjectEntity.Type? =
-			projectDatasource.findEntityType(entityId, userId, projectDef)
+			projectEntityDatasource.findEntityType(entityId, userId, projectDef)
 
 		val deleteResult = when (entityType) {
 			ApiProjectEntity.Type.SCENE -> sceneSynchronizer.deleteEntity(
@@ -270,7 +270,7 @@ class ProjectRepository(
 			null -> SResult.success()
 		}
 
-		projectDatasource.updateSyncData(userId, projectDef) {
+		projectEntityDatasource.updateSyncData(userId, projectDef) {
 			it.copy(
 				deletedIds = it.deletedIds + entityId
 			)
@@ -288,7 +288,7 @@ class ProjectRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure("Invalid sync id", exception = InvalidSyncIdException())
 
-		val type = projectDatasource.findEntityType(entityId, userId, projectDef)
+		val type = projectEntityDatasource.findEntityType(entityId, userId, projectDef)
 			?: return SResult.failure("EntityNotFound", exception = EntityNotFound(entityId))
 
 		return when (type) {

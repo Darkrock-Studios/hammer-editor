@@ -21,7 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
-class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
+class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 	@Test
 	fun `Load Entity - Expired SyncId`() = runTest {
@@ -43,14 +43,14 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		coEvery {
-			projectDatasource.checkProjectExists(
+			projectEntityDatasource.checkProjectExists(
 				userId,
 				projectDefinition
 			)
 		} returns true
 
 		coEvery {
-			projectDatasource.loadProjectSyncData(
+			projectEntityDatasource.loadProjectSyncData(
 				userId,
 				projectDefinition
 			)
@@ -83,7 +83,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 
 		coEvery {
-			projectDatasource.findEntityType(
+			projectEntityDatasource.findEntityType(
 				entityId,
 				userId,
 				projectDefinition
@@ -115,7 +115,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery {
-			projectDatasource.findEntityType(
+			projectEntityDatasource.findEntityType(
 				any(),
 				any(),
 				any()
@@ -161,7 +161,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 
 		coEvery {
-			projectDatasource.findEntityType(
+			projectEntityDatasource.findEntityType(
 				any(),
 				any(),
 				any()
@@ -191,7 +191,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
+		coEvery { projectEntityDatasource.findEntityType(any(), any(), any()) } returns null
 		coEvery {
 			sceneSynchronizer.saveEntity(
 				userId,
@@ -240,8 +240,8 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectDatasource.findEntityType(any(), any(), any()) } returns null
-		coEvery { projectDatasource.updateSyncData(any(), any(), any()) } just Runs
+		coEvery { projectEntityDatasource.findEntityType(any(), any(), any()) } returns null
+		coEvery { projectEntityDatasource.updateSyncData(any(), any(), any()) } just Runs
 		coEvery {
 			sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId)
 		} returns SResult.success()
@@ -251,7 +251,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 		}
 
-		coVerify(exactly = 1) { projectDatasource.updateSyncData(any(), any(), any()) }
+		coVerify(exactly = 1) { projectEntityDatasource.updateSyncData(any(), any(), any()) }
 		coVerify(exactly = 0) { sceneSynchronizer.deleteEntity(any(), any(), any()) }
 	}
 
@@ -263,7 +263,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns true
 		coEvery {
-			projectDatasource.findEntityType(
+			projectEntityDatasource.findEntityType(
 				any(),
 				any(),
 				any()
@@ -272,7 +272,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 
 		val existingDeletedIds = setOf(3)
 		lateinit var updatedSyncData: ProjectSyncData
-		coEvery { projectDatasource.updateSyncData(any(), any(), captureLambda()) } answers {
+		coEvery { projectEntityDatasource.updateSyncData(any(), any(), captureLambda()) } answers {
 			val data = ProjectSyncData(
 				lastSync = Instant.fromEpochSeconds(123),
 				lastId = 5,
@@ -289,7 +289,7 @@ class ProjectRepositoryEntityTest : ProjectRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 		}
 
-		coVerify { projectDatasource.updateSyncData(userId, projectDefinition, any()) }
+		coVerify { projectEntityDatasource.updateSyncData(userId, projectDefinition, any()) }
 		coVerify { sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId) }
 
 		assertEquals(setOf(3, entityId), updatedSyncData.deletedIds)

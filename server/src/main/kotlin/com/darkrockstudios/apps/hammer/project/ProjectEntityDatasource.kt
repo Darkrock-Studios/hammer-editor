@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.serialization.KSerializer
 
-interface ProjectDatasource {
+interface ProjectEntityDatasource {
 	suspend fun loadProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData
 	suspend fun createProject(userId: Long, projectName: String): ProjectDefinition
 	suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit>

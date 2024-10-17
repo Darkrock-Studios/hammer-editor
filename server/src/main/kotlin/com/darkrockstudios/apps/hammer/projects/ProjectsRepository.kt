@@ -5,8 +5,8 @@ import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -18,7 +18,7 @@ import org.koin.java.KoinJavaComponent.inject
 class ProjectsRepository(
 	private val clock: Clock,
 	private val projectsDatasource: ProjectsDatasource,
-	private val projectDatasource: ProjectDatasource,
+	private val projectEntityDatasource: ProjectEntityDatasource,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -86,7 +86,7 @@ class ProjectsRepository(
 
 		val projectDef = projectsDatasource.getProject(userId, projectId)
 		return if (projectDef != null) {
-			val result = projectDatasource.deleteProject(userId, projectDef.uuid)
+			val result = projectEntityDatasource.deleteProject(userId, projectDef.uuid)
 			if (result.isSuccess) {
 				projectsDatasource.updateSyncData(userId) { data ->
 					data.copy(
@@ -118,8 +118,9 @@ class ProjectsRepository(
 		if (validateProjectName(projectName).not())
 			return SResult.failure(InvalidProjectName(projectName))
 
-		val existingProject = projectDatasource.findProjectByName(userId, projectName)
-		val projectDef = existingProject ?: projectDatasource.createProject(userId, projectName)
+		val existingProject = projectEntityDatasource.findProjectByName(userId, projectName)
+		val projectDef =
+			existingProject ?: projectEntityDatasource.createProject(userId, projectName)
 		val alreadyExists = (existingProject != null)
 
 		return SResult.success(
@@ -142,9 +143,9 @@ class ProjectsRepository(
 		if (!validateProjectName(newProjectName))
 			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
 
-		val existingProject = projectDatasource.checkProjectExists(userId, projectId)
+		val existingProject = projectEntityDatasource.checkProjectExists(userId, projectId)
 		return if (existingProject) {
-			projectDatasource.renameProject(userId, projectId, newProjectName)
+			projectEntityDatasource.renameProject(userId, projectId, newProjectName)
 			SResult.success()
 		} else {
 			SResult.failure(ProjectNotFound(projectId))

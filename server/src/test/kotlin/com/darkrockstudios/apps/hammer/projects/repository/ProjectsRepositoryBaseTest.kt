@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
@@ -32,12 +32,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 
 	protected lateinit var projectsRepository: ProjectsRepository
 	protected lateinit var projectsDatasource: ProjectsDatasource
-	protected lateinit var projectDatasource: ProjectDatasource
+	protected lateinit var projectEntityDatasource: ProjectEntityDatasource
 
 	protected val projectDefinition = ProjectDefinition("Test Project 1", ProjectId("test-uuid-1"))
 
 	protected fun createProjectsRepository(): ProjectsRepository {
-		return ProjectsRepository(clock, projectsDatasource, projectDatasource)
+		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource)
 	}
 
 	protected fun mockCreateSession(syncId: String) {
@@ -67,7 +67,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		projectsDatasource = mockk()
 		projectsRepository = mockk()
 
-		projectDatasource = mockk()
+		projectEntityDatasource = mockk()
 
 		val testModule = module {
 			single { Json } bind Json::class

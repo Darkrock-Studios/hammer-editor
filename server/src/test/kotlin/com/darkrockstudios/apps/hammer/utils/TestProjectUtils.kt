@@ -1,6 +1,6 @@
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityFilesystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utils.FileResourcesUtils
 import com.darkrockstudios.apps.hammer.utils.getUserDataDirectory
@@ -23,7 +23,7 @@ fun getUserDirectory(userId: Long, ffs: FakeFileSystem): Path {
 }
 
 fun getProjectDirectory(userId: Long, projectName: String, ffs: FakeFileSystem): Path {
-	return ProjectFilesystemDatasource.getProjectDirectory(
+	return ProjectEntityFilesystemDatasource.getProjectDirectory(
 		userId,
 		ProjectDefinition(projectName, ProjectId("")),
 		ffs

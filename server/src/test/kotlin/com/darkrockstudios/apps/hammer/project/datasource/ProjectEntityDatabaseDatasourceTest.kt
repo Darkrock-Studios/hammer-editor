@@ -17,8 +17,8 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
-import com.darkrockstudios.apps.hammer.project.ProjectDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.isFailure
@@ -45,7 +45,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class ProjectDatabaseDatasourceTest : BaseTest() {
+class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var testDatabase: SqliteTestDatabase
@@ -81,8 +81,8 @@ class ProjectDatabaseDatasourceTest : BaseTest() {
 		setupKoin()
 	}
 
-	private fun createDatasource(): ProjectDatabaseDatasource {
-		return ProjectDatabaseDatasource(
+	private fun createDatasource(): ProjectEntityDatabaseDatasource {
+		return ProjectEntityDatabaseDatasource(
 			accountDao = AccountDao(testDatabase),
 			projectDao = ProjectDao(testDatabase, clock),
 			deletedProjectDao = DeletedProjectDao(testDatabase),

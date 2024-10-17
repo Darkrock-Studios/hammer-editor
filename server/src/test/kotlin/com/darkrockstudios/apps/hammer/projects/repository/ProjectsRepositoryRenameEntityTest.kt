@@ -18,13 +18,13 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		val newProjectName = "New Project Name"
 
 		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectDatasource.checkProjectExists(any(), projectId) } returns true
-		coEvery { projectDatasource.renameProject(any(), any(), any()) } returns true
+		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns true
+		coEvery { projectEntityDatasource.renameProject(any(), any(), any()) } returns true
 
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isSuccess)
-			coVerify(exactly = 1) { projectDatasource.renameProject(any(), any(), any()) }
+			coVerify(exactly = 1) { projectEntityDatasource.renameProject(any(), any(), any()) }
 		}
 	}
 
@@ -35,13 +35,13 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		val newProjectName = "1".repeat(MAX_PROJECT_NAME_LENGTH + 1)
 
 		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectDatasource.checkProjectExists(any(), projectId) } returns true
-		coEvery { projectDatasource.renameProject(any(), any(), any()) } returns true
+		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns true
+		coEvery { projectEntityDatasource.renameProject(any(), any(), any()) } returns true
 
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isFailure)
-			coVerify(exactly = 0) { projectDatasource.renameProject(any(), any(), any()) }
+			coVerify(exactly = 0) { projectEntityDatasource.renameProject(any(), any(), any()) }
 		}
 	}
 
@@ -57,13 +57,13 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		val projectId = ProjectId("ProjectId")
 
 		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectDatasource.checkProjectExists(any(), projectId) } returns true
-		coEvery { projectDatasource.renameProject(any(), any(), any()) } returns true
+		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns true
+		coEvery { projectEntityDatasource.renameProject(any(), any(), any()) } returns true
 
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isFailure)
-			coVerify(exactly = 0) { projectDatasource.renameProject(any(), any(), any()) }
+			coVerify(exactly = 0) { projectEntityDatasource.renameProject(any(), any(), any()) }
 		}
 	}
 }

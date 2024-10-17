@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.serialization.InternalSerializationApi
@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 
 @OptIn(InternalSerializationApi::class)
 abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
-	protected val datasource: ProjectDatasource
+	protected val datasource: ProjectEntityDatasource
 ) {
 	abstract val entityType: ApiProjectEntity.Type
 	abstract fun hashEntity(entity: T): String

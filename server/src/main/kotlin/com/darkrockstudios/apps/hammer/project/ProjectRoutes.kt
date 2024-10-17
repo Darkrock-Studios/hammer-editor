@@ -54,7 +54,7 @@ fun Route.projectRoutes(logger: Logger) {
 }
 
 private fun Route.beginProjectSync() {
-	val projectRepository: ProjectRepository = get()
+	val projectEntityRepository: ProjectEntityRepository = get()
 	val json: Json = get()
 	val ioDispatcher: CoroutineContext = get(named(DISPATCHER_IO))
 
@@ -93,7 +93,12 @@ private fun Route.beginProjectSync() {
 		} else {
 			val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
 			val result =
-				projectRepository.beginProjectSync(principal.id, projectDef, clientState, lite)
+				projectEntityRepository.beginProjectSync(
+					principal.id,
+					projectDef,
+					clientState,
+					lite
+				)
 			if (isSuccess(result)) {
 				val syncBegan = result.data
 				call.respond(syncBegan)
@@ -111,7 +116,7 @@ private fun Route.beginProjectSync() {
 }
 
 private fun Route.endProjectSync() {
-	val projectRepository: ProjectRepository = get()
+	val projectEntityRepository: ProjectEntityRepository = get()
 
 	get("/end_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
@@ -154,7 +159,13 @@ private fun Route.endProjectSync() {
 		} else {
 			val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
 			val result =
-				projectRepository.endProjectSync(principal.id, projectDef, syncId, lastSync, lastId)
+				projectEntityRepository.endProjectSync(
+					principal.id,
+					projectDef,
+					syncId,
+					lastSync,
+					lastId
+				)
 			if (isSuccess(result)) {
 				val success = result.data
 				call.respond(success)
@@ -172,7 +183,7 @@ private fun Route.endProjectSync() {
 }
 
 private fun Route.uploadEntity() {
-	val projectRepository: ProjectRepository = get()
+	val projectEntityRepository: ProjectEntityRepository = get()
 
 	post("/upload_entity/{entityId}") {
 		val log = call.application.log
@@ -238,7 +249,7 @@ private fun Route.uploadEntity() {
 			} else {
 				val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
 				val result =
-					projectRepository.saveEntity(
+					projectEntityRepository.saveEntity(
 						principal.id,
 						projectDef,
 						entity,
@@ -319,7 +330,7 @@ private fun Route.uploadEntity() {
 }
 
 private fun Route.downloadEntity(log: Logger) {
-	val projectRepository: ProjectRepository = get()
+	val projectEntityRepository: ProjectEntityRepository = get()
 
 	get("/download_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
@@ -365,7 +376,7 @@ private fun Route.downloadEntity(log: Logger) {
 			val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
 
 			val result =
-				projectRepository.loadEntity(principal.id, projectDef, entityId, syncId)
+				projectEntityRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 			if (isSuccess(result)) {
 				val serverEntity = result.data
 				val serverEntityHash = serverEntityHash(serverEntity)
@@ -425,7 +436,7 @@ private fun Route.downloadEntity(log: Logger) {
 }
 
 private fun Route.deleteEntity() {
-	val projectRepository: ProjectRepository = get()
+	val projectEntityRepository: ProjectEntityRepository = get()
 
 	get("/delete_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
@@ -468,7 +479,8 @@ private fun Route.deleteEntity() {
 			)
 		} else {
 			val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
-			val result = projectRepository.deleteEntity(principal.id, projectDef, entityId, syncId)
+			val result =
+				projectEntityRepository.deleteEntity(principal.id, projectDef, entityId, syncId)
 
 			if (isSuccess(result)) {
 				call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))

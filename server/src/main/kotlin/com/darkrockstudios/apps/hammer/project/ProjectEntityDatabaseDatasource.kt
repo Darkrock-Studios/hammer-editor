@@ -16,7 +16,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
-class ProjectDatabaseDatasource(
+class ProjectEntityDatabaseDatasource(
 	private val projectDao: ProjectDao,
 	private val accountDao: AccountDao,
 	private val deletedProjectDao: DeletedProjectDao,
@@ -24,7 +24,7 @@ class ProjectDatabaseDatasource(
 	private val deletedEntityDao: DeletedEntityDao,
 	private val encryptor: ContentEncryptor,
 	private val json: Json,
-) : ProjectDatasource {
+) : ProjectEntityDatasource {
 
 	override suspend fun loadProjectSyncData(
 		userId: Long,

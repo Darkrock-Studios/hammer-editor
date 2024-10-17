@@ -12,8 +12,8 @@ import com.darkrockstudios.apps.hammer.database.StoryEntityDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
-import com.darkrockstudios.apps.hammer.project.ProjectDatabaseDatasource
-import com.darkrockstudios.apps.hammer.project.ProjectFilesystemDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityFilesystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
@@ -63,7 +63,7 @@ class FilesystemToDatabaseMigration : DataMigration {
 		val cipherSaltGenerator = SecureTokenGenerator(16, base64)
 
 		val projectsFsDatasource = ProjectsFileSystemDatasource(fileSystem, json)
-		val projectFsDatasource = ProjectFilesystemDatasource(fileSystem, json)
+		val projectFsDatasource = ProjectEntityFilesystemDatasource(fileSystem, json)
 
 		val simpleAesKeyProvider =
 			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom)
@@ -78,7 +78,7 @@ class FilesystemToDatabaseMigration : DataMigration {
 
 		val projectsDbDatasource = ProjectsDatabaseDatasource(projectDao, projectsDao)
 		val projectDbDatasource =
-			ProjectDatabaseDatasource(
+			ProjectEntityDatabaseDatasource(
 				projectDao,
 				accountDao,
 				deletedProjectDao,

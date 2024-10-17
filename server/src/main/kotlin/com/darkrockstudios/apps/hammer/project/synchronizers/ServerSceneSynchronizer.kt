@@ -3,13 +3,13 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlin.system.measureTimeMillis
 
 class ServerSceneSynchronizer(
-	datasource: ProjectDatasource,
+	datasource: ProjectEntityDatasource,
 	private val log: io.ktor.util.logging.Logger
 ) : ServerEntitySynchronizer<ApiProjectEntity.SceneEntity>(datasource) {
 

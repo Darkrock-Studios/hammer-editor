@@ -20,9 +20,9 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
-import com.darkrockstudios.apps.hammer.project.ProjectDatabaseDatasource
-import com.darkrockstudios.apps.hammer.project.ProjectDatasource
-import com.darkrockstudios.apps.hammer.project.ProjectRepository
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
@@ -79,14 +79,14 @@ fun mainModule(
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
-	singleOf(::ProjectRepository)
+	singleOf(::ProjectEntityRepository)
 	singleOf(::WhiteListRepository)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
-	factoryOf(::ProjectDatabaseDatasource) bind ProjectDatasource::class
+	factoryOf(::ProjectEntityDatabaseDatasource) bind ProjectEntityDatasource::class
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)
