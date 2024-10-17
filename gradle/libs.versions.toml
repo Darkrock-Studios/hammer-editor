@@ -89,7 +89,7 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.2.0"
 korge-core = "5.4.0"
 
-moko-permissions = "0.18.0"
+moko-permissions = "0.18.1"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
