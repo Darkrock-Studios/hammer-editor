@@ -68,6 +68,7 @@ ktor_i18n = "2.0.0"
 
 okio = "3.9.1"
 slf4jSimple = "2.0.16"
+turbine = "0.12.1"
 work-runtime-ktx = "2.9.1"
 
 multiplatform_window_size = "0.5.0"
@@ -220,6 +221,7 @@ ktor_network_tlscertificates = { group = "io.ktor", name = "ktor-network-tls-cer
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
 
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }

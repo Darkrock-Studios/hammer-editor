@@ -9,6 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -78,6 +82,8 @@ val mainModule = module {
 	singleOf(::ServerProjectsApi)
 	singleOf(::ServerAdminApi)
 
+	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
+	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
 	singleOf(::AccountRepository)
