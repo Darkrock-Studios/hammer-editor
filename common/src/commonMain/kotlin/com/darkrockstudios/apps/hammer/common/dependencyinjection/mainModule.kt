@@ -22,7 +22,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.createProjectBa
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasourceOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
@@ -90,7 +89,7 @@ val mainModule = module {
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class
 
-	singleOf(::ProjectsRepositoryOkio) bind ProjectsRepository::class
+	singleOf(::ProjectsRepository)
 
 	singleOf(::createTomlSerializer) bind Toml::class
 

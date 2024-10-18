@@ -17,6 +17,10 @@ abstract class ProjectMetadataDatasource(
 	abstract fun getMetadataPath(projectDef: ProjectDef): HPath
 }
 
-fun ProjectMetadataDatasource.loadProjectId(projectDef: ProjectDef): ProjectId {
-	return loadMetadata(projectDef).info.serverProjectId ?: error("Server project ID missing")
+fun ProjectMetadataDatasource.loadProjectId(projectDef: ProjectDef): ProjectId? {
+	return loadMetadata(projectDef).info.serverProjectId
+}
+
+fun ProjectMetadataDatasource.requireProjectId(projectDef: ProjectDef): ProjectId {
+	return loadProjectId(projectDef) ?: error("Project has no server project id")
 }

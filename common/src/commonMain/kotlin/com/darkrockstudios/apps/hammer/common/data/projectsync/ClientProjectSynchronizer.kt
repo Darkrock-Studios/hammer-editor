@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.loadProjectId
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.requireProjectId
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
@@ -664,7 +664,7 @@ class ClientProjectSynchronizer(
 	private suspend fun endSync() {
 		try {
 			val syncId = loadSyncData().currentSyncId ?: throw IllegalStateException("No sync ID")
-			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
+			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
 				userId(),
@@ -728,7 +728,7 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
+		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
 		val result = serverProjectApi.deleteId(projectDef.name, projectId, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_delete_success, id), projectDef))
@@ -831,7 +831,7 @@ class ClientProjectSynchronizer(
 		onLog: OnSyncLog
 	): CResult<Unit> {
 		val localEntityHash = getLocalEntityHash(id)
-		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
+		val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 		val entityResponse = serverProjectApi.downloadEntity(
 			projectName = projectDef.name,
 			projectId = serverProjectId,

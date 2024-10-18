@@ -1,6 +1,7 @@
 package repositories.projectmetadata
 
 import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -50,6 +51,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 				created = Instant.parse("2022-12-30T07:08:02.691261600Z"),
 				lastAccessed = Instant.parse("2024-06-28T05:09:10.649054300Z"),
 				dataVersion = 1,
+				serverProjectId = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
 			)
 		)
 		assertEquals(expectedMetadata, metadata)

@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.loadProjectId
+import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.requireProjectId
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
@@ -34,7 +34,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
-		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
+		val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(
