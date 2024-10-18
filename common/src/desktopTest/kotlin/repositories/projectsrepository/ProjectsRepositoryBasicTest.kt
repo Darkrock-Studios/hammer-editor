@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.isFailure
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasourceOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
@@ -105,7 +105,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		assertFalse(result2.isSuccess)
 
 		val newDef = ProjectDef(projectName, actualProjDir.toHPath())
-		val metadataDatasource = ProjectMetadataDatasourceOkio(ffs, toml)
+		val metadataDatasource = ProjectMetadataDatasource(ffs, toml)
 		val metadataPath = metadataDatasource.getMetadataPath(newDef)
 		ffs.exists(metadataPath.toOkioPath())
 	}

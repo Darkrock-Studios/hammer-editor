@@ -2,8 +2,7 @@ package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectmetadatarepository.ProjectMetadataDatasourceOkio
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createRootDirectory
 import getProjectsDirectory
@@ -32,7 +31,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 
-		projectsMetaDatasource = ProjectMetadataDatasourceOkio(ffs, toml)
+		projectsMetaDatasource = ProjectMetadataDatasource(ffs, toml)
 
 		settingsRepo = mockk()
 		settings = mockk()
