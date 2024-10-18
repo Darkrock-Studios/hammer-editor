@@ -6,9 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -19,21 +18,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okio.Closeable
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
-abstract class TimeLineRepository(
-	protected val projectDef: ProjectDef,
-	protected val idRepository: IdRepository
+class TimeLineRepository(
+	private val projectDef: ProjectDef,
+	private val idRepository: IdRepository,
+	private val datasource: TimeLineDatasource,
 ) : Closeable, ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	protected val projectSynchronizer: ClientProjectSynchronizer by projectInject()
-	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	protected val scope = CoroutineScope(dispatcherDefault)
+	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val dispatcherDefault: CoroutineContext by injectDefaultDispatcher()
+	private val scope = CoroutineScope(dispatcherDefault)
 
-	protected val _timelineFlow = MutableSharedFlow<TimeLineContainer>(
+	private val _timelineFlow = MutableSharedFlow<TimeLineContainer>(
 		extraBufferCapacity = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		replay = 1
@@ -46,19 +44,87 @@ abstract class TimeLineRepository(
 			_timelineFlow.emit(timeline)
 		}
 
-		//saveOnChange()
-
 		return this
 	}
 
-	abstract suspend fun loadTimeline(): TimeLineContainer
-	abstract suspend fun createEvent(content: String, date: String?, id: Int? = null, order: Int? = null): TimeLineEvent
-	abstract suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean
-	protected abstract suspend fun storeTimeline(timeLine: TimeLineContainer)
-	abstract suspend fun deleteEvent(event: TimeLineEvent): Boolean
-	abstract fun getTimelineFile(): HPath
+	suspend fun loadTimeline(): TimeLineContainer = datasource.loadTimeline(projectDef)
 
-	//private var saveJob: Job? = null
+	suspend fun createEvent(
+		content: String,
+		date: String?,
+		id: Int? = null,
+		order: Int? = null
+	): TimeLineEvent {
+		val eventId = id ?: idRepository.claimNextId()
+		val timeline = timelineFlow.first()
+
+		val event = TimeLineEvent(
+			id = eventId,
+			order = order ?: timeline.events.size,
+			content = content,
+			date = date
+		)
+
+		val newTimeline = timeline.copy(
+			events = timeline.events.toMutableList() + event
+		)
+
+		storeAndEmitTimeline(newTimeline)
+
+		if (id != null) {
+			val index = newTimeline.events.indexOf(event)
+			markForSynchronization(event, index)
+		}
+
+		return event
+	}
+
+	private suspend fun storeAndEmitTimeline(timeLine: TimeLineContainer) {
+		datasource.storeTimeline(timeLine, projectDef)
+		_timelineFlow.emit(timeLine)
+	}
+
+	suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean {
+		val timeline = timelineFlow.first()
+
+		val events = timeline.events.toMutableList()
+		val originalIndex = events.indexOfFirst { it.id == event.id }
+
+		var oldEvent: TimeLineEvent? = null
+		if (originalIndex != -1) {
+			oldEvent = events[originalIndex]
+			events[originalIndex] = event
+		} else {
+			events.add(event)
+		}
+
+		val updatedTimeline = correctEventOrder(
+			timeline.copy(
+				events = events
+			)
+		)
+
+		storeAndEmitTimeline(updatedTimeline)
+
+		if (markForSync) {
+			markForSynchronization(oldEvent ?: event, originalIndex)
+		}
+
+		return true
+	}
+
+	suspend fun deleteEvent(event: TimeLineEvent): Boolean {
+		val timeline = timelineFlow.first()
+
+		val events = timeline.events.toMutableList()
+		val index = events.indexOfFirst { it.id == event.id }
+		events.removeAt(index)
+		storeAndEmitTimeline(timeline.copy(events = events))
+
+		projectSynchronizer.recordIdDeletion(event.id)
+
+		return true
+	}
 
 	suspend fun updateEventForSync(event: TimeLineEvent) {
 		val timeline = timelineFlow.replayCache.first()
@@ -79,31 +145,40 @@ abstract class TimeLineRepository(
 	}
 
 	suspend fun storeTimeline() {
-		storeTimeline(timelineFlow.replayCache.first())
+		datasource.storeTimeline(timelineFlow.replayCache.first(), projectDef)
 	}
 
 	suspend fun getTimelineEvent(id: Int): TimeLineEvent? {
 		return timelineFlow.first().events.firstOrNull { it.id == id }
 	}
 
-//	private fun saveOnChange() {
-//		saveJob = scope.launch {
-//			timelineFlow.debounceUntilQuiescent(1000.milliseconds).collect { timeline ->
-//				storeTimeline(timeline)
-//			}
-//		}
-//	}
+	suspend fun reIdEvent(oldId: Int, newId: Int) {
+		val timeline = timelineFlow.first()
+
+		val events = timeline.events.toMutableList()
+		val index = events.indexOfFirst { it.id == oldId }
+		val oldEvent = events[index]
+
+		val newEvent = oldEvent.copy(
+			id = newId
+		)
+
+		events[index] = newEvent
+
+		val updatedTimeline = timeline.copy(
+			events = events
+		)
+
+		storeAndEmitTimeline(updatedTimeline)
+	}
 
 	override fun close() {
 		runBlocking {
-			storeTimeline(timelineFlow.first())
+			datasource.storeTimeline(timelineFlow.first(), projectDef)
 		}
 
-		//saveJob?.cancel()
 		scope.cancel()
 	}
-
-	abstract suspend fun reIdEvent(oldId: Int, newId: Int)
 
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		val originalTimeline = timelineFlow.first()
@@ -155,15 +230,18 @@ abstract class TimeLineRepository(
 					events = events
 				)
 
-				storeTimeline(updatedTimeline)
+				storeAndEmitTimeline(updatedTimeline)
 			}
 
 			moved
 		}
 	}
 
-	protected suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalEvent.id)) {
+	private suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(
+				originalEvent.id
+			)
+		) {
 			val hash = EntityHasher.hashTimelineEvent(
 				id = originalEvent.id,
 				order = originalOrder,
@@ -177,7 +255,7 @@ abstract class TimeLineRepository(
 	/**
 	 * Sort the states by their order value, rather than the actual place in the serialized file.
 	 */
-	suspend fun correctEventOrder(timeline: TimeLineContainer? = null) {
+	suspend fun correctEventOrder(timeline: TimeLineContainer? = null): TimeLineContainer {
 		val originalTimeline = timeline ?: timelineFlow.first()
 
 		val events = originalTimeline.events
@@ -188,10 +266,7 @@ abstract class TimeLineRepository(
 		)
 
 		_timelineFlow.emit(updatedTimeline)
-	}
 
-	companion object {
-		const val TIMELINE_FILENAME = "timeline.toml"
-		const val TIMELINE_DIRECTORY = "timeline"
+		return updatedTimeline
 	}
 }

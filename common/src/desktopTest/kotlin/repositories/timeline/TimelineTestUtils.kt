@@ -2,8 +2,8 @@ package repositories.timeline
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
@@ -28,7 +28,7 @@ fun writeEventsToDisk(
 	val timeline = TimeLineContainer(events)
 	val serialized = toml.encodeToString(TimeLineContainer.serializer(), timeline)
 
-	val file = TimeLineRepositoryOkio.getTimelineFile(projectDef).toOkioPath()
+	val file = TimeLineDatasource.getTimelineFilePath(projectDef).toOkioPath()
 	ffs.createDirectories(file.parent!!)
 
 	ffs.write(file) {

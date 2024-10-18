@@ -33,7 +33,11 @@ open class BaseTest : KoinTest {
 	@BeforeEach
 	open fun setup() {
 		scope = TestScope()
-		Dispatchers.setMain(StandardTestDispatcher(scope.testScheduler))
+		mainTestDispatcher = StandardTestDispatcher(
+			scope.testScheduler,
+			name = "Main dispatcher"
+		)
+		Dispatchers.setMain(mainTestDispatcher)
 	}
 
 	@AfterEach
@@ -47,6 +51,7 @@ open class BaseTest : KoinTest {
 		GlobalContext.startKoin {
 			modules(
 				module {
+					single<CoroutineContext>(named(DISPATCHER_MAIN)) { mainTestDispatcher }
 					single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
 						StandardTestDispatcher(
 							scheduler,
@@ -59,18 +64,11 @@ open class BaseTest : KoinTest {
 							name = "IO dispatcher"
 						)
 					}
-					single<CoroutineContext>(named(DISPATCHER_MAIN)) {
-						StandardTestDispatcher(
-							scheduler,
-							name = "Main dispatcher"
-						)
-					}
 				},
 				*modules
 			)
 		}
 
-		mainTestDispatcher = get<CoroutineContext>(named(DISPATCHER_MAIN)) as TestDispatcher
 		ioTestDispatcher = get<CoroutineContext>(named(DISPATCHER_IO)) as TestDispatcher
 		defaultTestDispatcher = get<CoroutineContext>(named(DISPATCHER_DEFAULT)) as TestDispatcher
 	}

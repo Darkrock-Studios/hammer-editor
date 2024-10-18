@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.migrator
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -27,7 +27,7 @@ class Migration0_1(
 	override fun migrate(projectDef: ProjectDef) {
 		Napier.i("Begin Migration0_1 for '${projectDef.name}'...")
 
-		val path = TimeLineRepositoryOkio.getTimelineFile(projectDef)
+		val path = TimeLineDatasource.getTimelineFilePath(projectDef)
 		try {
 			val timeline = loadJsonTimeline(
 				hpath = path,

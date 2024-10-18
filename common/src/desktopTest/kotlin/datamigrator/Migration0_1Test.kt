@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -47,7 +47,7 @@ class Migration0_1Test : BaseTest() {
 
 		migrator.migrate(projDef)
 
-		val path = TimeLineRepositoryOkio.getTimelineFile(projDef)
+		val path = TimeLineDatasource.getTimelineFilePath(projDef)
 		val timeLineContainer = fakeFileSystem.readToml(path.toOkioPath(), toml, TimeLineContainer::class)
 
 		fakeFileSystem.read(path.toOkioPath()) {
@@ -103,7 +103,7 @@ class Migration0_1Test : BaseTest() {
 
 		migrator.migrate(projDef)
 
-		val path = TimeLineRepositoryOkio.getTimelineFile(projDef).toOkioPath()
+		val path = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
 		assertFalse(fakeFileSystem.exists(path))
 	}
 
@@ -113,7 +113,7 @@ class Migration0_1Test : BaseTest() {
 
 		val projDef = getProjectDef(MIGRATION_0_1_ALREADY)
 		createProject(fakeFileSystem, MIGRATION_0_1_ALREADY)
-		val path = TimeLineRepositoryOkio.getTimelineFile(projDef)
+		val path = TimeLineDatasource.getTimelineFilePath(projDef)
 		val timeLineContainerPremigrate = fakeFileSystem.readToml(path.toOkioPath(), toml, TimeLineContainer::class)
 
 		val migrator = Migration0_1(

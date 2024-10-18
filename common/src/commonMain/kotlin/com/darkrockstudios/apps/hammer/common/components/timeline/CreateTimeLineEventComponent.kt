@@ -28,8 +28,8 @@ class CreateTimeLineEventComponent(
 		}
 
 		val event = timeLineRepository.createEvent(
+			content = contentText,
 			date = date,
-			content = contentText
 		)
 
 		Napier.i { "Time Line event created! ${event.id}" }

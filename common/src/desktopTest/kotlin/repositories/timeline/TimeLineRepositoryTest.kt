@@ -1,12 +1,14 @@
 package repositories.timeline
 
 import PROJECT_EMPTY_NAME
+import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -22,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -36,6 +39,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
+	lateinit var datasource: TimeLineDatasource
 
 	@BeforeEach
 	override fun setup() {
@@ -44,6 +48,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		projectSynchronizer = mockk()
+		datasource = TimeLineDatasource(ffs, toml)
 
 		val testModule = module {
 			single { projectSynchronizer }
@@ -51,11 +56,11 @@ class TimeLineRepositoryTest : BaseTest() {
 		setupKoin(testModule)
 	}
 
-	fun setupTimelne(
+	private fun setupTimelne(
 		projDef: ProjectDef = getProjectDef(PROJECT_EMPTY_NAME),
 		events: List<TimeLineEvent> = fakeEvents()
 	) {
-		val dir = TimeLineRepositoryOkio.getTimelineDir(projDef).toOkioPath()
+		val dir = TimeLineDatasource.getTimelineDir(projDef).toOkioPath()
 		ffs.createDirectories(dir)
 
 		val timeline = TimeLineContainer(
@@ -65,7 +70,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		println(text)
 
-		val file = TimeLineRepositoryOkio.getTimelineFile(projDef).toOkioPath()
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
 		ffs.write(file) {
 			writeUtf8(text)
 		}
@@ -77,16 +82,15 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val idRepo = mockk<IdRepository>()
 
-		val repo = TimeLineRepositoryOkio(
+		val repo = TimeLineRepository(
 			projectDef = projDef,
 			idRepository = idRepo,
-			fileSystem = ffs,
-			toml = toml,
+			datasource = datasource,
 		).initialize()
 
 		advanceUntilIdle()
 
-		val timelineDir = TimeLineRepositoryOkio.getTimelineDir(projDef).toOkioPath()
+		val timelineDir = TimeLineDatasource.getTimelineDir(projDef).toOkioPath()
 		assertTrue("Timeline dir was not created") { ffs.exists(timelineDir) }
 	}
 
@@ -96,11 +100,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val idRepo = mockk<IdRepository>()
 
-		val repo = TimeLineRepositoryOkio(
+		val repo = TimeLineRepository(
 			projectDef = projDef,
 			idRepository = idRepo,
-			fileSystem = ffs,
-			toml = toml,
+			datasource = datasource,
 		).initialize()
 
 		val timeline = repo.loadTimeline()
@@ -114,11 +117,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		setupTimelne(projDef)
 
 		val idRepo = mockk<IdRepository>()
-		val repo = TimeLineRepositoryOkio(
+		val repo = TimeLineRepository(
 			projectDef = projDef,
 			idRepository = idRepo,
-			fileSystem = ffs,
-			toml = toml,
+			datasource = datasource,
 		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null
@@ -137,7 +139,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Update timeline`() = runTest {
+	fun `Update timeline with new event`() = runTest {
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
@@ -146,11 +148,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		setupTimelne(projDef, oldEvents)
 
 		val idRepo = mockk<IdRepository>()
-		val repo = TimeLineRepositoryOkio(
+		val repo = TimeLineRepository(
 			projectDef = projDef,
 			idRepository = idRepo,
-			fileSystem = ffs,
-			toml = toml,
+			datasource = datasource,
 		).initialize()
 
 		var collectedTimeline: TimeLineContainer? = null
@@ -179,5 +180,71 @@ class TimeLineRepositoryTest : BaseTest() {
 			assertEquals(oldEvents.size + 1, it.events.size, "Updated events wrong size")
 			assertEquals(madeEvent, it.events.last(), "Last even was not correct")
 		}
+
+		// Check the filesystem
+		val filePath = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		Assertions.assertTrue(ffs.exists(filePath))
+
+		val loadedContainer: TimeLineContainer = ffs.readToml(filePath, toml)
+		assertEquals(
+			collectedTimeline!!.events.size,
+			loadedContainer.events.size,
+			"Updated events wrong size"
+		)
+		assertEquals(madeEvent, loadedContainer.events.last())
+	}
+
+	@Test
+	fun `Update timeline with updated event`() = runTest {
+		every { projectSynchronizer.isServerSynchronized() } returns false
+
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val oldEvents = fakeEvents()
+		setupTimelne(projDef, oldEvents)
+
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idRepository = mockk(),
+			datasource = datasource,
+		).initialize()
+
+		var collectedTimeline: TimeLineContainer? = null
+		val collectJob = launch(UnconfinedTestDispatcher(testScheduler)) {
+			repo.timelineFlow.take(2).collect { timeline ->
+				collectedTimeline = timeline
+			}
+		}
+
+		val updatedEvent = oldEvents[2].copy(
+			date = "Updated Name",
+			content = "Updated Content",
+		)
+
+		val updated = repo.updateEvent(event = updatedEvent)
+		assertTrue("Event was not updated") { updated }
+
+		advanceUntilIdle()
+
+		collectJob.join()
+
+		assertNotNull(collectedTimeline, "collectedTimeline was not set")
+
+		// Check the memory cache
+		collectedTimeline?.let {
+			assertEquals(oldEvents.size, it.events.size, "Updated events wrong size")
+			assertEquals(
+				updatedEvent,
+				it.events.find { it.id == updatedEvent.id },
+				"Updated even was not correct"
+			)
+		}
+
+		// Check the filesystem
+		val filePath = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		Assertions.assertTrue(ffs.exists(filePath))
+
+		val loadedContainer: TimeLineContainer = ffs.readToml(filePath, toml)
+		assertEquals(updatedEvent, loadedContainer.events.find { it.id == updatedEvent.id })
 	}
 }

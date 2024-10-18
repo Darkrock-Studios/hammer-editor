@@ -1,5 +1,6 @@
 package repositories.timeline
 
+import app.cash.turbine.test
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
@@ -8,9 +9,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import getProject1Def
 import io.mockk.Runs
@@ -44,6 +45,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var idRepo: IdRepository
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
+	lateinit var datasource: TimeLineDatasource
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
@@ -65,6 +67,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		globalSettingsFlow = mockk()
 		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
 
+		datasource = TimeLineDatasource(ffs, toml)
 		projectSynchronizer = mockk()
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
@@ -107,10 +110,9 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	): TimeLineRepository {
 		writeEventsToDisk(projectDef, startingEvents, ffs, toml)
 
-		val repo = TimeLineRepositoryOkio(
+		val repo = TimeLineRepository(
 			projectDef = projectDef,
-			fileSystem = ffs,
-			toml = toml,
+			datasource = datasource,
 			idRepository = idRepo,
 		)
 		repo.initialize()
@@ -176,11 +178,16 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val first = originalEvents.first()
 		val moved = repository.moveEvent(first, 4, true)
 		assertTrue("Move timeline event failed") { moved }
-		advanceUntilIdle()
-		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
-		assertEquals(4, newEvents.indexOfFirst { it.id == first.id }, "Moved item was not at the correct position")
 
-		verifyEventSequence(newEvents, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9)
+		repository.timelineFlow.test {
+			val newEvents: List<TimeLineEvent> = awaitItem().events
+			assertEquals(
+				4,
+				newEvents.indexOfFirst { it.id == first.id },
+				"Moved item was not at the correct position"
+			)
+			verifyEventSequence(newEvents, 1, 2, 3, 4, 0, 5, 6, 7, 8, 9)
+		}
 	}
 
 	@Test
