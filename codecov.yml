@@ -4,6 +4,12 @@ codecov:
 comment:
     layout: "header, diff, flags, components"
 
+ignore:
+  - "base"
+  - "composeUi"
+  - "android"
+  - "desktop"
+
 component_management:
     default_rules:  # default rules that will be inherited by all components
         statuses:
