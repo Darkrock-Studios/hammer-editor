@@ -1,0 +1,22 @@
+codecov:
+    branch: develop
+
+comment:
+    layout: "header, diff, flags, components"
+
+component_management:
+    default_rules:  # default rules that will be inherited by all components
+        statuses:
+            - type: project
+              target: auto
+              branches:
+                  - "!develop"
+    individual_components:
+        - component_id: module_common
+          name: Client
+          paths:
+              - common/**
+        - component_id: module_server
+          name: Server
+          paths:
+              - server/**
