@@ -62,12 +62,14 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
 
-	val projectEditor: SceneEditorRepository = projectScope.get { parametersOf(projectDef) }
+	val sceneEditorRepository: SceneEditorRepository = projectScope.get { parametersOf(projectDef) }
 	val notesRepository: NotesRepository = projectScope.get { parametersOf(projectDef) }
+	val timeLineRepository: TimeLineRepository = projectScope.get { parametersOf(projectDef) }
 
-	projectEditor.close()
+	sceneEditorRepository.close()
 	notesRepository.close()
 	projectScope.close()
+	timeLineRepository.close()
 }
 
 private inline fun <reified T : Any> Koin.getOrCreateScope(scopeId: ScopeID, source: Any? = null): Scope {
