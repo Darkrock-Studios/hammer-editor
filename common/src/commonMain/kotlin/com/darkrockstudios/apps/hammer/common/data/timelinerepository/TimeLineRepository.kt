@@ -274,7 +274,7 @@ class TimeLineRepository(
 	override fun onScopeClose(scope: Scope) {
 		_timelineFlow.replayCache.firstOrNull()?.let { timeLineContainer ->
 			// This is whack. It's here to fix hanging tests,
-			// it seems very picky about being the same same context
+			// it seems very picky about being the same context
 			runBlocking {
 				asyncImmediately(dispatcherIo) {
 					datasource.storeTimeline(timeLineContainer, projectDef)
