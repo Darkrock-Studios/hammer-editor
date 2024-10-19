@@ -26,3 +26,12 @@ inline fun KoinComponent.injectMainDispatcher(
 	lazy(mode) {
 		get(qualifier = named(DISPATCHER_MAIN))
 	}
+
+inline fun KoinComponent.injectDefaultDispatcherNow(): CoroutineContext =
+	get(qualifier = named(DISPATCHER_DEFAULT))
+
+inline fun KoinComponent.injectIoDispatcherNow(): CoroutineContext =
+	get(qualifier = named(DISPATCHER_IO))
+
+inline fun KoinComponent.injectMainDispatcherNow(): CoroutineContext =
+	get(qualifier = named(DISPATCHER_MAIN))

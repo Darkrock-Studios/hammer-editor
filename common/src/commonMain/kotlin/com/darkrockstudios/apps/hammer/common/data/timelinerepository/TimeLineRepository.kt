@@ -6,9 +6,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
 import io.github.aakira.napier.Napier
 import korlibs.io.async.asyncImmediately
 import kotlinx.coroutines.CoroutineScope
@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.koin.core.component.get
-import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
@@ -35,7 +33,7 @@ class TimeLineRepository(
 	private val dispatcherDefault: CoroutineContext by injectDefaultDispatcher()
 
 	// Get this one eagerly, it's used during Koin teardown when we can't get it from the scope
-	private val dispatcherIo: CoroutineContext = get(qualifier = named(DISPATCHER_IO))
+	private val dispatcherIo: CoroutineContext = injectIoDispatcherNow()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	private val _timelineFlow = MutableSharedFlow<TimeLineContainer>(
