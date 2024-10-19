@@ -181,6 +181,7 @@ koin_core = { group = "io.insert-koin", name = "koin-core" }
 koin_core_coroutines = { group = "io.insert-koin", name = "koin-core-coroutines" }
 koin_android = { group = "io.insert-koin", name = "koin-android" }
 koin_test = { group = "io.insert-koin", name = "koin-test" }
+koin_test_junit5 = { group = "io.insert-koin", name = "koin-test-junit5" }
 koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-compose" }

@@ -50,7 +50,6 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
-	lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
 	override fun setup() {
@@ -73,7 +72,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 
 		lifecycleCallbacks = mutableListOf()
 
-		testModule = module {
+		val testModule = module {
 			single { idRepo } bind IdRepository::class
 			single { globalSettingsRepo }
 			single { projectSynchronizer }

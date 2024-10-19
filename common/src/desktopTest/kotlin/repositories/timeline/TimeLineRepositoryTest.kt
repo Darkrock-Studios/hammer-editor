@@ -40,7 +40,6 @@ class TimeLineRepositoryTest : BaseTest() {
 	lateinit var toml: Toml
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 	lateinit var datasource: TimeLineDatasource
-	lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
 	override fun setup() {
@@ -51,7 +50,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		projectSynchronizer = mockk()
 		datasource = TimeLineDatasource(ffs, toml)
 
-		testModule = module {
+		val testModule = module {
 			single { projectSynchronizer }
 		}
 		setupKoin(testModule)

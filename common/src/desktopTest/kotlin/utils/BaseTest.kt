@@ -10,7 +10,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -50,6 +49,8 @@ open class BaseTest : KoinTest {
 
 	fun setupKoin(vararg modules: Module) {
 		val scheduler = scope.testScheduler
+
+		GlobalContext.stopKoin()
 		GlobalContext.startKoin {
 			modules(
 				module {
@@ -75,11 +76,11 @@ open class BaseTest : KoinTest {
 		defaultTestDispatcher = get<CoroutineContext>(named(DISPATCHER_DEFAULT)) as TestDispatcher
 	}
 
-	fun runKoinTest(vararg modules: Module, block: suspend TestScope.() -> Unit) {
-		setupKoin(*modules)
-		runTest {
-			block()
-			GlobalContext.stopKoin()
-		}
-	}
+//	fun runKoinTest(vararg modules: Module, block: suspend TestScope.() -> Unit) {
+//		setupKoin(*modules)
+//		runTest {
+//			block()
+//			GlobalContext.stopKoin()
+//		}
+//	}
 }

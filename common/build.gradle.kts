@@ -131,6 +131,7 @@ kotlin {
 				implementation(libs.coroutines.test)
 				implementation(libs.mockk)
 				implementation(libs.koin.test)
+				implementation(libs.koin.test.junit5)
 			}
 		}
 	}
