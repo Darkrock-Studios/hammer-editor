@@ -8,27 +8,30 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import io.github.aakira.napier.Napier
+import korlibs.io.async.asyncImmediately
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import okio.Closeable
+import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
 class TimeLineRepository(
 	private val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val datasource: TimeLineDatasource,
-) : Closeable, ProjectScoped {
+) : ProjectScoped, ScopeCallback {
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val dispatcherDefault: CoroutineContext by injectDefaultDispatcher()
+	private val dispatcherIo: CoroutineContext by injectIoDispatcher()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	private val _timelineFlow = MutableSharedFlow<TimeLineContainer>(
@@ -39,6 +42,9 @@ class TimeLineRepository(
 	val timelineFlow: SharedFlow<TimeLineContainer> = _timelineFlow
 
 	fun initialize(): TimeLineRepository {
+
+		projectScope.scope.registerCallback(this)
+
 		scope.launch {
 			val timeline = loadTimeline()
 			_timelineFlow.emit(timeline)
@@ -172,14 +178,6 @@ class TimeLineRepository(
 		storeAndEmitTimeline(updatedTimeline)
 	}
 
-	override fun close() {
-		runBlocking {
-			datasource.storeTimeline(timelineFlow.first(), projectDef)
-		}
-
-		scope.cancel()
-	}
-
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		val originalTimeline = timelineFlow.first()
 
@@ -268,5 +266,17 @@ class TimeLineRepository(
 		_timelineFlow.emit(updatedTimeline)
 
 		return updatedTimeline
+	}
+
+	override fun onScopeClose(scope: Scope) {
+		_timelineFlow.replayCache.firstOrNull()?.let { timeLineContainer ->
+			// This is whack. It's here to fix hanging tests,
+			// it seems very picky about being the same same context
+			runBlocking {
+				asyncImmediately(dispatcherIo) {
+					datasource.storeTimeline(timeLineContainer, projectDef)
+				}.await()
+			}
+		}
 	}
 }

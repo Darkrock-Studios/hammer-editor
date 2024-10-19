@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -37,8 +39,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okio.Closeable
 import org.koin.core.component.KoinComponent
+import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeCallback
 import kotlin.time.Duration.Companion.milliseconds
 
 abstract class SceneEditorRepository(
@@ -47,7 +50,13 @@ abstract class SceneEditorRepository(
 	protected val projectSynchronizer: ClientProjectSynchronizer,
 	protected val metadataRepository: ProjectMetadataDatasource,
 	protected val metadataDatasource: SceneMetadataDatasource,
-) : Closeable, KoinComponent {
+) : ScopeCallback, ProjectScoped, KoinComponent {
+
+	final override val projectScope = ProjectDefScope(projectDef)
+
+	init {
+		projectScope.scope.registerCallback(this)
+	}
 
 	val rootScene = SceneItem(
 		projectDef = projectDef,
@@ -456,7 +465,7 @@ abstract class SceneEditorRepository(
 
 	abstract fun getHpath(sceneItem: SceneItem): HPath
 
-	override fun close() {
+	override fun onScopeClose(scope: Scope) {
 		contentUpdateJob?.cancel("Editor Closed")
 		runBlocking {
 			storeTempJobs.forEach { it.value.join() }

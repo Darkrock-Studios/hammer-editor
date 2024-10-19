@@ -2,9 +2,8 @@ package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenem
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import okio.Closeable
 
-interface SceneMetadataDatasource : Closeable {
+interface SceneMetadataDatasource {
 	val projectDef: ProjectDef
 
 	suspend fun loadMetadata(sceneId: Int): SceneMetadata?

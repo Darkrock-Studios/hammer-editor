@@ -50,6 +50,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
+	lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
 	override fun setup() {
@@ -67,13 +68,12 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		globalSettingsFlow = mockk()
 		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
 
-		datasource = TimeLineDatasource(ffs, toml)
 		projectSynchronizer = mockk()
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		lifecycleCallbacks = mutableListOf()
 
-		val testModule = module {
+		testModule = module {
 			single { idRepo } bind IdRepository::class
 			single { globalSettingsRepo }
 			single { projectSynchronizer }
@@ -110,6 +110,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	): TimeLineRepository {
 		writeEventsToDisk(projectDef, startingEvents, ffs, toml)
 
+		datasource = TimeLineDatasource(ffs, toml)
 		val repo = TimeLineRepository(
 			projectDef = projectDef,
 			datasource = datasource,

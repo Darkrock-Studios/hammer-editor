@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -61,15 +60,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
-
-	val sceneEditorRepository: SceneEditorRepository = projectScope.get { parametersOf(projectDef) }
-	val notesRepository: NotesRepository = projectScope.get { parametersOf(projectDef) }
-	val timeLineRepository: TimeLineRepository = projectScope.get { parametersOf(projectDef) }
-
-	sceneEditorRepository.close()
-	notesRepository.close()
 	projectScope.close()
-	timeLineRepository.close()
 }
 
 private inline fun <reified T : Any> Koin.getOrCreateScope(scopeId: ScopeID, source: Any? = null): Scope {

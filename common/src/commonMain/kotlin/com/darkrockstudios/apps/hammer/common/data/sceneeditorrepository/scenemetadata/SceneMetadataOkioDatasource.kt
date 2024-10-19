@@ -6,21 +6,15 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource.Companion.DIRECTORY
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
-import kotlin.coroutines.CoroutineContext
 
 class SceneMetadataOkioDatasource(
 	private val fileSystem: FileSystem,
@@ -29,9 +23,7 @@ class SceneMetadataOkioDatasource(
 ) : SceneMetadataDatasource, ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
-	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
-	private val metadataScope = CoroutineScope(dispatcherDefault)
+	private val dispatcherIo by injectIoDispatcher()
 
 	override suspend fun loadMetadata(sceneId: Int): SceneMetadata? = withContext(dispatcherIo) {
 		val file = getMetadataPath(sceneId).toOkioPath()
@@ -64,10 +56,6 @@ class SceneMetadataOkioDatasource(
 			Napier.i("Re-ID of Scene Metadata. Old ID: $oldId New ID: $newId")
 			fileSystem.atomicMove(oldPath, newPath)
 		}
-	}
-
-	override fun close() {
-		metadataScope.cancel("Closing SceneMetadataOkioDatasource")
 	}
 
 	companion object {

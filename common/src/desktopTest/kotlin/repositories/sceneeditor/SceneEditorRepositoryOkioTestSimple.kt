@@ -184,7 +184,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 
 		assertEquals(projectMetadata, metadata)
 
-		repo.close()
+		repo.onScopeClose(mockk())
 	}
 
 	companion object {

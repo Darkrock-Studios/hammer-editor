@@ -6,8 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -16,16 +16,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import okio.Closeable
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
 abstract class NotesRepository(
 	protected val projectDef: ProjectDef,
 	protected val idRepository: IdRepository,
 	protected val projectSynchronizer: ClientProjectSynchronizer
-) : Closeable, ProjectScoped {
+) : ScopeCallback, ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
@@ -92,7 +93,7 @@ abstract class NotesRepository(
 
 	abstract suspend fun getNoteFromId(id: Int): NoteContainer?
 
-	override fun close() {
+	override fun onScopeClose(scope: Scope) {
 		notesScope.cancel("Closing NotesRepository")
 	}
 

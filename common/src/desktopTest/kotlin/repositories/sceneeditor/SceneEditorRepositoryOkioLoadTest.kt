@@ -83,7 +83,7 @@ class SceneEditorRepositoryOkioLoadTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
-		repo.close()
+		repo.onScopeClose(mockk())
 
 		ffs.checkNoOpenFiles()
 	}

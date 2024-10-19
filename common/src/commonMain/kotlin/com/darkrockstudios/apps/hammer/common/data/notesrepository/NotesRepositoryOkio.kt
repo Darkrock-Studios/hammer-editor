@@ -26,6 +26,7 @@ class NotesRepositoryOkio(
 ) : NotesRepository(projectDef, idRepository, projectSynchronizer) {
 
 	init {
+		projectScope.scope.registerCallback(this)
 		loadNotes()
 	}
 

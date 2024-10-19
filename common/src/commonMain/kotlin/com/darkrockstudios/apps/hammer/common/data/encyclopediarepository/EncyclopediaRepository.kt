@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -8,22 +9,31 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import okio.Closeable
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
 abstract class EncyclopediaRepository(
 	protected val projectDef: ProjectDef,
 	protected val idRepository: IdRepository
-) : Closeable, KoinComponent {
+) : ScopeCallback, ProjectScoped, KoinComponent {
+
+	final override val projectScope = ProjectDefScope(projectDef)
+
+	init {
+		projectScope.scope.registerCallback(this)
+	}
+
 	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	protected val scope = CoroutineScope(dispatcherDefault)
 
@@ -81,8 +91,8 @@ abstract class EncyclopediaRepository(
 
 	protected abstract suspend fun markForSynchronization(entryDef: EntryDef)
 
-	override fun close() {
-		scope.cancel("Closing EncyclopediaRepository")
+	override fun onScopeClose(scope: Scope) {
+		this.scope.cancel("Closing EncyclopediaRepository")
 	}
 
 	abstract suspend fun deleteEntry(entryDef: EntryDef): Boolean
