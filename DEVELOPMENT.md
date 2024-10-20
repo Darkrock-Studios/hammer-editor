@@ -82,7 +82,8 @@ flowchart TD
 
 ### Client Architecture
 
-![Client Architecture Layers](readme/client-architecture-layers.png)
+Please check out the Architecture doc for a deeper dive into
+the [Client Architecture](docs/ARCHITECTURE.md#client-architecture)
 
 ### Coroutines
 

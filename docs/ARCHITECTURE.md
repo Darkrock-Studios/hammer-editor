@@ -6,6 +6,37 @@ This is all a work in progress, so how strictly this is adhered to is in flux.
 
 ## Client Architecture
 
+The architecture broadly breaks down into two categories, `common` code that compiles and runs on
+all supported platforms, and `platform specific` which much be implemented for each of the client
+platforms.
+
+The majority code code falls under `common` with only the UI layers and some glue code having to be
+reimplemented per platform.
+
+```mermaid
+flowchart TD
+    subgraph Common
+        direction TB
+        Data_Repositories[Data Repositories]
+        Application_Components[Application Components]
+    end
+
+    subgraph Platform_Specific
+        direction TB
+        User_Interface[User Interface]
+    end
+
+    Data_Repositories --> Application_Components
+    Application_Components --> User_Interface
+
+    %% Styling for grouping and border thickness
+    classDef commonGroup fill:none,stroke:#00ff00,stroke-width:2px;
+    classDef platformSpecificGroup fill:none,stroke:#f8961e,stroke-width:2px;
+
+    class Common commonGroup;
+    class Platform_Specific platformSpecificGroup;
+```
+
 ```mermaid
 flowchart TD
     UI["fa:fa-desktop UI Layer"]
