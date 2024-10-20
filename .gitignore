@@ -47,6 +47,9 @@ bin/
 wix311/
 /android/release/android-release.aab
 
+# Test
+/htmlReport
+
 # Fastlane
 play_config.json
 fastlane/report.xml
