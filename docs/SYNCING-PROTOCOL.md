@@ -58,7 +58,88 @@ level directories on the client
 
 ## Account Sync Protocol
 
-_TODO: Document_
+Before any project level syncing is done, we must first do an Account level sync.
+
+This will handle creating, deleting, and renaming projects, to bring the client and server into
+parity with each other.
+Additionally, it will find or create a `projectId` for the client's local projects. These are the
+key to being able to sync a local project with the server.
+
+Any given user account may only have one sync in progress at a time. Attempting to start a sync when
+one is already in progress will result in a failure to begin the sync.
+
+```mermaid
+sequenceDiagram
+	participant Client as Client
+	participant Server as Server
+
+	rect rgb(1, 59, 15)
+		Client ->> Server: GET /projects/{userId}/begin_sync
+		activate Server
+		Note right of Client: userId<br>bearer token
+		Server -->> Client: 200 OK (Sync Began)
+		deactivate Server
+		activate Client
+		Note left of Server: syncId<br>projects<br>deletedProjects
+		alt Sync already in progress
+			Server -x Client: 400 Bad Request (sync ends here)
+		end
+	end
+	rect rgb(11, 0, 74)
+		loop Rename Projects
+			Client ->> Server: GET /api/projects/{userId}/rename
+			deactivate Client
+			activate Server
+			Note right of Client: syncId <br> projectId <br> projectName
+			Server -->> Client: 200 OK (Rename successful)
+			deactivate Server
+			activate Client
+			alt Rename fails
+				Server -->> Client: 4XX Bad Request
+			end
+		end
+	end
+
+	rect rgb(74, 0, 9)
+		loop Delete Projects
+			Client ->> Server: GET /api/projects/{userId}/delete (syncId, projectId)
+			deactivate Client
+			activate Server
+			Note right of Client: syncId <br> projectId
+			Server -->> Client: 200 OK (Delete successful)
+			deactivate Server
+			activate Client
+			alt Delete fails
+				Server -->> Client: 4XX Bad Request
+			end
+		end
+	end
+
+	rect rgb(49, 0, 74)
+		loop Create Projects
+			Client ->> Server: GET /api/projects/{userId}/{projectName}/create
+			deactivate Client
+			activate Server
+			Note right of Client: syncId <br> projectName
+			Server -->> Client: 200 OK (projectId)
+			deactivate Server
+			activate Client
+			alt Creation fails
+				Server -->> Client: 4XX Bad Request
+			end
+		end
+	end
+
+	rect rgb(0, 15, 6)
+		Client ->> Server: GET /api/projects/{userId}/end_sync
+		deactivate Client
+		activate Server
+		Note right of Client: syncId
+		Server -x Client: 200 OK (Sync completed)
+		deactivate Server
+	end
+
+```
 
 ## Project Sync Protocol
 
