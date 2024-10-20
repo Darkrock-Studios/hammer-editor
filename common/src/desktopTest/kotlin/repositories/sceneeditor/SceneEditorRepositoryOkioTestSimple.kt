@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -44,6 +45,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 	private lateinit var idRepository: IdRepository
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
+	private lateinit var sceneDatasource: SceneDatasource
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -123,6 +125,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 		every { projectSynchronizer.isServerSynchronized() } returns false
 
 		setupKoin()
+		sceneDatasource = SceneDatasource(projectDef, ffs)
 	}
 
 	@AfterEach
@@ -140,6 +143,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
+			sceneDatasource = sceneDatasource,
 		)
 
 		val expectedFilename = sceneFiles.entries.first().key
@@ -157,6 +161,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
+			sceneDatasource = sceneDatasource,
 		)
 
 		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
@@ -176,6 +181,7 @@ class SceneEditorRepositoryOkioTestSimple : BaseTest() {
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
+			sceneDatasource = sceneDatasource,
 		)
 
 		repo.initializeSceneEditor()

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -290,7 +291,7 @@ class ProjectSyncComponent(
 	private suspend fun onSceneDraftConflict(serverEntity: ApiProjectEntity.SceneDraftEntity) {
 		val local = sceneDraftRepository.getDraftDef(serverEntity.id)
 			?: throw IllegalStateException("Failed to get local note")
-		val localContent = sceneDraftRepository.loadDraftRaw(local)
+		val localContent = sceneDraftRepository.loadDraftContent(local)
 			?: throw IllegalStateException("Failed to load local draft content")
 
 		val localEntity = ApiProjectEntity.SceneDraftEntity(
@@ -378,7 +379,7 @@ class ProjectSyncComponent(
 	}
 
 	private fun validateSceneDraft(resolvedEntity: ApiProjectEntity.SceneDraftEntity): ProjectSync.EntityMergeError.SceneDraftMergeError? {
-		val result = SceneDraftRepository.validDraftName(resolvedEntity.name)
+		val result = SceneDraftsDatasource.validDraftName(resolvedEntity.name)
 		return if (result) {
 			null
 		} else {

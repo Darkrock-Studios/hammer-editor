@@ -43,7 +43,7 @@ class ClientSceneDraftSynchronizer(
 	override suspend fun getEntityHash(id: Int): String? {
 		val draftDef = sceneDraftRepository.getDraftDef(draftId = id)
 		return if (draftDef != null) {
-			val content: String? = sceneDraftRepository.loadDraftRaw(draftDef)
+			val content: String? = sceneDraftRepository.loadDraftContent(draftDef)
 			if (content == null) {
 				Napier.e("Failed to load draft content for draft ${draftDef.id}")
 			}
@@ -62,7 +62,7 @@ class ClientSceneDraftSynchronizer(
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.SceneDraftEntity {
 		val draftDef = sceneDraftRepository.getDraftDef(draftId = id)
 		return if (draftDef != null) {
-			val content: String? = sceneDraftRepository.loadDraftRaw(draftDef)
+			val content: String? = sceneDraftRepository.loadDraftContent(draftDef)
 			if (content == null) {
 				Napier.e("Failed to load draft content for draft ${draftDef.id}")
 			}

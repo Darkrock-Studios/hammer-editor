@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.Cli
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -107,8 +108,10 @@ val mainModule = module {
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
 
+		scopedOf(::SceneDatasource)
 		scopedOf(::SceneEditorRepositoryOkio) bind SceneEditorRepository::class
-		scopedOf(::SceneDraftRepositoryOkio) bind SceneDraftRepository::class
+		scopedOf(::SceneDraftsDatasource)
+		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataOkioDatasource) bind SceneMetadataDatasource::class
 		scopedOf(::IdRepositoryOkio) bind IdRepository::class
 		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class

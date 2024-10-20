@@ -2,45 +2,79 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import kotlinx.datetime.Instant
+import io.github.aakira.napier.Napier
+import kotlinx.datetime.Clock
 
-abstract class SceneDraftRepository(
-	protected val projectDef: ProjectDef,
-	protected val sceneEditorRepository: SceneEditorRepository,
+class SceneDraftRepository(
+	projectDef: ProjectDef,
+	private val sceneEditorRepository: SceneEditorRepository,
+	private val datasource: SceneDraftsDatasource,
+	private val clock: Clock,
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
+	private val idRepository: IdRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
-	abstract fun getDraftsDirectory(): HPath
-	abstract fun getSceneIdsThatHaveDrafts(): List<Int>
-	abstract fun getDraftDef(draftId: Int): DraftDef?
-	abstract fun getSceneDraftsDirectory(sceneId: Int): HPath
-	abstract fun findDrafts(sceneId: Int): List<DraftDef>
+	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
+	fun getSceneIdsThatHaveDrafts(): List<Int> = datasource.getSceneIdsThatHaveDrafts()
+	fun getDraftDef(draftId: Int): DraftDef? = datasource.getDraftDef(draftId)
+	fun findDrafts(sceneId: Int): List<DraftDef> = datasource.findDrafts(sceneId)
+	fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent? =
+		datasource.loadDraft(sceneItem, draftDef)
 
-	abstract suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef?
+	fun loadDraftContent(draftDef: DraftDef): String? = datasource.loadDraftContent(draftDef)
+	suspend fun reIdDraft(oldId: Int, newId: Int) = datasource.reIdDraft(oldId, newId)
+	suspend fun reIdScene(oldId: Int, newId: Int) = datasource.reIdScene(oldId, newId)
+	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef? =
+		datasource.insertSyncDraft(draftEntity)
 
-	abstract fun loadDraft(sceneItem: SceneItem, draftDef: DraftDef): SceneContent?
+	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)
 
-	abstract fun loadDraftRaw(draftDef: DraftDef): String?
+	suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
+		if (!SceneDraftsDatasource.validDraftName(draftName)) {
+			Napier.w { "saveDraft failed, draftName failed validation" }
+			return null
+		}
 
-	abstract fun getDraftPath(draftDef: DraftDef): HPath
-	abstract suspend fun reIdDraft(oldId: Int, newId: Int)
-	abstract suspend fun reIdScene(oldId: Int, newId: Int)
+		val newId = idRepository.claimNextId()
+		val newDraftTimestamp = clock.now()
+		val newDef = DraftDef(
+			id = newId,
+			sceneId = sceneItem.id,
+			draftTimestamp = newDraftTimestamp,
+			draftName = draftName
+		)
 
-	fun getFilename(draftDef: DraftDef): String {
-		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-${draftDef.draftTimestamp.epochSeconds}.md"
+		val existingBuffer = sceneEditorRepository.getSceneBuffer(sceneItem.id)
+		val content: String = if (existingBuffer != null) {
+			Napier.i { "Draft content loaded from memory" }
+			existingBuffer.content.coerceMarkdown()
+		} else {
+			Napier.i { "Draft content loaded from disk" }
+			val loadedBuffer = sceneEditorRepository.loadSceneBuffer(sceneItem)
+			loadedBuffer.content.coerceMarkdown()
+		}
+
+		datasource.storeDraft(newDef, content)
+
+		return newDef
 	}
 
-	abstract fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef?
-	abstract fun deleteDraft(id: Int): Boolean
-	abstract suspend fun getAllDrafts(): Set<DraftDef>
-
+	/**
+	 * Drafts are never edited after creation. Creation marks them to be synced implicitly, then
+	 * after the fact, we should never need to mark them for sync again, so this is unused.
+	 * But I'm leaving it here just in case we need it at some point.
+	 */
 	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {
 			val hash = EntityHasher.hashSceneDraft(
@@ -50,45 +84,6 @@ abstract class SceneDraftRepository(
 				content = originalContent,
 			)
 			projectSynchronizer.markEntityAsDirty(originalDef.id, hash)
-		}
-	}
-
-	companion object {
-		const val DRAFTS_DIR = ".drafts"
-		val DRAFT_FILENAME_PATTERN = Regex("""(\d+)-(\d+)-([\da-zA-Z _']+)-(\d+)\.md""")
-		val DRAFT_NAME_PATTERN = Regex("""[\da-zA-Z _']+""")
-		val MAX_DRAFT_NAME_LENGTH = 128
-
-		fun validDraftName(name: String): Boolean {
-			return name.length <= MAX_DRAFT_NAME_LENGTH && DRAFT_NAME_PATTERN.matches(name)
-		}
-
-		fun validDraftFileName(filename: String): Boolean = DRAFT_FILENAME_PATTERN.matches(filename)
-
-		fun parseDraftFileName(filename: String): DraftDef? {
-			val matches = DRAFT_FILENAME_PATTERN.matchEntire(filename)
-			return if (validDraftFileName(filename) && matches != null) {
-				val sceneId = matches.groups[1]?.value?.toInt()
-				val draftId = matches.groups[2]?.value?.toInt()
-				val draftName = matches.groups[3]?.value
-				val draftTimestamp = matches.groups[4]?.value?.toLong()
-
-				if (draftId == null) error("Failed to parsed draft ID from draft file name")
-				if (sceneId == null) error("Failed to parsed Scene ID from draft file name")
-				if (draftTimestamp == null) error("Failed to parsed draft sequence from draft file name")
-				if (draftName == null) error("Failed to parsed draft name from draft file name")
-
-				val draftCreatedAt = Instant.fromEpochSeconds(draftTimestamp, 0)
-
-				DraftDef(
-					id = draftId,
-					sceneId = sceneId,
-					draftTimestamp = draftCreatedAt,
-					draftName = draftName
-				)
-			} else {
-				null
-			}
 		}
 	}
 }

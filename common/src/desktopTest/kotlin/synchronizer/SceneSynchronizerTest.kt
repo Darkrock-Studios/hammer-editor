@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
@@ -40,7 +40,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private lateinit var sceneEditorRepository: SceneEditorRepositoryOkio
 
 	@MockK
-	private lateinit var draftRepository: SceneDraftRepositoryOkio
+	private lateinit var draftRepository: SceneDraftRepository
 
 	@MockK
 	private lateinit var serverProjectApi: ServerProjectApi

@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource.Companion.DIRECTORY
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -60,7 +60,7 @@ class SceneMetadataOkioDatasource(
 
 	companion object {
 		fun getMetadataDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
-			val sceneDir = SceneEditorRepositoryOkio.getSceneDirectory(projectDef, fileSystem).toOkioPath()
+			val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 			val metadataDirPath = sceneDir.div(DIRECTORY)
 			if (!fileSystem.exists(metadataDirPath)) {
 				fileSystem.createDirectories(metadataDirPath)

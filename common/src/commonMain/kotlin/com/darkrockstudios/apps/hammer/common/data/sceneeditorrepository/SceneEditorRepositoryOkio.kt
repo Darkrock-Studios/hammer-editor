@@ -31,6 +31,7 @@ class SceneEditorRepositoryOkio(
 	projectSynchronizer: ClientProjectSynchronizer,
 	projectMetadataDatasource: ProjectMetadataDatasource,
 	sceneMetadataDatasource: SceneMetadataDatasource,
+	private val sceneDatasource: SceneDatasource,
 	private val fileSystem: FileSystem,
 ) : SceneEditorRepository(
 	projectDef,
@@ -153,7 +154,7 @@ class SceneEditorRepositoryOkio(
 		metadataDatasource.reIdSceneMetadata(oldId, newId)
 	}
 
-	override fun getSceneDirectory() = getSceneDirectory(projectDef, fileSystem)
+	override fun getSceneDirectory() = sceneDatasource.getSceneDirectory()
 
 	override fun getSceneBufferDirectory(): HPath {
 		val projOkPath = projectDef.path.toOkioPath()
@@ -880,17 +881,6 @@ class SceneEditorRepositoryOkio(
 		fileSystem.atomicMove(oldPath, newPath)
 
 		reloadScenes()
-	}
-
-	companion object {
-		fun getSceneDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
-			val projOkPath = projectDef.path.toOkioPath()
-			val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
-			if (!fileSystem.exists(sceneDirPath)) {
-				fileSystem.createDirectories(sceneDirPath)
-			}
-			return sceneDirPath.toHPath()
-		}
 	}
 }
 

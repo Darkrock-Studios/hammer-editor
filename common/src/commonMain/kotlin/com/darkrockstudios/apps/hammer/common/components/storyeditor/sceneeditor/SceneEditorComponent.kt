@@ -11,10 +11,21 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
@@ -312,7 +323,7 @@ class SceneEditorComponent(
 	}
 
 	override suspend fun saveDraft(draftName: String): Boolean {
-		return if (SceneDraftRepository.validDraftName(draftName)) {
+		return if (SceneDraftsDatasource.validDraftName(draftName)) {
 			val draftDef = draftsRepository.saveDraft(
 				sceneDef,
 				draftName
