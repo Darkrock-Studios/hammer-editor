@@ -76,11 +76,11 @@ sequenceDiagram
 	rect rgb(1, 59, 15)
 		Client ->> Server: GET /projects/{userId}/begin_sync
 		activate Server
-		Note right of Client: userId<br>bearer token
+		Note right of Client: bearer token
 		Server -->> Client: 200 OK (Sync Began)
 		deactivate Server
 		activate Client
-		Note left of Server: syncId<br>projects<br>deletedProjects
+		Note left of Server: syncId<br/>projects<br/>deletedProjects
 		alt Sync already in progress
 			Server -x Client: 400 Bad Request (sync ends here)
 		end
@@ -90,7 +90,7 @@ sequenceDiagram
 			Client ->> Server: GET /api/projects/{userId}/rename
 			deactivate Client
 			activate Server
-			Note right of Client: syncId <br> projectId <br> projectName
+			Note right of Client: bearer token <br/> syncId <br/> projectId <br/> projectName
 			Server -->> Client: 200 OK (Rename successful)
 			deactivate Server
 			activate Client
@@ -105,7 +105,7 @@ sequenceDiagram
 			Client ->> Server: GET /api/projects/{userId}/delete (syncId, projectId)
 			deactivate Client
 			activate Server
-			Note right of Client: syncId <br> projectId
+			Note right of Client: bearer token <br/> syncId <br/> projectId
 			Server -->> Client: 200 OK (Delete successful)
 			deactivate Server
 			activate Client
@@ -120,7 +120,7 @@ sequenceDiagram
 			Client ->> Server: GET /api/projects/{userId}/{projectName}/create
 			deactivate Client
 			activate Server
-			Note right of Client: syncId <br> projectName
+			Note right of Client: bearer token <br/> syncId <br/> projectName
 			Server -->> Client: 200 OK (projectId)
 			deactivate Server
 			activate Client
@@ -134,7 +134,7 @@ sequenceDiagram
 		Client ->> Server: GET /api/projects/{userId}/end_sync
 		deactivate Client
 		activate Server
-		Note right of Client: syncId
+		Note right of Client: bearer token <br/> syncId
 		Server -x Client: 200 OK (Sync completed)
 		deactivate Server
 	end
