@@ -6,6 +6,7 @@ This is all a work in progress, so how strictly this is adhered to is in flux.
 
 ## Client Architecture
 
+### Multiplatform Code
 ```mermaid
 flowchart TD
 	subgraph Common
@@ -35,6 +36,7 @@ platforms.
 The majority code code falls under `common` with only the UI layers and some glue code having to be
 reimplemented per platform.
 
+### Architecture Layers
 ```mermaid
 flowchart TD
     UI["fa:fa-desktop UI Layer"]
