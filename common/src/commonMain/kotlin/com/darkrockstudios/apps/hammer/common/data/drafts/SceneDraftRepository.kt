@@ -35,7 +35,7 @@ class SceneDraftRepository(
 	fun loadDraftContent(draftDef: DraftDef): String? = datasource.loadDraftContent(draftDef)
 	suspend fun reIdDraft(oldId: Int, newId: Int) = datasource.reIdDraft(oldId, newId)
 	suspend fun reIdScene(oldId: Int, newId: Int) = datasource.reIdScene(oldId, newId)
-	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef? =
+	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef =
 		datasource.insertSyncDraft(draftEntity)
 
 	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)

@@ -17,21 +17,6 @@ class SceneDraftsDatasource(
 	private val fileSystem: FileSystem,
 	private val sceneDatasource: SceneDatasource
 ) {
-	fun getDraftsDirectory(): HPath {
-		val sceneDir = sceneDatasource.getSceneDirectory().toOkioPath()
-
-		val path: Path = sceneDir / DRAFTS_DIR
-		val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
-		fileSystem.createDirectories(path)
-		return path.toHPath()
-	}
-
-	fun getSceneDraftsDirectory(sceneId: Int): HPath {
-		val draftsDir = getDraftsDirectory().toOkioPath()
-		val sceneDrafts = draftsDir / sceneId.toString()
-		return sceneDrafts.toHPath()
-	}
-
 	fun getDraftPath(draftDef: DraftDef): HPath {
 		val dir = getSceneDraftsDirectory(draftDef.sceneId)
 		val filename = getFilename(draftDef)
@@ -103,7 +88,7 @@ class SceneDraftsDatasource(
 		}
 	}
 
-	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef? {
+	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef {
 		val draftDef = draftEntity.toDraftDef()
 		val path = getDraftPath(draftDef).toOkioPath()
 		val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
@@ -193,9 +178,32 @@ class SceneDraftsDatasource(
 		val newDraftsDir = getSceneDraftsDirectory(newId).toOkioPath()
 
 		fileSystem.atomicMove(draftsDir, newDraftsDir)
+
+		fileSystem.list(newDraftsDir).forEach { path: Path ->
+			parseDraftFileName(path.name)?.let { draftDef ->
+				val updatedDef = draftDef.copy(sceneId = newId)
+				val newPath = getDraftPath(updatedDef).toOkioPath()
+				fileSystem.atomicMove(path, newPath)
+			}
+		}
 	}
 
-	fun getFilename(draftDef: DraftDef): String {
+	private fun getDraftsDirectory(): HPath {
+		val sceneDir = sceneDatasource.getSceneDirectory().toOkioPath()
+
+		val path: Path = sceneDir / DRAFTS_DIR
+		val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
+		fileSystem.createDirectories(path)
+		return path.toHPath()
+	}
+
+	private fun getSceneDraftsDirectory(sceneId: Int): HPath {
+		val draftsDir = getDraftsDirectory().toOkioPath()
+		val sceneDrafts = draftsDir / sceneId.toString()
+		return sceneDrafts.toHPath()
+	}
+
+	private fun getFilename(draftDef: DraftDef): String {
 		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-${draftDef.draftTimestamp.epochSeconds}.md"
 	}
 
