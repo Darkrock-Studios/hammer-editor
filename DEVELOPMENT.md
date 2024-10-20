@@ -61,8 +61,22 @@ Useful reference for UI
 testing: [Compose Test Cheatsheet](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/package-summary)
 
 ## Overal Project Structure (modules)
+```mermaid
+flowchart TD
+	Base(["Base"]) --> Server["Server"] & Common(["Common"])
+	Common --> ComposeUI(["ComposeUI"]) & iOS["iOS"]
+	ComposeUI --> Android["Android"] & Desktop["Desktop"]
 
-![Project Modules](readme/modules.png)
+	Server:::serverColor
+	iOS:::iosColor
+	Android:::androidColor
+	Desktop:::desktopColor
+	
+	classDef serverColor fill:#f94144,stroke:#333,stroke-width:2px,color:#FFFFFF;
+	classDef iosColor fill:#f8961e,stroke:#333,stroke-width:2px,color:#FFFFFF;
+	classDef androidColor fill:#90be6d,stroke:#333,stroke-width:2px,color:#FFFFFF;
+	classDef desktopColor fill:#577590,stroke:#333,stroke-width:2px,color:#FFFFFF;
+```
 
 ## Client Development
 
