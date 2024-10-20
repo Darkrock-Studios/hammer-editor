@@ -33,7 +33,7 @@ The architecture broadly breaks down into two categories, `common` code that com
 all supported platforms, and `platform specific` which much be implemented for each of the client
 platforms.
 
-The majority code code falls under `common` with only the UI layers and some glue code having to be
+The majority of code falls under `common` with only the UI layers and some glue code having to be
 reimplemented per platform.
 
 ### Architecture Layers
