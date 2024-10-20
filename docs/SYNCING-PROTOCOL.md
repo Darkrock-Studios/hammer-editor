@@ -102,7 +102,7 @@ sequenceDiagram
 
 	rect rgb(74, 0, 9)
 		loop Delete Projects
-			Client ->> Server: GET /api/projects/{userId}/delete (syncId, projectId)
+			Client ->> Server: GET /api/projects/{userId}/delete
 			deactivate Client
 			activate Server
 			Note right of Client: bearer token <br/> syncId <br/> projectId
