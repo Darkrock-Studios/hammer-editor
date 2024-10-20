@@ -1,4 +1,4 @@
-package repositories
+package repositories.id
 
 import PROJECT_1_NAME
 import PROJECT_EMPTY_NAME

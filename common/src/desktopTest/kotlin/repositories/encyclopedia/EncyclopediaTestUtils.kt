@@ -1,4 +1,4 @@
-package encyclopedia
+package repositories.encyclopedia
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType

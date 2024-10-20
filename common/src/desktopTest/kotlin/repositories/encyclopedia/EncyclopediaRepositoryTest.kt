@@ -1,4 +1,4 @@
-package encyclopedia
+package repositories.encyclopedia
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
 import com.darkrockstudios.apps.hammer.base.http.readToml
