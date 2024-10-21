@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.accountrepository
+package com.darkrockstudios.apps.hammer.common.data.account
 
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -10,7 +10,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import kotlin.uuid.Uuid
 
-class AccountRepository(
+class AccountUseCase(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val accountApi: ServerAccountApi,
 	private val httpClient: HttpClient

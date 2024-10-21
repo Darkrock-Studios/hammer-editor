@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
-import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
+import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -32,7 +32,7 @@ class AccountSettingsComponent(
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
-	private val accountRepository: AccountRepository by inject()
+	private val accountUseCase: AccountUseCase by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 
 	private var serverSetupJob: Job? = null
@@ -142,7 +142,7 @@ class AccountSettingsComponent(
 	}
 
 	override suspend fun authTest(): Boolean {
-		return accountRepository.testAuth()
+		return accountUseCase.testAuth()
 	}
 
 	override fun removeServer() {
@@ -249,7 +249,8 @@ class AccountSettingsComponent(
 					removeLocalContent()
 				}
 
-				val result = accountRepository.setupServer(ssl, cleanUrl, email.trim(), password, create)
+				val result =
+					accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
 				withContext(mainDispatcher) {
 					if (result.isSuccess) {
 						cleanUpServerSetup()
