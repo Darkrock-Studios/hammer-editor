@@ -8,9 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository.Companion.MAX_NOTE_SIZE
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -46,6 +46,7 @@ class NotesRepositoryTest : BaseTest() {
 
 	private lateinit var idRepository: IdRepository
 	private lateinit var clientProjectSynchronizer: ClientProjectSynchronizer
+	private lateinit var datasource: NotesDatasource
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 
@@ -60,7 +61,8 @@ class NotesRepositoryTest : BaseTest() {
 	}
 
 	private fun createRepository(): NotesRepository {
-		return NotesRepositoryOkio(projectDef, idRepository, clientProjectSynchronizer, ffs, toml)
+		datasource = NotesDatasource(projectDef, ffs, toml)
+		return NotesRepository(projectDef, idRepository, clientProjectSynchronizer, datasource)
 	}
 
 	@Test
@@ -102,7 +104,7 @@ class NotesRepositoryTest : BaseTest() {
 		val noteId = 12
 
 		val repo = createRepository()
-		val path = repo.getNotePath(noteId).toOkioPath()
+		val path = datasource.getNotePath(noteId).toOkioPath()
 		assertTrue(ffs.exists(path))
 
 		repo.deleteNote(noteId)
@@ -131,7 +133,7 @@ class NotesRepositoryTest : BaseTest() {
 		)
 
 		val repo = createRepository()
-		val path = repo.getNotePath(noteId).toOkioPath()
+		val path = datasource.getNotePath(noteId).toOkioPath()
 		assertTrue(ffs.exists(path))
 
 		repo.updateNote(noteContainer.note, false)
@@ -159,7 +161,7 @@ class NotesRepositoryTest : BaseTest() {
 		val result = repo.createNote(noteText)
 		assertTrue(isSuccess(result))
 
-		val path = repo.getNotePath(result.data.id).toOkioPath()
+		val path = datasource.getNotePath(result.data.id).toOkioPath()
 		assertTrue(ffs.exists(path))
 
 		repo.notesListFlow.test {
@@ -208,8 +210,8 @@ class NotesRepositoryTest : BaseTest() {
 		val repo = createRepository()
 		advanceUntilIdle()
 
-		val oldPath = repo.getNotePath(14).toOkioPath()
-		val newPath = repo.getNotePath(15).toOkioPath()
+		val oldPath = datasource.getNotePath(14).toOkioPath()
+		val newPath = datasource.getNotePath(15).toOkioPath()
 		assertTrue(ffs.exists(oldPath))
 		assertFalse(ffs.exists(newPath))
 

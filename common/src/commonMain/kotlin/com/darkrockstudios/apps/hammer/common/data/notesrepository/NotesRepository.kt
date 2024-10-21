@@ -8,33 +8,48 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
-abstract class NotesRepository(
-	protected val projectDef: ProjectDef,
-	protected val idRepository: IdRepository,
-	protected val projectSynchronizer: ClientProjectSynchronizer
+class NotesRepository(
+	projectDef: ProjectDef,
+	private val idRepository: IdRepository,
+	private val projectSynchronizer: ClientProjectSynchronizer,
+	private val notesDatasource: NotesDatasource,
 ) : ScopeCallback, ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
-	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	protected val notesScope = CoroutineScope(dispatcherDefault)
+	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	private val notesScope = CoroutineScope(dispatcherDefault)
 
 	private var _notes = mutableListOf<NoteContainer>()
+
+	init {
+		projectScope.scope.registerCallback(this)
+		loadNotes()
+	}
+
+	fun loadNotes(onLoaded: (() -> Unit)? = null) {
+		notesScope.launch {
+			val notes = notesDatasource.loadNotes()
+			updateNotes(notes)
+			onLoaded?.invoke()
+		}
+	}
 
 	/**
 	 * `notesListFlow` should be used instead of this property.
@@ -52,12 +67,12 @@ abstract class NotesRepository(
 	)
 	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
 
-	protected suspend fun updateNotes(notes: List<NoteContainer>) {
+	private suspend fun updateNotes(notes: List<NoteContainer>) {
 		_notes = notes.toMutableList()
 		_notesListFlow.emit(notes)
 	}
 
-	protected suspend fun markForSync(id: Int, originalHash: String? = null) {
+	private suspend fun markForSync(id: Int, originalHash: String? = null) {
 		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(id)) {
 			val hash = if (originalHash != null) {
 				originalHash
@@ -73,13 +88,55 @@ abstract class NotesRepository(
 		}
 	}
 
-	abstract fun getNotesDirectory(): HPath
-	abstract fun getNotePath(id: Int): HPath
-	abstract fun loadNotes(onLoaded: (() -> Unit)? = null)
-	abstract suspend fun createNote(noteText: String): CResult<NoteContent>
-	abstract suspend fun deleteNote(id: Int)
-	abstract suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
-	abstract suspend fun reIdNote(oldId: Int, newId: Int)
+	suspend fun createNote(noteText: String): CResult<NoteContent> {
+		val result = validateNote(noteText)
+		return if (result != NoteError.NONE) {
+			CResult.failure(InvalidNote(result))
+		} else {
+			val newId = idRepository.claimNextId()
+			val newNote = NoteContainer(
+				NoteContent(
+					id = newId,
+					created = Clock.System.now(),
+					content = noteText
+				)
+			)
+
+			notesDatasource.storeNote(newNote)
+
+			markForSync(
+				id = newId,
+				originalHash = ""
+			)
+
+			CResult.success(newNote.note)
+		}
+	}
+
+	suspend fun deleteNote(id: Int) {
+		notesDatasource.deleteNote(id)
+		projectSynchronizer.recordIdDeletion(id)
+	}
+
+	suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true) {
+		notesDatasource.updateNote(noteContent)
+
+		if (markForSync) {
+			markForSync(id = noteContent.id)
+		}
+	}
+
+	suspend fun reIdNote(oldId: Int, newId: Int) {
+		val newNote = notesDatasource.reIdNote(oldId, newId)
+
+		// Update the in-memory notes list
+		val oldNote = getNoteById(oldId)
+		val updatedNotes = getNotes().toMutableList()
+		updatedNotes.indexOf(oldNote).let { index ->
+			updatedNotes[index] = NoteContainer(newNote)
+		}
+		updateNotes(updatedNotes)
+	}
 
 	fun validateNote(noteText: String): NoteError {
 		val trimmed = noteText.trim()
@@ -92,38 +149,15 @@ abstract class NotesRepository(
 		}
 	}
 
-	abstract suspend fun getNoteById(id: Int): NoteContainer?
+	suspend fun getNoteById(id: Int): NoteContainer? {
+		return notesListFlow.first().find { it.note.id == id }
+	}
 
 	override fun onScopeClose(scope: Scope) {
 		notesScope.cancel("Closing NotesRepository")
 	}
 
 	companion object {
-		val NOTE_FILENAME_PATTERN = Regex("""note-(\d+)\.toml""")
-		const val NOTES_FILENAME_EXTENSION = ".toml"
-		const val NOTES_DIRECTORY = "notes"
 		const val MAX_NOTE_SIZE = 10000
-
-		fun getNoteFilenameFromId(id: Int): String {
-			return "note-$id.toml"
-		}
-
-		fun getNoteIdFromFilename(fileName: String): Int {
-			val captures = NOTE_FILENAME_PATTERN.matchEntire(fileName)
-				?: throw IllegalStateException("Note filename was bad: $fileName")
-			try {
-				val sceneId = captures.groupValues[1].toInt()
-				return sceneId
-			} catch (e: NumberFormatException) {
-				throw InvalidSceneFilename("Number format exception", fileName)
-			} catch (e: IllegalStateException) {
-				throw InvalidSceneFilename("Invalid filename", fileName)
-			}
-		}
 	}
 }
-
-
-fun Sequence<HPath>.filterNotesPaths() = filter {
-	!it.name.startsWith(".") && NotesRepository.NOTE_FILENAME_PATTERN.matches(it.name)
-}.sortedBy { it.name }

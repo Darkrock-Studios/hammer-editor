@@ -15,8 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.createProjectBackup
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -114,7 +114,8 @@ val mainModule = module {
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataOkioDatasource) bind SceneMetadataDatasource::class
 		scopedOf(::IdRepositoryOkio) bind IdRepository::class
-		scopedOf(::NotesRepositoryOkio) bind NotesRepository::class
+		scopedOf(::NotesDatasource)
+		scopedOf(::NotesRepository)
 		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
 		scopedOf(::TimeLineDatasource)
 		scopedOf(::TimeLineRepository)
