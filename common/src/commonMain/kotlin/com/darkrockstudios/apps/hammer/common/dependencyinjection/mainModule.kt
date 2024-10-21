@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.accountrepository.AccountRepository
+import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -50,6 +50,7 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
@@ -85,7 +86,7 @@ val mainModule = module {
 	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-	singleOf(::AccountRepository)
+	factoryOf(::AccountUseCase)
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class
 
