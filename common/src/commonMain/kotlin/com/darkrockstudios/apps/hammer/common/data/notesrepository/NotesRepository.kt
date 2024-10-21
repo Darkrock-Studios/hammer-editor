@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -75,7 +76,7 @@ abstract class NotesRepository(
 	abstract fun getNotesDirectory(): HPath
 	abstract fun getNotePath(id: Int): HPath
 	abstract fun loadNotes(onLoaded: (() -> Unit)? = null)
-	abstract suspend fun createNote(noteText: String): NoteError
+	abstract suspend fun createNote(noteText: String): CResult<NoteContent>
 	abstract suspend fun deleteNote(id: Int)
 	abstract suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true)
 	abstract suspend fun reIdNote(oldId: Int, newId: Int)
@@ -91,7 +92,7 @@ abstract class NotesRepository(
 		}
 	}
 
-	abstract suspend fun getNoteFromId(id: Int): NoteContainer?
+	abstract suspend fun getNoteById(id: Int): NoteContainer?
 
 	override fun onScopeClose(scope: Scope) {
 		notesScope.cancel("Closing NotesRepository")

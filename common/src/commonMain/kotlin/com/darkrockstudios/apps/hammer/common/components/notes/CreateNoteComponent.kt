@@ -8,6 +8,8 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -52,12 +54,13 @@ class CreateNoteComponent(
 
 	override suspend fun createNote(noteText: String): NoteError {
 		val result = notesRepository.createNote(noteText)
-		if (result.isSuccess) {
+		return if (isSuccess(result)) {
 			dismissCreate()
 			notesRepository.loadNotes()
+			NoteError.NONE
+		} else {
+			(result.exception as InvalidNote).error
 		}
-
-		return result
 	}
 
 	override fun confirmDiscard() {

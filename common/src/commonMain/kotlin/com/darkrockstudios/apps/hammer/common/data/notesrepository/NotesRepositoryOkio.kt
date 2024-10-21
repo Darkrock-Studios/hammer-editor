@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
@@ -32,11 +33,7 @@ class NotesRepositoryOkio(
 
 	override fun getNotesDirectory() = getNotesDirectory(projectDef, fileSystem)
 
-	override fun getNotePath(id: Int): HPath {
-		val dir = getNotesDirectory().toOkioPath()
-		val path = dir / getNoteFilenameFromId(id)
-		return path.toHPath()
-	}
+	override fun getNotePath(id: Int): HPath = getNotePath(id, projectDef, fileSystem)
 
 	override fun loadNotes(onLoaded: (() -> Unit)?) {
 		notesScope.launch {
@@ -51,10 +48,10 @@ class NotesRepositoryOkio(
 		}
 	}
 
-	override suspend fun createNote(noteText: String): NoteError {
+	override suspend fun createNote(noteText: String): CResult<NoteContent> {
 		val result = validateNote(noteText)
 		return if (result != NoteError.NONE) {
-			result
+			CResult.failure(InvalidNote(result))
 		} else {
 			val newId = idRepository.claimNextId()
 			val newNote = NoteContainer(
@@ -76,7 +73,7 @@ class NotesRepositoryOkio(
 				""
 			)
 
-			NoteError.NONE
+			CResult.success(newNote.note)
 		}
 	}
 
@@ -130,11 +127,18 @@ class NotesRepositoryOkio(
 		updateNotes(updatedNotes)
 	}
 
-	override suspend fun getNoteFromId(id: Int): NoteContainer? {
+	override suspend fun getNoteById(id: Int): NoteContainer? {
 		return notesListFlow.first().find { it.note.id == id }
 	}
 
 	companion object {
+
+		fun getNotePath(id: Int, projectDef: ProjectDef, fileSystem: FileSystem): HPath {
+			val dir = getNotesDirectory(projectDef, fileSystem).toOkioPath()
+			val path = dir / getNoteFilenameFromId(id)
+			return path.toHPath()
+		}
+
 		fun getNotesDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
 			val projOkPath = projectDef.path.toOkioPath()
 			val sceneDirPath = projOkPath.div(NOTES_DIRECTORY)

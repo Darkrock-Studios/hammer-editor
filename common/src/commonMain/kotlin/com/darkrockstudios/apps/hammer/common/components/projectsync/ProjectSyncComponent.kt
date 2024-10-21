@@ -209,7 +209,7 @@ class ProjectSyncComponent(
 	}
 
 	private suspend fun onNoteConflict(serverEntity: ApiProjectEntity.NoteEntity) {
-		val local = notesRepository.getNoteFromId(serverEntity.id)?.note
+		val local = notesRepository.getNoteById(serverEntity.id)?.note
 			?: throw IllegalStateException("Failed to get local note")
 
 		val localEntity = ApiProjectEntity.NoteEntity(

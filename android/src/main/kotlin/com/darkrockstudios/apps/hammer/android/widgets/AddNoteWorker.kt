@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.darkrockstudios.apps.hammer.android.isInternetConnected
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
@@ -46,7 +46,7 @@ class AddNoteWorker(
 
 				Napier.d { "Note create in proj: ${projectDef.name} result: $result" }
 
-				if (result == NoteError.NONE && isInternetConnected(context)) {
+				if (isSuccess(result) && isInternetConnected(context)) {
 					val synchronizer: ClientProjectSynchronizer = projectScope.get()
 					if (synchronizer.isServerSynchronized()) {
 						val success = synchronizer.sync(

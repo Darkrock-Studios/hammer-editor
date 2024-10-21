@@ -55,7 +55,7 @@ class ClientNoteSynchronizer(
 	}
 
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.NoteEntity {
-		val note = notesRepository.getNoteFromId(id)?.note
+		val note = notesRepository.getNoteById(id)?.note
 			?: throw IllegalStateException("Note $id not found")
 		return ApiProjectEntity.NoteEntity(
 			id = id,
