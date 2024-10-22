@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -252,7 +253,7 @@ class AccountSettingsComponent(
 				val result =
 					accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
 				withContext(mainDispatcher) {
-					if (result.isSuccess) {
+					if (isSuccess(result)) {
 						cleanUpServerSetup()
 						_state.getAndUpdate {
 							it.copy(
@@ -262,7 +263,7 @@ class AccountSettingsComponent(
 						}
 						showToast(MR.strings.settings_server_setup_toast_success)
 					} else {
-						val message = result.exceptionOrNull()?.message
+						val message = result.displayMessage?.text(strRes)
 							?: strRes.get(MR.strings.settings_server_setup_toast_failure_unknown)
 						_state.getAndUpdate {
 							it.copy(
