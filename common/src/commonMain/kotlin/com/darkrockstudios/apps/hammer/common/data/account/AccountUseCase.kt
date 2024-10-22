@@ -15,7 +15,7 @@ class AccountUseCase(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val accountApi: ServerAccountApi,
 	private val httpClient: HttpClient,
-	private val generateUuid: () -> String = { Uuid.random().toString() }
+	private val generateUuid: () -> String = { Uuid.random().toString() },
 ) {
 	suspend fun setupServer(
 		ssl: Boolean,

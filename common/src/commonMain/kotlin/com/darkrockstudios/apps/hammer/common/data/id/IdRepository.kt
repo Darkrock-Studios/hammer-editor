@@ -2,19 +2,31 @@ package com.darkrockstudios.apps.hammer.common.data.id
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.handler.IdHandler
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.IdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
+import org.koin.core.component.get
 import kotlin.math.max
 
-abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
+class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
-	protected abstract val idHandlers: List<IdHandler>
+	private val idDatasources: List<IdDatasource> = listOf(
+		get<SceneIdDatasource>(),
+		get<NotesIdDatasource>(),
+		get<EncyclopediaIdDatasource>(),
+		get<TimeLineEventIdDatasource>(),
+		get<SceneDraftIdDatasource>(),
+	)
 	private val mutex = reentrantLock()
 
 	private var nextId: Int = -1
@@ -26,7 +38,7 @@ abstract class IdRepository(private val projectDef: ProjectDef) : ProjectScoped 
 		mutex.withLock {
 			var lastId = -1
 
-			idHandlers.forEach { handler ->
+			idDatasources.forEach { handler ->
 				val highestId = handler.findHighestId(projectDef)
 				lastId = max(lastId, highestId)
 			}

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.id.handler
+package com.darkrockstudios.apps.hammer.common.data.id.datasources
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -7,9 +7,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterS
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
 
-class SceneIdHandlerOkio(
+class SceneIdDatasource(
 	private val fileSystem: FileSystem
-) : IdHandler {
+) : IdDatasource {
 	override fun findHighestId(projectDef: ProjectDef): Int {
 		val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 

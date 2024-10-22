@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.id.handler
+package com.darkrockstudios.apps.hammer.common.data.id.datasources
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
@@ -6,9 +6,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.filterNotePat
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
 
-class NotesIdHandlerOkio(
+class NotesIdDatasource(
 	private val fileSystem: FileSystem
-) : IdHandler {
+) : IdDatasource {
 	override fun findHighestId(projectDef: ProjectDef): Int {
 		val notesDir = NotesDatasource.getNotesDirectory(projectDef, fileSystem).toOkioPath()
 
