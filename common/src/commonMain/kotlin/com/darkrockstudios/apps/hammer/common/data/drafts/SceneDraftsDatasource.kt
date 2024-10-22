@@ -188,7 +188,7 @@ class SceneDraftsDatasource(
 		}
 	}
 
-	private fun getDraftsDirectory(): HPath {
+	fun getDraftsDirectory(): HPath {
 		val sceneDir = sceneDatasource.getSceneDirectory().toOkioPath()
 
 		val path: Path = sceneDir / DRAFTS_DIR

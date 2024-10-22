@@ -14,7 +14,11 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -86,7 +90,7 @@ val mainModule = module {
 	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-	factoryOf(::AccountUseCase)
+	factory { AccountUseCase(get(), get(), get()) }
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class
 
@@ -114,7 +118,14 @@ val mainModule = module {
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataOkioDatasource) bind SceneMetadataDatasource::class
-		scopedOf(::IdRepositoryOkio) bind IdRepository::class
+
+		factoryOf(::SceneIdDatasource)
+		factoryOf(::NotesIdDatasource)
+		factoryOf(::EncyclopediaIdDatasource)
+		factoryOf(::TimeLineEventIdDatasource)
+		factoryOf(::SceneDraftIdDatasource)
+
+		scopedOf(::IdRepository)
 		scopedOf(::NotesDatasource)
 		scopedOf(::NotesRepository)
 		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class

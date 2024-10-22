@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.id.handler
+package com.darkrockstudios.apps.hammer.common.data.id.datasources
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -7,9 +7,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.filter
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
 
-class EncyclopediaIdHandlerOkio(
+class EncyclopediaIdDatasource(
 	private val fileSystem: FileSystem
-) : IdHandler {
+) : IdDatasource {
 	override fun findHighestId(projectDef: ProjectDef): Int {
 		val dir = EncyclopediaRepositoryOkio.getEncyclopediaDirectory(projectDef, fileSystem).toOkioPath()
 

@@ -1,0 +1,9 @@
+[entry]
+id = 19
+name = "Entry 19"
+type = "EVENT"
+text = """
+Encyclopedia Event Entry ID 19"""
+tags = [
+	"tag1"
+]
