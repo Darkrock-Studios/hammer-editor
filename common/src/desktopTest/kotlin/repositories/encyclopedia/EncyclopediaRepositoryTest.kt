@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -16,22 +17,27 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
 import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class EncyclopediaRepositoryTest : BaseTest() {
 
-	val projDef = getProjectDef(ENCYCLOPEDIA_ONLY_PROJECT_NAME)
+	private val projDef = getProjectDef(ENCYCLOPEDIA_ONLY_PROJECT_NAME)
 
 	@MockK
 	lateinit var idRepository: IdRepository
@@ -42,7 +48,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 
-	lateinit var fileSystem: FakeFileSystem
+	private lateinit var fileSystem: FakeFileSystem
 	lateinit var toml: Toml
 
 	@BeforeEach
@@ -51,15 +57,23 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
-		val testModule = module {
-			//single { encyclopediaRepository } bind EncyclopediaRepository::class
-		}
-		setupKoin(testModule)
+		setupKoin()
 
 		every { projectSynchronizer.isServerSynchronized() } returns false
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
+	}
+
+	private fun createRepository(): EncyclopediaRepositoryOkio {
+		return EncyclopediaRepositoryOkio(
+			projectDef = projDef,
+			idRepository = idRepository,
+			toml = toml,
+			fileSystem = fileSystem,
+			externalFileIo = externalFileIo,
+			projectSynchronizer = projectSynchronizer,
+		)
 	}
 
 	@Test
@@ -72,14 +86,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			name = newValidName
 		)
 
-		val repo = EncyclopediaRepositoryOkio(
-			projectDef = projDef,
-			idRepository = idRepository,
-			toml = toml,
-			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
-			projectSynchronizer = projectSynchronizer,
-		)
+		val repo = createRepository()
 
 		val result = repo.updateEntry(
 			oldEntryDef = origDef,
@@ -104,14 +111,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val oldEntry = entry1()
 		val origDef = oldEntry.toDef(projDef)
 
-		val repo = EncyclopediaRepositoryOkio(
-			projectDef = projDef,
-			idRepository = idRepository,
-			toml = toml,
-			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
-			projectSynchronizer = projectSynchronizer,
-		)
+		val repo = createRepository()
 
 		/////////////////////
 		// Too long
@@ -157,6 +157,111 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		)
 
 		assertInvalid(EntryError.NAME_TOO_LONG, result, repo, oldEntry, newEntry)
+	}
+
+	@Test
+	fun `Create Entry`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 3
+
+		val container = EntryContainer(
+			entry = EntryContent(
+				id = 3,
+				name = "Entry Name",
+				type = EntryType.PERSON,
+				text = "Entry content",
+				tags = setOf("tag1", "tag2")
+			)
+		)
+
+		val repo = createRepository()
+		val result = repo.createEntry(
+			name = container.entry.name,
+			type = container.entry.type,
+			text = container.entry.text,
+			tags = container.entry.tags,
+			imagePath = null,
+			forceId = null,
+		)
+
+		assertEquals(EntryError.NONE, result.error)
+		assertEquals(container, result.instance)
+
+		val path = repo.getEntryPath(container.entry).toOkioPath()
+		assertTrue(fileSystem.exists(path))
+		val loadedEntry: EntryContainer = fileSystem.readToml(path, toml)
+		assertEquals(container, loadedEntry)
+	}
+
+	@Test
+	fun `Delete Entry`() = runTest {
+		val deletionIdSlot = slot<Int>()
+		coEvery { projectSynchronizer.recordIdDeletion(capture(deletionIdSlot)) } just Runs
+
+		val repo = createRepository()
+		val deleted = repo.deleteEntry(entry1().toDef(projDef))
+		assertTrue(deleted)
+
+		val path = repo.getEntryPath(entry1().toDef(projDef)).toOkioPath()
+		assertFalse(fileSystem.exists(path))
+		assertEquals(entry1().id, deletionIdSlot.captured)
+		coVerify { projectSynchronizer.recordIdDeletion(any()) }
+	}
+
+	@Test
+	fun `Set Entry Image`() = runTest {
+		val repo = createRepository()
+		//repo.setEntryImage(entry1().toDef(projDef), "image.png")
+		// TODO implement image tests at some point
+	}
+
+	@Test
+	fun `Remove Entry Image`() = runTest {
+		val repo = createRepository()
+		// TODO implement image tests at some point
+	}
+
+	@Test
+	fun `Load Entry Image`() = runTest {
+		val repo = createRepository()
+		// TODO implement image tests at some point
+	}
+
+	@Test
+	fun `ReId Entry`() = runTest {
+		val repo = createRepository()
+
+		val path = repo.getEntryPath(entry2().toDef(projDef)).toOkioPath()
+		assertTrue(fileSystem.exists(path))
+
+		repo.reIdEntry(2, 3)
+
+		assertFalse(fileSystem.exists(path))
+
+		val newDef = entry2().copy(id = 3).toDef(projDef)
+		val newPath = repo.getEntryPath(newDef).toOkioPath()
+		assertTrue(fileSystem.exists(newPath))
+	}
+
+	@Test
+	fun `Load Entry`() = runTest {
+		val repo = createRepository()
+		val container = repo.loadEntry(entry1().toDef(projDef))
+
+		assertEquals(entry1(), container.entry)
+	}
+
+	@Test
+	fun `Find Entry`() = runTest {
+		val repo = createRepository()
+		val entryDef = repo.findEntryDef(entry1().id)
+		assertEquals(entry1().toDef(projDef), entryDef)
+	}
+
+	@Test
+	fun `Find Entry that doesn't exist`() = runTest {
+		val repo = createRepository()
+		val entryDef = repo.findEntryDef(7)
+		assertNull(entryDef)
 	}
 
 	private fun assertInvalid(
