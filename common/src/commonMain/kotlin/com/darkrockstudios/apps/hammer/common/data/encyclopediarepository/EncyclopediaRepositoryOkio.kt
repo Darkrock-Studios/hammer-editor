@@ -319,15 +319,16 @@ class EncyclopediaRepositoryOkio(
 	}
 
 	override suspend fun reIdEntry(oldId: Int, newId: Int) {
-		val def = getEntryDef(oldId)
-		if (hasEntryImage(def, DEFAULT_IMAGE_EXT)) {
-			val oldImagePath = getEntryImagePath(def, DEFAULT_IMAGE_EXT).toOkioPath()
-			val newImagePath = getEntryImagePath(def.copy(id = newId), DEFAULT_IMAGE_EXT).toOkioPath()
+		val oldDef = getEntryDef(oldId)
+		val newDef = oldDef.copy(id = newId)
+		if (hasEntryImage(oldDef, DEFAULT_IMAGE_EXT)) {
+			val oldImagePath = getEntryImagePath(oldDef, DEFAULT_IMAGE_EXT).toOkioPath()
+			val newImagePath = getEntryImagePath(newDef, DEFAULT_IMAGE_EXT).toOkioPath()
 			fileSystem.atomicMove(oldImagePath, newImagePath)
 		}
 
-		val oldPath = getEntryPath(oldId).toOkioPath()
-		val newPath = getEntryPath(newId).toOkioPath()
+		val oldPath = getEntryPath(oldDef).toOkioPath()
+		val newPath = getEntryPath(newDef).toOkioPath()
 		fileSystem.atomicMove(oldPath, newPath)
 
 		loadEntriesImperative()

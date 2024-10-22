@@ -18,3 +18,11 @@ fun entry1() = EntryContent(
 	text = "This is a person entry",
 	tags = setOf("tag1", "tag2")
 )
+
+fun entry2() = EntryContent(
+	id = 2,
+	type = EntryType.PLACE,
+	name = "Entry 2",
+	text = "This is a place entry",
+	tags = setOf("tag1")
+)
