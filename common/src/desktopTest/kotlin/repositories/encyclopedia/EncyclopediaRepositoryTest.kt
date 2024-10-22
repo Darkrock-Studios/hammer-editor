@@ -2,8 +2,9 @@ package repositories.encyclopedia
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository.Companion.MAX_NAME_SIZE
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
@@ -48,6 +49,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var projectSynchronizer: ClientProjectSynchronizer
 
+	lateinit var datasource: EncyclopediaDatasource
+
 	private lateinit var fileSystem: FakeFileSystem
 	lateinit var toml: Toml
 
@@ -65,13 +68,17 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
 	}
 
-	private fun createRepository(): EncyclopediaRepositoryOkio {
-		return EncyclopediaRepositoryOkio(
+	private fun createRepository(): EncyclopediaRepository {
+		datasource = EncyclopediaDatasource(
 			projectDef = projDef,
-			idRepository = idRepository,
 			toml = toml,
 			fileSystem = fileSystem,
 			externalFileIo = externalFileIo,
+		)
+		return EncyclopediaRepository(
+			projectDef = projDef,
+			idRepository = idRepository,
+			datasource = datasource,
 			projectSynchronizer = projectSynchronizer,
 		)
 	}
@@ -99,7 +106,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertEquals(EntryError.NONE, result.error)
 		assertEquals(newEntry, result.instance?.entry)
 
-		val newPath = repo.getEntryPath(newEntry).toOkioPath()
+		val newPath = datasource.getEntryPath(newEntry).toOkioPath()
 		assertTrue(fileSystem.exists(newPath))
 
 		val writtenEntry: EntryContainer = fileSystem.readToml(newPath, toml)
@@ -186,7 +193,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertEquals(EntryError.NONE, result.error)
 		assertEquals(container, result.instance)
 
-		val path = repo.getEntryPath(container.entry).toOkioPath()
+		val path = datasource.getEntryPath(container.entry).toOkioPath()
 		assertTrue(fileSystem.exists(path))
 		val loadedEntry: EntryContainer = fileSystem.readToml(path, toml)
 		assertEquals(container, loadedEntry)
@@ -201,7 +208,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val deleted = repo.deleteEntry(entry1().toDef(projDef))
 		assertTrue(deleted)
 
-		val path = repo.getEntryPath(entry1().toDef(projDef)).toOkioPath()
+		val path = datasource.getEntryPath(entry1().toDef(projDef)).toOkioPath()
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
 		coVerify { projectSynchronizer.recordIdDeletion(any()) }
@@ -230,7 +237,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	fun `ReId Entry`() = runTest {
 		val repo = createRepository()
 
-		val path = repo.getEntryPath(entry2().toDef(projDef)).toOkioPath()
+		val path = datasource.getEntryPath(entry2().toDef(projDef)).toOkioPath()
 		assertTrue(fileSystem.exists(path))
 
 		repo.reIdEntry(2, 3)
@@ -238,7 +245,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertFalse(fileSystem.exists(path))
 
 		val newDef = entry2().copy(id = 3).toDef(projDef)
-		val newPath = repo.getEntryPath(newDef).toOkioPath()
+		val newPath = datasource.getEntryPath(newDef).toOkioPath()
 		assertTrue(fileSystem.exists(newPath))
 	}
 
@@ -267,16 +274,16 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	private fun assertInvalid(
 		expectedError: EntryError,
 		result: EntryResult,
-		repo: EncyclopediaRepositoryOkio,
+		repo: EncyclopediaRepository,
 		oldEntry: EntryContent,
 		newEntry: EntryContent
 	) {
 		assertEquals(expectedError, result.error)
 
-		val newPath = repo.getEntryPath(newEntry).toOkioPath()
+		val newPath = datasource.getEntryPath(newEntry).toOkioPath()
 		assertFalse(fileSystem.exists(newPath))
 
-		val oldPath = repo.getEntryPath(oldEntry).toOkioPath()
+		val oldPath = datasource.getEntryPath(oldEntry).toOkioPath()
 		val writtenEntry: EntryContainer = fileSystem.readToml(oldPath, toml)
 		assertEquals(oldEntry, writtenEntry.entry)
 	}

@@ -21,16 +21,18 @@ class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
-	private val idDatasources: Set<IdDatasource> = EntityType.entries
-		.map { entityType ->
-			when (entityType) {
-				EntityType.Scene -> get<SceneIdDatasource>()
-				EntityType.Note -> get<NotesIdDatasource>()
-				EntityType.TimelineEvent -> get<TimeLineEventIdDatasource>()
-				EntityType.EncyclopediaEntry -> get<EncyclopediaIdDatasource>()
-				EntityType.SceneDraft -> get<SceneDraftIdDatasource>()
-			}
-		}.toSet()
+	private val idDatasources: Set<IdDatasource> by lazy {
+		EntityType.entries
+			.map { entityType ->
+				when (entityType) {
+					EntityType.Scene -> projectScope.get<SceneIdDatasource>()
+					EntityType.Note -> projectScope.get<NotesIdDatasource>()
+					EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
+					EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
+					EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
+				}
+			}.toSet()
+	}
 
 	private val mutex = reentrantLock()
 

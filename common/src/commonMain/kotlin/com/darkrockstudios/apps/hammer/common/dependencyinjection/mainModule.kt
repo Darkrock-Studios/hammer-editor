@@ -5,8 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
@@ -124,11 +124,14 @@ val mainModule = module {
 		factoryOf(::EncyclopediaIdDatasource)
 		factoryOf(::TimeLineEventIdDatasource)
 		factoryOf(::SceneDraftIdDatasource)
-
 		scopedOf(::IdRepository)
+
 		scopedOf(::NotesDatasource)
 		scopedOf(::NotesRepository)
-		scopedOf(::EncyclopediaRepositoryOkio) bind EncyclopediaRepository::class
+
+		factoryOf(::EncyclopediaDatasource)
+		scopedOf(::EncyclopediaRepository)
+
 		scopedOf(::TimeLineDatasource)
 		scopedOf(::TimeLineRepository)
 

@@ -1,16 +1,21 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource.Companion.ENTRY_NAME_PATTERN
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
+import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import korlibs.crypto.encoding.Base64
+import korlibs.io.async.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -23,19 +28,21 @@ import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
-abstract class EncyclopediaRepository(
-	protected val projectDef: ProjectDef,
-	protected val idRepository: IdRepository
+class EncyclopediaRepository(
+	private val projectDef: ProjectDef,
+	private val idRepository: IdRepository,
+	private val datasource: EncyclopediaDatasource,
+	private val projectSynchronizer: ClientProjectSynchronizer
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
-	final override val projectScope = ProjectDefScope(projectDef)
+	override val projectScope = ProjectDefScope(projectDef)
 
 	init {
 		projectScope.scope.registerCallback(this)
 	}
 
-	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	protected val scope = CoroutineScope(dispatcherDefault)
+	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	private val scope = CoroutineScope(dispatcherDefault)
 
 	private val _entryListFlow = MutableSharedFlow<List<EntryDef>>(
 		extraBufferCapacity = 1,
@@ -44,35 +51,61 @@ abstract class EncyclopediaRepository(
 	)
 	val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
 
-	protected suspend fun updateEntries(entries: List<EntryDef>) {
+	private suspend fun updateEntries(entries: List<EntryDef>) {
 		_entryListFlow.emit(entries)
 	}
 
-	abstract fun getTypeDirectory(type: EntryType): HPath
-	abstract fun getEncyclopediaDirectory(): HPath
-	abstract fun getEntryPath(entryContent: EntryContent): HPath
-	abstract fun getEntryPath(entryDef: EntryDef): HPath
-	abstract fun getEntryPath(id: Int): HPath
-	abstract fun getEntryImagePath(entryDef: EntryDef, fileExension: String): HPath
-	abstract fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean
+	fun loadEntries() {
+		scope.launch {
+			loadEntriesImperative()
+		}
+	}
 
-	abstract fun loadEntries()
-	abstract fun getEntryDef(entryPath: HPath): EntryDef
+	suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
+		val result = datasource.removeEntryImage(entryDef)
+		if (result) {
+			markForSynchronization(entryDef)
+		}
+		return result
+	}
 
-	abstract fun loadEntry(entryDef: EntryDef): EntryContainer
-	abstract fun loadEntry(entryPath: HPath): EntryContainer
-	abstract fun loadEntry(id: Int): EntryContainer
-	abstract fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray
-	abstract suspend fun createEntry(
+	suspend fun updateEntry(
+		oldEntryDef: EntryDef,
 		name: String,
-		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?,
-		forceId: Int? = null
-	): EntryResult
+	): EntryResult {
+		val result = validateEntry(name, oldEntryDef.type, text, tags)
+		if (result != EntryError.NONE) return EntryResult(result)
 
-	abstract suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?)
+		markForSynchronization(oldEntryDef)
+
+		val cleanedTags = cleanTags(tags)
+		val container = datasource.updateEntry(
+			oldEntryDef = oldEntryDef,
+			name = name,
+			text = text,
+			tags = cleanedTags,
+		)
+
+		return EntryResult(container, EntryError.NONE)
+	}
+
+	suspend fun loadEntriesImperative() {
+		val entryDefs = datasource.loadEntriesImperative()
+
+		updateEntries(entryDefs)
+	}
+
+	fun loadEntry(entryDef: EntryDef): EntryContainer {
+		val path = datasource.getEntryPath(entryDef)
+		return datasource.loadEntry(path)
+	}
+
+	fun loadEntry(id: Int): EntryContainer {
+		val path = datasource.getEntryPath(id)
+		return datasource.loadEntry(path)
+	}
 
 	fun validateEntry(
 		name: String,
@@ -89,110 +122,118 @@ abstract class EncyclopediaRepository(
 		}
 	}
 
-	protected abstract suspend fun markForSynchronization(entryDef: EntryDef)
+	private suspend fun markForSynchronization(entryDef: EntryDef) {
+		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(
+				entryDef.id
+			)
+		) {
+			val DEFAULT_EXTENSION = "jpg"
+			val entry = datasource.loadEntry(entryDef).entry
+			val image = if (datasource.hasEntryImage(entryDef, DEFAULT_EXTENSION)) {
+				val imageBytes = datasource.loadEntryImage(entryDef, DEFAULT_EXTENSION)
+				val imageBase64 = Base64.encode(imageBytes, url = true)
+
+				ApiProjectEntity.EncyclopediaEntryEntity.Image(
+					base64 = imageBase64,
+					fileExtension = DEFAULT_EXTENSION,
+				)
+			} else {
+				null
+			}
+			val hash = EntityHasher.hashEncyclopediaEntry(
+				id = entryDef.id,
+				name = entryDef.name,
+				entryType = entryDef.type.text,
+				text = entry.text,
+				tags = entry.tags,
+				image = image
+			)
+			projectSynchronizer.markEntityAsDirty(entryDef.id, hash)
+		}
+	}
+
+	suspend fun createEntry(
+		name: String,
+		type: EntryType,
+		text: String,
+		tags: Set<String>,
+		imagePath: String?,
+		forceId: Int? = null
+	): EntryResult {
+		val result = validateEntry(name, type, text, tags)
+		if (result != EntryError.NONE) return EntryResult(result)
+
+		val cleanedTags = cleanTags(tags)
+
+		val newId = forceId ?: idRepository.claimNextId()
+		val entry = EntryContent(
+			id = newId,
+			name = name.trim(),
+			type = type,
+			text = text.trim(),
+			tags = cleanedTags
+		)
+		val container = EntryContainer(entry)
+
+		val newDef = datasource.createEntry(container)
+
+		if (imagePath != null) {
+			datasource.setEntryImage(container.toDef(projectDef), imagePath)
+		}
+
+		if (forceId == null) markForSynchronization(newDef)
+
+		return EntryResult(container, EntryError.NONE)
+	}
+
+	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
+		datasource.deleteEntry(entryDef)
+		projectSynchronizer.recordIdDeletion(entryDef.id)
+		return true
+	}
+
+	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+		markForSynchronization(entryDef)
+		datasource.setEntryImage(entryDef, imagePath)
+	}
+
+	suspend fun reIdEntry(oldId: Int, newId: Int) = datasource.reIdEntry(oldId, newId)
+
+	fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean =
+		datasource.hasEntryImage(entryDef, fileExension)
+
+	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath =
+		datasource.getEntryImagePath(entryDef, fileExtension)
+
+	fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray =
+		datasource.loadEntryImage(entryDef, fileExtension)
+
+	fun getEntryDef(id: Int): EntryDef = datasource.getEntryDef(id)
+	fun findEntryDef(id: Int): EntryDef? = datasource.findEntryDef(id)
+
+	private fun cleanTags(tags: Set<String>): Set<String> {
+		val regex = Regex("""[\w-]+""")
+		return tags
+			.asSequence()
+			.map { it.trim() }
+			.map {
+				if (it.startsWith("#")) {
+					it.substring(1)
+				} else {
+					it
+				}
+			}
+			.filter { it.isNotEmpty() }
+			.filter { regex.matches(it) }
+			.toSet()
+	}
 
 	override fun onScopeClose(scope: Scope) {
 		this.scope.cancel("Closing EncyclopediaRepository")
 	}
 
-	abstract suspend fun deleteEntry(entryDef: EntryDef): Boolean
-
-	abstract suspend fun removeEntryImage(entryDef: EntryDef): Boolean
-
-	abstract suspend fun updateEntry(
-		oldEntryDef: EntryDef,
-		name: String,
-		text: String,
-		tags: Set<String>,
-	): EntryResult
-
-	abstract suspend fun reIdEntry(oldId: Int, newId: Int)
-
 	companion object {
-		val ENTRY_NAME_PATTERN = Regex("""([\d\p{L}+ _']+)""")
-		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
-		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 		const val MAX_NAME_SIZE = 64
 		const val MAX_TAG_SIZE = 64
-
-		fun getEntryFilename(entryDef: EntryDef): String =
-			getEntryFilename(
-				id = entryDef.id,
-				type = entryDef.type,
-				name = entryDef.name
-			)
-
-		fun getEntryImageFilename(entryDef: EntryDef, fileExtension: String): String =
-			getEntryImageFilename(
-				id = entryDef.id,
-				type = entryDef.type,
-				fileExtension = fileExtension
-			)
-
-		fun getEntryFilename(entry: EntryContent): String =
-			getEntryFilename(
-				id = entry.id,
-				type = entry.type,
-				name = entry.name
-			)
-
-		private fun getEntryFilename(id: Int, type: EntryType, name: String): String {
-			return "${type.text}-$id-$name.toml"
-		}
-
-		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
-			return "${type.text}-$id-image.$fileExtension"
-		}
-
-		fun getEntryIdFromFilename(fileName: String): Int {
-			val captures = ENTRY_FILENAME_PATTERN.matchEntire(fileName)
-				?: throw IllegalStateException("Entry filename was bad: $fileName")
-			try {
-				val entryId = captures.groupValues[2].toInt()
-				return entryId
-			} catch (e: NumberFormatException) {
-				throw InvalidSceneFilename("Number format exception", fileName)
-			} catch (e: IllegalStateException) {
-				throw InvalidSceneFilename("Invalid filename", fileName)
-			}
-		}
-
-		fun getEntryDefFromFilename(fileName: String, projectDef: ProjectDef): EntryDef {
-			val captures = ENTRY_FILENAME_PATTERN.matchEntire(fileName)
-				?: throw IllegalStateException("Entry filename was bad: $fileName")
-			try {
-				val typeString = captures.groupValues[1]
-				val entryId = captures.groupValues[2].toInt()
-				val entryName = captures.groupValues[3]
-
-				val type = EntryType.fromString(typeString)
-
-				val def = EntryDef(
-					projectDef = projectDef,
-					id = entryId,
-					type = type,
-					name = entryName
-				)
-				return def
-			} catch (e: NumberFormatException) {
-				throw InvalidEntryFilename("Number format exception", fileName)
-			} catch (e: IllegalStateException) {
-				throw InvalidEntryFilename("Invalid filename", fileName)
-			} catch (e: IllegalArgumentException) {
-				throw InvalidEntryFilename(e.message ?: "Invalid filename argument", fileName)
-			}
-		}
 	}
-
-	abstract fun getEntryDef(id: Int): EntryDef
-	abstract fun findEntryDef(id: Int): EntryDef?
-	abstract fun findEntryPath(id: Int): HPath?
-	abstract suspend fun loadEntriesImperative()
 }
-
-fun Sequence<HPath>.filterEntryPaths() = filter {
-	!it.name.startsWith(".") && EncyclopediaRepository.ENTRY_FILENAME_PATTERN.matches(it.name)
-}.sortedBy { it.name }
-
-open class InvalidEntryFilename(message: String, fileName: String) :
-	IllegalStateException("$fileName failed to parse because: $message")
