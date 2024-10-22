@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.id
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
@@ -20,13 +21,17 @@ class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
-	private val idDatasources: List<IdDatasource> = listOf(
-		get<SceneIdDatasource>(),
-		get<NotesIdDatasource>(),
-		get<EncyclopediaIdDatasource>(),
-		get<TimeLineEventIdDatasource>(),
-		get<SceneDraftIdDatasource>(),
-	)
+	private val idDatasources: Set<IdDatasource> = EntityType.entries
+		.map { entityType ->
+			when (entityType) {
+				EntityType.Scene -> get<SceneIdDatasource>()
+				EntityType.Note -> get<NotesIdDatasource>()
+				EntityType.TimelineEvent -> get<TimeLineEventIdDatasource>()
+				EntityType.EncyclopediaEntry -> get<EncyclopediaIdDatasource>()
+				EntityType.SceneDraft -> get<SceneDraftIdDatasource>()
+			}
+		}.toSet()
+
 	private val mutex = reentrantLock()
 
 	private var nextId: Int = -1
