@@ -49,7 +49,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class SceneEditorRepositoryOkioOtherTest : BaseTest() {
+class SceneEditorRepositoryOtherTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
@@ -130,7 +130,7 @@ class SceneEditorRepositoryOkioOtherTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-			rootDir.toPath().div(SceneEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneEditorRepositoryMoveTest.PROJ_DIR).toHPath()
 
 		mockkObject(ProjectsRepository.Companion)
 

@@ -41,7 +41,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class SceneEditorRepositoryOkioMoveTest : BaseTest() {
+class SceneEditorRepositoryMoveTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
