@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.fileio.okio
 
 import com.darkrockstudios.apps.hammer.common.util.levenshteinDistance
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class LevenshteinDistanceTest {
