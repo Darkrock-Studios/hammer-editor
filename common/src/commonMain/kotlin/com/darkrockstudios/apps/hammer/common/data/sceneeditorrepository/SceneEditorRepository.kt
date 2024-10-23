@@ -494,9 +494,9 @@ abstract class SceneEditorRepository(
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
 		val scene = getSceneItemFromId(sceneId)
 			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
-		markForSynchronization(scene)
 
 		metadataDatasource.storeMetadata(metadata, sceneId)
+		markForSynchronization(scene)
 	}
 
 	companion object {
