@@ -36,7 +36,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataOkioDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -117,7 +116,7 @@ val mainModule = module {
 		scopedOf(::SceneEditorRepositoryOkio) bind SceneEditorRepository::class
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
-		scopedOf(::SceneMetadataOkioDatasource) bind SceneMetadataDatasource::class
+		scopedOf(::SceneMetadataDatasource)
 
 		factoryOf(::SceneIdDatasource)
 		factoryOf(::NotesIdDatasource)

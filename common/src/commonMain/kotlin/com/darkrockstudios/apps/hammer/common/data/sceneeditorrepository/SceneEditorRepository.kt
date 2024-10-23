@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository.Companion.validateSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -518,6 +519,10 @@ abstract class SceneEditorRepository(
 				throw InvalidSceneFilename("Invalid filename", fileName)
 			}
 		}
+
+		fun validateSceneFilename(fileName: String): Boolean {
+			return SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
+		}
 	}
 
 	abstract suspend fun updateSceneOrderMagnitudeOnly(parentId: Int)
@@ -525,11 +530,11 @@ abstract class SceneEditorRepository(
 }
 
 fun Collection<HPath>.filterScenePaths() = filter {
-	!it.name.startsWith(".")
+	validateSceneFilename(it.name)
 }.sortedBy { it.name }
 
 fun Sequence<HPath>.filterScenePaths() = filter {
-	!it.name.startsWith(".")
+	validateSceneFilename(it.name)
 }.sortedBy { it.name }
 
 open class InvalidSceneFilename(message: String, fileName: String) :

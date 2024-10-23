@@ -252,9 +252,8 @@ class SceneEditorRepositoryOkio(
 
 		val childNodes = fileSystem.list(sceneDirPath)
 			.filterScenePathsOkio()
-			.map { path ->
-				loadSceneTreeNode(path)
-			}
+			.map { it.toOkioPath() }
+			.map { path -> loadSceneTreeNode(path) }
 
 		for (child in childNodes) {
 			rootNode.addChild(child)
@@ -270,7 +269,7 @@ class SceneEditorRepositoryOkio(
 		if (fileSystem.metadata(root).isDirectory) {
 			val childNodes = fileSystem.list(root)
 				.filterScenePathsOkio()
-				.map { path -> loadSceneTreeNode(path) }
+				.map { path -> loadSceneTreeNode(path.toOkioPath()) }
 
 			for (child in childNodes) {
 				node.addChild(child)
@@ -286,6 +285,7 @@ class SceneEditorRepositoryOkio(
 			.toList()
 			.filterScenePathsOkio()
 			.sortedBy { it.name }
+			.map { it.toOkioPath() }
 		return scenePaths
 	}
 
@@ -298,6 +298,7 @@ class SceneEditorRepositoryOkio(
 	private fun getScenePathsOkio(root: Path): List<Path> {
 		val scenePaths = fileSystem.list(root)
 			.filterScenePathsOkio()
+			.map { it.toOkioPath() }
 		return scenePaths
 	}
 
@@ -668,7 +669,7 @@ class SceneEditorRepositoryOkio(
 		return getAllScenePathsOkio()
 			.filterScenePathsOkio()
 			.map { path ->
-				getSceneFromFilename(path.toHPath())
+				getSceneFromFilename(path)
 			}
 	}
 
@@ -681,7 +682,7 @@ class SceneEditorRepositoryOkio(
 		return getScenePathsOkio(rootOkia)
 			.filterScenePathsOkio()
 			.map { path ->
-				getSceneFromFilename(path.toHPath())
+				getSceneFromFilename(path)
 			}
 	}
 
@@ -734,8 +735,8 @@ class SceneEditorRepositoryOkio(
 	override fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
 		return getAllScenePathsOkio()
 			.filterScenePathsOkio().firstOrNull { path ->
-				sceneItem.id == getSceneFromFilename(path.toHPath()).id
-			}?.toHPath() ?: return null
+				sceneItem.id == getSceneFromFilename(path).id
+			}
 	}
 
 	override suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
@@ -860,7 +861,8 @@ class SceneEditorRepositoryOkio(
 		}
 
 		val numScenes = fileSystem.list(parentPath.toOkioPath())
-			.count { it.name != BUFFER_DIRECTORY } - 1
+			.filterScenePathsOkio()
+			.count() - 1
 		return numScenes
 	}
 
@@ -885,13 +887,7 @@ class SceneEditorRepositoryOkio(
 }
 
 fun Collection<Path>.filterScenePathsOkio() =
-	map { it.toHPath() }
-		.filterScenePaths()
-		.map { it.toOkioPath() }
-		.filter { path -> !path.segments.any { part -> part.startsWith(".") } }
+	map { it.toHPath() }.filterScenePaths()
 
 fun Sequence<Path>.filterScenePathsOkio() =
-	map { it.toHPath() }
-		.filterScenePaths()
-		.map { it.toOkioPath() }
-		.filter { path -> !path.segments.any { part -> part.startsWith(".") } }
+	map { it.toHPath() }.filterScenePaths()
