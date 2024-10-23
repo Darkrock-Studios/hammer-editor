@@ -292,7 +292,7 @@ abstract class SceneEditorRepository(
 	abstract fun getLastOrderNumber(parentPath: HPath): Int
 	abstract suspend fun updateSceneOrder(parentId: Int)
 	abstract suspend fun moveScene(moveRequest: MoveRequest)
-	abstract suspend fun renameScene(sceneItem: SceneItem, newName: String)
+	abstract suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean
 
 	fun getSceneSummaries(): SceneSummary {
 		return SceneSummary(
