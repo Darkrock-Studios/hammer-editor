@@ -34,7 +34,7 @@ import utils.callPrivate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class SceneEditorRepositoryOkioLoadTest : BaseTest() {
+class SceneEditorRepositoryLoadTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
@@ -77,7 +77,7 @@ class SceneEditorRepositoryOkioLoadTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-			rootDir.toPath().div(SceneEditorRepositoryOkioMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneEditorRepositoryMoveTest.PROJ_DIR).toHPath()
 
 		setupKoin()
 	}

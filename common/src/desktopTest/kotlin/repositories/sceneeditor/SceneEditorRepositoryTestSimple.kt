@@ -34,7 +34,7 @@ import utils.BaseTest
 import utils.callPrivate
 import kotlin.test.assertEquals
 
-class SceneEditorRepositoryOkioTestSimple : BaseTest() {
+class SceneEditorRepositoryTestSimple : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
