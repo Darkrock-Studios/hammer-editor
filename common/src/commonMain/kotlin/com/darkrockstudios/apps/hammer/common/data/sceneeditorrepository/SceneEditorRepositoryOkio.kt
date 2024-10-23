@@ -147,11 +147,19 @@ class SceneEditorRepositoryOkio(
 
 		val oldScene = getSceneItemFromId(oldId) ?: throw IOException("Scene $oldId does not exist")
 		val newScene = oldScene.copy(id = newId)
-		val newPath = getSceneFilePath(newScene)
+		val newFileName = getSceneFileName(newScene)
+		val parent = oldPath.toOkioPath().parent ?: error("Scene ID $oldId path had not parent")
+		val newPath = parent / newFileName
 
-		fileSystem.atomicMove(oldPath.toOkioPath(), newPath.toOkioPath())
+		fileSystem.atomicMove(oldPath.toOkioPath(), newPath)
 
 		metadataDatasource.reIdSceneMetadata(oldId, newId)
+
+		// Update the in-tree representation
+		val node = getSceneNodeFromId(oldId) ?: error("reIdScene: Failed to get node for ID $oldId")
+		node.value = node.value.copy(
+			id = newId
+		)
 	}
 
 	override fun getSceneDirectory() = sceneDatasource.getSceneDirectory()
@@ -169,7 +177,8 @@ class SceneEditorRepositoryOkio(
 	override fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean): HPath {
 		val scenePathSegment = getSceneDirectory().toOkioPath()
 
-		val pathSegments: MutableList<String> = sceneTree.getBranch(true) { it.id == sceneItem.id }
+		val pathSegments: MutableList<String> = sceneTree
+			.getBranch(true) { it.id == sceneItem.id }
 			.map { node -> node.value }
 			.filter { scene -> !scene.isRootScene }
 			.map { scene -> getSceneFileName(scene) }
@@ -866,8 +875,8 @@ class SceneEditorRepositoryOkio(
 		return numScenes
 	}
 
-	override suspend fun renameScene(sceneItem: SceneItem, newName: String) {
-		markForSynchronization(sceneItem)
+	override suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean {
+		if (validateSceneName(newName).isFailure) return false
 
 		val cleanedNamed = newName.trim()
 
@@ -881,8 +890,10 @@ class SceneEditorRepositoryOkio(
 		val newPath = getSceneFilePath(newDef).toOkioPath()
 
 		fileSystem.atomicMove(oldPath, newPath)
+		markForSynchronization(sceneItem)
 
 		reloadScenes()
+		return true
 	}
 }
 

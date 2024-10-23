@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import createProject
+import getProject1Def
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -423,5 +424,89 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		val groupPostDelete = repo.getSceneItemFromId(groupId)
 		assertNull(groupPostDelete, "Group still existed in tree")
+	}
+
+	@Test
+	fun `Rename Scene`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val newSceneName = "New Scene Name"
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 1,
+			name = "Scene ID 1",
+			order = 0
+		)
+
+		val success = repo.renameScene(sceneItem, newSceneName)
+		assertTrue(success)
+
+		val renamedScene = repo.getSceneItemFromId(sceneItem.id)
+		assertEquals(newSceneName, renamedScene?.name)
+
+		val path = repo.getSceneFilePath(sceneItem.id)
+		val loadedScene = repo.getSceneFromFilename(path)
+		assertEquals(newSceneName, loadedScene.name)
+		assertTrue(ffs.exists(path.toOkioPath()))
+	}
+
+	@Test
+	fun `Rename Scene with invalid name`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(
+			ValidationFailedException(MR.strings.create_project_error_blank)
+		)
+
+		repo.initializeSceneEditor()
+
+		val newSceneName = ""
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 1,
+			name = "Scene ID 1",
+			order = 0
+		)
+
+		val success = repo.renameScene(sceneItem, newSceneName)
+		assertFalse(success)
+
+		val renamedScene = repo.getSceneItemFromId(sceneItem.id)
+		assertNotEquals(newSceneName, renamedScene?.name)
+	}
+
+	@Test
+	fun `ReId Scene`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val oldId = 7
+		val newId = 8
+
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Scene ID 7",
+			order = 3
+		)
+
+		val oldScene = repo.getSceneFilePath(sceneItem).toOkioPath()
+		assertTrue(ffs.exists(oldScene))
+
+		repo.reIdScene(oldId = oldId, newId = newId)
+
+		assertFalse(ffs.exists(oldScene))
+		val newScene = repo.getSceneFilePath(sceneItem.copy(id = newId)).toOkioPath()
+		assertTrue(ffs.exists(newScene))
 	}
 }
