@@ -663,15 +663,6 @@ class SceneEditorRepositoryOkio(
 		return sceneTree.toImmutableTree()
 	}
 
-	override fun getScenes(root: HPath): List<SceneItem> {
-		val rootOkia = root.toOkioPath()
-		return getScenePathsOkio(rootOkia)
-			.filterScenePathsOkio()
-			.map { path ->
-				getSceneFromFilename(path)
-			}
-	}
-
 	override fun getSceneTempBufferContents(): List<SceneContent> {
 		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
 		return fileSystem.list(bufferDirectory)
