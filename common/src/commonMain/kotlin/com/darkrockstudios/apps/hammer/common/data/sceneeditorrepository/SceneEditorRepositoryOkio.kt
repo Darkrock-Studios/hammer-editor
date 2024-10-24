@@ -43,15 +43,6 @@ class SceneEditorRepositoryOkio(
 
 	override fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
-	override fun getSceneParentPath(path: HPath): ScenePathSegments {
-		val parentPath = path.toOkioPath().parent
-		return if (parentPath != null && parentPath.name != "src/commonMain") {
-			getScenePathSegments(parentPath.toHPath())
-		} else {
-			ScenePathSegments(emptyList())
-		}
-	}
-
 	override fun getScenePathSegments(path: HPath): ScenePathSegments {
 		val parentPath = path.toOkioPath()
 
@@ -64,25 +55,6 @@ class SceneEditorRepositoryOkio(
 		} else {
 			ScenePathSegments(pathSegments = emptyList())
 		}
-	}
-
-	override fun getHpath(sceneItem: SceneItem): HPath {
-		val sceneDir = getSceneDirectory().toOkioPath()
-
-		val sceneNode = sceneTree.find { it.id == sceneItem.id }
-		val pathSegments = sceneTree.getBranch(sceneNode, true)
-			.map { node -> node.value }
-			.map { item ->
-				val itemPath = getSceneFilePath(item)
-				getSceneFilename(itemPath)
-			}
-
-		var path = sceneDir
-		pathSegments.forEach { filename ->
-			path = path.div(filename)
-		}
-
-		return path.toHPath()
 	}
 
 	// Used after a server sync
@@ -114,6 +86,11 @@ class SceneEditorRepositoryOkio(
 		}
 	}
 
+	/**
+	 * This looks at the in-memory tree and checks it against the filesystem.
+	 * Any discrepancies it finds on the filesystem will be corrected so that
+	 * it matches the tree.
+	 */
 	override fun rationalizeTree() {
 		correctSceneOrders()
 
@@ -715,13 +692,6 @@ class SceneEditorRepositoryOkio(
 				}
 				SceneContent(sceneDef, content)
 			}
-	}
-
-	override fun getSceneAtIndex(index: Int): SceneItem {
-		val scenePaths = getAllScenePathsOkio()
-		if (index >= scenePaths.size) throw IllegalArgumentException("Invalid scene index requested: $index")
-		val scenePath = scenePaths[index]
-		return getSceneFromPath(scenePath.toHPath())
 	}
 
 	override fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath): String {
