@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -169,6 +171,23 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 	}
 
 	@Test
+	fun `Subscribe to Scene Updates`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		val onSceneUpdate: ((SceneSummary) -> Unit) = mockk()
+		coEvery { onSceneUpdate(any()) } just Runs
+
+		val subJob = repo.subscribeToSceneUpdates(scope, onSceneUpdate)
+		advanceUntilIdle()
+		subJob.cancelAndJoin()
+		coVerify(exactly = 1) { onSceneUpdate(any()) }
+	}
+
+	@Test
 	fun `Store Scene Buffer when no buffer is loaded`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
@@ -186,6 +205,59 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 		val stored = repo.storeSceneBuffer(sceneItem)
 		assertFalse(stored)
+	}
+
+	@Test
+	fun `Store Scene Buffer raw`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 3,
+			name = "Scene ID 3",
+			order = 0
+		)
+		val content = SceneContent(
+			scene = sceneItem,
+			markdown = "Updated scene content ID 3"
+		)
+
+		val stored = repo.storeSceneMarkdownRaw(content)
+		assertTrue(stored)
+
+		val scene3Path = repo.getSceneFilePath(3).toOkioPath()
+		ffs.read(scene3Path) {
+			val scene2Content = readUtf8()
+			assertEquals(content.markdown, scene2Content)
+		}
+	}
+
+	@Test
+	fun `Get scene path from filesystem`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = 3,
+			name = "Scene ID 3",
+			order = 0
+		)
+
+		val repo = createRepository(projDef)
+		val scene3Path = repo.getPathFromFilesystem(sceneItem)?.toOkioPath()
+		assertNotNull(scene3Path)
+
+		val pathSegments = scene3Path.segments.reversed()
+		assertEquals("0-Scene ID 3-3.md", pathSegments[0])
+		assertEquals("1-Chapter ID 2-2", pathSegments[1])
+		assertEquals("scenes", pathSegments[2])
 	}
 
 	@Test
@@ -415,5 +487,40 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 			name = if (type == SceneItem.Type.Scene) "Scene ID $id" else "Chapter ID $id",
 			order = order
 		)
+	}
+
+	@Test
+	fun `Rationalize Tree`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		val oldPath1 = repo.getSceneFilePath(1).toOkioPath()
+		val oldPath6 = repo.getSceneFilePath(6).toOkioPath()
+
+		assertTrue(ffs.exists(oldPath1))
+		assertTrue(ffs.exists(oldPath6))
+
+		val node1 = repo.rawTree.find { it.id == 1 }
+		val node6 = repo.rawTree.find { it.id == 6 }
+
+		node1.value = node1.value.copy(order = 2)
+		node6.value = node6.value.copy(order = 0)
+
+		repo.rationalizeTree()
+
+		assertFalse(ffs.exists(oldPath1))
+		assertFalse(ffs.exists(oldPath6))
+
+		val newPath1 = repo.getSceneFilePath(1).toOkioPath()
+		val newPath6 = repo.getSceneFilePath(6).toOkioPath()
+
+		assertTrue(ffs.exists(newPath1))
+		assertTrue(ffs.exists(newPath6))
+
+		assertNotEquals(oldPath1, newPath1)
+		assertNotEquals(oldPath6, newPath6)
 	}
 }

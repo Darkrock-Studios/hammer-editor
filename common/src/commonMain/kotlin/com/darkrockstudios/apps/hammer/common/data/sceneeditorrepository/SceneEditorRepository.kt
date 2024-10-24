@@ -248,7 +248,6 @@ abstract class SceneEditorRepository(
 	abstract suspend fun deleteGroup(scene: SceneItem): Boolean
 	abstract fun getScenes(): List<SceneItem>
 	abstract fun getSceneTree(): ImmutableTree<SceneItem>
-	abstract fun getScenes(root: HPath): List<SceneItem>
 	abstract fun getSceneTempBufferContents(): List<SceneContent>
 	abstract fun getSceneFromPath(path: HPath): SceneItem
 	abstract fun exportStory(path: HPath): HPath
@@ -299,7 +298,7 @@ abstract class SceneEditorRepository(
 		)
 	}
 
-	protected fun reloadScenes(summary: SceneSummary? = null) {
+	fun reloadScenes(summary: SceneSummary? = null) {
 		val scenes = summary ?: getSceneSummaries()
 		_sceneListChannel.tryEmit(scenes)
 	}
