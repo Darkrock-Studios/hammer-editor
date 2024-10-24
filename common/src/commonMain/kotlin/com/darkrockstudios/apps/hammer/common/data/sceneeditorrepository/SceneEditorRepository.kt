@@ -224,7 +224,6 @@ abstract class SceneEditorRepository(
 	}
 
 	abstract fun getSceneFilename(path: HPath): String
-	abstract fun getSceneParentPath(path: HPath): ScenePathSegments
 	abstract fun getScenePathSegments(path: HPath): ScenePathSegments
 	abstract fun getSceneFilePath(sceneId: Int): HPath
 	abstract fun getSceneDirectory(): HPath
@@ -251,7 +250,6 @@ abstract class SceneEditorRepository(
 	abstract fun getSceneTree(): ImmutableTree<SceneItem>
 	abstract fun getScenes(root: HPath): List<SceneItem>
 	abstract fun getSceneTempBufferContents(): List<SceneContent>
-	abstract fun getSceneAtIndex(index: Int): SceneItem
 	abstract fun getSceneFromPath(path: HPath): SceneItem
 	abstract fun exportStory(path: HPath): HPath
 	abstract fun getExportStoryFileName(): String
@@ -336,13 +334,13 @@ abstract class SceneEditorRepository(
 	protected fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
 		hasSceneBuffer(sceneDef.id)
 
-	protected fun hasSceneBuffer(sceneId: Int): Boolean =
+	fun hasSceneBuffer(sceneId: Int): Boolean =
 		sceneBuffers.containsKey(sceneId)
 
 	protected fun hasDirtyBuffer(sceneDef: SceneItem): Boolean =
 		hasDirtyBuffer(sceneDef.id)
 
-	protected fun hasDirtyBuffer(sceneId: Int): Boolean =
+	fun hasDirtyBuffer(sceneId: Int): Boolean =
 		getSceneBuffer(sceneId)?.dirty == true
 
 	fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
@@ -463,8 +461,6 @@ abstract class SceneEditorRepository(
 
 	fun validateSceneName(sceneName: String): CResult<Unit> =
 		ProjectsRepository.validateFileName(sceneName)
-
-	abstract fun getHpath(sceneItem: SceneItem): HPath
 
 	override fun onScopeClose(scope: Scope) {
 		contentUpdateJob?.cancel("Editor Closed")

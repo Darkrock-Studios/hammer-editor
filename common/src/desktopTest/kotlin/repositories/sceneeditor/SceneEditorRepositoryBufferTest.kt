@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProject1Def
 import io.mockk.MockKAnnotations
@@ -28,12 +30,14 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.Path
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class SceneEditorRepositoryBufferTest : BaseTest() {
@@ -206,5 +210,210 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 		val stored = repo.storeSceneBuffer(sceneItem)
 		assertTrue(stored)
+	}
+
+	@Test
+	fun `No dirty buffers on first load`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		assertFalse(repo.hasDirtyBuffers())
+	}
+
+	private fun getTempBufferPath(repo: SceneEditorRepository, sceneId: Int): Path {
+		val bufferDir = repo.getSceneBufferDirectory().toOkioPath()
+		ffs.createDirectories(bufferDir)
+
+		val tempBufPath = bufferDir / "$sceneId.md"
+		return tempBufPath
+	}
+
+	private fun content(sceneId: Int) = "This is _test_ temp buffer content for Scene $sceneId"
+
+	private fun writeTempBuffer(repo: SceneEditorRepository, sceneId: Int) {
+		val tempContent = content(sceneId)
+		val tempBufPath = getTempBufferPath(repo, sceneId)
+		ffs.write(tempBufPath) {
+			writeUtf8(tempContent)
+		}
+	}
+
+	@Test
+	fun `Dirty buffer on first load because of temp buffer`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		writeTempBuffer(repo, 1)
+
+		repo.initializeSceneEditor()
+
+		assertTrue(repo.hasDirtyBuffers())
+
+		assertTrue(repo.hasDirtyBuffer(1))
+		assertFalse(repo.hasDirtyBuffer(2))
+	}
+
+	@Test
+	fun `Discard Dirty buffer`() = runTest(mainTestDispatcher) {
+		val sceneId = 1
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		writeTempBuffer(repo, sceneId)
+
+		repo.initializeSceneEditor()
+		assertTrue(repo.hasDirtyBuffer(sceneId))
+
+		val sceneItem = SceneItem(
+			projectDef = getProject1Def(),
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Scene ID $sceneId",
+			order = 0
+		)
+		repo.discardSceneBuffer(sceneItem)
+
+		assertFalse(repo.hasDirtyBuffer(1))
+
+		val temp2Path = getTempBufferPath(repo, 1)
+		assertFalse(ffs.exists(temp2Path))
+	}
+
+	@Test
+	fun `Store all dirty buffers`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		writeTempBuffer(repo, 1)
+		writeTempBuffer(repo, 3)
+
+		repo.initializeSceneEditor()
+
+		assertTrue(repo.hasDirtyBuffers())
+		assertTrue(repo.hasDirtyBuffer(1))
+		assertTrue(repo.hasDirtyBuffer(3))
+
+		repo.storeAllBuffers()
+
+		val temp1Path = getTempBufferPath(repo, 1)
+		assertFalse(ffs.exists(temp1Path))
+
+		val temp2Path = getTempBufferPath(repo, 3)
+		assertFalse(ffs.exists(temp2Path))
+
+		assertFalse(repo.hasDirtyBuffers())
+		assertFalse(repo.hasDirtyBuffer(1))
+		assertFalse(repo.hasDirtyBuffer(3))
+
+		val scene1Path = repo.getSceneFilePath(1).toOkioPath()
+		ffs.read(scene1Path) {
+			val scene1Content = readUtf8()
+			assertEquals(content(1), scene1Content)
+		}
+
+		val scene2Path = repo.getSceneFilePath(3).toOkioPath()
+		ffs.read(scene2Path) {
+			val scene2Content = readUtf8()
+			assertEquals(content(3), scene2Content)
+		}
+	}
+
+	@Test
+	fun `Resolve path for scene ID`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		val path = repo.resolveScenePathFromFilesystem(3)?.toOkioPath()
+		assertNotNull(path)
+
+		val pathSegments = path.segments.reversed()
+		assertEquals("0-Scene ID 3-3.md", pathSegments[0])
+		assertEquals("1-Chapter ID 2-2", pathSegments[1])
+		assertEquals("scenes", pathSegments[2])
+	}
+
+	@Test
+	fun `Export Story`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		val exportPath = ffs.workingDirectory
+		val path = repo.exportStory(exportPath.toHPath())
+
+		ffs.read(path.toOkioPath()) {
+			val exported = readUtf8()
+			assertEquals(exportedStory1.trim(), exported.trim())
+		}
+	}
+
+	private val exportedStory1 = """
+		# Test Project 1
+
+
+		## 1. Scene ID 1
+		
+		Content of scene id 1
+		
+		## 2. Chapter ID 2
+		
+		Content of scene id 3
+		Content of scene id 4
+		Content of scene id 5
+		
+		## 3. Scene ID 6
+		
+		Content of scene id 6
+		
+		## 4. Scene ID 7
+		
+		Content of scene id 7
+	""".trimIndent()
+
+	@Test
+	fun `Get all scenes`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+
+		val scenes = repo.getScenes()
+		assertEquals(
+			listOf(
+				getSceneItem(1, 0),
+				getSceneItem(2, 1, SceneItem.Type.Group),
+				getSceneItem(6, 2),
+				getSceneItem(7, 3),
+
+				getSceneItem(3, 0),
+				getSceneItem(4, 1),
+				getSceneItem(5, 2),
+			).sortedBy { it.id },
+			scenes.sortedBy { it.id }
+		)
+	}
+
+	private fun getSceneItem(
+		id: Int,
+		order: Int,
+		type: SceneItem.Type = SceneItem.Type.Scene
+	): SceneItem {
+		return SceneItem(
+			projectDef = getProject1Def(),
+			type = type,
+			id = id,
+			name = if (type == SceneItem.Type.Scene) "Scene ID $id" else "Chapter ID $id",
+			order = order
+		)
 	}
 }
