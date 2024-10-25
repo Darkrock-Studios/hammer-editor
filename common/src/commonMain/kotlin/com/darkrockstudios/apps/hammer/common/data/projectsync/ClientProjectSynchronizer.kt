@@ -69,12 +69,12 @@ class ClientProjectSynchronizer(
 	private val encyclopediaSynchronizer: ClientEncyclopediaSynchronizer by projectInject()
 	private val sceneDraftSynchronizer: ClientSceneDraftSynchronizer by projectInject()
 	private val entitySynchronizers by lazy {
-		listOf(
-			sceneSynchronizer,
-			noteSynchronizer,
-			timelineSynchronizer,
-			encyclopediaSynchronizer,
-			sceneDraftSynchronizer
+		mapOf(
+			EntityType.Scene to sceneSynchronizer,
+			EntityType.Note to noteSynchronizer,
+			EntityType.TimelineEvent to timelineSynchronizer,
+			EntityType.EncyclopediaEntry to encyclopediaSynchronizer,
+			EntityType.SceneDraft to sceneDraftSynchronizer
 		)
 	}
 
@@ -271,7 +271,7 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun getEntityState(clientSyncData: ProjectSynchronizationData): ClientEntityState {
-		val entities = entitySynchronizers.flatMap { syncher ->
+		val entities = entitySynchronizers.values.flatMap { syncher ->
 			syncher.hashEntities(clientSyncData.newIds)
 		}.toSet()
 
@@ -691,7 +691,7 @@ class ClientProjectSynchronizer(
 	private suspend fun prepareForSync() {
 		idRepository.findNextId()
 
-		entitySynchronizers.forEach { it.prepareForSync() }
+		entitySynchronizers.values.forEach { it.prepareForSync() }
 
 		// Create the sync data if it doesnt exist yet
 		val path = getSyncDataPath()
@@ -702,29 +702,18 @@ class ClientProjectSynchronizer(
 	}
 
 	private suspend fun finalizeSync() {
-		entitySynchronizers.forEach { it.finalizeSync() }
+		entitySynchronizers.values.forEach { it.finalizeSync() }
 	}
 
 	private suspend fun clientHasEntity(id: Int): Boolean {
 		return findEntityType(id) != null
 	}
 
-	private suspend fun findEntityType(id: Int): EntityType? {
-		for (synchronizer in entitySynchronizers) {
-			if (synchronizer.ownsEntity(id)) {
-				return synchronizer.getEntityType()
-			}
-		}
-		return null
-	}
+	private suspend fun findEntityType(id: Int): EntityType? =
+		entitySynchronizers.keys.firstOrNull { entitySynchronizers[it]?.ownsEntity(id) == true }
 
 	private suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
-		for (synchronizer in entitySynchronizers) {
-			if (synchronizer.ownsEntity(id)) {
-				synchronizer.deleteEntityLocal(id, onLog)
-				return
-			}
-		}
+		entitySynchronizers[findEntityType(id)]?.deleteEntityLocal(id, onLog)
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
@@ -756,49 +745,10 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onLog: OnSyncLog
 	): Boolean {
-		val type = findEntityType(id)
-		if (type != null) {
-			return when (type) {
-				EntityType.Scene -> sceneSynchronizer.uploadEntity(
-					id,
-					syncId,
-					originalHash,
-					onConflict,
-					onLog
-				)
-
-				EntityType.Note -> noteSynchronizer.uploadEntity(
-					id,
-					syncId,
-					originalHash,
-					onConflict,
-					onLog
-				)
-
-				EntityType.TimelineEvent -> timelineSynchronizer.uploadEntity(
-					id,
-					syncId,
-					originalHash,
-					onConflict,
-					onLog
-				)
-
-				EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.uploadEntity(
-					id,
-					syncId,
-					originalHash,
-					onConflict,
-					onLog
-				)
-
-				EntityType.SceneDraft -> sceneDraftSynchronizer.uploadEntity(
-					id,
-					syncId,
-					originalHash,
-					onConflict,
-					onLog
-				)
-			}
+		val type: EntityType? = findEntityType(id)
+		return if (type != null) {
+			entitySynchronizers[type]?.uploadEntity(id, syncId, originalHash, onConflict, onLog)
+				?: false
 		} else {
 			onLog(
 				syncLogW(
@@ -806,7 +756,7 @@ class ClientProjectSynchronizer(
 					projectDef
 				)
 			)
-			return true
+			true
 		}
 	}
 
@@ -841,8 +791,7 @@ class ClientProjectSynchronizer(
 		)
 
 		return if (entityResponse.isSuccess) {
-			val serverEntity = entityResponse.getOrThrow().entity
-			val success = when (serverEntity) {
+			val success = when (val serverEntity = entityResponse.getOrThrow().entity) {
 				is ApiProjectEntity.SceneEntity -> sceneSynchronizer.storeEntity(
 					serverEntity,
 					syncId,
@@ -969,5 +918,15 @@ class ClientProjectSynchronizer(
 		private const val ENTITY_START = 0.3f
 		private const val ENTITY_TOTAL = 0.5f
 		private const val ENTITY_END = ENTITY_START + ENTITY_TOTAL
+	}
+}
+
+fun ApiProjectEntity.Type.toEntityType(): EntityType {
+	return when (this) {
+		ApiProjectEntity.Type.SCENE -> EntityType.Scene
+		ApiProjectEntity.Type.NOTE -> EntityType.Note
+		ApiProjectEntity.Type.TIMELINE_EVENT -> EntityType.TimelineEvent
+		ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> EntityType.EncyclopediaEntry
+		ApiProjectEntity.Type.SCENE_DRAFT -> EntityType.SceneDraft
 	}
 }
