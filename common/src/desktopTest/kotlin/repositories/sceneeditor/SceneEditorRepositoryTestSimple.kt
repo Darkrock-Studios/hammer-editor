@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
-import utils.callPrivate
 import kotlin.test.assertEquals
 
 class SceneEditorRepositoryTestSimple : BaseTest() {
@@ -71,7 +69,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 	private fun populateProject(fs: FakeFileSystem) {
 		fs.createDirectories(projectPath.toOkioPath())
-		scenesPath = projectPath.toOkioPath().div(SceneEditorRepository.SCENE_DIRECTORY).toHPath()
+		scenesPath = projectPath.toOkioPath().div(SceneDatasource.SCENE_DIRECTORY).toHPath()
 
 		fs.createDirectory(scenesPath.toOkioPath())
 
@@ -134,37 +132,30 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		ffs.checkNoOpenFiles()
 	}
 
-	@Test
-	fun `Get filename`() {
-		val repo = SceneEditorRepositoryOkio(
+	private fun createRepository(): SceneEditorRepository {
+		return SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 		)
+	}
 
+	@Test
+	fun `Get filename`() {
 		val expectedFilename = sceneFiles.entries.first().key
 		val scenePath = scenePath(expectedFilename)
-		val sceneFilename = repo.getSceneFilename(scenePath)
+		val sceneFilename = sceneDatasource.getSceneFilename(scenePath)
 		assertEquals(expectedFilename, sceneFilename)
 	}
 
 	@Test
 	fun `Load Scene Tree`() {
-		val repo = SceneEditorRepositoryOkio(
-			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
-			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataRepository,
-			sceneMetadataDatasource = sceneMetadataDatasource,
-			sceneDatasource = sceneDatasource,
-		)
+		val repo = createRepository()
 
-		val sceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+		val sceneTree: TreeNode<SceneItem> = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		assertEquals(3, sceneTree.numChildrenRecursive())
 		assertEquals(1, sceneTree[0].value.id)
@@ -174,15 +165,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 	@Test
 	fun `Init Editor`() = runTest {
-		val repo = SceneEditorRepositoryOkio(
-			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
-			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataRepository,
-			sceneMetadataDatasource = sceneMetadataDatasource,
-			sceneDatasource = sceneDatasource,
-		)
+		val repo = createRepository()
 
 		repo.initializeSceneEditor()
 

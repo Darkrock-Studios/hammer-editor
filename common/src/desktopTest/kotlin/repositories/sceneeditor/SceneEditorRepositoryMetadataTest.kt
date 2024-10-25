@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -68,10 +67,9 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
 		sceneMetadataDatasource = createDatasource(projectDef)
 		sceneDatasource = createSceneDatasource(projectDef)
-		return SceneEditorRepositoryOkio(
+		return SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,

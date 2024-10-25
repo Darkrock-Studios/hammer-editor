@@ -34,7 +34,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.Cli
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -113,7 +112,7 @@ val mainModule = module {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
 
 		scopedOf(::SceneDatasource)
-		scopedOf(::SceneEditorRepositoryOkio) bind SceneEditorRepository::class
+		scopedOf(::SceneEditorRepository)
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)

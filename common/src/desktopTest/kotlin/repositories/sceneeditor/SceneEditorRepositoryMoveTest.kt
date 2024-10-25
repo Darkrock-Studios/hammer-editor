@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
@@ -90,7 +89,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		ffs.list(scenePath.toOkioPath())
 			.filterScenePathsOkio()
 			.sortedBy { it.name }.forEach { childPath ->
-				val sceneItem = repo.getSceneFromPath(childPath)
+				val sceneItem = sceneDatasource.getSceneFromPath(childPath)
 				val foundItem = nodesById[sceneItem.id]
 				assertNotNull(sceneItem, "File system scene didn't exist in tree")
 				assertEquals(foundItem, sceneItem, "File system scene didn't match tree scene")
@@ -134,10 +133,9 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 
 		setupKoin()
 
-		repo = SceneEditorRepositoryOkio(
+		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,

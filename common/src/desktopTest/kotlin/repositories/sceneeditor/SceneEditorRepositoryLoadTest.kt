@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
-import utils.callPrivate
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -101,10 +99,9 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = SceneEditorRepositoryOkio(
+		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,
@@ -187,7 +184,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)
@@ -269,7 +266,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)
@@ -343,7 +340,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 			},
 		)
 
-		val tree = repo.callPrivate<SceneEditorRepository, TreeNode<SceneItem>>("loadSceneTree")
+		val tree = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		// +1 to count root
 		assertEquals(expectedNodes.size, tree.numChildrenRecursive() + 1)
