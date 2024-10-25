@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -15,11 +15,11 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.requireProjectId
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath

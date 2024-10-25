@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
+package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -7,10 +7,10 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi

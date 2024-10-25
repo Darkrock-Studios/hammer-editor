@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
+package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -12,14 +12,14 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier

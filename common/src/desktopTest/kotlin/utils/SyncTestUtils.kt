@@ -3,7 +3,7 @@ package utils
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.projectsync.toSceneType
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toSceneType
 
 fun SceneItem.Companion.fromApiEntity(
 	entity: ApiProjectEntity.SceneEntity,

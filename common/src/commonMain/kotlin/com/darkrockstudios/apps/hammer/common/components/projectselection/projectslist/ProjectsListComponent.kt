@@ -16,14 +16,14 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogW
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -58,7 +58,7 @@ class ProjectsListComponent(
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectsRepository: ProjectsRepository by inject()
-	private val projectsSynchronizer: ClientProjectsSynchronizer by inject()
+	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val strRes: StrRes by inject()

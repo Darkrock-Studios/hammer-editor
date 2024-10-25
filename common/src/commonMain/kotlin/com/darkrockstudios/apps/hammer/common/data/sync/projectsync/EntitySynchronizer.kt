@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
