@@ -406,8 +406,8 @@ class SceneEditorRepository(
 		val scene = getSceneItemFromId(sceneId)
 			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
 
-		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
 		markForSynchronization(scene)
+		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
 	}
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
@@ -450,6 +450,8 @@ class SceneEditorRepository(
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean {
 		if (validateSceneName(newName).isFailure) return false
 
+		markForSynchronization(sceneItem)
+
 		val cleanedNamed = newName.trim()
 
 		val oldPath = getSceneFilePath(sceneItem)
@@ -462,8 +464,6 @@ class SceneEditorRepository(
 		val node = getSceneNodeFromId(sceneItem.id)
 			?: throw IllegalStateException("Failed to get scene for renaming: ${sceneItem.id}")
 		node.value = newDef
-
-		markForSynchronization(sceneItem)
 
 		reloadScenes()
 		return true
@@ -881,12 +881,9 @@ class SceneEditorRepository(
 		sceneItem: SceneContent,
 		scenePath: HPath = getSceneFilePath(sceneItem.scene)
 	): Boolean {
+		markForSynchronization(sceneItem.scene)
+
 		val success = sceneDatasource.storeSceneMarkdownRaw(sceneItem, scenePath)
-
-		if (success) {
-			markForSynchronization(sceneItem.scene)
-		}
-
 		return success
 	}
 
@@ -914,12 +911,13 @@ class SceneEditorRepository(
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
+
+		markForSynchronization(sceneItem)
+
 		val scenePath = getSceneFilePath(sceneItem)
 		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
 
 		if (success) {
-			markForSynchronization(sceneItem)
-
 			val cleanBuffer = buffer.copy(dirty = false)
 			updateSceneBuffer(cleanBuffer)
 

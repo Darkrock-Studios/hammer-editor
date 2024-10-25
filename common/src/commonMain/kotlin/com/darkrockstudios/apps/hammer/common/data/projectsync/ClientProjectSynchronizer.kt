@@ -920,13 +920,3 @@ class ClientProjectSynchronizer(
 		private const val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 	}
 }
-
-fun ApiProjectEntity.Type.toEntityType(): EntityType {
-	return when (this) {
-		ApiProjectEntity.Type.SCENE -> EntityType.Scene
-		ApiProjectEntity.Type.NOTE -> EntityType.Note
-		ApiProjectEntity.Type.TIMELINE_EVENT -> EntityType.TimelineEvent
-		ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> EntityType.EncyclopediaEntry
-		ApiProjectEntity.Type.SCENE_DRAFT -> EntityType.SceneDraft
-	}
-}
