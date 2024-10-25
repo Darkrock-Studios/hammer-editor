@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectsSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import getProjectsDirectory
@@ -47,7 +47,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var serverSettingsUpdates: SharedFlow<ServerSettings?>
 	lateinit var projectsRepository: ProjectsRepository
 	lateinit var exampleProjectRepository: ExampleProjectRepository
-	lateinit var projectsSynchronizer: ClientProjectsSynchronizer
+	lateinit var projectsSynchronizer: ClientAccountSynchronizer
 
 	@BeforeEach
 	override fun setup() {

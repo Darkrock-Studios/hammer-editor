@@ -1,14 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogLevel
-import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 
 fun SyncLogMessage.getBackgroundColor(): Color =
 	when (level) {
@@ -29,7 +29,7 @@ fun SyncLogMessage.getForegroundColor(): Color =
 fun SyncLogMessage.getIcon(): ImageVector =
 	when (level) {
 		SyncLogLevel.DEBUG -> Icons.Default.BugReport
-		SyncLogLevel.INFO -> Icons.Default.Notes
+		SyncLogLevel.INFO -> Icons.AutoMirrored.Filled.Notes
 		SyncLogLevel.WARN -> Icons.Default.Warning
 		SyncLogLevel.ERROR -> Icons.Default.Error
 	}

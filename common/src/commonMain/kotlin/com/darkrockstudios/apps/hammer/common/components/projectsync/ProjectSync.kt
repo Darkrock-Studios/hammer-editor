@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.Msg
-import com.darkrockstudios.apps.hammer.common.data.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import dev.icerock.moko.resources.StringResource
 
 interface ProjectSync {
@@ -64,8 +64,7 @@ interface ProjectSync {
 			val noteError: Msg? = null,
 		) : EntityMergeError()
 
-		class TimelineEventMergeError(
-		) : EntityMergeError()
+		class TimelineEventMergeError : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(
 			val nameError: Msg? = null,

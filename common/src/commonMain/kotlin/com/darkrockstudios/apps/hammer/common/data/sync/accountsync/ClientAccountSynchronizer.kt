@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync
+package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -9,6 +9,12 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
@@ -24,8 +30,7 @@ import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
 
-
-class ClientProjectsSynchronizer(
+class ClientAccountSynchronizer(
 	private val fileSystem: FileSystem,
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val projectsRepository: ProjectsRepository,

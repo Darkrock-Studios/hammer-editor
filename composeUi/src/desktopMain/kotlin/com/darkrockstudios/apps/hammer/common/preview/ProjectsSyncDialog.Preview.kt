@@ -16,11 +16,11 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncAccLogD
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogD
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogD
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogD
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents

@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDa
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock

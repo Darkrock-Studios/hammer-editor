@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers
+package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -11,9 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectsync.EntitySynchronizer
-import com.darkrockstudios.apps.hammer.common.data.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.android.isInternetConnected
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex

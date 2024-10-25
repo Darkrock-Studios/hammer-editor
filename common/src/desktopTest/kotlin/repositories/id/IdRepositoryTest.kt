@@ -11,8 +11,8 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasou
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
