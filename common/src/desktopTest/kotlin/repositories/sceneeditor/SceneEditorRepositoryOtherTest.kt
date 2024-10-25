@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.Validation
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -41,7 +40,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
-import utils.callPrivate
 import utils.getPrivateProperty
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -80,7 +78,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		// Verify tree nodes match file system nodes
 		tree.filter { !it.value.isRootScene }.forEach { node ->
 			val path = repo.getSceneFilePath(node.value.id)
-			val fsScene = repo.getSceneFromPath(path)
+			val fsScene = sceneDatasource.getSceneFromPath(path)
 			assertEquals(node.value, fsScene)
 		}
 
@@ -157,10 +155,9 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = SceneEditorRepositoryOkio(
+		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,
@@ -176,11 +173,11 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Cleanup Scene Order`() = runTest {
 		configure(OUT_OF_ORDER_PROJECT_NAME)
 
-		val beforeSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+		val beforeSceneTree: TreeNode<SceneItem> = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		repo.initializeSceneEditor()
 
-		val afterSceneTree: TreeNode<SceneItem> = repo.callPrivate("loadSceneTree")
+		val afterSceneTree: TreeNode<SceneItem> = sceneDatasource.loadSceneTree(repo.rootScene)
 
 		// Make sure the tree was actually changed, initializeProjectEditor()
 		// should clean up this out of order project
@@ -450,7 +447,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		assertEquals(newSceneName, renamedScene?.name)
 
 		val path = repo.getSceneFilePath(sceneItem.id)
-		val loadedScene = repo.getSceneFromFilename(path)
+		val loadedScene = sceneDatasource.getSceneFromFilename(path)
 		assertEquals(newSceneName, loadedScene.name)
 		assertTrue(ffs.exists(path.toOkioPath()))
 	}

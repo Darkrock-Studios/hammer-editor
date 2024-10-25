@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -51,7 +50,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		sceneEditorRepository = mockk<SceneEditorRepositoryOkio>()
+		sceneEditorRepository = mockk<SceneEditorRepository>()
 		every { sceneEditorRepository.getSceneDirectory() } answers {
 			SceneDatasource.getSceneDirectory(projectDef, ffs)
 		}

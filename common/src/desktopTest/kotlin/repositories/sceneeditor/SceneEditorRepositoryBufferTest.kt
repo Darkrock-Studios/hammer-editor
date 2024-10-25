@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -85,10 +84,9 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
 		sceneMetadataDatasource = createDatasource(projectDef)
 		sceneDatasource = createSceneDatasource(projectDef)
-		return SceneEditorRepositoryOkio(
+		return SceneEditorRepository(
 			projectDef = projectDef,
 			projectSynchronizer = projectSynchronizer,
-			fileSystem = ffs,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -251,7 +249,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		)
 
 		val repo = createRepository(projDef)
-		val scene3Path = repo.getPathFromFilesystem(sceneItem)?.toOkioPath()
+		val scene3Path = repo.resolveScenePathFromFilesystem(sceneItem.id)?.toOkioPath()
 		assertNotNull(scene3Path)
 
 		val pathSegments = scene3Path.segments.reversed()
@@ -295,8 +293,8 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		assertFalse(repo.hasDirtyBuffers())
 	}
 
-	private fun getTempBufferPath(repo: SceneEditorRepository, sceneId: Int): Path {
-		val bufferDir = repo.getSceneBufferDirectory().toOkioPath()
+	private fun getTempBufferPath(sceneId: Int): Path {
+		val bufferDir = sceneDatasource.getSceneBufferDirectory().toOkioPath()
 		ffs.createDirectories(bufferDir)
 
 		val tempBufPath = bufferDir / "$sceneId.md"
@@ -307,7 +305,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 	private fun writeTempBuffer(repo: SceneEditorRepository, sceneId: Int) {
 		val tempContent = content(sceneId)
-		val tempBufPath = getTempBufferPath(repo, sceneId)
+		val tempBufPath = getTempBufferPath(sceneId)
 		ffs.write(tempBufPath) {
 			writeUtf8(tempContent)
 		}
@@ -352,7 +350,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 		assertFalse(repo.hasDirtyBuffer(1))
 
-		val temp2Path = getTempBufferPath(repo, 1)
+		val temp2Path = getTempBufferPath(1)
 		assertFalse(ffs.exists(temp2Path))
 	}
 
@@ -373,10 +371,10 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 		repo.storeAllBuffers()
 
-		val temp1Path = getTempBufferPath(repo, 1)
+		val temp1Path = getTempBufferPath(1)
 		assertFalse(ffs.exists(temp1Path))
 
-		val temp2Path = getTempBufferPath(repo, 3)
+		val temp2Path = getTempBufferPath(3)
 		assertFalse(ffs.exists(temp2Path))
 
 		assertFalse(repo.hasDirtyBuffers())
@@ -424,6 +422,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 		ffs.read(path.toOkioPath()) {
 			val exported = readUtf8()
+			println("\"$exported\"")
 			assertEquals(exportedStory1.trim(), exported.trim())
 		}
 	}

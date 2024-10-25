@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepositoryOkio
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -37,7 +37,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private val def = getProject1Def()
 
 	@MockK
-	private lateinit var sceneEditorRepository: SceneEditorRepositoryOkio
+	private lateinit var sceneEditorRepository: SceneEditorRepository
 
 	@MockK
 	private lateinit var draftRepository: SceneDraftRepository
@@ -110,7 +110,7 @@ class SceneSynchronizerTest : BaseTest() {
 			clientEntity
 		}
 		every { sceneEditorRepository.rawTree } returns tree
-		every { sceneEditorRepository.getPathFromFilesystem(clientEntity) } returns filePath
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(clientEntity.id) } returns filePath
 		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
 
 		////////////////////
@@ -160,7 +160,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientEntity
 		every { sceneEditorRepository.rawTree } returns tree
-		every { sceneEditorRepository.getPathFromFilesystem(clientEntity) } returns filePath
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(clientEntity.id) } returns filePath
 		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
 
 		rootNode.addChild(TreeNode(clientEntity))
@@ -211,7 +211,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientSceneEntity
 		every { sceneEditorRepository.rawTree } returns tree
-		every { sceneEditorRepository.getPathFromFilesystem(clientSceneEntity) } returns filePath
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(clientSceneEntity.id) } returns filePath
 		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
 
 		val clientGroupEntity = SceneItem(

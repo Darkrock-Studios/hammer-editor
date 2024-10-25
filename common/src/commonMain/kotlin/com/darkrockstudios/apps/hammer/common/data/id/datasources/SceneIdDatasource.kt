@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.data.id.datasources
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
@@ -15,7 +14,7 @@ class SceneIdDatasource(
 
 		val maxId: Int = fileSystem.listRecursively(sceneDir)
 			.filterScenePathsOkio().maxOfOrNull { path ->
-				SceneEditorRepository.getSceneIdFromFilename(path.name)
+				SceneDatasource.getSceneIdFromFilename(path.name)
 			} ?: -1
 
 		return maxId

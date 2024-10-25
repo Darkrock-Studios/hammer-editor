@@ -133,7 +133,7 @@ class ClientSceneSynchronizer(
 				order = serverEntity.order
 			)
 
-			val scenePath = sceneEditorRepository.getPathFromFilesystem(sceneItem)
+			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystem(sceneItem.id)
 				?: throw IllegalStateException("Scene $id has no path")
 
 			val content = SceneContent(sceneItem, serverEntity.content)
