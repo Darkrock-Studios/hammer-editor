@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -38,7 +38,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneEditorRepository
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
@@ -70,8 +70,8 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 		metadataRepository = mockk()
 		metadataDatasource = mockk()
 
-		projectSynchronizer = mockk()
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		syncDataRepository = mockk()
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -101,7 +101,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,

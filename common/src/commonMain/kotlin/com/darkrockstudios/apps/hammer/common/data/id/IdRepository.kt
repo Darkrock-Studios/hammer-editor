@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDa
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -19,7 +19,7 @@ import kotlin.math.max
 
 class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
-	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val syncDataRepository: SyncDataRepository by projectInject()
 
 	private val idDatasources: Set<IdDatasource> by lazy {
 		EntityType.entries
@@ -50,8 +50,8 @@ class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 				lastId = max(lastId, highestId)
 			}
 
-			if (projectSynchronizer.isServerSynchronized()) {
-				projectSynchronizer.deletedIds().maxOrNull()?.let { maxDeletedId ->
+			if (syncDataRepository.isServerSynchronized()) {
+				syncDataRepository.deletedIds().maxOrNull()?.let { maxDeletedId ->
 					lastId = max(lastId, maxDeletedId)
 				}
 			}
@@ -65,8 +65,8 @@ class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
 	}
 
 	private suspend fun recordNewId(claimedId: Int) {
-		if (projectSynchronizer.isServerSynchronized()) {
-			projectSynchronizer.recordNewId(claimedId)
+		if (syncDataRepository.isServerSynchronized()) {
+			syncDataRepository.recordNewId(claimedId)
 		}
 	}
 

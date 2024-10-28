@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDa
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
@@ -35,7 +35,7 @@ import kotlin.test.assertEquals
 class IdRepositoryTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var idRepository: IdRepository
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var toml: Toml
 
 	private lateinit var sceneIdDatasource: SceneIdDatasource
@@ -50,7 +50,7 @@ class IdRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		projectSynchronizer = mockk(relaxed = true)
+		syncDataRepository = mockk(relaxed = true)
 
 		sceneIdDatasource = SceneIdDatasource(ffs)
 		notesIdDatasource = NotesIdDatasource(ffs)
@@ -63,7 +63,7 @@ class IdRepositoryTest : BaseTest() {
 		sceneDraftIdDatasource = SceneDraftIdDatasource(SceneDraftsDatasource(ffs, sceneDatasource))
 
 		val testModule = module {
-			single { projectSynchronizer }
+			single { syncDataRepository }
 			single { sceneIdDatasource }
 			single { notesIdDatasource }
 			single { encyclopediaIdDatasource }
@@ -85,7 +85,7 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		idRepository = IdRepository(getProjectDef(PROJECT_EMPTY_NAME))
 		idRepository.findNextId()
@@ -98,7 +98,7 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		idRepository = IdRepository(getProject1Def())
 		idRepository.findNextId()
@@ -112,8 +112,8 @@ class IdRepositoryTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
 		// Last real ID is 7 in "Test Project 1"
-		every { projectSynchronizer.isServerSynchronized() } returns true
-		coEvery { projectSynchronizer.deletedIds() } returns setOf(8)
+		every { syncDataRepository.isServerSynchronized() } returns true
+		coEvery { syncDataRepository.deletedIds() } returns setOf(8)
 
 		idRepository = IdRepository(getProject1Def())
 		idRepository.findNextId()
@@ -127,7 +127,7 @@ class IdRepositoryTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
 		val projectPath = getProjectsDirectory().div(PROJECT_EMPTY_NAME).toHPath()
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		val projectDef = ProjectDef(
 			name = PROJECT_EMPTY_NAME,
@@ -146,7 +146,7 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		setupForProject(projDef)
 
-		every { projectSynchronizer.isServerSynchronized() } returns true
+		every { syncDataRepository.isServerSynchronized() } returns true
 
 		idRepository = IdRepository(projDef)
 		idRepository.findNextId()

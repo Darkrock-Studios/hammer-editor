@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +27,7 @@ import kotlin.coroutines.CoroutineContext
 class NotesRepository(
 	projectDef: ProjectDef,
 	private val idRepository: IdRepository,
-	private val projectSynchronizer: ClientProjectSynchronizer,
+	private val syncDataRepository: SyncDataRepository,
 	private val notesDatasource: NotesDatasource,
 ) : ScopeCallback, ProjectScoped {
 
@@ -73,7 +73,7 @@ class NotesRepository(
 	}
 
 	private suspend fun markForSync(id: Int, originalHash: String? = null) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(id)) {
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(id)) {
 			val hash = if (originalHash != null) {
 				originalHash
 			} else {
@@ -84,7 +84,7 @@ class NotesRepository(
 					content = noteContainer.note.content,
 				)
 			}
-			projectSynchronizer.markEntityAsDirty(id, hash)
+			syncDataRepository.markEntityAsDirty(id, hash)
 		}
 	}
 
@@ -115,7 +115,7 @@ class NotesRepository(
 
 	suspend fun deleteNote(id: Int) {
 		notesDatasource.deleteNote(id)
-		projectSynchronizer.recordIdDeletion(id)
+		syncDataRepository.recordIdDeletion(id)
 	}
 
 	suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true) {

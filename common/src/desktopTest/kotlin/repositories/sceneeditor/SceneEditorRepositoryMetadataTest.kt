@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
 import getProject1Def
@@ -36,7 +36,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 
 	@MockK
 	private lateinit var idRepository: IdRepository
@@ -69,7 +69,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 		sceneDatasource = createSceneDatasource(projectDef)
 		return SceneEditorRepository(
 			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -109,9 +109,9 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			)
 		)
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns projectMetadata
-		coEvery { projectSynchronizer.isServerSynchronized() } returns true
-		coEvery { projectSynchronizer.isEntityDirty(any()) } returns false
-		coEvery { projectSynchronizer.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns true
+		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
+		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
 
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
@@ -129,6 +129,6 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 
 		val loaded = repo.loadSceneMetadata(sceneId)
 		assertEquals(newMetadata, loaded)
-		coVerify { projectSynchronizer.markEntityAsDirty(sceneId, any()) }
+		coVerify { syncDataRepository.markEntityAsDirty(sceneId, any()) }
 	}
 }

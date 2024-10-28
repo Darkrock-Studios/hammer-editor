@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -51,7 +51,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
-	private val projectSynchronizer: ClientProjectSynchronizer,
+	private val syncDataRepository: SyncDataRepository,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
@@ -111,7 +111,7 @@ class SceneEditorRepository(
 		get() = sceneTree
 
 	private suspend fun markForSynchronization(scene: SceneItem) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(scene.id)) {
 			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
 			val content = loadSceneMarkdownRaw(scene)
@@ -125,7 +125,7 @@ class SceneEditorRepository(
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
 			)
-			projectSynchronizer.markEntityAsDirty(scene.id, hash)
+			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
 	}
 
@@ -496,7 +496,7 @@ class SceneEditorRepository(
 	}
 
 	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(scene.id)) {
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(scene.id)) {
 			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
 			val hash = EntityHasher.hashScene(
@@ -509,7 +509,7 @@ class SceneEditorRepository(
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
 			)
-			projectSynchronizer.markEntityAsDirty(scene.id, hash)
+			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
 	}
 
@@ -624,7 +624,7 @@ class SceneEditorRepository(
 		// Must grab a copy of the children before they are modified
 		// we'll need this if we need to calculate their original hash
 		// down below for markForSynchronization()
-		val originalChildren = if (projectSynchronizer.isServerSynchronized()) {
+		val originalChildren = if (syncDataRepository.isServerSynchronized()) {
 			parent.children().map { child -> child.value.copy() }
 		} else {
 			null
@@ -810,8 +810,8 @@ class SceneEditorRepository(
 				updateSceneOrder(parentId)
 				Napier.w("Scene ${scene.id} deleted")
 
-				if (projectSynchronizer.isServerSynchronized()) {
-					projectSynchronizer.recordIdDeletion(scene.id)
+				if (syncDataRepository.isServerSynchronized()) {
+					syncDataRepository.recordIdDeletion(scene.id)
 				}
 
 				reloadScenes()
@@ -830,8 +830,8 @@ class SceneEditorRepository(
 		val deleted = sceneDatasource.deleteGroup(scene)
 
 		return if (deleted) {
-			if (projectSynchronizer.isServerSynchronized()) {
-				projectSynchronizer.recordIdDeletion(scene.id)
+			if (syncDataRepository.isServerSynchronized()) {
+				syncDataRepository.recordIdDeletion(scene.id)
 			}
 
 			val sceneNode = getSceneNodeFromId(scene.id)

@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
@@ -29,7 +29,7 @@ class TimeLineRepository(
 ) : ProjectScoped, ScopeCallback {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val dispatcherDefault: CoroutineContext by injectDefaultDispatcher()
 
 	// Get this one eagerly, it's used during Koin teardown when we can't get it from the scope
@@ -128,7 +128,7 @@ class TimeLineRepository(
 		events.removeAt(index)
 		storeAndEmitTimeline(timeline.copy(events = events))
 
-		projectSynchronizer.recordIdDeletion(event.id)
+		syncDataRepository.recordIdDeletion(event.id)
 
 		return true
 	}
@@ -237,7 +237,7 @@ class TimeLineRepository(
 	}
 
 	private suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
 				originalEvent.id
 			)
 		) {
@@ -247,7 +247,7 @@ class TimeLineRepository(
 				content = originalEvent.content,
 				date = originalEvent.date
 			)
-			projectSynchronizer.markEntityAsDirty(originalEvent.id, hash)
+			syncDataRepository.markEntityAsDirty(originalEvent.id, hash)
 		}
 	}
 
