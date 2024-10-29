@@ -52,7 +52,7 @@ moko_resources = "0.24.3"
 moko_graphics = "0.10.0"
 
 decompose = "3.1.0"
-essenty = "2.1.0" # This should match what ever decompose is referncing internally
+essenty = "2.2.1" # This should match what ever decompose is referncing internally
 
 mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
