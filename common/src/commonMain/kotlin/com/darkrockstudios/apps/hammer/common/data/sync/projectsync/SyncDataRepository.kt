@@ -9,7 +9,9 @@ class SyncDataRepository(
 	private val datasource: SyncDataDatasource,
 ) {
 	suspend fun needsSync(): Boolean {
-		return datasource.loadSyncData().dirty.isNotEmpty()
+		datasource.loadSyncData().apply {
+			return (dirty.isNotEmpty() || newIds.isNotEmpty())
+		}
 	}
 
 	suspend fun deletedIds(): Set<Int> {
@@ -27,6 +29,8 @@ class SyncDataRepository(
 	}
 
 	suspend fun markEntityAsDirty(id: Int, oldHash: String) {
+		if (globalSettingsRepository.isServerSynchronized().not()) return
+
 		val syncData = datasource.loadSyncData()
 		val newSyncData = syncData.copy(
 			dirty = syncData.dirty + EntityOriginalState(id, oldHash)

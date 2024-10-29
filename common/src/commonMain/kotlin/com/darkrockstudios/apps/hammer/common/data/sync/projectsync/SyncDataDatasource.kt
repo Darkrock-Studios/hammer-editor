@@ -59,7 +59,7 @@ class SyncDataDatasource(
 	}
 
 	suspend fun createSyncData(): ProjectSynchronizationData {
-		val lastId = idRepository.peekNextId() - 1
+		val lastId = idRepository.peekLastId()
 
 		val missingIds = mutableSetOf<Int>()
 		for (id in 1..lastId) {
@@ -86,6 +86,6 @@ class SyncDataDatasource(
 	}
 
 	companion object {
-		private const val SYNC_FILE_NAME = "sync.json"
+		const val SYNC_FILE_NAME = "sync.json"
 	}
 }
