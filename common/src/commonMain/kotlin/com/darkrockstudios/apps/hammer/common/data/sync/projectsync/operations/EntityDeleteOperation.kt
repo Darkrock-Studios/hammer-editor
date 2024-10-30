@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.requireProjectId
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityDeleteOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState

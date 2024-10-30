@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.requireProjectId
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_END
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_START
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_TOTAL
