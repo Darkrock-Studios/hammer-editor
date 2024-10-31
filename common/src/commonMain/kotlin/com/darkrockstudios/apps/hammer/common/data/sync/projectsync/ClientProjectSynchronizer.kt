@@ -75,7 +75,7 @@ class ClientProjectSynchronizer(
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
 	): Boolean {
-		val initialState = SyncOperationState(onlyNew = onlyNew)
+		val initialState = InitialSyncOperationState(onlyNew = onlyNew)
 		val result = execute(initialState, onProgress, onLog, onConflict, onComplete)
 
 		syncCompleteEvent.trySend(isSuccess(result))

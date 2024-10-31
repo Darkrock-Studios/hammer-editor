@@ -4,18 +4,22 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 
-open class SyncOperationState(val onlyNew: Boolean)
+interface SyncOperationState
 
-open class FetchLocalDataState(
-	onlyNew: Boolean = false,
+data class InitialSyncOperationState(
+	val onlyNew: Boolean
+) : SyncOperationState
+
+data class FetchLocalDataState(
+	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
 	var serverProjectId: ProjectId,
-) : SyncOperationState(onlyNew = onlyNew) {
+) : SyncOperationState {
 
 	companion object {
 		fun fromSyncOperationState(
-			step1: SyncOperationState,
+			step1: InitialSyncOperationState,
 			clientSyncData: ProjectSynchronizationData,
 			entityState: ClientEntityState?,
 			serverProjectId: ProjectId,
@@ -30,18 +34,13 @@ open class FetchLocalDataState(
 	}
 }
 
-open class FetchServerDataState(
-	onlyNew: Boolean = false,
-	clientSyncData: ProjectSynchronizationData,
-	entityState: ClientEntityState?,
-	serverProjectId: ProjectId,
+data class FetchServerDataState(
+	val onlyNew: Boolean,
+	var clientSyncData: ProjectSynchronizationData,
+	var entityState: ClientEntityState?,
+	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
-) : FetchLocalDataState(
-	onlyNew = onlyNew,
-	clientSyncData = clientSyncData,
-	entityState = entityState,
-	serverProjectId = serverProjectId,
-) {
+) : SyncOperationState {
 	companion object {
 		fun fromFetchLocalDataState(
 			fetchLocalDataState: FetchLocalDataState,
@@ -58,20 +57,14 @@ open class FetchServerDataState(
 	}
 }
 
-open class CollateIdsState(
-	onlyNew: Boolean = false,
-	clientSyncData: ProjectSynchronizationData,
-	entityState: ClientEntityState?,
-	serverProjectId: ProjectId,
-	serverSyncData: ProjectSynchronizationBegan,
+data class CollateIdsState(
+	val onlyNew: Boolean,
+	var clientSyncData: ProjectSynchronizationData,
+	var entityState: ClientEntityState?,
+	var serverProjectId: ProjectId,
+	var serverSyncData: ProjectSynchronizationBegan,
 	val collatedIds: CollatedIds,
-) : FetchServerDataState(
-	onlyNew = onlyNew,
-	clientSyncData = clientSyncData,
-	entityState = entityState,
-	serverProjectId = serverProjectId,
-	serverSyncData = serverSyncData,
-) {
+) : SyncOperationState {
 	companion object {
 		fun fromFetchServerDataState(
 			step: FetchServerDataState,
@@ -101,23 +94,16 @@ open class CollateIdsState(
 	)
 }
 
-open class IdConflictResolutionState(
-	onlyNew: Boolean = false,
-	clientSyncData: ProjectSynchronizationData,
-	entityState: ClientEntityState?,
-	serverProjectId: ProjectId,
-	serverSyncData: ProjectSynchronizationBegan,
-	collateIds: CollatedIds,
+data class IdConflictResolutionState(
+	val onlyNew: Boolean,
+	var clientSyncData: ProjectSynchronizationData,
+	var entityState: ClientEntityState?,
+	var serverProjectId: ProjectId,
+	var serverSyncData: ProjectSynchronizationBegan,
+	var collatedIds: CollateIdsState.CollatedIds,
 	var maxId: Int,
 	val newClientIds: List<Int>,
-) : CollateIdsState(
-	onlyNew = onlyNew,
-	clientSyncData = clientSyncData,
-	entityState = entityState,
-	serverProjectId = serverProjectId,
-	serverSyncData = serverSyncData,
-	collatedIds = collateIds,
-) {
+) : SyncOperationState {
 	companion object {
 		fun fromCollateIdsState(
 			oldState: CollateIdsState,
@@ -130,7 +116,7 @@ open class IdConflictResolutionState(
 				entityState = oldState.entityState,
 				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
-				collateIds = oldState.collatedIds,
+				collatedIds = oldState.collatedIds,
 				maxId = maxId,
 				newClientIds = newClientIds,
 			)
@@ -139,24 +125,15 @@ open class IdConflictResolutionState(
 }
 
 open class EntityDeleteOperationState(
-	onlyNew: Boolean = false,
-	clientSyncData: ProjectSynchronizationData,
-	entityState: ClientEntityState?,
-	serverProjectId: ProjectId,
-	serverSyncData: ProjectSynchronizationBegan,
-	collateIds: CollatedIds,
-	maxId: Int,
-	newClientIds: List<Int>,
-) : IdConflictResolutionState(
-	onlyNew = onlyNew,
-	clientSyncData = clientSyncData,
-	entityState = entityState,
-	serverProjectId = serverProjectId,
-	serverSyncData = serverSyncData,
-	collateIds = collateIds,
-	maxId = maxId,
-	newClientIds = newClientIds,
-) {
+	val onlyNew: Boolean,
+	var clientSyncData: ProjectSynchronizationData,
+	var entityState: ClientEntityState?,
+	var serverProjectId: ProjectId,
+	var serverSyncData: ProjectSynchronizationBegan,
+	var collatedIds: CollateIdsState.CollatedIds,
+	var maxId: Int,
+	var newClientIds: List<Int>,
+) : SyncOperationState {
 	companion object {
 		fun fromIdConflictResolution(
 			oldState: IdConflictResolutionState,
@@ -167,7 +144,7 @@ open class EntityDeleteOperationState(
 				entityState = oldState.entityState,
 				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
-				collateIds = oldState.collatedIds,
+				collatedIds = oldState.collatedIds,
 				maxId = oldState.maxId,
 				newClientIds = oldState.newClientIds,
 			)
@@ -175,26 +152,17 @@ open class EntityDeleteOperationState(
 	}
 }
 
-open class EntityTransferState(
-	onlyNew: Boolean = false,
-	clientSyncData: ProjectSynchronizationData,
-	entityState: ClientEntityState?,
-	serverProjectId: ProjectId,
-	serverSyncData: ProjectSynchronizationBegan,
-	collateIds: CollatedIds,
-	maxId: Int,
-	newClientIds: List<Int>,
+data class EntityTransferState(
+	val onlyNew: Boolean,
+	var clientSyncData: ProjectSynchronizationData,
+	var entityState: ClientEntityState?,
+	var serverProjectId: ProjectId,
+	var serverSyncData: ProjectSynchronizationBegan,
+	var collatedIds: CollateIdsState.CollatedIds,
+	var maxId: Int,
+	var newClientIds: List<Int>,
 	val allSuccess: Boolean,
-) : EntityDeleteOperationState(
-	onlyNew = onlyNew,
-	clientSyncData = clientSyncData,
-	entityState = entityState,
-	serverProjectId = serverProjectId,
-	serverSyncData = serverSyncData,
-	collateIds = collateIds,
-	maxId = maxId,
-	newClientIds = newClientIds,
-) {
+) : SyncOperationState {
 	companion object {
 		fun fromEntityDeleteOperationState(
 			oldState: EntityDeleteOperationState,
@@ -206,7 +174,7 @@ open class EntityTransferState(
 				entityState = oldState.entityState,
 				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
-				collateIds = oldState.collatedIds,
+				collatedIds = oldState.collatedIds,
 				maxId = oldState.maxId,
 				newClientIds = oldState.newClientIds,
 				allSuccess = allSuccess,

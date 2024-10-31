@@ -24,6 +24,7 @@ class FetchServerDataOperation(
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
+
 	override suspend fun execute(
 		state: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,

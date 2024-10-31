@@ -9,9 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchLocalDataState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -21,7 +22,7 @@ class FetchLocalDataOperation(
 	projectDef: ProjectDef,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val entitySynchronizers: EntitySynchronizers,
-	private val syncDataDatasource: SyncDataDatasource,
+	private val syncDataRepository: SyncDataRepository,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 
@@ -33,11 +34,13 @@ class FetchLocalDataOperation(
 		onComplete: suspend () -> Unit
 	): CResult<SyncOperationState> {
 		return try {
+			state as InitialSyncOperationState
+
 			val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 			val serverProjectId = metadata.info.serverProjectId
 				?: error("Server project ID missing for: ${projectDef.name}")
 
-			val clientSyncData = syncDataDatasource.loadSyncData()
+			val clientSyncData = syncDataRepository.loadSyncData()
 			val entityState = if (state.onlyNew) {
 				null
 			} else {

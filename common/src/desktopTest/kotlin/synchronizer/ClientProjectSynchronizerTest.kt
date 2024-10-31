@@ -23,11 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.F
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -65,20 +60,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
 
-	@MockK
-	private lateinit var clientSceneSynchronizer: ClientSceneSynchronizer
-
-	@MockK
-	private lateinit var clientNoteSynchronizer: ClientNoteSynchronizer
-
-	@MockK
-	private lateinit var clientTimelineSynchronizer: ClientTimelineSynchronizer
-
-	@MockK
-	private lateinit var clientEncyclopediaSynchronizer: ClientEncyclopediaSynchronizer
-
-	@MockK
-	private lateinit var clientSceneDraftSynchronizer: ClientSceneDraftSynchronizer
+	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
@@ -112,6 +94,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		super.setup()
 		MockKAnnotations.init(this)
 
+		mockSynchronizers = MockSynchronizers(false)
 		strRes = TestStrRes()
 	}
 
@@ -120,11 +103,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			scope<ProjectDefScope> {
 				scoped<ProjectDef> { projectDef }
 
-				scoped { clientSceneSynchronizer }
-				scoped { clientNoteSynchronizer }
-				scoped { clientTimelineSynchronizer }
-				scoped { clientEncyclopediaSynchronizer }
-				scoped { clientSceneDraftSynchronizer }
+				addSynchronizers(mockSynchronizers)
 
 				factory { prepareForSyncOperation }
 				factory { fetchLocalDataOperation }
