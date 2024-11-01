@@ -22,12 +22,18 @@ val metadata = ProjectMetadata(
 )
 
 val projectData = ProjectSynchronizationData(
-	lastId = 10,
-	newIds = listOf(10),
+	lastId = 11,
+	newIds = listOf(11),
 	lastSync = Instant.fromEpochSeconds(123456),
-	dirty = produceEntityStateList(1, 3),
+	dirty = produceEntityStateList(1, 3, 11),
 	deletedIds = setOf(8, 9)
 )
+
+/**
+ * Server deleted ID 7, created ID 11
+ * Client deleted ID 8, 9 created ID 11
+ * Client also dirtied 1, 3, 11
+ */
 
 val entityState = ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10))
 val projId = ProjectId("project-id")
@@ -36,15 +42,15 @@ val beganResponse = ProjectSynchronizationBegan(
 	syncId = "sync-id",
 	lastSync = Instant.fromEpochSeconds(1234567),
 	lastId = 11,
-	idSequence = listOf(1, 4, 5),
-	deletedIds = setOf(8, 11),
+	idSequence = listOf(1, 4, 5, 11),
+	deletedIds = setOf(7),
 )
 
 val collatedIds = CollatedIds(
-	combinedDeletions = setOf(8, 9, 11),
+	combinedDeletions = setOf(7, 8, 9),
 	serverDeletedIds = setOf(11),
 	newlyDeletedIds = setOf(9),
-	dirtyEntities = produceEntityStateList(1, 3).toMutableList(),
+	dirtyEntities = produceEntityStateList(1, 3, 11).toMutableList(),
 )
 
 fun produceEntityHash(id: Int) = EntityHash(id, "hash-$id")

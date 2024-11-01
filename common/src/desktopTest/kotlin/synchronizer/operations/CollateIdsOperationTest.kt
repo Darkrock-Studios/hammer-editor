@@ -77,10 +77,10 @@ class CollateIdsOperationTest : BaseTest() {
 		assertIs<CollateIdsState>(data)
 
 		data.collatedIds.apply {
-			assertEquals(setOf(8, 9, 11), combinedDeletions)
-			assertEquals(setOf(11), serverDeletedIds)
-			assertEquals(setOf(9), newlyDeletedIds)
-			assertEquals(produceEntityStateList(1, 3), dirtyEntities)
+			assertEquals(setOf(7, 8, 9), combinedDeletions)
+			assertEquals(setOf(7), serverDeletedIds)
+			assertEquals(setOf(8, 9), newlyDeletedIds)
+			assertEquals(produceEntityStateList(1, 3, 11), dirtyEntities)
 		}
 	}
 }

@@ -50,7 +50,9 @@ class IdConflictResolutionOperation(
 		}
 
 		val newState = IdConflictResolutionState.fromCollateIdsState(
-			state,
+			state.copy(
+				clientSyncData = resolvedClientSyncData
+			),
 			maxId = maxId,
 			newClientIds = newClientIds,
 		)
@@ -64,7 +66,7 @@ class IdConflictResolutionOperation(
 		onLog: OnSyncLog
 	): ProjectSynchronizationData {
 
-		return if (serverSyncData.lastId > clientSyncData.lastId) {
+		return if (serverSyncData.lastId >= clientSyncData.lastId) {
 			if (clientSyncData.newIds.isNotEmpty()) {
 				var serverLastId = serverSyncData.lastId
 				val updatedNewIds = clientSyncData.newIds.toMutableList()
