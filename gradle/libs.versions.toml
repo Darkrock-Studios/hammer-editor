@@ -11,9 +11,9 @@ kache = "2.1.0"
 kotlin = "2.0.21"
 
 # Android
-android_gradle_plugin = "8.7.1"
-android_sdk_compile = "34"
-android_sdk_target = "34"
+android_gradle_plugin = "8.7.2"
+android_sdk_compile = "35"
+android_sdk_target = "35"
 android_sdk_min = "26"
 
 # Other libraries
@@ -25,7 +25,7 @@ appcompat = "1.7.0"
 appdirs = "1.2.2"
 cache4k = "0.13.0"
 core = "1.6.1"
-coreKtx = "1.13.1"
+coreKtx = "1.15.0"
 cryptohash = "1.0.2"
 darklafCore = "3.0.2"
 glance = "1.1.1"
@@ -45,14 +45,14 @@ serialization = "1.7.3"
 coroutines = "1.9.0"
 datetime = "0.6.1"
 napier = "2.7.1"
-jetbrains_compose = "1.6.11"
+jetbrains_compose = "1.7.0"
 jetbrains_kover = "0.8.3"
 
 moko_resources = "0.24.3"
 moko_graphics = "0.10.0"
 
-decompose = "3.1.0"
-essenty = "2.1.0" # This should match what ever decompose is referncing internally
+decompose = "3.2.1"
+essenty = "2.2.1" # This should match what ever decompose is referncing internally
 
 mpfilepicker = "3.1.0"
 richtexteditor = "1.4.1"
@@ -69,7 +69,7 @@ ktor_i18n = "2.0.0"
 okio = "3.9.1"
 slf4jSimple = "2.0.16"
 turbine = "1.2.0"
-work-runtime-ktx = "2.9.1"
+work-runtime-ktx = "2.10.0"
 
 multiplatform_window_size = "0.5.0"
 mockk = "1.13.13"
