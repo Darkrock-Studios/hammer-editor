@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import getProjectDef
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
@@ -19,9 +18,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.module
-import synchronizer.MockSynchronizers
-import synchronizer.addSynchronizers
 import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -29,8 +25,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class CollateIdsOperationTest : BaseTest() {
-
-	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK(relaxed = true)
 	private lateinit var syncDataDatasource: SyncDataDatasource
@@ -43,21 +37,9 @@ class CollateIdsOperationTest : BaseTest() {
 		MockKAnnotations.init(this)
 
 		strRes = TestStrRes()
-		mockSynchronizers = MockSynchronizers(false)
-	}
-
-	private fun configureKoin(projectDef: ProjectDef) {
-		setupKoin(module {
-			scope<ProjectDefScope> {
-				scoped<ProjectDef> { projectDef }
-
-				addSynchronizers(mockSynchronizers)
-			}
-		})
 	}
 
 	private fun createOperation(projectDef: ProjectDef): CollateIdsOperation {
-		configureKoin(projectDef)
 		return CollateIdsOperation(
 			projectDef = projectDef,
 			strRes = strRes,

@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState.CollatedIds
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import kotlinx.datetime.Instant
@@ -37,6 +38,13 @@ val beganResponse = ProjectSynchronizationBegan(
 	lastId = 11,
 	idSequence = listOf(1, 4, 5),
 	deletedIds = setOf(8, 11),
+)
+
+val collatedIds = CollatedIds(
+	combinedDeletions = setOf(8, 9, 11),
+	serverDeletedIds = setOf(11),
+	newlyDeletedIds = setOf(9),
+	dirtyEntities = produceEntityStateList(1, 3).toMutableList(),
 )
 
 fun produceEntityHash(id: Int) = EntityHash(id, "hash-$id")
