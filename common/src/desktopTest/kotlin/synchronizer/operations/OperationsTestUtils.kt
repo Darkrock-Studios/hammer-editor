@@ -31,6 +31,7 @@ val projectData = ProjectSynchronizationData(
 
 /**
  * Server deleted ID 7, created ID 11
+ * Server also dirtied 3, 4
  * Client deleted ID 8, 9 created ID 11
  * Client also dirtied 1, 3, 11
  */
@@ -42,7 +43,7 @@ val beganResponse = ProjectSynchronizationBegan(
 	syncId = "sync-id",
 	lastSync = Instant.fromEpochSeconds(1234567),
 	lastId = 11,
-	idSequence = listOf(1, 4, 5, 11),
+	idSequence = listOf(1, 3, 4, 11),
 	deletedIds = setOf(7),
 )
 
