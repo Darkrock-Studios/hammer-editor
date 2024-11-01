@@ -4,7 +4,7 @@ import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -38,7 +38,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
-	lateinit var projectSynchronizer: ClientProjectSynchronizer
+	lateinit var syncDataRepository: SyncDataRepository
 	lateinit var datasource: TimeLineDatasource
 
 	@BeforeEach
@@ -47,11 +47,11 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		projectSynchronizer = mockk()
+		syncDataRepository = mockk()
 		datasource = TimeLineDatasource(ffs, toml)
 
 		val testModule = module {
-			single { projectSynchronizer }
+			single { syncDataRepository }
 		}
 		setupKoin(testModule)
 	}
@@ -140,7 +140,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with new event`() = runTest {
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -196,7 +196,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with updated event`() = runTest {
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)

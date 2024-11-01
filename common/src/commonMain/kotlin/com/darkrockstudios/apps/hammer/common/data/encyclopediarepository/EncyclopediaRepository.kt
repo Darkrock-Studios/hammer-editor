@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -32,7 +32,7 @@ class EncyclopediaRepository(
 	private val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val datasource: EncyclopediaDatasource,
-	private val projectSynchronizer: ClientProjectSynchronizer
+	private val syncDataRepository: SyncDataRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -123,7 +123,7 @@ class EncyclopediaRepository(
 	}
 
 	private suspend fun markForSynchronization(entryDef: EntryDef) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
 				entryDef.id
 			)
 		) {
@@ -148,7 +148,7 @@ class EncyclopediaRepository(
 				tags = entry.tags,
 				image = image
 			)
-			projectSynchronizer.markEntityAsDirty(entryDef.id, hash)
+			syncDataRepository.markEntityAsDirty(entryDef.id, hash)
 		}
 	}
 
@@ -188,7 +188,7 @@ class EncyclopediaRepository(
 
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		datasource.deleteEntry(entryDef)
-		projectSynchronizer.recordIdDeletion(entryDef.id)
+		syncDataRepository.recordIdDeletion(entryDef.id)
 		return true
 	}
 

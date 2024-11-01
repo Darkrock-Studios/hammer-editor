@@ -77,12 +77,12 @@ class ProjectMetadataDatasource(
 
 		return newMetadata
 	}
-}
 
-fun ProjectMetadataDatasource.loadProjectId(projectDef: ProjectDef): ProjectId? {
-	return loadMetadata(projectDef).info.serverProjectId
-}
+	fun loadProjectId(projectDef: ProjectDef): ProjectId? {
+		return loadMetadata(projectDef).info.serverProjectId
+	}
 
-fun ProjectMetadataDatasource.requireProjectId(projectDef: ProjectDef): ProjectId {
-	return loadProjectId(projectDef) ?: error("Project has no server project id")
+	fun requireProjectId(projectDef: ProjectDef): ProjectId {
+		return loadProjectId(projectDef) ?: error("Project has no server project id")
+	}
 }

@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -47,7 +47,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 
 	@MockK
 	private lateinit var idRepository: IdRepository
@@ -68,9 +68,9 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		setupKoin()
 
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns mockk(relaxed = true)
-		coEvery { projectSynchronizer.isServerSynchronized() } returns false
-		coEvery { projectSynchronizer.isEntityDirty(any()) } returns false
-		coEvery { projectSynchronizer.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
+		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
 	}
 
 	private fun createDatasource(projectDef: ProjectDef): SceneMetadataDatasource {
@@ -86,7 +86,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		sceneDatasource = createSceneDatasource(projectDef)
 		return SceneEditorRepository(
 			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,

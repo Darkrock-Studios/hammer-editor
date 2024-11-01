@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -45,7 +45,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var idRepository: IdRepository
@@ -104,8 +104,8 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
-		projectSynchronizer = mockk()
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		syncDataRepository = mockk()
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		metadataRepository = mockk(relaxed = true)
 		metadataDatasource = mockk(relaxed = true)
@@ -135,7 +135,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,
