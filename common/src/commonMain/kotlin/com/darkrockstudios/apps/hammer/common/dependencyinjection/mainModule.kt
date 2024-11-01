@@ -30,6 +30,18 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
@@ -133,11 +145,27 @@ val mainModule = module {
 		scopedOf(::TimeLineDatasource)
 		scopedOf(::TimeLineRepository)
 
-		scopedOf(::ClientProjectSynchronizer)
+		scopedOf(::SyncDataDatasource)
+
 		scopedOf(::ClientSceneSynchronizer)
 		scopedOf(::ClientNoteSynchronizer)
 		scopedOf(::ClientTimelineSynchronizer)
 		scopedOf(::ClientEncyclopediaSynchronizer)
 		scopedOf(::ClientSceneDraftSynchronizer)
+
+		factoryOf(::PrepareForSyncOperation)
+		factoryOf(::FetchLocalDataOperation)
+		factoryOf(::FetchServerDataOperation)
+		factoryOf(::CollateIdsOperation)
+		factoryOf(::BackupOperation)
+		factoryOf(::IdConflictResolutionOperation)
+		factoryOf(::EntityDeleteOperation)
+		factoryOf(::EntityTransferOperation)
+		factoryOf(::FinalizeSyncOperation)
+
+		scopedOf(::SyncDataRepository)
+		scopedOf(::ClientProjectSynchronizer)
+
+		scopedOf(::EntitySynchronizers)
 	}
 }

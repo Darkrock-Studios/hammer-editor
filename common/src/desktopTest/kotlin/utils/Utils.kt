@@ -1,5 +1,9 @@
 package utils
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.functions
@@ -31,4 +35,18 @@ fun <T : Any, R> T.getPrivateProperty(variableName: String): R {
 		field.isAccessible = false
 		return@let value
 	} ?: throw IllegalArgumentException("Field not found: $variableName")
+}
+
+suspend fun <T> sharedFlow(
+	replay: Int = 1,
+	extraBufferCapacity: Int = 1,
+	block: suspend MutableSharedFlow<T>.() -> Unit
+): SharedFlow<T> {
+	val flow = MutableSharedFlow<T>(replay = replay, extraBufferCapacity = extraBufferCapacity)
+	coroutineScope {
+		launch {
+			block(flow)
+		}
+	}
+	return flow
 }

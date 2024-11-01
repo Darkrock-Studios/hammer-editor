@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlinx.datetime.Clock
@@ -23,7 +23,7 @@ class SceneDraftRepository(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val idRepository: IdRepository by projectInject()
-	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val syncDataRepository: SyncDataRepository by projectInject()
 
 	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
 	fun getSceneIdsThatHaveDrafts(): List<Int> = datasource.getSceneIdsThatHaveDrafts()
@@ -76,14 +76,17 @@ class SceneDraftRepository(
 	 * But I'm leaving it here just in case we need it at some point.
 	 */
 	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
-		if (projectSynchronizer.isServerSynchronized() && !projectSynchronizer.isEntityDirty(originalDef.id)) {
+		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
+				originalDef.id
+			)
+		) {
 			val hash = EntityHasher.hashSceneDraft(
 				id = originalDef.id,
 				created = originalDef.draftTimestamp,
 				name = originalDef.draftName,
 				content = originalContent,
 			)
-			projectSynchronizer.markEntityAsDirty(originalDef.id, hash)
+			syncDataRepository.markEntityAsDirty(originalDef.id, hash)
 		}
 	}
 }

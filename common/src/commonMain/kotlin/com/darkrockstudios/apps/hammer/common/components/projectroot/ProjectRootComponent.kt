@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -26,7 +26,7 @@ class ProjectRootComponent(
 	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
-	private val synchronizer: ClientProjectSynchronizer by projectInject()
+	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private val _backEnabled = MutableValue(true)
@@ -145,7 +145,7 @@ class ProjectRootComponent(
 
 			list.addAll(router.shouldConfirmClose())
 
-			if (synchronizer.shouldAutoSync()) {
+			if (syncDataRepository.shouldAutoSync()) {
 				list.add(CloseConfirm.Sync)
 			}
 
@@ -171,7 +171,7 @@ class ProjectRootComponent(
 	}
 
 	private fun addMenuItems() {
-		if (synchronizer.isServerSynchronized()) {
+		if (syncDataRepository.isServerSynchronized()) {
 			addMenu(
 				MenuDescriptor(
 					id = "project-root-sync",
@@ -191,7 +191,7 @@ class ProjectRootComponent(
 	}
 
 	private fun removeMenuItems() {
-		if (synchronizer.isServerSynchronized()) {
+		if (syncDataRepository.isServerSynchronized()) {
 			removeMenu("project-root-sync")
 		}
 	}

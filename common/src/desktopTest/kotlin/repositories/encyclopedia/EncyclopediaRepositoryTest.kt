@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -47,7 +47,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
-	lateinit var projectSynchronizer: ClientProjectSynchronizer
+	lateinit var syncDataRepository: SyncDataRepository
 
 	lateinit var datasource: EncyclopediaDatasource
 
@@ -62,7 +62,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 		setupKoin()
 
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		every { syncDataRepository.isServerSynchronized() } returns false
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
@@ -79,7 +79,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepository,
 			datasource = datasource,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository
 		)
 	}
 
@@ -202,7 +202,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete Entry`() = runTest {
 		val deletionIdSlot = slot<Int>()
-		coEvery { projectSynchronizer.recordIdDeletion(capture(deletionIdSlot)) } just Runs
+		coEvery { syncDataRepository.recordIdDeletion(capture(deletionIdSlot)) } just Runs
 
 		val repo = createRepository()
 		val deleted = repo.deleteEntry(entry1().toDef(projDef))
@@ -211,7 +211,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val path = datasource.getEntryPath(entry1().toDef(projDef)).toOkioPath()
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
-		coVerify { projectSynchronizer.recordIdDeletion(any()) }
+		coVerify { syncDataRepository.recordIdDeletion(any()) }
 	}
 
 	@Test

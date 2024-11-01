@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -38,7 +38,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var projectPath: HPath
 	private lateinit var scenesPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var projectSynchronizer: ClientProjectSynchronizer
+	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
 	private lateinit var idRepository: IdRepository
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
@@ -119,8 +119,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			path = projectPath
 		)
 
-		projectSynchronizer = mockk()
-		every { projectSynchronizer.isServerSynchronized() } returns false
+		syncDataRepository = mockk()
+		every { syncDataRepository.isServerSynchronized() } returns false
 
 		setupKoin()
 		sceneDatasource = SceneDatasource(projectDef, ffs)
@@ -135,7 +135,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private fun createRepository(): SceneEditorRepository {
 		return SceneEditorRepository(
 			projectDef = projectDef,
-			projectSynchronizer = projectSynchronizer,
+			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,

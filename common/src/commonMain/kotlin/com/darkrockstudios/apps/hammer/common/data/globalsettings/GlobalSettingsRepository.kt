@@ -64,6 +64,8 @@ class GlobalSettingsRepository(
 		}
 	}
 
+	fun isServerSynchronized(): Boolean = (serverSettings != null)
+
 	private fun dispatchSettingsUpdate(settings: GlobalSettings) {
 		globalSettings = settings
 		_globalSettingsUpdates.tryEmit(settings)
@@ -86,6 +88,11 @@ class GlobalSettingsRepository(
 	private fun dispatchServerSettingsUpdate(settings: ServerSettings?) {
 		serverSettings = settings
 		_serverSettingsUpdates.tryEmit(settings)
+	}
+
+	suspend fun userIdOrThrow(): Long {
+		return serverSettingsUpdates.first()?.userId
+			?: throw IllegalStateException("Server settings missing")
 	}
 
 	companion object {
