@@ -31,6 +31,7 @@ class FinalizeSyncOperation(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val syncDataDatasource: SyncDataDatasource,
 ) : SyncOperation(projectDef) {
+
 	override suspend fun execute(
 		state: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,

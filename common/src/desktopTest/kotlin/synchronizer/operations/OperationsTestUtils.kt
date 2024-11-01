@@ -50,7 +50,7 @@ val collatedIds = CollatedIds(
 	combinedDeletions = setOf(7, 8, 9),
 	serverDeletedIds = setOf(11),
 	newlyDeletedIds = setOf(9),
-	dirtyEntities = produceEntityStateList(1, 3, 11).toMutableList(),
+	dirtyEntities = produceEntityStateList(1, 3, 9, 11).toMutableList(),
 )
 
 fun produceEntityHash(id: Int) = EntityHash(id, "hash-$id")
