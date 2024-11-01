@@ -7,12 +7,10 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchLocalDataState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
@@ -25,7 +23,6 @@ import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -83,17 +80,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 	@Test
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-
-		val projectData = ProjectSynchronizationData(
-			lastId = 10,
-			newIds = listOf(10),
-			lastSync = Instant.fromEpochSeconds(123456),
-			dirty = listOf(
-				EntityOriginalState(1, "old-hash-1"),
-				EntityOriginalState(3, "old-hash-3"),
-			),
-			deletedIds = setOf(8, 9)
-		)
 
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 		coEvery { syncDataRepository.loadSyncData() } returns projectData

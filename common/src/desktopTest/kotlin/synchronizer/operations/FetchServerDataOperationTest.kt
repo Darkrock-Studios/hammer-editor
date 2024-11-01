@@ -1,10 +1,7 @@
 package synchronizer.operations
 
 import PROJECT_2_NAME
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
-import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -14,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConfli
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchLocalDataState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchServerDataState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -26,7 +22,6 @@ import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -85,28 +80,10 @@ class FetchServerDataOperationTest : BaseTest() {
 		)
 	}
 
-	val projectData = ProjectSynchronizationData(
-		lastId = 10,
-		newIds = listOf(10),
-		lastSync = Instant.fromEpochSeconds(123456),
-		dirty = produceEntityStateList(1, 3),
-		deletedIds = setOf(8, 9)
-	)
-
-	val entityState = ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10))
-	val projId = ProjectId("project-id")
-
 	@Test
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		val beganResponse = ProjectSynchronizationBegan(
-			syncId = "sync-id",
-			lastSync = Instant.fromEpochSeconds(1234567),
-			lastId = 11,
-			idSequence = listOf(1, 4, 5),
-			deletedIds = setOf(8, 9, 11),
-		)
 		coEvery {
 			serverProjectApi.beginProjectSync(
 				any(),
