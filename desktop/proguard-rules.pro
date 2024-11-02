@@ -1,9 +1,12 @@
 -dontobfuscate
 
+# These are a stop gap, very dumb
 -keep public class *.** { *; }
+-keep class *.** { *; }
+-keep interface *.** { *; }
 -keep public class com.darkrockstudios.** { *; }
 
--keepclasseswithmembers public class MainKt {
+-keepclasseswithmembers public class com.darkrockstudios.apps.hammer.desktop.MainKt {
     public static void main(java.lang.String[]);
 }
 
@@ -62,3 +65,11 @@
 
 # Animal Sniffer compileOnly dependency to ensure APIs are compatible with older versions of Java.
 -dontwarn org.codehaus.mojo.animal_sniffer.*
+
+# Logging
+-keep class io.github.aakira.napier.** { *; }
+-dontwarn org.slf4j.**
+-assumenosideeffects class org.slf4j.Logger {
+    public void trace(...);
+    public void debug(...);
+}
