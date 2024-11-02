@@ -1,0 +1,3 @@
+- Major refactor of the client syncing code
+Dozens of bugs squashed and thousands of lines of test code written
+- Major UI library update should improve performance
