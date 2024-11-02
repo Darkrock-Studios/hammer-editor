@@ -1,5 +1,7 @@
 -dontobfuscate
 
+-keep class io.github.aakira.napier.** { *; }
+
 # Keep `Companion` object fields of serializable classes.
 # This avoids serializer lookup through `getDeclaredClasses` as done for named companion objects.
 -if @kotlinx.serialization.Serializable class **
@@ -27,7 +29,11 @@
 # @Serializable and @Polymorphic are used at runtime for polymorphic serialization.
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault
 
--dontwarn org.slf4j.impl.StaticLoggerBinder
+-dontwarn org.slf4j.**
+-assumenosideeffects class org.slf4j.Logger {
+    public void trace(...);
+    public void debug(...);
+}
 
 # Serializer for classes with named companion objects are retrieved using `getDeclaredClasses`.
 # If you have any, uncomment and replace classes with those containing named companion objects.
