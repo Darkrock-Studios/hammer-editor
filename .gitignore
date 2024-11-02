@@ -55,3 +55,6 @@ play_config.json
 fastlane/report.xml
 fastlane/README.md
 .kotlin
+
+# Release artifacts
+/android/release/
