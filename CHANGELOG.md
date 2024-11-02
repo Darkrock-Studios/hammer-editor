@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.2] - 2024-11-2
+
+- Fixed Android minify crashes, the binary is now 60% smaller!
+
+
 ## [1.9.1] - 2024-11-2
 
 - Disable Android obfuscation
