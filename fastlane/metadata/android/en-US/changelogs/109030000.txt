@@ -1,0 +1,1 @@
+- Fixed Android minify crashes, the binary is now 60% smaller!
