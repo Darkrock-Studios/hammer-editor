@@ -60,13 +60,22 @@ class IdConflictResolutionOperation(
 		return CResult.success(newState)
 	}
 
+	private fun calculateLastClientIdWithoutNewIds(clientSyncData: ProjectSynchronizationData): Int {
+		return if (clientSyncData.newIds.isNotEmpty()) {
+			clientSyncData.newIds.min() - 1
+		} else {
+			clientSyncData.lastId
+		}
+	}
+
 	private suspend fun handleIdConflicts(
 		clientSyncData: ProjectSynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
 		onLog: OnSyncLog
 	): ProjectSynchronizationData {
 
-		return if (serverSyncData.lastId >= clientSyncData.lastId) {
+		val lastClientIdWithoutNew = calculateLastClientIdWithoutNewIds(clientSyncData)
+		return if (serverSyncData.lastId > lastClientIdWithoutNew) {
 			if (clientSyncData.newIds.isNotEmpty()) {
 				var serverLastId = serverSyncData.lastId
 				val updatedNewIds = clientSyncData.newIds.toMutableList()
