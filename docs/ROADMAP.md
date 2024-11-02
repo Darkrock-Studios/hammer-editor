@@ -4,7 +4,7 @@ _**Note:** This is a one-man side project, so development velocity is slow and u
 nothing
 on here is a guaranteed, and I can't be sure when any of it will actually happen._
 
-## Near-term
+## ~~Near-term~~ ✅
 
 - ~~**Client/Server syncing stabilization:** There's no known bugs, but this is by far the most likely feature to cause
   user data loss, so it must be rock solid~~
@@ -29,7 +29,7 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 	- Allow more characters to be used in the name
 	- ~~Allow tag removal, addition after creation~~
 	- ~~Tag search in encyclopedia browser~~
-- More unit testing across the board
+- ~~More unit testing across the board~~
 - ~~Release for **MacOS**~~
 - ~~**Outlines:** write a short outline for each scene. Be able to see an overview of your story by
   reading only your
