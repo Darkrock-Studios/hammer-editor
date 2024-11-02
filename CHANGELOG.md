@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0] - 2024-11-1
+
+- Major refactor of the client syncing code
+Dozens of bugs squashed and thousands of lines of test code written
+- Major UI library update should improve performance
+
+
 ## [1.8.1] - 2024-10-8
 
 - Removed ability to store files in public storage for Android
