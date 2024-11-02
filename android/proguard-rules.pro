@@ -25,6 +25,8 @@
 # @Serializable and @Polymorphic are used at runtime for polymorphic serialization.
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault
 
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+
 # Serializer for classes with named companion objects are retrieved using `getDeclaredClasses`.
 # If you have any, uncomment and replace classes with those containing named companion objects.
 #-keepattributes InnerClasses # Needed for `getDeclaredClasses`.
