@@ -95,7 +95,11 @@ compose.desktop {
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
 
 		buildTypes.release.proguard {
+			version.set("7.6.0")
 			isEnabled.set(false)
+			obfuscate.set(false)
+			optimize.set(true)
+			//joinOutputJars.set(true)
 			configurationFiles.from("proguard-rules.pro")
 		}
 	}
