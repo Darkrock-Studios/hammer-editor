@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.1] - 2024-11-2
+
+- Disable Android obfuscation
+
+
 ## [1.9.0] - 2024-11-1
 
 - Major refactor of the client syncing code
