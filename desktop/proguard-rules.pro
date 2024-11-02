@@ -1,3 +1,5 @@
+-dontobfuscate
+
 -keep public class *.** { *; }
 -keep public class com.darkrockstudios.** { *; }
 
