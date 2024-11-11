@@ -129,6 +129,8 @@ These are Project level `syncID`s. Account syncing use separate Account level `s
 ### Entity Update Sequence
 The server will inspect the provided ClientState, and then return a sequence of Entity IDs. Those and only those IDs should be synchronized by the client, and in that order.
 
+### Remote Entity Deletion
+The last step befor individual Entity synchronization can begin is having the Client notify the server of any locally deleted Entities.
 
 ```mermaid
 sequenceDiagram
