@@ -6,10 +6,12 @@ uses.
 
 ## Two levels of syncing
 
-**Account Sync** This synchronizes what projects the Account has, creating or deleting just the top
-level directories on the client
+**Account Sync:** This synchronizes what projects the Account has, creating, deleting, or renaming
+just the top level directories on the client
 
-**Project Sync** This synchronizes an individual project and all of it's Entities
+**Project Sync:** This synchronizes an individual project and all of it's Entities
+
+---
 
 ## Account Sync Protocol
 
@@ -96,6 +98,8 @@ sequenceDiagram
 
 ```
 
+---
+
 ## Project Sync Protocol
 
 ## Goal
@@ -156,8 +160,8 @@ sequenceDiagram
     rect rgb(11, 0, 74)
         loop Transfer Entities
         Note right of Client: See breakout section for details
-            Client->>Server: 
-            Server->>Client: 
+			Client ->> Server: [various]
+			Server ->> Client: [various]
         end
     end
 
