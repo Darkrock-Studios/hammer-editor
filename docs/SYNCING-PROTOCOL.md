@@ -201,7 +201,7 @@ sequenceDiagram
 The client has determined that it needs to upload the local Client copy of an Entity. This is either because the server is missing the entity, or the client has a dirty copy that needs to be synchronized.
 
 #### No conflict
-In the nominal case, the server will accept the incoming entity, and simply overwrite the Server's own copy with it. The server knows this is safe to due because it compares the Server copy's hash, with the provided `original hash`. If they match, the Server knows that the Client was editing the same copy which the server will now replace.
+In the nominal case, the server will accept the incoming entity, and simply overwrite the Server's own copy with it. The server knows this is safe to do so because it compares the Server copy's hash, with the provided `original hash`. If they match, the Server knows that the Client was editing the same copy which the server will now replace.
 ```mermaid
 sequenceDiagram
     participant Client
@@ -220,7 +220,7 @@ sequenceDiagram
 #### Conflict detected
 In the case where the Sever and Client's `original hash` do no match, there is a conflict.
 
-The server infers from this that the client was editing a different version of the Entity that what the server now has. This is probably because a different client uploaded an independent edit of the Entity.
+The server infers from this that the client was editing a different version of the Entity than what the server now has. This is probably because a different client uploaded an independent edit of the Entity.
 
 The server will respond with it's copy of the Entity and require the Client to resolve the conflict by resubmitting the upload with `force=true` set.
 ```mermaid
@@ -248,7 +248,7 @@ sequenceDiagram
 	activate Client
 	Note left of Server: SaveEntityResponse
 ```
-Note that the resolved `ApiProjectEntity` in the `force` request does not have to be exclusively the Client's or Server's, it can be a merging between the two that the client helped the user create.
+Note that the resolved `ApiProjectEntity` in the `force` request does not have to be exclusively the Client's or Server's copy, it can be a merging between the two that the client helped the user create.
 
 ## Client Operations Sequence 
 Beyond the network side of the Protocol, the Client is doing a bit of work to ensure data loss is not possible, and to work out what should be done with the minimal book keeping data it has.
