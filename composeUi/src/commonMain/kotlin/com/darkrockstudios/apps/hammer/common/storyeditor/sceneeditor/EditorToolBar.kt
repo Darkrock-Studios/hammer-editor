@@ -5,43 +5,83 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.richtexteditor.model.RichTextValue
-import com.darkrockstudios.richtexteditor.model.Style
+import com.darkrockstudios.texteditor.markdown.MarkdownStyles
+import com.darkrockstudios.texteditor.state.TextEditorState
+import com.darkrockstudios.texteditor.state.getSpanStylesAtPosition
+import com.darkrockstudios.texteditor.state.getSpanStylesInRange
+
+val BOLD = MarkdownStyles.BOLD
+val ITALICS = MarkdownStyles.ITALICS
 
 @Composable
 fun EditorToolBar(
-	sceneText: RichTextValue,
-	setSceneText: (RichTextValue) -> Unit,
+	state: TextEditorState,
 	decreaseTextSize: () -> Unit,
 	increaseTextSize: () -> Unit,
 	resetTextSize: () -> Unit,
 ) {
+	var isBoldActive by remember { mutableStateOf(false) }
+	var isItalicActive by remember { mutableStateOf(false) }
+
+	LaunchedEffect(Unit) {
+		state.cursorPositionFlow.collect { position ->
+			val selection = state.selector.selection
+			val styles = if (selection != null) {
+				state.getSpanStylesInRange(selection)
+			} else {
+				state.getSpanStylesAtPosition(position)
+			}
+
+			isBoldActive = styles.contains(BOLD)
+			isItalicActive = styles.contains(ITALICS)
+		}
+	}
+
 	Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 		EditorAction(
 			iconRes = MR.images.icon_bold,
-			active = sceneText.currentStyles.contains(Style.Bold),
+			active = isBoldActive,
 		) {
-			setSceneText(sceneText.insertStyle(Style.Bold))
+			state.selector.selection?.let { range ->
+				if (isBoldActive) {
+					state.removeStyleSpan(range, BOLD)
+				} else {
+					state.addStyleSpan(range, BOLD)
+				}
+				isBoldActive = !isBoldActive
+			}
 		}
 		EditorAction(
 			iconRes = MR.images.icon_italic,
-			active = sceneText.currentStyles.contains(Style.Italic),
+			active = isItalicActive,
 		) {
-			setSceneText(sceneText.insertStyle(Style.Italic))
+			state.selector.selection?.let { range ->
+				if (isItalicActive) {
+					state.removeStyleSpan(range, ITALICS)
+				} else {
+					state.addStyleSpan(range, ITALICS)
+				}
+			}
+			isItalicActive = !isItalicActive
 		}
 		EditorAction(
 			iconRes = MR.images.icon_undo,
-			active = sceneText.isUndoAvailable
+			active = state.canUndo
 		) {
-			setSceneText(sceneText.undo())
+			state.undo()
 		}
 		EditorAction(
 			iconRes = MR.images.icon_redo,
-			active = sceneText.isRedoAvailable
+			active = state.canRedo
 		) {
-			setSceneText(sceneText.redo())
+			state.redo()
 		}
 
 		EditorAction(

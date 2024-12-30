@@ -1,14 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.focusmode
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -18,22 +30,22 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.richtexteditor.ui.RichTextEditor
-import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
+import com.darkrockstudios.texteditor.TextEditor
+import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
 @Composable
 fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
-	var sceneText by remember {
-		mutableStateOf(
-			getInitialEditorContent(state.sceneBuffer?.content)
-		)
-	}
+	val textEditorState = rememberTextEditorState(
+		initialText = getInitialEditorContent(state.sceneBuffer?.content)
+	)
 
-	LaunchedEffect(lastForceUpdate) {
-		sceneText = getInitialEditorContent(state.sceneBuffer?.content)
+	LaunchedEffect(Unit) {
+		textEditorState.editOperations.collect { operation ->
+			component.onContentChanged(ComposeRichText(textEditorState))
+		}
 	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
@@ -62,8 +74,7 @@ fun FocusModeUi(component: FocusMode) {
 		}
 
 		EditorToolBar(
-			sceneText = sceneText,
-			setSceneText = { sceneText = it },
+			state = textEditorState,
 			decreaseTextSize = component::decreaseTextSize,
 			increaseTextSize = component::increaseTextSize,
 			resetTextSize = component::resetTextSize,
@@ -73,25 +84,13 @@ fun FocusModeUi(component: FocusMode) {
 			modifier = Modifier.fillMaxSize(),
 			horizontalArrangement = Arrangement.Center
 		) {
-			RichTextEditor(
+			TextEditor(
+				state = textEditorState,
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 					.fillMaxHeight()
 					.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH)
 					.padding(horizontal = Ui.Padding.XL),
-				value = sceneText,
-				onValueChange = { rtv ->
-					sceneText = rtv
-					component.onContentChanged(ComposeRichText(rtv.getLastSnapshot()))
-				},
-				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = MR.strings.scene_editor_body_placeholder.get(),
-					textColor = MaterialTheme.colorScheme.onSurface,
-					placeholderColor = MaterialTheme.colorScheme.onSurface,
-					textStyle = MaterialTheme.typography.bodyLarge.copy(
-						fontSize = state.textSize.sp
-					),
-				),
 			)
 		}
 	}
