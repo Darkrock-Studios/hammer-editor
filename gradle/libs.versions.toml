@@ -90,6 +90,7 @@ multiplatform_settings = "1.2.0"
 korge-core = "5.4.0"
 
 moko-permissions = "0.18.1"
+compose-texteditor = "0.1.0"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -244,6 +245,9 @@ korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "k
 
 moko-permissions = { group = "dev.icerock.moko", name = "permissions", version.ref = "moko-permissions" }
 moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-compose", version.ref = "moko-permissions" }
+
+compose-texteditor = { group = "com.darkrockstudios", name = "composetexteditor", version.ref = "compose-texteditor" }
+compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "composetexteditorspellcheck", version.ref = "compose-texteditor" }
 
 #################
 # These were added automatically, do we really need them?

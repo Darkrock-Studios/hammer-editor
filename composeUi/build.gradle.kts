@@ -56,7 +56,7 @@ kotlin {
 				api(libs.moko.resources.compose)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
-				implementation(libs.composericheditor)
+				implementation(libs.compose.texteditor.spellcheck)
 			}
 		}
 		val commonTest by getting {
