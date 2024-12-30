@@ -57,6 +57,7 @@ kotlin {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
 				implementation(libs.compose.texteditor.spellcheck)
+				implementation(libs.symspellkt)
 			}
 		}
 		val commonTest by getting {

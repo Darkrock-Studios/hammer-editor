@@ -40,8 +40,8 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
-import com.darkrockstudios.texteditor.TextEditor
-import com.darkrockstudios.texteditor.state.rememberTextEditorState
+import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
+import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -53,13 +53,14 @@ fun SceneEditorUi(
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
-	val textEditorState = rememberTextEditorState(
+	val textEditorState = rememberSpellCheckState(
+		spellChecker = state.spellChecker,
 		initialText = getInitialEditorContent(state.sceneBuffer?.content)
 	)
 
 	LaunchedEffect(Unit) {
-		textEditorState.editOperations.collect { operation ->
-			component.onContentChanged(ComposeRichText(textEditorState))
+		textEditorState.textState.editOperations.collect { operation ->
+			component.onContentChanged(ComposeRichText(textEditorState.textState))
 		}
 	}
 
@@ -72,7 +73,7 @@ fun SceneEditorUi(
 			EditorTopBar(component, rootSnackbar)
 
 			EditorToolBar(
-				state = textEditorState,
+				state = textEditorState.textState,
 				decreaseTextSize = component::decreaseTextSize,
 				increaseTextSize = component::increaseTextSize,
 				resetTextSize = component::resetTextSize,
@@ -83,7 +84,7 @@ fun SceneEditorUi(
 				modifier = Modifier.fillMaxSize(),
 				horizontalArrangement = Arrangement.Center
 			) {
-				TextEditor(
+				SpellCheckingTextEditor(
 					state = textEditorState,
 					modifier = Modifier
 						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))

@@ -250,9 +250,9 @@ moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-com
 compose-texteditor = { group = "com.darkrockstudios", name = "composetexteditor", version.ref = "compose-texteditor" }
 compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "composetexteditorspellcheck", version.ref = "compose-texteditor" }
 
-fdic = { group = "com.darkrockstudios", name = "fdic", version.ref = "symspellkt" }
-symspellkt = { group = "com.darkrockstudios", name = "symspellkt", version.ref = "symspellkt" }
-symspellkt-fdic = { group = "com.darkrockstudios", name = "symspellfdic", version.ref = "symspellkt" }
+symspellkt = { module = "com.darkrockstudios:symspellkt", version.ref = "symspellkt" }
+fdic = { module = "com.darkrockstudios:fdic", version.ref = "symspellkt" }
+symspellkt-fdic = { module = "com.darkrockstudios:symspellktfdic", version.ref = "symspellkt" }
 
 #################
 # These were added automatically, do we really need them?
