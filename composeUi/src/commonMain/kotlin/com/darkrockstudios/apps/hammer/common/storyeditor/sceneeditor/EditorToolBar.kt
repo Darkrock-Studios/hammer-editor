@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -11,10 +12,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.texteditor.markdown.MarkdownStyles
 import com.darkrockstudios.texteditor.state.TextEditorState
-import com.darkrockstudios.texteditor.state.getSpanStylesAtPosition
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
 
 val BOLD = MarkdownStyles.BOLD
@@ -31,12 +32,11 @@ fun EditorToolBar(
 	var isItalicActive by remember { mutableStateOf(false) }
 
 	LaunchedEffect(Unit) {
-		state.cursorPositionFlow.collect { position ->
-			val selection = state.selector.selection
+		state.cursorDataFlow.collect { (_, cursorStyles, selection) ->
 			val styles = if (selection != null) {
 				state.getSpanStylesInRange(selection)
 			} else {
-				state.getSpanStylesAtPosition(position)
+				cursorStyles
 			}
 
 			isBoldActive = styles.contains(BOLD)
@@ -49,28 +49,17 @@ fun EditorToolBar(
 			iconRes = MR.images.icon_bold,
 			active = isBoldActive,
 		) {
-			state.selector.selection?.let { range ->
-				if (isBoldActive) {
-					state.removeStyleSpan(range, BOLD)
-				} else {
-					state.addStyleSpan(range, BOLD)
-				}
-				isBoldActive = !isBoldActive
-			}
+			toggleStyle(state, isBoldActive, BOLD)
 		}
 		EditorAction(
 			iconRes = MR.images.icon_italic,
 			active = isItalicActive,
 		) {
-			state.selector.selection?.let { range ->
-				if (isItalicActive) {
-					state.removeStyleSpan(range, ITALICS)
-				} else {
-					state.addStyleSpan(range, ITALICS)
-				}
-			}
-			isItalicActive = !isItalicActive
+			toggleStyle(state, isItalicActive, ITALICS)
 		}
+
+		Spacer(modifier = Modifier.weight(1f))
+
 		EditorAction(
 			iconRes = MR.images.icon_undo,
 			active = state.canUndo
@@ -104,4 +93,25 @@ fun EditorToolBar(
 		}
 	}
 
+}
+
+private fun toggleStyle(
+	state: TextEditorState,
+	isActive: Boolean,
+	spanStyle: SpanStyle
+) {
+	val selection = state.selector.selection
+	if (selection != null) {
+		if (isActive) {
+			state.removeStyleSpan(selection, spanStyle)
+		} else {
+			state.addStyleSpan(selection, spanStyle)
+		}
+	} else {
+		if (isActive) {
+			state.cursor.removeStyle(spanStyle)
+		} else {
+			state.cursor.addStyle(spanStyle)
+		}
+	}
 }
