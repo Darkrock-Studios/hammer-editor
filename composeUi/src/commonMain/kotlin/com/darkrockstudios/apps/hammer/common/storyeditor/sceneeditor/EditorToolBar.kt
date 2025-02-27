@@ -14,22 +14,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.texteditor.markdown.MarkdownStyles
+import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
 
-val BOLD = MarkdownStyles.BOLD
-val ITALICS = MarkdownStyles.ITALICS
-
 @Composable
 fun EditorToolBar(
-	state: TextEditorState,
+	markdownState: MarkdownExtension,
 	decreaseTextSize: () -> Unit,
 	increaseTextSize: () -> Unit,
 	resetTextSize: () -> Unit,
 ) {
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
+
+	val state = remember(markdownState) { markdownState.editorState }
 
 	LaunchedEffect(Unit) {
 		state.cursorDataFlow.collect { (_, cursorStyles, selection) ->
@@ -39,8 +38,8 @@ fun EditorToolBar(
 				cursorStyles
 			}
 
-			isBoldActive = styles.contains(BOLD)
-			isItalicActive = styles.contains(ITALICS)
+			isBoldActive = styles.contains(markdownState.markdownStyles.BOLD)
+			isItalicActive = styles.contains(markdownState.markdownStyles.ITALICS)
 		}
 	}
 
@@ -49,13 +48,13 @@ fun EditorToolBar(
 			iconRes = MR.images.icon_bold,
 			active = isBoldActive,
 		) {
-			toggleStyle(state, isBoldActive, BOLD)
+			toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
 		}
 		EditorAction(
 			iconRes = MR.images.icon_italic,
 			active = isItalicActive,
 		) {
-			toggleStyle(state, isItalicActive, ITALICS)
+			toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
 		}
 
 		Spacer(modifier = Modifier.weight(1f))

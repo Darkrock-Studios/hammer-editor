@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -40,7 +41,9 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
+import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
+import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
@@ -50,6 +53,9 @@ fun SceneEditorUi(
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
+	// TODO got to drive this from dark/light mode
+	val markdownScheme by remember { mutableStateOf(MarkdownConfiguration.DEFAULT) }
+
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
@@ -57,10 +63,12 @@ fun SceneEditorUi(
 		spellChecker = state.spellChecker,
 		initialText = getInitialEditorContent(state.sceneBuffer?.content)
 	)
+	val markdownExtension =
+		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }
 
 	LaunchedEffect(Unit) {
 		textEditorState.textState.editOperations.collect { operation ->
-			component.onContentChanged(ComposeRichText(textEditorState.textState))
+			component.onContentChanged(ComposeRichText(markdownExtension))
 		}
 	}
 
@@ -73,13 +81,12 @@ fun SceneEditorUi(
 			EditorTopBar(component, rootSnackbar)
 
 			EditorToolBar(
-				state = textEditorState.textState,
+				markdownState = markdownExtension,
 				decreaseTextSize = component::decreaseTextSize,
 				increaseTextSize = component::increaseTextSize,
 				resetTextSize = component::resetTextSize,
 			)
 
-			//val verticalScrollState = rememberScrollState(0)
 			Row(
 				modifier = Modifier.fillMaxSize(),
 				horizontalArrangement = Arrangement.Center
@@ -95,12 +102,6 @@ fun SceneEditorUi(
 
 				HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
 
-				/*
-				MpScrollBar(
-					modifier = Modifier.fillMaxHeight(),
-					state = verticalScrollState
-				)
-				*/
 				val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
 					boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
 				}

@@ -19,6 +19,8 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -31,6 +33,8 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.texteditor.TextEditor
+import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
 @Composable
@@ -41,10 +45,14 @@ fun FocusModeUi(component: FocusMode) {
 	val textEditorState = rememberTextEditorState(
 		initialText = getInitialEditorContent(state.sceneBuffer?.content)
 	)
+	// TODO got to drive this from dark/light mode
+	val markdownScheme by remember { mutableStateOf(MarkdownConfiguration.DEFAULT) }
+	val markdownExtension =
+		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }
 
 	LaunchedEffect(Unit) {
 		textEditorState.editOperations.collect { operation ->
-			component.onContentChanged(ComposeRichText(textEditorState))
+			component.onContentChanged(ComposeRichText(markdownExtension))
 		}
 	}
 
@@ -74,7 +82,7 @@ fun FocusModeUi(component: FocusMode) {
 		}
 
 		EditorToolBar(
-			state = textEditorState,
+			markdownState = markdownExtension,
 			decreaseTextSize = component::decreaseTextSize,
 			increaseTextSize = component::increaseTextSize,
 			resetTextSize = component::resetTextSize,

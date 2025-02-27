@@ -2,11 +2,11 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.text.AnnotatedString
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
+import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.toMarkdown
-import com.darkrockstudios.texteditor.state.TextEditorState
 
 data class ComposeRichText(
-	val state: TextEditorState? = null,
+	val state: MarkdownExtension? = null,
 	val snapshot: AnnotatedString? = null
 ) : PlatformRichText {
 
@@ -25,7 +25,7 @@ data class ComposeRichText(
 	fun getAnnotatedString(): AnnotatedString {
 		return when {
 			snapshot != null -> snapshot
-			state != null -> state.getAllText()
+			state != null -> state.editorState.getAllText()
 			else -> error("ComposeRichText must contain non-null data ")
 		}
 	}
