@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
+import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -17,5 +18,6 @@ actual val platformModule = module {
 	singleOf(::StrResImpl) bind StrRes::class
 	singleOf(::DeviceLocaleResolver)
 	singleOf(::UrlLauncherDesktop) bind UrlLauncher::class
+	singleOf(::LanguageUtil)
 	factory { params -> DesktopPlatformSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class
 }

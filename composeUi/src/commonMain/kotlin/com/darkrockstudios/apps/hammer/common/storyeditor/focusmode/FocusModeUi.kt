@@ -32,18 +32,20 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
-import com.darkrockstudios.texteditor.markdown.withMarkdown
-import com.darkrockstudios.texteditor.state.rememberTextEditorState
+import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
+import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
+import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 
 @Composable
 fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 
-	val textEditorState = rememberTextEditorState(
-		initialText = getInitialEditorContent(state.sceneBuffer?.content)
+	val textEditorState = rememberSpellCheckState(
+		spellChecker = state.spellChecker,
+		initialText = getInitialEditorContent(state.sceneBuffer?.content),
+		enableSpellChecking = state.spellCheckingEnabled,
 	)
 	// TODO got to drive this from dark/light mode
 	val markdownScheme by remember { mutableStateOf(MarkdownConfiguration.DEFAULT) }
@@ -51,7 +53,7 @@ fun FocusModeUi(component: FocusMode) {
 		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }
 
 	LaunchedEffect(Unit) {
-		textEditorState.editOperations.collect { operation ->
+		textEditorState.textState.editOperations.collect { operation ->
 			component.onContentChanged(ComposeRichText(markdownExtension))
 		}
 	}
@@ -92,7 +94,7 @@ fun FocusModeUi(component: FocusMode) {
 			modifier = Modifier.fillMaxSize(),
 			horizontalArrangement = Arrangement.Center
 		) {
-			TextEditor(
+			SpellCheckingTextEditor(
 				state = textEditorState,
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))

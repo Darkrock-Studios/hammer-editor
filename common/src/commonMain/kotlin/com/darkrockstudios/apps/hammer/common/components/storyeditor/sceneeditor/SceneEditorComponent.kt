@@ -55,7 +55,12 @@ class SceneEditorComponent(
 
 	private val spellCheckRepository: SpellCheckRepository by inject()
 
-	private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
+	private val _state = MutableValue(
+		SceneEditor.State(
+			sceneItem = originalSceneItem,
+			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled
+		)
+	)
 	override val state: Value<SceneEditor.State> = _state
 
 	override var lastForceUpdate = MutableValue<Long>(0)
@@ -76,7 +81,13 @@ class SceneEditorComponent(
 		watchSettings()
 		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
 
-		spellCheckRepository.requestSpellChecker(SpellCheckRepository.Companion.Languages.EN)
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				_state.update {
+					it.copy(spellCheckingEnabled = settings.spellCheckSettings.enabled)
+				}
+			}
+		}
 
 		scope.launch {
 			spellCheckRepository.dictionaryFlow.collect { dictionary ->

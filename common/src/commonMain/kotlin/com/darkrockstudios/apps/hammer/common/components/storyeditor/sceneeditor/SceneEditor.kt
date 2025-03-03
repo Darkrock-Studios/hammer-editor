@@ -49,5 +49,6 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
 		val spellChecker: SpellChecker? = null,
+		val spellCheckingEnabled: Boolean = true,
 	)
 }

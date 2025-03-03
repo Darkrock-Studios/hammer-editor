@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.symspellkt.api.SpellChecker
 import com.darkrockstudios.symspellkt.common.DictionaryItem
@@ -17,29 +18,41 @@ import kotlin.time.measureTime
 
 class SpellCheckRepository(
 	private val dictionaryLoader: SpellCheckDictionaryLoader,
+	private val globalSettingsRepository: GlobalSettingsRepository,
 ) : KoinComponent {
 
 	private val dispatcherDefault by injectDefaultDispatcher()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	private val dictionaries = mapOf(
-		Languages.EN to "en.fdic",
-		Languages.ES to "es.fdic",
+		Language.English to "en.fdic",
+		Language.Spanish to "es.fdic",
+		Language.Italian to "it.fdic",
+		Language.German to "de.fdic",
+		Language.French to "fr.fdic",
 	)
 
-	private val _dictionaryFlow = MutableSharedFlow<SpellChecker>(
+	private val _dictionaryFlow = MutableSharedFlow<SpellChecker?>(
 		replay = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		extraBufferCapacity = 1,
 	)
-	val dictionaryFlow: SharedFlow<SpellChecker> = _dictionaryFlow
+	val dictionaryFlow: SharedFlow<SpellChecker?> = _dictionaryFlow
+	private var currentLanguage: Language? = null
 
-	fun requestSpellChecker(locale: Locale) {
+	private fun requestSpellChecker(locale: Locale) {
+		val language = findBestMatchingLanguage(locale)
+		requestSpellChecker(language)
+	}
+
+	private fun requestSpellChecker(language: Language) {
 		scope.launch {
-			val dictionaryName = dictionaries[locale]
+			val dictionaryName: String? = dictionaries[language]
 			if (dictionaryName == null) {
-				error("Unsupported Locale type: $locale")
+				error("Unsupported Locale type: $language")
 			} else {
+				currentLanguage = language
+
 				val newSpellChecker = SymSpell(
 					spellCheckSettings = SpellCheckSettings(
 						topK = 5
@@ -61,20 +74,25 @@ class SpellCheckRepository(
 					_dictionaryFlow.tryEmit(newSpellChecker)
 				}
 
-				Napier.i("Dictionary loaded for: ${locale.toLanguageTag()} (took: $elapsed)")
+				Napier.i("Dictionary loaded for: ${language.locale.toLanguageTag()} (took: $elapsed)")
 			}
 		}
 	}
 
-	companion object {
-		object Languages {
-			val EN = Locale.forLanguageTag("en")
-			val ES = Locale.forLanguageTag("es")
-		}
+	init {
+		scope.launch {
+			val initialLanguage =
+				globalSettingsRepository.globalSettings.spellCheckSettings.language
+			requestSpellChecker(initialLanguage)
+			Napier.i("Spell Check: Initial language set: $initialLanguage")
 
-		val avalibleLanguages = listOf(
-			Languages.EN,
-			Languages.ES,
-		)
+			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+				val newLanguage = settings.spellCheckSettings.language
+				if (currentLanguage != settings.spellCheckSettings.language) {
+					Napier.i("Updating Spell Check Language: $newLanguage")
+					requestSpellChecker(newLanguage)
+				}
+			}
+		}
 	}
 }

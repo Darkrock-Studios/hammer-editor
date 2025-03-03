@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository.Companion.createDefault
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -14,11 +15,12 @@ import okio.Path.Companion.toPath
 class GlobalSettingsFilesystemDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
+	private val languageUtil: LanguageUtil,
 ) : GlobalSettingsDatasource {
 
 	init {
 		if (!fileSystem.exists(CONFIG_PATH)) {
-			val default = createDefault()
+			val default = createDefault(languageUtil)
 			storeSettings(default)
 		}
 	}
@@ -35,11 +37,11 @@ class GlobalSettingsFilesystemDatasource(
 		} catch (e: NumberFormatException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
 			fileSystem.delete(CONFIG_PATH)
-			createDefault()
+			createDefault(languageUtil)
 		} catch (e: SerializationException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
 			fileSystem.delete(CONFIG_PATH)
-			createDefault()
+			createDefault(languageUtil)
 		}
 		return settings
 	}

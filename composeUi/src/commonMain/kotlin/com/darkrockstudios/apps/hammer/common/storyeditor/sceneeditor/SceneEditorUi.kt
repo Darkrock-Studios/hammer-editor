@@ -61,7 +61,8 @@ fun SceneEditorUi(
 
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = state.spellChecker,
-		initialText = getInitialEditorContent(state.sceneBuffer?.content)
+		initialText = getInitialEditorContent(state.sceneBuffer?.content),
+		enableSpellChecking = state.spellCheckingEnabled
 	)
 	val markdownExtension =
 		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }

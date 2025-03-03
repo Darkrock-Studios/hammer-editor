@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguage
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.channels.BufferOverflow
@@ -100,9 +102,14 @@ class GlobalSettingsRepository(
 
 		fun defaultProjectDir() = getDefaultRootDocumentDirectory().toPath() / DEFAULT_PROJECTS_DIR
 
-		fun createDefault(): GlobalSettings {
+		fun createDefault(languageUtil: LanguageUtil): GlobalSettings {
+			val currentLocale = languageUtil.getCurrentLocale()
+			val language = findBestMatchingLanguage(currentLocale)
 			return GlobalSettings(
-				projectsDirectory = defaultProjectDir().toString()
+				projectsDirectory = defaultProjectDir().toString(),
+				spellCheckSettings = SpellCheckerSettings(
+					language = language
+				)
 			)
 		}
 	}

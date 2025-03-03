@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.symspellkt.api.SpellChecker
 
 interface FocusMode {
 	val state: Value<State>
@@ -22,6 +23,8 @@ interface FocusMode {
 		val projectDef: ProjectDef,
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
-		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE
+		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
+		val spellChecker: SpellChecker? = null,
+		val spellCheckingEnabled: Boolean = false,
 	)
 }
