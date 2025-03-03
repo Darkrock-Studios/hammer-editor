@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
 import android.content.Context
-import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_PROJECT_FILE_NAME
 import com.darkrockstudios.fdic.FrequencyDictionary
 import com.darkrockstudios.fdic.FrequencyDictionaryIO
 import okio.source
@@ -19,7 +18,7 @@ class AndroidSpellCheckDictionaryLoader(
 
 	override fun loadDictionary(dictionaryName: String): FrequencyDictionary {
 		val resourceId = context.resources.getIdentifier(
-			EXAMPLE_PROJECT_FILE_NAME.substringBefore("."),
+			dictionaryName,
 			"raw",
 			context.packageName
 		)

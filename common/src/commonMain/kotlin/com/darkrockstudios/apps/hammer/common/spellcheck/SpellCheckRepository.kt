@@ -25,11 +25,11 @@ class SpellCheckRepository(
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	private val dictionaries = mapOf(
-		Language.English to "en.fdic",
-		Language.Spanish to "es.fdic",
-		Language.Italian to "it.fdic",
-		Language.German to "de.fdic",
-		Language.French to "fr.fdic",
+		Language.English to "en_fdic",
+		Language.Spanish to "es_fdic",
+		Language.Italian to "it_fdic",
+		Language.German to "de_fdic",
+		Language.French to "fr_fdic",
 	)
 
 	private val _dictionaryFlow = MutableSharedFlow<SpellChecker?>(

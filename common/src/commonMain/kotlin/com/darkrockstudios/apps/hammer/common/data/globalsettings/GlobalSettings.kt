@@ -15,7 +15,7 @@ data class GlobalSettings(
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
-	val spellCheckSettings: SpellCheckerSettings,
+	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(language = Language.English),
 ) {
 	companion object {
 		const val DEFAULT_MAX_BACKUPS = 50
