@@ -19,7 +19,6 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,11 +27,12 @@ import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -41,16 +41,18 @@ import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
 
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = state.spellChecker,
-		initialText = getInitialEditorContent(state.sceneBuffer?.content),
+		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
 		enableSpellChecking = state.spellCheckingEnabled,
 	)
-	// TODO got to drive this from dark/light mode
-	val markdownScheme by remember { mutableStateOf(MarkdownConfiguration.DEFAULT) }
-	val markdownExtension =
-		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }
+	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+
+	LaunchedEffect(markdownConfig) {
+		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	}
 
 	LaunchedEffect(Unit) {
 		textEditorState.textState.editOperations.collect { operation ->

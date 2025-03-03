@@ -11,6 +11,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 
 
 val LightColors = lightColorScheme(
@@ -106,6 +108,7 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 
 @Composable
 fun AppTheme(
+	settings: GlobalSettings,
 	useDarkTheme: Boolean = isSystemInDarkTheme(),
 	getOverrideColorScheme: ((Boolean) -> ColorScheme?)? = null,
 	content: @Composable () -> Unit
@@ -125,6 +128,9 @@ fun AppTheme(
 	MaterialTheme(
 		colorScheme = colors,
 		//shapes = shapes,
-		content = content
-	)
+	) {
+		ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+			content()
+		}
+	}
 }

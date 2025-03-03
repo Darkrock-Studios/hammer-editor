@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -37,11 +36,12 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -53,19 +53,20 @@ fun SceneEditorUi(
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
-	// TODO got to drive this from dark/light mode
-	val markdownScheme by remember { mutableStateOf(MarkdownConfiguration.DEFAULT) }
-
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
 
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = state.spellChecker,
-		initialText = getInitialEditorContent(state.sceneBuffer?.content),
+		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
 		enableSpellChecking = state.spellCheckingEnabled
 	)
-	val markdownExtension =
-		remember(state, markdownScheme) { textEditorState.withMarkdown(markdownScheme) }
+	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+
+	LaunchedEffect(markdownConfig) {
+		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	}
 
 	LaunchedEffect(Unit) {
 		textEditorState.textState.editOperations.collect { operation ->
@@ -139,7 +140,9 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 			Box(modifier = Modifier.padding(Ui.Padding.L)) {
 				SceneMetadataPanelUi(
 					component = component.sceneMetadataComponent,
-					modifier = Modifier.wrapContentWidth().widthIn(max = SCENE_METADATA_MAX_WIDTH).fillMaxHeight(),
+					modifier = Modifier.wrapContentWidth()
+						.widthIn(max = SCENE_METADATA_MAX_WIDTH)
+						.fillMaxHeight(),
 					closeMetadata = component::toggleMetadataVisibility,
 				)
 			}

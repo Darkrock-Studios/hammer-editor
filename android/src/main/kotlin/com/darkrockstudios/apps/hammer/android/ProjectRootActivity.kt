@@ -137,7 +137,7 @@ class ProjectRootActivity : AppCompatActivity() {
 						}
 					}
 
-					AppTheme(isDark, ::getDynamicColorScheme) {
+					AppTheme(settingsState, isDark, ::getDynamicColorScheme) {
 						Content(component)
 					}
 				}

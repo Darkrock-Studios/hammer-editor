@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
+import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -120,10 +121,12 @@ private fun CurrentContent(
 	component: DraftCompare
 ) {
 	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
 
 	val textEditorState = rememberTextEditorState(
-		initialText = getInitialEditorContent(state.sceneContent)
+		initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
 	)
+
 	// I feel like there must be a better way...
 //	var sceneText by remember(state.sceneContent) {
 //		val existing = state.mergedContent as? ComposeRichText
@@ -183,9 +186,10 @@ private fun DraftContent(
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
 
 	val textEditorState = rememberTextEditorState(
-		initialText = getInitialEditorContent(state.draftContent)
+		initialText = getInitialEditorContent(state.draftContent, markdownConfig)
 	)
 
 	Card(modifier = modifier.padding(Ui.Padding.L)) {
