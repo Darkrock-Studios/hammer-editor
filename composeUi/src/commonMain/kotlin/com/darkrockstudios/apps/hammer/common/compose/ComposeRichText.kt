@@ -30,9 +30,14 @@ data class ComposeRichText(
 		}
 	}
 
+	override fun stateCompare(text: PlatformRichText?): Boolean {
+		text as ComposeRichText
+		return (snapshot != null && text.snapshot === snapshot)
+	}
+
 	override fun compare(text: PlatformRichText): Boolean {
 		return if (text is ComposeRichText) {
-			text.snapshot == snapshot
+			(text.snapshot != null && snapshot != null && text.snapshot == snapshot) || (state != null && text.state == state)
 		} else {
 			false
 		}
@@ -44,5 +49,9 @@ data class ComposeRichText(
 		} else {
 			false
 		}
+	}
+
+	override fun hashCode(): Int {
+		return state?.hashCode() ?: (snapshot?.hashCode() ?: 0)
 	}
 }
