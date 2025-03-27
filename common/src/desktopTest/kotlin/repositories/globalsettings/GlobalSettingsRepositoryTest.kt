@@ -7,9 +7,12 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import io.fluidsonic.locale.Locale
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -27,6 +30,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 
 	private lateinit var serverSettings: ServerSettingsDatasource
 	private lateinit var globalSettings: GlobalSettingsDatasource
+	private lateinit var languageUtil: LanguageUtil
 
 	@BeforeEach
 	override fun setup() {
@@ -34,10 +38,14 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 
 		serverSettings = mockk()
 		globalSettings = mockk()
+		languageUtil = mockk()
+		every { languageUtil.getCurrentLocale() } returns Locale.forLanguageTag("en")
 	}
 
 	private fun createDefaultRepository(): GlobalSettingsRepository {
-		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault()
+		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
+			languageUtil
+		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns null
 
 		return GlobalSettingsRepository(
@@ -46,7 +54,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 		)
 	}
 
-	private fun defaultGlobalSettings() = GlobalSettingsRepository.createDefault()
+	private fun defaultGlobalSettings() = GlobalSettingsRepository.createDefault(languageUtil)
 
 	private fun projectsDir() = GlobalSettingsRepository.defaultProjectDir().toHPath()
 
@@ -211,7 +219,9 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Delete server settings successfully`() = runTest {
-		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault()
+		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
+			mockk(relaxed = true)
+		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()
 		coEvery { serverSettings.removeServerSettings(any()) } just Runs
 

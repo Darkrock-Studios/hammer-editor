@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.Draf
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
+import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
 import kotlinx.datetime.Clock
 
@@ -52,11 +53,11 @@ fun DraftsListUiPreview() {
 
 
 	Column {
-		AppTheme {
+		AppTheme(globalSettingsPreview) {
 			DraftsListUi(component)
 		}
 		Spacer(modifier = Modifier.size(16.dp))
-		AppTheme(true) {
+		AppTheme(globalSettingsPreview, true) {
 			DraftsListUi(component)
 		}
 	}

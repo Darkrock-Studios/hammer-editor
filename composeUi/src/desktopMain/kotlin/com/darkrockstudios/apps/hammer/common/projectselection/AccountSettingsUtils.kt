@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,6 +23,9 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 	syncAutomaticBackups = true,
 	syncAutoCloseDialog = true,
 	maxBackups = 50,
+	spellCheckingEnabled = true,
+	spellCheckingInFocusEnabled = false,
+	spellCheckingLanguage = Language.English,
 )
 
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
@@ -53,6 +57,9 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun updateServerSsl(ssl: Boolean) {}
 		override fun updateServerEmail(email: String) {}
 		override fun updateServerPassword(password: String) {}
+		override suspend fun setSpellcheckEnable(enable: Boolean) {}
+		override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
+		override suspend fun setSpellCheckLanguage(language: Language) {}
 		override val toast = MutableSharedFlow<ToastMessage>()
 		override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 		override fun showToast(scope: CoroutineScope, message: Msg) {}

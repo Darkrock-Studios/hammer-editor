@@ -105,6 +105,12 @@ internal fun AccountSettingsUi(
 
 					SpacerXL()
 
+					SpellCheckSettingsUi(
+						component = component,
+					)
+
+					SpacerXL()
+
 					Column(modifier = Modifier.padding(Ui.Padding.M)) {
 						Text(
 							MR.strings.settings_example_project_header.get(),

@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.decodeFromString
 import net.peanuuutz.tomlkt.Toml
@@ -20,11 +22,13 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var toml: Toml
+	private lateinit var languageUtil: LanguageUtil
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
+		languageUtil = mockk(relaxed = true)
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 	}
@@ -32,14 +36,15 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	private fun createDatasource(): GlobalSettingsDatasource {
 		return GlobalSettingsFilesystemDatasource(
 			fileSystem,
-			toml
+			toml,
+			languageUtil
 		)
 	}
 
 	@Test
 	fun `Load Global Settings when non exists`() = runTest {
 		val datasource = createDatasource()
-		val default = GlobalSettingsRepository.createDefault()
+		val default = GlobalSettingsRepository.createDefault(languageUtil)
 
 		val loaded: GlobalSettings = datasource.loadSettings()
 
@@ -49,7 +54,7 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	@Test
 	fun `Load Global Settings when one already exists`() = runTest {
 		val datasource = createDatasource()
-		val settings = GlobalSettingsRepository.createDefault().copy(
+		val settings = GlobalSettingsRepository.createDefault(languageUtil).copy(
 			uiTheme = UiTheme.Dark,
 			automaticBackups = false,
 			automaticSyncing = false,
@@ -74,13 +79,13 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 
 		val loaded: GlobalSettings = datasource.loadSettings()
 
-		assertEquals(GlobalSettingsRepository.createDefault(), loaded)
+		assertEquals(GlobalSettingsRepository.createDefault(languageUtil), loaded)
 	}
 
 	@Test
 	fun `Store Global Settings`() = runTest {
 		val datasource = createDatasource()
-		val newSettings = GlobalSettingsRepository.createDefault().copy(
+		val newSettings = GlobalSettingsRepository.createDefault(languageUtil).copy(
 			automaticBackups = false,
 			uiTheme = UiTheme.Light,
 		)

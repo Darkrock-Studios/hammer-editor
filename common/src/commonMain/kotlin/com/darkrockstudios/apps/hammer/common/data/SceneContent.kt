@@ -56,4 +56,15 @@ data class SceneContent(
 interface PlatformRichText {
 	fun convertToMarkdown(): String
 	fun compare(text: PlatformRichText): Boolean
+
+	/**
+	 * Note: straight comparison used to be good enough, but now SceneContent does not contain
+	 * a snapshot, but instead a live object which updates as the UI updates it. I don't think
+	 * this will cause problems? But if it does, hopefully this comment will help me remember
+	 * where all the trouble started.
+	 *
+	 * This function should return true of the internal state object is the exact same object
+	 * as the one being compared to.
+	 */
+	fun stateCompare(text: PlatformRichText?): Boolean
 }

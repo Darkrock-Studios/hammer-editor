@@ -3,13 +3,21 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.decreaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -25,12 +33,19 @@ class FocusModeComponent(
 ) : ProjectComponentBase(projectDef, componentContext), FocusMode {
 
 	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val spellCheckRepository: SpellCheckRepository by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private var bufferUpdateSubscription: Job? = null
 	override var lastForceUpdate = MutableValue<Long>(0)
 
-	private val _state = MutableValue(FocusMode.State(projectDef, sceneItem))
+	private val _state = MutableValue(
+		FocusMode.State(
+			projectDef = projectDef,
+			sceneItem = sceneItem,
+			spellCheckingEnabled = (settingsRepository.globalSettings.spellCheckSettings.isEnabledInFocusMode()),
+		)
+	)
 	override val state = _state
 
 	override fun onCreate() {
@@ -105,11 +120,18 @@ class FocusModeComponent(
 					withContext(dispatcherMain) {
 						_state.getAndUpdate {
 							it.copy(
-								textSize = settings.editorFontSize
+								textSize = settings.editorFontSize,
+								spellCheckingEnabled = (settings.spellCheckSettings.isEnabledInFocusMode())
 							)
 						}
 					}
 				}
+			}
+		}
+
+		scope.launch {
+			spellCheckRepository.dictionaryFlow.collect { dictionary ->
+				_state.update { it.copy(spellChecker = dictionary) }
 			}
 		}
 	}
