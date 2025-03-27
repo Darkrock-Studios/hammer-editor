@@ -135,6 +135,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 				}
 
 				AppTheme(
+					settings = settingsState,
 					useDarkTheme = isDark,
 					getOverrideColorScheme = ::getDynamicColorScheme
 				) {

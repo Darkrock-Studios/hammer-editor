@@ -2,7 +2,11 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -182,7 +186,7 @@ private fun ViewEntryPreview() {
 	val rootSnackbar = rememberRootSnackbarHostState()
 
 	Column {
-		AppTheme {
+		AppTheme(globalSettingsPreview) {
 			BoxWithConstraints(
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.background)
@@ -200,7 +204,7 @@ private fun ViewEntryPreview() {
 
 		Spacer(modifier = Modifier.padding(16.dp))
 
-		AppTheme(true) {
+		AppTheme(globalSettingsPreview, true) {
 			BoxWithConstraints(
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.background)

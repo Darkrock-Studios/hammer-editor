@@ -84,6 +84,14 @@ _Do not use the test environment for real data! It will get cleared from time-to
 
 Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
 
+## Having a problem?
+
+On desktop, Log are written to:
+
+**Windows:**
+
+`C:\Users\<username>\AppData\Local\DarkrockStudios\hammer\0\logs\`
+
 [![Redeploy](https://repology.org/badge/vertical-allrepos/hammer-editor.svg)](https://repology.org/project/hammer-editor/versions)
 
 <!-- TAG_DEPENDENCIES -->

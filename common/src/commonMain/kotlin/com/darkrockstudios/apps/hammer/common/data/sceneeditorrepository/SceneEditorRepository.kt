@@ -254,7 +254,7 @@ class SceneEditorRepository(
 	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
 		val oldBuffer = sceneBuffers[content.scene.id]
 		// Skip update if nothing is different
-		return if (content != oldBuffer?.content) {
+		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
 			updateSceneBuffer(newBuffer)
 			true

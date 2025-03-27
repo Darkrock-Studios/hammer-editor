@@ -9,10 +9,12 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import getProjectsDirectory
 import io.mockk.Awaits
 import io.mockk.InternalPlatformDsl.toStr
@@ -98,6 +100,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		every { globalSettingsRepository.globalSettingsUpdates } returns globalSettingsUpdates
 		val globalSettings = GlobalSettings(
 			projectsDirectory = projectsDir.toStr(),
+			spellCheckSettings = SpellCheckerSettings(language = Language.English)
 		)
 		every { globalSettingsRepository.globalSettings } returns globalSettings
 

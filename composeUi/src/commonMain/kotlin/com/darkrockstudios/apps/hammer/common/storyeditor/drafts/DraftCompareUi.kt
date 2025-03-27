@@ -8,10 +8,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
@@ -19,16 +30,14 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
-import com.darkrockstudios.apps.hammer.common.data.text.markdownToSnapshot
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.richtexteditor.model.RichTextValue
-import com.darkrockstudios.richtexteditor.ui.RichTextEditor
-import com.darkrockstudios.richtexteditor.ui.defaultRichTextFieldStyle
+import com.darkrockstudios.texteditor.TextEditor
+import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
 @Composable
 fun DraftCompareUi(component: DraftCompare) {
@@ -112,30 +121,33 @@ private fun CurrentContent(
 	component: DraftCompare
 ) {
 	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
+
+	val textEditorState = rememberTextEditorState(
+		initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
+	)
 
 	// I feel like there must be a better way...
-	var sceneText by remember(state.sceneContent) {
-		val existing = state.mergedContent as? ComposeRichText
-
-		if (existing == null && state.sceneContent != null) {
-			val sceneSnapshot = (state.sceneContent?.markdown?.markdownToSnapshot())
-			if (sceneSnapshot != null) {
-				component.onMergedContentChanged(ComposeRichText(sceneSnapshot))
-			}
-
-			mutableStateOf(
-				RichTextValue.fromSnapshot(
-					sceneSnapshot ?: "".markdownToSnapshot()
-				)
-			)
-		} else {
-			mutableStateOf(
-				RichTextValue.fromSnapshot(
-					existing?.snapshot ?: "".markdownToSnapshot()
-				)
-			)
-		}
-	}
+//	var sceneText by remember(state.sceneContent) {
+//		val existing = state.mergedContent as? ComposeRichText
+//
+//		if (existing == null && state.sceneContent != null) {
+//			val sceneSnapshot = (state.sceneContent?.markdown?.toAnnotatedStringFromMarkdown())
+//			if (sceneSnapshot != null) {
+//				component.onMergedContentChanged(ComposeRichText(snapshot = sceneSnapshot))
+//			}
+//
+//			mutableStateOf(
+//				sceneSnapshot ?: AnnotatedString("")
+//			)
+//		} else {
+//			mutableStateOf(
+//				RichTextValue.fromSnapshot(
+//					existing?.snapshot ?: "".markdownToSnapshot()
+//				)
+//			)
+//		}
+//	}
 
 	Card(
 		modifier = modifier.padding(Ui.Padding.L),
@@ -159,18 +171,9 @@ private fun CurrentContent(
 				Text(MR.strings.draft_compare_current_accept_button.get())
 			}
 
-			RichTextEditor(
+			TextEditor(
 				modifier = Modifier.fillMaxSize(),
-				value = sceneText,
-				onValueChange = { rtv ->
-					component.onMergedContentChanged(ComposeRichText(rtv.getLastSnapshot()))
-					sceneText = rtv
-				},
-				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = MR.strings.draft_compare_current_body_placeholder.get(),
-					textColor = MaterialTheme.colorScheme.onBackground,
-					placeholderColor = MaterialTheme.colorScheme.onBackground,
-				)
+				state = textEditorState,
 			)
 		}
 	}
@@ -183,7 +186,11 @@ private fun DraftContent(
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
-	var draftText by remember(state.draftContent) { mutableStateOf(getInitialEditorContent(state.draftContent)) }
+	val markdownConfig = LocalMarkdownConfig.current
+
+	val textEditorState = rememberTextEditorState(
+		initialText = getInitialEditorContent(state.draftContent, markdownConfig)
+	)
 
 	Card(modifier = modifier.padding(Ui.Padding.L)) {
 		Column(modifier = Modifier.padding(Ui.Padding.L)) {
@@ -208,18 +215,10 @@ private fun DraftContent(
 				Text(MR.strings.draft_compare_draft_accept_button.get())
 			}
 
-			RichTextEditor(
+			TextEditor(
 				modifier = Modifier.fillMaxSize(),
-				value = draftText,
-				onValueChange = { rtv ->
-					draftText = rtv
-				},
-				textFieldStyle = defaultRichTextFieldStyle().copy(
-					placeholder = MR.strings.draft_compare_draft_body_placeholder.get(),
-					textColor = MaterialTheme.colorScheme.onBackground,
-					placeholderColor = MaterialTheme.colorScheme.onBackground,
-				),
-				readOnly = true
+				state = textEditorState,
+				enabled = true
 			)
 		}
 	}

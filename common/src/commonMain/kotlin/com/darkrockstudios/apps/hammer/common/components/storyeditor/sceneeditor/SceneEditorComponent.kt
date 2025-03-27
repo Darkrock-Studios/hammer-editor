@@ -5,6 +5,7 @@ import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
@@ -28,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -51,7 +53,14 @@ class SceneEditorComponent(
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 
-	private val _state = MutableValue(SceneEditor.State(sceneItem = originalSceneItem))
+	private val spellCheckRepository: SpellCheckRepository by inject()
+
+	private val _state = MutableValue(
+		SceneEditor.State(
+			sceneItem = originalSceneItem,
+			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled
+		)
+	)
 	override val state: Value<SceneEditor.State> = _state
 
 	override var lastForceUpdate = MutableValue<Long>(0)
@@ -71,6 +80,20 @@ class SceneEditorComponent(
 		subscribeToBufferUpdates()
 		watchSettings()
 		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				_state.update {
+					it.copy(spellCheckingEnabled = settings.spellCheckSettings.enabled)
+				}
+			}
+		}
+
+		scope.launch {
+			spellCheckRepository.dictionaryFlow.collect { dictionary ->
+				_state.update { it.copy(spellChecker = dictionary) }
+			}
+		}
 	}
 
 	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {

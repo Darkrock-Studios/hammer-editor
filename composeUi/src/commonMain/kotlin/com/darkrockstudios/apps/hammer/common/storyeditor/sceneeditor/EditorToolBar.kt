@@ -2,46 +2,74 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.richtexteditor.model.RichTextValue
-import com.darkrockstudios.richtexteditor.model.Style
+import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.state.TextEditorState
+import com.darkrockstudios.texteditor.state.getSpanStylesInRange
 
 @Composable
 fun EditorToolBar(
-	sceneText: RichTextValue,
-	setSceneText: (RichTextValue) -> Unit,
+	markdownState: MarkdownExtension,
 	decreaseTextSize: () -> Unit,
 	increaseTextSize: () -> Unit,
 	resetTextSize: () -> Unit,
 ) {
+	var isBoldActive by remember { mutableStateOf(false) }
+	var isItalicActive by remember { mutableStateOf(false) }
+
+	val state = remember(markdownState) { markdownState.editorState }
+
+	LaunchedEffect(Unit) {
+		state.cursorDataFlow.collect { (_, cursorStyles, selection) ->
+			val styles = if (selection != null) {
+				state.getSpanStylesInRange(selection)
+			} else {
+				cursorStyles
+			}
+
+			isBoldActive = styles.contains(markdownState.markdownStyles.BOLD)
+			isItalicActive = styles.contains(markdownState.markdownStyles.ITALICS)
+		}
+	}
+
 	Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 		EditorAction(
 			iconRes = MR.images.icon_bold,
-			active = sceneText.currentStyles.contains(Style.Bold),
+			active = isBoldActive,
 		) {
-			setSceneText(sceneText.insertStyle(Style.Bold))
+			toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
 		}
 		EditorAction(
 			iconRes = MR.images.icon_italic,
-			active = sceneText.currentStyles.contains(Style.Italic),
+			active = isItalicActive,
 		) {
-			setSceneText(sceneText.insertStyle(Style.Italic))
+			toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
 		}
+
+		Spacer(modifier = Modifier.weight(1f))
+
 		EditorAction(
 			iconRes = MR.images.icon_undo,
-			active = sceneText.isUndoAvailable
+			active = state.canUndo
 		) {
-			setSceneText(sceneText.undo())
+			state.undo()
 		}
 		EditorAction(
 			iconRes = MR.images.icon_redo,
-			active = sceneText.isRedoAvailable
+			active = state.canRedo
 		) {
-			setSceneText(sceneText.redo())
+			state.redo()
 		}
 
 		EditorAction(
@@ -64,4 +92,25 @@ fun EditorToolBar(
 		}
 	}
 
+}
+
+private fun toggleStyle(
+	state: TextEditorState,
+	isActive: Boolean,
+	spanStyle: SpanStyle
+) {
+	val selection = state.selector.selection
+	if (selection != null) {
+		if (isActive) {
+			state.removeStyleSpan(selection, spanStyle)
+		} else {
+			state.addStyleSpan(selection, spanStyle)
+		}
+	} else {
+		if (isActive) {
+			state.cursor.removeStyle(spanStyle)
+		} else {
+			state.cursor.addStyle(spanStyle)
+		}
+	}
 }

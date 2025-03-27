@@ -141,7 +141,7 @@ fun main(args: Array<String>) {
 			osThemeDetector.registerListener(themeListener)
 		}
 
-		AppTheme(useDarkTheme = darkMode) {
+		AppTheme(useDarkTheme = darkMode, settings = settingsState) {
 			CompositionLocalProvider(
 				LocalImageLoader provides remember { imageLoader },
 			) {

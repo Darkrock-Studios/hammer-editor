@@ -1,15 +1,43 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import androidx.compose.ui.text.AnnotatedString
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
-import com.darkrockstudios.apps.hammer.common.data.text.toMarkdown
-import com.darkrockstudios.richtexteditor.utils.RichTextValueSnapshot
+import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.markdown.toMarkdown
 
-data class ComposeRichText(val snapshot: RichTextValueSnapshot) : PlatformRichText {
-	override fun convertToMarkdown() = snapshot.toMarkdown()
+data class ComposeRichText(
+	val state: MarkdownExtension? = null,
+	val snapshot: AnnotatedString? = null
+) : PlatformRichText {
+
+	init {
+		if (state == null && snapshot == null) error("ComposeRichText must have non-null data")
+	}
+
+	override fun convertToMarkdown(): String {
+		return when {
+			snapshot != null -> snapshot.toMarkdown()
+			state != null -> state.exportAsMarkdown()
+			else -> error("ComposeRichText must contain non-null data ")
+		}
+	}
+
+	fun getAnnotatedString(): AnnotatedString {
+		return when {
+			snapshot != null -> snapshot
+			state != null -> state.editorState.getAllText()
+			else -> error("ComposeRichText must contain non-null data ")
+		}
+	}
+
+	override fun stateCompare(text: PlatformRichText?): Boolean {
+		text as ComposeRichText
+		return (snapshot != null && text.snapshot === snapshot)
+	}
 
 	override fun compare(text: PlatformRichText): Boolean {
 		return if (text is ComposeRichText) {
-			text.snapshot == snapshot
+			(text.snapshot != null && snapshot != null && text.snapshot == snapshot) || (state != null && text.state == state)
 		} else {
 			false
 		}
@@ -21,5 +49,9 @@ data class ComposeRichText(val snapshot: RichTextValueSnapshot) : PlatformRichTe
 		} else {
 			false
 		}
+	}
+
+	override fun hashCode(): Int {
+		return state?.hashCode() ?: (snapshot?.hashCode() ?: 0)
 	}
 }

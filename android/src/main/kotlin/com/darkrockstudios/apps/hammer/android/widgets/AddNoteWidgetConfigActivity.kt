@@ -107,6 +107,7 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 			}
 
 			AppTheme(
+				settings = settingsState,
 				useDarkTheme = isDark,
 				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
@@ -163,8 +164,8 @@ private fun ConfigUi(
 		var specificProject by rememberSaveable { mutableStateOf(true) }
 		Column(
 			modifier = Modifier
-                .padding(Ui.Padding.XL)
-                .width(IntrinsicSize.Max)
+				.padding(Ui.Padding.XL)
+				.width(IntrinsicSize.Max)
 		) {
 			Text(
 				stringResource(R.string.note_widget_config_title),

@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -47,6 +48,9 @@ class AccountSettingsComponent(
 			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
 			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
 			maxBackups = globalSettingsRepository.globalSettings.maxBackups,
+			spellCheckingEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabled,
+			spellCheckingInFocusEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabledInFocusMode,
+			spellCheckingLanguage = globalSettingsRepository.globalSettings.spellCheckSettings.language,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -67,7 +71,10 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
-							uiTheme = settings.uiTheme
+							uiTheme = settings.uiTheme,
+							spellCheckingEnabled = settings.spellCheckSettings.enabled,
+							spellCheckingInFocusEnabled = settings.spellCheckSettings.enabledInFocusMode,
+							spellCheckingLanguage = settings.spellCheckSettings.language
 						)
 					}
 				}
@@ -82,7 +89,7 @@ class AccountSettingsComponent(
 							currentSsl = settings?.ssl,
 							currentUrl = settings?.url,
 							currentEmail = settings?.email,
-							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true
+							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true,
 						)
 					}
 				}
@@ -210,6 +217,38 @@ class AccountSettingsComponent(
 
 	override fun updateServerPassword(password: String) {
 		_state.getAndUpdate { it.copy(serverPassword = password) }
+	}
+
+	override suspend fun setSpellcheckEnable(enable: Boolean) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				spellCheckSettings = it.spellCheckSettings.copy(
+					enabled = enable
+				)
+			)
+		}
+	}
+
+	override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				spellCheckSettings = it.spellCheckSettings.copy(
+					enabledInFocusMode = enable
+				)
+			)
+		}
+	}
+
+	override suspend fun setSpellCheckLanguage(language: Language) {
+		globalSettingsRepository.updateSettings {
+			it.copy(
+				spellCheckSettings = it.spellCheckSettings.copy(
+					language = language
+				)
+			)
+		}
+
+
 	}
 
 	override fun setupServer(

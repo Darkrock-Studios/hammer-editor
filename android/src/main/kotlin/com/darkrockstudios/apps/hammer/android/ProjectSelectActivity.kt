@@ -119,6 +119,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 				}
 
 				AppTheme(
+					settings = settingsState,
 					useDarkTheme = isDark,
 					getOverrideColorScheme = ::getDynamicColorScheme
 				) {
