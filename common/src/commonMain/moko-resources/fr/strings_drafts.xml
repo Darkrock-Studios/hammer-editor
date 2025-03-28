@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="draft_compare_cancel_button">Annuler</string>
-    <string name="draft_compare_current_header">Fusionner avec l’actuel</string>
-    <string name="draft_compare_current_subheader">Copier des parties du projet ici</string>
-    <string name="draft_compare_draft_header">Brouillon : %1$s</string>
-    <string name="draft_compare_draft_subheader">Copier les parties souhaitées dans la version actuelle, ou accepter l’ensemble.</string>
-    <string name="draft_compare_draft_accept_button">Prenez l’ensemble de ce brouillon</string>
-    <string name="draft_compare_draft_body_placeholder">Brouillon</string>
-    <string name="draft_list_close_button">Fermer les brouillons</string>
-    <string name="draft_list_header">%1$s brouillons :</string>
-    <string name="draft_compare_current_body_placeholder">Commencez à écrire votre scène ici</string>
-    <string name="draft_list_empty">Aucun brouillon trouvé</string>
-    <string name="draft_list_item_created">Créé : %1$s</string>
-    <string name="draft_compare_current_accept_button">Prendre la fusionnée</string>
-    <string name="draft_compare_tab_title_draft">Brouillon</string>
-    <string name="draft_compare_tab_title_current">Actuel</string>
-    <string name="scene_draft_invalid_name">Nom invalide</string>
+	<string name="draft_compare_cancel_button">Annuler</string>
+	<string name="draft_compare_current_header">Fusionner avec le courant</string>
+	<string name="draft_compare_current_subheader">Copiez des parties du brouillon ici</string>
+	<string name="draft_compare_current_accept_button">Prendre fusion</string>
+	<string name="draft_compare_current_body_placeholder">Commencez à écrire votre scène ici</string>
+	<string name="draft_compare_draft_header">Draft: %1$s</string>
+	<string name="draft_compare_draft_subheader">Copiez les pièces souhaitées dans le courant ou acceptez tout cela.</string>
+	<string name="draft_compare_draft_accept_button">Prenez tout ce projet</string>
+	<string name="draft_compare_draft_body_placeholder">Brouillon</string>
+	<string name="draft_compare_tab_title_draft">Brouillon</string>
+	<string name="draft_compare_tab_title_current">Actuel</string>
+
+	<string name="draft_list_close_button">Fermer les ébauches</string>
+	<string name="draft_list_header">%1$s Dilds:</string>
+	<string name="draft_list_empty">Aucune ébauche trouvée</string>
+	<string name="draft_list_item_created">Créé: %1$s</string>
+
+	<string name="scene_draft_invalid_name">Nom non valide</string>
 </resources>

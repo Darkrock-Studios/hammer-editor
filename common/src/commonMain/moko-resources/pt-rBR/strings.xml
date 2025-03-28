@@ -1,22 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-    <string name="app_name">Hammer</string>
-    <string name="unsaved_scenes_dialog_title">Cenas Não Salvas</string>
-    <string name="unsaved_scenes_dialog_message">Salvar as cenas não salvas\?</string>
-    <string name="unsaved_encyclopedia_dialog_title">Inscrição da Enciclopédia Não Salva</string>
-    <string name="unsaved_notes_dialog_title">Nota Não Salva</string>
-    <string name="unsaved_notes_dialog_message">Descartar nota\?</string>
-    <string name="unsaved_dialog_negative_button">Cancelar</string>
-    <string name="unsaved_dialog_positive_button">Descartar e fechar</string>
-    <string name="close_dialog_button">Fechar</string>
-    <string name="unsaved_encyclopedia_dialog_message">Descartar a inscrição\?</string>
-    <string name="more_menu_button">Mais</string>
-    <string name="network_request_failure_parse_body">Falha ao analisar o corpo de resposta: %1$s</string>
-    <string name="network_request_failure_connection">Falha na requisição de rede: %1$s</string>
-    <string name="confirm_dialog_positive">Sim</string>
-    <string name="confirm_dialog_negative">Não</string>
-    <string name="image_failed_to_load">Erro de Imagem</string>
-    <string name="unsaved_entity_dialog_neutral_button">Cancelar</string>
-    <string name="unsaved_entity_dialog_negative_button">Descartar e fechar</string>
-    <string name="unsaved_entity_dialog_positive_button">Salvar e fechar</string>
+	<string name="app_name">Martelo</string>
+
+	<string name="unsaved_scenes_dialog_title">Cenas não salvas</string>
+	<string name="unsaved_scenes_dialog_message">O que deve ser feito com cenas não salvas?</string>
+
+	<string name="unsaved_encyclopedia_dialog_title">Entrada de enciclopédia não salva</string>
+	<string name="unsaved_encyclopedia_dialog_message">Descartar a entrada?</string>
+
+	<string name="unsaved_notes_dialog_title">Nota não salva</string>
+	<string name="unsaved_notes_dialog_message">Descartar nota?</string>
+
+	<string name="unsaved_dialog_negative_button">Cancelar</string>
+	<string name="unsaved_dialog_positive_button">Descarte e feche</string>
+
+	<string name="unsaved_entity_dialog_negative_button">Descartar</string>
+	<string name="unsaved_entity_dialog_neutral_button">Cancelar</string>
+	<string name="unsaved_entity_dialog_positive_button">Salvar</string>
+
+	<string name="close_dialog_button">Fechar</string>
+	<string name="more_menu_button">Mais</string>
+
+	<string name="network_request_failure_connection">Solicitação de rede falhou: %1$s</string>
+	<string name="network_request_failure_parse_body">Falhou em analisar o corpo de resposta: %1$s</string>
+
+	<string name="confirm_dialog_positive">Sim</string>
+	<string name="confirm_dialog_negative">Não</string>
+
+	<string name="image_failed_to_load">Erro de imagem</string>
+
+	<string name="expand">Expandir</string>
+	<string name="collapse">Colapso</string>
 </resources>

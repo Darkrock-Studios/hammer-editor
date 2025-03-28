@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="about_description">Простий інструмент для побудови історій.</string>
+	<string name="about_description_line_two">Безкоштовний і відкритий проект.</string>
+
+	<string name="about_community_header">Спільнота</string>
+	<string name="about_community_discord_link">Розбрат</string>
+	<string name="about_community_reddit_link">Червоний</string>
+	<string name="about_community_github_link">Гуруб</string>
+
+	<string name="about_attribution_header">Віднесення</string>
+	<string name="about_attribution_libraries_button">Бібліотека</string>
+</resources>
