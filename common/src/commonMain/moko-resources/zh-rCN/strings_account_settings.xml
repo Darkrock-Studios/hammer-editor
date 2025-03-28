@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">在同步之前，您想移除当前的本地内容吗？如果不移除，我们将尝试合并本地内容与服务器内容。如果内容不相关，可能会导致问题。</string>
 	<string name="settings_platform_settings_title">平台设置</string>
 	<string name="settings_keep_screen_on">保持屏幕开启</string>
-
 	<string name="settings_spellcheck_heading">拼写检查</string>
 	<string name="settings_spellcheck_enable">启用拼写检查（实验性）</string>
 	<string name="settings_spellcheck_in_focus_enable">在专注模式中启用</string>

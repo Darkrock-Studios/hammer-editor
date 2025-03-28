@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="timeline_title">时间轴</string>
+	<string name="timeline_no_events">没有事件</string>
+	<string name="timeline_create_event_button">创建事件</string>
+	<string name="timeline_create_close_button">关闭</string>
+	<string name="timeline_create_title">时间轴事件</string>
+	<string name="timeline_create_date_label">日期（可选）</string>
+	<string name="timeline_create_content_label">内容</string>
+	<string name="timeline_create_create_event_button">创建</string>
+	<string name="timeline_create_toast_success">事件已创建</string>
+	<string name="timeline_create_toast_failure">创建事件失败</string>
+	<string name="timeline_view_title">事件</string>
+	<string name="timeline_view_save_button">保存</string>
+	<string name="timeline_view_cancel_button">取消</string>
+	<string name="timeline_view_close_button">关闭条目</string>
+	<string name="timeline_view_date_label">日期</string>
+	<string name="timeline_view_content_placeholder">描述您的活动</string>
+	<string name="timeline_view_toast_save_success">已保存</string>
+	<string name="timeline_view_toast_save_failure">保存失败</string>
+	<string name="timeline_view_discard_title">放弃更改？</string>
+	<string name="timeline_view_discard_message">您将失去所做的任何更改。</string>
+	<string name="timeline_view_menu_group">事件</string>
+	<string name="timeline_view_menu_delete">删除</string>
+	<string name="timeline_view_confirm_delete_title">删除时间线事件？</string>
+	<string name="timeline_view_confirm_delete_message">这无法撤销！</string>
+</resources>

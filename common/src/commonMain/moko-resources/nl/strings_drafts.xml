@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Voorlopige versie</string>
 	<string name="draft_compare_tab_title_draft">Voorlopige versie</string>
 	<string name="draft_compare_tab_title_current">Huidig</string>
-
 	<string name="draft_list_close_button">Close concepten</string>
 	<string name="draft_list_header">%1$s concepten:</string>
 	<string name="draft_list_empty">Geen concepten gevonden</string>
 	<string name="draft_list_item_created">Gemaakt: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Ongeldige naam</string>
 </resources>

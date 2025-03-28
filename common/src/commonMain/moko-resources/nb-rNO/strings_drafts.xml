@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Utkast</string>
 	<string name="draft_compare_tab_title_draft">Utkast</string>
 	<string name="draft_compare_tab_title_current">Nåværende</string>
-
 	<string name="draft_list_close_button">Lukk utkast</string>
 	<string name="draft_list_header">%1$s Utkast:</string>
 	<string name="draft_list_empty">Ingen utkast funnet</string>
 	<string name="draft_list_item_created">Opprettet: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Ugyldig navn</string>
 </resources>

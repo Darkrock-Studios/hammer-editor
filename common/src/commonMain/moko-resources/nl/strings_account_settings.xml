@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Wil je je huidige lokale inhoud verwijderen vóór synchronisatie? Zo niet, dan proberen we je lokale inhoud samen te voegen met de serverinhoud. Als de inhoud niet gerelateerd is, kan dit problemen veroorzaken.</string>
 	<string name="settings_platform_settings_title">Platforminstellingen</string>
 	<string name="settings_keep_screen_on">Scherm aanhouden</string>
-
 	<string name="settings_spellcheck_heading">Spellingcontrole</string>
 	<string name="settings_spellcheck_enable">Spellingcontrole inschakelen (experimenteel)</string>
 	<string name="settings_spellcheck_in_focus_enable">Inschakelen in focusmodus</string>

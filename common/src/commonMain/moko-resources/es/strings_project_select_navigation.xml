@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="project_select_nav_projects_list">Proyectos</string>
+	<string name="project_select_nav_account_settings">Ajustes</string>
+	<string name="project_select_nav_about_app">Acerca de</string>
+	<string name="project_libraries_dialog_title">Bibliotecas</string>
+</resources>

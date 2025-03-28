@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="project_select_nav_projects_list">Проєкти</string>
+	<string name="project_select_nav_account_settings">Налаштування</string>
+	<string name="project_select_nav_about_app">Про програму</string>
+	<string name="project_libraries_dialog_title">Бібліотеки</string>
+</resources>

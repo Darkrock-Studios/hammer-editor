@@ -1,34 +1,24 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">锤</string>
-
 	<string name="unsaved_scenes_dialog_title">未保存的场景</string>
 	<string name="unsaved_scenes_dialog_message">未保存的场景应该怎么办？</string>
-
 	<string name="unsaved_encyclopedia_dialog_title">未保存的百科全书条目</string>
 	<string name="unsaved_encyclopedia_dialog_message">丢弃条目？</string>
-
 	<string name="unsaved_notes_dialog_title">未保存的笔记</string>
 	<string name="unsaved_notes_dialog_message">丢弃笔记？</string>
-
 	<string name="unsaved_dialog_negative_button">取消</string>
 	<string name="unsaved_dialog_positive_button">丢弃并关闭</string>
-
 	<string name="unsaved_entity_dialog_negative_button">丢弃</string>
 	<string name="unsaved_entity_dialog_neutral_button">取消</string>
 	<string name="unsaved_entity_dialog_positive_button">节省</string>
-
 	<string name="close_dialog_button">关闭</string>
 	<string name="more_menu_button">更多的</string>
-
 	<string name="network_request_failure_connection">网络请求失败：%1$s</string>
 	<string name="network_request_failure_parse_body">无法解析响应主体：%1$s</string>
-
 	<string name="confirm_dialog_positive">是的</string>
 	<string name="confirm_dialog_negative">不</string>
-
 	<string name="image_failed_to_load">图像错误</string>
-
 	<string name="expand">扩张</string>
 	<string name="collapse">坍塌</string>
 </resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="timeline_title">Cronologia</string>
+	<string name="timeline_no_events">Nessun evento</string>
+	<string name="timeline_create_event_button">Crea Evento</string>
+	<string name="timeline_create_close_button">Chiudi</string>
+	<string name="timeline_create_title">Evento della Timeline</string>
+	<string name="timeline_create_date_label">Data (opzionale)</string>
+	<string name="timeline_create_content_label">Contenuto</string>
+	<string name="timeline_create_create_event_button">Crea</string>
+	<string name="timeline_create_toast_success">Evento creato</string>
+	<string name="timeline_create_toast_failure">Impossibile creare l'evento</string>
+	<string name="timeline_view_title">Evento</string>
+	<string name="timeline_view_save_button">Salva</string>
+	<string name="timeline_view_cancel_button">Annulla</string>
+	<string name="timeline_view_close_button">Chiudi voce</string>
+	<string name="timeline_view_date_label">Data</string>
+	<string name="timeline_view_content_placeholder">Descrivi il tuo evento</string>
+	<string name="timeline_view_toast_save_success">Salvato</string>
+	<string name="timeline_view_toast_save_failure">Impossibile salvare</string>
+	<string name="timeline_view_discard_title">Scartare le modifiche?</string>
+	<string name="timeline_view_discard_message">Perderai tutte le modifiche che hai fatto.</string>
+	<string name="timeline_view_menu_group">Evento</string>
+	<string name="timeline_view_menu_delete">Elimina</string>
+	<string name="timeline_view_confirm_delete_title">Eliminare l'evento della timeline?</string>
+	<string name="timeline_view_confirm_delete_message">Questo non può essere annullato!</string>
+</resources>

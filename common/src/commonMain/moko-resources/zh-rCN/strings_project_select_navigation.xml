@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="project_select_nav_projects_list">项目</string>
+	<string name="project_select_nav_account_settings">设置</string>
+	<string name="project_select_nav_about_app">关于</string>
+	<string name="project_libraries_dialog_title">库</string>
+</resources>

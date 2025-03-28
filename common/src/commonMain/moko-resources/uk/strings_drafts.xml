@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Розтягувати</string>
 	<string name="draft_compare_tab_title_draft">Розтягувати</string>
 	<string name="draft_compare_tab_title_current">Поточний</string>
-
 	<string name="draft_list_close_button">Близькі чернетки</string>
 	<string name="draft_list_header">%1$s чернетки:</string>
 	<string name="draft_list_empty">Не знайдено чернетків</string>
 	<string name="draft_list_item_created">Створено: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Недійсне ім"я</string>
 </resources>

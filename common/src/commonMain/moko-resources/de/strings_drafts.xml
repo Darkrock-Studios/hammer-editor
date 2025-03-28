@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Entwurf</string>
 	<string name="draft_compare_tab_title_draft">Entwurf</string>
 	<string name="draft_compare_tab_title_current">Aktuell</string>
-
 	<string name="draft_list_close_button">Entwürfe schließen</string>
 	<string name="draft_list_header">%1$s Entwürfe:</string>
 	<string name="draft_list_empty">Keine Entwürfe gefunden</string>
 	<string name="draft_list_item_created">Erstellt: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Ungültiger Name</string>
 </resources>

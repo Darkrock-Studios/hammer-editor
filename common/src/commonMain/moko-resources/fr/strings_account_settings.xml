@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Souhaitez-vous supprimer votre contenu local actuel avant la synchronisation ? Sinon, nous essaierons de fusionner votre contenu local avec celui du serveur. Si les contenus ne sont pas liés, cela pourrait causer des problèmes.</string>
 	<string name="settings_platform_settings_title">Paramètres de la plateforme</string>
 	<string name="settings_keep_screen_on">Garder l'écran allumé</string>
-
 	<string name="settings_spellcheck_heading">Vérification orthographique</string>
 	<string name="settings_spellcheck_enable">Activer la vérification orthographique (expérimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Activer en mode concentration</string>

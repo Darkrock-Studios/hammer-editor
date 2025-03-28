@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Бажаєте видалити поточний локальний вміст перед синхронізацією? Якщо ні, ми спробуємо об'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов'язаний, це може викликати проблеми.</string>
 	<string name="settings_platform_settings_title">Налаштування платформи</string>
 	<string name="settings_keep_screen_on">Тримати екран увімкненим</string>
-
 	<string name="settings_spellcheck_heading">Перевірка орфографії</string>
 	<string name="settings_spellcheck_enable">Увімкнути перевірку орфографії (експериментально)</string>
 	<string name="settings_spellcheck_in_focus_enable">Увімкнути у режимі фокусування</string>

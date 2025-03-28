@@ -1,4 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+	<string name="encyclopedia_search_hint">Cerca per Nome o #hashtag</string>
+	<string name="encyclopedia_search_clear_button">Cancella</string>
+	<string name="encyclopedia_filter_by_category">Filtra per</string>
+	<string name="encyclopedia_category_all">Tutti</string>
+	<string name="encyclopedia_category_person">Persona</string>
+	<string name="encyclopedia_category_place">Luogo</string>
+	<string name="encyclopedia_category_thing">Cosa</string>
+	<string name="encyclopedia_category_event">Evento</string>
+	<string name="encyclopedia_category_idea">Idea</string>
+	<string name="encyclopedia_browse_list_empty">Nessuna voce trovata</string>
+	<string name="encyclopedia_create_button">Crea voce</string>
+	<string name="encyclopedia_create_entry_header">Crea Nuovo Ingresso</string>
+	<string name="encyclopedia_create_entry_type_label">Tipo:</string>
+	<string name="encyclopedia_create_entry_name_label">Nome</string>
+	<string name="encyclopedia_create_entry_tags_label">Tag (separati da uno spazio)</string>
+	<string name="encyclopedia_create_entry_body_hint">Descrivi la tua voce</string>
+	<string name="encyclopedia_create_entry_remove_image_button">Rimuovi immagine</string>
+	<string name="encyclopedia_create_entry_select_image_button">Seleziona Immagine</string>
+	<string name="encyclopedia_create_entry_create_button">Crea</string>
+	<string name="encyclopedia_create_entry_cancel_button">Annulla</string>
+	<string name="encyclopedia_create_entry_toast_success">Voce Creata</string>
+	<string name="encyclopedia_create_entry_toast_too_long">Il nome dell'entry era troppo lungo. Massimo %1$d</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">Il nome dell'entry deve essere
+		alfanumerico</string>
+	<string name="encyclopedia_create_entry_toast_tag_too_long">L'etichetta è troppo lunga. Max %1$d</string>
+	<string name="encyclopedia_create_entry_toast_tag_too_short">L'etichetta è troppo corta</string>
+	<string name="encyclopedia_create_entry_discard_title">Scartare la nuova voce?</string>
+	<string name="encyclopedia_entry_load_error">Errore: Impossibile caricare l'entry!</string>
+	<string name="encyclopedia_entry_body_empty_placeholder">Descrivi la tua voce</string>
+	<string name="encyclopedia_entry_body_empty_label">Fai clic per inserire la descrizione</string>
+	<string name="encyclopedia_entry_edit_cancel_button">Annulla</string>
+	<string name="encyclopedia_entry_edit_save_button">Salva</string>
+	<string name="encyclopedia_entry_edit_save_toast">Voce salvata</string>
+	<string name="encyclopedia_entry_discard_title">Scartare le modifiche?</string>
+	<string name="encyclopedia_entry_discard_message">Perderai tutte le modifiche che hai effettuato.</string>
+	<string name="encyclopedia_entry_delete_title">Eliminare l'entrata?</string>
+	<string name="encyclopedia_entry_delete_message">Questo non può essere annullato!</string>
+	<string name="encyclopedia_entry_delete_toast">Voce eliminata</string>
+	<string name="encyclopedia_entry_delete_image_title">Eliminare immagine?</string>
+	<string name="encyclopedia_entry_delete_image_message">Questo non può essere annullato!</string>
+	<string name="encyclopedia_entry_name_hint">Nome</string>
+	<string name="encyclopedia_entry_close_button">Chiudi Voce</string>
+	<string name="encyclopedia_entry_menu_group">Voce</string>
+	<string name="encyclopedia_entry_menu_delete">Elimina voce</string>
+	<string name="encyclopedia_entry_menu_remove_image">Rimuovi immagine</string>
+	<string name="encyclopedia_entry_menu_add_image">Aggiungi immagine</string>
+	<string name="encyclopedia_entry_add_tags_dialog_title">Aggiungi Tag</string>
+	<string name="encyclopedia_entry_add_tag">Aggiungi</string>
+	<string name="encyclopedia_entry_add_tags_button">Aggiungi Tag</string>
 </resources>

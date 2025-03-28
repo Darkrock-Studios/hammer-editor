@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="timeline_title">Chronologie</string>
+	<string name="timeline_no_events">Aucun événement</string>
+	<string name="timeline_create_event_button">Créer un événement</string>
+	<string name="timeline_create_close_button">Fermer</string>
+	<string name="timeline_create_title">Événement de la chronologie</string>
+	<string name="timeline_create_date_label">Date (facultatif)</string>
+	<string name="timeline_create_content_label">Contenu</string>
+	<string name="timeline_create_create_event_button">Créer</string>
+	<string name="timeline_create_toast_success">Événement créé</string>
+	<string name="timeline_create_toast_failure">Échec de la création de l'événement</string>
+	<string name="timeline_view_title">Événement</string>
+	<string name="timeline_view_save_button">Enregistrer</string>
+	<string name="timeline_view_cancel_button">Annuler</string>
+	<string name="timeline_view_close_button">Fermer l'entrée</string>
+	<string name="timeline_view_date_label">Date</string>
+	<string name="timeline_view_content_placeholder">Décrivez votre événement</string>
+	<string name="timeline_view_toast_save_success">Sauvegardé</string>
+	<string name="timeline_view_toast_save_failure">Échec de l'enregistrement</string>
+	<string name="timeline_view_discard_title">Annuler les modifications ?</string>
+	<string name="timeline_view_discard_message">Vous perdrez toutes les modifications que vous avez apportées.</string>
+	<string name="timeline_view_menu_group">Événement</string>
+	<string name="timeline_view_menu_delete">Supprimer</string>
+	<string name="timeline_view_confirm_delete_title">Supprimer l'événement de la chronologie ?</string>
+	<string name="timeline_view_confirm_delete_message">Cela ne peut pas être annulé !</string>
+</resources>

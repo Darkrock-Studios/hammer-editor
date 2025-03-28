@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="project_nav_home">Accueil</string>
+	<string name="project_nav_scene_editor">Histoire</string>
+	<string name="project_nav_notes">Notes</string>
+	<string name="project_nav_encyclopedia">Encyclopédie</string>
+	<string name="project_nav_time_line">Chronologie</string>
+</resources>
