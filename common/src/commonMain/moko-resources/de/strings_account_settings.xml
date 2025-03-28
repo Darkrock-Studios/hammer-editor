@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Sollen deine aktuellen lokalen Inhalte vor der Synchronisation entfernt werden? Wenn nicht, versuchen wir, deine lokalen Inhalte mit den Server-Inhalten zusammenzuführen. Sind die Inhalte nicht verwandt, könnte dies zu Problemen führen.</string>
 	<string name="settings_platform_settings_title">Plattform-Einstellungen</string>
 	<string name="settings_keep_screen_on">Bildschirm eingeschaltet lassen</string>
-
 	<string name="settings_spellcheck_heading">Rechtschreibprüfung</string>
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren (experimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>

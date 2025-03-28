@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="timeline_title">Хронологія</string>
+	<string name="timeline_no_events">Немає подій</string>
+	<string name="timeline_create_event_button">Створити подію</string>
+	<string name="timeline_create_close_button">Закрити</string>
+	<string name="timeline_create_title">Подія хроніки</string>
+	<string name="timeline_create_date_label">Дата (необов'язково)</string>
+	<string name="timeline_create_content_label">Контент</string>
+	<string name="timeline_create_create_event_button">Створити</string>
+	<string name="timeline_create_toast_success">Подію створено</string>
+	<string name="timeline_create_toast_failure">Не вдалося створити подію</string>
+	<string name="timeline_view_title">Подія</string>
+	<string name="timeline_view_save_button">Зберегти</string>
+	<string name="timeline_view_cancel_button">Скасувати</string>
+	<string name="timeline_view_close_button">Закрити запис</string>
+	<string name="timeline_view_date_label">Дата</string>
+	<string name="timeline_view_content_placeholder">Опишіть вашу подію</string>
+	<string name="timeline_view_toast_save_success">Збережено</string>
+	<string name="timeline_view_toast_save_failure">Не вдалося зберегти</string>
+	<string name="timeline_view_discard_title">Відкинути зміни?</string>
+	<string name="timeline_view_discard_message">Ви втратите всі зміни, які ви внесли.</string>
+	<string name="timeline_view_menu_group">Подія</string>
+	<string name="timeline_view_menu_delete">Видалити</string>
+	<string name="timeline_view_confirm_delete_title">Видалити подію хронології?</string>
+	<string name="timeline_view_confirm_delete_message">Це не можна буде скасувати!</string>
+</resources>

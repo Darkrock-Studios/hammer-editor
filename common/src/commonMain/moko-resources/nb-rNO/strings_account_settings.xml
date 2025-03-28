@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Vil du fjerne ditt nåværende lokale innhold før synkronisering? Hvis ikke, vil vi forsøke å slå sammen ditt lokale innhold med serverinnholdet. Hvis innholdet ikke er relatert, kan det føre til problemer.</string>
 	<string name="settings_platform_settings_title">Plattforminnstillinger</string>
 	<string name="settings_keep_screen_on">Hold skjermen på</string>
-
 	<string name="settings_spellcheck_heading">Stavekontroll</string>
 	<string name="settings_spellcheck_enable">Aktiver stavekontroll (eksperimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Aktiver i fokusmodus</string>

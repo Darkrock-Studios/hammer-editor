@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
+	<string name="notes_header">Note</string>
+	<string name="notes_list_empty">Nessuna nota trovata</string>
+	<string name="notes_create_note_button">Crea Nota</string>
+	<string name="notes_note_item_action_rename">Rinomina</string>
+	<string name="notes_note_item_action_cancel">Annulla</string>
+	<string name="notes_note_item_action_delete">Elimina</string>
+	<string name="notes_discard_dialog_title">Scartare le modifiche?</string>
+	<string name="notes_discard_dialog_message">Perderai tutte le modifiche che hai effettuato.</string>
+	<string name="notes_create_header">Crea Nota</string>
+	<string name="notes_create_body_hint">Nuova Nota:</string>
+	<string name="notes_create_create_button">Crea</string>
+	<string name="notes_create_cancel_button">Annulla</string>
+	<string name="notes_create_toast_success">Nota Creata</string>
+	<string name="notes_create_toast_too_long">La nota era troppo lunga.</string>
+	<string name="notes_create_toast_empty">La nota era vuota.</string>
+	<string name="notes_delete_title">Eliminare nota?</string>
+	<string name="notes_delete_message">Questa azione non può essere annullata!</string>
+	<string name="notes_delete_toast_success">Nota %1$s Eliminata</string>
+	<string name="notes_view_header">Nota</string>
 </resources>

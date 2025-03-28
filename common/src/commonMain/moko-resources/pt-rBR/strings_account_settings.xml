@@ -46,7 +46,6 @@
 	<string name="remove_local_dialog_message">Deseja remover seu conteúdo local atual antes da sincronização? Se não, tentaremos mesclar seu conteúdo local com o conteúdo do servidor. Se o conteúdo não estiver relacionado, isso pode causar problemas.</string>
 	<string name="settings_platform_settings_title">Configurações da Plataforma</string>
 	<string name="settings_keep_screen_on">Manter tela ligada</string>
-
 	<string name="settings_spellcheck_heading">Verificação Ortográfica</string>
 	<string name="settings_spellcheck_enable">Ativar verificação ortográfica (experimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Ativar no modo de foco</string>

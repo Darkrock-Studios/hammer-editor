@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">草稿</string>
 	<string name="draft_compare_tab_title_draft">草稿</string>
 	<string name="draft_compare_tab_title_current">当前的</string>
-
 	<string name="draft_list_close_button">关闭草稿</string>
 	<string name="draft_list_header">%1$s草稿：</string>
 	<string name="draft_list_empty">找不到草稿</string>
 	<string name="draft_list_item_created">创建：%1$s</string>
-
 	<string name="scene_draft_invalid_name">无效的名称</string>
 </resources>

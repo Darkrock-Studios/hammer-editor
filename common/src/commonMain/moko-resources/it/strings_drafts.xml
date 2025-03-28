@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Bozza</string>
 	<string name="draft_compare_tab_title_draft">Bozza</string>
 	<string name="draft_compare_tab_title_current">Attuale</string>
-
 	<string name="draft_list_close_button">Ravvicinarsi</string>
 	<string name="draft_list_header">%1$s bozze:</string>
 	<string name="draft_list_empty">Nessuna bozza trovata</string>
 	<string name="draft_list_item_created">Creato: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Nome non valido</string>
 </resources>

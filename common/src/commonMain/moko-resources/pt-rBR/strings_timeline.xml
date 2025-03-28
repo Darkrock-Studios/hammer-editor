@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="timeline_title">Linha do tempo</string>
+	<string name="timeline_no_events">Nenhum evento</string>
+	<string name="timeline_create_event_button">Criar Evento</string>
+	<string name="timeline_create_close_button">Fechar</string>
+	<string name="timeline_create_title">Evento da Linha do Tempo</string>
+	<string name="timeline_create_date_label">Data (opcional)</string>
+	<string name="timeline_create_content_label">Conteúdo</string>
+	<string name="timeline_create_create_event_button">Criar</string>
+	<string name="timeline_create_toast_success">Evento Criado</string>
+	<string name="timeline_create_toast_failure">Falha ao criar evento</string>
+	<string name="timeline_view_title">Evento</string>
+	<string name="timeline_view_save_button">Salvar</string>
+	<string name="timeline_view_cancel_button">Cancelar</string>
+	<string name="timeline_view_close_button">Fechar Entrada</string>
+	<string name="timeline_view_date_label">Data</string>
+	<string name="timeline_view_content_placeholder">Descreva seu evento</string>
+	<string name="timeline_view_toast_save_success">Salvo</string>
+	<string name="timeline_view_toast_save_failure">Falha ao salvar</string>
+	<string name="timeline_view_discard_title">Descartar Mudanças?</string>
+	<string name="timeline_view_discard_message">Você perderá todas as alterações que fez.</string>
+	<string name="timeline_view_menu_group">Evento</string>
+	<string name="timeline_view_menu_delete">Deletar</string>
+	<string name="timeline_view_confirm_delete_title">Excluir Evento da Linha do Tempo?</string>
+	<string name="timeline_view_confirm_delete_message">Isto não pode ser desfeito!</string>
+</resources>

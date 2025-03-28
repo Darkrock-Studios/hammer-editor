@@ -11,11 +11,9 @@
 	<string name="draft_compare_draft_body_placeholder">Borrador</string>
 	<string name="draft_compare_tab_title_draft">Borrador</string>
 	<string name="draft_compare_tab_title_current">Actual</string>
-
 	<string name="draft_list_close_button">Cerrar borradores</string>
 	<string name="draft_list_header">%1$s borradores:</string>
 	<string name="draft_list_empty">No se encontraron borradores</string>
 	<string name="draft_list_item_created">Creado: %1$s</string>
-
 	<string name="scene_draft_invalid_name">Nombre no válido</string>
 </resources>
