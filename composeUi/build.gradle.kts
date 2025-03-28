@@ -47,7 +47,6 @@ kotlin {
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
 				api(libs.decompose.compose)
-				api(libs.richtexteditor)
 				api(libs.mpfilepicker)
 				api(libs.imageloader)
 				api(libs.imageloader.moko)
