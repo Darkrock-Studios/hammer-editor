@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+	<string name="about_description">Uma ferramenta simples para construir histórias.</string>
+	<string name="about_description_line_two">Um projeto de código aberto e gratuito.</string>
+
+	<string name="about_community_header">Comunidade</string>
+	<string name="about_community_discord_link">Discórdia</string>
+	<string name="about_community_reddit_link">Reddit</string>
+	<string name="about_community_github_link">Girub</string>
+
+	<string name="about_attribution_header">Atribuição</string>
+	<string name="about_attribution_libraries_button">Bibliotecas</string>
+</resources>

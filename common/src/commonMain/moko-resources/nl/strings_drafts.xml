@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="draft_compare_cancel_button">Annuleren</string>
-    <string name="draft_compare_current_header">Samenvoegen met Huidig</string>
-    <string name="draft_compare_current_body_placeholder">Begin hier met het schrijven van je scène</string>
-    <string name="draft_compare_draft_accept_button">Neem dit hele ontwerp</string>
-    <string name="draft_compare_draft_body_placeholder">Ontwerp</string>
-    <string name="draft_list_close_button">Ontwerpen sluiten</string>
-    <string name="draft_list_header">%1$s ontwerpen:</string>
-    <string name="draft_list_empty">Geen ontwerpen gevonden</string>
-    <string name="draft_list_item_created">Gemaakt: %1$s</string>
-    <string name="draft_compare_current_subheader">Kopieer delen van het ontwerp hier naar toe</string>
-    <string name="draft_compare_current_accept_button">Opname samengevoegd</string>
-    <string name="draft_compare_draft_subheader">Kopieer gewenste delen naar huidig, of accepteer alles.</string>
-    <string name="draft_compare_draft_header">Ontwerp: %1$s</string>
-    <string name="scene_draft_invalid_name">Ongeldige naam</string>
-    <string name="draft_compare_tab_title_draft">Ontwerp</string>
-    <string name="draft_compare_tab_title_current">Huidige</string>
+	<string name="draft_compare_cancel_button">Annuleren</string>
+	<string name="draft_compare_current_header">Mergen met stroom</string>
+	<string name="draft_compare_current_subheader">Kopieer delen van het ontwerp hier naar</string>
+	<string name="draft_compare_current_accept_button">Zich versmelten</string>
+	<string name="draft_compare_current_body_placeholder">Begin hier je scène te schrijven</string>
+	<string name="draft_compare_draft_header">Ontwerp: %1$s</string>
+	<string name="draft_compare_draft_subheader">Kopieer de gewenste onderdelen naar stroom, of accepteer dit alles.</string>
+	<string name="draft_compare_draft_accept_button">Neem dit hele ontwerp</string>
+	<string name="draft_compare_draft_body_placeholder">Voorlopige versie</string>
+	<string name="draft_compare_tab_title_draft">Voorlopige versie</string>
+	<string name="draft_compare_tab_title_current">Huidig</string>
+
+	<string name="draft_list_close_button">Close concepten</string>
+	<string name="draft_list_header">%1$s concepten:</string>
+	<string name="draft_list_empty">Geen concepten gevonden</string>
+	<string name="draft_list_item_created">Gemaakt: %1$s</string>
+
+	<string name="scene_draft_invalid_name">Ongeldige naam</string>
 </resources>

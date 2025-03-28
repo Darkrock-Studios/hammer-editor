@@ -1,22 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-    <string name="app_name">Hammer</string>
-    <string name="unsaved_scenes_dialog_message">Enregistrer les scènes non enregistrées \?</string>
-    <string name="unsaved_scenes_dialog_title">Scènes non enregistrées</string>
-    <string name="unsaved_encyclopedia_dialog_title">Entrée encyclopédique non enregistrée</string>
-    <string name="unsaved_encyclopedia_dialog_message">Supprimer l’entrée \?</string>
-    <string name="unsaved_notes_dialog_title">Note non enregistrée</string>
-    <string name="unsaved_notes_dialog_message">Supprimer la note \?</string>
-    <string name="unsaved_dialog_negative_button">Annuler</string>
-    <string name="unsaved_dialog_positive_button">Ignorer et fermer</string>
-    <string name="close_dialog_button">Fermer</string>
-    <string name="more_menu_button">Plus</string>
-    <string name="network_request_failure_connection">Demande de réseau échouée : %1$s</string>
-    <string name="network_request_failure_parse_body">Échec de l\'analyse du corps de la réponse : %1$s</string>
-    <string name="confirm_dialog_positive">Oui</string>
-    <string name="confirm_dialog_negative">No</string>
-    <string name="image_failed_to_load">Erreur d\'image</string>
-    <string name="unsaved_entity_dialog_neutral_button">Annuler</string>
-    <string name="unsaved_entity_dialog_negative_button">Rejeter et fermer</string>
-    <string name="unsaved_entity_dialog_positive_button">Enregistrer et fermer</string>
+	<string name="app_name">Marteau</string>
+
+	<string name="unsaved_scenes_dialog_title">Scènes non sauvées</string>
+	<string name="unsaved_scenes_dialog_message">Que devrait-il être fait avec des scènes non sauvées?</string>
+
+	<string name="unsaved_encyclopedia_dialog_title">Entrée d"encyclopédie non sauvée</string>
+	<string name="unsaved_encyclopedia_dialog_message">Jeter l"entrée?</string>
+
+	<string name="unsaved_notes_dialog_title">Note non enregistrée</string>
+	<string name="unsaved_notes_dialog_message">Décarner la note?</string>
+
+	<string name="unsaved_dialog_negative_button">Annuler</string>
+	<string name="unsaved_dialog_positive_button">Jeter et fermer</string>
+
+	<string name="unsaved_entity_dialog_negative_button">Jeter</string>
+	<string name="unsaved_entity_dialog_neutral_button">Annuler</string>
+	<string name="unsaved_entity_dialog_positive_button">Sauvegarder</string>
+
+	<string name="close_dialog_button">Fermer</string>
+	<string name="more_menu_button">Plus</string>
+
+	<string name="network_request_failure_connection">Demande de réseau a échoué:%1$s</string>
+	<string name="network_request_failure_parse_body">Échec de l"analyse du corps de réponse:%1$s</string>
+
+	<string name="confirm_dialog_positive">Oui</string>
+	<string name="confirm_dialog_negative">Non</string>
+
+	<string name="image_failed_to_load">Erreur d"image</string>
+
+	<string name="expand">Développer</string>
+	<string name="collapse">Effondrement</string>
 </resources>
