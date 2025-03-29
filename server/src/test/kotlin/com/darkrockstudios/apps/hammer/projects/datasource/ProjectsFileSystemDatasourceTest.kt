@@ -42,10 +42,10 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		val datasource = ProjectsFileSystemDatasource(fileSystem, json)
 		datasource.createUserData(userId)
 
-		assertTrue { fileSystem.exists(userDir) }
+		assertTrue(fileSystem.exists(userDir))
 
 		val dataFile = ProjectsFileSystemDatasource.getSyncDataPath(userId, fileSystem)
-		assertTrue { fileSystem.exists(dataFile) }
+		assertTrue(fileSystem.exists(dataFile))
 	}
 
 	@Test

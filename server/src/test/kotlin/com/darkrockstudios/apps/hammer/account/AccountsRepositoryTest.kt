@@ -97,7 +97,7 @@ class AccountsRepositoryTest : BaseTest() {
 
 		val result =
 			accountsRepository.login(email = email, installId = installId, password = password)
-		assertTrue { result.isSuccess }
+		assertTrue(result.isSuccess)
 	}
 
 	@Test
@@ -111,7 +111,7 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = password + "4"
 		)
-		assertTrue { result.isFailure }
+		assertTrue(result.isFailure)
 	}
 
 	@Test
@@ -125,7 +125,7 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = "power1234"
 		)
-		assertTrue { result.isFailure }
+		assertTrue(result.isFailure)
 	}
 
 	@Test
@@ -159,7 +159,7 @@ class AccountsRepositoryTest : BaseTest() {
 			installId = installId,
 			password = password
 		)
-		assertTrue { result.isFailure }
+		assertTrue(result.isFailure)
 	}
 
 	@Test
@@ -192,7 +192,7 @@ class AccountsRepositoryTest : BaseTest() {
 			password = "x".repeat(MAX_PASSWORD_LENGTH + 1)
 		)
 		assertTrue(isFailure(result))
-		assertTrue { result.exception is InvalidPassword }
+		assertTrue(result.exception is InvalidPassword)
 		assertEquals(
 			AccountsRepository.Companion.PasswordResult.TOO_LONG,
 			(result.exception as InvalidPassword).result
@@ -234,6 +234,6 @@ class AccountsRepositoryTest : BaseTest() {
 			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
-		assertTrue { result.isFailure }
+		assertTrue(result.isFailure)
 	}
 }
