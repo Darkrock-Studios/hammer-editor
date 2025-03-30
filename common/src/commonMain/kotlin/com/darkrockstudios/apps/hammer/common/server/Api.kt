@@ -33,7 +33,7 @@ abstract class Api(
 		path: String,
 		builder: HttpRequestBuilder.() -> Unit = {},
 		execute: suspend (block: HttpRequestBuilder.() -> Unit) -> HttpResponse,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		parse: suspend (HttpResponse) -> T,
 	): Result<T> = withContext(ioDispatcher) {
 		val server = globalSettingsRepository.serverSettings ?: return@withContext Result.failure<T>(
@@ -69,11 +69,12 @@ abstract class Api(
 				)
 			)
 		} catch (e: IOException) {
+			Napier.e("Network Error", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
 					error = HttpResponseError(
-						error = "Network Error",
+						error = e.message ?: "Network Error",
 						displayMessage = strRes.get(MR.strings.network_request_failure_connection, path),
 					)
 				)
@@ -83,7 +84,7 @@ abstract class Api(
 
 	protected suspend fun post(
 		path: String,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<String> =
 		makeRequest(
@@ -96,7 +97,7 @@ abstract class Api(
 
 	protected suspend fun <T> post(
 		path: String,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		parse: suspend (HttpResponse) -> T,
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<T> =
@@ -110,7 +111,7 @@ abstract class Api(
 
 	protected suspend fun get(
 		path: String,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<String> =
 		makeRequest(
@@ -124,7 +125,7 @@ abstract class Api(
 	protected suspend fun <T> get(
 		path: String,
 		parse: suspend (HttpResponse) -> T,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<T> =
 		makeRequest(
@@ -137,7 +138,7 @@ abstract class Api(
 
 	protected suspend fun put(
 		path: String,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<String> =
 		makeRequest(
@@ -151,7 +152,7 @@ abstract class Api(
 	protected suspend fun <T> put(
 		path: String,
 		parse: suspend (HttpResponse) -> T,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<T> =
 		makeRequest(
@@ -164,7 +165,7 @@ abstract class Api(
 
 	protected suspend fun delete(
 		path: String,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<String> =
 		makeRequest(
@@ -178,7 +179,7 @@ abstract class Api(
 	protected suspend fun <T> delete(
 		path: String,
 		parse: suspend (HttpResponse) -> T,
-		failureHandler: FailureHandler = { defaultFailureHandler(it) },
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		builder: HttpRequestBuilder.() -> Unit = {},
 	): Result<T> =
 		makeRequest(
@@ -199,11 +200,34 @@ class HttpFailureException(
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 
-suspend fun defaultFailureHandler(response: HttpResponse): Throwable {
-	val error = response.body<HttpResponseError>()
-
-	return HttpFailureException(
-		statusCode = response.status,
-		error = error
-	)
+suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throwable {
+	return when(response.status) {
+		HttpStatusCode.Unauthorized -> {
+			HttpFailureException(
+				statusCode = response.status,
+				error = HttpResponseError(
+					error = "Unauthorized",
+					displayMessage = strRes.get(MR.strings.sync_unauthorized),
+				)
+			)
+		}
+		else -> {
+			try {
+				val error = response.body<HttpResponseError>()
+				HttpFailureException(
+					statusCode = response.status,
+					error = error
+				)
+			} catch (e: NoTransformationFoundException) {
+				Napier.w("Error response body unable to be parsed", e)
+				HttpFailureException(
+					statusCode = response.status,
+					error = HttpResponseError(
+						error = "Unhandled error body",
+						displayMessage = strRes.get(MR.strings.sync_general_error),
+					)
+				)
+			}
+		}
+	}
 }

@@ -170,7 +170,9 @@ private suspend fun refreshTokenRequest(
 ): Result<Token> {
 	return try {
 		val response = httpClient.post {
-			url(serverSettings, "/account/refresh_token/${serverSettings.userId}")
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			url(serverSettings, "/api/account/refresh_token/${serverSettings.userId}")
 			setBody(
 				FormDataContent(
 					Parameters.build {
@@ -185,10 +187,11 @@ private suspend fun refreshTokenRequest(
 			val token: Token = response.body()
 			Result.success(token)
 		} else {
+			Napier.e("Token Refresh failed!")
 			Result.failure(TokenRefreshFailed())
 		}
-
 	} catch (e: IOException) {
+		Napier.e("Token Refresh failed!", e)
 		Result.failure(TokenRefreshFailed())
 	}
 }

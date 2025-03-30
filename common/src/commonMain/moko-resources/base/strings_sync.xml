@@ -156,4 +156,7 @@
 	<string name="sync_scene_group_creating">Creating new group %1$d</string>
 	<string name="sync_scene_group_downloading">Downloaded scene content for: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Moved scene %1$d to new parent %2$d</string>
+
+	<string name="sync_unauthorized">Unauthorized</string>
+	<string name="sync_general_error">Unhandled server error</string>
 </resources>
