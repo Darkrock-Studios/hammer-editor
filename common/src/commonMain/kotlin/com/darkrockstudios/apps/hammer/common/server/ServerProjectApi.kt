@@ -35,7 +35,7 @@ class ServerProjectApi(
 	httpClient: HttpClient,
 	globalSettingsRepository: GlobalSettingsRepository,
 	private val json: Json,
-	strRes: StrRes,
+	private val strRes: StrRes,
 ) : Api(httpClient, globalSettingsRepository, strRes) {
 
 	suspend fun beginProjectSync(
@@ -163,7 +163,7 @@ class ServerProjectApi(
 						)
 					}
 				} else {
-					defaultFailureHandler(response)
+					defaultFailureHandler(response, strRes)
 				}
 			}
 		)
@@ -198,7 +198,7 @@ class ServerProjectApi(
 				when (response.status) {
 					HttpStatusCode.NotModified -> EntityNotModifiedException(entityId)
 					HttpStatusCode.NotFound -> EntityNotFoundException(entityId)
-					else -> defaultFailureHandler(response)
+					else -> defaultFailureHandler(response, strRes)
 				}
 			},
 			builder = {
