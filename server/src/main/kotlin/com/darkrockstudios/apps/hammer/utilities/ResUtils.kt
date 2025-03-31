@@ -21,7 +21,7 @@ object ResUtils {
 	}
 
 	fun getTranslatedLocales(): List<Locale> {
-		val regex = Regex(".*Messages_([a-zA-Z]{2}).properties$")
+		val regex = Regex(".*Messages_([a-zA-Z]{2}(?:_[a-zA-Z]{2})?).properties$")
 		val localeFiles = resource.list("i18n")
 		return if (localeFiles != null) {
 			localeFiles
@@ -29,7 +29,14 @@ object ResUtils {
 					val result = regex.matchEntire(file)
 					result?.groups?.get(1)?.value
 				}
-				.map { Locale.Builder().setLanguageTag(it).build() }
+				.map { localeStr ->
+					val parts = localeStr.split("_")
+					val builder = Locale.Builder().setLanguageTag(parts[0])
+					if (parts.size > 1) {
+						builder.setRegion(parts[1])
+					}
+					builder.build()
+				}
 		} else {
 			error("No locale files found")
 		}
