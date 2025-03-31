@@ -7,22 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -201,6 +187,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			onLog = onLog,
 			onConflict = onConflict,
 			onComplete = onComplete,
+			onUnauthorized = {}
 		)
 		assertTrue(success)
 
@@ -299,6 +286,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			onLog = onLog,
 			onConflict = onConflict,
 			onComplete = onComplete,
+			onUnauthorized = {}
 		)
 		assertFalse(success)
 
