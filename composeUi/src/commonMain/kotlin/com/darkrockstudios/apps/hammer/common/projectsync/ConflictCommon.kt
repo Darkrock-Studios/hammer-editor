@@ -1,38 +1,30 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 typealias EntityUi<T> = @Composable (
 	modifier: Modifier,
-	entityConflict: ProjectSync.EntityConflict<T>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<T>,
+	component: ProjectSynchronization
 ) -> Unit
 
 @Composable
 fun <T : ApiProjectEntity> EntityConflict(
-	entityConflict: ProjectSync.EntityConflict<T>,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict<T>,
+	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass,
 	LocalEntity: EntityUi<T>,
 	RemoteEntity: EntityUi<T>,
@@ -55,8 +47,8 @@ fun <T : ApiProjectEntity> EntityConflict(
 @Composable
 private fun <T : ApiProjectEntity> CompactConflictUi(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<T>,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict<T>,
+	component: ProjectSynchronization,
 	LocalEntity: EntityUi<T>,
 	RemoteEntity: EntityUi<T>,
 ) {
@@ -95,8 +87,8 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 @Composable
 private fun <T : ApiProjectEntity> ExpandedConflictUi(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<T>,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict<T>,
+	component: ProjectSynchronization,
 	LocalEntity: EntityUi<T>,
 	RemoteEntity: EntityUi<T>,
 ) {

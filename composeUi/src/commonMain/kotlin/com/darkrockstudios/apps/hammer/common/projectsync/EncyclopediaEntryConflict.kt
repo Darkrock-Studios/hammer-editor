@@ -19,15 +19,15 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 
 @Composable
 internal fun EncyclopediaEntryConflict(
-	entityConflict: ProjectSync.EntityConflict.EncyclopediaEntryConflict,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict,
+	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
 	EntityConflict(
@@ -43,8 +43,8 @@ internal fun EncyclopediaEntryConflict(
 @Composable
 private fun LocalEntry(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
+	component: ProjectSynchronization
 ) {
 	val strRes = rememberStrRes()
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.EncyclopediaEntryEntity
@@ -70,7 +70,7 @@ private fun LocalEntry(
 						text = contentTextValue
 					)
 				)
-				if (error is ProjectSync.EntityMergeError.EncyclopediaEntryMergeError) {
+				if (error is ProjectSynchronization.EntityMergeError.EncyclopediaEntryMergeError) {
 					nameError = error.nameError?.text(strRes)
 					contentError = error.contentError?.text(strRes)
 				}
@@ -157,8 +157,8 @@ private fun LocalEntry(
 @Composable
 fun RemoteEntry(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
+	component: ProjectSynchronization
 ) {
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(

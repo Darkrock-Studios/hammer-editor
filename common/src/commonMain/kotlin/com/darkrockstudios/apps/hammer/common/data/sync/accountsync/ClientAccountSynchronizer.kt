@@ -9,12 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
@@ -49,7 +44,7 @@ class ClientAccountSynchronizer(
 		globalSettingsRepository.globalSettings.automaticSyncing &&
 			networkConnectivity.hasActiveConnection()
 
-	suspend fun syncProjects(onLog: OnSyncLog): Boolean {
+	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit = {}): Boolean {
 		onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_begin)))
 
 		var syncId: String? = null

@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 internal fun ProjectSynchronization(
-	component: ProjectSync,
+	component: ProjectSynchronization,
 	showSnackbar: (String) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
@@ -59,7 +59,7 @@ internal fun ProjectSynchronization(
 
 @Composable
 internal fun ProjectSynchronizationContent(
-	component: ProjectSync,
+	component: ProjectSynchronization,
 	showSnackbar: (String) -> Unit,
 	screenCharacteristics: WindowSizeClass
 ) {
@@ -152,31 +152,31 @@ internal fun ProjectSynchronizationContent(
 				}
 
 				when (conflict) {
-					is ProjectSync.EntityConflict.SceneConflict -> {
-						val sceneConflict = state.entityConflict as ProjectSync.EntityConflict.SceneConflict
+					is ProjectSynchronization.EntityConflict.SceneConflict -> {
+						val sceneConflict = state.entityConflict as ProjectSynchronization.EntityConflict.SceneConflict
 						SceneConflict(sceneConflict, component, screenCharacteristics)
 					}
 
-					is ProjectSync.EntityConflict.NoteConflict -> {
-						val noteConflict = state.entityConflict as ProjectSync.EntityConflict.NoteConflict
+					is ProjectSynchronization.EntityConflict.NoteConflict -> {
+						val noteConflict = state.entityConflict as ProjectSynchronization.EntityConflict.NoteConflict
 						NoteConflict(noteConflict, component, screenCharacteristics)
 					}
 
-					is ProjectSync.EntityConflict.TimelineEventConflict -> {
+					is ProjectSynchronization.EntityConflict.TimelineEventConflict -> {
 						val timelineEventConflict =
-							state.entityConflict as ProjectSync.EntityConflict.TimelineEventConflict
+							state.entityConflict as ProjectSynchronization.EntityConflict.TimelineEventConflict
 						TimelineEventConflict(timelineEventConflict, component, screenCharacteristics)
 					}
 
-					is ProjectSync.EntityConflict.EncyclopediaEntryConflict -> {
+					is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> {
 						val encyclopediaEntryConflict =
-							state.entityConflict as ProjectSync.EntityConflict.EncyclopediaEntryConflict
+							state.entityConflict as ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict
 						EncyclopediaEntryConflict(encyclopediaEntryConflict, component, screenCharacteristics)
 					}
 
-					is ProjectSync.EntityConflict.SceneDraftConflict -> {
+					is ProjectSynchronization.EntityConflict.SceneDraftConflict -> {
 						val sceneDraftConflict =
-							state.entityConflict as ProjectSync.EntityConflict.SceneDraftConflict
+							state.entityConflict as ProjectSynchronization.EntityConflict.SceneDraftConflict
 						SceneDraftConflict(sceneDraftConflict, component, screenCharacteristics)
 					}
 				}
@@ -188,7 +188,7 @@ internal fun ProjectSynchronizationContent(
 }
 
 @Composable
-internal fun SyncLog(state: ProjectSync.State, scope: CoroutineScope) {
+internal fun SyncLog(state: ProjectSynchronization.State, scope: CoroutineScope) {
 
 	val listState: LazyListState = rememberLazyListState()
 	LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {

@@ -12,7 +12,7 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
 import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
 import kotlinx.datetime.Clock
@@ -42,7 +42,7 @@ private fun SceneConflictPreview() {
 		content = sceneContent.replace("to", "BOB")
 	)
 
-	val conflict = ProjectSync.EntityConflict.SceneConflict(
+	val conflict = ProjectSynchronization.EntityConflict.SceneConflict(
 		serverScene = clientEntity,
 		clientScene = serverScene
 	)
@@ -62,7 +62,7 @@ private fun NoteConflictPreview() {
 		content = sceneContent.replace("to", "BOB")
 	)
 
-	val conflict = ProjectSync.EntityConflict.NoteConflict(
+	val conflict = ProjectSynchronization.EntityConflict.NoteConflict(
 		serverNote = clientEntity,
 		clientNote = serverEntity
 	)
@@ -84,7 +84,7 @@ private fun TimelineConflictPreview() {
 		date = "November 2nd"
 	)
 
-	val conflict = ProjectSync.EntityConflict.TimelineEventConflict(
+	val conflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
 		serverEvent = clientEntity,
 		clientEvent = serverEntity
 	)
@@ -96,7 +96,7 @@ private fun TimelineConflictPreview() {
 @Preview
 @Composable
 private fun ProjectSynchronizationPreview(
-	conflict: ProjectSync.EntityConflict<*>,
+	conflict: ProjectSynchronization.EntityConflict<*>,
 	screenCharacteristics: WindowSizeClass = calculateWindowSizeClass()
 ) {
 	KoinApplicationPreview {
@@ -108,20 +108,21 @@ private fun ProjectSynchronizationPreview(
 	}
 }
 
-private fun previewProjectSyncComponent(conflict: ProjectSync.EntityConflict<*>?): ProjectSync {
-	val compoent = object : ProjectSync {
-		override val state = MutableValue(ProjectSync.State())
+private fun previewProjectSyncComponent(conflict: ProjectSynchronization.EntityConflict<*>?): ProjectSynchronization {
+	val compoent = object : ProjectSynchronization {
+		override val state = MutableValue(ProjectSynchronization.State())
 		override fun syncProject(onComplete: (Boolean) -> Unit) {}
-		override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+		override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSynchronization.EntityMergeError? {
 			return null
 		}
 		override fun endSync() {}
 		override fun cancelSync() {}
 		override fun showLog(show: Boolean) {}
+		override fun onUnauthorized() {}
 	}
 
 	compoent.state.update {
-		ProjectSync.State(
+		ProjectSynchronization.State(
 			isSyncing = true,
 			entityConflict = conflict,
 			conflictTitle = MR.strings.sync_conflict_scene_title,
@@ -170,20 +171,21 @@ private fun RemotePreview() {
 	)
 
 	RemoteEntry(
-		entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(entity, entity),
-		component = object : ProjectSync {
+		entityConflict = ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict(entity, entity),
+		component = object : ProjectSynchronization {
 			override val state = MutableValue(
-				ProjectSync.State(
+				ProjectSynchronization.State(
 				)
 			)
 
 			override fun syncProject(onComplete: (Boolean) -> Unit) {}
-			override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+			override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSynchronization.EntityMergeError? {
 				return null
 			}
 			override fun endSync() {}
 			override fun cancelSync() {}
 			override fun showLog(show: Boolean) {}
+			override fun onUnauthorized() {}
 		}
 	)
 }

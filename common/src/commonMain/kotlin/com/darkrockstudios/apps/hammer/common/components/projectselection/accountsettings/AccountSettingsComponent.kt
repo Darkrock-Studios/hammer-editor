@@ -247,8 +247,6 @@ class AccountSettingsComponent(
 				)
 			)
 		}
-
-
 	}
 
 	override fun setupServer(
@@ -289,8 +287,7 @@ class AccountSettingsComponent(
 					removeLocalContent()
 				}
 
-				val result =
-					accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
+				val result = accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
 				withContext(mainDispatcher) {
 					if (isSuccess(result)) {
 						cleanUpServerSetup()

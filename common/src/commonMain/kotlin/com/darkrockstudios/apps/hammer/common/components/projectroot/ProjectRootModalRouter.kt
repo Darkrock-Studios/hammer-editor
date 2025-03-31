@@ -6,7 +6,9 @@ import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSyncComponent
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
+import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import kotlinx.serialization.Serializable
 
@@ -26,7 +28,7 @@ class ProjectRootModalRouter(
 		)
 
 	override fun isAtRoot(): Boolean {
-		return state.value.child?.instance is ProjectRoot.ModalDestination.None
+		return state.value.child?.instance is None
 	}
 
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
@@ -36,9 +38,23 @@ class ProjectRootModalRouter(
 		componentContext: ComponentContext
 	): ProjectRoot.ModalDestination =
 		when (config) {
-			Config.None -> ProjectRoot.ModalDestination.None
-			Config.ProjectSync -> ProjectRoot.ModalDestination.ProjectSync(
-				ProjectSyncComponent(componentContext, projectDef, ::dismissProjectSync)
+			Config.None -> None
+			Config.ProjectSync -> ProjectSync(
+				ProjectSynchronizationComponent(
+					componentContext,
+					projectDef,
+					::dismissProjectSync,
+					::showReauthorizeDialog
+				)
+			)
+
+			Config.ServerReauth -> ServerReauth(
+				ServerReauthenticationComponent(
+					componentContext,
+					projectDef,
+					::dismissProjectSync,
+					::showProjectSync,
+				)
 			)
 		}
 
@@ -50,6 +66,14 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showReauthorizeDialog() {
+		navigation.activate(Config.ServerReauth)
+	}
+
+	fun dismissReauthorizeDialog() {
+		navigation.activate(Config.None)
+	}
+
 	@Serializable
 	sealed class Config {
 		@Serializable
@@ -57,5 +81,8 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data object ProjectSync : Config()
+
+		@Serializable
+		data object ServerReauth : Config()
 	}
 }
