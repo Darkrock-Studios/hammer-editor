@@ -86,7 +86,7 @@ multiplatform_settings = "1.2.0"
 korge-core = "5.4.0"
 
 moko-permissions = "0.18.1"
-compose-texteditor = "0.7.4"
+compose-texteditor = "0.7.5"
 symspellkt = "3.3.0"
 
 [libraries]
