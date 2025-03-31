@@ -51,7 +51,6 @@ class ProjectRootModalRouter(
 			Config.ServerReauth -> ServerReauth(
 				ServerReauthenticationComponent(
 					componentContext,
-					projectDef,
 					::dismissProjectSync,
 					::showProjectSync,
 				)

@@ -17,13 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -33,20 +27,12 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import kotlinx.datetime.Clock
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
-import kotlin.collections.set
 
 class ProjectsListComponent(
 	componentContext: ComponentContext,
@@ -67,6 +53,9 @@ class ProjectsListComponent(
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
 	private var syncScope: CoroutineScope? = null
+
+	private val modalRouter = ProjectListModalRouter(componentContext)
+	override val modalRouterState = modalRouter.state
 
 	private val _state by savableState {
 		ProjectsList.State(
@@ -191,16 +180,14 @@ class ProjectsListComponent(
 	}
 
 	override fun showCreate() {
-		_state.getAndUpdate { it.copy(showCreateDialog = true) }
+		modalRouter.showProjectCreate()
 	}
 
 	override fun hideCreate() {
 		_state.getAndUpdate {
-			it.copy(
-				showCreateDialog = false,
-				createDialogProjectName = ""
-			)
+			it.copy(createDialogProjectName = "")
 		}
+		modalRouter.dismissProjectCreate()
 	}
 
 	override fun createProject(projectName: String) {
@@ -283,7 +270,8 @@ class ProjectsListComponent(
 					)
 					throw IllegalStateException("Entity conflict must be handled by Project sync")
 				},
-				onComplete = {}
+				onComplete = {},
+				onUnauthorized = ::showReauth
 			)
 		}
 
@@ -325,6 +313,10 @@ class ProjectsListComponent(
 			}
 		}
 
+	private fun showReauth() {
+		modalRouter.showServerReauthentication()
+	}
+
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
 		syncScope?.cancel(CancellationException("Started another sync"))
@@ -337,7 +329,10 @@ class ProjectsListComponent(
 
 			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_account)))
 
-			val success = projectsSynchronizer.syncProjects(::onSyncLog)
+			val success = projectsSynchronizer.syncProjects(
+				onLog = ::onSyncLog,
+				onUnauthorized = ::showReauth
+			)
 
 			yield()
 
@@ -425,16 +420,11 @@ class ProjectsListComponent(
 
 	override fun hideProjectsSync() {
 		resetSync()
+		modalRouter.dismissProjectSync()
 	}
 
 	override fun showProjectsSync() {
-		_state.getAndUpdate {
-			it.copy(
-				syncState = it.syncState.copy(
-					showProjectSync = true
-				),
-			)
-		}
+		modalRouter.showProjectSync()
 
 		scope.launch {
 			syncProjects { success ->
@@ -466,5 +456,13 @@ class ProjectsListComponent(
 				syncState = ProjectsList.SyncState()
 			)
 		}
+	}
+
+	override fun showProjectRename(projectDef: ProjectDef) {
+		modalRouter.showProjectRename(projectDef)
+	}
+
+	override fun dismissProjectRename() {
+		modalRouter.dismissProjectRename()
 	}
 }

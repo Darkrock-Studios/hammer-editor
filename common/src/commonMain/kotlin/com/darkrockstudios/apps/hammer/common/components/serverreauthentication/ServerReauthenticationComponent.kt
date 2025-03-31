@@ -4,8 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -18,10 +17,9 @@ import org.koin.core.component.inject
 
 class ServerReauthenticationComponent(
 	componentContext: ComponentContext,
-	projectDef: ProjectDef,
 	private val dismissAuth: () -> Unit,
 	private val onReauthSuccess: () -> Unit,
-) : ProjectComponentBase(projectDef, componentContext), ServerReauthentication {
+) : ComponentBase(componentContext), ServerReauthentication {
 
 	private val strRes: StrRes by inject()
 	private val mainDispatcher by injectMainDispatcher()

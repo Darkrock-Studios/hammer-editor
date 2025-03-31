@@ -68,7 +68,7 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
-		onUnauthorized: suspend () -> Unit = {},
+		onUnauthorized: suspend () -> Unit,
 	): Boolean {
 		val initialState = InitialSyncOperationState(onlyNew = onlyNew)
 		val result = execute(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
