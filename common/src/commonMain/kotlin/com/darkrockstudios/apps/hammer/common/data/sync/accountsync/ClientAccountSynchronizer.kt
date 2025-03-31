@@ -11,10 +11,12 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
+import io.ktor.http.*
 import korlibs.io.lang.InvalidArgumentException
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
@@ -44,7 +46,7 @@ class ClientAccountSynchronizer(
 		globalSettingsRepository.globalSettings.automaticSyncing &&
 			networkConnectivity.hasActiveConnection()
 
-	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit = {}): Boolean {
+	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit): Boolean {
 		onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_begin)))
 
 		var syncId: String? = null
@@ -60,18 +62,18 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, onLog)
+				syncRenamedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
 
 				yield()
 
-				syncDeletedProjects(clientSyncData, serverSyncData, onLog)
+				syncDeletedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
 
 				yield()
 
 				val updatedServerSyncData = processProjectSyncData(serverSyncData, clientSyncData)
 
 				val localProjects = projectsRepository.getProjects()
-				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog)
+				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog, onUnauthorized)
 
 				yield()
 
@@ -87,6 +89,11 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+
+				if (result.exceptionOrNull().isAuthenticationFailure()) {
+					onUnauthorized()
+				}
+
 				false
 			}
 		} catch (e: CancellationException) {
@@ -97,6 +104,10 @@ class ClientAccountSynchronizer(
 
 			syncId?.let {
 				serverProjectsApi.endProjectsSync(syncId)
+			}
+
+			if (e.isAuthenticationFailure()) {
+				onUnauthorized()
 			}
 
 			false
@@ -137,6 +148,7 @@ class ClientAccountSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit = {},
 	) {
 		// Rename projects on the server
 		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
@@ -157,7 +169,9 @@ class ClientAccountSynchronizer(
 					)
 				}
 			} else {
-				Napier.e("Failed to rename project: $projectId", result.exceptionOrNull())
+				val exception = result.exceptionOrNull()
+				Napier.e("Failed to rename project: $projectId", exception)
+
 				onLog(
 					syncAccLogE(
 						strRes.get(
@@ -166,6 +180,10 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+
+				if (exception.isAuthenticationFailure()) {
+					onUnauthorized()
+				}
 			}
 		}
 	}
@@ -174,8 +192,9 @@ class ClientAccountSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit = {},
 	) {
-		deleteServerProjects(clientSyncData, serverSyncData, onLog)
+		deleteServerProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
 		deleteLocalProjects(clientSyncData, serverSyncData, onLog)
 	}
 
@@ -214,7 +233,8 @@ class ClientAccountSynchronizer(
 	private suspend fun deleteServerProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
-		onLog: OnSyncLog
+		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit = {},
 	) {
 		clientSyncData.projectsToDelete.forEach { projectId ->
 			val result = serverProjectsApi.deleteProject(projectId, serverSyncData.syncId)
@@ -234,7 +254,9 @@ class ClientAccountSynchronizer(
 					)
 				}
 			} else {
-				Napier.e("Failed to delete project: $projectId", result.exceptionOrNull())
+				val exception = result.exceptionOrNull()
+				Napier.e("Failed to delete project: $projectId", exception)
+
 				onLog(
 					syncAccLogE(
 						strRes.get(
@@ -243,6 +265,10 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+
+				if (exception.isAuthenticationFailure()) {
+					onUnauthorized()
+				}
 			}
 		}
 	}
@@ -252,6 +278,7 @@ class ClientAccountSynchronizer(
 		serverSyncData: BeginProjectsSyncResponse,
 		localProjects: List<ProjectDef>,
 		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit = {},
 	) {
 		val localProjectsWithIds = localProjects.map {
 			val projectId = projectsRepository.getProjectId(it)
@@ -272,7 +299,7 @@ class ClientAccountSynchronizer(
 			onLog
 		)
 
-		createProjectsOnServer(localProjectsWithIds, clientSyncData, serverSyncData, onLog)
+		createProjectsOnServer(localProjectsWithIds, clientSyncData, serverSyncData, onLog, onUnauthorized)
 
 		createLocalProjectsFromServer(newServerProjects, onLog)
 	}
@@ -330,7 +357,8 @@ class ClientAccountSynchronizer(
 		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
-		onLog: OnSyncLog
+		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit = {},
 	) {
 		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
 			uuid == null
@@ -368,6 +396,11 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+
+				val exception = result.exceptionOrNull()
+				if (exception.isAuthenticationFailure()) {
+					onUnauthorized()
+				}
 			}
 		}
 	}
@@ -531,3 +564,6 @@ private data class ProjectPair(
 	val serverProject: ApiProjectDefinition,
 	val localProject: ProjectDef,
 )
+
+private fun Throwable?.isAuthenticationFailure(): Boolean =
+	(this is HttpFailureException && statusCode == HttpStatusCode.Unauthorized)

@@ -68,8 +68,6 @@ fun ReauthenticationUi(
 					style = MaterialTheme.typography.bodyMedium
 				)
 
-				//Divider(modifier = Modifier.fillMaxWidth())
-
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 				Text(
@@ -97,7 +95,7 @@ fun ReauthenticationUi(
 				SpacerXL()
 
 				OutlinedTextField(
-					value = state.serverPassword ?: "",
+					value = state.serverPassword,
 					onValueChange = { component.updateServerPassword(it) },
 					label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
 					singleLine = true,

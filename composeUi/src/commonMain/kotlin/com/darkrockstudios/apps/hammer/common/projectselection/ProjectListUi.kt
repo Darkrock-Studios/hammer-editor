@@ -1,15 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,13 +26,10 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import dev.icerock.moko.resources.compose.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -53,7 +42,6 @@ fun ProjectListUi(
 	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
 	var projectDefDeleteTarget by rememberSaveable { mutableStateOf<ProjectDef?>(null) }
-	var projectDefRenameTarget by rememberSaveable { mutableStateOf<ProjectDef?>(null) }
 
 	Toaster(component, rootSnackbar)
 
@@ -125,17 +113,13 @@ fun ProjectListUi(
 							projectData = state.projects[index],
 							onProjectClick = component::selectProject,
 							onProjectAltClick = { project -> projectDefDeleteTarget = project },
-							onProjectRenameClick = { project -> projectDefRenameTarget = project },
+							onProjectRenameClick = { project -> component.showProjectRename(project) },
 						)
 					}
 				}
 				MpScrollBarList(state = listState)
 			}
 		}
-	}
-
-	ProjectCreateDialog(state.showCreateDialog, component) {
-		component.hideCreate()
 	}
 
 	projectDefDeleteTarget?.let { project ->
@@ -150,11 +134,35 @@ fun ProjectListUi(
 		)
 	}
 
-	ProjectRenameDialog(
-		component = component,
-		projectDef = projectDefRenameTarget,
-		close = { projectDefRenameTarget = null }
-	)
+	ModalContent(component)
+}
 
-	ProjectsSyncDialog(component)
+@Composable
+fun ModalContent(component: ProjectsList) {
+	val state by component.modalRouterState.subscribeAsState()
+	val overlay = state.child?.instance
+	when (overlay) {
+		null, ProjectsList.ModalDestination.None -> {}
+		is ProjectsList.ModalDestination.ProjectSync -> {
+			ProjectsSyncDialog(component)
+		}
+
+		is ProjectsList.ModalDestination.ProjectRename -> {
+			ProjectRenameDialog(
+				component = component,
+				projectDef = overlay.projectDef,
+				close = { component.dismissProjectRename() }
+			)
+		}
+
+		is ProjectsList.ModalDestination.ProjectCreate -> {
+			ProjectCreateDialog(true, component) {
+				component.hideCreate()
+			}
+		}
+
+		is ProjectsList.ModalDestination.ServerReauth -> {
+			ReauthenticationUi(overlay.component)
+		}
+	}
 }
