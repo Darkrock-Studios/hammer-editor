@@ -72,6 +72,7 @@ class AddNoteWorker(
 							},
 							onConflict = { _ -> Napier.e { "Error: Conflict on new only sync" } },
 							onComplete = { Napier.d { "Sync Complete for Project: ${projectDef.name}" } },
+							onUnauthorized = { Napier.e { "Error: Must reauthenticate with server." } },
 							onlyNew = true
 						)
 						Napier.i { "Sync Success: $success" }
