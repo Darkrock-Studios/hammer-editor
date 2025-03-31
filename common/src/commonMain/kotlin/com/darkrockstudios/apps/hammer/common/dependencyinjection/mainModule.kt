@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
@@ -14,11 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -33,20 +30,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjec
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -61,7 +46,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.spellCheckModule
 import com.russhwolf.settings.Settings
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -103,6 +88,7 @@ val mainModule = module {
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
 	factory { AccountUseCase(get(), get(), get()) }
+	factoryOf(::AccountReauthUseCase)
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class
 

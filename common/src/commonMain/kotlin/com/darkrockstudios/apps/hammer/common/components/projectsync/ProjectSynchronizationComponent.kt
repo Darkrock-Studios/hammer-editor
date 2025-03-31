@@ -17,11 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -33,11 +29,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
-class ProjectSyncComponent(
+class ProjectSynchronizationComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val dismissSync: () -> Unit
-) : ProjectComponentBase(projectDef, componentContext), ProjectSync {
+	private val dismissSync: () -> Unit,
+	private val reauthorize: () -> Unit,
+) : ProjectComponentBase(projectDef, componentContext), ProjectSynchronization {
 
 	private val mainDispatcher by injectMainDispatcher()
 
@@ -52,9 +49,9 @@ class ProjectSyncComponent(
 	private var syncJob: Job? = null
 
 	private val _state = MutableValue(
-		ProjectSync.State()
+		ProjectSynchronization.State()
 	)
-	override val state: Value<ProjectSync.State> = _state
+	override val state: Value<ProjectSynchronization.State> = _state
 
 	private suspend fun updateSyncLog(log: SyncLogMessage?) {
 		if (log != null) {
@@ -87,7 +84,13 @@ class ProjectSyncComponent(
 		syncJob?.cancel(CancellationException("Starting another sync"))
 		syncJob = scope.launch {
 			updateSync(true, 0f, syncLogI("Project Sync Started", projectDef))
-			val success = projectSynchronizer.sync(::onSyncProgress, ::updateSyncLog, ::onConflict, ::onSyncComplete)
+			val success = projectSynchronizer.sync(
+				onProgress = ::onSyncProgress,
+				onLog = ::updateSyncLog,
+				onConflict = ::onConflict,
+				onComplete = ::onSyncComplete,
+				onUnauthorized = ::onUnauthorized
+			)
 
 			_state.getAndUpdate {
 				it.copy(
@@ -108,7 +111,7 @@ class ProjectSyncComponent(
 		}
 	}
 
-	override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSync.EntityMergeError? {
+	override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSynchronization.EntityMergeError? {
 		val error = when (resolvedEntity) {
 			is ApiProjectEntity.EncyclopediaEntryEntity -> {
 				null
@@ -191,6 +194,23 @@ class ProjectSyncComponent(
 		}
 	}
 
+	override fun onUnauthorized() {
+		_state.getAndUpdate {
+			it.copy(
+				isSyncing = false,
+				failed = true,
+				showLog = true
+			)
+		}
+
+		scope.launch {
+			updateSyncLog(syncLogW("Unauthorized: Please log in again", projectDef))
+			withContext(mainDispatcher) {
+				reauthorize()
+			}
+		}
+	}
+
 	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
 		Napier.d("Sync progress: $progress")
 		updateSync(true, progress, log)
@@ -221,7 +241,7 @@ class ProjectSyncComponent(
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					entityConflict = ProjectSync.EntityConflict.NoteConflict(
+					entityConflict = ProjectSynchronization.EntityConflict.NoteConflict(
 						serverNote = serverEntity,
 						clientNote = localEntity
 					),
@@ -245,7 +265,7 @@ class ProjectSyncComponent(
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					entityConflict = ProjectSync.EntityConflict.TimelineEventConflict(
+					entityConflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
 						serverEvent = serverEntity,
 						clientEvent = localEntity
 					),
@@ -278,7 +298,7 @@ class ProjectSyncComponent(
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					entityConflict = ProjectSync.EntityConflict.EncyclopediaEntryConflict(
+					entityConflict = ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					),
@@ -305,7 +325,7 @@ class ProjectSyncComponent(
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					entityConflict = ProjectSync.EntityConflict.SceneDraftConflict(
+					entityConflict = ProjectSynchronization.EntityConflict.SceneDraftConflict(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					),
@@ -343,7 +363,7 @@ class ProjectSyncComponent(
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
-					entityConflict = ProjectSync.EntityConflict.SceneConflict(
+					entityConflict = ProjectSynchronization.EntityConflict.SceneConflict(
 						serverScene = serverEntity,
 						clientScene = localEntity
 					),
@@ -353,37 +373,37 @@ class ProjectSyncComponent(
 		}
 	}
 
-	private fun validateNoteEntity(resolvedEntity: ApiProjectEntity.NoteEntity): ProjectSync.EntityMergeError.NoteMergeError? {
+	private fun validateNoteEntity(resolvedEntity: ApiProjectEntity.NoteEntity): ProjectSynchronization.EntityMergeError.NoteMergeError? {
 		val error = notesRepository.validateNote(resolvedEntity.content)
 		return when (error) {
 			NoteError.NONE -> null
-			NoteError.EMPTY -> ProjectSync.EntityMergeError.NoteMergeError(
+			NoteError.EMPTY -> ProjectSynchronization.EntityMergeError.NoteMergeError(
 				noteError = MR.strings.notes_create_toast_empty.toMsg()
 			)
 
-			NoteError.TOO_LONG -> ProjectSync.EntityMergeError.NoteMergeError(
+			NoteError.TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
 				noteError = MR.strings.notes_create_toast_too_long.toMsg()
 			)
 		}
 	}
 
-	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSync.EntityMergeError.SceneMergeError? {
+	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSynchronization.EntityMergeError.SceneMergeError? {
 		val result = sceneEditorRepository.validateSceneName(resolvedEntity.name)
 		return if (isSuccess(result)) {
 			null
 		} else {
-			ProjectSync.EntityMergeError.SceneMergeError(
+			ProjectSynchronization.EntityMergeError.SceneMergeError(
 				nameError = result.displayMessage
 			)
 		}
 	}
 
-	private fun validateSceneDraft(resolvedEntity: ApiProjectEntity.SceneDraftEntity): ProjectSync.EntityMergeError.SceneDraftMergeError? {
+	private fun validateSceneDraft(resolvedEntity: ApiProjectEntity.SceneDraftEntity): ProjectSynchronization.EntityMergeError.SceneDraftMergeError? {
 		val result = SceneDraftsDatasource.validDraftName(resolvedEntity.name)
 		return if (result) {
 			null
 		} else {
-			ProjectSync.EntityMergeError.SceneDraftMergeError(
+			ProjectSynchronization.EntityMergeError.SceneDraftMergeError(
 				nameError = MR.strings.scene_draft_invalid_name.toMsg()
 			)
 		}

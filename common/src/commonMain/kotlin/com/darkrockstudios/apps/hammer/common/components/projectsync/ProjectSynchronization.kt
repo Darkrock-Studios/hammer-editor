@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import dev.icerock.moko.resources.StringResource
 
-interface ProjectSync {
+interface ProjectSynchronization {
 	val state: Value<State>
 
 	fun syncProject(onComplete: (Boolean) -> Unit)
@@ -14,6 +14,7 @@ interface ProjectSync {
 	fun endSync()
 	fun cancelSync()
 	fun showLog(show: Boolean)
+	fun onUnauthorized()
 
 	data class State(
 		val syncProgress: Float = 0f,

@@ -159,4 +159,9 @@
 
 	<string name="sync_unauthorized">Unauthorized</string>
 	<string name="sync_general_error">Unhandled server error</string>
+
+	<string name="reauth_title">Reauthorize</string>
+	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>
+	<string name="reauth_server_url">Address</string>
+	<string name="reauth_server_email">E-Mail</string>
 </resources>

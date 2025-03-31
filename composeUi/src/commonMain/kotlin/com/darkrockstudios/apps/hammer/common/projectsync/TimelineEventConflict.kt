@@ -20,14 +20,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 
 @Composable
 internal fun TimelineEventConflict(
-	entityConflict: ProjectSync.EntityConflict.TimelineEventConflict,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict.TimelineEventConflict,
+	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
 	EntityConflict(
@@ -40,7 +40,7 @@ internal fun TimelineEventConflict(
 }
 
 @Composable
-private fun getDateText(entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>): String {
+private fun getDateText(entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>): String {
 	val date = entityConflict.serverEntity.date
 	return if (date.isNullOrBlank()) {
 		MR.strings.sync_conflict_timeline_event_missing_date.get()
@@ -52,8 +52,8 @@ private fun getDateText(entityConflict: ProjectSync.EntityConflict<ApiProjectEnt
 @Composable
 private fun LocalEvent(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
+	component: ProjectSynchronization
 ) {
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.TimelineEventEntity
 	var dateTextValue by rememberSaveable(entity) { mutableStateOf(entity?.date ?: "") }
@@ -107,8 +107,8 @@ private fun LocalEvent(
 @Composable
 private fun RemoteEvent(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
+	component: ProjectSynchronization
 ) {
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(

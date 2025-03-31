@@ -20,15 +20,15 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
+import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 
 @Composable
 internal fun SceneDraftConflict(
-	entityConflict: ProjectSync.EntityConflict.SceneDraftConflict,
-	component: ProjectSync,
+	entityConflict: ProjectSynchronization.EntityConflict.SceneDraftConflict,
+	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
 	EntityConflict(
@@ -43,8 +43,8 @@ internal fun SceneDraftConflict(
 @Composable
 private fun LocalDraft(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
+	component: ProjectSynchronization
 ) {
 	val strRes = rememberStrRes()
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.SceneDraftEntity
@@ -70,7 +70,7 @@ private fun LocalDraft(
 					)
 				)
 
-				if (error is ProjectSync.EntityMergeError.SceneDraftMergeError) {
+				if (error is ProjectSynchronization.EntityMergeError.SceneDraftMergeError) {
 					nameError = error.nameError?.text(strRes)
 				}
 			}) {
@@ -109,8 +109,8 @@ private fun LocalDraft(
 @Composable
 private fun RemoteDraft(
 	modifier: Modifier = Modifier,
-	entityConflict: ProjectSync.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
-	component: ProjectSync
+	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
+	component: ProjectSynchronization
 ) {
 	Column(modifier = modifier.padding(Ui.Padding.L)) {
 		Row(

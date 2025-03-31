@@ -8,20 +8,14 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
+import io.ktor.http.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
@@ -74,9 +68,10 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
+		onUnauthorized: suspend () -> Unit = {},
 	): Boolean {
 		val initialState = InitialSyncOperationState(onlyNew = onlyNew)
-		val result = execute(initialState, onProgress, onLog, onConflict, onComplete)
+		val result = execute(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
 
 		syncCompleteEvent.trySend(isSuccess(result))
 
@@ -100,7 +95,8 @@ class ClientProjectSynchronizer(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit
+		onComplete: suspend () -> Unit,
+		onUnauthorized: suspend () -> Unit = {}
 	): CResult<SyncOperationState> {
 		var currentState = initialState
 
@@ -112,13 +108,13 @@ class ClientProjectSynchronizer(
 					currentState = result.data
 				} else {
 					val e = result.exception ?: error("Project Sync Failed without exception")
-					handleSyncFailure(e, onLog, onComplete)
+					handleSyncFailure(e, onLog, onComplete, onUnauthorized)
 
 					return result
 				}
 			}
 		} catch (e: Exception) {
-			handleSyncFailure(e, onLog, onComplete)
+			handleSyncFailure(e, onLog, onComplete, onUnauthorized)
 
 			if (e is CancellationException) throw e
 
@@ -131,9 +127,11 @@ class ClientProjectSynchronizer(
 	private suspend fun handleSyncFailure(
 		e: Throwable,
 		onLog: OnSyncLog,
-		onComplete: suspend () -> Unit
+		onComplete: suspend () -> Unit,
+		onUnauthorized: suspend () -> Unit = {}
 	) {
 		Napier.e("Sync failed: ${e.message}", e)
+
 		onLog(
 			syncLogE(
 				strRes.get(MR.strings.sync_log_entity_failed, e.message ?: "---"),
@@ -142,6 +140,11 @@ class ClientProjectSynchronizer(
 		)
 		endSync()
 		onComplete()
+
+		// Check if the error is a 401 Unauthorized error
+		if (e is HttpFailureException && e.statusCode == HttpStatusCode.Unauthorized) {
+			onUnauthorized()
+		}
 	}
 
 	private suspend fun endSync() {

@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
+import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
@@ -102,12 +103,14 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 	val state by component.modalRouterState.subscribeAsState()
 	val overlay = state.child?.instance
 	when (overlay) {
-		ProjectRoot.ModalDestination.None -> {}
+		null, ProjectRoot.ModalDestination.None -> {}
 		is ProjectRoot.ModalDestination.ProjectSync -> {
 			ProjectSynchronization(overlay.component, showSnackbar)
 		}
 
-		null -> {}
+		is ProjectRoot.ModalDestination.ServerReauth -> {
+			ReauthenticationUi(overlay.component)
+		}
 	}
 }
 
