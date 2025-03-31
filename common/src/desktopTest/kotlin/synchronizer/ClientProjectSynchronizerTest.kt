@@ -3,6 +3,7 @@ package synchronizer
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -10,9 +11,11 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import getProjectDef
+import io.ktor.http.*
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -315,5 +318,117 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		coVerify(exactly = 0) { entityDeleteOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `Sync fails with 401 Unauthorized and calls onUnauthorized`() = runTest {
+		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
+
+		coEvery { projectMetadataDatasource.requireProjectId(any()) } returns ProjectId("project-id")
+
+		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
+		val unauthorizedFailure = CResult.failure<SyncOperationState>(
+			HttpFailureException(
+				statusCode = HttpStatusCode.Unauthorized,
+				error = HttpResponseError(
+					error = "Unauthorized",
+					displayMessage = "Unauthorized access"
+				)
+			)
+		)
+
+		coEvery {
+			prepareForSyncOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery {
+			fetchLocalDataOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery {
+			fetchServerDataOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns unauthorizedFailure
+		coEvery { collateIdsOperation.execute(any(), any(), any(), any(), any()) } returns result
+		coEvery { backupOperation.execute(any(), any(), any(), any(), any()) } returns result
+		coEvery {
+			idConflictResolutionOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery { entityDeleteOperation.execute(any(), any(), any(), any(), any()) } returns result
+		coEvery {
+			entityTransferOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) } returns result
+
+		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
+		val onLog = mockk<OnSyncLog>(relaxed = true)
+		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
+		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onUnauthorized = mockk<suspend () -> Unit>(relaxed = true)
+
+		val success = syncer.sync(
+			onProgress = onProgress,
+			onLog = onLog,
+			onConflict = onConflict,
+			onComplete = onComplete,
+			onUnauthorized = onUnauthorized
+		)
+		assertFalse(success)
+
+		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) {
+			fetchServerDataOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		}
+		coVerify(exactly = 0) { collateIdsOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { backupOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) {
+			idConflictResolutionOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		}
+		coVerify(exactly = 0) { entityDeleteOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) }
+
+		// Verify that onUnauthorized was called
+		coVerify(exactly = 1) { onUnauthorized() }
 	}
 }
