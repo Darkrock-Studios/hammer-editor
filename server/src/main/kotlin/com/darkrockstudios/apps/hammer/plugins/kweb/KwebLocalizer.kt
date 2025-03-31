@@ -55,10 +55,14 @@ class KwebLocalizer(
 
 	private fun getHeaderLocale(): Locale? {
 		val acceptLanguageHeader = doc.browser.httpRequestInfo.request.headers[HttpHeaders.AcceptLanguage]
-		val acceptableLocales = Locale.LanguageRange.parse(acceptLanguageHeader)
-		val language = acceptableLocales.firstOrNull()?.range
-		return if (language != null) {
-			Locale.Builder().setLanguageTag(language).build()
+		return if (acceptLanguageHeader?.isNotBlank() == true) {
+			val acceptableLocales = Locale.LanguageRange.parse(acceptLanguageHeader)
+			val language = acceptableLocales.firstOrNull()?.range
+			if (language != null) {
+				Locale.Builder().setLanguageTag(language).build()
+			} else {
+				null
+			}
 		} else {
 			null
 		}
