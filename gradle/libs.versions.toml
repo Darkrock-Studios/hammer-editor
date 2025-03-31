@@ -77,7 +77,7 @@ krypto = "4.0.10"
 jna = "5.15.0" # This is a transitive dependency, remove it when we can
 
 sqldelight = "2.0.2"
-buildconfig = "5.5.0"
+buildconfig = "5.6.1"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "11.2.3"
