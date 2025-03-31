@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.android.ProjectSelectContent
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.Msg
@@ -26,6 +27,8 @@ val projectListComponent = object : ProjectsList {
 				projectsPath = HPath("/", "root", true)
 			)
 		)
+	override val modalRouterState: Value<ChildSlot<ProjectListModalRouter.Config, ProjectsList.ModalDestination>>
+		get() = TODO("Not yet implemented")
 
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
@@ -40,6 +43,8 @@ val projectListComponent = object : ProjectsList {
 	override fun cancelProjectsSync() {}
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? = null
 	override fun onProjectNameUpdate(newProjectName: String) {}
+	override fun showProjectRename(projectDef: ProjectDef) {}
+	override fun dismissProjectRename() {}
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}
