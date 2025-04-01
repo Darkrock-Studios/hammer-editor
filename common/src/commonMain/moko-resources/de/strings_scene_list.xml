@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Gliederung Übersicht</string>
 	<string name="scene_list_outline_overview_none">&lt;kein Umriss&gt;</string>
 	<string name="scene_list_outline_dismiss">Abbrechen</string>
+	<string name="scene_list_item_action_menu_description">Optionen</string>
+	<string name="scene_list_item_action_delete">Löschen</string>
+	<string name="scene_list_item_action_rename">Umbenennen</string>
+	<string name="scene_rename_dialog_title">Szene umbenennen</string>
+	<string name="scene_rename_dialog_label">Szenenname</string>
+	<string name="scene_rename_dialog_rename_button">Umbenennen</string>
+	<string name="scene_rename_failed_error_invalid_name">Ungültiger Szenenname</string>
+	<string name="scene_list_group_action_create_scene">Szene erstellen</string>
+	<string name="scene_list_group_action_create_group">Gruppe erstellen</string>
 </resources>

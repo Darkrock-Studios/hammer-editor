@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Oversikt over oversikten</string>
 	<string name="scene_list_outline_overview_none">&lt;ingen oversikt&gt;</string>
 	<string name="scene_list_outline_dismiss">Avslå</string>
+	<string name="scene_list_item_action_menu_description">Alternativer</string>
+	<string name="scene_list_item_action_delete">Slett</string>
+	<string name="scene_list_item_action_rename">Omdøpe</string>
+	<string name="scene_rename_dialog_title">Gi scene nytt navn</string>
+	<string name="scene_rename_dialog_label">Scene navn</string>
+	<string name="scene_rename_dialog_rename_button">Gi nytt navn</string>
+	<string name="scene_rename_failed_error_invalid_name">Ugyldig scenernavn</string>
+	<string name="scene_list_group_action_create_scene">Opprett scene</string>
+	<string name="scene_list_group_action_create_group">Opprett gruppe</string>
 </resources>

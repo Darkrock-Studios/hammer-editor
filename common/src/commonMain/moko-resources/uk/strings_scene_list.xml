@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Огляд контурів</string>
 	<string name="scene_list_outline_overview_none">&lt;немає контурів&gt;</string>
 	<string name="scene_list_outline_dismiss">Відхилити</string>
+	<string name="scene_list_item_action_menu_description">Опції</string>
+	<string name="scene_list_item_action_delete">Видалити</string>
+	<string name="scene_list_item_action_rename">Перейменувати</string>
+	<string name="scene_rename_dialog_title">Перейменувати сцену</string>
+	<string name="scene_rename_dialog_label">Назва сцени</string>
+	<string name="scene_rename_dialog_rename_button">Перейменувати</string>
+	<string name="scene_rename_failed_error_invalid_name">Неправильна назва сцени</string>
+	<string name="scene_list_group_action_create_scene">Створити сцену</string>
+	<string name="scene_list_group_action_create_group">Створити групу</string>
 </resources>

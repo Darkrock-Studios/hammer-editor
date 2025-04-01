@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">大纲概览</string>
 	<string name="scene_list_outline_overview_none">&lt;无大纲&gt;</string>
 	<string name="scene_list_outline_dismiss">解除</string>
+	<string name="scene_list_item_action_menu_description">选项</string>
+	<string name="scene_list_item_action_delete">删除</string>
+	<string name="scene_list_item_action_rename">重命名</string>
+	<string name="scene_rename_dialog_title">重命名场景</string>
+	<string name="scene_rename_dialog_label">场景名称</string>
+	<string name="scene_rename_dialog_rename_button">重命名</string>
+	<string name="scene_rename_failed_error_invalid_name">无效的场景名称</string>
+	<string name="scene_list_group_action_create_scene">创建场景</string>
+	<string name="scene_list_group_action_create_group">创建群组</string>
 </resources>
