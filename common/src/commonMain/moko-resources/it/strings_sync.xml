@@ -112,4 +112,12 @@
 	<string name="sync_scene_group_creating">Creando un nuovo gruppo %1$d</string>
 	<string name="sync_scene_group_downloading">Contenuti della scena scaricati per: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Spostata la scena %1$d in un nuovo genitore %2$d</string>
+	<string name="sync_unauthorized">Non autorizzato</string>
+	<string name="sync_general_error">Errore del server non gestito</string>
+	<string name="reauth_title">Ri-autorizza</string>
+	<string name="reauth_explanation">Il tuo token è scaduto, per favore riautenticati con il tuo server di
+		sincronizzazione.
+	</string>
+	<string name="reauth_server_url">Indirizzo</string>
+	<string name="reauth_server_email">E-Mail</string>
 </resources>

@@ -15,4 +15,8 @@
 	<string name="project_home_stat_chapter_words">Wörter in Kapiteln</string>
 	<string name="project_home_actions_header">Aktionen:</string>
 	<string name="project_home_action_export_toast_success">Erfolgreich exportiert</string>
+	<string name="project_home_destinations_header">Projekt:</string>
+	<string name="project_home_action_stats_button">Statistiken</string>
+	<string name="project_home_action_settings_button">Einstellungen</string>
+	<string name="project_home_settings_title">Projekt-Einstellungen</string>
 </resources>

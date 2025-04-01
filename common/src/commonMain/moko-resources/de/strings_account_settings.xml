@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren (experimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
+	<string name="settings_spellcheck_notice">Die Rechtschreibprüfung ist experimentell! Wenn sie Probleme verursacht,
+		schalten Sie sie einfach aus.
+	</string>
 </resources>

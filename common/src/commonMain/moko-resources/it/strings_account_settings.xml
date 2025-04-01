@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Abilita controllo ortografico (sperimentale)</string>
 	<string name="settings_spellcheck_in_focus_enable">Abilita in modalità concentrazione</string>
 	<string name="settings_spellcheck_dictionary">Dizionario</string>
+	<string name="settings_spellcheck_notice">Il controllo ortografico è sperimentale! Se sta causando problemi,
+		disattivalo semplicemente.
+	</string>
 </resources>

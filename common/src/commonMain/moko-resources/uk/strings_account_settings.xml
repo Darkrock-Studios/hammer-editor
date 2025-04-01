@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Увімкнути перевірку орфографії (експериментально)</string>
 	<string name="settings_spellcheck_in_focus_enable">Увімкнути у режимі фокусування</string>
 	<string name="settings_spellcheck_dictionary">Словник</string>
+	<string name="settings_spellcheck_notice">Перевірка орфографії є експериментальною! Якщо вона викликає проблеми,
+		просто вимкніть її.
+	</string>
 </resources>

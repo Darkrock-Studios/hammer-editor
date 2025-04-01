@@ -15,4 +15,8 @@
 	<string name="project_home_action_backup_toast_success">Sauvegarde créée : %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Échec de la sauvegarde</string>
 	<string name="project_home_action_export_toast_success">Historique exporté</string>
+	<string name="project_home_destinations_header">Projet :</string>
+	<string name="project_home_action_stats_button">Statistiques</string>
+	<string name="project_home_action_settings_button">Paramètres</string>
+	<string name="project_home_settings_title">Paramètres du projet</string>
 </resources>
