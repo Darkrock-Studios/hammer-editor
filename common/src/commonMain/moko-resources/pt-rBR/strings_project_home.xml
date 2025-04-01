@@ -15,4 +15,8 @@
 	<string name="project_home_stat_header">Estatísticas:</string>
 	<string name="project_home_stat_total_words">Total de Palavras</string>
 	<string name="project_home_stat_encyclopedia_entries">Inscrições na Enciclopédia</string>
+	<string name="project_home_destinations_header">Projeto:</string>
+	<string name="project_home_action_stats_button">Estatísticas</string>
+	<string name="project_home_action_settings_button">Configurações</string>
+	<string name="project_home_settings_title">Configurações do Projeto</string>
 </resources>

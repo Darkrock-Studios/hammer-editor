@@ -110,4 +110,11 @@
 	<string name="sync_scene_group_creating">Creando grupo nuevo %1$d</string>
 	<string name="sync_scene_group_downloading">Contenido de la escena descargado para: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Escena %1$d movida a nuevo padre %2$d</string>
+	<string name="sync_unauthorized">No autorizado</string>
+	<string name="sync_general_error">Error del servidor no manejado</string>
+	<string name="reauth_title">Reautorizar</string>
+	<string name="reauth_explanation">Su token ha expirado, por favor reprograme con su servidor de sincronización.
+	</string>
+	<string name="reauth_server_url">Dirección</string>
+	<string name="reauth_server_email">Correo electrónico</string>
 </resources>

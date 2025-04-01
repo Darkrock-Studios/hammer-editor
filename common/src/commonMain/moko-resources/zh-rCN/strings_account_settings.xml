@@ -50,4 +50,5 @@
 	<string name="settings_spellcheck_enable">启用拼写检查（实验性）</string>
 	<string name="settings_spellcheck_in_focus_enable">在专注模式中启用</string>
 	<string name="settings_spellcheck_dictionary">词典</string>
+	<string name="settings_spellcheck_notice">拼写检查是实验性的！如果它造成了问题，请将其关闭。</string>
 </resources>

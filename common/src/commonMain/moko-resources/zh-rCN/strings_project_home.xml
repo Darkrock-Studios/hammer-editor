@@ -15,4 +15,8 @@
 	<string name="project_home_action_backup_toast_failure">备份失败</string>
 	<string name="project_home_action_sync">同步故事</string>
 	<string name="project_home_action_export_toast_success">故事已导出</string>
+	<string name="project_home_destinations_header">项目：</string>
+	<string name="project_home_action_stats_button">统计数据</string>
+	<string name="project_home_action_settings_button">设置</string>
+	<string name="project_home_settings_title">项目设置</string>
 </resources>

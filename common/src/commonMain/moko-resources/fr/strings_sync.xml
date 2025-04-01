@@ -112,4 +112,12 @@
 	<string name="sync_scene_group_creating">Création du nouveau groupe %1$d</string>
 	<string name="sync_scene_group_downloading">Contenu de scène téléchargé pour : %1$d</string>
 	<string name="sync_scene_group_moved_parent">Déplacé la scène %1$d vers le nouveau parent %2$d</string>
+	<string name="sync_unauthorized">Non autorisé</string>
+	<string name="sync_general_error">Erreur de serveur non gérée</string>
+	<string name="reauth_title">Réautoriser</string>
+	<string name="reauth_explanation">Votre jeton a expiré, veuillez vous réauthentifier auprès de votre serveur de
+		synchronisation.
+	</string>
+	<string name="reauth_server_url">Adresse</string>
+	<string name="reauth_server_email">E-Mail</string>
 </resources>

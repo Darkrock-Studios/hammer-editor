@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Ativar verificação ortográfica (experimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Ativar no modo de foco</string>
 	<string name="settings_spellcheck_dictionary">Dicionário</string>
+	<string name="settings_spellcheck_notice">Verificação ortográfica é experimental! Se estiver causando problemas,
+		basta desativá-la.
+	</string>
 </resources>

@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Spellingcontrole inschakelen (experimenteel)</string>
 	<string name="settings_spellcheck_in_focus_enable">Inschakelen in focusmodus</string>
 	<string name="settings_spellcheck_dictionary">Woordenboek</string>
+	<string name="settings_spellcheck_notice">Spellcheck is experimenteel! Als het problemen veroorzaakt, zet het dan
+		gewoon uit.
+	</string>
 </resources>

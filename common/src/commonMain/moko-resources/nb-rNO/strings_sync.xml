@@ -111,4 +111,11 @@
 	<string name="sync_scene_group_creating">Oppretter ny gruppe %1$d</string>
 	<string name="sync_scene_group_downloading">Nedlastet sceneinnhold for: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Flyttet scene %1$d til ny overordnet %2$d</string>
+	<string name="sync_unauthorized">Uautorisert</string>
+	<string name="sync_general_error">Ubehandlet serverfeil</string>
+	<string name="reauth_title">Reautorisere</string>
+	<string name="reauth_explanation">Tokenet ditt har utløpt, vennligst reautoriser med synkroniseringsserveren din.
+	</string>
+	<string name="reauth_server_url">Adresse</string>
+	<string name="reauth_server_email">E-post</string>
 </resources>

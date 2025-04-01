@@ -15,4 +15,8 @@
 	<string name="project_home_action_backup_toast_success">Respaldo creado: %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Copia de seguridad fallida</string>
 	<string name="project_home_action_sync">Sincronizar historia</string>
+	<string name="project_home_destinations_header">Proyecto:</string>
+	<string name="project_home_action_stats_button">Estadísticas</string>
+	<string name="project_home_action_settings_button">Configuraciones</string>
+	<string name="project_home_settings_title">Configuración del Proyecto</string>
 </resources>

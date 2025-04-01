@@ -50,4 +50,7 @@
 	<string name="settings_spellcheck_enable">Aktiver stavekontroll (eksperimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Aktiver i fokusmodus</string>
 	<string name="settings_spellcheck_dictionary">Ordliste</string>
+	<string name="settings_spellcheck_notice">Stavekontroll er eksperimentell! Hvis det forårsaker problemer, kan du
+		bare slå det av.
+	</string>
 </resources>

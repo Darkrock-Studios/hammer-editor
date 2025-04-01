@@ -110,4 +110,12 @@
 	<string name="sync_scene_group_creating">Створення нової групи %1$d</string>
 	<string name="sync_scene_group_downloading">Завантажено контент сцени для: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Переміщено сцену %1$d до нового батька %2$d</string>
+	<string name="sync_unauthorized">Неавторизовано</string>
+	<string name="sync_general_error">Непереможена помилка сервера</string>
+	<string name="reauth_title">Переавторизуватися</string>
+	<string name="reauth_explanation">Ваш токен втратив термін дії, будь ласка, повторно авторизуйтесь на своєму сервері
+		синхронізації.
+	</string>
+	<string name="reauth_server_url">Адреса</string>
+	<string name="reauth_server_email">Електронна пошта</string>
 </resources>

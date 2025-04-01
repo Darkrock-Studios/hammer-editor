@@ -108,4 +108,12 @@
 	<string name="sync_scene_group_creating">Neue Gruppe erstellen %1$d</string>
 	<string name="sync_scene_group_downloading">Heruntergeladene Szeneninhalt für: %1$d</string>
 	<string name="sync_scene_group_moved_parent">Szene %1$d zu neuem Elternteil %2$d verschoben</string>
+	<string name="sync_unauthorized">Unbefugt</string>
+	<string name="sync_general_error">Unerwarteter Serverfehler</string>
+	<string name="reauth_title">Erneut autorisieren</string>
+	<string name="reauth_explanation">Ihr Token ist abgelaufen, bitte autorisieren Sie sich erneut bei Ihrem
+		Synchronisationsserver.
+	</string>
+	<string name="reauth_server_url">Adresse</string>
+	<string name="reauth_server_email">E-Mail</string>
 </resources>

@@ -109,4 +109,10 @@
 	<string name="sync_scene_group_creating">创建新组 %1$d</string>
 	<string name="sync_scene_group_downloading">已下载场景内容：%1$d</string>
 	<string name="sync_scene_group_moved_parent">将场景 %1$d 移动到新父级 %2$d</string>
+	<string name="sync_unauthorized">未经授权</string>
+	<string name="sync_general_error">未处理的服务器错误</string>
+	<string name="reauth_title">重新授权</string>
+	<string name="reauth_explanation">您的令牌已过期，请重新授权您的同步服务器。</string>
+	<string name="reauth_server_url">地址</string>
+	<string name="reauth_server_email">电子邮件</string>
 </resources>
