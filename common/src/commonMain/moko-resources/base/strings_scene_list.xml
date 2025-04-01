@@ -16,7 +16,7 @@
     <string name="scene_delete_dialog_delete_button">Delete</string>
     <string name="scene_delete_dialog_dismiss_button">Dismiss</string>
     <string name="group_cannot_delete_dialog_title">Cannot Delete Group</string>
-    <string name="group_cannot_delete_dialog_title">You cannot delete a group while it still has children:
+	<string name="group_cannot_delete_dialog_message">You cannot delete a group while it still has children:
 		"%1$s"
 	</string>
     <string name="scene_delete_dialog_dismiss_button">Dismiss</string>

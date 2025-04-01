@@ -29,4 +29,7 @@
 	<string name="scene_rename_failed_error_invalid_name">Ugyldig scenernavn</string>
 	<string name="scene_list_group_action_create_scene">Opprett scene</string>
 	<string name="scene_list_group_action_create_group">Opprett gruppe</string>
+	<string name="group_cannot_delete_dialog_message">Du kan ikke slette en gruppe mens den fortsatt har barn:
+		"%1$s"
+	</string>
 </resources>
