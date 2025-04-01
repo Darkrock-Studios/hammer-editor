@@ -17,7 +17,7 @@ enum class Language(val locale: Locale) {
  * @param locale The locale to find a matching Language for
  * @return The best matching Language enum value
  */
-fun findBestMatchingLanguage(locale: Locale): Language {
+fun findBestMatchingLanguageOrNull(locale: Locale): Language? {
 	val exactMatch = Language.entries.find { it.locale == locale }
 	if (exactMatch != null) {
 		return exactMatch
@@ -30,5 +30,9 @@ fun findBestMatchingLanguage(locale: Locale): Language {
 		return languageOnlyMatch
 	}
 
-	return Language.English
+	return null
+}
+
+fun findBestMatchingLanguage(locale: Locale): Language {
+	return findBestMatchingLanguageOrNull(locale) ?: Language.English
 }
