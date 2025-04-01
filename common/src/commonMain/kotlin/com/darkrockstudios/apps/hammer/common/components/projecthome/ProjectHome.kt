@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -11,6 +12,7 @@ import kotlinx.serialization.Serializable
 
 interface ProjectHome : Router, HammerComponent {
 	val state: Value<State>
+	val contentRouterState: Value<ChildSlot<ProjectHomeContentRouter.Config, ContentDestination>>
 
 	suspend fun exportProject(path: String): HPath
 	fun beginProjectExport()
@@ -19,6 +21,9 @@ interface ProjectHome : Router, HammerComponent {
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 	fun getExportStoryFileName(): String
+
+	fun showProjectStats()
+	fun showProjectSettings()
 
 	@Serializable
 	data class State(
@@ -31,4 +36,9 @@ interface ProjectHome : Router, HammerComponent {
 		val showExportDialog: Boolean = false,
 		val hasServer: Boolean = false,
 	)
+
+	sealed class ContentDestination {
+		data object Stats : ContentDestination()
+		data class ProjectSettings(val component: ProjectSettingsComponent) : ContentDestination()
+	}
 }
