@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+	<cloud-backup>
+		<exclude domain="file" path="server.json"/>
+		<exclude domain="file" path="sync.json"/>
+		<exclude domain="file" path=".backups"/>
+	</cloud-backup>
+	<device-transfer>
+		<exclude domain="file" path="server.json"/>
+		<exclude domain="file" path="sync.json"/>
+		<exclude domain="file" path=".backups"/>
+	</device-transfer>
+</data-extraction-rules>
