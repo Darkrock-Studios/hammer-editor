@@ -53,6 +53,8 @@
 	<string name="settings_keep_screen_on">Keep screen on</string>
 
 	<string name="settings_spellcheck_heading">Spell Checking</string>
+	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.
+	</string>
 	<string name="settings_spellcheck_enable">Enable spell checking (experimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>

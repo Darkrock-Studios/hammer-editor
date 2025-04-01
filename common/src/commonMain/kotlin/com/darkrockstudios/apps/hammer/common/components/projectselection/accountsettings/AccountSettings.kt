@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import kotlinx.serialization.Serializable
 
 interface AccountSettings : ComponentToaster {
@@ -37,9 +37,7 @@ interface AccountSettings : ComponentToaster {
 	fun updateServerEmail(email: String)
 	fun updateServerPassword(password: String)
 
-	suspend fun setSpellcheckEnable(enable: Boolean)
-	suspend fun setSpellCheckingInFocusEnabled(enable: Boolean)
-	suspend fun setSpellCheckLanguage(language: Language)
+	val spellCheckSettings: SpellCheckSettings
 
 	@Serializable
 	data class State(
@@ -60,8 +58,5 @@ interface AccountSettings : ComponentToaster {
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
-		val spellCheckingEnabled: Boolean,
-		val spellCheckingInFocusEnabled: Boolean,
-		val spellCheckingLanguage: Language,
 	)
 }

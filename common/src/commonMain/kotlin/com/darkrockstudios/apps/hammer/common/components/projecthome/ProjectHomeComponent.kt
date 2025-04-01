@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -40,6 +41,10 @@ class ProjectHomeComponent(
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+
+	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
+	override val contentRouterState: Value<ChildSlot<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
+		contentRouter.state
 
 	private val _state = MutableValue(
 		ProjectHome.State(
@@ -181,6 +186,9 @@ class ProjectHomeComponent(
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	override fun getExportStoryFileName() = sceneEditorRepository.getExportStoryFileName()
+
+	override fun showProjectStats() = contentRouter.showProjectStats()
+	override fun showProjectSettings() = contentRouter.showProjectSettings()
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

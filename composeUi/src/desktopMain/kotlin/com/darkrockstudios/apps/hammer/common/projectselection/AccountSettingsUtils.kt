@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.spellcheck.Language
@@ -23,9 +25,6 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 	syncAutomaticBackups = true,
 	syncAutoCloseDialog = true,
 	maxBackups = 50,
-	spellCheckingEnabled = true,
-	spellCheckingInFocusEnabled = false,
-	spellCheckingLanguage = Language.English,
 )
 
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
@@ -57,9 +56,19 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun updateServerSsl(ssl: Boolean) {}
 		override fun updateServerEmail(email: String) {}
 		override fun updateServerPassword(password: String) {}
-		override suspend fun setSpellcheckEnable(enable: Boolean) {}
-		override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
-		override suspend fun setSpellCheckLanguage(language: Language) {}
+		override val spellCheckSettings: SpellCheckSettings
+			get() = object : SpellCheckSettings {
+				override val state: Value<SpellCheckSettings.State>
+					get() = MutableValue(
+						SpellCheckSettings.State(
+							true, true, Language.English
+						)
+					)
+
+				override suspend fun setSpellcheckEnable(enable: Boolean) {}
+				override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
+				override suspend fun setSpellCheckLanguage(language: Language) {}
+			}
 		override val toast = MutableSharedFlow<ToastMessage>()
 		override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 		override fun showToast(scope: CoroutineScope, message: Msg) {}

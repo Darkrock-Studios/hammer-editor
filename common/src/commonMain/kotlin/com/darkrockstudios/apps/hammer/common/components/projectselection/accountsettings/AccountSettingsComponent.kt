@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -15,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ class AccountSettingsComponent(
 	private var serverSetupJob: Job? = null
 
 	override val platformSettings: PlatformSettings by inject { parametersOf(componentContext) }
+	override val spellCheckSettings: SpellCheckSettings = SpellCheckSettingsComponent(componentContext)
 
 	private val _state by savableState {
 		AccountSettings.State(
@@ -48,9 +50,6 @@ class AccountSettingsComponent(
 			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
 			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
 			maxBackups = globalSettingsRepository.globalSettings.maxBackups,
-			spellCheckingEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabled,
-			spellCheckingInFocusEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabledInFocusMode,
-			spellCheckingLanguage = globalSettingsRepository.globalSettings.spellCheckSettings.language,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -71,10 +70,7 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
-							uiTheme = settings.uiTheme,
-							spellCheckingEnabled = settings.spellCheckSettings.enabled,
-							spellCheckingInFocusEnabled = settings.spellCheckSettings.enabledInFocusMode,
-							spellCheckingLanguage = settings.spellCheckSettings.language
+							uiTheme = settings.uiTheme
 						)
 					}
 				}
@@ -217,36 +213,6 @@ class AccountSettingsComponent(
 
 	override fun updateServerPassword(password: String) {
 		_state.getAndUpdate { it.copy(serverPassword = password) }
-	}
-
-	override suspend fun setSpellcheckEnable(enable: Boolean) {
-		globalSettingsRepository.updateSettings {
-			it.copy(
-				spellCheckSettings = it.spellCheckSettings.copy(
-					enabled = enable
-				)
-			)
-		}
-	}
-
-	override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {
-		globalSettingsRepository.updateSettings {
-			it.copy(
-				spellCheckSettings = it.spellCheckSettings.copy(
-					enabledInFocusMode = enable
-				)
-			)
-		}
-	}
-
-	override suspend fun setSpellCheckLanguage(language: Language) {
-		globalSettingsRepository.updateSettings {
-			it.copy(
-				spellCheckSettings = it.spellCheckSettings.copy(
-					language = language
-				)
-			)
-		}
 	}
 
 	override fun setupServer(

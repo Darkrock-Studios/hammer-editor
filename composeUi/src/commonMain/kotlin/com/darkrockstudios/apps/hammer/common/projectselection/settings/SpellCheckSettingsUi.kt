@@ -1,38 +1,28 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import kotlinx.coroutines.launch
 
 @Composable
 internal fun SpellCheckSettingsUi(
-	component: AccountSettings,
+	component: SpellCheckSettings,
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 
@@ -43,8 +33,17 @@ internal fun SpellCheckSettingsUi(
 			color = MaterialTheme.colorScheme.onBackground,
 		)
 
+		Text(
+			MR.strings.settings_spellcheck_notice.get(),
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic,
+			color = MaterialTheme.colorScheme.onBackground,
+		)
+
+		SpacerM()
+
+		var spellCheckingEnabledValue by remember { mutableStateOf(state.spellCheckingEnabled) }
 		Row {
-			var spellCheckingEnabledValue by remember { mutableStateOf(state.spellCheckingEnabled) }
 			Checkbox(
 				checked = spellCheckingEnabledValue,
 				onCheckedChange = {
@@ -60,13 +59,11 @@ internal fun SpellCheckSettingsUi(
 			)
 		}
 
-		Spacer(modifier = Modifier.size(Ui.Padding.M))
-
 		Row {
 			var spellCheckingInFocusEnabledValue by remember { mutableStateOf(state.spellCheckingInFocusEnabled) }
 			Checkbox(
 				checked = spellCheckingInFocusEnabledValue,
-				enabled = state.spellCheckingEnabled,
+				enabled = spellCheckingEnabledValue,
 				onCheckedChange = {
 					scope.launch { component.setSpellCheckingInFocusEnabled(it) }
 					spellCheckingInFocusEnabledValue = it
@@ -88,6 +85,7 @@ internal fun SpellCheckSettingsUi(
 			label = MR.strings.settings_spellcheck_dictionary.get(),
 			items = languageOptions,
 			selectedItem = state.spellCheckingLanguage,
+			enabled = spellCheckingEnabledValue,
 		) { selectedTheme ->
 			if (selectedTheme != null) {
 				scope.launch { component.setSpellCheckLanguage(selectedTheme) }
