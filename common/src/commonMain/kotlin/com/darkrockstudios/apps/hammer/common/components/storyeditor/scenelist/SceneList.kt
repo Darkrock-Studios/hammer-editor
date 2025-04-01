@@ -11,6 +11,7 @@ interface SceneList {
 	suspend fun createScene(parent: SceneItem?, sceneName: String)
 	suspend fun createGroup(parent: SceneItem?, groupName: String)
 	suspend fun deleteScene(scene: SceneItem)
+	suspend fun renameScene(scene: SceneItem, newName: String): Boolean
 
 	fun onSceneListUpdate(scenes: SceneSummary)
 	fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)

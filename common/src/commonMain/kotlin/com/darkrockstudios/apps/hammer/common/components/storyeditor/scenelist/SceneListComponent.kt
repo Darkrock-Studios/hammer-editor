@@ -114,6 +114,15 @@ class SceneListComponent(
 		}
 	}
 
+	override suspend fun renameScene(scene: SceneItem, newName: String): Boolean {
+		return if (!projectEditor.renameScene(scene, newName)) {
+			Napier.e("Failed to rename Scene: ${scene.id} - ${scene.name} to $newName")
+			false
+		} else {
+			true
+		}
+	}
+
 	override fun onSceneListUpdate(scenes: SceneSummary) {
 		_state.getAndUpdate {
 			it.copy(

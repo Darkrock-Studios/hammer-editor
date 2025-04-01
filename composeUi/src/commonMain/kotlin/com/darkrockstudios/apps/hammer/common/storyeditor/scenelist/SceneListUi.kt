@@ -15,11 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
-import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
@@ -28,8 +25,10 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.Sc
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
 @OptIn(
@@ -48,6 +47,7 @@ fun SceneListUi(
 	val mainDispatcher = rememberMainDispatcher()
 	val state by component.state.subscribeAsState()
 	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
+	var sceneDefRenameTarget by remember { mutableStateOf<SceneItem?>(null) }
 
 	var showCreateGroupDialog by remember { mutableStateOf<SceneItem?>(null) }
 	var showCreateSceneDialog by remember { mutableStateOf<SceneItem?>(null) }
@@ -62,7 +62,7 @@ fun SceneListUi(
 		}
 	}
 
-	// 1 in 10 change of doing NUX
+	// 1 in 10 chance of doing NUX
 	// TODO implement a real NUX system
 	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
@@ -102,8 +102,11 @@ fun SceneListUi(
 						sceneDefDeleteTarget = { deleteTarget ->
 							sceneDefDeleteTarget = deleteTarget
 						},
+						sceneDefRenameTarget = { renameTarget ->
+							sceneDefRenameTarget = renameTarget
+						},
 						createScene = { parent -> showCreateSceneDialog = parent },
-						createGroup = { parent -> showCreateGroupDialog = parent }
+						createGroup = { parent -> showCreateGroupDialog = parent },
 					)
 				},
 				contentPadding = PaddingValues(bottom = 100.dp)
@@ -158,20 +161,73 @@ fun SceneListUi(
 	}
 
 	sceneDefDeleteTarget?.let { scene ->
-		val node = treeState.getTree().find { it.value.id == scene.id }
-		if (scene.type == SceneItem.Type.Group && node?.children?.isEmpty() == false) {
-			GroupDeleteNotAllowedDialog(scene) {
-				sceneDefDeleteTarget = null
+		DeleteSceneDialog(treeState, scene, scope, component, mainDispatcher) {
+			sceneDefDeleteTarget = null
+		}
+	}
+
+	sceneDefRenameTarget?.let { scene ->
+		RenameSceneDialog(scene, scope, component, mainDispatcher) {
+			sceneDefRenameTarget = null
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@Composable
+private fun DeleteSceneDialog(
+	treeState: SceneTreeState,
+	scene: SceneItem,
+	scope: CoroutineScope,
+	component: SceneList,
+	mainDispatcher: CoroutineContext,
+	onDismiss: () -> Unit
+) {
+	val node = treeState.getTree().find { it.value.id == scene.id }
+	if (scene.type == SceneItem.Type.Group && node?.children?.isEmpty() == false) {
+		GroupDeleteNotAllowedDialog(scene) {
+			onDismiss()
+		}
+	} else {
+		SceneDeleteDialog(scene) { deleteScene ->
+			scope.launch {
+				if (deleteScene) {
+					component.deleteScene(scene)
+				}
+				withContext(mainDispatcher) {
+					onDismiss()
+				}
 			}
-		} else {
-			SceneDeleteDialog(scene) { deleteScene ->
-				scope.launch {
-					if (deleteScene) {
-						component.deleteScene(scene)
-					}
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@Composable
+private fun RenameSceneDialog(
+	scene: SceneItem,
+	scope: CoroutineScope,
+	component: SceneList,
+	mainDispatcher: CoroutineContext,
+	onDismiss: () -> Unit
+) {
+	val strRes = rememberStrRes()
+	var errorMessage by remember { mutableStateOf<String?>(null) }
+	SceneRenameDialog(scene, errorMessage) { newName ->
+		scope.launch {
+			if (newName != null) {
+				if (component.renameScene(scene, newName)) {
 					withContext(mainDispatcher) {
-						sceneDefDeleteTarget = null
+						errorMessage = null
+						onDismiss()
 					}
+				} else {
+					errorMessage = strRes.get(MR.strings.scene_rename_failed_error_invalid_name)
+				}
+			} else {
+				withContext(mainDispatcher) {
+					errorMessage = null
+					onDismiss()
 				}
 			}
 		}
@@ -241,6 +297,7 @@ private fun SceneNode(
 	collapsed: Boolean,
 	shouldNux: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
+	sceneDefRenameTarget: (SceneItem) -> Unit,
 	createScene: (SceneItem) -> Unit,
 	createGroup: (SceneItem) -> Unit,
 ) {
@@ -257,7 +314,8 @@ private fun SceneNode(
 			isSelected = isSelected,
 			shouldNux = doNux,
 			onSceneSelected = component::onSceneSelected,
-			onSceneAltClick = sceneDefDeleteTarget,
+			onSceneDeleteRequest = sceneDefDeleteTarget,
+			onSceneRenameRequest = sceneDefRenameTarget,
 		)
 	} else {
 		SceneGroupItem(

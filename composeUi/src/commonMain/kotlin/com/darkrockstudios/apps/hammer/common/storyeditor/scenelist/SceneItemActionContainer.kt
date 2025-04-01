@@ -7,7 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 @Composable
 expect fun SceneItemActionContainer(
 	scene: SceneItem,
-	onSceneAltClick: (scene: SceneItem) -> Unit,
+	onSceneDeleteClick: (scene: SceneItem) -> Unit,
+	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	shouldNux: Boolean = false,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 )

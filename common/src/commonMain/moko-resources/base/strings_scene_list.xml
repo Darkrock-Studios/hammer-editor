@@ -28,4 +28,12 @@
 	<string name="scene_list_outline_overview_button">Outline Overview</string>
 	<string name="scene_list_outline_overview_none">&lt;no outline&gt;</string>
 	<string name="scene_list_outline_dismiss">Dismiss</string>
+
+	<string name="scene_list_item_action_menu_description">Options</string>
+	<string name="scene_list_item_action_delete">Delete</string>
+	<string name="scene_list_item_action_rename">Rename</string>
+	<string name="scene_rename_dialog_title">Rename Scene</string>
+	<string name="scene_rename_dialog_label">Scene Name</string>
+	<string name="scene_rename_dialog_rename_button">Rename</string>
+	<string name="scene_rename_failed_error_invalid_name">Invalid Scene name</string>
 </resources>
