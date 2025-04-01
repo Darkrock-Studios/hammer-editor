@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Overzicht Schets</string>
 	<string name="scene_list_outline_overview_none">&lt;geen schets&gt;</string>
 	<string name="scene_list_outline_dismiss">Verwerp</string>
+	<string name="scene_list_item_action_menu_description">Opties</string>
+	<string name="scene_list_item_action_delete">Verwijderen</string>
+	<string name="scene_list_item_action_rename">Hernoemen</string>
+	<string name="scene_rename_dialog_title">Hernoem Scène</string>
+	<string name="scene_rename_dialog_label">Scène Naam</string>
+	<string name="scene_rename_dialog_rename_button">Hernoemen</string>
+	<string name="scene_rename_failed_error_invalid_name">Ongeldige scènes naam</string>
+	<string name="scene_list_group_action_create_scene">Maak scène</string>
+	<string name="scene_list_group_action_create_group">Groep Aanmaken</string>
 </resources>

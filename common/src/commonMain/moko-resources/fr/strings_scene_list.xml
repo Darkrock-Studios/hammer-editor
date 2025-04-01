@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Vue d'ensemble du plan</string>
 	<string name="scene_list_outline_overview_none">&lt;aucun contour&gt;</string>
 	<string name="scene_list_outline_dismiss">Rejeter</string>
+	<string name="scene_list_item_action_menu_description">Options</string>
+	<string name="scene_list_item_action_delete">Supprimer</string>
+	<string name="scene_list_item_action_rename">Renommer</string>
+	<string name="scene_rename_dialog_title">Renommer la scène</string>
+	<string name="scene_rename_dialog_label">Nom de la scène</string>
+	<string name="scene_rename_dialog_rename_button">Renommer</string>
+	<string name="scene_rename_failed_error_invalid_name">Nom de scène invalide</string>
+	<string name="scene_list_group_action_create_scene">Créer une scène</string>
+	<string name="scene_list_group_action_create_group">Créer un groupe</string>
 </resources>

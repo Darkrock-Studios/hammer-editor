@@ -20,4 +20,13 @@
 	<string name="scene_list_outline_overview_button">Visão Geral do Esboço</string>
 	<string name="scene_list_outline_overview_none">&lt;sem contorno&gt;</string>
 	<string name="scene_list_outline_dismiss">Dispensar</string>
+	<string name="scene_list_item_action_menu_description">Opções</string>
+	<string name="scene_list_item_action_delete">Excluir</string>
+	<string name="scene_list_item_action_rename">Renomear</string>
+	<string name="scene_rename_dialog_title">Renomear Cena</string>
+	<string name="scene_rename_dialog_label">Nome da Cena</string>
+	<string name="scene_rename_dialog_rename_button">Renomear</string>
+	<string name="scene_rename_failed_error_invalid_name">Nome de Cena inválido</string>
+	<string name="scene_list_group_action_create_scene">Criar Cena</string>
+	<string name="scene_list_group_action_create_group">Criar Grupo</string>
 </resources>
