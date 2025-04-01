@@ -36,4 +36,7 @@
 	<string name="scene_rename_dialog_label">Scene Name</string>
 	<string name="scene_rename_dialog_rename_button">Rename</string>
 	<string name="scene_rename_failed_error_invalid_name">Invalid Scene name</string>
+
+	<string name="scene_list_group_action_create_scene">Create Scene</string>
+	<string name="scene_list_group_action_create_group">Create Group</string>
 </resources>

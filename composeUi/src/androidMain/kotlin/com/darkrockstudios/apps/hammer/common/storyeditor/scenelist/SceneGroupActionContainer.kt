@@ -8,8 +8,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MenuOpen
-import androidx.compose.material.icons.outlined.Create
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.material3.*
@@ -22,6 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlin.math.roundToInt
 
@@ -31,6 +35,7 @@ actual fun SceneGroupActionContainer(
 	scene: SceneItem,
 	shouldNux: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
+	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit
@@ -68,7 +73,7 @@ actual fun SceneGroupActionContainer(
 
 		Icon(
 			Icons.Filled.MenuOpen,
-			contentDescription = "Options",
+			contentDescription = MR.strings.scene_list_item_action_menu_description.get(),
 			modifier = Modifier
 				.align(Alignment.CenterStart)
 				.alpha(alpha),
@@ -89,7 +94,7 @@ actual fun SceneGroupActionContainer(
 		onDismissRequest = { showMenu = false }
 	) {
 		DropdownMenuItem(
-			text = { Text("Delete") },
+			text = { Text(MR.strings.scene_list_item_action_delete.get()) },
 			onClick = {
 				onSceneAltClick(scene)
 				showMenu = false
@@ -97,33 +102,47 @@ actual fun SceneGroupActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Delete,
-					contentDescription = "Delete Group"
+					contentDescription = MR.strings.scene_list_item_action_delete.get()
+				)
+			}
+		)
+
+		DropdownMenuItem(
+			text = { Text(MR.strings.scene_list_item_action_rename.get()) },
+			onClick = {
+				onSceneRenameClick(scene)
+				showMenu = false
+			},
+			leadingIcon = {
+				Icon(
+					Icons.Outlined.Edit,
+					contentDescription = MR.strings.scene_list_item_action_rename.get()
 				)
 			}
 		)
 		DropdownMenuItem(
-			text = { Text("Create Scene") },
+			text = { Text(MR.strings.scene_list_group_action_create_scene.get()) },
 			onClick = {
 				onCreateSceneClick(scene)
 				showMenu = false
 			},
 			leadingIcon = {
 				Icon(
-					Icons.Outlined.Create,
-					contentDescription = "Create Scene"
+					Icons.Outlined.Add,
+					contentDescription = MR.strings.scene_list_group_action_create_scene.get()
 				)
 			}
 		)
 		DropdownMenuItem(
-			text = { Text("Create Group") },
+			text = { Text(MR.strings.scene_list_group_action_create_group.get()) },
 			onClick = {
 				onCreateGroupClick(scene)
 				showMenu = false
 			},
 			leadingIcon = {
 				Icon(
-					Icons.Outlined.Create,
-					contentDescription = "Create Group"
+					Icons.Outlined.Folder,
+					contentDescription = MR.strings.scene_list_group_action_create_group.get()
 				)
 			}
 		)

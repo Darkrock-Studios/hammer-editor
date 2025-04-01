@@ -325,7 +325,8 @@ private fun SceneNode(
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
 			shouldNux = doNux,
-			onSceneAltClick = sceneDefDeleteTarget,
+			onSceneDeleteRequest = sceneDefDeleteTarget,
+			onSceneRenameRequest = sceneDefRenameTarget,
 			onCreateGroupClick = createGroup,
 			onCreateSceneClick = createScene
 		)
