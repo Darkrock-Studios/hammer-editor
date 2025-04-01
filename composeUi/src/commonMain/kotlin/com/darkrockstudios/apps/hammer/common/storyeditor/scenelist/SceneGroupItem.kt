@@ -28,7 +28,8 @@ internal fun SceneGroupItem(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	shouldNux: Boolean,
-	onSceneAltClick: (SceneItem) -> Unit,
+	onSceneDeleteRequest: (SceneItem) -> Unit,
+	onSceneRenameRequest: (SceneItem) -> Unit,
 	onCreateSceneClick: (SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
@@ -46,7 +47,8 @@ internal fun SceneGroupItem(
 	SceneGroupActionContainer(
 		scene = scene,
 		shouldNux = shouldNux,
-		onSceneAltClick = onSceneAltClick,
+		onSceneAltClick = onSceneDeleteRequest,
+		onSceneRenameClick = onSceneRenameRequest,
 		onCreateSceneClick = onCreateSceneClick,
 		onCreateGroupClick = onCreateGroupClick,
 	) {
