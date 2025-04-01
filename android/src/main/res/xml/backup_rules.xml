@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+	<exclude domain="file" path="server.json"/>
+	<exclude domain="file" path="sync.json"/>
+	<exclude domain="file" path=".backups"/>
+</full-backup-content>
