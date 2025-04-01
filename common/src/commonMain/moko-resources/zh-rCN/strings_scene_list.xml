@@ -29,4 +29,7 @@
 	<string name="scene_rename_failed_error_invalid_name">无效的场景名称</string>
 	<string name="scene_list_group_action_create_scene">创建场景</string>
 	<string name="scene_list_group_action_create_group">创建群组</string>
+	<string name="group_cannot_delete_dialog_message">您无法在组仍然有子组时删除它：
+		"%1$s"
+	</string>
 </resources>

@@ -29,4 +29,8 @@
 	<string name="scene_rename_failed_error_invalid_name">Nom de scène invalide</string>
 	<string name="scene_list_group_action_create_scene">Créer une scène</string>
 	<string name="scene_list_group_action_create_group">Créer un groupe</string>
+	<string name="group_cannot_delete_dialog_message">Vous ne pouvez pas supprimer un groupe tant qu'il a encore des
+		enfants :
+		"%1$s"
+	</string>
 </resources>

@@ -29,4 +29,7 @@
 	<string name="scene_rename_failed_error_invalid_name">Nome de Cena inválido</string>
 	<string name="scene_list_group_action_create_scene">Criar Cena</string>
 	<string name="scene_list_group_action_create_group">Criar Grupo</string>
+	<string name="group_cannot_delete_dialog_message">Você não pode deletar um grupo enquanto ele ainda tiver filhos:
+		"%1$s"
+	</string>
 </resources>

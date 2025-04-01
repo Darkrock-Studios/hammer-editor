@@ -29,4 +29,7 @@
 	<string name="scene_rename_failed_error_invalid_name">Неправильна назва сцени</string>
 	<string name="scene_list_group_action_create_scene">Створити сцену</string>
 	<string name="scene_list_group_action_create_group">Створити групу</string>
+	<string name="group_cannot_delete_dialog_message">Ви не можете видалити групу, поки в неї ще є нащадки:
+		"%1$s"
+	</string>
 </resources>
