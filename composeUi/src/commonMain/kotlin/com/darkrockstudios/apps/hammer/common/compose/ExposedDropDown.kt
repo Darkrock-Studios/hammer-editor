@@ -17,6 +17,7 @@ fun <T> ExposedDropDown(
 	getText: ((T) -> String)? = null,
 	modifier: Modifier = Modifier,
 	noneOption: String? = null,
+	enabled: Boolean = true,
 	onValueChanged: (T?) -> Unit
 ) {
 	fun getItemText(item: T?): String {
@@ -36,13 +37,14 @@ fun <T> ExposedDropDown(
 
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
-		onExpandedChange = { isExpanded = it },
+		onExpandedChange = { if (enabled) isExpanded = it },
 		modifier = Modifier,
 	) {
 		TextField(
 			value = selectedText,
 			onValueChange = {},
 			readOnly = true,
+			enabled = enabled,
 			trailingIcon = {
 				ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
 			},
@@ -56,7 +58,7 @@ fun <T> ExposedDropDown(
 		)
 
 		ExposedDropdownMenu(
-			expanded = isExpanded,
+			expanded = isExpanded && enabled,
 			onDismissRequest = { isExpanded = false },
 		) {
 			if (noneOption != null) {
