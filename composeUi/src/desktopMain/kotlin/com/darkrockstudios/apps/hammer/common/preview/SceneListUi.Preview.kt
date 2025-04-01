@@ -63,7 +63,8 @@ private fun SceneItemPreview() {
 			isSelected = false,
 			shouldNux = false,
 			onSceneSelected = {},
-			onSceneAltClick = {}
+			onSceneDeleteRequest = {},
+			onSceneRenameRequest = {},
 		)
 		SceneItem(
 			scene = fakeScene(1, 1),
@@ -73,7 +74,8 @@ private fun SceneItemPreview() {
 			isSelected = false,
 			shouldNux = false,
 			onSceneSelected = {},
-			onSceneAltClick = {}
+			onSceneDeleteRequest = {},
+			onSceneRenameRequest = {},
 		)
 		SceneItem(
 			scene = fakeScene(2, 2),
@@ -83,7 +85,8 @@ private fun SceneItemPreview() {
 			isSelected = true,
 			shouldNux = false,
 			onSceneSelected = {},
-			onSceneAltClick = {}
+			onSceneDeleteRequest = {},
+			onSceneRenameRequest = {},
 		)
 	}
 }
@@ -108,6 +111,7 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override suspend fun createScene(parent: SceneItem?, sceneName: String) {}
 	override suspend fun createGroup(parent: SceneItem?, groupName: String) {}
 	override suspend fun deleteScene(scene: SceneItem) {}
+	override suspend fun renameScene(scene: SceneItem, newName: String): Boolean = false
 	override fun onSceneListUpdate(scenes: SceneSummary) {}
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {}
 	override fun showOutlineOverview() {}

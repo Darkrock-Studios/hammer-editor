@@ -25,3 +25,8 @@ Here is what each of the modules do:
 
 We have a growing number of tests, so we should consider if we can write tests as we add new code,
 and we should always run our existing tests after making changes.
+
+## Adding String resources
+
+When you add a string resource to any of the `strings.xml` files for the client, you need to re-run
+the `generateMR` gradle task to generate the `MR.strings` reference to the new string.

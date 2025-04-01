@@ -9,6 +9,7 @@ import androidx.compose.material.FixedThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.material3.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlin.math.roundToInt
 
@@ -28,7 +31,8 @@ import kotlin.math.roundToInt
 @Composable
 actual fun SceneItemActionContainer(
 	scene: SceneItem,
-	onSceneAltClick: (scene: SceneItem) -> Unit,
+	onSceneDeleteClick: (scene: SceneItem) -> Unit,
+	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	shouldNux: Boolean,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
@@ -64,7 +68,7 @@ actual fun SceneItemActionContainer(
 
 		Icon(
 			Icons.Filled.MenuOpen,
-			contentDescription = "Options",
+			contentDescription = MR.strings.scene_list_item_action_menu_description.get(),
 			modifier = Modifier
 				.align(Alignment.CenterStart)
 				.alpha(alpha),
@@ -85,16 +89,31 @@ actual fun SceneItemActionContainer(
 		onDismissRequest = { showMenu = false }
 	) {
 		DropdownMenuItem(
-			text = { Text("Delete") },
+			text = { Text(MR.strings.scene_list_item_action_delete.get()) },
 			onClick = {
-				onSceneAltClick(scene)
+				onSceneDeleteClick(scene)
 				showMenu = false
 			},
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Delete,
-					contentDescription = "Delete Scene"
+					contentDescription = MR.strings.scene_list_item_action_delete.get()
 				)
-			})
+			},
+		)
+
+		DropdownMenuItem(
+			text = { Text(MR.strings.scene_list_item_action_rename.get()) },
+			onClick = {
+				onSceneRenameClick(scene)
+				showMenu = false
+			},
+			leadingIcon = {
+				Icon(
+					Icons.Outlined.Edit,
+					contentDescription = MR.strings.scene_list_item_action_rename.get()
+				)
+			},
+		)
 	}
 }
