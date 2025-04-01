@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 @Composable
 internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boolean) -> Unit) {
 	SimpleDialog(
-		onCloseRequest = {},
+		onCloseRequest = { dismissDialog(false) },
 		visible = true,
 		title = MR.strings.group_cannot_delete_dialog_title.get()
 	) {
@@ -32,7 +32,7 @@ internal fun GroupDeleteNotAllowedDialog(scene: SceneItem, dismissDialog: (Boole
 					.padding(Ui.Padding.XL)
 			) {
 				Text(
-					MR.strings.group_cannot_delete_dialog_title.get(scene.name),
+					MR.strings.group_cannot_delete_dialog_message.get(scene.name),
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.onSurface
 				)

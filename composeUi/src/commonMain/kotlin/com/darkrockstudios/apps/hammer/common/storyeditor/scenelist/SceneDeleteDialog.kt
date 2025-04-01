@@ -23,7 +23,7 @@ internal fun SceneDeleteDialog(scene: SceneItem, dismissDialog: (Boolean) -> Uni
 	val strRes = rememberStrRes()
 
 	SimpleDialog(
-		onCloseRequest = {},
+		onCloseRequest = { dismissDialog(false) },
 		visible = true,
 		title = MR.strings.scene_delete_dialog_title.get()
 	) {
