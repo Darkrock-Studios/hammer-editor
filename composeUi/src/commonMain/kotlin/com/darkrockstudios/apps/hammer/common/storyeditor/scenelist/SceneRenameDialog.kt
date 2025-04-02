@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.ImeAction
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -44,6 +47,12 @@ internal fun SceneRenameDialog(
 					onValueChange = { nameText = it },
 					label = { Text(MR.strings.scene_rename_dialog_label.get()) },
 					singleLine = true,
+					keyboardOptions = KeyboardOptions(
+						imeAction = ImeAction.Done
+					),
+					keyboardActions = KeyboardActions(
+						onDone = { dismissDialog(nameText) }
+					)
 				)
 
 				Text(
