@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0] - 2025-4-2
+
+- Text Editor 2.0!!
+   > This is the begining, it has Experimental Spell Checking. Many more features to come enabled by this.
+- Context menu in Scene List can now rename Scenes and Groups
+- Added Project Settings menu
+
+
 ## [1.9.2] - 2024-11-2
 
 - Fixed Android minify crashes, the binary is now 60% smaller!
