@@ -1,0 +1,4 @@
+- Text Editor 2.0!!
+   > This is the begining, it has Experimental Spell Checking. Many more features to come enabled by this.
+- Context menu in Scene List can now rename Scenes and Groups
+- Added Project Settings menu
