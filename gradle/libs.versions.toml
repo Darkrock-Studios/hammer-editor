@@ -57,7 +57,7 @@ koalaplot-core = "0.6.4"
 image-loader = "1.8.1"
 image-loader-blur = "1.7.7"
 
-koin_bom = "4.0.0"
+koin_bom = "4.0.4"
 
 ktor = "2.3.12"
 ktor_i18n = "2.0.0"
