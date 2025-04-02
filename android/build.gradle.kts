@@ -117,3 +117,8 @@ android {
 		}
 	}
 }
+
+aboutLibraries {
+	prettyPrint = true
+	excludeFields = arrayOf("generated")
+}
