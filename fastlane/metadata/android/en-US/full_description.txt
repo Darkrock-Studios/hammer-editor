@@ -1,4 +1,4 @@
-This app is very early in it's development and should be considered ALPHA quality software.
+This app is still in development and should be considered Beta quality software.
 
 Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
 
