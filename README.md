@@ -8,7 +8,6 @@ A simple tool for building stories.
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
 [![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
-[![Localization badge](https://hosted.weblate.org/widgets/hammer/-/clients/svg-badge.svg)](https://hosted.weblate.org/engage/hammer/)
 
 ### Available on:
 
