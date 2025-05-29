@@ -75,6 +75,7 @@ android {
 	}
 	buildFeatures {
 		compose = true
+		buildConfig = true
 	}
 	compileOptions {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())

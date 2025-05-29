@@ -159,6 +159,9 @@ android {
 			)
 		}
 	}
+	buildFeatures {
+		buildConfig = true
+	}
 	defaultConfig {
 		minSdk = libs.versions.android.sdk.min.get().toInt()
 		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()

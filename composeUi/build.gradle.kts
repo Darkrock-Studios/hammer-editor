@@ -116,6 +116,9 @@ android {
 		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
 		targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
 	}
+	buildFeatures {
+		buildConfig = true
+	}
 }
 
 kover {
