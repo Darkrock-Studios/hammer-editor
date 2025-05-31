@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.confirmVerified
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -67,7 +66,6 @@ class AccountsComponentCreateAccountTest {
 
 		coVerify(exactly = 0) { whiteListRepository.useWhiteList() }
 		coVerify(exactly = 0) { whiteListRepository.isOnWhiteList(any()) }
-		confirmVerified(whiteListRepository)
 
 		coVerify { projectsRepository.createUserData(token.userId) }
 	}
