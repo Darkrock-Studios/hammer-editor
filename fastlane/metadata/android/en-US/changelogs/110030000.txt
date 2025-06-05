@@ -1,0 +1,1 @@
+- Updated TextEditor to fix a few bugs
