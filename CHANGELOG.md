@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.10.2] - 2025-6-5
+
+- Updated TextEditor to fix a few bugs
+
+
 ## [1.10.0] - 2025-4-2
 
 - Text Editor 2.0!!
