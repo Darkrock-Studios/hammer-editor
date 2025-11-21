@@ -53,7 +53,7 @@ decompose = "3.2.2"
 essenty = "2.2.1" # This should match what ever decompose is referncing internally
 
 mpfilepicker = "3.1.0"
-koalaplot-core = "0.6.4"
+koalaplot-core = "0.10.3"
 image-loader = "1.8.1"
 image-loader-blur = "1.7.7"
 
