@@ -59,7 +59,7 @@ image-loader-blur = "1.7.7"
 
 koin_bom = "4.0.4"
 
-ktor = "2.3.12"
+ktor = "3.3.3"
 ktor_i18n = "2.0.0"
 
 okio = "3.9.1"
