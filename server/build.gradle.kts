@@ -99,6 +99,7 @@ dependencies {
 	testImplementation(libs.ktor.server.testshostjvm)
 	testImplementation(libs.bundles.junit.jupiter)
 	testRuntimeOnly(libs.junit.jupiter.engine)
+	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)

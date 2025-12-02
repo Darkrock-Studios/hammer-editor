@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import korlibs.crypto.encoding.Base64
 import korlibs.crypto.encoding.base64Url
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 object EntityHasher {
 	private fun buff() = ByteArray(4)

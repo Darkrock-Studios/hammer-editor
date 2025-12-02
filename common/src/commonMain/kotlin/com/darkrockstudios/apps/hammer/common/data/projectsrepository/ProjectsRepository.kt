@@ -19,7 +19,6 @@ import dev.icerock.moko.resources.StringResource
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
@@ -27,6 +26,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Clock
 
 class ProjectsRepository(
 	private val fileSystem: FileSystem,

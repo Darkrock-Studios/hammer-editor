@@ -1,12 +1,11 @@
 package com.darkrockstudios.build
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+// Use legacy java.text date formatting to avoid Kotlin/Gradle embedded version or Android API constraints
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.CountDownLatch
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -22,9 +21,7 @@ fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
 	val currentChangelog = changelogFile.readText()
 	val withoutHeader = currentChangelog.substring(currentChangelog.indexOf('\n') + 1)
 
-	val now = Clock.System.now()
-	val date: LocalDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
-	val headerDate = "${date.year}-${date.monthNumber}-${date.dayOfMonth}"
+	val headerDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-M-d"))
 	val newEntry = "## [${releaseInfo.semVar}] - $headerDate\n\n" + releaseInfo.changeLog + "\n\n"
 
 	val newChangeLog = "# Changelog\n\n" + newEntry + withoutHeader
@@ -99,15 +96,15 @@ fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 		}
 		panel.add(newVersionLabel)
 
-		optionMajor.addActionListener { e ->
+		optionMajor.addActionListener { _ ->
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MAJOR)
 			newVersionLabel.text = newSemVar.toString()
 		}
-		optionMinor.addActionListener { e ->
+		optionMinor.addActionListener { _ ->
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
 			newVersionLabel.text = newSemVar.toString()
 		}
-		optionPatch.addActionListener { e ->
+		optionPatch.addActionListener { _ ->
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.PATCH)
 			newVersionLabel.text = newSemVar.toString()
 		}
@@ -123,7 +120,7 @@ fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 			wrapStyleWord = true
 		}
 
-		changeLog.document.addDocumentListener(OnChangeListener { e ->
+		changeLog.document.addDocumentListener(OnChangeListener { _ ->
 			characterCount.text = "Characters: ${changeLog.document.length}"
 		})
 

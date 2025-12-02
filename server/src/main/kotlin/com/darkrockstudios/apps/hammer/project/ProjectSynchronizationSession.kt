@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class ProjectSynchronizationSession(
 	override val userId: Long,

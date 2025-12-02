@@ -1,8 +1,8 @@
 package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Test
+import kotlin.time.Instant
 
 class HashTest {
 	@Test

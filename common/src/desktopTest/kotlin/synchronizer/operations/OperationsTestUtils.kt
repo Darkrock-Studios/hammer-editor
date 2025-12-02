@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState.CollatedIds
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 val metadata = ProjectMetadata(
 	info = Info(

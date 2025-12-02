@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 data class ProjectSyncData(

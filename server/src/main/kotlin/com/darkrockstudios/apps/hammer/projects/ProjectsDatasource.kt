@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 interface ProjectsDatasource {
 	suspend fun saveSyncData(userId: Long, data: ProjectsSyncData)

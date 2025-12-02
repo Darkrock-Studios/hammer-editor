@@ -9,11 +9,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import okio.*
 import okio.Path.Companion.toPath
 import java.util.logging.LogRecord
 import java.util.logging.StreamHandler
+import kotlin.time.Clock
 
 class FileLogger(
 	private val fileSystem: FileSystem = getPlatformFilesystem(),

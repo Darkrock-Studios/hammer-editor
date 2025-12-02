@@ -15,12 +15,12 @@ import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import kotlin.time.Clock
 
 abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected val userId = 1L
