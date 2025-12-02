@@ -6,7 +6,7 @@ data_version = "1.0"
 # Kotlin
 jvm = "21"
 kache = "2.1.1"
-kotlin = "2.1.20"
+kotlin = "2.2.21"
 
 # Android
 android_gradle_plugin = "8.11.2"
@@ -31,14 +31,14 @@ jSystemThemeDetector = "3.9.1"
 androix-junit = "1.2.1"
 junit = "5.11.3"
 kotlinx_cli = "0.3.6"
-kotlinx_atomicfu = "0.26.1"
+kotlinx_atomicfu = "0.29.0"
 kwebCore = "1.4.12"
 markdown = "0.7.3"
 material = "1.12.0"
 orchestrator = "1.5.1"
 cryptography = "0.4.0"
 
-serialization = "1.8.1"
+serialization = "1.9.0"
 
 coroutines = "1.10.2"
 datetime = "0.6.1"
@@ -46,8 +46,8 @@ napier = "2.7.1"
 jetbrains_compose = "1.7.3"
 jetbrains_kover = "0.8.3"
 
-moko_resources = "0.24.3"
-moko_graphics = "0.10.0"
+moko_resources = "0.25.2"
+moko_graphics = "0.10.1"
 
 decompose = "3.2.2"
 essenty = "2.2.1" # This should match what ever decompose is referncing internally
@@ -77,7 +77,7 @@ krypto = "4.0.10"
 jna = "5.15.0" # This is a transitive dependency, remove it when we can
 
 sqldelight = "2.0.2"
-buildconfig = "5.6.1"
+buildconfig = "6.0.6"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "11.2.3"
@@ -85,7 +85,7 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.2.0"
 korge-core = "5.4.0"
 
-moko-permissions = "0.18.1"
+moko-permissions = "0.20.1"
 compose-texteditor = "0.8.2"
 symspellkt = "3.4.0"
 
