@@ -2,6 +2,7 @@ import com.darkrockstudios.build.configureRelease
 import com.darkrockstudios.build.parseSemVar
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
@@ -30,6 +31,13 @@ allprojects {
 
 	tasks.withType<Test> {
 		useJUnitPlatform()
+	}
+
+	// Suppress Beta warning for expect/actual classes across all modules/targets
+	tasks.withType<KotlinCompilationTask<*>>().configureEach {
+		compilerOptions {
+			freeCompilerArgs.add("-Xexpect-actual-classes")
+		}
 	}
 
 	dependencies {
