@@ -9,7 +9,7 @@ kache = "2.1.1"
 kotlin = "2.1.20"
 
 # Android
-android_gradle_plugin = "8.7.3"
+android_gradle_plugin = "8.11.2"
 android_sdk_compile = "35"
 android_sdk_target = "35"
 android_sdk_min = "26"
