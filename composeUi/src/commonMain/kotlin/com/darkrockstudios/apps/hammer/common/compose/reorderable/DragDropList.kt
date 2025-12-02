@@ -88,13 +88,14 @@ fun <T> DragDropList(
 			Box(
 				modifier = Modifier
 					.zIndex(zIndex)
+					.animateItem()
 					.composed {
 						if (index == dragDropListState.currentIndexOfDraggedItem) {
 							graphicsLayer {
 								translationY = dragDropListState.elementDisplacement ?: 0f
 							}
 						} else {
-							animateItemPlacement()
+							this  // No-op for non-dragging items
 						}
 					}
 			) {

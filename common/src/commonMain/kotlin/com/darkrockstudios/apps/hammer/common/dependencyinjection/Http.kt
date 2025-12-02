@@ -1,39 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
-import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
-import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
-import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
-import com.darkrockstudios.apps.hammer.base.http.HEADER_CLIENT_VERSION
-import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import io.github.aakira.napier.Napier
-import io.ktor.client.HttpClient
-import io.ktor.client.HttpClientConfig
-import io.ktor.client.call.body
-import io.ktor.client.engine.HttpClientEngineConfig
-import io.ktor.client.engine.HttpClientEngineFactory
-import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BearerTokens
-import io.ktor.client.plugins.auth.providers.bearer
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.plugins.plugin
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.forms.FormDataContent
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.Parameters
-import io.ktor.http.URLProtocol
-import io.ktor.http.isSuccess
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.auth.*
+import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
 import okio.IOException
+
+private val GlobalSettingsKey = AttributeKey<GlobalSettingsRepository>("GlobalSettings")
 
 fun createHttpClient(
 	globalSettingsRepository: GlobalSettingsRepository,
@@ -73,6 +60,8 @@ fun createHttpClient(
 			}
 		}
 	}
+
+	client.attributes.put(GlobalSettingsKey, globalSettingsRepository)
 
 	return client
 }
@@ -206,12 +195,22 @@ private class NapierHttpLogger : Logger {
 }
 
 fun HttpClient.updateCredentials(credentials: BearerTokens) {
-	val authPlugin = plugin(Auth)
-	authPlugin.providers.removeAll { true }
-	authPlugin.bearer {
-		loadTokens {
-			credentials
+	val repo = attributes.getOrNull(GlobalSettingsKey)
+
+	if (repo != null) {
+		repo.serverSettings?.let { old ->
+			repo.updateServerSettings(
+				old.copy(
+					bearerToken = credentials.accessToken,
+					refreshToken = credentials.refreshToken
+				)
+			)
 		}
+
+		// This clears the internal cache, forcing `loadTokens` to run again on the next request.
+		authProvider<BearerAuthProvider>()?.clearToken()
+	} else {
+		Napier.e("Failed to update credentials: GlobalSettingsRepository not attached to HttpClient")
 	}
 }
 

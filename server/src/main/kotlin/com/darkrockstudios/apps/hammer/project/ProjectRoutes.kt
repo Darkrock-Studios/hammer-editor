@@ -248,7 +248,7 @@ private fun Route.uploadEntity() {
 					val e = result.exception
 					when (e) {
 						is EntityConflictException -> {
-							if (call.application.environment.developmentMode) {
+							if (call.application.developmentMode) {
 								val serverHash = serverEntityHash(e.entity)
 								log.info("Conflict for ID $entityId client provided original hash: $originalHash server hash: $serverHash")
 							}

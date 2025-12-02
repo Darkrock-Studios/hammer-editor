@@ -76,7 +76,7 @@ fun SceneTree(
 								toggleExpanded = state::toggleExpanded,
 								modifier = Modifier.wrapContentHeight()
 									.fillMaxWidth()
-									.animateItemPlacement(),
+									.animateItem(),
 								itemUi = itemUi
 							)
 						}
