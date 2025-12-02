@@ -23,13 +23,15 @@ import kweb.plugins.staticFiles.StaticFilesPlugin
 import kweb.state.KVar
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
-import java.time.Duration
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 fun Application.configureKweb(config: ServerConfig) {
 	install(WebSockets) {
-		pingPeriod = Duration.ofSeconds(10)
-		timeout = Duration.ofSeconds(30)
+		Duration
+		pingPeriod = 10.seconds
+		timeout = 30.seconds
 	}
 
 	val faviconPlugin = FaviconPlugin {

@@ -6,15 +6,11 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.engine.ApplicationEngine
-import io.ktor.server.engine.applicationEngineEnvironment
-import io.ktor.server.engine.connector
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.jetty.Jetty
-import io.ktor.server.jetty.JettyApplicationEngine
+import io.ktor.client.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.engine.*
+import io.ktor.server.jetty.jakarta.*
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
@@ -62,7 +58,7 @@ abstract class EndToEndTest {
 
 	@AfterEach
 	fun tearDown() {
-		server.stop(1, 1)
+		server.stop(1000, 3000)
 	}
 
 	protected fun route(path: String): String = "http://127.0.0.1:8080/$path"
@@ -72,28 +68,24 @@ abstract class EndToEndTest {
 		server = startServer()
 	}
 
-	private fun startServer(): JettyApplicationEngine {
-		val environment = applicationEngineEnvironment {
-			connector {
-				port = 8080
-				host = "0.0.0.0"
-			}
-
-			// Override the default database
-			val testModule = org.koin.dsl.module {
-				single { testDatabase } bind Database::class
-				single { fileSystem } bind FileSystem::class
-			}
-
-			val config = ServerConfig()
-			module {
-				appMain(config, testModule)
-			}
+	private fun startServer(): ApplicationEngine {
+		// Override the default database
+		val testModule = org.koin.dsl.module {
+			single { testDatabase } bind Database::class
+			single { fileSystem } bind FileSystem::class
 		}
 
-		return embeddedServer(
+		val config = ServerConfig()
+
+		val server = embeddedServer(
 			Jetty,
-			environment = environment
-		).start()
+			port = 8080,
+			host = "0.0.0.0",
+			module = {
+				appMain(config, testModule)
+			}
+		)
+		server.start()
+		return server.engine
 	}
 }

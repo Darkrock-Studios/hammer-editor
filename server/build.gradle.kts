@@ -91,12 +91,11 @@ dependencies {
 	testImplementation(libs.bundles.ktor.client)
 	testImplementation(libs.ktor.serialization.kotlinx.json)
 
-	testImplementation(libs.ktor.server.testsjvm)
+	testImplementation(libs.ktor.server.test.host)
 	testImplementation(libs.coroutines.test)
 	testImplementation(libs.mockk)
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
-	testImplementation(libs.ktor.server.testshostjvm)
 	testImplementation(libs.bundles.junit.jupiter)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	testRuntimeOnly(libs.junit.platform.launcher)

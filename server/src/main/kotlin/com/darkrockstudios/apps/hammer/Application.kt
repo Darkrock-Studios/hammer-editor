@@ -2,20 +2,10 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
-import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
-import com.darkrockstudios.apps.hammer.plugins.configureHTTP
-import com.darkrockstudios.apps.hammer.plugins.configureLocalization
-import com.darkrockstudios.apps.hammer.plugins.configureMonitoring
-import com.darkrockstudios.apps.hammer.plugins.configureRouting
-import com.darkrockstudios.apps.hammer.plugins.configureSecurity
-import com.darkrockstudios.apps.hammer.plugins.configureSerialization
-import com.darkrockstudios.apps.hammer.plugins.kweb.configureKweb
-import io.ktor.server.application.Application
-import io.ktor.server.engine.applicationEngineEnvironment
-import io.ktor.server.engine.connector
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.engine.sslConnector
-import io.ktor.server.jetty.Jetty
+import com.darkrockstudios.apps.hammer.plugins.*
+import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.jetty.jakarta.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.coroutines.runBlocking
@@ -70,39 +60,40 @@ private fun startServer(config: ServerConfig, devMode: Boolean) {
 	//		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
 	//	}
 
-	val environment = applicationEngineEnvironment {
-		val bindHost = "0.0.0.0"
-		connector {
-			port = config.port
-			host = bindHost
-		}
-
-		config.sslCert?.apply {
-			sslConnector(
-				keyStore = getKeyStore(this),
-				keyAlias = keyAlias ?: "",
-				keyStorePassword = { storePassword.toCharArray() },
-				privateKeyPassword = { (keyPassword ?: "").toCharArray() }) {
-				keyStorePath = File(path)
-				host = bindHost
-				port = config.sslPort
-			}
-		}
-
-		module {
-			appMain(config)
-		}
-
-		developmentMode = devMode
-		if (devMode) {
-			watchPaths += listOf("classes")
-		}
-	}
+	val bindHost = "0.0.0.0"
 
 	embeddedServer(
 		Jetty,
-		environment = environment
+		configure = {
+			configureServer(config, bindHost)
+		},
+		module = {
+			appMain(config)
+		}
 	).start(wait = true)
+}
+
+private fun JettyApplicationEngineBase.Configuration.configureServer(
+	config: ServerConfig,
+	bindHost: String
+) {
+	connector {
+		port = config.port
+		host = bindHost
+	}
+
+	config.sslCert?.apply {
+		sslConnector(
+			keyStore = getKeyStore(this),
+			keyAlias = keyAlias ?: "",
+			keyStorePassword = { storePassword.toCharArray() },
+			privateKeyPassword = { (keyPassword ?: "").toCharArray() }
+		) {
+			this.keyStorePath = File(path)
+			host = bindHost
+			port = config.sslPort
+		}
+	}
 }
 
 private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
@@ -119,5 +110,5 @@ fun Application.appMain(config: ServerConfig, addInModule: Module? = null) {
 	configureSecurity()
 	configureLocalization()
 	configureRouting()
-	configureKweb(config)
+	//configureKweb(config)
 }

@@ -1,22 +1,16 @@
 package com.darkrockstudios.apps.hammer.e2e
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
-import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
-import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
-import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
-import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
+import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.preDeletedProject1
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.headers
-import io.ktor.client.request.parameter
-import io.ktor.http.HttpStatusCode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -75,14 +69,13 @@ class ProjectsTest : EndToEndTest() {
 
 			// Create Project
 			val newProjectName = "New Project"
-			val createProjectResponse = get(api("projects/$userId/create")) {
+			val urlEncoded = newProjectName.encodeURLQueryComponent()
+			val createProjectResponse = get(api("projects/$userId/$urlEncoded/create")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
 					append(HEADER_SYNC_ID, beginSyncResponseBody.syncId)
 				}
-
-				parameter("projectName", newProjectName)
 			}
 			assertEquals(HttpStatusCode.OK, createProjectResponse.status)
 

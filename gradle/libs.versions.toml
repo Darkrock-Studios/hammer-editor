@@ -34,7 +34,7 @@ kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.29.0"
 kwebCore = "1.4.12"
 markdown = "0.7.3"
-material = "1.12.0"
+material = "1.13.0"
 orchestrator = "1.5.1"
 cryptography = "0.4.0"
 
@@ -43,8 +43,8 @@ serialization = "1.9.0"
 coroutines = "1.10.2"
 datetime = "0.7.1"
 napier = "2.7.1"
-jetbrains_compose = "1.7.3"
-jetbrains_kover = "0.8.3"
+jetbrains_compose = "1.9.3"
+jetbrains_kover = "0.9.3"
 
 moko_resources = "0.25.2"
 moko_graphics = "0.10.1"
@@ -54,12 +54,12 @@ essenty = "2.2.1" # This should match what ever decompose is referncing internal
 
 mpfilepicker = "3.1.0"
 koalaplot-core = "0.6.4"
-image-loader = "1.8.1"
+image-loader = "1.10.0"
 image-loader-blur = "1.7.7"
 
-koin_bom = "4.0.4"
+koin_bom = "4.1.1"
 
-ktor = "2.3.12"
+ktor = "3.3.3"
 ktor_i18n = "2.0.0"
 
 okio = "3.16.4"
@@ -208,11 +208,11 @@ ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", vers
 ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
 ktor_server_requestvalidation = { group = "io.ktor", name = "ktor-server-request-validation", version.ref = "ktor" }
+ktor_server_jetty_jakarta = { group = "io.ktor", name = "ktor-server-jetty-jakarta", version.ref = "ktor" }
 
 ktor_server_i18n = { group = "com.github.aymanizz", name = "ktor-i18n", version.ref = "ktor_i18n" }
 
-ktor_server_testsjvm = { group = "io.ktor", name = "ktor-server-tests-jvm", version.ref = "ktor" }
-ktor_server_testshostjvm = { group = "io.ktor", name = "ktor-server-test-host-jvm", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 
 ktor_network_tlscertificates = { group = "io.ktor", name = "ktor-network-tls-certificates", version.ref = "ktor" }
 
@@ -299,7 +299,7 @@ ktor_server = [
 	"ktor_server_compressionjvm",
 	"ktor_server_cachingheadersjvm",
 	"ktor_server_authjvm",
-	"ktor_server_nettyjvm",
+	"ktor_server_jetty_jakarta",
 	"ktor_server_httpredirect",
 	"ktor_server_websockets",
 	"ktor_server_i18n",
