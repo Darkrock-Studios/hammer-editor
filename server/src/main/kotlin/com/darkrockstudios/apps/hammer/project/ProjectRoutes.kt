@@ -1,15 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
-import com.darkrockstudios.apps.hammer.base.http.DeleteIdsResponse
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_HASH
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_TYPE
-import com.darkrockstudios.apps.hammer.base.http.HEADER_ORIGINAL_HASH
-import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
-import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
-import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
+import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -18,28 +10,21 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.serverEntityHash
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
-import io.ktor.server.application.log
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.principal
-import io.ktor.server.request.receive
-import io.ktor.server.request.receiveParameters
-import io.ktor.server.request.receiveStream
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
-import io.ktor.util.logging.Logger
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.util.logging.*
 import korlibs.io.compression.deflate.GZIP
 import korlibs.io.compression.uncompress
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Instant
 
 fun Route.projectRoutes(logger: Logger) {
 	authenticate(USER_AUTH) {

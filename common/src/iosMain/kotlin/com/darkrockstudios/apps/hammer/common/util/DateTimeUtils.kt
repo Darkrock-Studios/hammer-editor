@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.util
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import platform.Foundation.NSCalendar
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
+import kotlin.time.Instant
 
 actual fun Instant.formatLocal(format: String): String {
 	// TODO implement iOS version

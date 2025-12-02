@@ -5,9 +5,9 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import io.mockk.coEvery
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class ProjectsRepositoryEndSyncTest : ProjectsRepositoryBaseTest() {
 

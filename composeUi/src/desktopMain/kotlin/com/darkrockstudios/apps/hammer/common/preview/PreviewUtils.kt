@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import dev.icerock.moko.resources.StringResource
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 fun fakeProjectDef(): ProjectDef = ProjectDef(
 	name = "Test",

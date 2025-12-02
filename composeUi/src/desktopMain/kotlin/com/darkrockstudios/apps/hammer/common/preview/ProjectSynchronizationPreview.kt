@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
 import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 private fun expandedSize(): WindowSizeClass {

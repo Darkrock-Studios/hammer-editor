@@ -17,12 +17,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Clock
 
 class NotesRepository(
 	projectDef: ProjectDef,

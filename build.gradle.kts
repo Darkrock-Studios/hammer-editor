@@ -33,10 +33,15 @@ allprojects {
 		useJUnitPlatform()
 	}
 
-	// Suppress Beta warning for expect/actual classes across all modules/targets
+	// Compiler flags applied globally
 	tasks.withType<KotlinCompilationTask<*>>().configureEach {
 		compilerOptions {
-			freeCompilerArgs.add("-Xexpect-actual-classes")
+			freeCompilerArgs.addAll(
+				listOf(
+					"-Xexpect-actual-classes",
+					"-opt-in=kotlin.time.ExperimentalTime"
+				)
+			)
 		}
 	}
 

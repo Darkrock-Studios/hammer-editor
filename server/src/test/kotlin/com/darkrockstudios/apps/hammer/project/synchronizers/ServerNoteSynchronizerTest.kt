@@ -11,13 +11,13 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class ServerNoteSynchronizerTest :
 	ServerEntitySynchronizerTest<ApiProjectEntity.NoteEntity, ServerNoteSynchronizer>() {

@@ -16,13 +16,13 @@ import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class ProjectsDatabaseDatasourceTest : BaseTest() {

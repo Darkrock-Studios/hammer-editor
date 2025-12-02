@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProject1Def
-import kotlinx.datetime.Instant
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class ProjectMetadataDatasourceTest : BaseTest() {
 

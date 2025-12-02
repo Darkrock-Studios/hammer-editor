@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import kotlinx.datetime.Instant
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class EntityHasherTest {
 	@Test

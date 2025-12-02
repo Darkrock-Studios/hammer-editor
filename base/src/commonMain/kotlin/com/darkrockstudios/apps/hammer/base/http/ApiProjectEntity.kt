@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.base.http
 
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 @Polymorphic

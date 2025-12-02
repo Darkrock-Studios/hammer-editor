@@ -47,7 +47,6 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.spellCheckModule
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
-import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -57,6 +56,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import kotlin.time.Clock
 
 const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"

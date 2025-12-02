@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.syncsessionmanager
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 abstract class SynchronizationSession(
 	open val userId: Long,

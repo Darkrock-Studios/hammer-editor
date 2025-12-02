@@ -6,9 +6,9 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ProjectDao(
 	database: Database,

@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.BeforeEach
 import kotlin.reflect.KClass
+import kotlin.time.Instant
 
 class ServerSceneDraftSynchronizerTest :
 	ServerEntitySynchronizerTest<ApiProjectEntity.SceneDraftEntity, ServerSceneDraftSynchronizer>() {

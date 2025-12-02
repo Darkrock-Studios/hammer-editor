@@ -8,12 +8,12 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
-import kotlinx.datetime.Clock
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
+import kotlin.time.Clock
 
 class AccountsRepositoryPasswordValidatorTest {
 

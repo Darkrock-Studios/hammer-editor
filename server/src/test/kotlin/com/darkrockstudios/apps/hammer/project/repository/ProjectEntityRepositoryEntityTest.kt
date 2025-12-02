@@ -14,12 +14,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 

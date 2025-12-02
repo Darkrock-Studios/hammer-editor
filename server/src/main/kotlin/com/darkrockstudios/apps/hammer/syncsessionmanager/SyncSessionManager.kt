@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.syncsessionmanager
 import com.darkrockstudios.apps.hammer.utilities.RandomString
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 import java.security.SecureRandom
+import kotlin.time.Clock
 
 class SyncSessionManager<K, T : SynchronizationSession>(
 	private val clock: Clock,

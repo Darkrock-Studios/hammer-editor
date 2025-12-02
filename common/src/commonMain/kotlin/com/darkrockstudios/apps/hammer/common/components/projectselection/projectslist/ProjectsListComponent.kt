@@ -29,10 +29,10 @@ import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
+import kotlin.time.Clock
 
 class ProjectsListComponent(
 	componentContext: ComponentContext,
