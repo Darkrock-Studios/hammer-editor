@@ -235,24 +235,16 @@ private fun WordsInChaptersChart(
 	modifier: Modifier = Modifier,
 	state: ProjectHome.State
 ) {
-	val entries = remember<List<VerticalBarPlotEntry<Int, Float>>>(state.wordsByChapter) {
-		state.wordsByChapter.entries.mapIndexed { index, entry ->
-			DefaultVerticalBarPlotEntry<Int, Float>(
-				x = index,
-				y = DefaultVerticalBarPosition<Float>(
-					yMin = 0f,
-					yMax = entry.value.toFloat()
-				),
-			)
-		}
-	}
-
 	val xAxis = remember(state.wordsByChapter) {
 		if (state.wordsByChapter.isNotEmpty()) {
 			List(state.wordsByChapter.keys.size) { i -> i }
 		} else {
 			listOf(0, 100)
 		}
+	}
+
+	val yData = remember(state.wordsByChapter) {
+		state.wordsByChapter.entries.map { it.value.toFloat() }
 	}
 
 	val range = remember(state.wordsByChapter) {
@@ -265,7 +257,7 @@ private fun WordsInChaptersChart(
 	}
 
 	if (state.wordsByChapter.size > 1) {
-		XYGraph<Int, Float>(
+		XYGraph(
 			modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
 			xAxisModel = CategoryAxisModel(xAxis),
 			yAxisModel = FloatLinearAxisModel(range = range),
@@ -278,7 +270,8 @@ private fun WordsInChaptersChart(
 			panZoomEnabled = false,
 		) {
 			VerticalBarPlot(
-				data = entries,
+				xData = xAxis,
+				yData = yData,
 				bar = { DefaultVerticalBar(SolidColor(colors.first())) }
 			)
 		}
