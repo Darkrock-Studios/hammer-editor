@@ -99,6 +99,7 @@ kotlin {
 				implementation(libs.koin.android)
 				implementation(libs.ktor.client.okhttp)
 				implementation(libs.moko.permissions)
+				implementation(libs.moko.permissions.storage)
 			}
 		}
 		val iosMain by getting {

@@ -48,6 +48,7 @@ jetbrains_kover = "0.9.3"
 
 moko_resources = "0.25.2"
 moko_graphics = "0.10.1"
+moko_permissions = "0.20.1"
 
 decompose = "3.2.2"
 essenty = "2.2.1" # This should match what ever decompose is referncing internally
@@ -85,7 +86,6 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 
-moko-permissions = "0.20.1"
 compose-texteditor = "0.8.2"
 symspellkt = "3.4.0"
 
@@ -239,8 +239,9 @@ jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin
 multiplatform_settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatform_settings" }
 korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "korge-core" }
 
-moko-permissions = { group = "dev.icerock.moko", name = "permissions", version.ref = "moko-permissions" }
-moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-compose", version.ref = "moko-permissions" }
+moko-permissions = { group = "dev.icerock.moko", name = "permissions", version.ref = "moko_permissions" }
+moko-permissions-storage = { group = "dev.icerock.moko", name = "permissions-storage", version.ref = "moko_permissions" }
+moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-compose", version.ref = "moko_permissions" }
 
 compose-texteditor = { group = "com.darkrockstudios", name = "composetexteditor", version.ref = "compose-texteditor" }
 compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "composetexteditorspellcheck", version.ref = "compose-texteditor" }

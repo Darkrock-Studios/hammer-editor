@@ -2,10 +2,10 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Environment
 import android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
 import androidx.core.content.ContextCompat.startActivity
+import androidx.core.net.toUri
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -23,11 +23,9 @@ import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.boolean
 import com.russhwolf.settings.set
-import dev.icerock.moko.permissions.DeniedAlwaysException
-import dev.icerock.moko.permissions.DeniedException
-import dev.icerock.moko.permissions.Permission
-import dev.icerock.moko.permissions.PermissionState
-import dev.icerock.moko.permissions.PermissionsController
+import dev.icerock.moko.permissions.*
+import dev.icerock.moko.permissions.storage.STORAGE
+import dev.icerock.moko.permissions.storage.WRITE_STORAGE
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -117,7 +115,7 @@ class AndroidPlatformSettingsComponent(
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
 			val intent = Intent(ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
 				flags += Intent.FLAG_ACTIVITY_NEW_TASK
-				data = Uri.parse("package:" + context.packageName)
+				data = ("package:" + context.packageName).toUri()
 			}
 
 			startActivity(context, intent, null)
