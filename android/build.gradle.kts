@@ -12,7 +12,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.aboutlibraries.plugin)
+	alias(libs.plugins.aboutlibraries.plugin.android)
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -120,6 +120,8 @@ android {
 }
 
 aboutLibraries {
-	prettyPrint = true
-	excludeFields = arrayOf("generated")
+	export {
+		prettyPrint = true
+		excludeFields.addAll("generated")
+	}
 }

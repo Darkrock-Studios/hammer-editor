@@ -111,7 +111,8 @@ multiplatformResources {
 }
 
 aboutLibraries {
-	registerAndroidTasks = false
-	prettyPrint = true
-	excludeFields = arrayOf("generated")
+	export {
+		prettyPrint = true
+		excludeFields.addAll("generated")
+	}
 }
