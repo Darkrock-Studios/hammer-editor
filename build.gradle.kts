@@ -39,7 +39,8 @@ allprojects {
 			freeCompilerArgs.addAll(
 				listOf(
 					"-Xexpect-actual-classes",
-					"-opt-in=kotlin.time.ExperimentalTime"
+					"-opt-in=kotlin.time.ExperimentalTime",
+					"-opt-in=kotlin.time.ExperimentalMaterialApi",
 				)
 			)
 		}
@@ -63,6 +64,7 @@ plugins {
 	alias(libs.plugins.buildconfig) apply false
 	alias(libs.plugins.moko.resources) apply false
 	alias(libs.plugins.aboutlibraries.plugin) apply false
+	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
 }

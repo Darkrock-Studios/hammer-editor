@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -9,21 +10,26 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
+import com.mikepenz.aboutlibraries.ui.compose.DefaultChipColors
+import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
-import com.mikepenz.aboutlibraries.ui.compose.m3.LibraryDefaults
+import com.mikepenz.aboutlibraries.ui.compose.m3.libraryColors
 
+
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 actual fun LibrariesUi(
 	showLibraries: Boolean,
 	close: () -> Unit
 ) {
-	val colors =
-		LibraryDefaults.libraryColors(
-			backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-			contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-			badgeBackgroundColor = MaterialTheme.colorScheme.primary,
-			badgeContentColor = MaterialTheme.colorScheme.onPrimary,
-		)
+	val colors = LibraryDefaults.libraryColors(
+		libraryBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+		libraryContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+		licenseChipColors = DefaultChipColors(
+			containerColor = MaterialTheme.colorScheme.primary,
+			contentColor = MaterialTheme.colorScheme.onPrimary,
+		),
+	)
 
 	SimpleDialog(
 		onCloseRequest = close,
@@ -32,7 +38,7 @@ actual fun LibrariesUi(
 	) {
 		val librariesInfo: LibraryInfoProvider = rememberKoinInject()
 		LibrariesContainer(
-			librariesBlock = librariesInfo::getLibs,
+			libraries = librariesInfo.getLibs(),
 			modifier = Modifier.fillMaxSize(),
 			colors = colors
 		)
