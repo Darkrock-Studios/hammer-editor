@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +28,9 @@ import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import dev.icerock.moko.resources.compose.stringResource
-import io.github.koalaplot.core.bar.*
+import io.github.koalaplot.core.bar.DefaultBar
+import io.github.koalaplot.core.bar.VerticalBarPlot
+import io.github.koalaplot.core.gestures.GestureConfig
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
@@ -229,6 +230,16 @@ private fun EncyclopediaChart(
 	}
 }
 
+private val disabledInput = GestureConfig(
+	panXEnabled = false, panYEnabled = false,
+	panXConsumptionEnabled = false,
+	panYConsumptionEnabled = false,
+	zoomXEnabled = false,
+	zoomYEnabled = false,
+	independentZoomEnabled = false,
+	panFlingAnimationEnabled = false,
+)
+
 @OptIn(ExperimentalKoalaPlotApi::class)
 @Composable
 private fun WordsInChaptersChart(
@@ -239,7 +250,7 @@ private fun WordsInChaptersChart(
 		if (state.wordsByChapter.isNotEmpty()) {
 			List(state.wordsByChapter.keys.size) { i -> i }
 		} else {
-			listOf(0, 100)
+			listOf(0, 10)
 		}
 	}
 
@@ -267,13 +278,16 @@ private fun WordsInChaptersChart(
 			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
 			yAxisLabels = { it.toInt().toString() },
 			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
-			panZoomEnabled = false,
-		) {
-			VerticalBarPlot(
-				xData = xAxis,
-				yData = yData,
-				bar = { DefaultVerticalBar(SolidColor(colors.first())) }
-			)
-		}
+			gestureConfig = disabledInput,
+			content = {
+				VerticalBarPlot(
+					xData = xAxis,
+					yData = yData,
+					bar = { _, _, _ ->
+						DefaultBar(colors.first())
+					}
+				)
+			}
+		)
 	}
 }
