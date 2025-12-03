@@ -12,21 +12,24 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
+import com.mikepenz.aboutlibraries.ui.compose.DefaultChipColors
+import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
-import com.mikepenz.aboutlibraries.ui.compose.m3.LibraryDefaults.libraryColors
+import com.mikepenz.aboutlibraries.ui.compose.m3.libraryColors
 
 @Composable
 actual fun LibrariesUi(
 	showLibraries: Boolean,
 	close: () -> Unit
 ) {
-	val colors =
-		libraryColors(
-			backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-			contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-			badgeBackgroundColor = MaterialTheme.colorScheme.primary,
-			badgeContentColor = MaterialTheme.colorScheme.onPrimary,
-		)
+	val colors = LibraryDefaults.libraryColors(
+		libraryBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+		libraryContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+		licenseChipColors = DefaultChipColors(
+			containerColor = MaterialTheme.colorScheme.primary,
+			contentColor = MaterialTheme.colorScheme.onPrimary,
+		),
+	)
 
 	SimpleDialog(
 		onCloseRequest = close,
