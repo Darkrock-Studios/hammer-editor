@@ -10,8 +10,8 @@ kotlin = "2.2.21"
 
 # Android
 android_gradle_plugin = "8.11.2"
-android_sdk_compile = "35"
-android_sdk_target = "35"
+android_sdk_compile = "36"
+android_sdk_target = "36"
 android_sdk_min = "26"
 
 # Other libraries
@@ -50,8 +50,8 @@ moko_resources = "0.25.2"
 moko_graphics = "0.10.1"
 moko_permissions = "0.20.1"
 
-decompose = "3.2.2"
-essenty = "2.2.1" # This should match what ever decompose is referncing internally
+decompose = "3.4.0"
+essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
 mpfilepicker = "3.1.0"
 koalaplot-core = "0.10.3"

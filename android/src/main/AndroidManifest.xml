@@ -14,39 +14,40 @@
 		android:roundIcon="@mipmap/ic_launcher_round"
 		android:supportsRtl="true"
 		android:theme="@style/Theme.Hammer"
-		android:usesCleartextTraffic="true">
+		android:usesCleartextTraffic="true"
+		android:enableOnBackInvokedCallback="true">
 
 		<activity
 			android:name=".ProjectSelectActivity"
 			android:exported="true"
 			android:windowSoftInputMode="adjustResize">
 			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
+				<action android:name="android.intent.action.MAIN"/>
 
-				<category android:name="android.intent.category.LAUNCHER" />
+				<category android:name="android.intent.category.LAUNCHER"/>
 			</intent-filter>
 
 			<meta-data
 				android:name="android.app.shortcuts"
-				android:resource="@xml/shortcuts" />
+				android:resource="@xml/shortcuts"/>
 		</activity>
 		<activity
 			android:name=".ProjectRootActivity"
 			android:exported="true"
-			android:windowSoftInputMode="adjustResize" />
+			android:windowSoftInputMode="adjustResize"/>
 		<activity
 			android:name=".widgets.AddNoteActivity"
 			android:excludeFromRecents="true"
 			android:exported="true"
 			android:label="@string/title_activity_add_note"
 			android:theme="@style/Theme.AppCompat.DayNight.Dialog"
-			android:windowSoftInputMode="adjustResize" />
+			android:windowSoftInputMode="adjustResize"/>
 		<activity
 			android:name=".widgets.AddNoteWidgetConfigActivity"
 			android:exported="false"
 			android:label="@string/title_activity_add_note_widget_config">
 			<intent-filter>
-				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
 			</intent-filter>
 		</activity>
 
@@ -55,12 +56,12 @@
 			android:enabled="@bool/glance_appwidget_available"
 			android:exported="false">
 			<intent-filter>
-				<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
 			</intent-filter>
 
 			<meta-data
 				android:name="android.appwidget.provider"
-				android:resource="@xml/add_note_widget_info" />
+				android:resource="@xml/add_note_widget_info"/>
 		</receiver>
 	</application>
 
