@@ -9,8 +9,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import dev.icerock.moko.resources.StringResource
+import io.fluidsonic.locale.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -61,13 +61,13 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 				override val state: Value<SpellCheckSettings.State>
 					get() = MutableValue(
 						SpellCheckSettings.State(
-							true, true, Language.English
+							true, true, Locale.root, emptyList()
 						)
 					)
 
 				override suspend fun setSpellcheckEnable(enable: Boolean) {}
 				override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
-				override suspend fun setSpellCheckLanguage(language: Language) {}
+				override suspend fun setSpellCheckLanguage(language: Locale) {}
 			}
 		override val toast = MutableSharedFlow<ToastMessage>()
 		override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}

@@ -2,10 +2,9 @@ package com.darkrockstudios.apps.hammer.common.spellcheck
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
-import com.darkrockstudios.symspellkt.api.SpellChecker
-import com.darkrockstudios.symspellkt.common.DictionaryItem
-import com.darkrockstudios.symspellkt.common.SpellCheckSettings
-import com.darkrockstudios.symspellkt.impl.SymSpell
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
+import com.darkrockstudios.libs.platformspellchecker.SpLocale
 import io.fluidsonic.locale.Locale
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -14,81 +13,48 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
-import kotlin.time.measureTime
 
 class SpellCheckRepository(
-	private val dictionaryLoader: SpellCheckDictionaryLoader,
 	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val spellCheckFactory: PlatformSpellCheckerFactory,
 ) : KoinComponent {
 
 	private val dispatcherDefault by injectDefaultDispatcher()
 	private val scope = CoroutineScope(dispatcherDefault)
 
-	private val dictionaries = mapOf(
-		Language.English to "en_fdic",
-		Language.Spanish to "es_fdic",
-		Language.Italian to "it_fdic",
-		Language.German to "de_fdic",
-		Language.French to "fr_fdic",
-	)
-
-	private val _dictionaryFlow = MutableSharedFlow<SpellChecker?>(
+	private val _dictionaryFlow = MutableSharedFlow<PlatformSpellChecker?>(
 		replay = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		extraBufferCapacity = 1,
 	)
-	val dictionaryFlow: SharedFlow<SpellChecker?> = _dictionaryFlow
-	private var currentLanguage: Language? = null
+	val dictionaryFlow: SharedFlow<PlatformSpellChecker?> = _dictionaryFlow
+	private var currentLanguage: Locale? = null
 
-	private fun requestSpellChecker(locale: Locale) {
-		val language = findBestMatchingLanguage(locale)
-		requestSpellChecker(language)
-	}
-
-	private fun requestSpellChecker(language: Language) {
+	private fun requestSpellChecker(language: Locale) {
 		scope.launch {
-			val dictionaryName: String? = dictionaries[language]
-			if (dictionaryName == null) {
-				error("Unsupported Locale type: $language")
+			val spLocale = language.toSpLocale()
+			if (spellCheckFactory.hasLanguage(spLocale).not()) {
+				Napier.w("Unsupported Locale type: $language")
 			} else {
+				val checker = spellCheckFactory.createSpellChecker(spLocale)
 				currentLanguage = language
+				_dictionaryFlow.tryEmit(checker)
 
-				val newSpellChecker = SymSpell(
-					spellCheckSettings = SpellCheckSettings(
-						topK = 5
-					)
-				)
-
-				val elapsed = measureTime {
-					val freqDic = dictionaryLoader.loadDictionary(dictionaryName)
-					freqDic.terms.entries.forEach { (term, frequency) ->
-						newSpellChecker.dictionary.addItem(
-							DictionaryItem(
-								term,
-								frequency.toDouble(),
-								-1.0
-							)
-						)
-					}
-
-					_dictionaryFlow.tryEmit(newSpellChecker)
-				}
-
-				Napier.i("Dictionary loaded for: ${language.locale.toLanguageTag()} (took: $elapsed)")
+				Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")
 			}
 		}
 	}
 
 	init {
 		scope.launch {
-			val initialLanguage =
-				globalSettingsRepository.globalSettings.spellCheckSettings.language
-			requestSpellChecker(initialLanguage)
-			Napier.i("Spell Check: Initial language set: $initialLanguage")
+			val initialLocale =
+				globalSettingsRepository.globalSettings.spellCheckSettings.locale
+			requestSpellChecker(initialLocale)
+			Napier.i("Spell Check: Initial language set: $initialLocale")
 
 			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
-				val newLanguage = settings.spellCheckSettings.language
-				if (currentLanguage != settings.spellCheckSettings.language) {
+				val newLanguage = settings.spellCheckSettings.locale
+				if (currentLanguage != settings.spellCheckSettings.locale) {
 					Napier.i("Updating Spell Check Language: $newLanguage")
 					requestSpellChecker(newLanguage)
 				}
@@ -96,3 +62,6 @@ class SpellCheckRepository(
 		}
 	}
 }
+
+fun Locale.toSpLocale() = SpLocale(language = language!!, country = region)
+fun SpLocale.toLocale() = Locale.forLanguage(language, region = country)

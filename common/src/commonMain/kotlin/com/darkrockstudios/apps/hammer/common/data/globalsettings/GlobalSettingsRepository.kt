@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguage
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguageOrNull
+import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.channels.BufferOverflow
@@ -103,15 +105,19 @@ class GlobalSettingsRepository(
 
 		fun defaultProjectDir() = getDefaultRootDocumentDirectory().toPath() / DEFAULT_PROJECTS_DIR
 
-		fun createDefault(languageUtil: LanguageUtil): GlobalSettings {
+		fun createDefault(
+			languageUtil: LanguageUtil,
+			platformSpellCheckerFactory: PlatformSpellCheckerFactory
+		): GlobalSettings {
 			val currentLocale = languageUtil.getCurrentLocale()
-			val hasSpForLang = findBestMatchingLanguageOrNull(currentLocale)
-			val language = findBestMatchingLanguage(currentLocale)
+			val hasSpForLang = platformSpellCheckerFactory.findBestMatchingLanguageOrNull(currentLocale)
+			val language = platformSpellCheckerFactory.findBestMatchingLanguage(currentLocale)
+
 			return GlobalSettings(
 				projectsDirectory = defaultProjectDir().toString(),
 				spellCheckSettings = SpellCheckerSettings(
 					enabled = (hasSpForLang != null),
-					language = language
+					locale = language.toLocale()
 				)
 			)
 		}

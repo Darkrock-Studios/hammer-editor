@@ -1,21 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.focusmode
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownCon
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
+import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -44,7 +34,7 @@ fun FocusModeUi(component: FocusMode) {
 	val markdownConfig = LocalMarkdownConfig.current
 
 	val textEditorState = rememberSpellCheckState(
-		spellChecker = state.spellChecker,
+		spellChecker = state.spellChecker.toEditorSpellChecker(),
 		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
 		enableSpellChecking = state.spellCheckingEnabled,
 	)

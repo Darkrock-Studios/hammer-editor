@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.decodeFromString
@@ -23,12 +24,14 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var languageUtil: LanguageUtil
+	private lateinit var platformSpellCheckerFactory: PlatformSpellCheckerFactory
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
 		languageUtil = mockk(relaxed = true)
+		platformSpellCheckerFactory = PlatformSpellCheckerFactory()
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 	}
@@ -37,14 +40,15 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 		return GlobalSettingsFilesystemDatasource(
 			fileSystem,
 			toml,
-			languageUtil
+			languageUtil,
+			platformSpellCheckerFactory
 		)
 	}
 
 	@Test
 	fun `Load Global Settings when non exists`() = runTest {
 		val datasource = createDatasource()
-		val default = GlobalSettingsRepository.createDefault(languageUtil)
+		val default = GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory)
 
 		val loaded: GlobalSettings = datasource.loadSettings()
 
@@ -54,7 +58,7 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	@Test
 	fun `Load Global Settings when one already exists`() = runTest {
 		val datasource = createDatasource()
-		val settings = GlobalSettingsRepository.createDefault(languageUtil).copy(
+		val settings = GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory).copy(
 			uiTheme = UiTheme.Dark,
 			automaticBackups = false,
 			automaticSyncing = false,
@@ -79,13 +83,13 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 
 		val loaded: GlobalSettings = datasource.loadSettings()
 
-		assertEquals(GlobalSettingsRepository.createDefault(languageUtil), loaded)
+		assertEquals(GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory), loaded)
 	}
 
 	@Test
 	fun `Store Global Settings`() = runTest {
 		val datasource = createDatasource()
-		val newSettings = GlobalSettingsRepository.createDefault(languageUtil).copy(
+		val newSettings = GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory).copy(
 			automaticBackups = false,
 			uiTheme = UiTheme.Light,
 		)

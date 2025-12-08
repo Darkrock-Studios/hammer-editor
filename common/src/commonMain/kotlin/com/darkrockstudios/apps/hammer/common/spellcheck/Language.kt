@@ -1,14 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
+import com.darkrockstudios.libs.platformspellchecker.SpLocale
 import io.fluidsonic.locale.Locale
-
-enum class Language(val locale: Locale) {
-	English(Locale.forLanguageTag("en")),
-	Spanish(Locale.forLanguageTag("es")),
-	German(Locale.forLanguageTag("de")),
-	French(Locale.forLanguageTag("fr")),
-	Italian(Locale.forLanguageTag("it")),
-}
 
 /**
  * Finds the best matching Language for a given Locale.
@@ -17,14 +11,16 @@ enum class Language(val locale: Locale) {
  * @param locale The locale to find a matching Language for
  * @return The best matching Language enum value
  */
-fun findBestMatchingLanguageOrNull(locale: Locale): Language? {
-	val exactMatch = Language.entries.find { it.locale == locale }
+fun PlatformSpellCheckerFactory.findBestMatchingLanguageOrNull(locale: Locale): SpLocale? {
+	val available = availableLocales()
+
+	val exactMatch = available.find { it.language == locale.language && it.country == locale.region }
 	if (exactMatch != null) {
 		return exactMatch
 	}
 
-	val languageOnlyMatch = Language.entries.find {
-		it.locale.language == locale.language
+	val languageOnlyMatch = available.find {
+		it.language == locale.language
 	}
 	if (languageOnlyMatch != null) {
 		return languageOnlyMatch
@@ -33,6 +29,6 @@ fun findBestMatchingLanguageOrNull(locale: Locale): Language? {
 	return null
 }
 
-fun findBestMatchingLanguage(locale: Locale): Language {
-	return findBestMatchingLanguageOrNull(locale) ?: Language.English
+fun PlatformSpellCheckerFactory.findBestMatchingLanguage(locale: Locale): SpLocale {
+	return findBestMatchingLanguageOrNull(locale) ?: SpLocale.EN_US
 }

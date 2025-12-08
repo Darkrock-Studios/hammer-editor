@@ -44,7 +44,6 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
-import com.darkrockstudios.apps.hammer.common.spellcheck.spellCheckModule
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import kotlinx.serialization.json.Json
@@ -109,7 +108,6 @@ val mainModule = module {
 	includes(migratorModule)
 
 	singleOf(::SpellCheckRepository)
-	includes(spellCheckModule)
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }

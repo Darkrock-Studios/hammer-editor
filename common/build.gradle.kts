@@ -78,9 +78,7 @@ kotlin {
 				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
-				implementation(libs.fdic)
-				implementation(libs.symspellkt)
-				implementation(libs.symspellkt.fdic)
+				implementation(libs.platform.spellcheckerkt)
 			}
 		}
 		val commonTest by getting {

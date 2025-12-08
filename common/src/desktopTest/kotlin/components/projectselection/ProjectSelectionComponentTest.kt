@@ -14,15 +14,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import getProjectsDirectory
-import io.mockk.Awaits
+import io.mockk.*
 import io.mockk.InternalPlatformDsl.toStr
-import io.mockk.Runs
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -100,7 +94,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		every { globalSettingsRepository.globalSettingsUpdates } returns globalSettingsUpdates
 		val globalSettings = GlobalSettings(
 			projectsDirectory = projectsDir.toStr(),
-			spellCheckSettings = SpellCheckerSettings(language = Language.English)
+			spellCheckSettings = SpellCheckerSettings(locale = mockk())
 		)
 		every { globalSettingsRepository.globalSettings } returns globalSettings
 
