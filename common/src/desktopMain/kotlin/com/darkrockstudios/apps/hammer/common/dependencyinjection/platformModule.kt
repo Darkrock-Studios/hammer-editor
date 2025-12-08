@@ -3,12 +3,8 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
-import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
-import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
-import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.common.util.StrResImpl
-import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
-import com.darkrockstudios.apps.hammer.common.util.UrlLauncherDesktop
+import com.darkrockstudios.apps.hammer.common.util.*
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -20,4 +16,5 @@ actual val platformModule = module {
 	singleOf(::UrlLauncherDesktop) bind UrlLauncher::class
 	singleOf(::LanguageUtil)
 	factory { params -> DesktopPlatformSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class
+	singleOf(::PlatformSpellCheckerFactory)
 }

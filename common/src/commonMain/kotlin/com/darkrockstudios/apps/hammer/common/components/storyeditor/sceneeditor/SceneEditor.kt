@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
-import com.darkrockstudios.symspellkt.api.SpellChecker
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 
 interface SceneEditor : HammerComponent, ComponentToaster {
 	val state: Value<State>
@@ -48,7 +48,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val showMetadata: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
-		val spellChecker: SpellChecker? = null,
+		val spellChecker: PlatformSpellChecker? = null,
 		val spellCheckingEnabled: Boolean = true,
 	)
 }

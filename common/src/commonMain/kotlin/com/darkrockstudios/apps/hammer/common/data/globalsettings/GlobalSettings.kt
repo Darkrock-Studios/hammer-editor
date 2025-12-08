@@ -1,7 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
+import io.fluidsonic.locale.Locale
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import net.peanuuutz.tomlkt.TomlLiteralString
 
 @Serializable
@@ -15,9 +22,15 @@ data class GlobalSettings(
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
-	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(language = Language.English),
+	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(
+		locale = Locale.forLanguage(
+			language = "en",
+			region = "US"
+		)
+	),
 ) {
 	companion object {
+
 		const val DEFAULT_MAX_BACKUPS = 50
 		const val DEFAULT_FONT_SIZE = 16f
 	}
@@ -32,7 +45,8 @@ data class NewUserExperience(
 data class SpellCheckerSettings(
 	val enabled: Boolean = true,
 	val enabledInFocusMode: Boolean = false,
-	val language: Language
+	@Serializable(with = LocaleSerializer::class)
+	val locale: Locale
 ) {
 	fun isEnabledInFocusMode(): Boolean = enabled && enabledInFocusMode
 }
@@ -42,3 +56,18 @@ enum class UiTheme {
 	Dark,
 	FollowSystem
 }
+
+object LocaleSerializer : KSerializer<Locale> {
+	override val descriptor: SerialDescriptor =
+		PrimitiveSerialDescriptor("Locale", PrimitiveKind.STRING)
+
+	override fun serialize(encoder: Encoder, value: Locale) {
+		encoder.encodeString(value.toLanguageTag().toString())
+	}
+
+	override fun deserialize(decoder: Decoder): Locale {
+		return Locale.forLanguageTag(decoder.decodeString())
+	}
+}
+
+object LocaleListSerializer : KSerializer<List<Locale>> by ListSerializer(LocaleSerializer)

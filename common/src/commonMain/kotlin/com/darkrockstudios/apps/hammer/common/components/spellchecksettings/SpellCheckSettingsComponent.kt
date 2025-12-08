@@ -8,7 +8,9 @@ import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
+import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
+import io.fluidsonic.locale.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -19,12 +21,14 @@ class SpellCheckSettingsComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val platformSpellCheckerFactory: PlatformSpellCheckerFactory by inject()
 
 	private val _state by savableState {
 		SpellCheckSettings.State(
 			spellCheckingEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabled,
 			spellCheckingInFocusEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabledInFocusMode,
-			spellCheckingLanguage = globalSettingsRepository.globalSettings.spellCheckSettings.language,
+			spellCheckingLanguage = globalSettingsRepository.globalSettings.spellCheckSettings.locale,
+			spellCheckLanguages = platformSpellCheckerFactory.availableLocales().map { it.toLocale() },
 		)
 	}
 
@@ -43,7 +47,7 @@ class SpellCheckSettingsComponent(
 						it.copy(
 							spellCheckingEnabled = settings.spellCheckSettings.enabled,
 							spellCheckingInFocusEnabled = settings.spellCheckSettings.enabledInFocusMode,
-							spellCheckingLanguage = settings.spellCheckSettings.language
+							spellCheckingLanguage = settings.spellCheckSettings.locale
 						)
 					}
 				}
@@ -71,11 +75,11 @@ class SpellCheckSettingsComponent(
 		}
 	}
 
-	override suspend fun setSpellCheckLanguage(language: Language) {
+	override suspend fun setSpellCheckLanguage(locale: Locale) {
 		globalSettingsRepository.updateSettings {
 			it.copy(
 				spellCheckSettings = it.spellCheckSettings.copy(
-					language = language
+					locale = locale
 				)
 			)
 		}

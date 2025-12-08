@@ -9,12 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import io.fluidsonic.locale.Locale
-import io.mockk.Runs
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -44,7 +39,8 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 
 	private fun createDefaultRepository(): GlobalSettingsRepository {
 		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
-			languageUtil
+			languageUtil,
+			mockk(relaxed = true)
 		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns null
 
@@ -54,7 +50,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 		)
 	}
 
-	private fun defaultGlobalSettings() = GlobalSettingsRepository.createDefault(languageUtil)
+	private fun defaultGlobalSettings() = GlobalSettingsRepository.createDefault(languageUtil, mockk(relaxed = true))
 
 	private fun projectsDir() = GlobalSettingsRepository.defaultProjectDir().toHPath()
 
@@ -220,6 +216,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete server settings successfully`() = runTest {
 		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
+			mockk(relaxed = true),
 			mockk(relaxed = true)
 		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()

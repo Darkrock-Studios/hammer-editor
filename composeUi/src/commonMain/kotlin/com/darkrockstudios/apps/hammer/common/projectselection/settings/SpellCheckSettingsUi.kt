@@ -16,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import com.darkrockstudios.apps.hammer.common.spellcheck.Language
 import kotlinx.coroutines.launch
 
 @Composable
@@ -79,11 +78,10 @@ internal fun SpellCheckSettingsUi(
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-		val languageOptions = remember { Language.entries }
 		ExposedDropDown(
 			modifier = Modifier.defaultMinSize(minWidth = 256.dp),
 			label = MR.strings.settings_spellcheck_dictionary.get(),
-			items = languageOptions,
+			items = state.spellCheckLanguages,
 			selectedItem = state.spellCheckingLanguage,
 			enabled = spellCheckingEnabledValue,
 		) { selectedTheme ->

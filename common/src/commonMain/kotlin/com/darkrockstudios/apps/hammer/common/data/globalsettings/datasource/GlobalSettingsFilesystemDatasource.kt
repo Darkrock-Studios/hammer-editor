@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository.Companion.createDefault
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -16,11 +17,12 @@ class GlobalSettingsFilesystemDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
 	private val languageUtil: LanguageUtil,
+	private val platformSpellCheckerFactory: PlatformSpellCheckerFactory,
 ) : GlobalSettingsDatasource {
 
 	init {
 		if (!fileSystem.exists(CONFIG_PATH)) {
-			val default = createDefault(languageUtil)
+			val default = createDefault(languageUtil, platformSpellCheckerFactory)
 			storeSettings(default)
 		}
 	}
@@ -37,11 +39,11 @@ class GlobalSettingsFilesystemDatasource(
 		} catch (e: NumberFormatException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
 			fileSystem.delete(CONFIG_PATH)
-			createDefault(languageUtil)
+			createDefault(languageUtil, platformSpellCheckerFactory)
 		} catch (e: SerializationException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
 			fileSystem.delete(CONFIG_PATH)
-			createDefault(languageUtil)
+			createDefault(languageUtil, platformSpellCheckerFactory)
 		}
 		return settings
 	}
