@@ -17,6 +17,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -40,28 +44,33 @@ fun ProjectSelectionUi(
 	modifier: Modifier = Modifier
 ) {
 	val rootSnackbar = rememberRootSnackbarHostState()
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 
 	Box {
-		when (val destination = slot.child?.instance) {
-			is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
-				destination.component,
-				rootSnackbar,
-				modifier
-			)
+		Children(
+			stack = stackState,
+			modifier = modifier,
+			animation = predictiveBackAnimation(
+				backHandler = component.backHandler,
+				fallbackAnimation = stackAnimation { _ -> fade() },
+				onBack = component::onBack,
+			),
+		) { child ->
+			when (val destination = child.instance) {
+				is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
+					destination.component,
+					rootSnackbar,
+				)
 
-			is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
-				destination.component,
-				rootSnackbar,
-				modifier
-			)
+				is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
+					destination.component,
+					rootSnackbar,
+				)
 
-			is ProjectSelection.Destination.AboutAppDestination -> AboutAppUi(
-				destination.component,
-				modifier
-			)
-
-			else -> throw IllegalArgumentException("Child cannot be null")
+				is ProjectSelection.Destination.AboutAppDestination -> AboutAppUi(
+					destination.component,
+				)
+			}
 		}
 
 		SnackbarHost(
@@ -78,9 +87,9 @@ fun ProjectSelectionFab(
 	component: ProjectSelection,
 	modifier: Modifier = Modifier,
 ) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 
-	when (val destination = slot.child?.instance) {
+	when (val destination = stackState.active.instance) {
 		is ProjectSelection.Destination.AccountSettingsDestination -> {
 			/* none */
 		}
@@ -100,7 +109,5 @@ fun ProjectSelectionFab(
 		is ProjectSelection.Destination.AboutAppDestination -> {
 			/* none */
 		}
-
-		null -> throw IllegalArgumentException("Child cannot be null")
 	}
 }

@@ -44,7 +44,6 @@ class IosRootComponent(
 				IosRoot.Destination.ProjectSelectDestination(
 					ProjectSelectionComponent(
 						componentContext = componentContext,
-						showProjectDirectory = false,
 						onProjectSelected = ::goToProject,
 					)
 				)

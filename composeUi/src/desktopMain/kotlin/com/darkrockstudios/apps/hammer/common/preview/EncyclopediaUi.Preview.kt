@@ -12,8 +12,6 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.backhandler.BackCallback
-import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
@@ -264,9 +262,3 @@ private val entryDefs = listOf(
 		id = 1
 	)
 )
-
-val dummyBackHandler = object : BackHandler {
-	override fun isRegistered(callback: BackCallback) = false
-	override fun register(callback: BackCallback) {}
-	override fun unregister(callback: BackCallback) {}
-}

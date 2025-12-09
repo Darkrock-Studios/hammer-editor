@@ -6,40 +6,13 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.PermanentDrawerSheet
-import androidx.compose.material3.PermanentNavigationDrawer
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,7 +22,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
-import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.essenty.statekeeper.putSerializable
@@ -190,7 +163,7 @@ fun ProjectSelectContent(component: ProjectSelection) {
 private fun CompactNavigation(
 	component: ProjectSelection,
 ) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -202,9 +175,9 @@ private fun CompactNavigation(
 		},
 		bottomBar = {
 			NavigationBar {
-				ProjectSelection.Locations.values().forEach { item ->
+				ProjectSelection.Locations.entries.forEach { item ->
 					NavigationBarItem(
-						selected = item == slot.child?.configuration?.location,
+						selected = item == stackState.active.configuration.location,
 						onClick = { component.showLocation(item) },
 						icon = {
 							Icon(
@@ -247,10 +220,10 @@ private fun MediumNavigation(
 
 @Composable
 private fun CollapsedNavigationDrawer(component: ProjectSelection) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 
 	NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-		ProjectSelection.Locations.values().forEach { item ->
+		ProjectSelection.Locations.entries.forEach { item ->
 			NavigationRailItem(
 				icon = {
 					Icon(
@@ -259,7 +232,7 @@ private fun CollapsedNavigationDrawer(component: ProjectSelection) {
 					)
 				},
 				label = { Text(item.text.get()) },
-				selected = item == slot.child?.configuration?.location,
+				selected = item == stackState.active.configuration.location,
 				onClick = { component.showLocation(item) }
 			)
 		}
@@ -285,7 +258,7 @@ private fun ExpandedNavigationDrawer(
 	scaffoldPadding: PaddingValues,
 	content: @Composable () -> Unit
 ) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 
 	PermanentNavigationDrawer(
 		modifier = Modifier.rootElement(scaffoldPadding),
@@ -295,7 +268,7 @@ private fun ExpandedNavigationDrawer(
 					.width(IntrinsicSize.Min)
 					.wrapContentWidth()
 			) {
-				NavigationDrawerContents(component, slot)
+				NavigationDrawerContents(component, stackState)
 			}
 		},
 		content = content
@@ -324,15 +297,15 @@ private fun ExpandedNavigation(
 @Composable
 private fun ColumnScope.NavigationDrawerContents(
 	component: ProjectSelection,
-	slot: ChildSlot<ProjectSelection.Config, ProjectSelection.Destination>,
+	stackState: ChildStack<ProjectSelection.Config, ProjectSelection.Destination>,
 ) {
 	Spacer(Modifier.height(12.dp))
 
-	ProjectSelection.Locations.values().forEach { item ->
+	ProjectSelection.Locations.entries.forEach { item ->
 		NavigationDrawerItem(
 			icon = { Icon(getLocationIcon(item), contentDescription = item.text.get()) },
 			label = { Text(item.name) },
-			selected = item == slot.child?.configuration?.location,
+			selected = item == stackState.active.configuration.location,
 			onClick = {
 				component.showLocation(item)
 			},

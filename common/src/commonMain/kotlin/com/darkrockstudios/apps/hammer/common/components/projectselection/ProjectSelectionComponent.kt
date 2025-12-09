@@ -1,9 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.SlotNavigation
-import com.arkivanov.decompose.router.slot.activate
-import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutAppComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
@@ -21,15 +22,14 @@ class ProjectSelectionComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
 
-	private val navigation = SlotNavigation<ProjectSelection.Config>()
-	override val slot = componentContext.childSlot(
+	private val navigation = StackNavigation<ProjectSelection.Config>()
+	override val stack = childStack(
 		source = navigation,
-		initialConfiguration = { ProjectSelection.Config.ProjectsList },
+		initialConfiguration = ProjectSelection.Config.ProjectsList,
 		handleBackButton = false,
-		serializer = ProjectSelection.Config.serializer()
-	) { config, componentContext ->
-		createChild(config, componentContext)
-	}
+		serializer = ProjectSelection.Config.serializer(),
+		childFactory = ::createChild
+	)
 
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
@@ -68,9 +68,17 @@ class ProjectSelectionComponent(
 
 	override fun showLocation(location: ProjectSelection.Locations) {
 		when (location) {
-			ProjectSelection.Locations.Projects -> navigation.activate(ProjectSelection.Config.ProjectsList)
-			ProjectSelection.Locations.Settings -> navigation.activate(ProjectSelection.Config.AccountSettings)
-			ProjectSelection.Locations.AboutApp -> navigation.activate(ProjectSelection.Config.AboutApp)
+			ProjectSelection.Locations.Projects -> navigation.bringToFront(ProjectSelection.Config.ProjectsList)
+			ProjectSelection.Locations.Settings -> navigation.bringToFront(ProjectSelection.Config.AccountSettings)
+			ProjectSelection.Locations.AboutApp -> navigation.bringToFront(ProjectSelection.Config.AboutApp)
 		}
+	}
+
+	override fun isAtRoot(): Boolean {
+		return stack.value.backStack.isEmpty()
+	}
+
+	override fun onBack() {
+		navigation.pop()
 	}
 }
