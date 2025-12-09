@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.bringToFront
-import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.EncyclopediaComponent
@@ -154,15 +151,7 @@ internal class ProjectRootRouter(
 	}
 
 	override fun isAtRoot(): Boolean {
-		// ProjectRoot is at root only when showing Home
-		val isAtHome = state.value.active.configuration is Config.HomeConfig
-		return if (isAtHome) {
-			// Check if Home has any nested navigation at root
-			val router = state.value.active.instance as? Router
-			router?.isAtRoot() ?: true
-		} else {
-			false
-		}
+		return state.value.backStack.isEmpty()
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
@@ -172,15 +161,7 @@ internal class ProjectRootRouter(
 	}
 
 	fun onBack() {
-		// Delegate back to the active child destination's back handler
-		val activeDestination = state.value.active.instance
-		when (activeDestination) {
-			is ProjectRoot.Destination.EditorDestination -> activeDestination.component.onBack()
-			is ProjectRoot.Destination.NotesDestination -> activeDestination.component.onBack()
-			is ProjectRoot.Destination.EncyclopediaDestination -> activeDestination.component.onBack()
-			is ProjectRoot.Destination.TimeLineDestination -> activeDestination.component.onBack()
-			is ProjectRoot.Destination.HomeDestination -> {} // Home has no back navigation
-		}
+		navigation.pop()
 	}
 
 	init {
