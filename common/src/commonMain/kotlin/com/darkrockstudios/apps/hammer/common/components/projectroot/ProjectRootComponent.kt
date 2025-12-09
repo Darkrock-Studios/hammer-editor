@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.components.projectroot
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.value.*
-import com.arkivanov.essenty.backhandler.BackCallback
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -49,10 +51,6 @@ class ProjectRootComponent(
 		projectDef
 	)
 
-	private val navigateToHomeBackCallback = BackCallback(isEnabled = false) {
-		showHome()
-	}
-
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
 		get() = router.state
 
@@ -61,16 +59,6 @@ class ProjectRootComponent(
 
 	override fun onCreate() {
 		super.onCreate()
-
-		// Register the navigate-to-home back callback
-		backHandler.register(navigateToHomeBackCallback)
-
-		router.state.subscribe(lifecycle) { stack ->
-			val activeDestination = stack.active.instance
-			val isAtHome = activeDestination is ProjectRoot.Destination.HomeDestination
-			val childAtRoot = activeDestination.isAtRoot()
-			navigateToHomeBackCallback.isEnabled = !isAtHome && childAtRoot
-		}
 
 		sceneEditor.subscribeToBufferUpdates(null, scope) {
 			updateCloseConfirmRequirement()

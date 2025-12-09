@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
@@ -77,7 +78,11 @@ fun FeatureContent(
 	Children(
 		modifier = modifier,
 		stack = routerState,
-		animation = stackAnimation { _ -> fade() },
+		animation = predictiveBackAnimation(
+			backHandler = component.backHandler,
+			fallbackAnimation = stackAnimation { _ -> fade() },
+			onBack = component::onBack,
+		),
 	) {
 		when (val child = it.instance) {
 			is ProjectRoot.Destination.EditorDestination ->
