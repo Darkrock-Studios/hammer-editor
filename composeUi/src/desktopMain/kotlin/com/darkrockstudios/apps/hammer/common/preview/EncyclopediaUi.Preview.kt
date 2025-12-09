@@ -147,40 +147,7 @@ private fun CreateEntryPreview() {
 @Preview
 @Composable
 private fun ViewEntryPreview() {
-	val component: ViewEntry = object : ViewEntry {
-		override val state: Value<ViewEntry.State>
-			get() = MutableValue(
-				ViewEntry.State(
-					entryDef = fakeEntryDef(),
-					content = fakeEntryContent()
-				)
-			)
 
-		override fun getImagePath(entryDef: EntryDef) = null
-		override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
-		override suspend fun deleteEntry(entryDef: EntryDef) = true
-		override suspend fun updateEntry(name: String, text: String, tags: Set<String>) =
-			EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
-
-		override suspend fun removeEntryImage() = true
-		override suspend fun setImage(path: String) {}
-		override fun showDeleteEntryDialog() {}
-		override fun closeDeleteEntryDialog() {}
-		override fun showDeleteImageDialog() {}
-		override fun closeDeleteImageDialog() {}
-		override fun showAddImageDialog() {}
-		override fun closeAddImageDialog() {}
-		override fun startNameEdit() {}
-		override fun startTextEdit() {}
-		override fun finishNameEdit() {}
-		override fun finishTextEdit() {}
-		override fun confirmClose() {}
-		override fun dismissConfirmClose() {}
-		override fun removeTag(tag: String) {}
-		override fun startTagAdd() {}
-		override suspend fun addTags(tagInput: String) {}
-		override fun endTagAdd() {}
-	}
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -193,7 +160,7 @@ private fun ViewEntryPreview() {
 					.padding(Ui.Padding.XL)
 			) {
 				ViewEntryUi(
-					component = component,
+					component = fakeViewEntryComponent,
 					scope = scope,
 					closeEntry = {},
 					rootSnackbar = rootSnackbar
@@ -211,7 +178,7 @@ private fun ViewEntryPreview() {
 					.padding(Ui.Padding.XL)
 			) {
 				ViewEntryUi(
-					component = component,
+					component = fakeViewEntryComponent,
 					scope = scope,
 					closeEntry = {},
 					rootSnackbar = rootSnackbar
@@ -221,6 +188,41 @@ private fun ViewEntryPreview() {
 	}
 }
 
+val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
+	override val state: Value<ViewEntry.State>
+		get() = MutableValue(
+			ViewEntry.State(
+				entryDef = fakeEntryDef(),
+				content = fakeEntryContent()
+			)
+		)
+
+	override fun getImagePath(entryDef: EntryDef) = null
+	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
+	override suspend fun deleteEntry(entryDef: EntryDef) = true
+	override suspend fun updateEntry(name: String, text: String, tags: Set<String>) =
+		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
+
+	override suspend fun removeEntryImage() = true
+	override suspend fun setImage(path: String) {}
+	override fun showDeleteEntryDialog() {}
+	override fun closeDeleteEntryDialog() {}
+	override fun showDeleteImageDialog() {}
+	override fun closeDeleteImageDialog() {}
+	override fun showAddImageDialog() {}
+	override fun closeAddImageDialog() {}
+	override fun startNameEdit() {}
+	override fun startTextEdit() {}
+	override fun finishNameEdit() {}
+	override fun finishTextEdit() {}
+	override fun confirmClose() {}
+	override fun dismissConfirmClose() {}
+	override fun removeTag(tag: String) {}
+	override fun startTagAdd() {}
+	override suspend fun addTags(tagInput: String) {}
+	override fun endTagAdd() {}
+}
+
 private fun fakeEntryDef(): EntryDef = EntryDef(
 	projectDef = fakeProjectDef(),
 	name = "Test",
@@ -228,7 +230,7 @@ private fun fakeEntryDef(): EntryDef = EntryDef(
 	type = EntryType.PLACE
 )
 
-private fun fakeEntryContent(): EntryContent = EntryContent(
+fun fakeEntryContent(): EntryContent = EntryContent(
 	name = "Test",
 	id = 0,
 	type = EntryType.PERSON,

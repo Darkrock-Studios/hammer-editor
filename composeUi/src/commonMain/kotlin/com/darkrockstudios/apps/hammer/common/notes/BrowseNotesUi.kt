@@ -25,7 +25,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun BrowseNotesUi(component: BrowseNotes, modifier: Modifier) {
+fun BrowseNotesUi(component: BrowseNotes, modifier: Modifier = Modifier) {
 	val state by component.state.subscribeAsState()
 
 	Column(modifier = modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
