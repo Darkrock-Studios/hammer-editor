@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -40,98 +41,100 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 		AnnotatedString.Builder(noteText).toAnnotatedString()
 	}
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.XL)
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-	) {
-		Column(
-			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
+	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+		Card(
+			modifier = Modifier.padding(Ui.Padding.XL)
+				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
+			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
+			Column(
+				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
 			) {
-				Text(
-					MR.strings.notes_view_header.get(),
-					style = MaterialTheme.typography.displaySmall
-				)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Text(
+						MR.strings.notes_view_header.get(),
+						style = MaterialTheme.typography.displaySmall,
+						modifier = Modifier.padding(top = Ui.Padding.M),
+					)
 
-				Row {
-					IconButton(
-						onClick = { component.confirmDelete() },
-					) {
-						Icon(Icons.Filled.Delete, MR.strings.notes_note_item_action_delete.get())
-					}
+					Row {
+						IconButton(
+							onClick = { component.confirmDelete() },
+						) {
+							Icon(Icons.Filled.Delete, MR.strings.notes_note_item_action_delete.get())
+						}
 
-					IconButton(onClick = {
-						component.confirmClose()
-					}) {
-						Icon(
-							Icons.Filled.Close,
-							MR.strings.notes_note_item_action_cancel.get(),
-						)
+						IconButton(onClick = {
+							component.confirmClose()
+						}) {
+							Icon(
+								Icons.Filled.Close,
+								MR.strings.notes_note_item_action_cancel.get(),
+							)
+						}
 					}
 				}
-			}
 
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			val date = remember(state.note?.created) {
-				state.note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
-					?.format("dd MMM `yy")
-			}
+				val date = remember(state.note?.created) {
+					state.note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
+						?.format("dd MMM `yy")
+				}
 
-			Text(
-				date ?: "",
-				style = MaterialTheme.typography.bodySmall
-			)
+				Text(
+					date ?: "",
+					style = MaterialTheme.typography.bodySmall
+				)
 
-			Row(horizontalArrangement = Arrangement.Center) {
-				if (state.isEditing) {
-					Column(modifier = Modifier.weight(1f)) {
-						Row {
-							IconButton(onClick = {
-								scope.launch {
-									component.storeNoteUpdate()
-									withContext(mainDispatcher) {
-										component.discardEdit()
+				Row(horizontalArrangement = Arrangement.Center) {
+					if (state.isEditing) {
+						Column(modifier = Modifier.weight(1f)) {
+							Row {
+								IconButton(onClick = {
+									scope.launch {
+										component.storeNoteUpdate()
+										withContext(mainDispatcher) {
+											component.discardEdit()
+										}
 									}
+								}) {
+									Icon(
+										Icons.Filled.Check,
+										MR.strings.notes_note_item_action_rename.get(),
+										tint = MaterialTheme.colorScheme.onSurface
+									)
 								}
-							}) {
-								Icon(
-									Icons.Filled.Check,
-									MR.strings.notes_note_item_action_rename.get(),
-									tint = MaterialTheme.colorScheme.onSurface
-								)
+								IconButton(onClick = {
+									component.confirmDiscard()
+								}) {
+									Icon(
+										Icons.Filled.Cancel,
+										MR.strings.notes_note_item_action_cancel.get(),
+										tint = MaterialTheme.colorScheme.error
+									)
+								}
 							}
-							IconButton(onClick = {
-								component.confirmDiscard()
-							}) {
-								Icon(
-									Icons.Filled.Cancel,
-									MR.strings.notes_note_item_action_cancel.get(),
-									tint = MaterialTheme.colorScheme.error
-								)
-							}
+							TextField(
+								modifier = Modifier
+									.fillMaxWidth()
+									.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+								value = noteText,
+								onValueChange = { component.onContentChanged(it) },
+							)
 						}
-						TextField(
-							modifier = Modifier
-								.fillMaxWidth()
-								.widthIn(max = TextEditorDefaults.MAX_WIDTH)
-								.fillMaxHeight(),
-							value = noteText,
-							onValueChange = { component.onContentChanged(it) },
-						)
-					}
-				} else {
-					ClickableText(
-						annotatedNoteText,
-						modifier = Modifier.weight(1f),
-						style = MaterialTheme.typography.bodyMedium
-							.copy(color = MaterialTheme.colorScheme.onSurface),
-					) {
-						component.beginEdit()
+					} else {
+						ClickableText(
+							annotatedNoteText,
+							modifier = Modifier.weight(1f),
+							style = MaterialTheme.typography.bodyMedium
+								.copy(color = MaterialTheme.colorScheme.onSurface),
+						) {
+							component.beginEdit()
+						}
 					}
 				}
 			}
