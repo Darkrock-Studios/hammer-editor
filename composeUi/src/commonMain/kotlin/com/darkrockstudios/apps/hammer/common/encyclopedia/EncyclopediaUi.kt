@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
@@ -23,11 +24,15 @@ fun EncyclopediaUi(
 	val scope = rememberCoroutineScope()
 	val state by component.stack.subscribeAsState()
 
-	BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+	Box(modifier = modifier.fillMaxSize()) {
 		Children(
 			stack = state,
 			modifier = Modifier,
-			animation = stackAnimation { _ -> fade() },
+			animation = predictiveBackAnimation(
+				backHandler = component.backHandler,
+				fallbackAnimation = stackAnimation { _ -> fade() },
+				onBack = component::onBack,
+			),
 		) {
 			when (val child = it.instance) {
 				is Encyclopedia.Destination.BrowseEntriesDestination -> {

@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -44,15 +43,19 @@ class NotesComponent(
 	}
 
 	override fun showViewNote(noteId: Int) {
-		navigation.push(Notes.Config.ViewNoteConfig(noteId))
+		navigation.pushNew(Notes.Config.ViewNoteConfig(noteId))
 	}
 
 	override fun showCreateNote() {
-		navigation.push(Notes.Config.CreateNoteConfig(projectDef))
+		navigation.pushNew(Notes.Config.CreateNoteConfig(projectDef))
 	}
 
 	override fun isAtRoot() =
 		stack.value.active.configuration is Notes.Config.BrowseNotesConfig
+
+	override fun onBack() {
+		navigation.pop()
+	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
 		val unsaved = when (val destination = stack.value.active.instance) {
@@ -108,23 +111,15 @@ class NotesComponent(
 		)
 	}
 
-	private val backButtonHandler = BackCallback {
-		if (!isAtRoot()) {
-			navigation.pop()
-		}
-	}
-
 	init {
-		backHandler.register(backButtonHandler)
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Notes.Config.BrowseNotesConfig(projectDef = projectDef),
 			key = "NotesRouter",
 			childFactory = ::createChild,
-			serializer = Notes.Config.serializer()
+			serializer = Notes.Config.serializer(),
 		)
 		stack.subscribe(lifecycle) {
-			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}
 	}

@@ -16,10 +16,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
@@ -82,6 +84,8 @@ fun StoryEditorUi(
 			isMultiPane = isMultiPane,
 			snackbarHostState = snackbarHostState,
 			modifier = detailsModifier,
+			backHandler = component.backHandler,
+			onBack = component::onBack,
 		)
 	}
 
@@ -169,11 +173,17 @@ private fun DetailsPane(
 	isMultiPane: Boolean,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier,
+	backHandler: BackHandler,
+	onBack: () -> Unit,
 ) {
 	Children(
 		stack = state,
 		modifier = modifier,
-		animation = stackAnimation { _ -> fade() },
+		animation = predictiveBackAnimation(
+			backHandler = backHandler,
+			fallbackAnimation = stackAnimation { _ -> fade() },
+			onBack = onBack,
+		),
 	) {
 		when (val child = it.instance) {
 			is StoryEditor.ChildDestination.Detail.None -> {

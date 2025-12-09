@@ -42,10 +42,7 @@ actual fun LibrariesUi(
 				modifier = Modifier
 					.fillMaxSize()
 					.height(500.dp),
-				librariesBlock = { _ ->
-					val lib = libraryInfo.getLibs()
-					lib
-				},
+				libraries = libraryInfo.getLibs(),
 				colors = colors
 			)
 		}

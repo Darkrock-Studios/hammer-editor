@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
@@ -17,7 +18,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.Serializable
 
-interface StoryEditor : AppCloseManager, Router, HammerComponent {
+interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwner {
+	fun onBack()
 	val listRouterState: Value<ChildStack<*, ChildDestination.List>>
 	val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 	val dialogState: Value<ChildSlot<*, ChildDestination.DialogDestination>>

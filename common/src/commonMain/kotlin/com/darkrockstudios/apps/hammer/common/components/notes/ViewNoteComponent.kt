@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.update
+import com.arkivanov.decompose.value.*
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -28,19 +25,21 @@ class ViewNoteComponent(
 	private val _noteText = MutableValue("")
 	override val noteText: Value<String> = _noteText
 
-	private val backButtonHandler = BackCallback {
+	private val backButtonHandler = BackCallback(isEnabled = false) {
 		if (isEditingAndDirty()) {
 			confirmDiscard()
 		} else if (state.value.isEditing) {
 			discardEdit()
-		} else {
-			dismissView()
 		}
 	}
 
 	override fun onCreate() {
 		super.onCreate()
 		backHandler.register(backButtonHandler)
+
+		state.subscribe(lifecycle) {
+			backButtonHandler.isEnabled = it.isEditing
+		}
 
 		loadInitialContent()
 	}

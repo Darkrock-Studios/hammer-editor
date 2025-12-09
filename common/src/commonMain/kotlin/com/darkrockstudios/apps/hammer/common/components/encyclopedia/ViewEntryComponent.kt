@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -35,17 +36,20 @@ class ViewEntryComponent(
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
-	private val backButtonHandler = BackCallback {
-		if (state.value.editText || state.value.editText) {
-			confirmClose()
-		} else {
-			closeEntry()
-		}
+	private val backButtonHandler = BackCallback(isEnabled = false) {
+		// Only called when editing - show confirmation before discarding
+		confirmClose()
 	}
 
 	override fun onCreate() {
 		super.onCreate()
 		backHandler.register(backButtonHandler)
+
+		// Enable back handler only when editing
+		state.subscribe(lifecycle) {
+			backButtonHandler.isEnabled = it.editName || it.editText
+		}
+
 		reload()
 	}
 

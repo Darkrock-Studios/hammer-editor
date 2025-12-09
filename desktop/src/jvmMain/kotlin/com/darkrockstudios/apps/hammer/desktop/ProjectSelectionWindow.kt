@@ -1,38 +1,19 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.PermanentDrawerSheet
-import androidx.compose.material3.PermanentNavigationDrawer
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +25,7 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
@@ -64,13 +46,14 @@ import kotlinx.coroutines.launch
 internal fun ApplicationScope.ProjectSelectionWindow(
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
+	val backDispatcher = BackDispatcher()
 	val lifecycle = remember { LifecycleRegistry() }
-	val compContext = remember { DefaultComponentContext(lifecycle) }
+	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberWindowState()
 	val component = remember {
 		ProjectSelectionComponent(
 			componentContext = compContext,
-			onProjectSelected = onProjectSelected
+			onProjectSelected = onProjectSelected,
 		)
 	}
 	LifecycleController(lifecycle, windowState)
@@ -80,6 +63,13 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
+		onKeyEvent = { event ->
+			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
+				backDispatcher.back()
+			} else {
+				false
+			}
+		}
 	) {
 		Content(component)
 	}
@@ -119,7 +109,7 @@ private fun MediumNavigation(
 					.background(MaterialTheme.colorScheme.background)
 			) {
 				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-					ProjectSelection.Locations.values().forEach { item ->
+					ProjectSelection.Locations.entries.forEach { item ->
 						NavigationRailItem(
 							icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
 							label = { Text(item.text.get()) },

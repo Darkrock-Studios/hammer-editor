@@ -7,6 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
@@ -14,6 +18,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -36,10 +41,11 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun ApplicationScope.ProjectEditorWindow(
 	app: ApplicationState,
-	projectDef: ProjectDef
+	projectDef: ProjectDef,
 ) {
+	val backDispatcher = BackDispatcher()
 	val lifecycle = remember { LifecycleRegistry() }
-	val compContext = remember { DefaultComponentContext(lifecycle) }
+	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
 	val windowState = rememberWindowState(size = coerceWindowSize(1000.dp, 1200.dp))
 	val closeRequest by app.closeRequest.subscribeAsState()
 
@@ -69,7 +75,14 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		title = DR.strings.project_window_title.get(projectDef.name),
 		state = windowState,
 		icon = painterResource("icon.png"),
-		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) }
+		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
+		onKeyEvent = { event ->
+			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
+				backDispatcher.back()
+			} else {
+				false
+			}
+		}
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
