@@ -109,7 +109,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					}
 				}
 
-
 				BackHandler(true) {
 					if (noteText.isNotBlank()) {
 						confirmCancel = true

@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -54,6 +53,12 @@ class EncyclopediaComponent(
 
 	override fun isAtRoot(): Boolean {
 		return stack.value.active.configuration is Encyclopedia.Config.BrowseEntriesConfig
+	}
+
+	override fun onBack() {
+		if (!isAtRoot()) {
+			navigation.pop()
+		}
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
@@ -110,14 +115,7 @@ class EncyclopediaComponent(
 		navigation.pop()
 	}
 
-	private val backButtonHandler = BackCallback {
-		if (!isAtRoot()) {
-			navigation.pop()
-		}
-	}
-
 	init {
-		backHandler.register(backButtonHandler)
 		stack = componentContext.childStack(
 			source = navigation,
 			initialConfiguration = Encyclopedia.Config.BrowseEntriesConfig(projectDef = projectDef),
@@ -126,7 +124,6 @@ class EncyclopediaComponent(
 			serializer = Encyclopedia.Config.serializer(),
 		)
 		stack.subscribe(lifecycle) {
-			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}
 	}

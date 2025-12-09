@@ -28,6 +28,7 @@ kotlin {
 			languageSettings {
 				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
 				optIn("kotlin.uuid.ExperimentalUuidApi")
+				optIn("com.arkivanov.decompose.ExperimentalDecomposeApi")
 			}
 		}
 

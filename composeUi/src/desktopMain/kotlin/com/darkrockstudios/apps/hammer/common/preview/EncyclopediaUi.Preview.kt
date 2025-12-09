@@ -2,11 +2,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,6 +12,8 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackCallback
+import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
@@ -88,6 +86,9 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 @Composable
 private fun EncyclopediaUiPreview() {
 	val component: Encyclopedia = object : Encyclopedia {
+		override val backHandler = dummyBackHandler
+		override fun onBack() {}
+
 		override val stack: Value<ChildStack<Encyclopedia.Config, Encyclopedia.Destination>>
 			get() = MutableValue(
 				ChildStack(
@@ -187,7 +188,7 @@ private fun ViewEntryPreview() {
 
 	Column {
 		AppTheme(globalSettingsPreview) {
-			BoxWithConstraints(
+			Box(
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.background)
 					.fillMaxSize()
@@ -263,3 +264,9 @@ private val entryDefs = listOf(
 		id = 1
 	)
 )
+
+val dummyBackHandler = object : BackHandler {
+	override fun isRegistered(callback: BackCallback) = false
+	override fun register(callback: BackCallback) {}
+	override fun unregister(callback: BackCallback) {}
+}

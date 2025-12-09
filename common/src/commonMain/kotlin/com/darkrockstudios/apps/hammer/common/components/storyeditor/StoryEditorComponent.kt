@@ -10,7 +10,6 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeComponent
@@ -209,21 +208,19 @@ class StoryEditorComponent(
 		return !isDetailShown()
 	}
 
+	override fun onBack() {
+		if (!detailsRouter.isAtRoot()) {
+			detailsRouter.onBack()
+		} else {
+			closeDetails()
+		}
+	}
+
 	override suspend fun storeDirtyBuffers() {
 		sceneEditor.storeAllBuffers()
 	}
 
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-
-	private val backButtonHandler = object : BackCallback() {
-		override fun onBack() {
-			if (!detailsRouter.isAtRoot()) {
-				detailsRouter.onBack()
-			} else {
-				closeDetails()
-			}
-		}
-	}
 
 	override fun showOutlineOverview() {
 		dialogNavigation.activate(StoryEditor.DialogConfig.OutlineOverview)
@@ -236,19 +233,11 @@ class StoryEditorComponent(
 	override fun onCreate() {
 		super.onCreate()
 
-		backHandler.register(backButtonHandler)
-
 		detailsRouter.state.subscribe(lifecycle) {
 			(it.active.configuration as? DetailsRouter.Config.SceneEditor)?.let { sceneEditor ->
 				selectedSceneItemFlow.tryEmit(sceneEditor.sceneDef)
 			}
-			backButtonHandler.isEnabled = isDetailShown()
-
 			_shouldCloseRoot.tryEmit(!isDetailShown())
-		}
-
-		sceneEditor.subscribeToBufferUpdates(null, scope) {
-			backButtonHandler.isEnabled = isDetailShown()
 		}
 
 		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)

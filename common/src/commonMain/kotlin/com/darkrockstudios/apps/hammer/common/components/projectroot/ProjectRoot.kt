@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectroot
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
@@ -16,7 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import dev.icerock.moko.resources.StringResource
 
-interface ProjectRoot : AppCloseManager, HammerComponent {
+interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
+	fun onBack()
 	val projectDef: ProjectDef
 	val routerState: Value<ChildStack<*, Destination<*>>>
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>

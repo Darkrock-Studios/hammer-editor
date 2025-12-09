@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
@@ -29,11 +30,15 @@ fun TimeLineUi(
 	val scope = rememberCoroutineScope()
 	val state by component.stack.subscribeAsState()
 
-	BoxWithConstraints(modifier = modifier) {
+	Box(modifier = modifier) {
 		Children(
 			stack = state,
 			modifier = Modifier,
-			animation = stackAnimation { _ -> fade() },
+			animation = predictiveBackAnimation(
+				backHandler = component.backHandler,
+				fallbackAnimation = stackAnimation { _ -> fade() },
+				onBack = component::onBack,
+			),
 		) {
 			when (val child = it.instance) {
 				is TimeLine.Destination.TimeLineOverviewDestination -> {

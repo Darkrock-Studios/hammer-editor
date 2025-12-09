@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -23,13 +22,8 @@ class CreateEntryComponent(
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
-	private val backButtonHandler = BackCallback {
-		confirmClose()
-	}
-
-	init {
-		backHandler.register(backButtonHandler)
-	}
+	// Note: Back handler is disabled to allow predictive back animation.
+	// The UI handles close confirmation via confirmClose()/dismissConfirmClose().
 
 	override fun confirmClose() {
 		_state.getAndUpdate {

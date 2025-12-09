@@ -203,3 +203,5 @@
     public void trace(...);
     public void debug(...);
 }
+
+-keep class com.arkivanov.decompose.extensions.compose.mainthread.SwingMainThreadChecker

@@ -3,17 +3,11 @@ package com.darkrockstudios.apps.hammer.common.components.projectroot
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.update
+import com.arkivanov.decompose.value.*
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.data.KeyShortcut
-import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import kotlinx.coroutines.launch
@@ -31,6 +25,10 @@ class ProjectRootComponent(
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
+
+	override fun onBack() {
+		router.onBack()
+	}
 
 	private val _closeRequestHandlers = MutableValue<Set<CloseConfirm>>(emptySet())
 	override val closeRequestHandlers = _closeRequestHandlers
@@ -51,6 +49,10 @@ class ProjectRootComponent(
 		projectDef
 	)
 
+	private val navigateToHomeBackCallback = BackCallback(isEnabled = false) {
+		showHome()
+	}
+
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
 		get() = router.state
 
@@ -59,6 +61,16 @@ class ProjectRootComponent(
 
 	override fun onCreate() {
 		super.onCreate()
+
+		// Register the navigate-to-home back callback
+		backHandler.register(navigateToHomeBackCallback)
+
+		router.state.subscribe(lifecycle) { stack ->
+			val activeDestination = stack.active.instance
+			val isAtHome = activeDestination is ProjectRoot.Destination.HomeDestination
+			val childAtRoot = activeDestination.isAtRoot()
+			navigateToHomeBackCallback.isEnabled = !isAtHome && childAtRoot
+		}
 
 		sceneEditor.subscribeToBufferUpdates(null, scope) {
 			updateCloseConfirmRequirement()

@@ -7,6 +7,7 @@
 	<application
 		android:name=".HammerApplication"
 		android:allowBackup="true"
+		android:enableOnBackInvokedCallback="true"
 		android:dataExtractionRules="@xml/data_extraction_rules"
 		android:fullBackupContent="@xml/backup_rules"
 		android:icon="@mipmap/ic_launcher"
@@ -14,8 +15,7 @@
 		android:roundIcon="@mipmap/ic_launcher_round"
 		android:supportsRtl="true"
 		android:theme="@style/Theme.Hammer"
-		android:usesCleartextTraffic="true"
-		android:enableOnBackInvokedCallback="true">
+		android:usesCleartextTraffic="true">
 
 		<activity
 			android:name=".ProjectSelectActivity"

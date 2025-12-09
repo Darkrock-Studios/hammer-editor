@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
@@ -20,7 +21,11 @@ fun NotesUi(
 	Children(
 		stack = stack,
 		modifier = Modifier,
-		animation = stackAnimation { _ -> fade() },
+		animation = predictiveBackAnimation(
+			backHandler = component.backHandler,
+			fallbackAnimation = stackAnimation { _ -> fade() },
+			onBack = component::onBack,
+		),
 	) {
 		when (val dest = it.instance) {
 			is Notes.Destination.BrowseNotesDestination -> {

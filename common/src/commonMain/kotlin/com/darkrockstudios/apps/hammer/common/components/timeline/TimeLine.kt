@@ -2,12 +2,13 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import kotlinx.serialization.Serializable
 
-interface TimeLine : Router {
-
+interface TimeLine : Router, BackHandlerOwner {
+	fun onBack()
 	val stack: Value<ChildStack<Config, Destination>>
 
 	sealed class Destination {

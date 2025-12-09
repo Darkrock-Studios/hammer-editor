@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.update
+import com.arkivanov.decompose.value.*
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -29,17 +26,18 @@ class CreateNoteComponent(
 
 	private val notesRepository: NotesRepository by projectInject()
 
-	private val backButtonHandler = BackCallback {
-		if (noteText.value.isNotBlank()) {
-			confirmDiscard()
-		} else {
-			dismissCreate()
-		}
+	private val backButtonHandler = BackCallback(isEnabled = false) {
+		confirmDiscard()
 	}
 
 	override fun onCreate() {
 		super.onCreate()
 		backHandler.register(backButtonHandler)
+
+		// Enable back handler only when there's content that would be lost
+		noteText.subscribe(lifecycle) {
+			backButtonHandler.isEnabled = it.isNotBlank()
+		}
 	}
 
 	override fun onTextChanged(newText: String) {

@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -102,23 +101,16 @@ class TimeLineComponent(
 		return stack.value.active.configuration is TimeLine.Config.TimeLineOverviewConfig
 	}
 
-	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-
-	private val backButtonHandler = object : BackCallback() {
-		override fun onBack() {
-			if (!isAtRoot()) {
-				navigation.pop()
-			}
+	override fun onBack() {
+		if (!isAtRoot()) {
+			navigation.pop()
 		}
 	}
 
-	override fun onCreate() {
-		super.onCreate()
+	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 
-		backHandler.register(backButtonHandler)
-
+	init {
 		stack.subscribe(lifecycle) {
-			backButtonHandler.isEnabled = !isAtRoot()
 			updateShouldClose()
 		}
 	}
