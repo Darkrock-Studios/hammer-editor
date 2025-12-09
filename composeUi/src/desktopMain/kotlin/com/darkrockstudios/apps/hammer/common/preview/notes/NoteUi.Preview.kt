@@ -1,6 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
-/*
+import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.runtime.Composable
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
+import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
+import com.darkrockstudios.apps.hammer.common.notes.NoteItem
+import kotlin.time.Clock
+
 @Preview
 @Composable
 private fun NoteItemPreview() {
@@ -9,25 +20,24 @@ private fun NoteItemPreview() {
 		created = Clock.System.now(),
 		content = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters."
 	)
-	val component: Notes = fakeComponent()
 	NoteItem(
 		note = note,
-		component = component,
+		viewNote = {}
 	)
 }
 
 @Preview
 @Composable
-private fun NotesUiPreview() {
-	val component: Notes = fakeComponent()
-	NotesUi(component)
+private fun BrowseNotesUiPreview() {
+	val component: BrowseNotes = fakeComponent()
+	BrowseNotesUi(component)
 }
 
-private fun fakeComponent(): Notes = object : Notes {
-	override val state: Value<Notes.State>
+private fun fakeComponent(): BrowseNotes = object : BrowseNotes {
+	override val state: Value<BrowseNotes.State>
 		get() = MutableValue(
-			Notes.State(
-				projectDef = ProjectDef(
+			BrowseNotes.State(
+				projectDef = ProjectDefinition(
 					name = "test2", path = HPath("/", "test", true)
 				),
 				notes = listOf(
@@ -50,14 +60,6 @@ private fun fakeComponent(): Notes = object : Notes {
 			)
 		)
 
-	override suspend fun createNote(noteText: String) = NoteError.NONE
-	override suspend fun deleteNote(id: Int) {}
-	override suspend fun updateNote(noteContent: NoteContent) {}
-	override fun confirmDelete(note: NoteContent) {}
-	override fun dismissConfirmDelete() {}
+	override fun viewNote(noteId: Int) {}
 	override fun showCreate() {}
-	override fun dismissCreate() {}
-	override fun isAtRoot() = true
-	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 }
-*/
