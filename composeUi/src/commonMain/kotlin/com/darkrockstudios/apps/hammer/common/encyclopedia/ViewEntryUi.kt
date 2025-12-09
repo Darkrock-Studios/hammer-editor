@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -57,151 +58,157 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	Box(
-		modifier = modifier.fillMaxSize().padding(horizontal = Ui.Padding.XL),
-		contentAlignment = Alignment.TopCenter
+	BoxWithConstraints(
+		modifier = Modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center
 	) {
-		Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
-			if (state.editName) {
-				TextField(
-					modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-					value = entryNameText,
-					onValueChange = { entryNameText = it },
-					placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
-				)
-			} else {
-				Row(modifier = Modifier.fillMaxWidth()) {
-					Text(
-						entryNameText,
-						style = MaterialTheme.typography.displaySmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						textAlign = TextAlign.Center,
-						modifier = Modifier.weight(1f).clickable { component.startNameEdit() }
+		Card(
+			modifier = modifier.heightIn(0.dp, maxHeight).widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+				.padding(horizontal = Ui.Padding.XL),
+			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
+		) {
+			Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
+				if (state.editName) {
+					TextField(
+						modifier = Modifier.wrapContentHeight().fillMaxWidth().padding(top = Ui.Padding.M),
+						value = entryNameText,
+						onValueChange = { entryNameText = it },
+						placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
 					)
-
-					ViewEntryMenuUi(component)
-
-					IconButton(
-						onClick = {
-							if (state.editName || state.editText) {
-								component.confirmClose()
-							} else {
-								closeEntry()
-							}
-						},
-					) {
-						Icon(
-							Icons.Filled.Close,
-							contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface
+				} else {
+					Row(modifier = Modifier.fillMaxWidth()) {
+						Text(
+							entryNameText,
+							style = MaterialTheme.typography.displaySmall,
+							color = MaterialTheme.colorScheme.onBackground,
+							textAlign = TextAlign.Center,
+							modifier = Modifier.weight(1f).clickable { component.startNameEdit() }
 						)
+
+						ViewEntryMenuUi(component)
+
+						IconButton(
+							onClick = {
+								if (state.editName || state.editText) {
+									component.confirmClose()
+								} else {
+									closeEntry()
+								}
+							},
+						) {
+							Icon(
+								Icons.Filled.Close,
+								contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
+								tint = MaterialTheme.colorScheme.onSurface
+							)
+						}
 					}
 				}
-			}
 
-			Row(
-				modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-				horizontalArrangement = Arrangement.End,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				if (content != null && (state.editName || state.editText)) {
-					IconButton(onClick = {
-						scope.launch {
-							val result = component.updateEntry(
-								name = entryNameText,
-								text = entryText,
-								tags = content.tags
+				Row(
+					modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+					horizontalArrangement = Arrangement.End,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					if (content != null && (state.editName || state.editText)) {
+						IconButton(onClick = {
+							scope.launch {
+								val result = component.updateEntry(
+									name = entryNameText,
+									text = entryText,
+									tags = content.tags
+								)
+
+								if (result.error == EntryError.NONE) {
+									withContext(dispatcherMain) {
+										component.finishNameEdit()
+										component.finishTextEdit()
+									}
+								}
+
+								reportSaveResult(result, rootSnackbar, scope, strRes)
+							}
+						}) {
+							Icon(
+								Icons.Filled.Check,
+								MR.strings.encyclopedia_entry_edit_save_button.get(),
+								tint = MaterialTheme.colorScheme.onSurface
+							)
+						}
+
+						IconButton(onClick = { discardConfirm = true }) {
+							Icon(
+								Icons.Filled.Cancel,
+								MR.strings.encyclopedia_entry_edit_cancel_button.get(),
+								tint = MaterialTheme.colorScheme.error
+							)
+						}
+
+						if (screen.needsExplicitClose) {
+							Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+							Divider(
+								color = MaterialTheme.colorScheme.outline,
+								modifier = Modifier.fillMaxHeight().width(1.dp)
+									.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
 							)
 
-							if (result.error == EntryError.NONE) {
-								withContext(dispatcherMain) {
-									component.finishNameEdit()
-									component.finishTextEdit()
-								}
+							Spacer(modifier = Modifier.size(Ui.Padding.XL))
+						}
+
+						if (discardConfirm) {
+							SimpleConfirm(
+								title = MR.strings.encyclopedia_entry_discard_title.get(),
+								message = MR.strings.encyclopedia_entry_discard_message.get(),
+								onDismiss = { discardConfirm = false }
+							) {
+								entryNameText = content.name
+								entryText = content.text
+
+								component.finishNameEdit()
+								component.finishTextEdit()
+
+								discardConfirm = false
 							}
-
-							reportSaveResult(result, rootSnackbar, scope, strRes)
-						}
-					}) {
-						Icon(
-							Icons.Filled.Check,
-							MR.strings.encyclopedia_entry_edit_save_button.get(),
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					}
-
-					IconButton(onClick = { discardConfirm = true }) {
-						Icon(
-							Icons.Filled.Cancel,
-							MR.strings.encyclopedia_entry_edit_cancel_button.get(),
-							tint = MaterialTheme.colorScheme.error
-						)
-					}
-
-					if (screen.needsExplicitClose) {
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-						Divider(
-							color = MaterialTheme.colorScheme.outline,
-							modifier = Modifier.fillMaxHeight().width(1.dp)
-								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
-						)
-
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
-					}
-
-					if (discardConfirm) {
-						SimpleConfirm(
-							title = MR.strings.encyclopedia_entry_discard_title.get(),
-							message = MR.strings.encyclopedia_entry_discard_message.get(),
-							onDismiss = { discardConfirm = false }
-						) {
-							entryNameText = content.name
-							entryText = content.text
-
-							component.finishNameEdit()
-							component.finishTextEdit()
-
-							discardConfirm = false
 						}
 					}
 				}
-			}
 
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
-				Row {
-					Image(
-						modifier = Modifier.weight(1f),
-						state = state,
-						showDeleteImageDialog = component::showDeleteImageDialog
-					)
-					Contents(
-						modifier = Modifier.weight(1f).fillMaxHeight()
-							.verticalScroll(rememberScrollState()),
-						component = component,
-						state = state,
-						editText = state.editText,
-						entryText = entryText,
-						setEntryText = { entryText = it }
-					) { component.startTextEdit() }
-				}
-			} else {
-				Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-					Image(
-						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-						state = state,
-						showDeleteImageDialog = component::showDeleteImageDialog
-					)
-					Contents(
-						modifier = Modifier.wrapContentHeight(),
-						component = component,
-						state = state,
-						editText = state.editText,
-						entryText = entryText,
-						setEntryText = { entryText = it }
-					) { component.startTextEdit() }
+				if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
+					Row {
+						Image(
+							modifier = Modifier.weight(1f),
+							state = state,
+							showDeleteImageDialog = component::showDeleteImageDialog
+						)
+						Contents(
+							modifier = Modifier.weight(1f).wrapContentHeight()
+								.verticalScroll(rememberScrollState()),
+							component = component,
+							state = state,
+							editText = state.editText,
+							entryText = entryText,
+							setEntryText = { entryText = it }
+						) { component.startTextEdit() }
+					}
+				} else {
+					Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+						Image(
+							modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+							state = state,
+							showDeleteImageDialog = component::showDeleteImageDialog
+						)
+						Contents(
+							modifier = Modifier.wrapContentHeight(),
+							component = component,
+							state = state,
+							editText = state.editText,
+							entryText = entryText,
+							setEntryText = { entryText = it }
+						) { component.startTextEdit() }
+					}
 				}
 			}
 		}
