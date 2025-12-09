@@ -4,11 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.Child.Created
 import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackCallback
+import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.android.ProjectSelectContent
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection.Config
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection.Destination
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -28,7 +33,7 @@ val projectListComponent = object : ProjectsList {
 			)
 		)
 	override val modalRouterState: Value<ChildSlot<ProjectListModalRouter.Config, ProjectsList.ModalDestination>>
-		get() = TODO("Not yet implemented")
+		get() = MutableValue(ChildSlot(null))
 
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
@@ -52,17 +57,27 @@ val projectListComponent = object : ProjectsList {
 	override suspend fun showToast(message: Msg) {}
 }
 
+val dummyBackHandler = object : BackHandler {
+	override fun isRegistered(callback: BackCallback) = false
+	override fun register(callback: BackCallback) {}
+	override fun unregister(callback: BackCallback) {}
+}
+
 val component = object : ProjectSelection {
-	override val slot: Value<ChildSlot<ProjectSelection.Config, ProjectSelection.Destination>> =
-		MutableValue<ChildSlot<ProjectSelection.Config, ProjectSelection.Destination>>(
-			ChildSlot(
+	override val stack: Value<ChildStack<Config, Destination>> =
+		MutableValue<ChildStack<Config, Destination>>(
+			ChildStack(
 				Created(
-					configuration = ProjectSelection.Config.ProjectsList,
-					instance = ProjectSelection.Destination.ProjectsListDestination(projectListComponent)
+					configuration = Config.ProjectsList,
+					instance = Destination.ProjectsListDestination(projectListComponent)
 				)
 			)
 		)
+
+	override fun isAtRoot() = false
+	override fun onBack() {}
 	override fun showLocation(location: ProjectSelection.Locations) {}
+	override val backHandler = dummyBackHandler
 }
 
 @Preview

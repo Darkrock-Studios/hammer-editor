@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection
 
-import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
@@ -10,8 +11,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import dev.icerock.moko.resources.StringResource
 import kotlinx.serialization.Serializable
 
-interface ProjectSelection : HammerComponent {
-	val slot: Value<ChildSlot<Config, Destination>>
+interface ProjectSelection : HammerComponent, BackHandlerOwner {
+	val stack: Value<ChildStack<Config, Destination>>
+
+	fun isAtRoot(): Boolean
+	fun onBack()
 
 	fun showLocation(location: Locations)
 

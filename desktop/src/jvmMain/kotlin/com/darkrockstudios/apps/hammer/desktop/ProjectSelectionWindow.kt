@@ -24,7 +24,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -96,7 +96,7 @@ fun Content(component: ProjectSelection) {
 private fun MediumNavigation(
 	component: ProjectSelection
 ) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
 			.fillMaxSize()
@@ -113,7 +113,7 @@ private fun MediumNavigation(
 						NavigationRailItem(
 							icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
 							label = { Text(item.text.get()) },
-							selected = item == slot.child?.configuration?.location,
+							selected = item == stackState.active.configuration.location,
 							onClick = { component.showLocation(item) }
 						)
 					}
@@ -147,7 +147,7 @@ private fun MediumNavigation(
 private fun ExpandedNavigation(
 	component: ProjectSelection
 ) {
-	val slot by component.slot.subscribeAsState()
+	val stackState by component.stack.subscribeAsState()
 	Scaffold(
 		modifier = Modifier
 			.fillMaxSize()
@@ -159,7 +159,7 @@ private fun ExpandedNavigation(
 				modifier = Modifier.padding(innerPadding),
 				drawerContent = {
 					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
-						NavigationDrawerContents(component, scope, slot, drawerState)
+						NavigationDrawerContents(component, scope, stackState, drawerState)
 					}
 				},
 				content = {
@@ -181,15 +181,15 @@ private fun ExpandedNavigation(
 private fun ColumnScope.NavigationDrawerContents(
 	component: ProjectSelection,
 	scope: CoroutineScope,
-	slot: ChildSlot<ProjectSelection.Config, ProjectSelection.Destination>,
+	stackState: ChildStack<ProjectSelection.Config, ProjectSelection.Destination>,
 	drawerState: DrawerState,
 ) {
 	Spacer(Modifier.height(12.dp))
-	ProjectSelection.Locations.values().forEach { item ->
+	ProjectSelection.Locations.entries.forEach { item ->
 		NavigationDrawerItem(
 			icon = { Icon(getLocationIcon(item), contentDescription = item.text.get()) },
 			label = { Text(item.name) },
-			selected = item == slot.child?.configuration?.location,
+			selected = item == stackState.active.configuration.location,
 			onClick = {
 				scope.launch { drawerState.close() }
 				component.showLocation(item)

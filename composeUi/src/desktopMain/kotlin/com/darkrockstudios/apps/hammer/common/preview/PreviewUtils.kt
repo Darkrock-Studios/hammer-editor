@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
+import com.arkivanov.essenty.backhandler.BackCallback
+import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -36,4 +38,10 @@ fun fakeSceneItem() = SceneItem(
 class PreviewStrRes : StrRes {
 	override fun get(str: StringResource): String = ""
 	override fun get(str: StringResource, vararg args: Any): String = ""
+}
+
+val dummyBackHandler = object : BackHandler {
+	override fun isRegistered(callback: BackCallback) = false
+	override fun register(callback: BackCallback) {}
+	override fun unregister(callback: BackCallback) {}
 }
