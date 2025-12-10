@@ -8,6 +8,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -48,8 +50,7 @@ fun ServerSetupDialog(
 
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
 	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
-	val existingServer =
-		rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
+	val existingServer = rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
 
 	if (state.serverSetup) {
 		AlertDialog(
@@ -81,46 +82,64 @@ fun ServerSetupDialog(
 						border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
 					) {
 						Column(modifier = Modifier.padding(Ui.Padding.L)) {
-							// Loading Indicator at the top of the form
+							// Loading Indicator
 							if (state.serverWorking) {
 								LinearProgressIndicator(
 									modifier = Modifier.fillMaxWidth().padding(bottom = Ui.Padding.M)
 								)
 							}
 
-							// SSL Checkbox
+							// Protocol Dropdown & URL Row
 							Row(
 								verticalAlignment = Alignment.CenterVertically,
-								modifier = Modifier.padding(bottom = Ui.Padding.S)
+								modifier = Modifier
+									.fillMaxWidth()
+									.height(intrinsicSize = IntrinsicSize.Min)
 							) {
-								Checkbox(
-									checked = state.serverSsl,
-									onCheckedChange = { component.updateServerSsl(it) },
-									enabled = state.serverWorking.not() && existingServer.not()
+								FilterChip(
+									modifier = Modifier.fillMaxHeight().padding(top = Ui.Padding.M),
+									selected = state.serverSsl,
+									onClick = { component.updateServerSsl(!state.serverSsl) },
+									label = { Text("HTTPS") },
+									leadingIcon = {
+										if (state.serverSsl) {
+											Icon(
+												imageVector = Icons.Filled.Check,
+												contentDescription = "Secure"
+											)
+										} else {
+											Icon(
+												imageVector = Icons.Filled.Close,
+												contentDescription = "Insecure"
+											)
+										}
+									},
+									colors = FilterChipDefaults.filterChipColors(
+										selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+										selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+										selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+									)
 								)
-								Text(
-									MR.strings.settings_server_setup_ssl_label.get(),
-									style = MaterialTheme.typography.bodyMedium
+
+								// URL Input
+								OutlinedTextField(
+									value = state.serverUrl ?: "",
+									onValueChange = { component.updateServerUrl(it) },
+									label = { Text(MR.strings.settings_server_setup_url_hint.get()) },
+									modifier = Modifier.weight(1f).moveFocusOnTab(),
+									keyboardOptions = KeyboardOptions(
+										autoCorrect = false,
+										imeAction = ImeAction.Next,
+										keyboardType = KeyboardType.Uri
+									),
+									keyboardActions = KeyboardActions(
+										onNext = { focusManager.moveFocus(FocusDirection.Down) }
+									),
+									enabled = state.serverWorking.not() && existingServer.not(),
+									singleLine = true
 								)
 							}
 
-							// URL Input
-							OutlinedTextField(
-								value = state.serverUrl ?: "",
-								onValueChange = { component.updateServerUrl(it) },
-								label = { Text(MR.strings.settings_server_setup_url_hint.get()) },
-								modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
-								keyboardOptions = KeyboardOptions(
-									autoCorrect = false,
-									imeAction = ImeAction.Next,
-									keyboardType = KeyboardType.Uri
-								),
-								keyboardActions = KeyboardActions(
-									onNext = { focusManager.moveFocus(FocusDirection.Down) }
-								),
-								enabled = state.serverWorking.not() && existingServer.not(),
-								singleLine = true
-							)
 							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 							// Email Input
@@ -204,7 +223,7 @@ fun ServerSetupDialog(
 							Text(MR.strings.settings_server_setup_cancel_button.get())
 						}
 
-						Spacer(modifier = Modifier.size(Ui.Padding.M))
+						Spacer(modifier = Modifier.weight(1f))
 
 						// Create Button (if applicable)
 						if (state.serverIsLoggedIn.not()) {
