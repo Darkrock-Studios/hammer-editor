@@ -10,11 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHomeContentRouter
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -117,25 +117,25 @@ private fun Actions(
 
 	Column(modifier = modifier.padding(Ui.Padding.XL)) {
 		Text(
-			MR.strings.project_home_destinations_header.get(),
+			Res.string.project_home_destinations_header.get(),
 			style = MaterialTheme.typography.headlineLarge,
 			color = MaterialTheme.colorScheme.onSurface
 		)
 		HorizontalDivider(modifier = Modifier.fillMaxWidth())
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 		Button(onClick = component::showProjectSettings) {
-			Text(MR.strings.project_home_action_settings_button.get())
+			Text(Res.string.project_home_action_settings_button.get())
 		}
 
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 		Button(onClick = component::showProjectStats) {
-			Text(MR.strings.project_home_action_stats_button.get())
+			Text(Res.string.project_home_action_stats_button.get())
 		}
 
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 		Text(
-			MR.strings.project_home_actions_header.get(),
+			Res.string.project_home_actions_header.get(),
 			style = MaterialTheme.typography.headlineLarge,
 			color = MaterialTheme.colorScheme.onSurface
 		)
@@ -143,29 +143,31 @@ private fun Actions(
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 		Button(onClick = component::beginProjectExport) {
-			Text(MR.strings.project_home_action_export.get())
+			Text(Res.string.project_home_action_export.get())
 		}
 		if (state.hasServer) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 			Button(onClick = component::startProjectSync) {
-				Text(MR.strings.project_home_action_sync.get())
+				Text(Res.string.project_home_action_sync.get())
 			}
 		}
 		if (component.supportsBackup()) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 			Button(onClick = {
 				component.createBackup { backup ->
-					toastMessage = if (backup != null) {
-						strRes.get(
-							MR.strings.project_home_action_backup_toast_success,
-							backup.path.name
-						)
-					} else {
-						strRes.get(MR.strings.project_home_action_backup_toast_failure)
+					scope.launch {
+						toastMessage = if (backup != null) {
+							strRes.get(
+								Res.string.project_home_action_backup_toast_success,
+								backup.path.name
+							)
+						} else {
+							strRes.get(Res.string.project_home_action_backup_toast_failure)
+						}
 					}
 				}
 			}) {
-				Text(MR.strings.project_home_action_backup.get())
+				Text(Res.string.project_home_action_backup.get())
 			}
 		}
 	}

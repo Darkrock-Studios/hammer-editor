@@ -13,15 +13,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
-import dev.icerock.moko.resources.StringResource
+import com.darkrockstudios.apps.hammer.project_select_card_delete_button
+import com.darkrockstudios.apps.hammer.project_select_card_rename_button
+import com.darkrockstudios.apps.hammer.projects_list_item_more_button
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
 val ProjectCardTestTag = "project-card"
@@ -55,16 +58,16 @@ fun ProjectCard(
 
 				ProjectOptionsMenu(
 					items = listOf(
-						MR.strings.project_select_card_delete_button,
-						MR.strings.project_select_card_rename_button,
+						Res.string.project_select_card_delete_button,
+						Res.string.project_select_card_rename_button,
 					),
 				) {
 					when (it) {
-						MR.strings.project_select_card_delete_button -> {
+						Res.string.project_select_card_delete_button -> {
 							onProjectAltClick(projectData.definition)
 						}
 
-						MR.strings.project_select_card_rename_button -> {
+						Res.string.project_select_card_rename_button -> {
 							onProjectRenameClick(projectData.definition)
 						}
 					}
@@ -106,7 +109,7 @@ fun ProjectOptionsMenu(
 		) {
 			Icon(
 				Icons.Default.MoreVert,
-				contentDescription = MR.strings.projects_list_item_more_button.get()
+				contentDescription = Res.string.projects_list_item_more_button.get()
 			)
 		}
 

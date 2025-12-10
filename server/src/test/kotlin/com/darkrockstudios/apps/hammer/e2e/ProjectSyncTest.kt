@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
 import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

@@ -5,7 +5,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.ServerDatabase
-import java.util.Properties
+import java.util.*
 
 class SqliteTestDatabase : Database {
 	private lateinit var driver: SqlDriver

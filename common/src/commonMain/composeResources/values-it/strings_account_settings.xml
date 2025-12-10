@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="settings_heading">⚙ Impostazioni</string>
+	<string name="settings_theme_label">Tema Interfaccia</string>
+	<string name="settings_projects_directory">Cartella Progetti</string>
+	<string name="settings_projects_directory_hint">Percorso alla cartella progetti</string>
+	<string name="settings_projects_directory_button">Seleziona Cartella</string>
+	<string name="settings_example_project_header">Progetto Esempio</string>
+	<string name="settings_example_project_description">Installa un progetto di esempio per vedere come vengono usate le
+		diverse funzionalità.
+	</string>
+	<string name="settings_example_project_button">Reinstalla</string>
+	<string name="settings_example_project_success_message">Progetto di esempio creato.</string>
+	<string name="settings_data_version">Dati: v%1$s</string>
+	<string name="settings_server_header">Server</string>
+	<string name="settings_server_description">Configura un server per la sincronizzazione tra dispositivi.</string>
+	<string name="settings_server_url_label">URL:</string>
+	<string name="settings_server_email_label">Email:</string>
+	<string name="settings_server_setup_button">Configura</string>
+	<string name="settings_server_modify_button">Modifica</string>
+	<string name="settings_server_unknown_error">Errore</string>
+	<string name="settings_server_auto_sync">Sincronizzazione Automatica</string>
+	<string name="settings_server_sync_backup">Backup durante la sincronizzazione</string>
+	<string name="settings_server_sync_auto_close">Chiudi finestre dopo sincronizzazione riuscita</string>
+	<string name="settings_server_max_backups">Backup massimi per progetto</string>
+	<string name="settings_server_test_auth_button">Testa autenticazione</string>
+	<string name="settings_server_reauth_button">Riautentica</string>
+	<string name="settings_server_remove_server_button">Rimuovi Server</string>
+	<string name="settings_server_authtest_toast_success">Autenticazione riuscita</string>
+	<string name="settings_server_authtest_toast_failure">Autenticazione fallita</string>
+	<string name="settings_remove_server_dialog_title">Rimuovi Server</string>
+	<string name="settings_remove_server_dialog_message">Sei sicuro di voler rimuovere il server?</string>
+	<string name="settings_server_setup_title">Configura Server</string>
+	<string name="settings_server_setup_header">Configurazione Server</string>
+	<string name="settings_server_setup_ssl_label">HTTPS?</string>
+	<string name="settings_server_setup_url_hint">URL server: mioserver.com</string>
+	<string name="settings_server_setup_email_hint">Email: utente@esempio.com</string>
+	<string name="settings_server_setup_password_hint">Password</string>
+	<string name="settings_server_setup_password_show">Mostra password</string>
+	<string name="settings_server_setup_password_hide">Nascondi password</string>
+	<string name="settings_server_setup_login_button">Accedi</string>
+	<string name="settings_server_setup_create_button">Crea</string>
+	<string name="settings_server_setup_cancel_button">Annulla</string>
+	<string name="settings_server_setup_toast_failure">Configurazione server fallita: %1$s</string>
+	<string name="settings_server_setup_toast_failure_unknown">Errore sconosciuto</string>
+	<string name="settings_server_setup_toast_success">Configurazione server completata!</string>
+	<string name="remove_local_dialog_title">Rimuovere contenuti locali?</string>
+	<string name="remove_local_dialog_message">Vuoi rimuovere i tuoi contenuti locali attuali prima della
+		sincronizzazione? In caso contrario, proveremo a unire i tuoi contenuti locali con quelli del server. Se i
+		contenuti non sono correlati, potrebbero verificarsi problemi.
+	</string>
+	<string name="settings_platform_settings_title">Impostazioni Piattaforma</string>
+	<string name="settings_keep_screen_on">Mantieni schermo acceso</string>
+	<string name="settings_spellcheck_heading">Controllo Ortografico</string>
+	<string name="settings_spellcheck_enable">Abilita controllo ortografico (sperimentale)</string>
+	<string name="settings_spellcheck_in_focus_enable">Abilita in modalità concentrazione</string>
+	<string name="settings_spellcheck_dictionary">Dizionario</string>
+	<string name="settings_spellcheck_notice">Il controllo ortografico è sperimentale! Se sta causando problemi,
+		disattivalo semplicemente.
+	</string>
+</resources>

@@ -14,11 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -53,7 +53,7 @@ fun ViewTimeLineEventUi(
 				verticalAlignment = Alignment.CenterVertically
 			) {
 				Text(
-					MR.strings.timeline_view_title.get(),
+					Res.string.timeline_view_title.get(),
 					modifier = Modifier.weight(1f),
 					style = MaterialTheme.typography.displaySmall,
 				)
@@ -70,18 +70,18 @@ fun ViewTimeLineEventUi(
 
 							if (success) {
 								scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_success))
+									rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_success))
 								}
 							} else {
 								scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(MR.strings.timeline_view_toast_save_failure))
+									rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_failure))
 								}
 							}
 						}
 					}) {
 						Icon(
 							Icons.Filled.Check,
-							MR.strings.timeline_view_save_button.get(),
+							Res.string.timeline_view_save_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -91,7 +91,7 @@ fun ViewTimeLineEventUi(
 					}) {
 						Icon(
 							Icons.Filled.Cancel,
-							MR.strings.timeline_view_cancel_button.get(),
+							Res.string.timeline_view_cancel_button.get(),
 							tint = MaterialTheme.colorScheme.error
 						)
 					}
@@ -114,7 +114,7 @@ fun ViewTimeLineEventUi(
 				) {
 					Icon(
 						Icons.Filled.Close,
-						contentDescription = MR.strings.timeline_view_close_button.get(),
+						contentDescription = Res.string.timeline_view_close_button.get(),
 						tint = MaterialTheme.colorScheme.onSurface
 					)
 				}
@@ -127,7 +127,7 @@ fun ViewTimeLineEventUi(
 							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
 							value = dateText,
 							onValueChange = { component.onDateTextChanged(it) },
-							placeholder = { Text(MR.strings.timeline_view_date_label.get()) }
+							placeholder = { Text(Res.string.timeline_view_date_label.get()) }
 						)
 					} else {
 						Text(
@@ -148,7 +148,7 @@ fun ViewTimeLineEventUi(
 						onValueChange = { component.onEventTextChanged(it) },
 						modifier = Modifier.fillMaxWidth()
 							.padding(PaddingValues(bottom = Ui.Padding.XL)),
-						placeholder = { Text(text = MR.strings.timeline_view_content_placeholder.get()) },
+						placeholder = { Text(text = Res.string.timeline_view_content_placeholder.get()) },
 						maxLines = 10,
 					)
 				} else {
@@ -166,8 +166,8 @@ fun ViewTimeLineEventUi(
 
 	if (state.confirmClose) {
 		SimpleConfirm(
-			title = MR.strings.timeline_view_discard_title.get(),
-			message = MR.strings.timeline_view_discard_message.get(),
+			title = Res.string.timeline_view_discard_title.get(),
+			message = Res.string.timeline_view_discard_message.get(),
 			onDismiss = { component.cancelClose() }
 		) {
 			component.closeEvent()
@@ -176,8 +176,8 @@ fun ViewTimeLineEventUi(
 
 	if (state.confirmDiscard) {
 		SimpleConfirm(
-			title = MR.strings.timeline_view_discard_title.get(),
-			message = MR.strings.timeline_view_discard_message.get(),
+			title = Res.string.timeline_view_discard_title.get(),
+			message = Res.string.timeline_view_discard_message.get(),
 			onDismiss = { component.cancelDiscard() }
 		) {
 			component.discardEdit()
@@ -186,8 +186,8 @@ fun ViewTimeLineEventUi(
 
 	if (state.confirmDelete) {
 		SimpleConfirm(
-			title = MR.strings.timeline_view_confirm_delete_title.get(),
-			message = MR.strings.timeline_view_confirm_delete_message.get(),
+			title = Res.string.timeline_view_confirm_delete_title.get(),
+			message = Res.string.timeline_view_confirm_delete_message.get(),
 			onDismiss = { component.endDeleteEvent() }
 		) {
 			scope.launch {

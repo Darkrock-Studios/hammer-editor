@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.*
+import io.ktor.client.plugins.auth.providers.*
 import kotlin.uuid.Uuid
 
 class AccountUseCase(

@@ -1,6 +1,6 @@
 package repositories.projectsrepository
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.isFailure
@@ -10,10 +10,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.create_project_error_blank
+import com.darkrockstudios.apps.hammer.create_project_error_invalid_characters
+import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import createProjectDirectories
-import dev.icerock.moko.resources.StringResource
 import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.Test
 import projectNames
 import kotlin.test.assertEquals
@@ -37,12 +40,12 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 			assertTrue(ProjectsRepository.validateFileName(it).isSuccess)
 		}
 
-		assertFailure(null, MR.strings.create_project_error_null_filename)
-		assertFailure("", MR.strings.create_project_error_blank)
-		assertFailure("   ", MR.strings.create_project_error_blank)
+		assertFailure(null, Res.string.create_project_error_null_filename)
+		assertFailure("", Res.string.create_project_error_blank)
+		assertFailure("   ", Res.string.create_project_error_blank)
 
 		listOf("bad*bad", "bad-bad", "bad/bad", """bad\bad""").forEach {
-			assertFailure(it, MR.strings.create_project_error_invalid_characters)
+			assertFailure(it, Res.string.create_project_error_invalid_characters)
 		}
 	}
 

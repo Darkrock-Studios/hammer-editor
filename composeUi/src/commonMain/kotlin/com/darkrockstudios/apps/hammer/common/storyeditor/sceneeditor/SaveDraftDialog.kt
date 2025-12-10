@@ -8,11 +8,11 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import kotlinx.coroutines.launch
@@ -32,7 +32,7 @@ internal fun SaveDraftDialog(
 
 	SimpleDialog(
 		visible = state.isSavingDraft,
-		title = MR.strings.save_draft_dialog_title.get(),
+		title = Res.string.save_draft_dialog_title.get(),
 		onCloseRequest = {
 			component.endSaveDraft()
 			draftName = ""
@@ -48,7 +48,7 @@ internal fun SaveDraftDialog(
 					value = draftName,
 					onValueChange = { draftName = it },
 					singleLine = true,
-					placeholder = { Text(MR.strings.save_draft_dialog_name_hint.get()) }
+					placeholder = { Text(Res.string.save_draft_dialog_name_hint.get()) }
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
@@ -64,17 +64,17 @@ internal fun SaveDraftDialog(
 								withContext(mainDispatcher) {
 									draftName = ""
 								}
-								showSnackbar(strRes.get(MR.strings.save_draft_dialog_toast_success))
+								showSnackbar(strRes.get(Res.string.save_draft_dialog_toast_success))
 							}
 						}
 					}) {
-						Text(MR.strings.save_draft_dialog_save_button.get())
+						Text(Res.string.save_draft_dialog_save_button.get())
 					}
 					Button(onClick = {
 						component.endSaveDraft()
 						draftName = ""
 					}) {
-						Text(MR.strings.save_draft_dialog_cancel_button.get())
+						Text(Res.string.save_draft_dialog_cancel_button.get())
 					}
 				}
 			}

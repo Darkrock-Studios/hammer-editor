@@ -22,17 +22,18 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandler
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
+import com.darkrockstudios.apps.hammer.scene_editor_no_scene_selected
 
 private val LIST_PANE_WIDTH = 300.dp
 
@@ -224,7 +225,7 @@ private fun EmptySceneEditor(isMultipane: Boolean) {
 					modifier = Modifier.size(96.dp)
 				)
 				Text(
-					MR.strings.scene_editor_no_scene_selected.get(),
+					Res.string.scene_editor_no_scene_selected.get(),
 					style = MaterialTheme.typography.labelSmall,
 					color = MaterialTheme.colorScheme.onBackground
 				)

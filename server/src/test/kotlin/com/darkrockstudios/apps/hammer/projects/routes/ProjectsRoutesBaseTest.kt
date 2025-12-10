@@ -11,8 +11,8 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
-import io.ktor.server.application.Application
-import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.application.*
+import io.ktor.server.testing.*
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
 import kotlinx.serialization.json.Json

@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.server
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -64,7 +64,7 @@ abstract class Api(
 					statusCode = outerResponse?.status ?: HttpStatusCode.ExpectationFailed,
 					error = HttpResponseError(
 						error = "Failed to parse error response",
-						displayMessage = strRes.get(MR.strings.network_request_failure_parse_body, path),
+						displayMessage = strRes.get(Res.string.network_request_failure_parse_body, path),
 					)
 				)
 			)
@@ -75,7 +75,7 @@ abstract class Api(
 					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
 					error = HttpResponseError(
 						error = e.message ?: "Network Error",
-						displayMessage = strRes.get(MR.strings.network_request_failure_connection, path),
+						displayMessage = strRes.get(Res.string.network_request_failure_connection, path),
 					)
 				)
 			)
@@ -207,7 +207,7 @@ suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throw
 				statusCode = response.status,
 				error = HttpResponseError(
 					error = "Unauthorized",
-					displayMessage = strRes.get(MR.strings.sync_unauthorized),
+					displayMessage = strRes.get(Res.string.sync_unauthorized),
 				)
 			)
 		}
@@ -224,7 +224,7 @@ suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throw
 					statusCode = response.status,
 					error = HttpResponseError(
 						error = "Unhandled error body",
-						displayMessage = strRes.get(MR.strings.sync_general_error),
+						displayMessage = strRes.get(Res.string.sync_general_error),
 					)
 				)
 			}

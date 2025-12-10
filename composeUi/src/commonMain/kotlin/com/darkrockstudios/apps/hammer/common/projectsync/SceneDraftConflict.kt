@@ -9,21 +9,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun SceneDraftConflict(
@@ -46,6 +44,7 @@ private fun LocalDraft(
 	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
 	component: ProjectSynchronization
 ) {
+	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.SceneDraftEntity
 	var nameTextValue by rememberSaveable(entity) { mutableStateOf(entity?.name ?: "") }
@@ -59,7 +58,7 @@ private fun LocalDraft(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_scene_draft_local.get(),
+				text = Res.string.sync_conflict_title_scene_draft_local.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = {
@@ -71,14 +70,16 @@ private fun LocalDraft(
 				)
 
 				if (error is ProjectSynchronization.EntityMergeError.SceneDraftMergeError) {
-					nameError = error.nameError?.text(strRes)
+					scope.launch {
+						nameError = error.nameError?.text(strRes)
+					}
 				}
 			}) {
-				Text(MR.strings.sync_conflict_local_use_button.get())
+				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
 		Text(
-			text = MR.strings.sync_conflict_merge_explained.get(),
+			text = Res.string.sync_conflict_merge_explained.get(),
 			style = MaterialTheme.typography.bodySmall,
 			fontStyle = FontStyle.Italic
 		)
@@ -86,8 +87,8 @@ private fun LocalDraft(
 		TextField(
 			value = nameTextValue,
 			onValueChange = { nameTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_title_scene_draft_field_name.get()) },
-			label = { Text(MR.strings.sync_conflict_title_scene_draft_field_name.get()) },
+			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
+			label = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
 			isError = (nameError != null),
 		)
 		Text(
@@ -100,8 +101,8 @@ private fun LocalDraft(
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_title_scene_draft_field_content.get()) },
-			label = { Text(MR.strings.sync_conflict_title_scene_draft_field_content.get()) }
+			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) },
+			label = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) }
 		)
 	}
 }
@@ -119,16 +120,16 @@ private fun RemoteDraft(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_scene_draft_remote.get(),
+				text = Res.string.sync_conflict_title_scene_draft_remote.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-				Text(MR.strings.sync_conflict_remote_use_button.get())
+				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_title_scene_draft_field_name.get(),
+			Res.string.sync_conflict_title_scene_draft_field_name.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
@@ -140,7 +141,7 @@ private fun RemoteDraft(
 		}
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_title_scene_draft_field_content.get(),
+			Res.string.sync_conflict_title_scene_draft_field_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)

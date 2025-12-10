@@ -9,10 +9,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,19 +42,19 @@ actual fun EditorTopBar(
 					modifier = Modifier
 						.align(Alignment.Top)
 						.padding(top = Ui.Padding.L)
-				) { Text(MR.strings.scene_editor_unsaved_chip.get()) }
+				) { Text(Res.string.scene_editor_unsaved_chip.get()) }
 
 				Spacer(modifier = Modifier.weight(1f))
 
 				IconButton(onClick = {
 					scope.launch {
 						component.storeSceneContent()
-						scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.scene_editor_toast_save_successful)) }
+						scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.scene_editor_toast_save_successful)) }
 					}
 				}) {
 					Icon(
 						Icons.Filled.Save,
-						contentDescription = MR.strings.scene_editor_save_button.get(),
+						contentDescription = Res.string.scene_editor_save_button.get(),
 						tint = MaterialTheme.colorScheme.onSurface
 					)
 				}
@@ -65,7 +65,7 @@ actual fun EditorTopBar(
 			IconButton(onClick = component::toggleMetadataVisibility) {
 				Icon(
 					Icons.Filled.Info,
-					contentDescription = MR.strings.scene_editor_metadata_button.get(),
+					contentDescription = Res.string.scene_editor_metadata_button.get(),
 					tint = MaterialTheme.colorScheme.onSurface
 				)
 			}
@@ -75,7 +75,7 @@ actual fun EditorTopBar(
 			IconButton(onClick = component::enterFocusMode) {
 				Icon(
 					imageVector = Icons.Default.Fullscreen,
-					contentDescription = MR.strings.scene_editor_focus_mode_button.get(),
+					contentDescription = Res.string.scene_editor_focus_mode_button.get(),
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
@@ -85,7 +85,7 @@ actual fun EditorTopBar(
 	SimpleDialog(
 		onCloseRequest = component::endSceneNameEdit,
 		visible = state.isEditingName,
-		title = MR.strings.scene_editor_rename_dialog_title.get()
+		title = Res.string.scene_editor_rename_dialog_title.get()
 	) {
 
 		var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
@@ -95,7 +95,7 @@ actual fun EditorTopBar(
 			value = editSceneNameValue,
 			onValueChange = { editSceneNameValue = it },
 			modifier = Modifier.padding(Ui.Padding.XL),
-			label = { Text(MR.strings.scene_editor_name_hint.get()) }
+			label = { Text(Res.string.scene_editor_name_hint.get()) }
 		)
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -104,14 +104,14 @@ actual fun EditorTopBar(
 			IconButton(onClick = { dialogScope.launch { component.changeSceneName(editSceneNameValue) } }) {
 				Icon(
 					Icons.Filled.Check,
-					MR.strings.scene_editor_rename_button.get(),
+					Res.string.scene_editor_rename_button.get(),
 					tint = MaterialTheme.colorScheme.onSurface
 				)
 			}
 			IconButton(onClick = component::endSceneNameEdit) {
 				Icon(
 					Icons.Filled.Cancel,
-					MR.strings.scene_editor_cancel_button.get(),
+					Res.string.scene_editor_cancel_button.get(),
 					tint = MaterialTheme.colorScheme.error
 				)
 			}

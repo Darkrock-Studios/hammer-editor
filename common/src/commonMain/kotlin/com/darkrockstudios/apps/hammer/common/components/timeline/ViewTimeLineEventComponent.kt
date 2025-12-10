@@ -5,7 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_menu_delete
+import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -138,7 +140,7 @@ class ViewTimeLineEventComponent(
 	private fun addEntryMenu() {
 		val deleteEntry = MenuItemDescriptor(
 			"view-timeline-event-delete",
-			MR.strings.encyclopedia_entry_menu_delete,
+			Res.string.encyclopedia_entry_menu_delete,
 			"",
 		) {
 			startDeleteEvent()
@@ -147,7 +149,7 @@ class ViewTimeLineEventComponent(
 		val menuItems = setOf(deleteEntry)
 		val menu = MenuDescriptor(
 			getMenuId(),
-			MR.strings.timeline_view_menu_group,
+			Res.string.timeline_view_menu_group,
 			menuItems.toList()
 		)
 		addMenu(menu)

@@ -21,13 +21,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.timeline_no_events
+import com.darkrockstudios.apps.hammer.timeline_title
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -45,12 +47,12 @@ fun TimeLineOverviewUi(
 
 	Box(modifier = Modifier.fillMaxSize().padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
 		Column(modifier = Modifier.widthIn(0.dp, 700.dp).align(Alignment.Center).fillMaxWidth()) {
-			HeaderUi(MR.strings.timeline_title, "\uD83D\uDCC5")
+			HeaderUi(Res.string.timeline_title, "\uD83D\uDCC5")
 
 			val events = state.timeLine?.events ?: emptyList()
 			if (events.isEmpty()) {
 				Text(
-					MR.strings.timeline_no_events.get(),
+					Res.string.timeline_no_events.get(),
 					modifier = Modifier.fillMaxWidth(),
 					textAlign = TextAlign.Center,
 					color = MaterialTheme.colorScheme.onBackground,

@@ -17,10 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.ServerSetupDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -42,12 +42,12 @@ fun ServerSettingsUi(
 		modifier = Modifier.padding(Ui.Padding.M)
 	) {
 		Text(
-			MR.strings.settings_server_header.get(),
+			Res.string.settings_server_header.get(),
 			style = MaterialTheme.typography.headlineSmall,
 			color = MaterialTheme.colorScheme.onBackground,
 		)
 		Text(
-			MR.strings.settings_server_description.get(),
+			Res.string.settings_server_description.get(),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onBackground,
 			fontStyle = FontStyle.Italic
@@ -76,7 +76,7 @@ fun ServerSettingsUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 					Text(
-						MR.strings.settings_server_enable_sync_backup.get(),
+						Res.string.settings_server_enable_sync_backup.get(),
 						style = MaterialTheme.typography.titleMedium,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						fontWeight = FontWeight.Bold
@@ -84,7 +84,7 @@ fun ServerSettingsUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.S))
 
 					Text(
-						MR.strings.settings_server_enable_sync_backup_desc.get(),
+						Res.string.settings_server_enable_sync_backup_desc.get(),
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						textAlign = TextAlign.Center
@@ -95,7 +95,7 @@ fun ServerSettingsUi(
 						onClick = { scope.launch { component.beginSetupServer() } },
 						modifier = Modifier.fillMaxWidth()
 					) {
-						Text(MR.strings.settings_server_setup_button.get())
+						Text(Res.string.settings_server_setup_button.get())
 					}
 				}
 			}
@@ -110,18 +110,18 @@ fun ServerSettingsUi(
 			) {
 				Column(modifier = Modifier.padding(Ui.Padding.L)) {
 					Text(
-						MR.strings.settings_server_connection_header.get(),
+						Res.string.settings_server_connection_header.get(),
 						style = MaterialTheme.typography.titleMedium,
 						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 					Text(
-						state.currentEmail ?: MR.strings.settings_server_unknown_error.get(),
+						state.currentEmail ?: Res.string.settings_server_unknown_error.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						fontWeight = FontWeight.Bold,
 						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 					Text(
-						state.currentUrl ?: MR.strings.settings_server_unknown_error.get(),
+						state.currentUrl ?: Res.string.settings_server_unknown_error.get(),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
 					)
@@ -135,7 +135,7 @@ fun ServerSettingsUi(
 						)
 						Spacer(modifier = Modifier.size(Ui.Padding.S))
 						Text(
-							MR.strings.settings_server_connected.get(),
+							Res.string.settings_server_connected.get(),
 							style = MaterialTheme.typography.bodyMedium,
 							color = successColor
 						)
@@ -145,16 +145,16 @@ fun ServerSettingsUi(
 						FilledTonalButton(onClick = {
 							scope.launch {
 								if (component.authTest()) {
-									rootSnackbar.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_success))
+									rootSnackbar.showSnackbar(strRes.get(Res.string.settings_server_authtest_toast_success))
 								} else {
-									rootSnackbar.showSnackbar(strRes.get(MR.strings.settings_server_authtest_toast_failure))
+									rootSnackbar.showSnackbar(strRes.get(Res.string.settings_server_authtest_toast_failure))
 								}
 							}
 						}) {
-							Text(MR.strings.settings_server_test_auth_button.get())
+							Text(Res.string.settings_server_test_auth_button.get())
 						}
 						FilledTonalButton(onClick = { component.reauthenticate() }) {
-							Text(MR.strings.settings_server_reauth_button.get())
+							Text(Res.string.settings_server_reauth_button.get())
 						}
 					}
 				}
@@ -166,7 +166,7 @@ fun ServerSettingsUi(
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 			Text(
-				MR.strings.settings_server_sync_backup_preferences.get(),
+				Res.string.settings_server_sync_backup_preferences.get(),
 				style = MaterialTheme.typography.titleMedium,
 				color = MaterialTheme.colorScheme.onBackground
 			)
@@ -183,7 +183,7 @@ fun ServerSettingsUi(
 						}
 					)
 					Text(
-						MR.strings.settings_server_auto_sync.get(),
+						Res.string.settings_server_auto_sync.get(),
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,
 					)
@@ -198,7 +198,7 @@ fun ServerSettingsUi(
 						}
 					)
 					Text(
-						MR.strings.settings_server_sync_auto_close.get(),
+						Res.string.settings_server_sync_auto_close.get(),
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.onBackground,
 					)
@@ -215,7 +215,7 @@ fun ServerSettingsUi(
 							}
 						)
 						Text(
-							MR.strings.settings_server_sync_backup.get(),
+							Res.string.settings_server_sync_backup.get(),
 							style = MaterialTheme.typography.bodyMedium,
 							color = MaterialTheme.colorScheme.onBackground,
 						)
@@ -235,7 +235,7 @@ fun ServerSettingsUi(
 									}
 								}
 							},
-							label = { Text(MR.strings.settings_server_max_backups.get()) },
+							label = { Text(Res.string.settings_server_max_backups.get()) },
 							singleLine = true,
 						)
 					}
@@ -247,7 +247,7 @@ fun ServerSettingsUi(
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 			Text(
-				MR.strings.settings_server_danger_zone.get(),
+				Res.string.settings_server_danger_zone.get(),
 				style = MaterialTheme.typography.titleMedium,
 				color = MaterialTheme.colorScheme.error
 			)
@@ -261,7 +261,7 @@ fun ServerSettingsUi(
 				border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
 				modifier = Modifier.fillMaxWidth()
 			) {
-				Text(MR.strings.settings_server_remove_server_button.get())
+				Text(Res.string.settings_server_remove_server_button.get())
 			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
@@ -269,8 +269,8 @@ fun ServerSettingsUi(
 	}
 	if (showConfirmRemoveServer) {
 		SimpleConfirm(
-			title = MR.strings.settings_remove_server_dialog_title.get(),
-			message = MR.strings.settings_remove_server_dialog_message.get(),
+			title = Res.string.settings_remove_server_dialog_title.get(),
+			message = Res.string.settings_remove_server_dialog_message.get(),
 			onDismiss = { showConfirmRemoveServer = false },
 			onConfirm = {
 				scope.launch {

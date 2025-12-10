@@ -15,10 +15,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_create_button
+import com.darkrockstudios.apps.hammer.create_sceneitem_dialog_dismiss_button
 
 @ExperimentalMaterial3Api
 @Composable
@@ -65,11 +67,11 @@ internal fun CreateDialog(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = { close(nameText) }) {
-						Text(MR.strings.create_sceneitem_dialog_create_button.get())
+						Text(Res.string.create_sceneitem_dialog_create_button.get())
 					}
 
 					Button(onClick = { close(null) }) {
-						Text(MR.strings.create_sceneitem_dialog_dismiss_button.get())
+						Text(Res.string.create_sceneitem_dialog_dismiss_button.get())
 					}
 				}
 			}

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="account_window_title">Hammer - Вибір проєктів</string>
-    <string name="project_window_title">Hammer - %1$s</string>
-    <string name="project_window_menu_file">Файл</string>
-    <string name="project_window_menu_item_close">Закрити проєкт</string>
-    <string name="project_window_menu_item_exit">Вийти</string>
-</resources>

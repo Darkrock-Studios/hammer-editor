@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="settings_heading">⚙ Налаштування</string>
+	<string name="settings_theme_label">Тема інтерфейсу</string>
+	<string name="settings_projects_directory">Каталог проєктів</string>
+	<string name="settings_projects_directory_hint">Шлях до каталогу проєктів</string>
+	<string name="settings_projects_directory_button">Вибрати папку</string>
+	<string name="settings_example_project_header">Приклад проєкту</string>
+	<string name="settings_example_project_description">Встановіть приклад проєкту, щоб побачити, як використовуються
+		різні функції.
+	</string>
+	<string name="settings_example_project_button">Перевстановити</string>
+	<string name="settings_example_project_success_message">Приклад проєкту створено.</string>
+	<string name="settings_data_version">Дані: v%1$s</string>
+	<string name="settings_server_header">Сервер</string>
+	<string name="settings_server_description">Налаштуйте сервер для синхронізації між пристроями.</string>
+	<string name="settings_server_url_label">URL:</string>
+	<string name="settings_server_email_label">Ел. пошта:</string>
+	<string name="settings_server_setup_button">Налаштувати</string>
+	<string name="settings_server_modify_button">Змінити</string>
+	<string name="settings_server_unknown_error">Помилка</string>
+	<string name="settings_server_auto_sync">Автоматична синхронізація</string>
+	<string name="settings_server_sync_backup">Резервна копія під час синхронізації</string>
+	<string name="settings_server_sync_auto_close">Закривати діалоги після успішної синхронізації</string>
+	<string name="settings_server_max_backups">Макс. резервних копій на проєкт</string>
+	<string name="settings_server_test_auth_button">Перевірити автентифікацію</string>
+	<string name="settings_server_reauth_button">Повторна автентифікація</string>
+	<string name="settings_server_remove_server_button">Видалити сервер</string>
+	<string name="settings_server_authtest_toast_success">Автентифікацію пройдено успішно</string>
+	<string name="settings_server_authtest_toast_failure">Помилка автентифікації</string>
+	<string name="settings_remove_server_dialog_title">Видалити сервер</string>
+	<string name="settings_remove_server_dialog_message">Ви впевнені, що хочете видалити сервер?</string>
+	<string name="settings_server_setup_title">Налаштувати сервер</string>
+	<string name="settings_server_setup_header">Конфігурація сервера</string>
+	<string name="settings_server_setup_ssl_label">HTTPS?</string>
+	<string name="settings_server_setup_url_hint">URL сервера: myserver.com</string>
+	<string name="settings_server_setup_email_hint">Ел. пошта: user@example.com</string>
+	<string name="settings_server_setup_password_hint">Пароль</string>
+	<string name="settings_server_setup_password_show">Показати пароль</string>
+	<string name="settings_server_setup_password_hide">Сховати пароль</string>
+	<string name="settings_server_setup_login_button">Увійти</string>
+	<string name="settings_server_setup_create_button">Створити</string>
+	<string name="settings_server_setup_cancel_button">Скасувати</string>
+	<string name="settings_server_setup_toast_failure">Помилка налаштування сервера: %1$s</string>
+	<string name="settings_server_setup_toast_failure_unknown">Невідома помилка</string>
+	<string name="settings_server_setup_toast_success">Сервер успішно налаштовано!</string>
+	<string name="remove_local_dialog_title">Видалити локальний вміст?</string>
+	<string name="remove_local_dialog_message">Бажаєте видалити поточний локальний вміст перед синхронізацією? Якщо ні,
+		ми спробуємо об'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов'язаний, це може викликати
+		проблеми.
+	</string>
+	<string name="settings_platform_settings_title">Налаштування платформи</string>
+	<string name="settings_keep_screen_on">Тримати екран увімкненим</string>
+	<string name="settings_spellcheck_heading">Перевірка орфографії</string>
+	<string name="settings_spellcheck_enable">Увімкнути перевірку орфографії (експериментально)</string>
+	<string name="settings_spellcheck_in_focus_enable">Увімкнути у режимі фокусування</string>
+	<string name="settings_spellcheck_dictionary">Словник</string>
+	<string name="settings_spellcheck_notice">Перевірка орфографії є експериментальною! Якщо вона викликає проблеми,
+		просто вимкніть її.
+	</string>
+</resources>

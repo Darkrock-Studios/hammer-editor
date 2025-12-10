@@ -13,13 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
@@ -41,13 +41,13 @@ fun SceneMetadataPanelUi(
 				IconButton(onClick = closeMetadata) {
 					Icon(
 						imageVector = Icons.Default.Close,
-						contentDescription = MR.strings.scene_editor_metadata_hide_button.get(),
+						contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
 						tint = MaterialTheme.colorScheme.onBackground
 					)
 				}
 
 				Text(
-					text = MR.strings.scene_editor_metadata_title.get(),
+					text = Res.string.scene_editor_metadata_title.get(),
 					style = MaterialTheme.typography.headlineMedium
 				)
 			}
@@ -61,7 +61,7 @@ fun SceneMetadataPanelUi(
 
 			Row(modifier = Modifier.align(Alignment.End)) {
 				Text(
-					MR.strings.scene_editor_metadata_word_count_label.get(),
+					Res.string.scene_editor_metadata_word_count_label.get(),
 					style = MaterialTheme.typography.headlineSmall,
 				)
 
@@ -78,10 +78,10 @@ fun SceneMetadataPanelUi(
 				onValueChange = component::updateOutline,
 				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
 				maxLines = 4,
-				label = { Text(MR.strings.scene_editor_metadata_outline_label.get()) },
+				label = { Text(Res.string.scene_editor_metadata_outline_label.get()) },
 				placeholder = {
 					Text(
-						MR.strings.scene_editor_metadata_outline_placeholder.get(),
+						Res.string.scene_editor_metadata_outline_placeholder.get(),
 						style = MaterialTheme.typography.bodyLarge,
 					)
 				},
@@ -95,10 +95,10 @@ fun SceneMetadataPanelUi(
 				onValueChange = component::updateNotes,
 				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
 				maxLines = 4,
-				label = { Text(MR.strings.scene_editor_metadata_notes_label.get()) },
+				label = { Text(Res.string.scene_editor_metadata_notes_label.get()) },
 				placeholder = {
 					Text(
-						MR.strings.scene_editor_metadata_notes_placeholder.get(),
+						Res.string.scene_editor_metadata_notes_placeholder.get(),
 						style = MaterialTheme.typography.bodyLarge,
 					)
 				},
@@ -110,7 +110,7 @@ fun SceneMetadataPanelUi(
 			CollapsableSection(
 				header = {
 					Text(
-						MR.strings.scene_editor_metadata_advanced_header.get(),
+						Res.string.scene_editor_metadata_advanced_header.get(),
 						style = MaterialTheme.typography.titleMedium,
 					)
 				},
@@ -124,7 +124,7 @@ fun SceneMetadataPanelUi(
 fun AdvancedSection(state: SceneMetadataPanel.State) {
 	Column(modifier = Modifier.padding(Ui.Padding.L)) {
 		Text(
-			MR.strings.scene_editor_metadata_entity_id.get(),
+			Res.string.scene_editor_metadata_entity_id.get(),
 			style = MaterialTheme.typography.titleMedium,
 		)
 		SelectionContainer {
@@ -137,7 +137,7 @@ fun AdvancedSection(state: SceneMetadataPanel.State) {
 		SpacerL()
 
 		Text(
-			MR.strings.scene_editor_metadata_entity_filename.get(),
+			Res.string.scene_editor_metadata_entity_filename.get(),
 			style = MaterialTheme.typography.titleMedium,
 		)
 		SelectionContainer {
@@ -150,7 +150,7 @@ fun AdvancedSection(state: SceneMetadataPanel.State) {
 		SpacerL()
 
 		Text(
-			MR.strings.scene_editor_metadata_entity_path.get(),
+			Res.string.scene_editor_metadata_entity_path.get(),
 			style = MaterialTheme.typography.titleMedium,
 		)
 		SelectionContainer {

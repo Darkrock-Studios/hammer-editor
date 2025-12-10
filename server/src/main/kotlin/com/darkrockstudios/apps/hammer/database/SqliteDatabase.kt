@@ -4,7 +4,7 @@ import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.FileSystem
-import java.util.Properties
+import java.util.*
 
 class SqliteDatabase(fileSystem: FileSystem) : Database {
 	private lateinit var driver: JdbcSqliteDriver

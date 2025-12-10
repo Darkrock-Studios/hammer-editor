@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="save_draft_dialog_title">Save Draft:</string>
+	<string name="save_draft_dialog_name_hint">Draft name</string>
+	<string name="save_draft_dialog_save_button">Save</string>
+	<string name="save_draft_dialog_cancel_button">Cancel</string>
+	<string name="save_draft_dialog_toast_success">Draft Saved</string>
+	<string name="scene_editor_rename_dialog_title">Rename Scene</string>
+	<string name="scene_editor_name_hint">Scene Name</string>
+	<string name="scene_editor_rename_button">Rename</string>
+	<string name="scene_editor_cancel_button">Cancel</string>
+	<string name="scene_editor_unsaved_chip">Unsaved</string>
+	<string name="scene_editor_save_button">Save</string>
+	<string name="scene_editor_metadata_button">Scene Info</string>
+	<string name="scene_editor_toast_save_successful">Saved</string>
+	<string name="scene_editor_body_placeholder">Begin writing your scene here</string>
+	<string name="scene_editor_menu_group">Scene</string>
+	<string name="scene_editor_menu_item_save_draft">Save Draft</string>
+	<string name="scene_editor_menu_item_view_drafts">View Drafts</string>
+	<string name="scene_editor_menu_item_rename">Rename</string>
+	<string name="scene_editor_menu_item_discard">Discard</string>
+	<string name="scene_editor_menu_item_delete">Delete</string>
+	<string name="scene_editor_menu_item_save">Save</string>
+	<string name="scene_editor_menu_item_close">Close</string>
+
+	<string name="scene_editor_focus_mode_button">Enter Focus Mode</string>
+
+	<string name="scene_editor_metadata_title">Metadata</string>
+	<string name="scene_editor_metadata_hide_button">Hide Info</string>
+	<string name="scene_editor_metadata_word_count_label">Words:</string>
+	<string name="scene_editor_metadata_advanced_header">Advanced</string>
+	<string name="scene_editor_metadata_entity_id">Entity ID:</string>
+	<string name="scene_editor_metadata_entity_filename">Filename:</string>
+	<string name="scene_editor_metadata_entity_path">Path:</string>
+
+	<string name="scene_editor_metadata_outline_label">Outline</string>
+	<string name="scene_editor_metadata_outline_placeholder">A short description of what happens in the scene.</string>
+
+	<string name="scene_editor_metadata_notes_label">Notes</string>
+	<string name="scene_editor_metadata_notes_placeholder">Notes to your self.</string>
+
+	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
+</resources>

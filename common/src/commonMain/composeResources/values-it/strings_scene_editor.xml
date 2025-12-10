@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="save_draft_dialog_title">Salva bozza:</string>
+	<string name="save_draft_dialog_name_hint">Nome della bozza</string>
+	<string name="save_draft_dialog_save_button">Salva</string>
+	<string name="save_draft_dialog_cancel_button">Annulla</string>
+	<string name="save_draft_dialog_toast_success">Bozza salvata</string>
+	<string name="scene_editor_rename_dialog_title">Rinomina Scena</string>
+	<string name="scene_editor_name_hint">Nome della scena</string>
+	<string name="scene_editor_rename_button">Rinomina</string>
+	<string name="scene_editor_cancel_button">Annulla</string>
+	<string name="scene_editor_unsaved_chip">Non salvato</string>
+	<string name="scene_editor_save_button">Salva</string>
+	<string name="scene_editor_metadata_button">Informazioni sulla scena</string>
+	<string name="scene_editor_toast_save_successful">Salvato</string>
+	<string name="scene_editor_body_placeholder">Inizia a scrivere la tua scena qui</string>
+	<string name="scene_editor_menu_group">Scena</string>
+	<string name="scene_editor_menu_item_save_draft">Salva bozza</string>
+	<string name="scene_editor_menu_item_view_drafts">Visualizza bozze</string>
+	<string name="scene_editor_menu_item_rename">Rinomina</string>
+	<string name="scene_editor_menu_item_discard">Scarta</string>
+	<string name="scene_editor_menu_item_delete">Elimina</string>
+	<string name="scene_editor_menu_item_save">Salva</string>
+	<string name="scene_editor_menu_item_close">Chiudi</string>
+	<string name="scene_editor_focus_mode_button">Attiva la Modalità Focalizzata</string>
+	<string name="scene_editor_metadata_title">Metadati</string>
+	<string name="scene_editor_metadata_hide_button">Nascondi informazioni</string>
+	<string name="scene_editor_metadata_word_count_label">Parole:</string>
+	<string name="scene_editor_metadata_advanced_header">Avanzate</string>
+	<string name="scene_editor_metadata_entity_id">ID entità:</string>
+	<string name="scene_editor_metadata_entity_filename">Nome file:</string>
+	<string name="scene_editor_metadata_entity_path">Percorso:</string>
+	<string name="scene_editor_metadata_outline_label">Schema</string>
+	<string name="scene_editor_metadata_outline_placeholder">Una breve descrizione di ciò che accade nella scena.
+	</string>
+	<string name="scene_editor_metadata_notes_label">Note</string>
+	<string name="scene_editor_metadata_notes_placeholder">Note per te stesso.</string>
+	<string name="scene_editor_no_scene_selected">Seleziona una scena da modificare</string>
+</resources>

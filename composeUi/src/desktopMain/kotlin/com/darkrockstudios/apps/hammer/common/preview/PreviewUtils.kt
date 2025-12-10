@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
 fun fakeProjectDef(): ProjectDef = ProjectDef(
@@ -36,8 +36,8 @@ fun fakeSceneItem() = SceneItem(
 )
 
 class PreviewStrRes : StrRes {
-	override fun get(str: StringResource): String = ""
-	override fun get(str: StringResource, vararg args: Any): String = ""
+	override suspend fun get(str: StringResource): String = ""
+	override suspend fun get(str: StringResource, vararg args: Any): String = ""
 }
 
 val dummyBackHandler = object : BackHandler {

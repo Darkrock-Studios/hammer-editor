@@ -7,12 +7,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.icerock.moko.resources.ImageResource
-import dev.icerock.moko.resources.compose.painterResource
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal actual fun EditorAction(
-	iconRes: ImageResource,
+	iconRes: DrawableResource,
 	active: Boolean,
 	onClick: () -> Unit
 ) {

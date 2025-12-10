@@ -22,16 +22,16 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
-import dev.icerock.moko.resources.compose.stringResource
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -71,7 +71,7 @@ internal fun AccountSettingsUi(
 					.fillMaxSize()
 			) {
 				Text(
-					MR.strings.settings_heading.get(),
+					Res.string.settings_heading.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.padding(Ui.Padding.XL)
@@ -87,7 +87,7 @@ internal fun AccountSettingsUi(
 					SettingsSectionGroup {
 						Column {
 							Text(
-								MR.strings.settings_theme_label.get(),
+								Res.string.settings_theme_label.get(),
 								style = MaterialTheme.typography.titleMedium,
 								color = MaterialTheme.colorScheme.onSurfaceVariant
 							)
@@ -96,7 +96,7 @@ internal fun AccountSettingsUi(
 							val themeOptions = remember { UiTheme.entries }
 							ExposedDropDown(
 								modifier = Modifier.fillMaxWidth(),
-								label = MR.strings.settings_theme_label.get(),
+								label = Res.string.settings_theme_label.get(),
 								items = themeOptions,
 								selectedItem = state.uiTheme,
 							) { selectedTheme ->
@@ -120,12 +120,12 @@ internal fun AccountSettingsUi(
 					SettingsSectionGroup {
 						Column {
 							Text(
-								MR.strings.settings_example_project_header.get(),
+								Res.string.settings_example_project_header.get(),
 								style = MaterialTheme.typography.headlineSmall,
 								color = MaterialTheme.colorScheme.onBackground,
 							)
 							Text(
-								MR.strings.settings_example_project_description.get(),
+								Res.string.settings_example_project_description.get(),
 								style = MaterialTheme.typography.bodySmall,
 								color = MaterialTheme.colorScheme.onBackground,
 								fontStyle = FontStyle.Italic
@@ -133,13 +133,13 @@ internal fun AccountSettingsUi(
 
 							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-							val successMessage = MR.strings.settings_example_project_success_message.get()
+							val successMessage = Res.string.settings_example_project_success_message.get()
 							OutlinedButton(onClick = {
 								component.reinstallExampleProject {
 									rootSnackbar.showSnackbar(successMessage)
 								}
 							}) {
-								Text(MR.strings.settings_example_project_button.get())
+								Text(Res.string.settings_example_project_button.get())
 							}
 						}
 					}
@@ -160,7 +160,7 @@ internal fun AccountSettingsUi(
 
 					Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
 						Text(
-							stringResource(MR.strings.settings_data_version, getDataVersion()),
+							stringResource(Res.string.settings_data_version, getDataVersion()),
 							style = MaterialTheme.typography.labelMedium,
 							color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
 						)

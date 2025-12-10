@@ -13,10 +13,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.scene_list_outline_dismiss
+import com.darkrockstudios.apps.hammer.scene_list_outline_overview_none
+import com.darkrockstudios.apps.hammer.scene_list_outline_overview_title
 
 @Composable
 fun OutlineOverviewUi(component: OutlineOverview) {
@@ -33,7 +36,7 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 					horizontalArrangement = Arrangement.SpaceBetween,
 				) {
 					Text(
-						MR.strings.scene_list_outline_overview_title.get(),
+						Res.string.scene_list_outline_overview_title.get(),
 						style = MaterialTheme.typography.displaySmall
 					)
 
@@ -42,7 +45,7 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 					) {
 						Icon(
 							Icons.Default.Close,
-							contentDescription = MR.strings.scene_list_outline_dismiss.get(),
+							contentDescription = Res.string.scene_list_outline_dismiss.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
@@ -105,7 +108,7 @@ private fun SceneOutlineUi(sceneOutline: OutlineOverview.OutlineItem.SceneOutlin
 			)
 		} else {
 			Text(
-				MR.strings.scene_list_outline_overview_none.get(),
+				Res.string.scene_list_outline_overview_none.get(),
 				style = MaterialTheme.typography.bodyMedium,
 				fontStyle = FontStyle.Italic,
 				modifier = Modifier.padding(Ui.Padding.L),

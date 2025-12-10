@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.util
 
 import java.awt.Desktop
 import java.net.URI
-import java.util.Locale
+import java.util.*
 
 class UrlLauncherDesktop : UrlLauncher {
 	override fun openInBrowser(url: String) {

@@ -14,12 +14,13 @@ fun <T> ExposedDropDown(
 	items: List<T>,
 	selectedItem: T?,
 	label: String? = null,
-	getText: ((T) -> String)? = null,
+	getText: @Composable ((T) -> String)? = null,
 	modifier: Modifier = Modifier,
 	noneOption: String? = null,
 	enabled: Boolean = true,
 	onValueChanged: (T?) -> Unit
 ) {
+	@Composable
 	fun getItemText(item: T?): String {
 		return if (item != null) {
 			if (getText != null) {
@@ -33,7 +34,7 @@ fun <T> ExposedDropDown(
 	}
 
 	var isExpanded by rememberSaveable { mutableStateOf(false) }
-	var selectedText by rememberSaveable(selectedItem) { mutableStateOf(getItemText(selectedItem)) }
+	val selectedText = getItemText(selectedItem)
 
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
@@ -69,7 +70,6 @@ fun <T> ExposedDropDown(
 					},
 					onClick = {
 						onValueChanged(null)
-						selectedText = noneOption
 						isExpanded = false
 					}
 				)
@@ -85,7 +85,6 @@ fun <T> ExposedDropDown(
 					},
 					onClick = {
 						onValueChanged(item)
-						selectedText = text
 						isExpanded = false
 					}
 				)

@@ -3,8 +3,7 @@ package com.darkrockstudios.apps.hammer.utils
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_MAIN
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
+import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel

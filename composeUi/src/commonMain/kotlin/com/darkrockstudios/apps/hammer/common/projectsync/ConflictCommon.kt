@@ -9,11 +9,13 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
+import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
 
 typealias EntityUi<T> = @Composable (
 	modifier: Modifier,
@@ -54,7 +56,7 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 ) {
 	var tabState by rememberSaveable { mutableStateOf(0) }
 	val titles = remember {
-		listOf(MR.strings.sync_conflict_tab_remote, MR.strings.sync_conflict_tab_local)
+		listOf(Res.string.sync_conflict_tab_remote, Res.string.sync_conflict_tab_local)
 	}
 
 	Column(modifier = modifier) {

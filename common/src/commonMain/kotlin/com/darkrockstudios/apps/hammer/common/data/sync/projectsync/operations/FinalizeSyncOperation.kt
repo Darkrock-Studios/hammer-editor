@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -40,7 +40,7 @@ class FinalizeSyncOperation(
 
 		yield()
 
-		onProgress(0.9f, syncLogI(strRes.get(MR.strings.sync_log_finalized), projectDef))
+		onProgress(0.9f, syncLogI(strRes.get(Res.string.sync_log_finalized), projectDef))
 
 		val newLastId: Int?
 		val syncFinishedAt: Instant?
@@ -66,11 +66,11 @@ class FinalizeSyncOperation(
 		yield()
 
 		if (endSyncResult.isFailure) {
-			Napier.e(strRes.get(MR.strings.sync_log_failed), endSyncResult.exceptionOrNull())
+			Napier.e(strRes.get(Res.string.sync_log_failed), endSyncResult.exceptionOrNull())
 			allSuccess = false
 		} else {
 			if (allSuccess) {
-				onLog(syncLogI(strRes.get(MR.strings.sync_log_data_saved), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_log_data_saved), projectDef))
 
 				// On all success, any dirty entities that weren't processed were not processed because the
 				// server felt they didn't need to be, so we can clear them now
@@ -89,13 +89,13 @@ class FinalizeSyncOperation(
 				} else {
 					onLog(
 						syncLogE(
-							strRes.get(MR.strings.sync_log_data_save_failed),
+							strRes.get(Res.string.sync_log_data_save_failed),
 							projectDef
 						)
 					)
 				}
 			} else {
-				onLog(syncLogE(strRes.get(MR.strings.sync_log_data_save_failed), projectDef))
+				onLog(syncLogE(strRes.get(Res.string.sync_log_data_save_failed), projectDef))
 			}
 		}
 

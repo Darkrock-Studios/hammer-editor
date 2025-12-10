@@ -8,21 +8,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun EncyclopediaEntryConflict(
@@ -47,6 +45,7 @@ private fun LocalEntry(
 	component: ProjectSynchronization
 ) {
 	val strRes = rememberStrRes()
+	val scope = rememberCoroutineScope()
 	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.EncyclopediaEntryEntity
 	var nameTextValue by rememberSaveable(entity) { mutableStateOf(entity?.name ?: "") }
 	var nameError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
@@ -60,7 +59,7 @@ private fun LocalEntry(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_local_entry.get(),
+				text = Res.string.sync_conflict_local_entry.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = {
@@ -71,15 +70,17 @@ private fun LocalEntry(
 					)
 				)
 				if (error is ProjectSynchronization.EntityMergeError.EncyclopediaEntryMergeError) {
-					nameError = error.nameError?.text(strRes)
-					contentError = error.contentError?.text(strRes)
+					scope.launch {
+						nameError = error.nameError?.text(strRes)
+						contentError = error.contentError?.text(strRes)
+					}
 				}
 			}) {
-				Text(MR.strings.sync_conflict_local_use_button.get())
+				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
 		Text(
-			text = MR.strings.sync_conflict_merge_explained.get(),
+			text = Res.string.sync_conflict_merge_explained.get(),
 			style = MaterialTheme.typography.bodySmall,
 			fontStyle = FontStyle.Italic
 		)
@@ -94,17 +95,17 @@ private fun LocalEntry(
 		Text(entityConflict.serverEntity.entryType)
 		Text(
 			if (entityConflict.serverEntity.image != null)
-				MR.strings.sync_conflict_encyclopedia_has_image.get()
+				Res.string.sync_conflict_encyclopedia_has_image.get()
 			else
-				MR.strings.sync_conflict_encyclopedia_no_image.get(),
+				Res.string.sync_conflict_encyclopedia_no_image.get(),
 			style = MaterialTheme.typography.bodyLarge
 		)
 		Spacer(Modifier.size(Ui.Padding.XL))
 		TextField(
 			value = nameTextValue,
 			onValueChange = { nameTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_encyclopedia_label_name.get()) },
-			label = { Text(MR.strings.sync_conflict_encyclopedia_label_name.get()) },
+			placeholder = { Text(Res.string.sync_conflict_encyclopedia_label_name.get()) },
+			label = { Text(Res.string.sync_conflict_encyclopedia_label_name.get()) },
 			isError = (nameError != null),
 		)
 		Text(
@@ -117,8 +118,8 @@ private fun LocalEntry(
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_encyclopedia_label_content.get()) },
-			label = { Text(MR.strings.sync_conflict_encyclopedia_label_content.get()) },
+			placeholder = { Text(Res.string.sync_conflict_encyclopedia_label_content.get()) },
+			label = { Text(Res.string.sync_conflict_encyclopedia_label_content.get()) },
 			isError = (contentError != null),
 		)
 		Text(
@@ -129,7 +130,7 @@ private fun LocalEntry(
 		)
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_encyclopedia_label_tags.get(),
+			Res.string.sync_conflict_encyclopedia_label_tags.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
@@ -167,18 +168,18 @@ fun RemoteEntry(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_remote_entry.get(),
+				text = Res.string.sync_conflict_remote_entry.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-				Text(MR.strings.sync_conflict_remote_use_button.get())
+				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
 
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
-				text = MR.strings.sync_conflict_encyclopedia_label_name.get(),
+				text = Res.string.sync_conflict_encyclopedia_label_name.get(),
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
@@ -194,7 +195,7 @@ fun RemoteEntry(
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
-				text = MR.strings.sync_conflict_encyclopedia_label_type.get(),
+				text = Res.string.sync_conflict_encyclopedia_label_type.get(),
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
@@ -208,16 +209,16 @@ fun RemoteEntry(
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
-				text = MR.strings.sync_conflict_encyclopedia_label_image.get(),
+				text = Res.string.sync_conflict_encyclopedia_label_image.get(),
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
 
 			Text(
 				if (entityConflict.serverEntity.image != null)
-					MR.strings.sync_conflict_encyclopedia_has_image.get()
+					Res.string.sync_conflict_encyclopedia_has_image.get()
 				else
-					MR.strings.sync_conflict_encyclopedia_no_image.get(),
+					Res.string.sync_conflict_encyclopedia_no_image.get(),
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
@@ -225,7 +226,7 @@ fun RemoteEntry(
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
 			modifier = Modifier.padding(end = Ui.Padding.M),
-			text = MR.strings.sync_conflict_encyclopedia_label_content.get(),
+			text = Res.string.sync_conflict_encyclopedia_label_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
@@ -238,7 +239,7 @@ fun RemoteEntry(
 
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_encyclopedia_label_tags.get(),
+			Res.string.sync_conflict_encyclopedia_label_tags.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)

@@ -18,11 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 @Composable
 internal fun TimelineEventConflict(
@@ -43,7 +43,7 @@ internal fun TimelineEventConflict(
 private fun getDateText(entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>): String {
 	val date = entityConflict.serverEntity.date
 	return if (date.isNullOrBlank()) {
-		MR.strings.sync_conflict_timeline_event_missing_date.get()
+		Res.string.sync_conflict_timeline_event_missing_date.get()
 	} else {
 		date
 	}
@@ -66,7 +66,7 @@ private fun LocalEvent(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_timeline_event_local.get(),
+				text = Res.string.sync_conflict_title_timeline_event_local.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = {
@@ -77,12 +77,12 @@ private fun LocalEvent(
 					)
 				)
 			}) {
-				Text(MR.strings.sync_conflict_local_use_button.get())
+				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
 
 		Text(
-			text = MR.strings.sync_conflict_merge_explained.get(),
+			text = Res.string.sync_conflict_merge_explained.get(),
 			style = MaterialTheme.typography.bodySmall,
 			fontStyle = FontStyle.Italic
 		)
@@ -91,15 +91,15 @@ private fun LocalEvent(
 		TextField(
 			value = dateTextValue,
 			onValueChange = { dateTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_title_timeline_event_field_date.get()) },
-			label = { Text(MR.strings.sync_conflict_title_timeline_event_field_date.get()) }
+			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) },
+			label = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) }
 		)
 		Spacer(Modifier.size(Ui.Padding.XL))
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
-			placeholder = { Text(MR.strings.sync_conflict_title_timeline_event_field_content.get()) },
-			label = { Text(MR.strings.sync_conflict_title_timeline_event_field_content.get()) }
+			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) },
+			label = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) }
 		)
 	}
 }
@@ -117,16 +117,16 @@ private fun RemoteEvent(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
-				text = MR.strings.sync_conflict_title_timeline_event_remote.get(),
+				text = Res.string.sync_conflict_title_timeline_event_remote.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-				Text(MR.strings.sync_conflict_remote_use_button.get())
+				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_title_timeline_event_field_date.get(),
+			Res.string.sync_conflict_title_timeline_event_field_date.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
@@ -138,7 +138,7 @@ private fun RemoteEvent(
 		}
 		Spacer(Modifier.size(Ui.Padding.XL))
 		Text(
-			MR.strings.sync_conflict_title_timeline_event_field_content.get(),
+			Res.string.sync_conflict_title_timeline_event_field_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)

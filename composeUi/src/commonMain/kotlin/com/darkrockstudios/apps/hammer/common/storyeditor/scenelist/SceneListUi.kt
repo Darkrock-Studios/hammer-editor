@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
@@ -75,7 +75,7 @@ fun SceneListUi(
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				HeaderUi(MR.strings.scene_list_header, "\uD83D\uDCDD")
+				HeaderUi(Res.string.scene_list_header, "\uD83D\uDCDD")
 
 				OverflowMenu(component, treeState)
 			}
@@ -118,20 +118,20 @@ fun SceneListUi(
 				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
 				modifier = Modifier.padding(end = Ui.Padding.M)
 			) {
-				Icon(Icons.Filled.CreateNewFolder, MR.strings.scene_list_create_group_button.get())
+				Icon(Icons.Filled.CreateNewFolder, Res.string.scene_list_create_group_button.get())
 			}
 			FloatingActionButton(onClick = {
 				showCreateSceneDialog = treeState.summary.sceneTree.root.value
 			}) {
-				Icon(Icons.Filled.PostAdd, MR.strings.scene_list_create_group_button.get())
+				Icon(Icons.Filled.PostAdd, Res.string.scene_list_create_group_button.get())
 			}
 		}
 	}
 
 	CreateDialog(
 		show = showCreateGroupDialog != null,
-		title = MR.strings.scene_list_create_group_dialog_title.get(),
-		textLabel = MR.strings.scene_list_create_group_dialog_message.get()
+		title = Res.string.scene_list_create_group_dialog_title.get(),
+		textLabel = Res.string.scene_list_create_group_dialog_message.get()
 	) { groupName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -146,8 +146,8 @@ fun SceneListUi(
 
 	CreateDialog(
 		show = showCreateSceneDialog != null,
-		title = MR.strings.scene_list_create_scene_dialog_title.get(),
-		textLabel = MR.strings.scene_list_create_scene_dialog_message.get()
+		title = Res.string.scene_list_create_scene_dialog_title.get(),
+		textLabel = Res.string.scene_list_create_scene_dialog_message.get()
 	) { sceneName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -222,7 +222,7 @@ private fun RenameSceneDialog(
 						onDismiss()
 					}
 				} else {
-					errorMessage = strRes.get(MR.strings.scene_rename_failed_error_invalid_name)
+					errorMessage = strRes.get(Res.string.scene_rename_failed_error_invalid_name)
 				}
 			} else {
 				withContext(mainDispatcher) {
@@ -242,7 +242,7 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 		IconButton(onClick = { menuOpen = true }) {
 			Icon(
 				Icons.Filled.MoreVert,
-				contentDescription = MR.strings.more_menu_button.get(),
+				contentDescription = Res.string.more_menu_button.get(),
 				tint = MaterialTheme.colorScheme.onSurface
 			)
 		}
@@ -253,8 +253,8 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 		) {
 			if (expandOrCollapse) {
 				DropdownMenuItem(
-					text = { Text(MR.strings.expand.get()) },
-					leadingIcon = { Icon(Icons.Default.ExpandMore, MR.strings.expand.get()) },
+					text = { Text(Res.string.expand.get()) },
+					leadingIcon = { Icon(Icons.Default.ExpandMore, Res.string.expand.get()) },
 					onClick = {
 						menuOpen = false
 						expandOrCollapse = false
@@ -263,8 +263,8 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 				)
 			} else {
 				DropdownMenuItem(
-					text = { Text(MR.strings.collapse.get()) },
-					leadingIcon = { Icon(Icons.Default.ExpandLess, MR.strings.expand.get()) },
+					text = { Text(Res.string.collapse.get()) },
+					leadingIcon = { Icon(Icons.Default.ExpandLess, Res.string.expand.get()) },
 					onClick = {
 						menuOpen = false
 						expandOrCollapse = true
@@ -274,8 +274,8 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 			}
 
 			DropdownMenuItem(
-				text = { Text(MR.strings.scene_list_outline_overview_button.get()) },
-				leadingIcon = { Icon(Icons.Default.ViewList, MR.strings.scene_list_outline_overview_button.get()) },
+				text = { Text(Res.string.scene_list_outline_overview_button.get()) },
+				leadingIcon = { Icon(Icons.Default.ViewList, Res.string.scene_list_outline_overview_button.get()) },
 				onClick = {
 					menuOpen = false
 					component.showOutlineOverview()

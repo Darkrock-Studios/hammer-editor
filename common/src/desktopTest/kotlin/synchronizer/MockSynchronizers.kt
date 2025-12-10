@@ -1,10 +1,6 @@
 package synchronizer
 
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import io.mockk.MockKAnnotations
 import io.mockk.impl.annotations.MockK
 import org.koin.dsl.ScopeDSL

@@ -8,7 +8,8 @@ plugins {
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.kotlin.parcelize)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.moko.resources)
+	alias(libs.plugins.jetbrains.compose)
+	alias(libs.plugins.compose.compiler)
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -34,8 +35,6 @@ kotlin {
 			export(libs.decompose)
 			export(libs.essenty.lifecycle)
 			export(libs.coroutines.core)
-			export(libs.moko.resources)
-			export(libs.moko.graphics)
 			export(libs.napier)
 		}
 	}
@@ -72,8 +71,8 @@ kotlin {
 				implementation(libs.tomlkt)
 				api(libs.bundles.essenty)
 				implementation(libs.cache4k)
-				api(libs.moko.resources)
-				api(libs.moko.graphics)
+				implementation(compose.runtime)
+				implementation(compose.components.resources)
 				implementation(libs.kotlinx.atomicfu)
 				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)
@@ -87,7 +86,6 @@ kotlin {
 				implementation(libs.koin.test)
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				implementation(libs.moko.resources.test)
 			}
 		}
 		val androidMain by getting {
@@ -104,7 +102,6 @@ kotlin {
 			dependencies {
 				api(libs.decompose)
 				api(libs.bundles.essenty)
-				api(libs.moko.resources)
 				api(libs.ktor.client.darwin)
 				// TODO Remove this when there is a better way to read zip files on iOS
 				// this library is quite big
@@ -122,7 +119,6 @@ kotlin {
 				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)
 				implementation(libs.appdirs)
-				api(libs.moko.resources.compose)
 				implementation(libs.ktor.client.java)
 				implementation(libs.turbine)
 			}
@@ -139,8 +135,9 @@ kotlin {
 	}
 }
 
-multiplatformResources {
-	resourcesPackage.set("com.darkrockstudios.apps.hammer")
+compose.resources {
+	publicResClass = true
+	packageOfResClass = "com.darkrockstudios.apps.hammer"
 }
 
 android {
@@ -152,9 +149,7 @@ android {
 			res.srcDirs(
 				"resources",
 				"src/androidMain/res",
-				"src/commonMain/resources",
-				// https://github.com/icerockdev/moko-resources/issues/353#issuecomment-1179713713
-				File(layout.buildDirectory.asFile.get(), "generated/moko/androidMain/res")
+				"src/commonMain/resources"
 			)
 		}
 	}

@@ -9,26 +9,12 @@ import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kweb.InputType
-import kweb.a
+import kweb.*
 import kweb.components.Component
-import kweb.div
-import kweb.h3
-import kweb.h4
-import kweb.i
-import kweb.input
-import kweb.label
 import kweb.plugins.fomanticUI.fomantic
 import kweb.routing.RouteReceiver
-import kweb.span
 import kweb.state.KVar
 import kweb.state.render
-import kweb.table
-import kweb.tbody
-import kweb.td
-import kweb.th
-import kweb.thead
-import kweb.tr
 
 fun RouteReceiver.adminPanelPage(
 	accountRepository: AccountsRepository,

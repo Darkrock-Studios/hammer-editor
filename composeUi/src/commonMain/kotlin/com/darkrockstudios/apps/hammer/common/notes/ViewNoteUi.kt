@@ -16,14 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,7 +55,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Text(
-						MR.strings.notes_view_header.get(),
+						Res.string.notes_view_header.get(),
 						style = MaterialTheme.typography.displaySmall,
 						modifier = Modifier.padding(top = Ui.Padding.M),
 					)
@@ -64,7 +64,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 						IconButton(
 							onClick = { component.confirmDelete() },
 						) {
-							Icon(Icons.Filled.Delete, MR.strings.notes_note_item_action_delete.get())
+							Icon(Icons.Filled.Delete, Res.string.notes_note_item_action_delete.get())
 						}
 
 						IconButton(onClick = {
@@ -72,7 +72,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 						}) {
 							Icon(
 								Icons.Filled.Close,
-								MR.strings.notes_note_item_action_cancel.get(),
+								Res.string.notes_note_item_action_cancel.get(),
 							)
 						}
 					}
@@ -104,7 +104,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 								}) {
 									Icon(
 										Icons.Filled.Check,
-										MR.strings.notes_note_item_action_rename.get(),
+										Res.string.notes_note_item_action_rename.get(),
 										tint = MaterialTheme.colorScheme.onSurface
 									)
 								}
@@ -113,7 +113,7 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 								}) {
 									Icon(
 										Icons.Filled.Cancel,
-										MR.strings.notes_note_item_action_cancel.get(),
+										Res.string.notes_note_item_action_cancel.get(),
 										tint = MaterialTheme.colorScheme.error
 									)
 								}
@@ -143,8 +143,8 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 
 	if (state.confirmDiscard || state.confirmClose) {
 		SimpleConfirm(
-			title = MR.strings.notes_discard_dialog_title.get(),
-			message = MR.strings.notes_discard_dialog_message.get(),
+			title = Res.string.notes_discard_dialog_title.get(),
+			message = Res.string.notes_discard_dialog_message.get(),
 			onDismiss = {
 				component.cancelDiscard()
 				component.cancelClose()

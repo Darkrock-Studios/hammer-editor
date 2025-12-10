@@ -28,14 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import dev.icerock.moko.resources.ImageResource
-import dev.icerock.moko.resources.compose.painterResource
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
@@ -54,18 +54,18 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 					horizontalArrangement = Arrangement.Center,
 				) {
 					Image(
-						painter = painterResource(MR.images.hammer_icon),
+						painter = painterResource(Res.drawable.hammer_icon),
 						contentDescription = null
 					)
 
 					if(screen.windowWidthClass == WindowWidthSizeClass.Compact) {
 						Text(
-							text = MR.strings.app_name.get(),
+							text = Res.string.app_name.get(),
 							style = MaterialTheme.typography.displaySmall,
 						)
 					} else {
 						Text(
-							text = MR.strings.app_name.get(),
+							text = Res.string.app_name.get(),
 							style = MaterialTheme.typography.displayLarge,
 						)
 					}
@@ -74,7 +74,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 				Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 				Text(
-					text = MR.strings.about_description.get(),
+					text = Res.string.about_description.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					fontStyle = FontStyle.Italic
 				)
@@ -82,39 +82,39 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 				Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 				Text(
-					text = MR.strings.about_description_line_two.get(),
+					text = Res.string.about_description_line_two.get(),
 					style = MaterialTheme.typography.bodyLarge,
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
-					text = MR.strings.about_community_header.get(),
+					text = Res.string.about_community_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 				)
 
-				CommunityLink(MR.strings.about_community_discord_link.get(), MR.images.discord) {
+				CommunityLink(Res.string.about_community_discord_link.get(), Res.drawable.discord) {
 					component.openDiscord()
 				}
 
-				CommunityLink(MR.strings.about_community_reddit_link.get(), MR.images.reddit) {
+				CommunityLink(Res.string.about_community_reddit_link.get(), Res.drawable.reddit) {
 					component.openReddit()
 				}
 
-				CommunityLink(MR.strings.about_community_github_link.get(), MR.images.github) {
+				CommunityLink(Res.string.about_community_github_link.get(), Res.drawable.github) {
 					component.openGithub()
 				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
-					text = MR.strings.about_attribution_header.get(),
+					text = Res.string.about_attribution_header.get(),
 					style = MaterialTheme.typography.headlineSmall,
 				)
 				Button({
 					showLibraries = true
 				}) {
-					Text(MR.strings.about_attribution_libraries_button.get())
+					Text(Res.string.about_attribution_libraries_button.get())
 				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
@@ -135,7 +135,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 @Composable
 private fun CommunityLink(
 	label: String,
-	icon: ImageResource,
+	icon: DrawableResource,
 	onClick: () -> Unit
 ) {
 	Row(

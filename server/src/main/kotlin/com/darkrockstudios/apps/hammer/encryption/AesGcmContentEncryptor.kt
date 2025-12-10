@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.encryption
 
-import io.ktor.utils.io.core.toByteArray
+import io.ktor.utils.io.core.*
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec

@@ -14,13 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.util.format
+import com.darkrockstudios.apps.hammer.notes_create_note_button
+import com.darkrockstudios.apps.hammer.notes_header
+import com.darkrockstudios.apps.hammer.notes_list_empty
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -29,7 +32,7 @@ fun BrowseNotesUi(component: BrowseNotes, modifier: Modifier = Modifier) {
 	val state by component.state.subscribeAsState()
 
 	Column(modifier = modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
-		HeaderUi(MR.strings.notes_header, "\uD83D\uDCD1")
+		HeaderUi(Res.string.notes_header, "\uD83D\uDCD1")
 
 		LazyVerticalStaggeredGrid(
 			columns = StaggeredGridCells.Adaptive(400.dp),
@@ -39,7 +42,7 @@ fun BrowseNotesUi(component: BrowseNotes, modifier: Modifier = Modifier) {
 			if (state.notes.isEmpty()) {
 				item {
 					Text(
-						MR.strings.notes_list_empty.get(),
+						Res.string.notes_list_empty.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground
 					)
@@ -108,6 +111,6 @@ fun BrowseNotesFab(
 		modifier = modifier,
 		onClick = { component.showCreate() },
 	) {
-		Icon(Icons.Filled.Create, MR.strings.notes_create_note_button.get())
+		Icon(Icons.Filled.Create, Res.string.notes_create_note_button.get())
 	}
 }

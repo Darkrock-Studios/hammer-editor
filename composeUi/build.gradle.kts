@@ -7,7 +7,6 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.library)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.moko.resources)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -37,6 +36,7 @@ kotlin {
 			dependencies {
 				api(project(":common"))
 				api(compose.runtime)
+				api(compose.components.resources)
 				api(compose.uiTooling)
 				api(compose.preview)
 				api(compose.foundation)
@@ -50,10 +50,8 @@ kotlin {
 				api(libs.decompose.compose)
 				api(libs.mpfilepicker)
 				api(libs.imageloader)
-				api(libs.imageloader.moko)
 				api(libs.imageloader.blur)
 				implementation(libs.koalaplot.core)
-				api(libs.moko.resources.compose)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
 				implementation(libs.compose.texteditor)

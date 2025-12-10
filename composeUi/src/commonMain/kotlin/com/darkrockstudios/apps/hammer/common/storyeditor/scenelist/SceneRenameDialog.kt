@@ -14,10 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
 @ExperimentalMaterialApi
@@ -33,7 +33,7 @@ internal fun SceneRenameDialog(
 	SimpleDialog(
 		onCloseRequest = { dismissDialog(null) },
 		visible = true,
-		title = MR.strings.scene_rename_dialog_title.get()
+		title = Res.string.scene_rename_dialog_title.get()
 	) {
 		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.M)) {
 			Column(
@@ -45,7 +45,7 @@ internal fun SceneRenameDialog(
 				OutlinedTextField(
 					value = nameText,
 					onValueChange = { nameText = it },
-					label = { Text(MR.strings.scene_rename_dialog_label.get()) },
+					label = { Text(Res.string.scene_rename_dialog_label.get()) },
 					singleLine = true,
 					keyboardOptions = KeyboardOptions(
 						imeAction = ImeAction.Done
@@ -70,10 +70,10 @@ internal fun SceneRenameDialog(
 					horizontalArrangement = Arrangement.SpaceBetween
 				) {
 					Button(onClick = { dismissDialog(nameText) }) {
-						Text(MR.strings.scene_rename_dialog_rename_button.get())
+						Text(Res.string.scene_rename_dialog_rename_button.get())
 					}
 					Button(onClick = { dismissDialog(null) }) {
-						Text(MR.strings.scene_delete_dialog_dismiss_button.get())
+						Text(Res.string.scene_delete_dialog_dismiss_button.get())
 					}
 				}
 			}

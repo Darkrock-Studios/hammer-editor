@@ -10,12 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import getProject1Def
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.coEvery
-import io.mockk.every
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
-import io.mockk.just
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

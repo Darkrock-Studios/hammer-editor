@@ -3,9 +3,9 @@ package com.darkrockstudios.apps.hammer.plugins
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
-import io.ktor.server.application.createApplicationPlugin
-import io.ktor.server.application.hooks.CallSetup
-import io.ktor.server.request.path
+import io.ktor.server.application.*
+import io.ktor.server.application.hooks.*
+import io.ktor.server.request.*
 import korlibs.io.lang.InvalidArgumentException
 
 

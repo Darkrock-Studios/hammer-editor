@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -15,13 +15,13 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEF
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import dev.icerock.moko.resources.StringResource
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
+import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -128,7 +128,7 @@ class ProjectsRepository(
 			val projectsDir = getProjectsDirectory().toOkioPath()
 			val newProjectDir = projectsDir.div(strippedName)
 			if (fileSystem.exists(newProjectDir)) {
-				CResult.failure(ProjectCreationFailedException(MR.strings.create_project_error_already_exists))
+				CResult.failure(ProjectCreationFailedException(Res.string.create_project_error_already_exists))
 			} else {
 				fileSystem.createDirectory(newProjectDir)
 
@@ -202,15 +202,15 @@ class ProjectsRepository(
 		private val fileNameValidations = listOf(
 			Validator(
 				"Was Blank",
-				MR.strings.create_project_error_blank
+				Res.string.create_project_error_blank
 			) { it.isNotBlank() },
 			Validator(
 				"Invalid Characters",
-				MR.strings.create_project_error_invalid_characters
+				Res.string.create_project_error_invalid_characters
 			) { Regex("""[\d\p{L}+ _']+""").matches(it) },
 			Validator(
 				"Too Long",
-				MR.strings.create_project_error_too_long
+				Res.string.create_project_error_too_long
 			) { it.length <= MAX_FILENAME_LENGTH },
 		)
 
@@ -234,8 +234,8 @@ class ProjectsRepository(
 			} else {
 				CResult.failure(
 					error = "",
-					displayMessage = MR.strings.create_project_error_null_filename.toMsg(),
-					exception = ValidationFailedException(MR.strings.create_project_error_null_filename)
+					displayMessage = Res.string.create_project_error_null_filename.toMsg(),
+					exception = ValidationFailedException(Res.string.create_project_error_null_filename)
 				)
 			}
 		}

@@ -3,12 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.id
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.IdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope

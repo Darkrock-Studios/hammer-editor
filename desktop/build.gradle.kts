@@ -8,7 +8,6 @@ plugins {
 	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.moko.resources)
 	alias(libs.plugins.aboutlibraries.plugin)
 }
 
@@ -18,9 +17,7 @@ version = libs.versions.app.get()
 
 kotlin {
 	jvmToolchain(libs.versions.jvm.get().toInt())
-	jvm {
-		withJava()
-	}
+	jvm()
 	sourceSets {
 		all {
 			languageSettings {
@@ -32,7 +29,6 @@ kotlin {
 		val commonMain by getting {
 			resources.srcDirs("resources")
 			dependencies {
-				implementation(libs.moko.resources)
 				implementation(libs.aboutlibraries.core)
 			}
 		}
@@ -103,11 +99,6 @@ compose.desktop {
 			configurationFiles.from("proguard-rules.pro")
 		}
 	}
-}
-
-multiplatformResources {
-	resourcesClassName.set("DR")
-	resourcesPackage.set("com.darkrockstudios.apps.hammer.desktop")
 }
 
 aboutLibraries {

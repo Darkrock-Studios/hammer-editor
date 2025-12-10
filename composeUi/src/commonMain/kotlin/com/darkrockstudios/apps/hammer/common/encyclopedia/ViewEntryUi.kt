@@ -16,11 +16,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -73,7 +73,7 @@ internal fun ViewEntryUi(
 						modifier = Modifier.wrapContentHeight().fillMaxWidth().padding(top = Ui.Padding.M),
 						value = entryNameText,
 						onValueChange = { entryNameText = it },
-						placeholder = { Text(MR.strings.encyclopedia_entry_name_hint.get()) }
+						placeholder = { Text(Res.string.encyclopedia_entry_name_hint.get()) }
 					)
 				} else {
 					Row(modifier = Modifier.fillMaxWidth()) {
@@ -98,7 +98,7 @@ internal fun ViewEntryUi(
 						) {
 							Icon(
 								Icons.Filled.Close,
-								contentDescription = MR.strings.encyclopedia_entry_close_button.get(),
+								contentDescription = Res.string.encyclopedia_entry_close_button.get(),
 								tint = MaterialTheme.colorScheme.onSurface
 							)
 						}
@@ -131,7 +131,7 @@ internal fun ViewEntryUi(
 						}) {
 							Icon(
 								Icons.Filled.Check,
-								MR.strings.encyclopedia_entry_edit_save_button.get(),
+								Res.string.encyclopedia_entry_edit_save_button.get(),
 								tint = MaterialTheme.colorScheme.onSurface
 							)
 						}
@@ -139,7 +139,7 @@ internal fun ViewEntryUi(
 						IconButton(onClick = { discardConfirm = true }) {
 							Icon(
 								Icons.Filled.Cancel,
-								MR.strings.encyclopedia_entry_edit_cancel_button.get(),
+								Res.string.encyclopedia_entry_edit_cancel_button.get(),
 								tint = MaterialTheme.colorScheme.error
 							)
 						}
@@ -158,8 +158,8 @@ internal fun ViewEntryUi(
 
 						if (discardConfirm) {
 							SimpleConfirm(
-								title = MR.strings.encyclopedia_entry_discard_title.get(),
-								message = MR.strings.encyclopedia_entry_discard_message.get(),
+								title = Res.string.encyclopedia_entry_discard_title.get(),
+								message = Res.string.encyclopedia_entry_discard_message.get(),
 								onDismiss = { discardConfirm = false }
 							) {
 								entryNameText = content.name
@@ -223,8 +223,8 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteImageDialog) {
 		SimpleConfirm(
-			title = MR.strings.encyclopedia_entry_delete_image_title.get(),
-			message = MR.strings.encyclopedia_entry_delete_image_message.get(),
+			title = Res.string.encyclopedia_entry_delete_image_title.get(),
+			message = Res.string.encyclopedia_entry_delete_image_message.get(),
 			onDismiss = { component.closeDeleteImageDialog() }
 		) {
 			scope.launch { component.removeEntryImage() }
@@ -234,8 +234,8 @@ internal fun ViewEntryUi(
 
 	if (state.showDeleteEntryDialog) {
 		SimpleConfirm(
-			title = MR.strings.encyclopedia_entry_delete_title.get(),
-			message = MR.strings.encyclopedia_entry_delete_message.get(),
+			title = Res.string.encyclopedia_entry_delete_title.get(),
+			message = Res.string.encyclopedia_entry_delete_message.get(),
 			onDismiss = { component.closeDeleteEntryDialog() }
 		) {
 			scope.launch(dispatcherDefault) {
@@ -243,7 +243,7 @@ internal fun ViewEntryUi(
 					withContext(dispatcherMain) {
 						closeEntry()
 					}
-					rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_delete_toast))
+					rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_entry_delete_toast))
 				}
 			}
 			component.closeDeleteEntryDialog()
@@ -252,8 +252,8 @@ internal fun ViewEntryUi(
 
 	if (state.confirmClose) {
 		SimpleConfirm(
-			title = MR.strings.encyclopedia_entry_discard_title.get(),
-			message = MR.strings.encyclopedia_entry_discard_message.get(),
+			title = Res.string.encyclopedia_entry_discard_title.get(),
+			message = Res.string.encyclopedia_entry_discard_message.get(),
 			onDismiss = { component.dismissConfirmClose() }
 		) {
 			component.dismissConfirmClose()
@@ -323,12 +323,12 @@ private fun Contents(
 					onValueChange = setEntryText,
 					modifier = Modifier.fillMaxWidth()
 						.padding(PaddingValues(bottom = Ui.Padding.XL)),
-					placeholder = { Text(text = MR.strings.encyclopedia_entry_body_empty_placeholder.get()) },
+					placeholder = { Text(text = Res.string.encyclopedia_entry_body_empty_placeholder.get()) },
 					maxLines = 10,
 				)
 			} else {
 				val text = entryText.ifBlank {
-					MR.strings.encyclopedia_entry_body_empty_label.get()
+					Res.string.encyclopedia_entry_body_empty_label.get()
 				}
 				Text(
 					text,
@@ -367,7 +367,7 @@ private fun Contents(
 					onClick = {
 						component.startTagAdd()
 					},
-					label = { Text(MR.strings.encyclopedia_entry_add_tag.get()) },
+					label = { Text(Res.string.encyclopedia_entry_add_tag.get()) },
 					leadingIcon = {
 						Icon(
 							Icons.Filled.Add,
@@ -385,7 +385,7 @@ private fun Contents(
 	}
 
 	SimpleDialog(
-		title = MR.strings.encyclopedia_entry_add_tags_dialog_title.get(),
+		title = Res.string.encyclopedia_entry_add_tags_dialog_title.get(),
 		visible = state.showTagAdd,
 		onCloseRequest = component::endTagAdd,
 	) {
@@ -395,7 +395,7 @@ private fun Contents(
 				.padding(PaddingValues(bottom = Ui.Padding.L)),
 			value = newTagsText,
 			onValueChange = { newTagsText = it },
-			placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) }
+			placeholder = { Text(Res.string.encyclopedia_create_entry_tags_label.get()) }
 		)
 		Button(onClick = {
 			scope.launch {
@@ -405,7 +405,7 @@ private fun Contents(
 				}
 			}
 		}) {
-			Text(MR.strings.encyclopedia_entry_add_tags_button.get())
+			Text(Res.string.encyclopedia_entry_add_tags_button.get())
 		}
 	}
 }
@@ -421,7 +421,7 @@ private fun reportSaveResult(
 			EntryError.NAME_TOO_LONG -> scope.launch {
 				rootSnackbar.showSnackbar(
 					strRes.get(
-						MR.strings.encyclopedia_create_entry_toast_too_long,
+						Res.string.encyclopedia_create_entry_toast_too_long,
 						EncyclopediaRepository.MAX_NAME_SIZE
 					)
 				)
@@ -429,14 +429,14 @@ private fun reportSaveResult(
 
 			EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
 				rootSnackbar.showSnackbar(
-					strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
+					strRes.get(Res.string.encyclopedia_create_entry_toast_invalid_name)
 				)
 			}
 
 			EntryError.TAG_TOO_LONG -> scope.launch {
 				rootSnackbar.showSnackbar(
 					strRes.get(
-						MR.strings.encyclopedia_create_entry_toast_tag_too_long,
+						Res.string.encyclopedia_create_entry_toast_tag_too_long,
 						EncyclopediaRepository.MAX_TAG_SIZE
 					)
 				)
@@ -445,14 +445,14 @@ private fun reportSaveResult(
 			EntryError.NAME_TOO_SHORT -> scope.launch {
 				rootSnackbar.showSnackbar(
 					strRes.get(
-						MR.strings.encyclopedia_create_entry_toast_tag_too_short,
+						Res.string.encyclopedia_create_entry_toast_tag_too_short,
 					)
 				)
 			}
 
 			EntryError.NONE -> {
-				scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
-				rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_entry_edit_save_toast))
+				scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_create_entry_toast_success)) }
+				rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_entry_edit_save_toast))
 			}
 		}
 	}

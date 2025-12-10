@@ -7,19 +7,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
 
@@ -27,11 +24,14 @@ import com.darkrockstudios.apps.hammer.common.util.formatLocal
 fun DraftsListUi(
 	component: DraftsList,
 ) {
+	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 
+	var headerText by remember { mutableStateOf("") }
 	LaunchedEffect(state.sceneItem) {
 		component.loadDrafts()
+		headerText = strRes.get(Res.string.draft_list_header, state.sceneItem.name)
 	}
 
 	Box(
@@ -45,11 +45,11 @@ fun DraftsListUi(
 						onClick = { component.cancel() },
 						modifier = Modifier.align(Alignment.End)
 					) {
-						Icon(Icons.Default.Close, MR.strings.draft_list_close_button.get())
+						Icon(Icons.Default.Close, Res.string.draft_list_close_button.get())
 					}
 
 					Text(
-						strRes.get(MR.strings.draft_list_header, state.sceneItem.name),
+						headerText,
 						style = MaterialTheme.typography.headlineLarge,
 						color = MaterialTheme.colorScheme.onSurface
 					)
@@ -62,7 +62,7 @@ fun DraftsListUi(
 					state.apply {
 						if (drafts.isEmpty()) {
 							item {
-								Text(MR.strings.draft_list_empty.get())
+								Text(Res.string.draft_list_empty.get())
 							}
 						} else {
 							items(drafts.size) { index ->
@@ -100,7 +100,7 @@ fun DraftItem(
 				draftDef.draftTimestamp.formatLocal("dd MMM `yy")
 			}
 			Text(
-				MR.strings.draft_list_item_created.get(date),
+				Res.string.draft_list_item_created.get(date),
 				style = MaterialTheme.typography.bodySmall
 			)
 		}

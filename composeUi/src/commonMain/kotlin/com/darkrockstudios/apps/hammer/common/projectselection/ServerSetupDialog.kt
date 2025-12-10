@@ -30,12 +30,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -69,7 +69,7 @@ fun ServerSetupDialog(
 						.verticalScroll(rememberScrollState())
 				) {
 					Text(
-						MR.strings.settings_server_setup_title.get(),
+						Res.string.settings_server_setup_title.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onSurface
 					)
@@ -125,7 +125,7 @@ fun ServerSetupDialog(
 								OutlinedTextField(
 									value = state.serverUrl ?: "",
 									onValueChange = { component.updateServerUrl(it) },
-									label = { Text(MR.strings.settings_server_setup_url_hint.get()) },
+									label = { Text(Res.string.settings_server_setup_url_hint.get()) },
 									modifier = Modifier.weight(1f).moveFocusOnTab(),
 									keyboardOptions = KeyboardOptions(
 										autoCorrect = false,
@@ -146,7 +146,7 @@ fun ServerSetupDialog(
 							OutlinedTextField(
 								value = state.serverEmail ?: "",
 								onValueChange = { component.updateServerEmail(it) },
-								label = { Text(MR.strings.settings_server_setup_email_hint.get()) },
+								label = { Text(Res.string.settings_server_setup_email_hint.get()) },
 								modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
 								keyboardOptions = KeyboardOptions(
 									autoCorrect = false,
@@ -165,7 +165,7 @@ fun ServerSetupDialog(
 							OutlinedTextField(
 								value = state.serverPassword ?: "",
 								onValueChange = { component.updateServerPassword(it) },
-								label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
+								label = { Text(Res.string.settings_server_setup_password_hint.get()) },
 								singleLine = true,
 								visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
 								modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
@@ -183,9 +183,9 @@ fun ServerSetupDialog(
 									else Icons.Filled.VisibilityOff
 
 									val description = if (passwordVisible)
-										MR.strings.settings_server_setup_password_hide.get()
+										Res.string.settings_server_setup_password_hide.get()
 									else
-										MR.strings.settings_server_setup_password_show.get()
+										Res.string.settings_server_setup_password_show.get()
 
 									IconButton(onClick = { passwordVisible = !passwordVisible }) {
 										Icon(imageVector = image, description)
@@ -220,7 +220,7 @@ fun ServerSetupDialog(
 							onClick = { scope.launch { component.cancelServerSetup() } },
 							enabled = state.serverWorking.not()
 						) {
-							Text(MR.strings.settings_server_setup_cancel_button.get())
+							Text(Res.string.settings_server_setup_cancel_button.get())
 						}
 
 						Spacer(modifier = Modifier.weight(1f))
@@ -232,7 +232,7 @@ fun ServerSetupDialog(
 								enabled = state.serverWorking.not() && state.currentUrl == null,
 								colors = ButtonDefaults.filledTonalButtonColors()
 							) {
-								Text(MR.strings.settings_server_setup_create_button.get())
+								Text(Res.string.settings_server_setup_create_button.get())
 							}
 							Spacer(modifier = Modifier.size(Ui.Padding.M))
 						}
@@ -255,7 +255,7 @@ fun ServerSetupDialog(
 							},
 							enabled = state.serverWorking.not()
 						) {
-							Text(MR.strings.settings_server_setup_login_button.get())
+							Text(Res.string.settings_server_setup_login_button.get())
 						}
 					}
 				}
@@ -277,8 +277,8 @@ fun ServerSetupDialog(
 		}
 
 		SimpleConfirm(
-			title = MR.strings.remove_local_dialog_title.get(),
-			message = MR.strings.remove_local_dialog_message.get(),
+			title = Res.string.remove_local_dialog_title.get(),
+			message = Res.string.remove_local_dialog_message.get(),
 			implicitCancel = false,
 			onDismiss = {
 				setupServer(create, false)

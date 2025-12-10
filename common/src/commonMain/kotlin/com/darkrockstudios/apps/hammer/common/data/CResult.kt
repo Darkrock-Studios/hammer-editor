@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -24,11 +24,11 @@ sealed class ClientResult<out T> {
 	) : ClientResult<T>() {
 		override val isSuccess = false
 
-		fun displayMessageText(strRes: StrRes, default: StringResource): String {
+		suspend fun displayMessageText(strRes: StrRes, default: StringResource): String {
 			return displayMessage?.text(strRes) ?: strRes.get(default)
 		}
 
-		fun displayMessageText(strRes: StrRes): String? {
+		suspend fun displayMessageText(strRes: StrRes): String? {
 			return displayMessage?.text(strRes)
 		}
 	}
@@ -59,7 +59,7 @@ class ClientMessage(
 	val r: StringResource = res
 	val args: Array<out Any> = inArgs
 
-	fun text(strRes: StrRes): String = strRes.get(r, *args)
+	suspend fun text(strRes: StrRes): String = strRes.get(r, *args)
 }
 
 fun StringResource.toMsg(): Msg = Msg(this)

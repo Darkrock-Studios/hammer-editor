@@ -1,9 +1,9 @@
 package utils
 
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 
 class TestStrRes : StrRes {
-	override fun get(str: StringResource) = "test"
-	override fun get(str: StringResource, vararg args: Any) = "test"
+	override suspend fun get(str: StringResource) = "test"
+	override suspend fun get(str: StringResource, vararg args: Any) = "test"
 }

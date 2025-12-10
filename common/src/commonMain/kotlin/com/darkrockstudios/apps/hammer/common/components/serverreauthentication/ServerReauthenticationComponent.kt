@@ -60,9 +60,10 @@ class ServerReauthenticationComponent(
 				if (isSuccess(authResult)) {
 					onReauthSuccess()
 				} else {
+					val errorText = authResult.displayMessage?.text(strRes)
 					_state.getAndUpdate {
 						it.copy(
-							serverError = authResult.displayMessage?.text(strRes)
+							serverError = errorText
 						)
 					}
 				}

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sync_project_dialog_title">项目同步</string>
+	<string name="sync_conflict_scene_title">场景冲突</string>
+	<string name="sync_conflict_scene_draft_title">场景草稿冲突</string>
+	<string name="sync_conflict_note_title">笔记冲突</string>
+	<string name="sync_conflict_timeline_title">时间线事件冲突</string>
+	<string name="sync_conflict_encyclopedia_title">百科全书冲突</string>
+	<string name="sync_conflict_draft_title">百科冲突</string>
+	<string name="sync_conflict_timeline_event_missing_date">没有日期</string>
+	<string name="sync_conflict_tab_local">本地</string>
+	<string name="sync_conflict_tab_remote">远程</string>
+	<string name="sync_conflict_icon_description">冲突</string>
+	<string name="sync_conflict">冲突</string>
+	<string name="sync_conflict_local_entry">本地条目：</string>
+	<string name="sync_conflict_local_use_button">使用本地</string>
+	<string name="sync_conflict_merge_explained">
+		您可以直接取用本地或远程副本，或者您也可以通过将远程的部分内容复制到本地副本中，手动合并这两者，然后使用合并后的副本。
+	</string>
+	<string name="sync_conflict_remote_entry">远程条目：</string>
+	<string name="sync_conflict_remote_use_button">使用远程</string>
+	<string name="sync_conflict_encyclopedia_local">本地事件：%1$s</string>
+	<string name="sync_conflict_encyclopedia_remote">远程事件：%1$s</string>
+	<string name="sync_conflict_encyclopedia_label_name">名称：</string>
+	<string name="sync_conflict_encyclopedia_label_type">类型：</string>
+	<string name="sync_conflict_encyclopedia_label_image">图像：</string>
+	<string name="sync_conflict_encyclopedia_label_content">内容：</string>
+	<string name="sync_conflict_encyclopedia_label_tags">标签：</string>
+	<string name="sync_conflict_encyclopedia_has_image">有图片</string>
+	<string name="sync_conflict_encyclopedia_no_image">没有图像</string>
+	<string name="sync_conflict_title_scene_remote">远程场景：</string>
+	<string name="sync_conflict_title_scene_local">本地场景：</string>
+	<string name="sync_conflict_title_scene_field_name">名称</string>
+	<string name="sync_conflict_title_scene_field_content">场景内容</string>
+	<string name="sync_conflict_title_scene_draft_remote">远程草稿：</string>
+	<string name="sync_conflict_title_scene_draft_local">本地草稿：</string>
+	<string name="sync_conflict_title_scene_draft_field_name">名称</string>
+	<string name="sync_conflict_title_scene_draft_field_content">场景内容</string>
+	<string name="sync_conflict_title_note_remote">远程笔记：</string>
+	<string name="sync_conflict_title_note_local">本地备注：</string>
+	<string name="sync_conflict_title_note_field_name">备注内容</string>
+	<string name="sync_conflict_title_timeline_event_remote">远程事件：</string>
+	<string name="sync_conflict_title_timeline_event_local">本地活动：</string>
+	<string name="sync_conflict_title_timeline_event_field_date">日期</string>
+	<string name="sync_conflict_title_timeline_event_field_content">事件内容</string>
+	<string name="sync_menu_group">同步</string>
+	<string name="sync_menu_item">开始同步</string>
+	<string name="sync_status_in_progress">正在同步...</string>
+	<string name="sync_status_failed">同步失败</string>
+	<string name="sync_status_success">同步完成</string>
+	<string name="sync_cancel_button">取消</string>
+	<string name="sync_toast_success">项目同步完成</string>
+	<string name="sync_toast_failed">项目同步失败</string>
+	<string name="sync_log_account_begin">开始同步</string>
+	<string name="sync_log_account_server_data_loaded">服务器数据已加载</string>
+	<string name="sync_log_account_complete">账户同步完成</string>
+	<string name="sync_log_account_failed">同步项目失败：%1$s</string>
+	<string name="sync_log_account_project_delete_server_success">删除服务器项目：
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_delete_server_failure">无法在服务器上删除项目：%1$s</string>
+	<string name="sync_log_account_project_delete_client">正在删除本地项目：%1$s</string>
+	<string name="sync_log_account_project_rename_server_success">重命名服务器项目：
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_rename_server_failure">在服务器上重命名项目失败：%1$s</string>
+	<string name="sync_log_account_project_rename_client_from_server_success">从服务器重命名项目：%1$s</string>
+	<string name="sync_log_account_project_rename_client_from_server_failure">无法从服务器重命名项目： %1$s</string>
+	<string name="sync_log_account_project_create_server_success">在服务器上创建项目：%1$s</string>
+	<string name="sync_log_account_project_create_server_failure">在服务器上创建项目失败：%1$s</string>
+	<string name="sync_log_account_project_create_client">创建本地项目：%1$s</string>
+	<string name="sync_log_account_project_create_client_local">设置本地项目服务器 ID:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_client_failure">无法创建服务器项目：
+		%1$s
+	</string>
+	<string name="sync_log_begin_account">同步账户中...</string>
+	<string name="sync_log_begin_projects">正在同步项目...</string>
+	<string name="sync_log_end_projects">项目同步完成</string>
+	<string name="sync_log_begin_project">同步项目：%1$s</string>
+	<string name="sync_log_project_conflict">项目 %1$s 存在冲突，请打开该项目并同步以解决该冲突。</string>
+	<string name="sync_log_client_data_computed">客户端实体数据已计算</string>
+	<string name="sync_log_server_data_loaded">服务器数据已接收</string>
+	<string name="sync_log_client_data_loaded">客户端数据已加载</string>
+	<string name="sync_log_backup_made">已创建本地备份：%1$s</string>
+	<string name="sync_log_entity_download_success">实体 %1$d 已下载</string>
+	<string name="sync_log_entity_download_failed_general">下载实体 %1$d 失败</string>
+	<string name="sync_log_entity_download_failed_not_found">服务器上未找到实体 %1$d</string>
+	<string name="sync_log_entity_download_not_modified">实体 %1$d 未修改</string>
+	<string name="sync_log_entity_upload_entity_not_owned">上传实体 %1$d 失败：类型未被任何东西拥有，可能已被删除。
+	</string>
+	<string name="sync_log_entity_delete_failed">无法在服务器上删除 ID %1$d：%2$s</string>
+	<string name="sync_log_entity_delete_success">在服务器上删除了 ID %1$d</string>
+	<string name="sync_log_entity_conflict">遇到新实体的冲突，这不应该发生！ID: %1$d
+		类型: %2$s
+	</string>
+	<string name="sync_log_entity_failed">同步失败：%1$s</string>
+	<string name="sync_log_entities_transferred">已传输的实体</string>
+	<string name="sync_log_finalized">同步已完成</string>
+	<string name="sync_log_data_saved">同步数据已保存</string>
+	<string name="sync_log_data_save_failed">由于错误，数据未能同步保存。</string>
+	<string name="sync_log_failed">同步结束失败</string>
+	<string name="sync_encyclopedia_deleted">从客户端删除了百科全书 ID %1$d</string>
+	<string name="sync_note_deleted">已从客户端删除笔记 ID %1$d</string>
+	<string name="sync_draft_deleted">从客户端删除了草稿 %1$d</string>
+	<string name="sync_scene_deleted">已从客户端删除场景 %1$d</string>
+	<string name="sync_scene_delete_failed">无法从客户端删除场景 %1$d</string>
+	<string name="sync_scene_delete_failed_not_found">删除场景失败：未找到 %1$d</string>
+	<string name="sync_event_deleted">从客户端删除了事件 %1$d</string>
+	<string name="sync_event_delete_failed">无法从客户端删除事件 %1$d</string>
+	<string name="sync_event_delete_failed_not_found">未找到要删除的事件：%1$d</string>
+	<string name="sync_scene_creating">正在创建新场景 %1$d</string>
+	<string name="sync_scene_downloading">已下载场景内容：%1$d</string>
+	<string name="sync_scene_moved_parent">将场景 %1$d 移动到新父级 %2$d</string>
+	<string name="sync_scene_store_content_failed">无法保存下载的场景内容：%1$d</string>
+	<string name="sync_scene_group_creating">创建新组 %1$d</string>
+	<string name="sync_scene_group_downloading">已下载场景内容：%1$d</string>
+	<string name="sync_scene_group_moved_parent">将场景 %1$d 移动到新父级 %2$d</string>
+	<string name="sync_unauthorized">未经授权</string>
+	<string name="sync_general_error">未处理的服务器错误</string>
+	<string name="reauth_title">重新授权</string>
+	<string name="reauth_explanation">您的令牌已过期，请重新授权您的同步服务器。</string>
+	<string name="reauth_server_url">地址</string>
+	<string name="reauth_server_email">电子邮件</string>
+</resources>

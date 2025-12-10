@@ -6,11 +6,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.context.GlobalContext

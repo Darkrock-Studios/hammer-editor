@@ -17,14 +17,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
-import io.mockk.just
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem

@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
-import com.github.aymanizz.ktori18n.R
 
 class AdminComponent(
 	private val whiteListRepository: WhiteListRepository,

@@ -22,11 +22,12 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
+import com.darkrockstudios.apps.hammer.projects_list_create_button
 
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
@@ -101,7 +102,7 @@ fun ProjectSelectionFab(
 			) {
 				Icon(
 					imageVector = Icons.Filled.Create,
-					MR.strings.projects_list_create_button.get()
+					Res.string.projects_list_create_button.get()
 				)
 			}
 		}

@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 
 data class MenuDescriptor(val id: String, val label: StringResource, val items: List<MenuItemDescriptor>)
 

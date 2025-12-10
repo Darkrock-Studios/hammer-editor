@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource.Companion.defaultUserData
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path

@@ -15,8 +15,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.collapse
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.expand
 
 @Composable
 fun CollapsableSection(
@@ -35,9 +37,9 @@ fun CollapsableSection(
 			header()
 
 			if (expanded) {
-				Icon(Icons.Filled.ExpandLess, MR.strings.collapse.get())
+				Icon(Icons.Filled.ExpandLess, Res.string.collapse.get())
 			} else {
-				Icon(Icons.Filled.ExpandMore, MR.strings.expand.get())
+				Icon(Icons.Filled.ExpandMore, Res.string.expand.get())
 			}
 		}
 		AnimatedVisibility(

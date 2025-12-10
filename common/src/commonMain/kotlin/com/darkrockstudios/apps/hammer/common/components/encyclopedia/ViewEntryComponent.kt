@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -253,7 +253,7 @@ class ViewEntryComponent(
 
 		val addImage = MenuItemDescriptor(
 			"view-entry-add-image",
-			MR.strings.encyclopedia_entry_menu_add_image,
+			Res.string.encyclopedia_entry_menu_add_image,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showAddImageDialog = true) }
@@ -261,7 +261,7 @@ class ViewEntryComponent(
 
 		val removeImage = MenuItemDescriptor(
 			"view-entry-remove-image",
-			MR.strings.encyclopedia_entry_menu_remove_image,
+			Res.string.encyclopedia_entry_menu_remove_image,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showDeleteImageDialog = true) }
@@ -269,7 +269,7 @@ class ViewEntryComponent(
 
 		val deleteEntry = MenuItemDescriptor(
 			"view-entry-delete",
-			MR.strings.encyclopedia_entry_menu_delete,
+			Res.string.encyclopedia_entry_menu_delete,
 			"",
 		) {
 			_state.getAndUpdate { it.copy(showDeleteEntryDialog = true) }
@@ -278,7 +278,7 @@ class ViewEntryComponent(
 		val menuItems = setOf(addImage, removeImage, deleteEntry)
 		val menu = MenuDescriptor(
 			getMenuId(),
-			MR.strings.encyclopedia_entry_menu_group,
+			Res.string.encyclopedia_entry_menu_group,
 			menuItems.toList()
 		)
 		addMenu(menu)

@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlin.math.roundToInt
 
@@ -73,7 +73,7 @@ actual fun SceneGroupActionContainer(
 
 		Icon(
 			Icons.Filled.MenuOpen,
-			contentDescription = MR.strings.scene_list_item_action_menu_description.get(),
+			contentDescription = Res.string.scene_list_item_action_menu_description.get(),
 			modifier = Modifier
 				.align(Alignment.CenterStart)
 				.alpha(alpha),
@@ -94,7 +94,7 @@ actual fun SceneGroupActionContainer(
 		onDismissRequest = { showMenu = false }
 	) {
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_item_action_delete.get()) },
+			text = { Text(Res.string.scene_list_item_action_delete.get()) },
 			onClick = {
 				onSceneAltClick(scene)
 				showMenu = false
@@ -102,13 +102,13 @@ actual fun SceneGroupActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Delete,
-					contentDescription = MR.strings.scene_list_item_action_delete.get()
+					contentDescription = Res.string.scene_list_item_action_delete.get()
 				)
 			}
 		)
 
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_item_action_rename.get()) },
+			text = { Text(Res.string.scene_list_item_action_rename.get()) },
 			onClick = {
 				onSceneRenameClick(scene)
 				showMenu = false
@@ -116,12 +116,12 @@ actual fun SceneGroupActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Edit,
-					contentDescription = MR.strings.scene_list_item_action_rename.get()
+					contentDescription = Res.string.scene_list_item_action_rename.get()
 				)
 			}
 		)
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_group_action_create_scene.get()) },
+			text = { Text(Res.string.scene_list_group_action_create_scene.get()) },
 			onClick = {
 				onCreateSceneClick(scene)
 				showMenu = false
@@ -129,12 +129,12 @@ actual fun SceneGroupActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Add,
-					contentDescription = MR.strings.scene_list_group_action_create_scene.get()
+					contentDescription = Res.string.scene_list_group_action_create_scene.get()
 				)
 			}
 		)
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_group_action_create_group.get()) },
+			text = { Text(Res.string.scene_list_group_action_create_group.get()) },
 			onClick = {
 				onCreateGroupClick(scene)
 				showMenu = false
@@ -142,7 +142,7 @@ actual fun SceneGroupActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Folder,
-					contentDescription = MR.strings.scene_list_group_action_create_group.get()
+					contentDescription = Res.string.scene_list_group_action_create_group.get()
 				)
 			}
 		)

@@ -20,9 +20,9 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.jetbrains.compose.resources.StringResource
 
 
 val projectListComponent = object : ProjectsList {

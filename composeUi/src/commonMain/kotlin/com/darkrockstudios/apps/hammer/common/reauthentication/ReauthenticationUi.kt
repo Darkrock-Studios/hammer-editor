@@ -26,13 +26,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +50,7 @@ fun ReauthenticationUi(
 			component.cancelReauthentication()
 		},
 		visible = state.showReauth,
-		title = MR.strings.reauth_title.get(),
+		title = Res.string.reauth_title.get(),
 	) {
 		Box(
 			modifier = Modifier.padding(Ui.Padding.XL),
@@ -64,14 +64,14 @@ fun ReauthenticationUi(
 
 			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 				Text(
-					MR.strings.reauth_explanation.get(),
+					Res.string.reauth_explanation.get(),
 					style = MaterialTheme.typography.bodyMedium
 				)
 
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 				Text(
-					MR.strings.reauth_server_url.get(),
+					Res.string.reauth_server_url.get(),
 					style = MaterialTheme.typography.bodyLarge,
 					fontWeight = FontWeight.Bold
 				)
@@ -82,7 +82,7 @@ fun ReauthenticationUi(
 				)
 
 				Text(
-					MR.strings.reauth_server_email.get(),
+					Res.string.reauth_server_email.get(),
 					style = MaterialTheme.typography.bodyLarge,
 					fontWeight = FontWeight.Bold
 				)
@@ -97,9 +97,9 @@ fun ReauthenticationUi(
 				OutlinedTextField(
 					value = state.serverPassword,
 					onValueChange = { component.updateServerPassword(it) },
-					label = { Text(MR.strings.settings_server_setup_password_hint.get()) },
+					label = { Text(Res.string.settings_server_setup_password_hint.get()) },
 					singleLine = true,
-					placeholder = { Text(MR.strings.settings_server_setup_password_hint.get()) },
+					placeholder = { Text(Res.string.settings_server_setup_password_hint.get()) },
 					visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
 					modifier = Modifier.moveFocusOnTab(),
 					keyboardOptions = KeyboardOptions(
@@ -117,9 +117,9 @@ fun ReauthenticationUi(
 
 						// Please provide localized description for accessibility services
 						val description = if (passwordVisible)
-							MR.strings.settings_server_setup_password_hide.get()
+							Res.string.settings_server_setup_password_hide.get()
 						else
-							MR.strings.settings_server_setup_password_show.get()
+							Res.string.settings_server_setup_password_show.get()
 
 						IconButton(onClick = { passwordVisible = !passwordVisible }) {
 							Icon(imageVector = image, description)
@@ -148,7 +148,7 @@ fun ReauthenticationUi(
 						},
 						enabled = state.serverWorking.not()
 					) {
-						Text(MR.strings.settings_server_setup_login_button.get())
+						Text(Res.string.settings_server_setup_login_button.get())
 					}
 
 					SpacerXL()
@@ -159,7 +159,7 @@ fun ReauthenticationUi(
 						},
 						enabled = state.serverWorking.not()
 					) {
-						Text(MR.strings.settings_server_setup_cancel_button.get())
+						Text(Res.string.settings_server_setup_cancel_button.get())
 					}
 				}
 			}

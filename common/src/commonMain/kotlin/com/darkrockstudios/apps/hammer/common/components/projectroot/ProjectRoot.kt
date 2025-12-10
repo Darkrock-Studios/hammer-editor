@@ -4,7 +4,7 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 
 interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun onBack()
@@ -75,11 +75,11 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	}
 
 	enum class DestinationTypes(val text: StringResource) {
-		Home(MR.strings.project_nav_home),
-		Editor(MR.strings.project_nav_scene_editor),
-		Notes(MR.strings.project_nav_notes),
-		Encyclopedia(MR.strings.project_nav_encyclopedia),
-		TimeLine(MR.strings.project_nav_time_line),
+		Home(Res.string.project_nav_home),
+		Editor(Res.string.project_nav_scene_editor),
+		Notes(Res.string.project_nav_notes),
+		Encyclopedia(Res.string.project_nav_encyclopedia),
+		TimeLine(Res.string.project_nav_time_line),
 	}
 
 	fun closeRequestDealtWith(item: CloseConfirm)

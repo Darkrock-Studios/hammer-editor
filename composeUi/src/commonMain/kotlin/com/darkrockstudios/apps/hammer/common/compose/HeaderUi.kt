@@ -9,8 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
-import dev.icerock.moko.resources.StringResource
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import org.jetbrains.compose.resources.StringResource
 
 @Composable
 fun HeaderUi(

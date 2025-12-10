@@ -3,12 +3,7 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.database.AccountDao
-import com.darkrockstudios.apps.hammer.database.DeletedEntityDao
-import com.darkrockstudios.apps.hammer.database.DeletedProjectDao
-import com.darkrockstudios.apps.hammer.database.ProjectDao
-import com.darkrockstudios.apps.hammer.database.StoryEntityDao
-import com.darkrockstudios.apps.hammer.database.parseLastSync
+import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.hashEntity

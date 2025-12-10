@@ -5,11 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 
 class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {

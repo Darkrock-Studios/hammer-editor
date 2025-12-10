@@ -5,11 +5,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,7 +36,7 @@ fun CreateNoteUi(
 			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
 		) {
 			Text(
-				MR.strings.notes_create_header.get(),
+				Res.string.notes_create_header.get(),
 				style = MaterialTheme.typography.displayMedium
 			)
 
@@ -50,7 +50,7 @@ fun CreateNoteUi(
 					.weight(1f),
 				isError = newNoteError,
 				placeholder = {
-					Text(MR.strings.notes_create_body_hint.get())
+					Text(Res.string.notes_create_body_hint.get())
 				}
 			)
 
@@ -61,7 +61,7 @@ fun CreateNoteUi(
 				horizontalArrangement = Arrangement.SpaceBetween
 			) {
 				Button(onClick = { component.closeCreate() }) {
-					Text(MR.strings.notes_create_cancel_button.get())
+					Text(Res.string.notes_create_cancel_button.get())
 				}
 
 				Button(onClick = {
@@ -70,11 +70,11 @@ fun CreateNoteUi(
 						newNoteError = !result.isSuccess
 						when (result) {
 							NoteError.TOO_LONG -> scope.launch {
-								rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_too_long))
+								rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_too_long))
 							}
 
 							NoteError.EMPTY -> scope.launch {
-								rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_empty))
+								rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
 							}
 
 							NoteError.NONE -> {
@@ -82,13 +82,13 @@ fun CreateNoteUi(
 									component.clearText()
 								}
 								scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(MR.strings.notes_create_toast_success))
+									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))
 								}
 							}
 						}
 					}
 				}) {
-					Text(MR.strings.notes_create_create_button.get())
+					Text(Res.string.notes_create_create_button.get())
 				}
 			}
 		}
@@ -96,8 +96,8 @@ fun CreateNoteUi(
 
 	if (state.confirmDiscard) {
 		SimpleConfirm(
-			title = MR.strings.notes_discard_dialog_title.get(),
-			message = MR.strings.notes_discard_dialog_message.get(),
+			title = Res.string.notes_discard_dialog_title.get(),
+			message = Res.string.notes_discard_dialog_message.get(),
 			onDismiss = {
 				component.cancelDiscard()
 			}

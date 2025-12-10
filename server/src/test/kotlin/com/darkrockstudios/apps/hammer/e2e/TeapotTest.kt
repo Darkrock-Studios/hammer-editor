@@ -3,9 +3,8 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.headers
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains

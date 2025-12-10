@@ -14,9 +14,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
-import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.jetbrains.compose.resources.StringResource
 
 @Preview
 @Composable

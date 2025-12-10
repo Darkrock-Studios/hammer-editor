@@ -4,7 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import dev.icerock.moko.resources.StringResource
+import org.jetbrains.compose.resources.StringResource
 
 interface ProjectSynchronization {
 	val state: Value<State>
