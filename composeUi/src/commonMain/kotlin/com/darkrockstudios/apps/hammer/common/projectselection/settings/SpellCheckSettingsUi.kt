@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -8,11 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
-import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
@@ -76,18 +76,19 @@ internal fun SpellCheckSettingsUi(
 			)
 		}
 
-		Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-		ExposedDropDown(
-			modifier = Modifier.defaultMinSize(minWidth = 256.dp),
-			label = MR.strings.settings_spellcheck_dictionary.get(),
-			items = state.spellCheckLanguages,
-			selectedItem = state.spellCheckingLanguage,
-			enabled = spellCheckingEnabledValue,
-		) { selectedTheme ->
-			if (selectedTheme != null) {
-				scope.launch { component.setSpellCheckLanguage(selectedTheme) }
-			}
-		}
+		// Don't allow user selection for now
+//		Spacer(modifier = Modifier.size(Ui.Padding.M))
+//
+//		ExposedDropDown(
+//			modifier = Modifier.defaultMinSize(minWidth = 256.dp),
+//			label = MR.strings.settings_spellcheck_dictionary.get(),
+//			items = state.spellCheckLanguages,
+//			selectedItem = state.spellCheckingLanguage,
+//			enabled = spellCheckingEnabledValue,
+//		) { selectedTheme ->
+//			if (selectedTheme != null) {
+//				scope.launch { component.setSpellCheckLanguage(selectedTheme) }
+//			}
+//		}
 	}
 }
