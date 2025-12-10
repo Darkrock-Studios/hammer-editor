@@ -13,13 +13,12 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import okio.Path.Companion.toPath
 import org.koin.core.component.get
 import org.koin.core.component.inject
 
-class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : PlatformSettings,
-	SavableComponent<DesktopPlatformSettingsComponent.PlatformState>(componentContext) {
+class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : DesktopPlatformSettings,
+	SavableComponent<DesktopPlatformSettings.PlatformState>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
 
@@ -27,13 +26,13 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Pla
 	private val projectsRepository: ProjectsRepository by inject()
 
 	private val _state by savableState {
-		PlatformState(
+		DesktopPlatformSettings.PlatformState(
 			projectsDir = projectsRepository.getProjectsDirectory(),
 		)
 	}
 
-	override val state: Value<PlatformState> = _state
-	override fun getStateSerializer() = PlatformState.serializer()
+	override val state: Value<DesktopPlatformSettings.PlatformState> = _state
+	override fun getStateSerializer() = DesktopPlatformSettings.PlatformState.serializer()
 
 
 	init {
@@ -55,7 +54,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Pla
 		}
 	}
 
-	fun setProjectsDir(path: String) {
+	override fun setProjectsDir(path: String) {
 		val hpath = HPath(
 			path = path,
 			name = "",
@@ -82,9 +81,4 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Pla
 			}
 		}
 	}
-
-	@Serializable
-	data class PlatformState(
-		val projectsDir: HPath,
-	)
 }

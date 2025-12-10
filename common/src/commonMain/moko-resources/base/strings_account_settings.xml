@@ -13,7 +13,7 @@
     <string name="settings_example_project_success_message">Example project created.</string>
     <string name="settings_data_version">Data: v%1$s</string>
     <string name="settings_server_header">Server</string>
-    <string name="settings_server_description">Set up a server for syncing between devices.</string>
+	<string name="settings_server_description">Configure data syncing</string>
     <string name="settings_server_url_label">URL:</string>
     <string name="settings_server_email_label">E-mail:</string>
     <string name="settings_server_setup_button">Set Up</string>
@@ -33,7 +33,7 @@
     <string name="settings_server_setup_title">Set Up Server</string>
     <string name="settings_server_setup_header">Configure Server</string>
     <string name="settings_server_setup_ssl_label">HTTPS?</string>
-    <string name="settings_server_setup_url_hint">Server URL: myserver.com</string>
+	<string name="settings_server_setup_url_hint">Server URL: hammer.ink</string>
     <string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
     <string name="settings_server_setup_password_hint">Password</string>
     <string name="settings_server_setup_password_show">Show password</string>
@@ -58,4 +58,12 @@
 	<string name="settings_spellcheck_enable">Enable spell checking (experimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
+	<string name="settings_server_enable_sync_backup">Enable Sync &amp; Backup</string>
+	<string name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and
+		create secure backups.
+	</string>
+	<string name="settings_server_connection_header">Server Connection</string>
+	<string name="settings_server_connected">Connected</string>
+	<string name="settings_server_sync_backup_preferences">Sync &amp; Backup Preferences</string>
+	<string name="settings_server_danger_zone">Danger Zone</string>
 </resources>
