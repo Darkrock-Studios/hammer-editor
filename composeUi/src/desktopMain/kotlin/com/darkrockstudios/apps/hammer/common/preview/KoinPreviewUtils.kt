@@ -32,6 +32,10 @@ fun KoinApplicationPreview(
 		}))
 	})
 
+	if (GlobalContext.getOrNull() != null) {
+		GlobalContext.stopKoin()
+	}
+
 	GlobalContext.startKoin(koinApplication = koinApplication)
 	DisposableEffect(Unit) {
 		onDispose {
@@ -40,6 +44,4 @@ fun KoinApplicationPreview(
 	}
 
 	content()
-
-	GlobalContext.stopKoin()
 }

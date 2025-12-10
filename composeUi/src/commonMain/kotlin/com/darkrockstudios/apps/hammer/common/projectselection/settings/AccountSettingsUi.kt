@@ -3,8 +3,12 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -12,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
@@ -19,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.MR
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
@@ -33,7 +41,6 @@ internal fun AccountSettingsUi(
 	modifier: Modifier = Modifier
 ) {
 	val state by component.state.subscribeAsState()
-
 	val scope = rememberCoroutineScope()
 
 	val windowSizeClass = calculateWindowSizeClass()
@@ -56,90 +63,127 @@ internal fun AccountSettingsUi(
 	Box(modifier = modifier.fillMaxSize()) {
 		Surface(
 			tonalElevation = containerElevation,
-			shape = containerShape
+			shape = containerShape,
+			modifier = Modifier.fillMaxSize()
 		) {
 			Column(
 				modifier = Modifier
 					.fillMaxSize()
-					.padding(horizontal = Ui.Padding.XL)
 			) {
 				Text(
 					MR.strings.settings_heading.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
+					modifier = Modifier.padding(Ui.Padding.XL)
 				)
 
-				Divider(modifier = Modifier.fillMaxWidth())
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.verticalScroll(rememberScrollState())
+						.padding(horizontal = Ui.Padding.L)
+						.padding(bottom = Ui.Padding.XL)
+				) {
+					SettingsSectionGroup {
+						Column {
+							Text(
+								MR.strings.settings_theme_label.get(),
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-				Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-					SpacerL()
-
-					Column(modifier = Modifier.padding(Ui.Padding.L)) {
-						val themeOptions = remember { UiTheme.entries }
-						ExposedDropDown(
-							modifier = Modifier.defaultMinSize(minWidth = 256.dp),
-							label = MR.strings.settings_theme_label.get(),
-							items = themeOptions,
-							selectedItem = state.uiTheme,
-						) { selectedTheme ->
-							if (selectedTheme != null) {
-								component.setUiTheme(selectedTheme)
+							val themeOptions = remember { UiTheme.entries }
+							ExposedDropDown(
+								modifier = Modifier.fillMaxWidth(),
+								label = MR.strings.settings_theme_label.get(),
+								items = themeOptions,
+								selectedItem = state.uiTheme,
+							) { selectedTheme ->
+								if (selectedTheme != null) {
+									component.setUiTheme(selectedTheme)
+								}
 							}
 						}
 					}
 
 					SpacerXL()
 
-					SpellCheckSettingsUi(
-						component = component.spellCheckSettings,
-					)
+					SettingsSectionGroup {
+						SpellCheckSettingsUi(
+							component = component.spellCheckSettings,
+						)
+					}
 
 					SpacerXL()
 
-					Column(modifier = Modifier.padding(Ui.Padding.M)) {
-						Text(
-							MR.strings.settings_example_project_header.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onBackground,
-						)
-						Text(
-							MR.strings.settings_example_project_description.get(),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onBackground,
-							fontStyle = FontStyle.Italic
-						)
+					SettingsSectionGroup {
+						Column {
+							Text(
+								MR.strings.settings_example_project_header.get(),
+								style = MaterialTheme.typography.headlineSmall,
+								color = MaterialTheme.colorScheme.onBackground,
+							)
+							Text(
+								MR.strings.settings_example_project_description.get(),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onBackground,
+								fontStyle = FontStyle.Italic
+							)
 
-						Spacer(modifier = Modifier.size(Ui.Padding.M))
+							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-						val successMessage = MR.strings.settings_example_project_success_message.get()
-						Button(onClick = {
-							component.reinstallExampleProject {
-								rootSnackbar.showSnackbar(successMessage)
+							val successMessage = MR.strings.settings_example_project_success_message.get()
+							OutlinedButton(onClick = {
+								component.reinstallExampleProject {
+									rootSnackbar.showSnackbar(successMessage)
+								}
+							}) {
+								Text(MR.strings.settings_example_project_button.get())
 							}
-						}) {
-							Text(MR.strings.settings_example_project_button.get())
 						}
 					}
 
 					SpacerXL()
 
-					ServerSettingsUi(component, scope, rootSnackbar)
+					SettingsSectionGroup {
+						ServerSettingsUi(component, scope, rootSnackbar)
+					}
 
 					SpacerXL()
 
-					PlatformSettingsUi(component.platformSettings)
+					SettingsSectionGroup {
+						PlatformSettingsUi(component.platformSettings)
+					}
 
 					SpacerXL()
 
-					Text(
-						stringResource(MR.strings.settings_data_version, getDataVersion()),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onBackground,
-					)
-
-					SpacerXL()
+					Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+						Text(
+							stringResource(MR.strings.settings_data_version, getDataVersion()),
+							style = MaterialTheme.typography.labelMedium,
+							color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+						)
+					}
 				}
 			}
 		}
+	}
+}
+
+@Composable
+private fun SettingsSectionGroup(
+	modifier: Modifier = Modifier,
+	content: @Composable ColumnScope.() -> Unit
+) {
+	Surface(
+		modifier = modifier.fillMaxWidth(),
+		shape = RoundedCornerShape(16.dp),
+		color = MaterialTheme.colorScheme.surfaceContainerLow,
+	) {
+		Column(
+			modifier = Modifier.padding(Ui.Padding.L),
+			content = content
+		)
 	}
 }

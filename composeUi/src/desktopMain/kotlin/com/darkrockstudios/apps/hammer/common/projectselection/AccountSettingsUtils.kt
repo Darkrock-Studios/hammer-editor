@@ -5,10 +5,11 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import dev.icerock.moko.resources.StringResource
 import io.fluidsonic.locale.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +31,19 @@ val defaultAccountSettingsComponentState = AccountSettings.State(
 internal fun accountSettingsComponent(state: AccountSettings.State = defaultAccountSettingsComponentState) =
 	object : AccountSettings {
 		override val state = MutableValue(state)
-		override val platformSettings = object : PlatformSettings {}
+		override val platformSettings = object : DesktopPlatformSettings {
+			override val state = MutableValue(
+				DesktopPlatformSettings.PlatformState(
+					projectsDir = HPath(
+						path = "/home/user/projects",
+						name = "Projects",
+						isAbsolute = true
+					)
+				)
+			)
+
+			override fun setProjectsDir(path: String) {}
+		}
 		override fun setUiTheme(theme: UiTheme) {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
