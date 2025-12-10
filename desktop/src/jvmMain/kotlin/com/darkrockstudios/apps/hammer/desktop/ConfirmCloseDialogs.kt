@@ -7,10 +7,10 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @ExperimentalComposeApi
@@ -26,13 +26,13 @@ internal fun confirmCloseUnsavedScenesDialog(
 		Card {
 			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 				Text(
-					MR.strings.unsaved_scenes_dialog_title.get(),
+					Res.string.unsaved_scenes_dialog_title.get(),
 					color = MaterialTheme.colorScheme.onSurface,
 					style = MaterialTheme.typography.headlineLarge
 				)
 
 				Text(
-					MR.strings.unsaved_scenes_dialog_message.get(),
+					Res.string.unsaved_scenes_dialog_message.get(),
 					color = MaterialTheme.colorScheme.onSurface,
 					style = MaterialTheme.typography.bodyMedium,
 				)
@@ -44,10 +44,10 @@ internal fun confirmCloseUnsavedScenesDialog(
 					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L, Alignment.CenterHorizontally)
 				) {
 					Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-						Text(MR.strings.unsaved_entity_dialog_positive_button.get())
+						Text(Res.string.unsaved_entity_dialog_positive_button.get())
 					}
 					Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-						Text(MR.strings.unsaved_entity_dialog_negative_button.get())
+						Text(Res.string.unsaved_entity_dialog_negative_button.get())
 					}
 					Button(onClick = {
 						dismissDialog(
@@ -55,7 +55,7 @@ internal fun confirmCloseUnsavedScenesDialog(
 							ApplicationState.CloseType.None
 						)
 					}) {
-						Text(MR.strings.unsaved_entity_dialog_neutral_button.get())
+						Text(Res.string.unsaved_entity_dialog_neutral_button.get())
 					}
 				}
 			}
@@ -70,10 +70,10 @@ internal fun confirmCloseUnsavedEncyclopediaDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	SimpleConfirm(
-		title = MR.strings.unsaved_encyclopedia_dialog_title.get(),
-		message = MR.strings.unsaved_encyclopedia_dialog_message.get(),
-		positiveButton = MR.strings.unsaved_dialog_positive_button.get(),
-		negativeButton = MR.strings.unsaved_dialog_negative_button.get(),
+		title = Res.string.unsaved_encyclopedia_dialog_title.get(),
+		message = Res.string.unsaved_encyclopedia_dialog_message.get(),
+		positiveButton = Res.string.unsaved_dialog_positive_button.get(),
+		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
 		onDismiss = { /* Noop */ },
 		onNegative = {
 			dismissDialog(ConfirmCloseResult.Cancel, closeType)
@@ -92,10 +92,10 @@ internal fun confirmCloseUnsavedNotesDialog(
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
 	SimpleConfirm(
-		title = MR.strings.unsaved_notes_dialog_title.get(),
-		message = MR.strings.unsaved_notes_dialog_message.get(),
-		positiveButton = MR.strings.unsaved_dialog_positive_button.get(),
-		negativeButton = MR.strings.unsaved_dialog_negative_button.get(),
+		title = Res.string.unsaved_notes_dialog_title.get(),
+		message = Res.string.unsaved_notes_dialog_message.get(),
+		positiveButton = Res.string.unsaved_dialog_positive_button.get(),
+		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
 		onDismiss = { /* Noop */ },
 		onNegative = {
 			dismissDialog(ConfirmCloseResult.Cancel, closeType)

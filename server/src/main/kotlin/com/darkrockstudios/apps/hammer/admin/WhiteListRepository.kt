@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import io.ktor.util.toLowerCasePreservingASCIIRules
+import io.ktor.util.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.FileSystem

@@ -12,10 +12,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.settings_keep_screen_on
+import com.darkrockstudios.apps.hammer.settings_platform_settings_title
 import dev.icerock.moko.permissions.compose.BindEffect
 
 @Composable
@@ -29,14 +31,14 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 	BindEffect(component.permissionsController)
 
 	Text(
-		MR.strings.settings_platform_settings_title.get(),
+		Res.string.settings_platform_settings_title.get(),
 		style = MaterialTheme.typography.headlineSmall,
 		color = MaterialTheme.colorScheme.onBackground,
 	)
 	Row {
 		Checkbox(checked = state.keepScreenOn, onCheckedChange = component::updateKeepScreenOn)
 		Text(
-			MR.strings.settings_keep_screen_on.get(),
+			Res.string.settings_keep_screen_on.get(),
 			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onBackground,
 			modifier = Modifier.align(Alignment.CenterVertically),

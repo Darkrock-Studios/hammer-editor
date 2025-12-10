@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -247,7 +247,7 @@ class AccountSettingsComponent(
 					}
 				}
 
-				showToast(MR.strings.settings_server_setup_toast_failure, message)
+				showToast(Res.string.settings_server_setup_toast_failure, message)
 			} else {
 				if (removeLocalContent) {
 					removeLocalContent()
@@ -263,17 +263,17 @@ class AccountSettingsComponent(
 								serverWorking = false,
 							)
 						}
-						showToast(MR.strings.settings_server_setup_toast_success)
+						showToast(Res.string.settings_server_setup_toast_success)
 					} else {
 						val message = result.displayMessage?.text(strRes)
-							?: strRes.get(MR.strings.settings_server_setup_toast_failure_unknown)
+							?: strRes.get(Res.string.settings_server_setup_toast_failure_unknown)
 						_state.getAndUpdate {
 							it.copy(
 								serverError = message,
 								serverWorking = false,
 							)
 						}
-						showToast(scope, MR.strings.settings_server_setup_toast_failure, message)
+						showToast(scope, Res.string.settings_server_setup_toast_failure, message)
 					}
 				}
 			}

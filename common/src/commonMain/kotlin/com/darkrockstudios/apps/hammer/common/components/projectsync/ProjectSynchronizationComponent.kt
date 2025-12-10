@@ -4,7 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -245,7 +245,7 @@ class ProjectSynchronizationComponent(
 						serverNote = serverEntity,
 						clientNote = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_note_title
+					conflictTitle = Res.string.sync_conflict_note_title
 				)
 			}
 		}
@@ -269,7 +269,7 @@ class ProjectSynchronizationComponent(
 						serverEvent = serverEntity,
 						clientEvent = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_timeline_title
+					conflictTitle = Res.string.sync_conflict_timeline_title
 				)
 			}
 		}
@@ -302,7 +302,7 @@ class ProjectSynchronizationComponent(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_encyclopedia_title
+					conflictTitle = Res.string.sync_conflict_encyclopedia_title
 				)
 			}
 		}
@@ -329,7 +329,7 @@ class ProjectSynchronizationComponent(
 						serverEntry = serverEntity,
 						clientEntry = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_scene_draft_title
+					conflictTitle = Res.string.sync_conflict_scene_draft_title
 				)
 			}
 		}
@@ -367,7 +367,7 @@ class ProjectSynchronizationComponent(
 						serverScene = serverEntity,
 						clientScene = localEntity
 					),
-					conflictTitle = MR.strings.sync_conflict_scene_title
+					conflictTitle = Res.string.sync_conflict_scene_title
 				)
 			}
 		}
@@ -378,11 +378,11 @@ class ProjectSynchronizationComponent(
 		return when (error) {
 			NoteError.NONE -> null
 			NoteError.EMPTY -> ProjectSynchronization.EntityMergeError.NoteMergeError(
-				noteError = MR.strings.notes_create_toast_empty.toMsg()
+				noteError = Res.string.notes_create_toast_empty.toMsg()
 			)
 
 			NoteError.TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
-				noteError = MR.strings.notes_create_toast_too_long.toMsg()
+				noteError = Res.string.notes_create_toast_too_long.toMsg()
 			)
 		}
 	}
@@ -404,7 +404,7 @@ class ProjectSynchronizationComponent(
 			null
 		} else {
 			ProjectSynchronization.EntityMergeError.SceneDraftMergeError(
-				nameError = MR.strings.scene_draft_invalid_name.toMsg()
+				nameError = Res.string.scene_draft_invalid_name.toMsg()
 			)
 		}
 	}

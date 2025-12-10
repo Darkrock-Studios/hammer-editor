@@ -9,19 +9,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.create_project_button
+import com.darkrockstudios.apps.hammer.create_project_heading
+import com.darkrockstudios.apps.hammer.create_project_title
 
 @Composable
 fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Unit) {
 	SimpleDialog(
 		onCloseRequest = close,
 		visible = show,
-		title = MR.strings.create_project_title.get(),
+		title = Res.string.create_project_title.get(),
 	) {
 		val state by component.state.subscribeAsState()
 		Box(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL)) {
@@ -33,7 +36,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 				TextField(
 					value = state.createDialogProjectName,
 					onValueChange = { component.onProjectNameUpdate(it) },
-					label = { Text(MR.strings.create_project_heading.get()) },
+					label = { Text(Res.string.create_project_heading.get()) },
 					singleLine = true,
 				)
 
@@ -42,7 +45,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 				Button(onClick = {
 					component.createProject(state.createDialogProjectName)
 				}) {
-					Text(MR.strings.create_project_button.get())
+					Text(Res.string.create_project_button.get())
 				}
 			}
 		}

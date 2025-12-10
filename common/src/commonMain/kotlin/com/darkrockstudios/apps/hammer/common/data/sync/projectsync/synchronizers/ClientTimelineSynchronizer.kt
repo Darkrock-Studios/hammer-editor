@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -15,6 +15,9 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_event_delete_failed
+import com.darkrockstudios.apps.hammer.sync_event_delete_failed_not_found
+import com.darkrockstudios.apps.hammer.sync_event_deleted
 import kotlinx.coroutines.flow.first
 
 class ClientTimelineSynchronizer(
@@ -98,14 +101,14 @@ class ClientTimelineSynchronizer(
 		val event = timeLineRepository.getTimelineEvent(id)
 		if (event != null) {
 			if (timeLineRepository.deleteEvent(event)) {
-				onLog(syncLogI(strRes.get(MR.strings.sync_event_deleted, id), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_event_deleted, id), projectDef))
 			} else {
-				onLog(syncLogE(strRes.get(MR.strings.sync_event_delete_failed, id), projectDef))
+				onLog(syncLogE(strRes.get(Res.string.sync_event_delete_failed, id), projectDef))
 			}
 		} else {
 			onLog(
 				syncLogE(
-					strRes.get(MR.strings.sync_event_delete_failed_not_found, id),
+					strRes.get(Res.string.sync_event_delete_failed_not_found, id),
 					projectDef
 				)
 			)

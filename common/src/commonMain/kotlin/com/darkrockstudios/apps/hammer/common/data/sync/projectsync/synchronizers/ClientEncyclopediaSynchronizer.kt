@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_encyclopedia_deleted
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.flow.first
 import okio.FileSystem
@@ -105,7 +106,7 @@ class ClientEncyclopediaSynchronizer(
 		val def = encyclopediaRepository.getEntryDef(id)
 		encyclopediaRepository.deleteEntry(def)
 
-		onLog(syncLogI(strRes.get(MR.strings.sync_encyclopedia_deleted, id), def.projectDef.name))
+		onLog(syncLogI(strRes.get(Res.string.sync_encyclopedia_deleted, id), def.projectDef.name))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {

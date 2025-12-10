@@ -9,11 +9,9 @@ import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.parameter
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.testing.testApplication
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
 import org.junit.jupiter.api.Test

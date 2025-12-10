@@ -11,11 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 
 @Composable
@@ -27,13 +27,13 @@ internal fun SpellCheckSettingsUi(
 
 	Column(modifier = Modifier.padding(Ui.Padding.M)) {
 		Text(
-			MR.strings.settings_spellcheck_heading.get(),
+			Res.string.settings_spellcheck_heading.get(),
 			style = MaterialTheme.typography.headlineSmall,
 			color = MaterialTheme.colorScheme.onBackground,
 		)
 
 		Text(
-			MR.strings.settings_spellcheck_notice.get(),
+			Res.string.settings_spellcheck_notice.get(),
 			style = MaterialTheme.typography.bodySmall,
 			fontStyle = FontStyle.Italic,
 			color = MaterialTheme.colorScheme.onBackground,
@@ -51,7 +51,7 @@ internal fun SpellCheckSettingsUi(
 				}
 			)
 			Text(
-				MR.strings.settings_spellcheck_enable.get(),
+				Res.string.settings_spellcheck_enable.get(),
 				style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.onBackground,
 				modifier = Modifier.align(Alignment.CenterVertically)
@@ -69,7 +69,7 @@ internal fun SpellCheckSettingsUi(
 				}
 			)
 			Text(
-				MR.strings.settings_spellcheck_in_focus_enable.get(),
+				Res.string.settings_spellcheck_in_focus_enable.get(),
 				style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.onBackground,
 				modifier = Modifier.align(Alignment.CenterVertically)
@@ -81,7 +81,7 @@ internal fun SpellCheckSettingsUi(
 //
 //		ExposedDropDown(
 //			modifier = Modifier.defaultMinSize(minWidth = 256.dp),
-//			label = MR.strings.settings_spellcheck_dictionary.get(),
+//			label = Res.string.settings_spellcheck_dictionary.get(),
 //			items = state.spellCheckLanguages,
 //			selectedItem = state.spellCheckingLanguage,
 //			enabled = spellCheckingEnabledValue,

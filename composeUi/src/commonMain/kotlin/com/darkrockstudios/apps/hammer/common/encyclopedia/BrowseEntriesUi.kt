@@ -12,14 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +55,7 @@ fun BrowseEntriesUi(
 				query = searchText,
 				onQueryChange = { component.updateFilter(it, selectedType) },
 				onSearch = { component.updateFilter(it, selectedType) },
-				placeholder = { Text(MR.strings.encyclopedia_search_hint.get()) },
+				placeholder = { Text(Res.string.encyclopedia_search_hint.get()) },
 				active = false,
 				onActiveChange = {},
 				modifier = Modifier.moveFocusOnTab().weight(1f).padding(end = Ui.Padding.L),
@@ -65,18 +65,18 @@ fun BrowseEntriesUi(
 					}) {
 						Icon(
 							imageVector = Icons.Filled.Clear,
-							MR.strings.encyclopedia_search_clear_button.get()
+							Res.string.encyclopedia_search_clear_button.get()
 						)
 					}
 				},
 			) {}
 
 			ExposedDropDown(
-				getText = { strRes.get(it.toStringResource()) },
-				label = MR.strings.encyclopedia_filter_by_category.get(),
+				getText = { it.toStringResource().get() },
+				label = Res.string.encyclopedia_filter_by_category.get(),
 				modifier = Modifier.width(128.dp).moveFocusOnTab(),
 				items = types,
-				noneOption = MR.strings.encyclopedia_category_all.get(),
+				noneOption = Res.string.encyclopedia_category_all.get(),
 				selectedItem = state.filterType
 			) { item ->
 				selectedType = item
@@ -92,7 +92,7 @@ fun BrowseEntriesUi(
 			if (filteredEntries.isEmpty()) {
 				item {
 					Text(
-						MR.strings.encyclopedia_browse_list_empty.get(),
+						Res.string.encyclopedia_browse_list_empty.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onBackground
 					)
@@ -126,7 +126,7 @@ fun BrowseEntriesFab(
 				modifier = modifier,
 				onClick = component::showCreateEntry,
 			) {
-				Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
+				Icon(Icons.Default.Create, Res.string.timeline_create_event_button.get())
 			}
 		}
 

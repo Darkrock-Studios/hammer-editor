@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="settings_heading">⚙ Innstillinger</string>
+	<string name="settings_theme_label">Brukergrensesnitt-tema</string>
+	<string name="settings_projects_directory">Prosjektmappe</string>
+	<string name="settings_projects_directory_hint">Sti til prosjektmappe</string>
+	<string name="settings_projects_directory_button">Velg mappe</string>
+	<string name="settings_example_project_header">Eksempelprosjekt</string>
+	<string name="settings_example_project_description">Installer et eksempelprosjekt for å se hvordan forskjellige
+		funksjoner brukes.
+	</string>
+	<string name="settings_example_project_button">Installer på nytt</string>
+	<string name="settings_example_project_success_message">Eksempelprosjekt opprettet.</string>
+	<string name="settings_data_version">Data: v%1$s</string>
+	<string name="settings_server_header">Server</string>
+	<string name="settings_server_description">Sett opp en server for synkronisering mellom enheter.</string>
+	<string name="settings_server_url_label">URL:</string>
+	<string name="settings_server_email_label">E-post:</string>
+	<string name="settings_server_setup_button">Sett opp</string>
+	<string name="settings_server_modify_button">Endre</string>
+	<string name="settings_server_unknown_error">Feil</string>
+	<string name="settings_server_auto_sync">Automatisk synkronisering</string>
+	<string name="settings_server_sync_backup">Sikkerhetskopi ved synkronisering</string>
+	<string name="settings_server_sync_auto_close">Lukk dialoger etter vellykket synkronisering</string>
+	<string name="settings_server_max_backups">Maks sikkerhetskopier per prosjekt</string>
+	<string name="settings_server_test_auth_button">Test autentisering</string>
+	<string name="settings_server_reauth_button">Re-autentiser</string>
+	<string name="settings_server_remove_server_button">Fjern server</string>
+	<string name="settings_server_authtest_toast_success">Autentisering vellykket</string>
+	<string name="settings_server_authtest_toast_failure">Autentisering mislyktes</string>
+	<string name="settings_remove_server_dialog_title">Fjern server</string>
+	<string name="settings_remove_server_dialog_message">Er du sikker på at du vil fjerne serveren?</string>
+	<string name="settings_server_setup_title">Sett opp server</string>
+	<string name="settings_server_setup_header">Serveroppsett</string>
+	<string name="settings_server_setup_ssl_label">HTTPS?</string>
+	<string name="settings_server_setup_url_hint">Server-URL: minserver.com</string>
+	<string name="settings_server_setup_email_hint">E-post: bruker@eksempel.no</string>
+	<string name="settings_server_setup_password_hint">Passord</string>
+	<string name="settings_server_setup_password_show">Vis passord</string>
+	<string name="settings_server_setup_password_hide">Skjul passord</string>
+	<string name="settings_server_setup_login_button">Logg inn</string>
+	<string name="settings_server_setup_create_button">Opprett</string>
+	<string name="settings_server_setup_cancel_button">Avbryt</string>
+	<string name="settings_server_setup_toast_failure">Serveroppsett mislyktes: %1$s</string>
+	<string name="settings_server_setup_toast_failure_unknown">Ukjent feil</string>
+	<string name="settings_server_setup_toast_success">Serveroppsett fullført!</string>
+	<string name="remove_local_dialog_title">Fjerne lokalt innhold?</string>
+	<string name="remove_local_dialog_message">Vil du fjerne ditt nåværende lokale innhold før synkronisering? Hvis
+		ikke, vil vi forsøke å slå sammen ditt lokale innhold med serverinnholdet. Hvis innholdet ikke er relatert, kan
+		det føre til problemer.
+	</string>
+	<string name="settings_platform_settings_title">Plattforminnstillinger</string>
+	<string name="settings_keep_screen_on">Hold skjermen på</string>
+	<string name="settings_spellcheck_heading">Stavekontroll</string>
+	<string name="settings_spellcheck_enable">Aktiver stavekontroll (eksperimentell)</string>
+	<string name="settings_spellcheck_in_focus_enable">Aktiver i fokusmodus</string>
+	<string name="settings_spellcheck_dictionary">Ordliste</string>
+	<string name="settings_spellcheck_notice">Stavekontroll er eksperimentell! Hvis det forårsaker problemer, kan du
+		bare slå det av.
+	</string>
+</resources>

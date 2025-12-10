@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sync_project_dialog_title">Project Synchronisatie</string>
+	<string name="sync_conflict_scene_title">Scèneconflict</string>
+	<string name="sync_conflict_scene_draft_title">Conflict in het Scene Ontwerp</string>
+	<string name="sync_conflict_note_title">Opmerkingsconflict</string>
+	<string name="sync_conflict_timeline_title">Tijdlijn Evenement Conflicte</string>
+	<string name="sync_conflict_encyclopedia_title">Encyclopedia Conflict</string>
+	<string name="sync_conflict_draft_title">Encyclopedia Conflict</string>
+	<string name="sync_conflict_timeline_event_missing_date">Geen Datum</string>
+	<string name="sync_conflict_tab_local">Lokaal</string>
+	<string name="sync_conflict_tab_remote">Op afstand</string>
+	<string name="sync_conflict_icon_description">conflict</string>
+	<string name="sync_conflict">Conflict</string>
+	<string name="sync_conflict_local_entry">Lokale invoer:</string>
+	<string name="sync_conflict_local_use_button">Gebruik lokaal</string>
+	<string name="sync_conflict_merge_explained">Je kunt de lokale of de externe kopie zoals deze is nemen, of je kunt
+		de twee handmatig samenvoegen door delen van de externe kopie in je lokale kopie te kopiëren en die dan te
+		gebruiken.
+	</string>
+	<string name="sync_conflict_remote_entry">Externe Invoer:</string>
+	<string name="sync_conflict_remote_use_button">Gebruik afstand</string>
+	<string name="sync_conflict_encyclopedia_local">Lokaal Evenement: %1$s</string>
+	<string name="sync_conflict_encyclopedia_remote">Externe gebeurtenis: %1$s</string>
+	<string name="sync_conflict_encyclopedia_label_name">Naam:</string>
+	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
+	<string name="sync_conflict_encyclopedia_label_image">Afbeelding:</string>
+	<string name="sync_conflict_encyclopedia_label_content">Inhoud:</string>
+	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
+	<string name="sync_conflict_encyclopedia_has_image">Heeft afbeelding</string>
+	<string name="sync_conflict_encyclopedia_no_image">Geen afbeelding</string>
+	<string name="sync_conflict_title_scene_remote">Afstandsdecor:</string>
+	<string name="sync_conflict_title_scene_local">Lokale scène:</string>
+	<string name="sync_conflict_title_scene_field_name">Naam</string>
+	<string name="sync_conflict_title_scene_field_content">Scene-inhoud</string>
+	<string name="sync_conflict_title_scene_draft_remote">Remote Concept:</string>
+	<string name="sync_conflict_title_scene_draft_local">Lokale Conceptversie:</string>
+	<string name="sync_conflict_title_scene_draft_field_name">Naam</string>
+	<string name="sync_conflict_title_scene_draft_field_content">Scène Inhoud</string>
+	<string name="sync_conflict_title_note_remote">Externe opmerking:</string>
+	<string name="sync_conflict_title_note_local">Lokale Opmerking:</string>
+	<string name="sync_conflict_title_note_field_name">Opmerking Inhoud</string>
+	<string name="sync_conflict_title_timeline_event_remote">Extern evenement:</string>
+	<string name="sync_conflict_title_timeline_event_local">Lokale gebeurtenis:</string>
+	<string name="sync_conflict_title_timeline_event_field_date">Datum</string>
+	<string name="sync_conflict_title_timeline_event_field_content">Evenement Inhoud</string>
+	<string name="sync_menu_group">Synchroniseren</string>
+	<string name="sync_menu_item">Begin synchronisatie</string>
+	<string name="sync_status_in_progress">Synchroniseren...</string>
+	<string name="sync_status_failed">Synchronisatie mislukt</string>
+	<string name="sync_status_success">Synchronisatie Voltooid</string>
+	<string name="sync_cancel_button">Annuleren</string>
+	<string name="sync_toast_success">Project synchronisatie voltooid</string>
+	<string name="sync_toast_failed">Project sync mislukt</string>
+	<string name="sync_log_account_begin">Begin synchronisatie</string>
+	<string name="sync_log_account_server_data_loaded">Servergegevens geladen</string>
+	<string name="sync_log_account_complete">Account synchronisatie voltooid</string>
+	<string name="sync_log_account_failed">Synchroniseren van projecten mislukt: %1$s</string>
+	<string name="sync_log_account_project_delete_server_success">Serverproject verwijderen:
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_delete_server_failure">Fout bij het verwijderen van het project op de server:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_delete_client">Lokale project verwijderen: %1$s</string>
+	<string name="sync_log_account_project_rename_server_success">Server project hernoemen:
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_rename_server_failure">Fout bij het hernoemen van project op
+		server: %1$s
+	</string>
+	<string name="sync_log_account_project_rename_client_from_server_success">Hernoem project van
+		server: %1$s
+	</string>
+	<string name="sync_log_account_project_rename_client_from_server_failure">Kon project van server niet hernoemen:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_server_success">Project gemaakt op server: %1$s</string>
+	<string name="sync_log_account_project_create_server_failure">Kon project op de server niet worden aangemaakt:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_client">Gemaakt lokaal project: %1$s</string>
+	<string name="sync_log_account_project_create_client_local">Instelling lokale projectserver-ID:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_client_failure">Kon niet het serverproject aanmaken: %1$s</string>
+	<string name="sync_log_begin_account">Account synchroniseren...</string>
+	<string name="sync_log_begin_projects">Projecten synchroniseren...</string>
+	<string name="sync_log_end_projects">Projecten Synchronisatie Voltooid</string>
+	<string name="sync_log_begin_project">Project synchroniseren: %1$s</string>
+	<string name="sync_log_project_conflict">Er is een conflict in project: %1$s, open dat project en sync om het op te
+		lossen.
+	</string>
+	<string name="sync_log_client_data_computed">Gegevens van de klantentiteit berekend</string>
+	<string name="sync_log_server_data_loaded">Servergegevens ontvangen</string>
+	<string name="sync_log_client_data_loaded">Klantgegevens geladen</string>
+	<string name="sync_log_backup_made">Lokale back-up gemaakt: %1$s</string>
+	<string name="sync_log_entity_download_success">Entiteit %1$d gedownload</string>
+	<string name="sync_log_entity_download_failed_general">Het downloaden van entiteit %1$d is mislukt.</string>
+	<string name="sync_log_entity_download_failed_not_found">Entiteit %1$d niet gevonden op de server</string>
+	<string name="sync_log_entity_download_not_modified">Entiteit %1$d niet gewijzigd</string>
+	<string name="sync_log_entity_upload_entity_not_owned">Kon niet uploaden van entiteit %1$d: type niet bezeten door
+		iets, waarschijnlijk verwijderd
+	</string>
+	<string name="sync_log_entity_delete_failed">Mislukt om ID %1$d op de server te verwijderen: %2$s</string>
+	<string name="sync_log_entity_delete_success">Verwijderde ID %1$d op de server</string>
+	<string name="sync_log_entity_conflict">Er is een conflict opgetreden voor een nieuwe Entiteit, dit zou niet
+		mogelijk moeten zijn! ID: %1$d
+		TYPE: %2$s
+	</string>
+	<string name="sync_log_entity_failed">Synchronisatie mislukt: %1$s</string>
+	<string name="sync_log_entities_transferred">Entiteiten overgedragen</string>
+	<string name="sync_log_finalized">Synchronisatie voltooid</string>
+	<string name="sync_log_data_saved">Gegevens gesynchroniseerd opgeslagen</string>
+	<string name="sync_log_data_save_failed">Synchronisatiegegevens niet opgeslagen vanwege fouten</string>
+	<string name="sync_log_failed">Synchronisatie beëindigen is mislukt</string>
+	<string name="sync_encyclopedia_deleted">Verwijderde encyclopedie-ID %1$d van de client</string>
+	<string name="sync_note_deleted">Verwijderde notitie-ID %1$d van client</string>
+	<string name="sync_draft_deleted">Verwijderde concept %1$d van de klant</string>
+	<string name="sync_scene_deleted">Verwijderde scène %1$d van de client</string>
+	<string name="sync_scene_delete_failed">Het is niet gelukt om scène %1$d van de client te verwijderen</string>
+	<string name="sync_scene_delete_failed_not_found">Kon niet vinden scène om te verwijderen: %1$d</string>
+	<string name="sync_event_deleted">Verwijderd evenement %1$d van de client</string>
+	<string name="sync_event_delete_failed">Mislukt om evenement %1$d van de cliënt te verwijderen</string>
+	<string name="sync_event_delete_failed_not_found">Kon niet vinden evenement om te verwijderen: %1$d</string>
+	<string name="sync_scene_creating">Nieuwe scène aanmaken %1$d</string>
+	<string name="sync_scene_downloading">Gedownloade scene-inhoud voor: %1$d</string>
+	<string name="sync_scene_moved_parent">Verhuisde scène %1$d naar nieuwe ouder %2$d</string>
+	<string name="sync_scene_store_content_failed">Het is niet gelukt om gedownloade scènes-inhoud op te slaan voor:
+		%1$d
+	</string>
+	<string name="sync_scene_group_creating">Nieuwe groep aanmaken %1$d</string>
+	<string name="sync_scene_group_downloading">Gedownloade scène-inhoud voor: %1$d</string>
+	<string name="sync_scene_group_moved_parent">Verplaatst scène %1$d naar nieuwe ouder %2$d</string>
+	<string name="sync_unauthorized">Ongeautoriseerd</string>
+	<string name="sync_general_error">Ongemelde serverfout</string>
+	<string name="reauth_title">Hernieuwen autorisatie</string>
+	<string name="reauth_explanation">Je token is verlopen, dien opnieuw autorisatie aan bij je synchronisatieserver.
+	</string>
+	<string name="reauth_server_url">Adres</string>
+	<string name="reauth_server_email">E-mail</string>
+</resources>

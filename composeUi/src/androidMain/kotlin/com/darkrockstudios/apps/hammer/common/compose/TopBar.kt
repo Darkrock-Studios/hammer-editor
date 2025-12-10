@@ -1,11 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -17,9 +12,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 
 @Composable
 fun TopBar(
@@ -43,7 +39,7 @@ fun TopBar(
 		) {
 			Icon(
 				imageVector = Icons.Default.Close,
-				contentDescription = MR.strings.scene_editor_menu_item_close.get()
+				contentDescription = Res.string.scene_editor_menu_item_close.get()
 			)
 		}
 

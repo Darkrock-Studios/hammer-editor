@@ -4,12 +4,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchServerDataState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
 import getProjectDef
 import io.mockk.MockKAnnotations

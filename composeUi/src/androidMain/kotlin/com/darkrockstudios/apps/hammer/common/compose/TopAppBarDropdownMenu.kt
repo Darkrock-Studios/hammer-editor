@@ -11,9 +11,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.TopEnd
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.more_menu_button
 
 @Composable
 fun TopAppBarDropdownMenu(
@@ -28,7 +29,7 @@ fun TopAppBarDropdownMenu(
 		}) {
 			Icon(
 				Icons.Filled.MoreVert,
-				contentDescription = MR.strings.more_menu_button.get(),
+				contentDescription = Res.string.more_menu_button.get(),
 				tint = MaterialTheme.colorScheme.onSurface
 			)
 		}

@@ -15,12 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,7 +34,7 @@ fun ProjectsSyncDialog(component: ProjectsList) {
 			}
 		},
 		visible = true,
-		title = MR.strings.account_sync_dialog_title.get()
+		title = Res.string.account_sync_dialog_title.get()
 	) {
 		ProjectsSyncDialogContents(component)
 	}
@@ -53,7 +53,7 @@ internal fun ProjectsSyncDialogContents(
 			verticalAlignment = CenterVertically
 		) {
 			Text(
-				MR.strings.account_sync_dialog_header.get(),
+				Res.string.account_sync_dialog_header.get(),
 				style = MaterialTheme.typography.headlineSmall
 			)
 
@@ -62,7 +62,7 @@ internal fun ProjectsSyncDialogContents(
 			if (!state.syncState.syncComplete) {
 				Icon(
 					Icons.Default.Cancel,
-					contentDescription = MR.strings.account_sync_dialog_cancel_button.get(),
+					contentDescription = Res.string.account_sync_dialog_cancel_button.get(),
 					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelProjectsSync() },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
@@ -113,7 +113,7 @@ fun SyncLog(component: ProjectsList, onClose: () -> Unit) {
 	SimpleDialog(
 		onCloseRequest = onClose,
 		visible = true,
-		title = MR.strings.account_sync_log_title.get(),
+		title = Res.string.account_sync_log_title.get(),
 	) {
 		SyncLogContents(component)
 	}
@@ -180,7 +180,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Pending -> {
 			Icon(
 				Icons.Default.HourglassTop,
-				contentDescription = MR.strings.account_sync_dialog_status_pending.get(),
+				contentDescription = Res.string.account_sync_dialog_status_pending.get(),
 				modifier = modifier
 			)
 		}
@@ -192,7 +192,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Failed -> {
 			Icon(
 				Icons.Default.Error,
-				contentDescription = MR.strings.account_sync_dialog_status_error.get(),
+				contentDescription = Res.string.account_sync_dialog_status_error.get(),
 				tint = MaterialTheme.colorScheme.error,
 				modifier = modifier
 			)
@@ -201,7 +201,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Complete -> {
 			Icon(
 				Icons.Default.CheckCircle,
-				contentDescription = MR.strings.account_sync_dialog_status_pending.get(),
+				contentDescription = Res.string.account_sync_dialog_status_pending.get(),
 				tint = Color.Green,
 				modifier = modifier
 			)
@@ -210,7 +210,7 @@ private fun ProjectStatusIcon(
 		ProjectsList.Status.Canceled -> {
 			Icon(
 				Icons.Default.Cancel,
-				contentDescription = MR.strings.account_sync_dialog_status_canceled.get(),
+				contentDescription = Res.string.account_sync_dialog_status_canceled.get(),
 				modifier = modifier
 			)
 		}

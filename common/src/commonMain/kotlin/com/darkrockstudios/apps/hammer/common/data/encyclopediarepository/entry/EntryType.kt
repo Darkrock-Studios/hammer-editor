@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry
 
-import com.darkrockstudios.apps.hammer.MR
-import dev.icerock.moko.resources.StringResource
+import com.darkrockstudios.apps.hammer.*
+import org.jetbrains.compose.resources.StringResource
 
 enum class EntryType(val text: String) {
 	PERSON("person"),
@@ -31,11 +31,11 @@ enum class EntryType(val text: String) {
 
 		fun toStringResource(type: EntryType): StringResource {
 			return when (type) {
-				PERSON -> MR.strings.encyclopedia_category_person
-				PLACE -> MR.strings.encyclopedia_category_place
-				THING -> MR.strings.encyclopedia_category_thing
-				EVENT -> MR.strings.encyclopedia_category_event
-				IDEA -> MR.strings.encyclopedia_category_idea
+				PERSON -> Res.string.encyclopedia_category_person
+				PLACE -> Res.string.encyclopedia_category_place
+				THING -> Res.string.encyclopedia_category_thing
+				EVENT -> Res.string.encyclopedia_category_event
+				IDEA -> Res.string.encyclopedia_category_idea
 			}
 		}
 	}

@@ -2,11 +2,11 @@ package com.darkrockstudios.apps.hammer.common.components
 
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
 
 interface ComponentToaster {

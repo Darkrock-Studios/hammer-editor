@@ -9,8 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.confirm_dialog_negative
+import com.darkrockstudios.apps.hammer.confirm_dialog_positive
 
 @Composable
 fun SimpleConfirm(
@@ -49,7 +51,7 @@ fun SimpleConfirm(
 		},
 		confirmButton = {
 			Button(onClick = { onConfirm() }) {
-				Text(positiveButton ?: MR.strings.confirm_dialog_positive.get())
+				Text(positiveButton ?: Res.string.confirm_dialog_positive.get())
 			}
 		},
 		dismissButton = {
@@ -61,7 +63,7 @@ fun SimpleConfirm(
 				}
 			}) {
 				Text(
-					negativeButton ?: MR.strings.confirm_dialog_negative.get(),
+					negativeButton ?: Res.string.confirm_dialog_negative.get(),
 					fontStyle = FontStyle.Italic
 				)
 			}

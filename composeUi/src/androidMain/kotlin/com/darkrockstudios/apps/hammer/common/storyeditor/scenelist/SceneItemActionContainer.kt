@@ -22,9 +22,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
+import com.darkrockstudios.apps.hammer.scene_list_item_action_menu_description
+import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -68,7 +71,7 @@ actual fun SceneItemActionContainer(
 
 		Icon(
 			Icons.Filled.MenuOpen,
-			contentDescription = MR.strings.scene_list_item_action_menu_description.get(),
+			contentDescription = Res.string.scene_list_item_action_menu_description.get(),
 			modifier = Modifier
 				.align(Alignment.CenterStart)
 				.alpha(alpha),
@@ -89,7 +92,7 @@ actual fun SceneItemActionContainer(
 		onDismissRequest = { showMenu = false }
 	) {
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_item_action_delete.get()) },
+			text = { Text(Res.string.scene_list_item_action_delete.get()) },
 			onClick = {
 				onSceneDeleteClick(scene)
 				showMenu = false
@@ -97,13 +100,13 @@ actual fun SceneItemActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Delete,
-					contentDescription = MR.strings.scene_list_item_action_delete.get()
+					contentDescription = Res.string.scene_list_item_action_delete.get()
 				)
 			},
 		)
 
 		DropdownMenuItem(
-			text = { Text(MR.strings.scene_list_item_action_rename.get()) },
+			text = { Text(Res.string.scene_list_item_action_rename.get()) },
 			onClick = {
 				onSceneRenameClick(scene)
 				showMenu = false
@@ -111,7 +114,7 @@ actual fun SceneItemActionContainer(
 			leadingIcon = {
 				Icon(
 					Icons.Outlined.Edit,
-					contentDescription = MR.strings.scene_list_item_action_rename.get()
+					contentDescription = Res.string.scene_list_item_action_rename.get()
 				)
 			},
 		)

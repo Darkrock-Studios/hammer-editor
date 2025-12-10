@@ -58,3 +58,5 @@ fastlane/README.md
 
 # Release artifacts
 /android/release/
+/.claude/settings.local.json
+/CLAUDE.md

@@ -8,12 +8,15 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.settings_projects_directory
+import com.darkrockstudios.apps.hammer.settings_projects_directory_button
+import com.darkrockstudios.apps.hammer.settings_projects_directory_hint
 import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
 
 @Composable
@@ -28,7 +31,7 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 
 	Column(modifier = Modifier.padding(Ui.Padding.M)) {
 		Text(
-			MR.strings.settings_projects_directory.get(),
+			Res.string.settings_projects_directory.get(),
 			style = MaterialTheme.typography.headlineSmall,
 			color = MaterialTheme.colorScheme.onBackground,
 		)
@@ -40,14 +43,14 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 			onValueChange = { projectsPathText = it },
 			enabled = false,
 			label = {
-				Text(MR.strings.settings_projects_directory_hint.get())
+				Text(Res.string.settings_projects_directory_hint.get())
 			}
 		)
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 		Button(onClick = { showDirectoryPicker = true }) {
-			Text(MR.strings.settings_projects_directory_button.get())
+			Text(Res.string.settings_projects_directory_button.get())
 		}
 	}
 

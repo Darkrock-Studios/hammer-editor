@@ -24,13 +24,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
-import dev.icerock.moko.resources.compose.stringResource
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -65,7 +65,7 @@ fun ProjectListUi(
 				)
 
 				Text(
-					MR.strings.project_select_list_header.get(),
+					Res.string.project_select_list_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onBackground,
 					modifier = Modifier.weight(1f)
@@ -79,7 +79,7 @@ fun ProjectListUi(
 						},
 						modifier = Modifier.padding(end = Ui.Padding.XL),
 					) {
-						Image(Icons.Default.Refresh, MR.strings.projects_list_sync_button.get())
+						Image(Icons.Default.Refresh, Res.string.projects_list_sync_button.get())
 					}
 				}
 			}
@@ -95,7 +95,7 @@ fun ProjectListUi(
 					if (state.projects.isEmpty()) {
 						item {
 							Text(
-								MR.strings.project_select_project_list_empty.get(),
+								Res.string.project_select_project_list_empty.get(),
 								modifier = Modifier.padding(Ui.Padding.L).fillMaxWidth(),
 								style = MaterialTheme.typography.headlineSmall,
 								textAlign = TextAlign.Center,
@@ -124,8 +124,8 @@ fun ProjectListUi(
 
 	projectDefDeleteTarget?.let { project ->
 		SimpleConfirm(
-			title = MR.strings.delete_project_title.get(),
-			message = stringResource(MR.strings.delete_project_message, project.name),
+			title = Res.string.delete_project_title.get(),
+			message = stringResource(Res.string.delete_project_message, project.name),
 			onDismiss = { projectDefDeleteTarget = null },
 			onConfirm = {
 				component.deleteProject(project)

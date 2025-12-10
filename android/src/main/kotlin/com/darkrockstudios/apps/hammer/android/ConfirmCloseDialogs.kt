@@ -2,11 +2,11 @@ package com.darkrockstudios.apps.hammer.android
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.LifecycleCoroutineScope
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 
 @Composable
@@ -15,10 +15,10 @@ fun ConfirmUnsavedScenesDialog(
 	lifecycleScope: LifecycleCoroutineScope
 ) {
 	SimpleConfirm(
-		title = MR.strings.unsaved_scenes_dialog_title.get(),
-		message = MR.strings.unsaved_scenes_dialog_message.get(),
-		positiveButton = MR.strings.unsaved_entity_dialog_positive_button.get(),
-		negativeButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
+		title = Res.string.unsaved_scenes_dialog_title.get(),
+		message = Res.string.unsaved_scenes_dialog_message.get(),
+		positiveButton = Res.string.unsaved_entity_dialog_positive_button.get(),
+		negativeButton = Res.string.unsaved_entity_dialog_negative_button.get(),
 		onNegative = {
 			component.closeRequestDealtWith(CloseConfirm.Scenes)
 		},
@@ -36,10 +36,10 @@ fun ConfirmUnsavedScenesDialog(
 @Composable
 fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
 	SimpleConfirm(
-		title = MR.strings.unsaved_encyclopedia_dialog_title.get(),
-		message = MR.strings.unsaved_encyclopedia_dialog_message.get(),
-		positiveButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
-		negativeButton = MR.strings.unsaved_entity_dialog_neutral_button.get(),
+		title = Res.string.unsaved_encyclopedia_dialog_title.get(),
+		message = Res.string.unsaved_encyclopedia_dialog_message.get(),
+		positiveButton = Res.string.unsaved_entity_dialog_negative_button.get(),
+		negativeButton = Res.string.unsaved_entity_dialog_neutral_button.get(),
 		onDismiss = {
 			component.cancelCloseRequest()
 		}
@@ -51,10 +51,10 @@ fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
 @Composable
 fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot) {
 	SimpleConfirm(
-		title = MR.strings.unsaved_notes_dialog_title.get(),
-		message = MR.strings.unsaved_notes_dialog_message.get(),
-		positiveButton = MR.strings.unsaved_entity_dialog_negative_button.get(),
-		negativeButton = MR.strings.unsaved_entity_dialog_neutral_button.get(),
+		title = Res.string.unsaved_notes_dialog_title.get(),
+		message = Res.string.unsaved_notes_dialog_message.get(),
+		positiveButton = Res.string.unsaved_entity_dialog_negative_button.get(),
+		negativeButton = Res.string.unsaved_entity_dialog_neutral_button.get(),
 		onDismiss = {
 			component.cancelCloseRequest()
 		}

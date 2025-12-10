@@ -12,19 +12,11 @@ import com.darkrockstudios.apps.hammer.plugins.kweb.text
 import com.github.aymanizz.ktori18n.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
-import kweb.a
+import kweb.*
 import kweb.components.Component
-import kweb.div
-import kweb.h1
-import kweb.h2
-import kweb.h3
-import kweb.i
-import kweb.img
-import kweb.p
 import kweb.plugins.fomanticUI.fomantic
 import kweb.routing.RouteReceiver
-import kweb.span
-import java.util.Locale
+import java.util.*
 
 fun RouteReceiver.homePage(
 	scope: CoroutineScope,

@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -162,7 +162,7 @@ class SceneEditorComponent(
 	override fun addEditorMenu() {
 		val closeItem = MenuItemDescriptor(
 			"scene-editor-close",
-			MR.strings.scene_editor_menu_item_close,
+			Res.string.scene_editor_menu_item_close,
 			""
 		) {
 			Napier.d("Scene close selected")
@@ -171,7 +171,7 @@ class SceneEditorComponent(
 
 		val saveItem = MenuItemDescriptor(
 			"scene-editor-save",
-			MR.strings.scene_editor_menu_item_save,
+			Res.string.scene_editor_menu_item_save,
 			"",
 			KeyShortcut(83, ctrl = true)
 		) {
@@ -181,7 +181,7 @@ class SceneEditorComponent(
 
 		val discardItem = MenuItemDescriptor(
 			"scene-editor-discard",
-			MR.strings.scene_editor_menu_item_discard,
+			Res.string.scene_editor_menu_item_discard,
 			""
 		) {
 			Napier.d("Scene buffer discard selected")
@@ -191,7 +191,7 @@ class SceneEditorComponent(
 
 		val renameItem = MenuItemDescriptor(
 			"scene-editor-rename",
-			MR.strings.scene_editor_menu_item_rename,
+			Res.string.scene_editor_menu_item_rename,
 			""
 		) {
 			Napier.d("Scene rename selected")
@@ -200,7 +200,7 @@ class SceneEditorComponent(
 
 		val deleteItem = MenuItemDescriptor(
 			"scene-editor-delete",
-			MR.strings.scene_editor_menu_item_delete,
+			Res.string.scene_editor_menu_item_delete,
 			""
 		) {
 			Napier.i("Scene delete selected")
@@ -209,7 +209,7 @@ class SceneEditorComponent(
 
 		val draftsItem = MenuItemDescriptor(
 			"scene-editor-view-drafts",
-			MR.strings.scene_editor_menu_item_view_drafts,
+			Res.string.scene_editor_menu_item_view_drafts,
 			""
 		) {
 			Napier.i("View drafts")
@@ -218,7 +218,7 @@ class SceneEditorComponent(
 
 		val saveDraftItem = MenuItemDescriptor(
 			"scene-editor-save-draft",
-			MR.strings.scene_editor_menu_item_save_draft,
+			Res.string.scene_editor_menu_item_save_draft,
 			""
 		) {
 			Napier.i("Save draft")
@@ -227,7 +227,7 @@ class SceneEditorComponent(
 
 		val metadataItem = MenuItemDescriptor(
 			"scene-editor-toggle-metadata",
-			MR.strings.scene_editor_metadata_button,
+			Res.string.scene_editor_metadata_button,
 			""
 		) {
 			Napier.i("Toggle Metadata")
@@ -236,7 +236,7 @@ class SceneEditorComponent(
 
 		val focusModeItem = MenuItemDescriptor(
 			"scene-editor-focus-mode",
-			MR.strings.scene_editor_focus_mode_button,
+			Res.string.scene_editor_focus_mode_button,
 			""
 		) {
 			Napier.i("Enter Focus Mode")
@@ -256,7 +256,7 @@ class SceneEditorComponent(
 		)
 		val menu = MenuDescriptor(
 			getMenuId(),
-			MR.strings.scene_editor_menu_group,
+			Res.string.scene_editor_menu_group,
 			menuItems.toList()
 		)
 		addMenu(menu)

@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import dev.icerock.moko.resources.StringResource
 import getProject1Def
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
@@ -25,6 +24,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
@@ -49,8 +49,8 @@ class SceneSynchronizerTest : BaseTest() {
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	private val strRes: StrRes = object : StrRes {
-		override fun get(str: StringResource) = "test"
-		override fun get(str: StringResource, vararg args: Any) = "test"
+		override suspend fun get(str: StringResource) = "test"
+		override suspend fun get(str: StringResource, vararg args: Any) = "test"
 	}
 
 	private lateinit var rootNode: TreeNode<SceneItem>

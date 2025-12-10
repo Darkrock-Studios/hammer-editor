@@ -5,15 +5,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
@@ -45,13 +40,13 @@ fun EditorToolBar(
 
 	Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 		EditorAction(
-			iconRes = MR.images.icon_bold,
+			iconRes = Res.drawable.icon_bold,
 			active = isBoldActive,
 		) {
 			toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
 		}
 		EditorAction(
-			iconRes = MR.images.icon_italic,
+			iconRes = Res.drawable.icon_italic,
 			active = isItalicActive,
 		) {
 			toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
@@ -60,32 +55,32 @@ fun EditorToolBar(
 		Spacer(modifier = Modifier.weight(1f))
 
 		EditorAction(
-			iconRes = MR.images.icon_undo,
+			iconRes = Res.drawable.icon_undo,
 			active = state.canUndo
 		) {
 			state.undo()
 		}
 		EditorAction(
-			iconRes = MR.images.icon_redo,
+			iconRes = Res.drawable.icon_redo,
 			active = state.canRedo
 		) {
 			state.redo()
 		}
 
 		EditorAction(
-			iconRes = MR.images.icon_text_decrease,
+			iconRes = Res.drawable.icon_text_decrease,
 			active = false,
 		) {
 			decreaseTextSize()
 		}
 		EditorAction(
-			iconRes = MR.images.icon_text_increase,
+			iconRes = Res.drawable.icon_text_increase,
 			active = false,
 		) {
 			increaseTextSize()
 		}
 		EditorAction(
-			iconRes = MR.images.icon_text_reset,
+			iconRes = Res.drawable.icon_text_reset,
 			active = false,
 		) {
 			resetTextSize()

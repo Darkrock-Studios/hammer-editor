@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.proje
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -253,7 +253,7 @@ class ProjectsListComponent(
 		onLog: OnSyncLog,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit
 	): Boolean {
-		onLog(syncLogI(strRes.get(MR.strings.sync_log_begin_project, projectDef.name), projectDef))
+		onLog(syncLogI(strRes.get(Res.string.sync_log_begin_project, projectDef.name), projectDef))
 
 		var success = false
 		temporaryProjectTask(projectDef) { projScope ->
@@ -264,7 +264,7 @@ class ProjectsListComponent(
 				onConflict = {
 					onLog(
 						syncLogW(
-							strRes.get(MR.strings.sync_log_project_conflict, projectDef.name),
+							strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
 							projectDef
 						)
 					)
@@ -327,7 +327,7 @@ class ProjectsListComponent(
 			var projects = projectsRepository.getProjects()
 			syncNewProjectStatus(projects)
 
-			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_account)))
+			onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
 
 			val success = projectsSynchronizer.syncProjects(
 				onLog = ::onSyncLog,
@@ -338,7 +338,7 @@ class ProjectsListComponent(
 
 			var allSuccess = success
 			if (success) {
-				onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_begin_projects)))
+				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
 
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
@@ -367,7 +367,7 @@ class ProjectsListComponent(
 
 			callback(allSuccess)
 
-			onSyncLog(syncAccLogI(strRes.get(MR.strings.sync_log_end_projects)))
+			onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_end_projects)))
 
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
@@ -429,9 +429,9 @@ class ProjectsListComponent(
 		scope.launch {
 			syncProjects { success ->
 				if (success) {
-					showToast(scope, MR.strings.projects_list_toast_sync_complete)
+					showToast(scope, Res.string.projects_list_toast_sync_complete)
 				} else {
-					showToast(scope, MR.strings.projects_list_toast_sync_failed)
+					showToast(scope, Res.string.projects_list_toast_sync_failed)
 				}
 			}
 		}

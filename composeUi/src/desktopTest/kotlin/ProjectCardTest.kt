@@ -7,11 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCard
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import org.junit.Rule
 import org.junit.Test
 

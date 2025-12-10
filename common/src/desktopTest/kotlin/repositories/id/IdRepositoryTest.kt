@@ -6,11 +6,7 @@ import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer

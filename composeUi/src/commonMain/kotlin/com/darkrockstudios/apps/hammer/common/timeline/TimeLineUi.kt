@@ -16,10 +16,11 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.timeline_create_event_button
 
 @Composable
 fun TimeLineUi(
@@ -85,7 +86,7 @@ fun TimelineFab(
 				onClick = component::showCreateEvent,
 				modifier = modifier.testTag(TIME_LINE_CREATE_TAG)
 			) {
-				Icon(Icons.Default.Create, MR.strings.timeline_create_event_button.get())
+				Icon(Icons.Default.Create, Res.string.timeline_create_event_button.get())
 			}
 		}
 

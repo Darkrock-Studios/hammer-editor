@@ -8,13 +8,10 @@ import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
-import io.ktor.client.request.forms.FormDataContent
-import io.ktor.client.request.headers
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.Parameters
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test

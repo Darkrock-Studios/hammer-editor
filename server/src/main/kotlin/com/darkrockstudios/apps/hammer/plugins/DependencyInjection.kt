@@ -3,10 +3,7 @@ package com.darkrockstudios.apps.hammer.plugins
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStopped
-import io.ktor.server.application.install
-import io.ktor.server.application.log
+import io.ktor.server.application.*
 import kotlinx.coroutines.runBlocking
 import org.koin.core.module.Module
 import org.koin.ktor.ext.get

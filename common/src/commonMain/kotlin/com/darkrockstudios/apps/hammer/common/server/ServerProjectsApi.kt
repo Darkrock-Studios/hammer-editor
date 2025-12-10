@@ -6,10 +6,9 @@ import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.headers
-import io.ktor.client.request.parameter
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 
 class ServerProjectsApi(
 	httpClient: HttpClient,

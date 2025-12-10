@@ -7,11 +7,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.LibraryInfoProvider
+import com.darkrockstudios.apps.hammer.project_libraries_dialog_title
 import com.mikepenz.aboutlibraries.ui.compose.DefaultChipColors
 import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
@@ -34,7 +35,7 @@ actual fun LibrariesUi(
 	SimpleDialog(
 		onCloseRequest = close,
 		visible = showLibraries,
-		title = MR.strings.project_libraries_dialog_title.get(),
+		title = Res.string.project_libraries_dialog_title.get(),
 	) {
 		val libraryInfo: LibraryInfoProvider = rememberKoinInject()
 		Box(modifier = Modifier.fillMaxSize()) {

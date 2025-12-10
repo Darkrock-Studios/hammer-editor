@@ -9,12 +9,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
 import com.darkrockstudios.apps.hammer.common.projectsync.RemoteEntry
+import com.darkrockstudios.apps.hammer.sync_conflict_scene_title
 import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -125,7 +126,7 @@ private fun previewProjectSyncComponent(conflict: ProjectSynchronization.EntityC
 		ProjectSynchronization.State(
 			isSyncing = true,
 			entityConflict = conflict,
-			conflictTitle = MR.strings.sync_conflict_scene_title,
+			conflictTitle = Res.string.sync_conflict_scene_title,
 		)
 	}
 

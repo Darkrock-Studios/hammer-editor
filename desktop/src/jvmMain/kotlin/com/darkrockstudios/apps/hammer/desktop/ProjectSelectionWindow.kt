@@ -27,10 +27,12 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.account_window_title
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
@@ -59,7 +61,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	LifecycleController(lifecycle, windowState)
 
 	Window(
-		title = DR.strings.account_window_title.get(),
+		title = Res.string.account_window_title.get(),
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),

@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
@@ -8,21 +8,10 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_END
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_START
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_TOTAL
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityDeleteOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -77,7 +66,7 @@ class EntityTransferOperation(
 
 		onProgress(
 			ENTITY_END,
-			syncLogI(strRes.get(MR.strings.sync_log_entities_transferred), projectDef)
+			syncLogI(strRes.get(Res.string.sync_log_entities_transferred), projectDef)
 		)
 
 		val newState = EntityTransferState.fromEntityDeleteOperationState(state, allSuccess)
@@ -95,7 +84,7 @@ class EntityTransferOperation(
 		var allSuccess = true
 
 		suspend fun onConflict(entity: ApiProjectEntity) {
-			val message = strRes.get(MR.strings.sync_log_entity_conflict, entity.id, entity.type)
+			val message = strRes.get(Res.string.sync_log_entity_conflict, entity.id, entity.type)
 			onLog(syncLogE(message, projectDef))
 			throw IllegalStateException(message)
 		}
@@ -273,14 +262,14 @@ class EntityTransferOperation(
 			if (success) {
 				onLog(
 					syncLogI(
-						strRes.get(MR.strings.sync_log_entity_download_success, id),
+						strRes.get(Res.string.sync_log_entity_download_success, id),
 						projectDef
 					)
 				)
 			} else {
 				onLog(
 					syncLogE(
-						strRes.get(MR.strings.sync_log_entity_download_failed_general, id),
+						strRes.get(Res.string.sync_log_entity_download_failed_general, id),
 						projectDef
 					)
 				)
@@ -292,7 +281,7 @@ class EntityTransferOperation(
 				is EntityNotModifiedException -> {
 					onLog(
 						syncLogI(
-							strRes.get(MR.strings.sync_log_entity_download_not_modified, id),
+							strRes.get(Res.string.sync_log_entity_download_not_modified, id),
 							projectDef
 						)
 					)
@@ -303,7 +292,7 @@ class EntityTransferOperation(
 					onLog(
 						syncLogW(
 							strRes.get(
-								MR.strings.sync_log_entity_download_failed_not_found,
+								Res.string.sync_log_entity_download_failed_not_found,
 								id
 							), projectDef
 						)
@@ -312,7 +301,7 @@ class EntityTransferOperation(
 				}
 
 				else -> {
-					val message = strRes.get(MR.strings.sync_log_entity_download_failed_general, id)
+					val message = strRes.get(Res.string.sync_log_entity_download_failed_general, id)
 					Napier.e(message, entityResponse.exceptionOrNull())
 					onLog(syncLogE(message, projectDef))
 					CResult.failure(
@@ -336,7 +325,7 @@ class EntityTransferOperation(
 		} else {
 			onLog(
 				syncLogW(
-					strRes.get(MR.strings.sync_log_entity_upload_entity_not_owned, id),
+					strRes.get(Res.string.sync_log_entity_upload_entity_not_owned, id),
 					projectDef
 				)
 			)
@@ -348,7 +337,7 @@ class EntityTransferOperation(
 		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
 		val result = serverProjectApi.deleteId(projectDef.name, projectId, id, syncId)
 		return if (result.isSuccess) {
-			onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_delete_success, id), projectDef))
+			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))
 			true
 		} else {
 			val message = result.exceptionOrNull()?.message
@@ -356,7 +345,7 @@ class EntityTransferOperation(
 			onLog(
 				syncLogE(
 					strRes.get(
-						MR.strings.sync_log_entity_delete_failed,
+						Res.string.sync_log_entity_delete_failed,
 						id,
 						message ?: "---"
 					), projectDef

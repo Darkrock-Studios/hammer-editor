@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_note_deleted
 import kotlinx.coroutines.flow.first
 
 class ClientNoteSynchronizer(
@@ -95,7 +96,7 @@ class ClientNoteSynchronizer(
 
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		notesRepository.deleteNote(id)
-		onLog(syncLogI(strRes.get(MR.strings.sync_note_deleted, id), projectDef))
+		onLog(syncLogI(strRes.get(Res.string.sync_note_deleted, id), projectDef))
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {

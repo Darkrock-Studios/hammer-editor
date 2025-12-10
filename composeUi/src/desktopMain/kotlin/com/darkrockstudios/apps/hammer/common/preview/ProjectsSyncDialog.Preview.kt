@@ -23,10 +23,10 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogContents
-import dev.icerock.moko.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.jetbrains.compose.resources.StringResource
 
 @Preview
 @Composable

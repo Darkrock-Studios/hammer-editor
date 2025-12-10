@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
@@ -20,7 +20,6 @@ import io.ktor.http.*
 import korlibs.io.lang.InvalidArgumentException
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
@@ -47,13 +46,13 @@ class ClientAccountSynchronizer(
 			networkConnectivity.hasActiveConnection()
 
 	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit): Boolean {
-		onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_begin)))
+		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_begin)))
 
 		var syncId: String? = null
 		return try {
 			val result = serverProjectsApi.beginProjectsSync()
 			if (result.isSuccess) {
-				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_server_data_loaded)))
+				onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_server_data_loaded)))
 
 				val serverSyncData = result.getOrThrow()
 				syncId = serverSyncData.syncId
@@ -78,13 +77,13 @@ class ClientAccountSynchronizer(
 				yield()
 
 				serverProjectsApi.endProjectsSync(syncId)
-				onLog(syncAccLogI(strRes.get(MR.strings.sync_log_account_complete)))
+				onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_complete)))
 				true
 			} else {
 				onLog(
 					syncAccLogE(
 						strRes.get(
-							MR.strings.sync_log_account_failed,
+							Res.string.sync_log_account_failed,
 							result.exceptionOrNull() ?: "---"
 						)
 					)
@@ -157,7 +156,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_rename_server_success,
+							Res.string.sync_log_account_project_rename_server_success,
 							projectId.id
 						)
 					)
@@ -175,7 +174,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogE(
 						strRes.get(
-							MR.strings.sync_log_account_project_rename_server_failure,
+							Res.string.sync_log_account_project_rename_server_failure,
 							projectId
 						)
 					)
@@ -216,7 +215,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_delete_client,
+							Res.string.sync_log_account_project_delete_client,
 							projectDef.name
 						)
 					)
@@ -242,7 +241,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_delete_server_success,
+							Res.string.sync_log_account_project_delete_server_success,
 							projectId.id
 						)
 					)
@@ -260,7 +259,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogE(
 						strRes.get(
-							MR.strings.sync_log_account_project_delete_server_failure,
+							Res.string.sync_log_account_project_delete_server_failure,
 							projectId
 						)
 					)
@@ -318,7 +317,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_create_client_local,
+							Res.string.sync_log_account_project_create_client_local,
 							serverProject.name
 						)
 					)
@@ -331,7 +330,7 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogI(
 							strRes.get(
-								MR.strings.sync_log_account_project_create_client,
+								Res.string.sync_log_account_project_create_client,
 								serverProject.name
 							)
 						)
@@ -340,7 +339,7 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogW(
 							strRes.get(
-								MR.strings.sync_log_account_project_create_client_failure,
+								Res.string.sync_log_account_project_create_client_failure,
 								serverProject.toString(),
 							)
 						)
@@ -377,7 +376,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogI(
 						strRes.get(
-							MR.strings.sync_log_account_project_create_server_success,
+							Res.string.sync_log_account_project_create_server_success,
 							projectName
 						)
 					)
@@ -391,7 +390,7 @@ class ClientAccountSynchronizer(
 				onLog(
 					syncAccLogE(
 						strRes.get(
-							MR.strings.sync_log_account_project_create_server_failure,
+							Res.string.sync_log_account_project_create_server_failure,
 							projectName
 						)
 					)
@@ -433,7 +432,7 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogI(
 							strRes.get(
-								MR.strings.sync_log_account_project_rename_client_from_server_success,
+								Res.string.sync_log_account_project_rename_client_from_server_success,
 								serverProject.name
 							)
 						)
@@ -442,7 +441,7 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogE(
 							strRes.get(
-								MR.strings.sync_log_account_project_rename_client_from_server_failure,
+								Res.string.sync_log_account_project_rename_client_from_server_failure,
 								localProject.name
 							)
 						)

@@ -19,10 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -65,13 +65,13 @@ internal fun CreateEntryUi(
 					.widthIn(128.dp, 420.dp)
 			) {
 				Text(
-					MR.strings.encyclopedia_create_entry_header.get(),
+					Res.string.encyclopedia_create_entry_header.get(),
 					modifier = Modifier.padding(PaddingValues(bottom = Ui.Padding.XL)),
 					style = MaterialTheme.typography.displayMedium
 				)
 
 				Text(
-					MR.strings.encyclopedia_create_entry_type_label.get(),
+					Res.string.encyclopedia_create_entry_type_label.get(),
 					style = MaterialTheme.typography.titleMedium,
 					modifier = Modifier.padding(bottom = Ui.Padding.M)
 				)
@@ -79,7 +79,7 @@ internal fun CreateEntryUi(
 				ExposedDropDown(
 					modifier = Modifier.fillMaxWidth(),
 					items = types,
-					getText = { strRes.get(it.toStringResource()) },
+					getText = { it.toStringResource().get() },
 					selectedItem = selectedType,
 				) { item ->
 					if (item != null) {
@@ -94,7 +94,7 @@ internal fun CreateEntryUi(
 						.padding(PaddingValues(top = Ui.Padding.XL, bottom = Ui.Padding.L)),
 					value = newEntryNameText,
 					onValueChange = { newEntryNameText = it },
-					placeholder = { Text(MR.strings.encyclopedia_create_entry_name_label.get()) },
+					placeholder = { Text(Res.string.encyclopedia_create_entry_name_label.get()) },
 					singleLine = true
 				)
 
@@ -103,7 +103,7 @@ internal fun CreateEntryUi(
 						.padding(PaddingValues(bottom = Ui.Padding.L)),
 					value = newTagsText,
 					onValueChange = { newTagsText = it },
-					placeholder = { Text(MR.strings.encyclopedia_create_entry_tags_label.get()) },
+					placeholder = { Text(Res.string.encyclopedia_create_entry_tags_label.get()) },
 					singleLine = true
 				)
 
@@ -112,7 +112,7 @@ internal fun CreateEntryUi(
 					onValueChange = { newEntryContentText = it },
 					modifier = Modifier.fillMaxWidth()
 						.padding(PaddingValues(bottom = Ui.Padding.L)),
-					placeholder = { Text(text = MR.strings.encyclopedia_create_entry_body_hint.get()) },
+					placeholder = { Text(text = Res.string.encyclopedia_create_entry_body_hint.get()) },
 					maxLines = 10,
 				)
 
@@ -139,13 +139,13 @@ internal fun CreateEntryUi(
 							) {
 								Icon(
 									Icons.Default.Delete,
-									MR.strings.encyclopedia_create_entry_remove_image_button.get()
+									Res.string.encyclopedia_create_entry_remove_image_button.get()
 								)
 							}
 						}
 					} else {
 						Button(onClick = { showFilePicker = true }) {
-							Text(MR.strings.encyclopedia_create_entry_select_image_button.get())
+							Text(Res.string.encyclopedia_create_entry_select_image_button.get())
 						}
 					}
 				}
@@ -169,7 +169,7 @@ internal fun CreateEntryUi(
 									EntryError.NAME_TOO_LONG -> scope.launch {
 										rootSnackbar.showSnackbar(
 											strRes.get(
-												MR.strings.encyclopedia_create_entry_toast_too_long,
+												Res.string.encyclopedia_create_entry_toast_too_long,
 												EncyclopediaRepository.MAX_NAME_SIZE
 											)
 										)
@@ -177,14 +177,14 @@ internal fun CreateEntryUi(
 
 									EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
 										rootSnackbar.showSnackbar(
-											strRes.get(MR.strings.encyclopedia_create_entry_toast_invalid_name)
+											strRes.get(Res.string.encyclopedia_create_entry_toast_invalid_name)
 										)
 									}
 
 									EntryError.TAG_TOO_LONG -> scope.launch {
 										rootSnackbar.showSnackbar(
 											strRes.get(
-												MR.strings.encyclopedia_create_entry_toast_tag_too_long,
+												Res.string.encyclopedia_create_entry_toast_tag_too_long,
 												EncyclopediaRepository.MAX_TAG_SIZE
 											)
 										)
@@ -193,7 +193,7 @@ internal fun CreateEntryUi(
 									EntryError.NAME_TOO_SHORT -> scope.launch {
 										rootSnackbar.showSnackbar(
 											strRes.get(
-												MR.strings.encyclopedia_create_entry_toast_tag_too_short,
+												Res.string.encyclopedia_create_entry_toast_tag_too_short,
 											)
 										)
 									}
@@ -201,13 +201,13 @@ internal fun CreateEntryUi(
 									EntryError.NONE -> {
 										newEntryNameText = ""
 										close()
-										scope.launch { rootSnackbar.showSnackbar(strRes.get(MR.strings.encyclopedia_create_entry_toast_success)) }
+										scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_create_entry_toast_success)) }
 									}
 								}
 							}
 						}
 					) {
-						Text(MR.strings.encyclopedia_create_entry_create_button.get())
+						Text(Res.string.encyclopedia_create_entry_create_button.get())
 					}
 
 					Button(
@@ -215,7 +215,7 @@ internal fun CreateEntryUi(
 							.padding(PaddingValues(start = Ui.Padding.XL)),
 						onClick = { component.confirmClose() }
 					) {
-						Text(MR.strings.encyclopedia_create_entry_cancel_button.get())
+						Text(Res.string.encyclopedia_create_entry_cancel_button.get())
 					}
 				}
 			}
@@ -233,7 +233,7 @@ internal fun CreateEntryUi(
 
 	if (state.showConfirmClose) {
 		SimpleConfirm(
-			title = MR.strings.encyclopedia_create_entry_discard_title.get(),
+			title = Res.string.encyclopedia_create_entry_discard_title.get(),
 			onDismiss = { component.dismissConfirmClose() }
 		) {
 			component.dismissConfirmClose()

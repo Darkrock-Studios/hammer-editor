@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="sync_project_dialog_title">Синхронізація проекту</string>
+	<string name="sync_conflict_scene_title">Конфлікт сцени</string>
+	<string name="sync_conflict_scene_draft_title">Конфлікт проєкту сцени</string>
+	<string name="sync_conflict_note_title">Конфлікт запису</string>
+	<string name="sync_conflict_timeline_title">Конфлікт події хронології</string>
+	<string name="sync_conflict_encyclopedia_title">Конфлікт Енциклопедії</string>
+	<string name="sync_conflict_draft_title">Конфлікт енциклопедії</string>
+	<string name="sync_conflict_timeline_event_missing_date">Немає дати</string>
+	<string name="sync_conflict_tab_local">Місцевий</string>
+	<string name="sync_conflict_tab_remote">Віддалений</string>
+	<string name="sync_conflict_icon_description">конфлікт</string>
+	<string name="sync_conflict">Конфлікт</string>
+	<string name="sync_conflict_local_entry">Локальний запис:</string>
+	<string name="sync_conflict_local_use_button">Використати локально</string>
+	<string name="sync_conflict_merge_explained">Ви можете взяти або локальну, або віддалену копію як є, або ви можете
+		вручну об'єднати їх, скопіювавши частини з віддаленої копії у вашу локальну копію, а потім взяти це.
+	</string>
+	<string name="sync_conflict_remote_entry">Удалений запису:</string>
+	<string name="sync_conflict_remote_use_button">Використати віддалене</string>
+	<string name="sync_conflict_encyclopedia_local">Місцевий захід: %1$s</string>
+	<string name="sync_conflict_encyclopedia_remote">Віддалена подія: %1$s</string>
+	<string name="sync_conflict_encyclopedia_label_name">Ім'я:</string>
+	<string name="sync_conflict_encyclopedia_label_type">Тип:</string>
+	<string name="sync_conflict_encyclopedia_label_image">Зображення:</string>
+	<string name="sync_conflict_encyclopedia_label_content">Вміст:</string>
+	<string name="sync_conflict_encyclopedia_label_tags">Теги:</string>
+	<string name="sync_conflict_encyclopedia_has_image">Має зображення</string>
+	<string name="sync_conflict_encyclopedia_no_image">Немає зображення</string>
+	<string name="sync_conflict_title_scene_remote">Віддалена сцена:</string>
+	<string name="sync_conflict_title_scene_local">Локальна сцена:</string>
+	<string name="sync_conflict_title_scene_field_name">Назва</string>
+	<string name="sync_conflict_title_scene_field_content">Зміст сцени</string>
+	<string name="sync_conflict_title_scene_draft_remote">Віддалений чернетка:</string>
+	<string name="sync_conflict_title_scene_draft_local">Місцевий чернетка:</string>
+	<string name="sync_conflict_title_scene_draft_field_name">Ім'я</string>
+	<string name="sync_conflict_title_scene_draft_field_content">Зміст сцени</string>
+	<string name="sync_conflict_title_note_remote">Віддалена нотатка:</string>
+	<string name="sync_conflict_title_note_local">Локальна примітка:</string>
+	<string name="sync_conflict_title_note_field_name">Зміст примітки</string>
+	<string name="sync_conflict_title_timeline_event_remote">Віддалена подія:</string>
+	<string name="sync_conflict_title_timeline_event_local">Локальна подія:</string>
+	<string name="sync_conflict_title_timeline_event_field_date">Дата</string>
+	<string name="sync_conflict_title_timeline_event_field_content">Вміст події</string>
+	<string name="sync_menu_group">Синхронізувати</string>
+	<string name="sync_menu_item">Почати синхронізацію</string>
+	<string name="sync_status_in_progress">Синхронізація...</string>
+	<string name="sync_status_failed">Синхронізація не вдалася</string>
+	<string name="sync_status_success">Синхронізацію завершено</string>
+	<string name="sync_cancel_button">Скасувати</string>
+	<string name="sync_toast_success">Синхронізацію проєкту завершено</string>
+	<string name="sync_toast_failed">Синхронізація проєкту не вдалася</string>
+	<string name="sync_log_account_begin">Розпочати синхронізацію</string>
+	<string name="sync_log_account_server_data_loaded">Дані сервера завантажено</string>
+	<string name="sync_log_account_complete">Синхронізацію облікового запису завершено</string>
+	<string name="sync_log_account_failed">Не вдалося синхронізувати проєкти: %1$s</string>
+	<string name="sync_log_account_project_delete_server_success">Видалення серверного проєкту:
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_delete_server_failure">Не вдалося видалити проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_delete_client">Видалення локального проєкту: %1$s</string>
+	<string name="sync_log_account_project_rename_server_success">Перейменування серверного проєкту:
+		ID(%1$s)
+	</string>
+	<string name="sync_log_account_project_rename_server_failure">Не вдалося перейменувати проєкт на
+		сервері: %1$s
+	</string>
+	<string name="sync_log_account_project_rename_client_from_server_success">Перейменувати проєкт з
+		сервера: %1$s
+	</string>
+	<string name="sync_log_account_project_rename_client_from_server_failure">Не вдалося перейменувати проект з сервера:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_server_success">Створено проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_create_server_failure">Не вдалося створити проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_create_client">Створено локальний проєкт: %1$s</string>
+	<string name="sync_log_account_project_create_client_local">Встановлення ідентифікатора сервера локального проєкту:
+		%1$s
+	</string>
+	<string name="sync_log_account_project_create_client_failure">Не вдалося створити проект сервера: %1$s</string>
+	<string name="sync_log_begin_account">Синхронізація облікового запису...</string>
+	<string name="sync_log_begin_projects">Синхронізація проектів...</string>
+	<string name="sync_log_end_projects">Синхронізацію проектів завершено</string>
+	<string name="sync_log_begin_project">Синхронізація Проєкту: %1$s</string>
+	<string name="sync_log_project_conflict">Існує конфлікт у проєкті: %1$s, відкрийте цей проєкт та синхронізуйте, щоб
+		вирішити його.
+	</string>
+	<string name="sync_log_client_data_computed">Дані клієнтської сутності обчислені</string>
+	<string name="sync_log_server_data_loaded">Дані сервера отримано</string>
+	<string name="sync_log_client_data_loaded">Дані клієнта завантажено</string>
+	<string name="sync_log_backup_made">Створено локальну резервну копію: %1$s</string>
+	<string name="sync_log_entity_download_success">Сутність %1$d завантажена</string>
+	<string name="sync_log_entity_download_failed_general">Не вдалося завантажити сутність %1$d</string>
+	<string name="sync_log_entity_download_failed_not_found">Сутність %1$d не знайдена на сервері</string>
+	<string name="sync_log_entity_download_not_modified">Сутність %1$d не змінена</string>
+	<string name="sync_log_entity_upload_entity_not_owned">Не вдалося завантажити сутність %1$d: тип не належить нічому,
+		ймовірно, видалено.
+	</string>
+	<string name="sync_log_entity_delete_failed">Не вдалося видалити ID %1$d на сервері: %2$s</string>
+	<string name="sync_log_entity_delete_success">Видалено ID %1$d на сервері</string>
+	<string name="sync_log_entity_conflict">Виявлено конфлікт для нового об'єкта, це не повинно бути можливим! ID: %1$d
+		ТИП: %2$s
+	</string>
+	<string name="sync_log_entity_failed">Не вдалось синхронізувати: %1$s</string>
+	<string name="sync_log_entities_transferred">Сутності перенесено</string>
+	<string name="sync_log_finalized">Синхронізацію завершено</string>
+	<string name="sync_log_data_saved">Дані синхронізації збережено</string>
+	<string name="sync_log_data_save_failed">Не вдалось зберегти дані синхронізації через помилки</string>
+	<string name="sync_log_failed">Не вдалося завершити синхронізацію</string>
+	<string name="sync_encyclopedia_deleted">Скасовано Енциклопедію ID %1$d з клієнта</string>
+	<string name="sync_note_deleted">Видалено нотатку з ідентифікатором %1$d з клієнта</string>
+	<string name="sync_draft_deleted">Видалено чернетку %1$d з клієнта</string>
+	<string name="sync_scene_deleted">Видалено сцену %1$d з клієнта</string>
+	<string name="sync_scene_delete_failed">Не вдалося видалити сцену %1$d з клієнта</string>
+	<string name="sync_scene_delete_failed_not_found">Не вдалося знайти сцену для видалення: %1$d</string>
+	<string name="sync_event_deleted">Видалено подію %1$d з клієнта</string>
+	<string name="sync_event_delete_failed">Не вдалося видалити подію %1$d з клієнта</string>
+	<string name="sync_event_delete_failed_not_found">Не вдалося знайти подію для видалення: %1$d</string>
+	<string name="sync_scene_creating">Створення нової сцени %1$d</string>
+	<string name="sync_scene_downloading">Завантажено вміст сцени для: %1$d</string>
+	<string name="sync_scene_moved_parent">Переміщено сцену %1$d до нового батька %2$d</string>
+	<string name="sync_scene_store_content_failed">Не вдалося зберегти завантажений вміст сцени для: %1$d</string>
+	<string name="sync_scene_group_creating">Створення нової групи %1$d</string>
+	<string name="sync_scene_group_downloading">Завантажено контент сцени для: %1$d</string>
+	<string name="sync_scene_group_moved_parent">Переміщено сцену %1$d до нового батька %2$d</string>
+	<string name="sync_unauthorized">Неавторизовано</string>
+	<string name="sync_general_error">Непереможена помилка сервера</string>
+	<string name="reauth_title">Переавторизуватися</string>
+	<string name="reauth_explanation">Ваш токен втратив термін дії, будь ласка, повторно авторизуйтесь на своєму сервері
+		синхронізації.
+	</string>
+	<string name="reauth_server_url">Адреса</string>
+	<string name="reauth_server_email">Електронна пошта</string>
+</resources>

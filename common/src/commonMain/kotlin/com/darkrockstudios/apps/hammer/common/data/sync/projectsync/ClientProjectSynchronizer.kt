@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultD
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
 import kotlinx.coroutines.CoroutineScope
@@ -134,7 +135,7 @@ class ClientProjectSynchronizer(
 
 		onLog(
 			syncLogE(
-				strRes.get(MR.strings.sync_log_entity_failed, e.message ?: "---"),
+				strRes.get(Res.string.sync_log_entity_failed, e.message ?: "---"),
 				projectDef
 			)
 		)

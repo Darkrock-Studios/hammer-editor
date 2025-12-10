@@ -24,12 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -43,7 +43,7 @@ internal fun ProjectSynchronization(
 	val state by component.state.subscribeAsState()
 
 	SimpleDialog(
-		title = MR.strings.sync_project_dialog_title.get(),
+		title = Res.string.sync_project_dialog_title.get(),
 		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
 		visible = true,
 		// TODO this size is a hold over from the old Dialog, maybe we dont need it
@@ -69,10 +69,12 @@ internal fun ProjectSynchronizationContent(
 
 	LaunchedEffect(Unit) {
 		component.syncProject { success ->
-			if (success) {
-				showSnackbar(strRes.get(MR.strings.sync_toast_success))
-			} else {
-				showSnackbar(strRes.get(MR.strings.sync_toast_failed))
+			scope.launch {
+				if (success) {
+					showSnackbar(strRes.get(Res.string.sync_toast_success))
+				} else {
+					showSnackbar(strRes.get(Res.string.sync_toast_failed))
+				}
 			}
 		}
 	}
@@ -81,18 +83,18 @@ internal fun ProjectSynchronizationContent(
 		Row {
 			if (state.isSyncing) {
 				Text(
-					MR.strings.sync_status_in_progress.get(),
+					Res.string.sync_status_in_progress.get(),
 					style = MaterialTheme.typography.headlineSmall
 				)
 			} else {
 				if (state.failed) {
 					Text(
-						MR.strings.sync_status_failed.get(),
+						Res.string.sync_status_failed.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 				} else {
 					Text(
-						MR.strings.sync_status_success.get(),
+						Res.string.sync_status_success.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 				}
@@ -103,7 +105,7 @@ internal fun ProjectSynchronizationContent(
 			if (state.isSyncing) {
 				Icon(
 					Icons.Default.Cancel,
-					contentDescription = MR.strings.sync_cancel_button.get(),
+					contentDescription = Res.string.sync_cancel_button.get(),
 					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
@@ -138,7 +140,7 @@ internal fun ProjectSynchronizationContent(
 					Row {
 						Icon(
 							Icons.Default.Warning,
-							contentDescription = MR.strings.sync_conflict_icon_description.get(),
+							contentDescription = Res.string.sync_conflict_icon_description.get(),
 							modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
 							tint = MaterialTheme.colorScheme.error
 						)

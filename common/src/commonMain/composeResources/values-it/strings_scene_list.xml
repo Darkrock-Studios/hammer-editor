@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="scene_list_header">Scene:</string>
+	<string name="scene_list_create_group_button">Crea Gruppo</string>
+	<string name="scene_list_create_scene_button">Crea scena</string>
+	<string name="scene_list_create_group_dialog_title">Crea Gruppo</string>
+	<string name="scene_list_create_group_dialog_message">Nome del gruppo</string>
+	<string name="scene_list_create_scene_dialog_title">Crea scena</string>
+	<string name="scene_list_create_scene_dialog_message">Nome della scena</string>
+	<string name="scene_group_item_collapsed">Gruppo Collassato</string>
+	<string name="scene_group_item_expanded">Gruppo Espanso</string>
+	<string name="scene_delete_dialog_title">Elimina Scena</string>
+	<string name="scene_delete_dialog_message">Sei sicuro di voler eliminare questa scena:
+		"%1$s"
+	</string>
+	<string name="scene_delete_dialog_delete_button">Elimina</string>
+	<string name="scene_delete_dialog_dismiss_button">Annulla</string>
+	<string name="group_cannot_delete_dialog_title">Impossibile eliminare il gruppo</string>
+	<string name="create_sceneitem_dialog_create_button">Crea</string>
+	<string name="create_sceneitem_dialog_dismiss_button">Annulla</string>
+	<string name="scene_list_outline_overview_title">Contorno della Storia</string>
+	<string name="scene_list_outline_overview_button">Panoramica Schema</string>
+	<string name="scene_list_outline_overview_none">&lt;nessun schema&gt;</string>
+	<string name="scene_list_outline_dismiss">Annulla</string>
+	<string name="scene_list_item_action_menu_description">Opzioni</string>
+	<string name="scene_list_item_action_delete">Elimina</string>
+	<string name="scene_list_item_action_rename">Rinomina</string>
+	<string name="scene_rename_dialog_title">Rinomina Scena</string>
+	<string name="scene_rename_dialog_label">Nome della Scena</string>
+	<string name="scene_rename_dialog_rename_button">Rinomina</string>
+	<string name="scene_rename_failed_error_invalid_name">Nome scena non valido</string>
+	<string name="scene_list_group_action_create_scene">Crea Scena</string>
+	<string name="scene_list_group_action_create_group">Crea Gruppo</string>
+	<string name="group_cannot_delete_dialog_message">Non puoi eliminare un gruppo mentre ha ancora figli:
+		"%1$s"
+	</string>
+</resources>

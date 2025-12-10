@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
@@ -15,11 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
@@ -117,7 +113,7 @@ class ClientSceneSynchronizer(
 			val sceneItem = if (existingScene != null) {
 				existingScene
 			} else {
-				onLog(syncLogI(strRes.get(MR.strings.sync_scene_creating, id), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_scene_creating, id), projectDef))
 				sceneEditorRepository.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
@@ -146,7 +142,7 @@ class ClientSceneSynchronizer(
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 
 				// Finally, log our success, and update the running apps data
-				onLog(syncLogI(strRes.get(MR.strings.sync_scene_downloading, id), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
 				sceneEditorRepository.onContentChanged(content, UpdateSource.Sync)
 
 				if (existingScene != null) {
@@ -161,7 +157,7 @@ class ClientSceneSynchronizer(
 						onLog(
 							syncLogI(
 								strRes.get(
-									MR.strings.sync_scene_moved_parent,
+									Res.string.sync_scene_moved_parent,
 									id,
 									serverEntity.path.lastOrNull() ?: -1
 								), projectDef
@@ -174,7 +170,7 @@ class ClientSceneSynchronizer(
 			} else {
 				onLog(
 					syncLogE(
-						strRes.get(MR.strings.sync_scene_store_content_failed, id),
+						strRes.get(Res.string.sync_scene_store_content_failed, id),
 						projectDef
 					)
 				)
@@ -187,7 +183,7 @@ class ClientSceneSynchronizer(
 			val sceneItem = if (existingGroup != null) {
 				existingGroup
 			} else {
-				onLog(syncLogI(strRes.get(MR.strings.sync_scene_group_creating, id), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_scene_group_creating, id), projectDef))
 				sceneEditorRepository.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
@@ -214,7 +210,7 @@ class ClientSceneSynchronizer(
 					onLog(
 						syncLogI(
 							strRes.get(
-								MR.strings.sync_scene_group_moved_parent,
+								Res.string.sync_scene_group_moved_parent,
 								id,
 								serverEntity.path.lastOrNull() ?: -1
 							), projectDef
@@ -223,7 +219,7 @@ class ClientSceneSynchronizer(
 				}
 			}
 
-			onLog(syncLogI(strRes.get(MR.strings.sync_scene_group_downloading, id), projectDef))
+			onLog(syncLogI(strRes.get(Res.string.sync_scene_group_downloading, id), projectDef))
 			true
 		}
 	}
@@ -256,14 +252,14 @@ class ClientSceneSynchronizer(
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
 			if (sceneEditorRepository.deleteScene(sceneItem)) {
-				onLog(syncLogI(strRes.get(MR.strings.sync_scene_deleted, id), projectDef))
+				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
-				onLog(syncLogE(strRes.get(MR.strings.sync_scene_delete_failed, id), projectDef))
+				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
 			}
 		} else {
 			onLog(
 				syncLogE(
-					strRes.get(MR.strings.sync_scene_delete_failed_not_found, id),
+					strRes.get(Res.string.sync_scene_delete_failed_not_found, id),
 					projectDef
 				)
 			)

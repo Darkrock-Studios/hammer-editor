@@ -9,13 +9,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsUi
+import com.darkrockstudios.apps.hammer.project_home_settings_title
 
 @Composable
 fun ProjectSettingsUi(
@@ -29,7 +30,7 @@ fun ProjectSettingsUi(
 		when (screen.windowWidthClass) {
 			WindowWidthSizeClass.Companion.Compact -> {
 				HeaderUi(
-					MR.strings.project_home_settings_title,
+					Res.string.project_home_settings_title,
 					"\uD83D\uDEE0",
 					Modifier.padding(top = Ui.Padding.L)
 				)
@@ -37,7 +38,7 @@ fun ProjectSettingsUi(
 
 			else -> {
 				Text(
-					MR.strings.project_home_settings_title.get(),
+					Res.string.project_home_settings_title.get(),
 					style = MaterialTheme.typography.displayMedium,
 					color = MaterialTheme.colorScheme.onSurface
 				)

@@ -3,12 +3,10 @@ package com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.plugins.ADMIN_AUTH
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
-import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*

@@ -8,33 +8,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
@@ -51,7 +40,7 @@ fun DraftCompareUi(component: DraftCompare) {
 			) {
 				Icon(
 					Icons.Default.Cancel,
-					contentDescription = MR.strings.draft_compare_cancel_button.get(),
+					contentDescription = Res.string.draft_compare_cancel_button.get(),
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
@@ -73,7 +62,7 @@ fun DraftCompareUi(component: DraftCompare) {
 private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 	var tabState by rememberSaveable { mutableStateOf(0) }
 	val titles = remember {
-		listOf(MR.strings.draft_compare_tab_title_draft, MR.strings.draft_compare_tab_title_current)
+		listOf(Res.string.draft_compare_tab_title_draft, Res.string.draft_compare_tab_title_current)
 	}
 
 	Column(modifier = modifier) {
@@ -158,17 +147,17 @@ private fun CurrentContent(
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.L)) {
 			Text(
-				MR.strings.draft_compare_current_header.get(),
+				Res.string.draft_compare_current_header.get(),
 				style = MaterialTheme.typography.headlineLarge
 			)
 			Text(
-				MR.strings.draft_compare_current_subheader.get(),
+				Res.string.draft_compare_current_subheader.get(),
 				style = MaterialTheme.typography.bodySmall,
 				fontStyle = FontStyle.Italic
 			)
 
 			Button(onClick = { component.pickMerged() }) {
-				Text(MR.strings.draft_compare_current_accept_button.get())
+				Text(Res.string.draft_compare_current_accept_button.get())
 			}
 
 			TextEditor(
@@ -184,6 +173,7 @@ private fun DraftContent(
 	modifier: Modifier,
 	component: DraftCompare,
 ) {
+	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
@@ -191,6 +181,11 @@ private fun DraftContent(
 	val textEditorState = rememberTextEditorState(
 		initialText = getInitialEditorContent(state.draftContent, markdownConfig)
 	)
+
+	var headerText by remember { mutableStateOf("") }
+	LaunchedEffect(component.draftDef.draftName) {
+		headerText = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
+	}
 
 	Card(modifier = modifier.padding(Ui.Padding.L)) {
 		Column(modifier = Modifier.padding(Ui.Padding.L)) {
@@ -203,16 +198,16 @@ private fun DraftContent(
 			*/
 
 			Text(
-				strRes.get(MR.strings.draft_compare_draft_header, component.draftDef.draftName),
+				headerText,
 				style = MaterialTheme.typography.headlineLarge
 			)
 			Text(
-				MR.strings.draft_compare_draft_subheader.get(),
+				Res.string.draft_compare_draft_subheader.get(),
 				style = MaterialTheme.typography.bodySmall,
 				fontStyle = FontStyle.Italic
 			)
 			Button(onClick = { component.pickDraft() }) {
-				Text(MR.strings.draft_compare_draft_accept_button.get())
+				Text(Res.string.draft_compare_draft_accept_button.get())
 			}
 
 			TextEditor(

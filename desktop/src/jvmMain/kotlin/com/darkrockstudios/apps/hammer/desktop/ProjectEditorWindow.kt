@@ -20,13 +20,14 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
@@ -72,7 +73,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	}
 
 	Window(
-		title = DR.strings.project_window_title.get(projectDef.name),
+		title = Res.string.project_window_title.get(projectDef.name),
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
@@ -159,11 +160,11 @@ private fun FrameWindowScope.EditorMenuBar(
 	val menu by app.menu.subscribeAsState()
 
 	MenuBar {
-		Menu(DR.strings.project_window_menu_file.get()) {
-			Item(DR.strings.project_window_menu_item_close.get(), onClick = {
+		Menu(Res.string.project_window_menu_file.get()) {
+			Item(Res.string.project_window_menu_item_close.get(), onClick = {
 				onRequestClose(component, app, ApplicationState.CloseType.Project)
 			})
-			Item(DR.strings.project_window_menu_item_exit.get(), onClick = {
+			Item(Res.string.project_window_menu_item_exit.get(), onClick = {
 				onRequestClose(component, app, ApplicationState.CloseType.Application)
 			})
 		}
@@ -184,7 +185,7 @@ private fun FrameWindowScope.EditorMenuBar(
 
 @Composable
 private fun AppContent(component: ProjectRoot) {
-	val destinations = remember { ProjectRoot.DestinationTypes.values() }
+	val destinations = remember { ProjectRoot.DestinationTypes.entries }
 	val router by component.routerState.subscribeAsState()
 
 	Box {

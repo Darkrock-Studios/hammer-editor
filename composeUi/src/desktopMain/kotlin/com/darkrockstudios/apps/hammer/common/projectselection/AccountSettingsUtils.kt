@@ -10,10 +10,10 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import dev.icerock.moko.resources.StringResource
 import io.fluidsonic.locale.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.jetbrains.compose.resources.StringResource
 
 val defaultAccountSettingsComponentState = AccountSettings.State(
 	location = ProjectSelection.Locations.Settings,

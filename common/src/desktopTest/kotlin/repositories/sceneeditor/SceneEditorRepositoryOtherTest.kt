@@ -3,7 +3,7 @@ package repositories.sceneeditor
 import OUT_OF_ORDER_PROJECT_NAME
 import PROJECT_1_NAME
 import PROJECT_2_NAME
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -25,6 +25,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.create_project_error_blank
+import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import createProject
 import getProject1Def
 import io.mockk.coEvery
@@ -59,7 +61,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	private val errorException =
-		ValidationFailedException(MR.strings.create_project_error_null_filename)
+		ValidationFailedException(Res.string.create_project_error_null_filename)
 
 	private fun claimId(): Int {
 		val id = nextId
@@ -452,7 +454,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		configure(PROJECT_1_NAME)
 
 		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(
-			ValidationFailedException(MR.strings.create_project_error_blank)
+			ValidationFailedException(Res.string.create_project_error_blank)
 		)
 
 		repo.initializeSceneEditor()

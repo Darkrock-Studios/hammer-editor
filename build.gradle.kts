@@ -14,7 +14,6 @@ buildscript {
 	}
 
 	dependencies {
-		classpath(libs.moko.resources.generator)
 		classpath(libs.kotlinx.atomicfu.plugin)
 		classpath(libs.jetbrains.kover)
 	}
@@ -62,7 +61,6 @@ plugins {
 	alias(libs.plugins.android.library) apply false
 	alias(libs.plugins.compose.compiler) apply false
 	alias(libs.plugins.buildconfig) apply false
-	alias(libs.plugins.moko.resources) apply false
 	alias(libs.plugins.aboutlibraries.plugin) apply false
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)

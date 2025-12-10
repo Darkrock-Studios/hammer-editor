@@ -19,15 +19,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moko.get
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
-import dev.icerock.moko.resources.compose.stringResource
 import io.github.koalaplot.core.bar.DefaultBar
 import io.github.koalaplot.core.bar.VerticalBarPlot
 import io.github.koalaplot.core.gestures.GestureConfig
@@ -36,6 +35,7 @@ import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
+import org.jetbrains.compose.resources.stringResource
 
 private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
 
@@ -74,14 +74,14 @@ fun ProjectStatsUi(
 				Spacer(modifier = Modifier.Companion.size(Ui.Padding.XL))
 
 				Text(
-					stringResource(MR.strings.project_home_stat_created, state.created),
+					stringResource(Res.string.project_home_stat_created, state.created),
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
 				Spacer(modifier = Modifier.Companion.size(Ui.Padding.XL))
 
 				Text(
-					MR.strings.project_home_stat_header.get(),
+					Res.string.project_home_stat_header.get(),
 					style = MaterialTheme.typography.headlineLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
@@ -89,21 +89,21 @@ fun ProjectStatsUi(
 		}
 
 		item {
-			NumericStatsBlock(MR.strings.project_home_stat_num_scenes.get(), state.numberOfScenes)
+			NumericStatsBlock(Res.string.project_home_stat_num_scenes.get(), state.numberOfScenes)
 		}
 
 		item {
-			NumericStatsBlock(MR.strings.project_home_stat_total_words.get(), state.totalWords)
+			NumericStatsBlock(Res.string.project_home_stat_total_words.get(), state.totalWords)
 		}
 
 		item {
-			GenericStatsBlock(MR.strings.project_home_stat_chapter_words.get()) {
+			GenericStatsBlock(Res.string.project_home_stat_chapter_words.get()) {
 				WordsInChaptersChart(state = state)
 			}
 		}
 
 		item {
-			GenericStatsBlock(MR.strings.project_home_stat_encyclopedia_entries.get()) {
+			GenericStatsBlock(Res.string.project_home_stat_encyclopedia_entries.get()) {
 				EncyclopediaChart(state = state)
 			}
 		}
@@ -272,8 +272,8 @@ private fun WordsInChaptersChart(
 			modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
 			xAxisModel = CategoryAxisModel(xAxis),
 			yAxisModel = FloatLinearAxisModel(range = range),
-			xAxisTitle = MR.strings.project_home_stat_chapter_words_x_axis.get(),
-			yAxisTitle = MR.strings.project_home_stat_chapter_words_y_axis.get(),
+			xAxisTitle = Res.string.project_home_stat_chapter_words_x_axis.get(),
+			yAxisTitle = Res.string.project_home_stat_chapter_words_y_axis.get(),
 			xAxisLabels = { index -> (index + 1).toString() },
 			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
 			yAxisLabels = { it.toInt().toString() },

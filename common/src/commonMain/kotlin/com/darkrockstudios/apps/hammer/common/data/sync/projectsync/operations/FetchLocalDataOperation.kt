@@ -1,22 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.FetchLocalDataState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_client_data_computed
 
 class FetchLocalDataOperation(
 	projectDef: ProjectDef,
@@ -56,7 +48,7 @@ class FetchLocalDataOperation(
 
 			onProgress(
 				0.05f,
-				syncLogI(strRes.get(MR.strings.sync_log_client_data_computed), projectDef)
+				syncLogI(strRes.get(Res.string.sync_log_client_data_computed), projectDef)
 			)
 
 			CResult.success(fetchLocalDataState)

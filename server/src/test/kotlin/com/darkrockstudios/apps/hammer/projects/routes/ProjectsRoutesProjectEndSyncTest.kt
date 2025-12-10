@@ -2,10 +2,9 @@ package com.darkrockstudios.apps.hammer.projects.routes
 
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.testing.testApplication
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
 import org.junit.jupiter.api.Test

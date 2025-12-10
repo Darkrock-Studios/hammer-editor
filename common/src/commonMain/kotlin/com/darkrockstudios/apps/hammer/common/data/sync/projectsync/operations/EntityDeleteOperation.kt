@@ -1,20 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
-import com.darkrockstudios.apps.hammer.MR
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityDeleteOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_entity_delete_failed
+import com.darkrockstudios.apps.hammer.sync_log_entity_delete_success
 import io.github.aakira.napier.Napier
 
 class EntityDeleteOperation(
@@ -64,7 +59,7 @@ class EntityDeleteOperation(
 		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
 		val result = serverProjectApi.deleteId(projectDef.name, projectId, id, syncId)
 		return if (result.isSuccess) {
-			onLog(syncLogI(strRes.get(MR.strings.sync_log_entity_delete_success, id), projectDef))
+			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))
 			true
 		} else {
 			val message = result.exceptionOrNull()?.message
@@ -72,7 +67,7 @@ class EntityDeleteOperation(
 			onLog(
 				syncLogE(
 					strRes.get(
-						MR.strings.sync_log_entity_delete_failed,
+						Res.string.sync_log_entity_delete_failed,
 						id,
 						message ?: "---"
 					), projectDef

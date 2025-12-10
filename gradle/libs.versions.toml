@@ -46,8 +46,6 @@ napier = "2.7.1"
 jetbrains_compose = "1.9.3"
 jetbrains_kover = "0.9.4"
 
-moko_resources = "0.25.2"
-moko_graphics = "0.10.1"
 moko_permissions = "0.20.1"
 
 decompose = "3.4.0"
@@ -110,7 +108,6 @@ jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", versi
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 
 imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref = "image-loader" }
-imageloader_moko = { group = "io.github.qdsfdhvh", name = "image-loader-extension-moko-resources", version.ref = "image-loader" }
 imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
 
 jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
@@ -151,11 +148,6 @@ decompose_android = { group = "com.arkivanov.decompose", name = "extensions-andr
 essenty_lifecycle = { group = "com.arkivanov.essenty", name = "lifecycle", version.ref = "essenty" }
 essenty_lifecycle_coroutines = { group = "com.arkivanov.essenty", name = "lifecycle-coroutines", version.ref = "essenty" }
 
-moko_resources = { group = "dev.icerock.moko", name = "resources", version.ref = "moko_resources" }
-moko_resources_compose = { group = "dev.icerock.moko", name = "resources-compose", version.ref = "moko_resources" }
-moko_resources_generator = { group = "dev.icerock.moko", name = "resources-generator", version.ref = "moko_resources" }
-moko_resources_test = { group = "dev.icerock.moko", name = "resources-test", version.ref = "moko_resources" }
-moko_graphics = { group = "dev.icerock.moko", name = "graphics", version.ref = "moko_graphics" }
 orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
 
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
@@ -261,7 +253,6 @@ android_library = { id = "com.android.library", version.ref = "android_gradle_pl
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
-moko_resources = { id = "dev.icerock.mobile.multiplatform-resources", version.ref = "moko_resources" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
