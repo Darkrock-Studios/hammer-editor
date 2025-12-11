@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun ViewEntryUi(
 	component: ViewEntry,
@@ -37,6 +41,8 @@ internal fun ViewEntryUi(
 	modifier: Modifier = Modifier,
 	rootSnackbar: RootSnackbarHostState,
 	closeEntry: () -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
@@ -181,7 +187,9 @@ internal fun ViewEntryUi(
 						Image(
 							modifier = Modifier.weight(1f),
 							state = state,
-							showDeleteImageDialog = component::showDeleteImageDialog
+							showDeleteImageDialog = component::showDeleteImageDialog,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
 						)
 						Contents(
 							modifier = Modifier.weight(1f).wrapContentHeight()
@@ -198,7 +206,9 @@ internal fun ViewEntryUi(
 						Image(
 							modifier = Modifier.fillMaxWidth().wrapContentHeight(),
 							state = state,
-							showDeleteImageDialog = component::showDeleteImageDialog
+							showDeleteImageDialog = component::showDeleteImageDialog,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
 						)
 						Contents(
 							modifier = Modifier.wrapContentHeight(),
@@ -262,22 +272,31 @@ internal fun ViewEntryUi(
 	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun Image(
 	modifier: Modifier = Modifier,
 	state: ViewEntry.State,
-	showDeleteImageDialog: () -> Unit
+	showDeleteImageDialog: () -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
-			ImageItem(
-				path = state.entryImagePath,
-				modifier = Modifier.wrapContentHeight()
-					.fillMaxWidth()
-					.align(Alignment.TopEnd)
-					.clickable(onClick = showDeleteImageDialog),
-				contentScale = ContentScale.FillWidth,
-			)
+			with(sharedTransitionScope) {
+				ImageItem(
+					path = state.entryImagePath,
+					modifier = Modifier.wrapContentHeight()
+						.fillMaxWidth()
+						.align(Alignment.TopEnd)
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${state.entryDef.id}"),
+							animatedVisibilityScope = animatedVisibilityScope
+						)
+						.clickable(onClick = showDeleteImageDialog),
+					contentScale = ContentScale.FillWidth,
+				)
+			}
 		}
 	}
 }

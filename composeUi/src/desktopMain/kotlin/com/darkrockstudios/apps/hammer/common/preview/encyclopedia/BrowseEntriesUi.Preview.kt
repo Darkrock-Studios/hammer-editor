@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.encyclopedia
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -12,17 +15,24 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 fun BrowseEntriesUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
-		BrowseEntriesUi(
-			component = component,
-			scope = scope,
-			viewEntry = {},
-		)
+		SharedTransitionLayout {
+			AnimatedVisibility(visible = true) {
+				BrowseEntriesUi(
+					component = component,
+					scope = scope,
+					viewEntry = {},
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedVisibility,
+				)
+			}
+		}
 	}
 }
 

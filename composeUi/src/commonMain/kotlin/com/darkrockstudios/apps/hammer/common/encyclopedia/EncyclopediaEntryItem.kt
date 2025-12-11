@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -37,13 +40,15 @@ internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
 	component: BrowseEntries,
 	viewEntry: (EntryDef) -> Unit,
 	scope: CoroutineScope,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	modifier: Modifier = Modifier,
 	filterByType: (type: EntryType) -> Unit
 ) {
@@ -78,11 +83,19 @@ internal fun EncyclopediaEntryItem(
 
 			if (entryImagePath != null) {
 				Box {
-					ImageItem(
-						path = entryImagePath,
-						modifier = Modifier.fillMaxWidth().heightIn(64.dp, 256.dp),
-						contentScale = ContentScale.FillWidth
-					)
+					with(sharedTransitionScope) {
+						ImageItem(
+							path = entryImagePath,
+							modifier = Modifier
+								.fillMaxWidth()
+								.heightIn(64.dp, 256.dp)
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								),
+							contentScale = ContentScale.FillWidth
+						)
+					}
 					AssistChip(
 						onClick = { filterByType(entryDef.type) },
 						label = { Text(entryDef.type.toStringResource().get()) },
