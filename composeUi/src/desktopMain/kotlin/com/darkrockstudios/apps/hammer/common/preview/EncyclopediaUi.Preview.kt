@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 private fun EntryDefItemPreview() {
@@ -43,13 +47,19 @@ private fun EntryDefItemPreview() {
 		projectDef = fakeProjectDef()
 	)
 
-	EncyclopediaEntryItem(
-		entryDef = entry,
-		component = browseEntriesComponent,
-		viewEntry = {},
-		scope = scope,
-		filterByType = {}
-	)
+	SharedTransitionLayout {
+		AnimatedVisibility(visible = true) {
+			EncyclopediaEntryItem(
+				entryDef = entry,
+				component = browseEntriesComponent,
+				viewEntry = {},
+				scope = scope,
+				sharedTransitionScope = this@SharedTransitionLayout,
+				animatedVisibilityScope = this@AnimatedVisibility,
+				filterByType = {}
+			)
+		}
+	}
 }
 
 private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
@@ -144,6 +154,7 @@ private fun CreateEntryPreview() {
 	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 private fun ViewEntryPreview() {
@@ -159,12 +170,18 @@ private fun ViewEntryPreview() {
 					.fillMaxSize()
 					.padding(Ui.Padding.XL)
 			) {
-				ViewEntryUi(
-					component = fakeViewEntryComponent,
-					scope = scope,
-					closeEntry = {},
-					rootSnackbar = rootSnackbar
-				)
+				SharedTransitionLayout {
+					androidx.compose.animation.AnimatedVisibility(visible = true) {
+						ViewEntryUi(
+							component = fakeViewEntryComponent,
+							scope = scope,
+							closeEntry = {},
+							rootSnackbar = rootSnackbar,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
+				}
 			}
 		}
 
@@ -177,12 +194,18 @@ private fun ViewEntryPreview() {
 					.fillMaxSize()
 					.padding(Ui.Padding.XL)
 			) {
-				ViewEntryUi(
-					component = fakeViewEntryComponent,
-					scope = scope,
-					closeEntry = {},
-					rootSnackbar = rootSnackbar
-				)
+				SharedTransitionLayout {
+					androidx.compose.animation.AnimatedVisibility(visible = true) {
+						ViewEntryUi(
+							component = fakeViewEntryComponent,
+							scope = scope,
+							closeEntry = {},
+							rootSnackbar = rootSnackbar,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
+				}
 			}
 		}
 	}

@@ -28,6 +28,7 @@ kotlin {
 				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
 				optIn("kotlin.uuid.ExperimentalUuidApi")
 				optIn("com.arkivanov.decompose.ExperimentalDecomposeApi")
+				optIn("androidx.compose.animation.ExperimentalSharedTransitionApi")
 			}
 		}
 
@@ -48,6 +49,7 @@ kotlin {
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
 				api(libs.decompose.compose)
+				api(libs.decompose.compose.experimental)
 				api(libs.mpfilepicker)
 				api(libs.imageloader)
 				api(libs.imageloader.blur)

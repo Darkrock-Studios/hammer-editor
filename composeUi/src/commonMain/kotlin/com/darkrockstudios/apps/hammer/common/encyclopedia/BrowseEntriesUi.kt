@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -24,12 +27,14 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun BrowseEntriesUi(
 	component: BrowseEntries,
 	scope: CoroutineScope,
-	viewEntry: (EntryDef) -> Unit
+	viewEntry: (EntryDef) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val state by component.state.subscribeAsState()
 	val types = remember { EntryType.entries }
@@ -104,6 +109,8 @@ fun BrowseEntriesUi(
 						component = component,
 						viewEntry = viewEntry,
 						scope = scope,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
 					) { type ->
 						selectedType = type
 						component.updateFilter(searchText, type)
