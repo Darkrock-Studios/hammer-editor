@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -14,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.notes.ViewNoteUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import kotlin.time.Clock
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 private fun ViewNoteUiPreview() {
@@ -46,7 +50,17 @@ private fun ViewNoteUiPreview() {
 	val rootSnackbar = rememberRootSnackbarHostState()
 
 	KoinApplicationPreview {
-		ViewNoteUi(component, Modifier, rootSnackbar)
+		SharedTransitionLayout {
+			AnimatedVisibility(visible = true) {
+				ViewNoteUi(
+					component = component,
+					modifier = Modifier,
+					rootSnackbar = rootSnackbar,
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedVisibility,
+				)
+			}
+		}
 	}
 }
 

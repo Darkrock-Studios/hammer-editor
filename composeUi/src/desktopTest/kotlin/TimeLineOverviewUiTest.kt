@@ -1,3 +1,6 @@
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.arkivanov.decompose.Cancellation
@@ -28,6 +31,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		return component
 	}
 
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Overview No Events`() {
 		val data = TimeLineOverview.State(
@@ -38,18 +42,24 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val component = componentSetup(data)
 
 		compose.setContent {
-			TimeLineOverviewUi(
-				component = component,
-				scope = scope,
-				showCreate = {},
-				viewEvent = {}
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = component,
+						scope = scope,
+						showCreate = {},
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose.onNodeWithText("No Events").assertIsDisplayed()
 	}
 
-	@OptIn(ExperimentalTestApi::class)
+	@OptIn(ExperimentalTestApi::class, ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Overview Events`() {
 		val viewEvent = mockk<(Int) -> Unit>()
@@ -63,12 +73,18 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val component = componentSetup(data)
 
 		compose.setContent {
-			TimeLineOverviewUi(
-				component = component,
-				scope = scope,
-				showCreate = {},
-				viewEvent = viewEvent
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = component,
+						scope = scope,
+						showCreate = {},
+						viewEvent = viewEvent,
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose.onNodeWithText("No Events").assertDoesNotExist()
@@ -111,6 +127,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 	*/
 
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Click`() {
 		val viewEvent = mockk<(Int) -> Unit>()
@@ -126,11 +143,17 @@ class TimeLineOverviewUiTest : BaseTest() {
 		)
 
 		compose.setContent {
-			EventCard(
-				event = event,
-				isDragging = false,
-				viewEvent = viewEvent
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					EventCard(
+						event = event,
+						isDragging = false,
+						viewEvent = viewEvent,
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose.onNodeWithText(date).assertIsDisplayed()
@@ -140,6 +163,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		verify(exactly = 1) { viewEvent.invoke(event.id) }
 	}
 
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content and Date`() {
 		val date = "test date"
@@ -152,17 +176,24 @@ class TimeLineOverviewUiTest : BaseTest() {
 		)
 
 		compose.setContent {
-			EventCard(
-				event = event,
-				isDragging = false,
-				viewEvent = {}
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					EventCard(
+						event = event,
+						isDragging = false,
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose.onNodeWithText(date).assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content No Date`() {
 		val content = "test content"
@@ -174,17 +205,24 @@ class TimeLineOverviewUiTest : BaseTest() {
 		)
 
 		compose.setContent {
-			EventCard(
-				event = event,
-				isDragging = false,
-				viewEvent = {}
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					EventCard(
+						event = event,
+						isDragging = false,
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose.onNodeWithTag(EVENT_CARD_DATE_TAG).assertDoesNotExist()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
+	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content Truncate`() {
 		val content = "x".repeat(EVENT_CARD_MAX_CONTENT_LENGTH + 1)
@@ -196,11 +234,17 @@ class TimeLineOverviewUiTest : BaseTest() {
 		)
 
 		compose.setContent {
-			EventCard(
-				event = event,
-				isDragging = false,
-				viewEvent = {}
-			)
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					EventCard(
+						event = event,
+						isDragging = false,
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
 		}
 
 		compose

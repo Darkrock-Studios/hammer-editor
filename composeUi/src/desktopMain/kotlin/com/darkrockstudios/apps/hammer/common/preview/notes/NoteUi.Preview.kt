@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.preview.notes
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.value.MutableValue
@@ -12,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
 import com.darkrockstudios.apps.hammer.common.notes.NoteItem
 import kotlin.time.Clock
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 private fun NoteItemPreview() {
@@ -20,17 +24,32 @@ private fun NoteItemPreview() {
 		created = Clock.System.now(),
 		content = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters."
 	)
-	NoteItem(
-		note = note,
-		viewNote = {}
-	)
+	SharedTransitionLayout {
+		AnimatedVisibility(visible = true) {
+			NoteItem(
+				note = note,
+				sharedTransitionScope = this@SharedTransitionLayout,
+				animatedVisibilityScope = this@AnimatedVisibility,
+				viewNote = {}
+			)
+		}
+	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 private fun BrowseNotesUiPreview() {
 	val component: BrowseNotes = fakeComponent()
-	BrowseNotesUi(component)
+	SharedTransitionLayout {
+		AnimatedVisibility(visible = true) {
+			BrowseNotesUi(
+				component = component,
+				sharedTransitionScope = this@SharedTransitionLayout,
+				animatedVisibilityScope = this@AnimatedVisibility,
+			)
+		}
+	}
 }
 
 private fun fakeComponent(): BrowseNotes = object : BrowseNotes {

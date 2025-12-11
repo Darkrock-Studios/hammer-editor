@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
@@ -64,63 +65,102 @@ internal fun EncyclopediaEntryItem(
 	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
 	var entryImagePath by remember { mutableStateOf<String?>(null) }
 
+	var hasImage by remember { mutableStateOf<Boolean?>(null) }
+
 	LaunchedEffect(entryDef) {
 		entryImagePath = null
+		hasImage = null
 		loadContentJob?.cancel()
 		loadContentJob = scope.launch(ioDispatcher) {
 			val imagePath = component.getImagePath(entryDef)
 			val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
 				entryImagePath = imagePath
+				hasImage = imagePath != null
 				entryContent = content
 				loadContentJob = null
 			}
 		}
 	}
 
-	Card(
-		modifier = modifier
-			.fillMaxWidth()
-			.padding(Ui.Padding.XL)
-			.clickable { viewEntry(entryDef) },
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-	) {
-		Column(modifier = Modifier.fillMaxWidth()) {
+	with(sharedTransitionScope) {
+		Card(
+			modifier = modifier
+				.fillMaxWidth()
+				.padding(Ui.Padding.XL)
+				.sharedElement(
+					sharedContentState = rememberSharedContentState(key = "encyclopedia-card-${entryDef.id}"),
+					animatedVisibilityScope = animatedVisibilityScope
+				)
+				.clickable { viewEntry(entryDef) },
+			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
+		) {
+			Column(modifier = Modifier.fillMaxWidth()) {
 
-			if (entryImagePath != null) {
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(max = 256.dp)
-						.clip(MaterialTheme.shapes.medium)
-				) {
-					// Background: blurred, cropped image to fill empty space
-					ImageItem(
-						path = entryImagePath,
+				// Show image box if we have an image OR if we're still loading (hasImage == null)
+				// This prevents layout jumps when images load
+				if (hasImage != false) {
+					Box(
 						modifier = Modifier
-							.matchParentSize()
-							.blur(radius = 25.dp)
-							.alpha(0.6f),
-						contentScale = ContentScale.Crop
-					)
+							.fillMaxWidth()
+							.height(256.dp)
+							.clip(MaterialTheme.shapes.medium)
+					) {
+						if (entryImagePath != null) {
+							// Background: blurred, cropped image to fill empty space
+							ImageItem(
+								path = entryImagePath,
+								modifier = Modifier
+									.matchParentSize()
+									.blur(radius = 25.dp)
+									.alpha(0.6f),
+								contentScale = ContentScale.Crop
+							)
 
-					GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
+							GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
 
-					// Foreground: fitted image with shared element transition
-					with(sharedTransitionScope) {
-						ImageItem(
-							path = entryImagePath,
-							modifier = Modifier
-								.align(Alignment.Center)
-								.sharedElement(
-									sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
-									animatedVisibilityScope = animatedVisibilityScope
+							// Foreground: fitted image
+							ImageItem(
+								path = entryImagePath,
+								modifier = Modifier
+									.align(Alignment.Center)
+									.sharedElement(
+										sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
+										animatedVisibilityScope = animatedVisibilityScope
+									)
+									.clip(MaterialTheme.shapes.medium),
+								contentScale = ContentScale.Fit
+							)
+						} else {
+							// Loading placeholder - keeps consistent height
+							Box(
+								modifier = Modifier.fillMaxSize(),
+								contentAlignment = Alignment.Center
+							) {
+								CircularProgressIndicator()
+							}
+						}
+
+						AssistChip(
+							onClick = { filterByType(entryDef.type) },
+							label = { Text(entryDef.type.toStringResource().get()) },
+							leadingIcon = {
+								Icon(
+									getEntryTypeIcon(entryDef.type),
+									entryDef.type.toStringResource().get()
 								)
-								.clip(MaterialTheme.shapes.medium),
-							contentScale = ContentScale.Fit
+							},
+							modifier = Modifier
+								.align(Alignment.BottomEnd)
+								.padding(end = Ui.Padding.L)
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${entryDef.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								),
 						)
 					}
-
+				} else {
+					// No image - just show the chip
 					AssistChip(
 						onClick = { filterByType(entryDef.type) },
 						label = { Text(entryDef.type.toStringResource().get()) },
@@ -130,73 +170,80 @@ internal fun EncyclopediaEntryItem(
 								entryDef.type.toStringResource().get()
 							)
 						},
-						modifier = Modifier.align(Alignment.BottomEnd).padding(end = Ui.Padding.L),
-						colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+						modifier = Modifier
+							.align(Alignment.End)
+							.padding(end = Ui.Padding.L)
+							.sharedElement(
+								sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${entryDef.id}"),
+								animatedVisibilityScope = animatedVisibilityScope
+							)
 					)
 				}
-			} else {
-				AssistChip(
-					onClick = { filterByType(entryDef.type) },
-					label = { Text(entryDef.type.toStringResource().get()) },
-					leadingIcon = {
-						Icon(
-							getEntryTypeIcon(entryDef.type),
-							entryDef.type.toStringResource().get()
+
+				Column(
+					modifier = Modifier
+						.padding(
+							top = Ui.Padding.L,
+							start = Ui.Padding.L,
+							end = Ui.Padding.L
 						)
-					},
-					modifier = Modifier.align(Alignment.End).padding(end = Ui.Padding.L)
-				)
-			}
-
-			Column(
-				modifier = Modifier.padding(
-					top = Ui.Padding.L,
-					start = Ui.Padding.L,
-					end = Ui.Padding.L
-				)
-			) {
-				Text(
-					entryDef.name,
-					style = MaterialTheme.typography.headlineMedium
-				)
-
-				if (loadContentJob != null) {
-					CircularProgressIndicator()
-				} else {
-					val content = entryContent
-					if (content != null) {
-						Text(
-							content.text,
-							style = MaterialTheme.typography.bodyMedium
+						.heightIn(min = 120.dp)
+				) {
+					Text(
+						entryDef.name,
+						style = MaterialTheme.typography.headlineMedium,
+						maxLines = 2,
+						overflow = TextOverflow.Ellipsis,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${entryDef.id}"),
+							animatedVisibilityScope = animatedVisibilityScope
 						)
+					)
 
-						Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-						FlowRow(
-							modifier = modifier,
-							horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-							verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-						) {
-							for (tag in content.tags) {
-								InputChip(
-									onClick = {
-										component.addTagToSearch(tag)
-									},
-									label = { Text(tag) },
-									leadingIcon = {
-										Icon(
-											Icons.Filled.Tag,
-											contentDescription = null,
-											tint = MaterialTheme.colorScheme.onSurface
-										)
-									},
-									enabled = true,
-									selected = false
-								)
-							}
-						}
+					if (loadContentJob != null) {
+						CircularProgressIndicator()
 					} else {
-						Text(Res.string.encyclopedia_entry_load_error.get())
+						val content = entryContent
+						if (content != null) {
+							Text(
+								content.text,
+								style = MaterialTheme.typography.bodyMedium,
+								maxLines = 3,
+								overflow = TextOverflow.Ellipsis,
+								modifier = Modifier.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "encyclopedia-text-${entryDef.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								)
+							)
+
+							Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+							FlowRow(
+								modifier = Modifier.heightIn(max = 40.dp),
+								horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+								verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+							) {
+								for (tag in content.tags) {
+									InputChip(
+										onClick = {
+											component.addTagToSearch(tag)
+										},
+										label = { Text(tag) },
+										leadingIcon = {
+											Icon(
+												Icons.Filled.Tag,
+												contentDescription = null,
+												tint = MaterialTheme.colorScheme.onSurface
+											)
+										},
+										enabled = true,
+										selected = false
+									)
+								}
+							}
+						} else {
+							Text(Res.string.encyclopedia_entry_load_error.get())
+						}
 					}
 				}
 			}

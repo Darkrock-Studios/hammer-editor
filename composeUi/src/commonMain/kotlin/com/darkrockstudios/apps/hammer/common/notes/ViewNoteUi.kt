@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
@@ -30,8 +33,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackbarHostState) {
+fun ViewNoteUi(
+	component: ViewNote,
+	modifier: Modifier,
+	rootSnackbar: RootSnackbarHostState,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
 	val state by component.state.subscribeAsState()
 
 	val scope = rememberCoroutineScope()
@@ -42,98 +52,114 @@ fun ViewNoteUi(component: ViewNote, modifier: Modifier, rootSnackbar: RootSnackb
 	}
 
 	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-		Card(
-			modifier = Modifier.padding(Ui.Padding.XL)
-				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-		) {
-			Column(
-				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
+		with(sharedTransitionScope) {
+			Card(
+				modifier = Modifier
+					.padding(Ui.Padding.XL)
+					.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = "note-card-${state.note?.id}"),
+						animatedVisibilityScope = animatedVisibilityScope
+					),
+				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 			) {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween
+				Column(
+					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
 				) {
-					Text(
-						Res.string.notes_view_header.get(),
-						style = MaterialTheme.typography.displaySmall,
-						modifier = Modifier.padding(top = Ui.Padding.M),
-					)
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.SpaceBetween
+					) {
+						Text(
+							Res.string.notes_view_header.get(),
+							style = MaterialTheme.typography.displaySmall,
+							modifier = Modifier.padding(top = Ui.Padding.M),
+						)
 
-					Row {
-						IconButton(
-							onClick = { component.confirmDelete() },
-						) {
-							Icon(Icons.Filled.Delete, Res.string.notes_note_item_action_delete.get())
-						}
+						Row {
+							IconButton(
+								onClick = { component.confirmDelete() },
+							) {
+								Icon(Icons.Filled.Delete, Res.string.notes_note_item_action_delete.get())
+							}
 
-						IconButton(onClick = {
-							component.confirmClose()
-						}) {
-							Icon(
-								Icons.Filled.Close,
-								Res.string.notes_note_item_action_cancel.get(),
-							)
+							IconButton(onClick = {
+								component.confirmClose()
+							}) {
+								Icon(
+									Icons.Filled.Close,
+									Res.string.notes_note_item_action_cancel.get(),
+								)
+							}
 						}
 					}
-				}
 
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
+					Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-				val date = remember(state.note?.created) {
-					state.note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
-						?.format("dd MMM `yy")
-				}
+					val date = remember(state.note?.created) {
+						state.note?.created?.toLocalDateTime(TimeZone.currentSystemDefault())
+							?.format("dd MMM `yy")
+					}
 
-				Text(
-					date ?: "",
-					style = MaterialTheme.typography.bodySmall
-				)
+					Text(
+						date ?: "",
+						style = MaterialTheme.typography.bodySmall,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(key = "note-date-${state.note?.id}"),
+							animatedVisibilityScope = animatedVisibilityScope
+						)
+					)
 
-				Row(horizontalArrangement = Arrangement.Center) {
-					if (state.isEditing) {
-						Column(modifier = Modifier.weight(1f)) {
-							Row {
-								IconButton(onClick = {
-									scope.launch {
-										component.storeNoteUpdate()
-										withContext(mainDispatcher) {
-											component.discardEdit()
+					Row(horizontalArrangement = Arrangement.Center) {
+						if (state.isEditing) {
+							Column(modifier = Modifier.weight(1f)) {
+								Row {
+									IconButton(onClick = {
+										scope.launch {
+											component.storeNoteUpdate()
+											withContext(mainDispatcher) {
+												component.discardEdit()
+											}
 										}
+									}) {
+										Icon(
+											Icons.Filled.Check,
+											Res.string.notes_note_item_action_rename.get(),
+											tint = MaterialTheme.colorScheme.onSurface
+										)
 									}
-								}) {
-									Icon(
-										Icons.Filled.Check,
-										Res.string.notes_note_item_action_rename.get(),
-										tint = MaterialTheme.colorScheme.onSurface
-									)
+									IconButton(onClick = {
+										component.confirmDiscard()
+									}) {
+										Icon(
+											Icons.Filled.Cancel,
+											Res.string.notes_note_item_action_cancel.get(),
+											tint = MaterialTheme.colorScheme.error
+										)
+									}
 								}
-								IconButton(onClick = {
-									component.confirmDiscard()
-								}) {
-									Icon(
-										Icons.Filled.Cancel,
-										Res.string.notes_note_item_action_cancel.get(),
-										tint = MaterialTheme.colorScheme.error
-									)
-								}
+								TextField(
+									modifier = Modifier
+										.fillMaxWidth()
+										.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+									value = noteText,
+									onValueChange = { component.onContentChanged(it) },
+								)
 							}
-							TextField(
+						} else {
+							ClickableText(
+								annotatedNoteText,
 								modifier = Modifier
-									.fillMaxWidth()
-									.widthIn(max = TextEditorDefaults.MAX_WIDTH),
-								value = noteText,
-								onValueChange = { component.onContentChanged(it) },
-							)
-						}
-					} else {
-						ClickableText(
-							annotatedNoteText,
-							modifier = Modifier.weight(1f),
-							style = MaterialTheme.typography.bodyMedium
-								.copy(color = MaterialTheme.colorScheme.onSurface),
-						) {
-							component.beginEdit()
+									.weight(1f)
+									.sharedElement(
+										sharedContentState = rememberSharedContentState(key = "note-content-${state.note?.id}"),
+										animatedVisibilityScope = animatedVisibilityScope
+									),
+								style = MaterialTheme.typography.bodyMedium
+									.copy(color = MaterialTheme.colorScheme.onSurface),
+							) {
+								component.beginEdit()
+							}
 						}
 					}
 				}

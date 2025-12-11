@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
@@ -11,10 +14,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.experimental.stack.ChildStack
+import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.PredictiveBackParams
+import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
@@ -22,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun TimeLineUi(
 	component: TimeLine,
@@ -31,42 +35,52 @@ fun TimeLineUi(
 	val scope = rememberCoroutineScope()
 	val state by component.stack.subscribeAsState()
 
-	Box(modifier = modifier) {
-		Children(
-			stack = state,
-			modifier = Modifier,
-			animation = predictiveBackAnimation(
-				backHandler = component.backHandler,
-				fallbackAnimation = stackAnimation { _ -> fade() },
-				onBack = component::onBack,
-			),
-		) {
-			when (val child = it.instance) {
-				is TimeLine.Destination.TimeLineOverviewDestination -> {
-					TimeLineOverviewUi(
-						component = child.component,
-						scope = scope,
-						showCreate = component::showCreateEvent,
-						viewEvent = component::showViewEvent
-					)
-				}
+	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
+		Box(modifier = Modifier.fillMaxSize()) {
+			ChildStack(
+				stack = state,
+				modifier = Modifier,
+				animation = stackAnimation(
+					animator = fade(),
+					predictiveBackParams = {
+						PredictiveBackParams(
+							backHandler = component.backHandler,
+							onBack = component::onBack,
+						)
+					},
+				),
+			) { child ->
+				when (val dest = child.instance) {
+					is TimeLine.Destination.TimeLineOverviewDestination -> {
+						TimeLineOverviewUi(
+							component = dest.component,
+							scope = scope,
+							showCreate = component::showCreateEvent,
+							viewEvent = component::showViewEvent,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@ChildStack,
+						)
+					}
 
-				is TimeLine.Destination.ViewEventDestination -> {
-					ViewTimeLineEventUi(
-						modifier = Modifier.align(Alignment.TopCenter),
-						component = child.component,
-						scope = scope,
-						rootSnackbar = rootSnackbar,
-					)
-				}
+					is TimeLine.Destination.ViewEventDestination -> {
+						ViewTimeLineEventUi(
+							modifier = Modifier.align(Alignment.TopCenter),
+							component = dest.component,
+							scope = scope,
+							rootSnackbar = rootSnackbar,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@ChildStack,
+						)
+					}
 
-				is TimeLine.Destination.CreateEventDestination -> {
-					CreateTimeLineEventUi(
-						component = child.component,
-						scope = scope,
-						modifier = Modifier.align(Alignment.TopCenter),
-						rootSnackbar = rootSnackbar,
-					)
+					is TimeLine.Destination.CreateEventDestination -> {
+						CreateTimeLineEventUi(
+							component = dest.component,
+							scope = scope,
+							modifier = Modifier.align(Alignment.TopCenter),
+							rootSnackbar = rootSnackbar,
+						)
+					}
 				}
 			}
 		}
