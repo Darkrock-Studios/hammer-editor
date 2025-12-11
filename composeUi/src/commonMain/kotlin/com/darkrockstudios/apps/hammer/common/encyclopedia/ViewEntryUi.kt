@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,8 +70,10 @@ internal fun ViewEntryUi(
 		contentAlignment = Alignment.Center
 	) {
 		Card(
-			modifier = modifier.heightIn(0.dp, maxHeight).widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
-				.padding(horizontal = Ui.Padding.XL),
+			modifier = modifier
+				.padding(Ui.Padding.XXL)
+				.heightIn(max = maxHeight)
+				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
 			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 		) {
 			Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
@@ -185,7 +188,7 @@ internal fun ViewEntryUi(
 				if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
 					Row {
 						Image(
-							modifier = Modifier.weight(1f),
+							modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.medium),
 							state = state,
 							showDeleteImageDialog = component::showDeleteImageDialog,
 							sharedTransitionScope = sharedTransitionScope,
@@ -204,7 +207,7 @@ internal fun ViewEntryUi(
 				} else {
 					Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 						Image(
-							modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+							modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(MaterialTheme.shapes.medium),
 							state = state,
 							showDeleteImageDialog = component::showDeleteImageDialog,
 							sharedTransitionScope = sharedTransitionScope,
@@ -293,6 +296,7 @@ private fun Image(
 							sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${state.entryDef.id}"),
 							animatedVisibilityScope = animatedVisibilityScope
 						)
+						.clip(MaterialTheme.shapes.medium)
 						.clickable(onClick = showDeleteImageDialog),
 					contentScale = ContentScale.FillWidth,
 				)

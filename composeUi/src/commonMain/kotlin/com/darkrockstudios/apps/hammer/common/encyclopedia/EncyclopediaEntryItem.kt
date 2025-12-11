@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -11,6 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -82,20 +88,39 @@ internal fun EncyclopediaEntryItem(
 		Column(modifier = Modifier.fillMaxWidth()) {
 
 			if (entryImagePath != null) {
-				Box {
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.heightIn(max = 256.dp)
+						.clip(MaterialTheme.shapes.medium)
+				) {
+					// Background: blurred, cropped image to fill empty space
+					ImageItem(
+						path = entryImagePath,
+						modifier = Modifier
+							.matchParentSize()
+							.blur(radius = 25.dp)
+							.alpha(0.6f),
+						contentScale = ContentScale.Crop
+					)
+
+					GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
+
+					// Foreground: fitted image with shared element transition
 					with(sharedTransitionScope) {
 						ImageItem(
 							path = entryImagePath,
 							modifier = Modifier
-								.fillMaxWidth()
-								.heightIn(64.dp, 256.dp)
+								.align(Alignment.Center)
 								.sharedElement(
 									sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
 									animatedVisibilityScope = animatedVisibilityScope
-								),
-							contentScale = ContentScale.FillWidth
+								)
+								.clip(MaterialTheme.shapes.medium),
+							contentScale = ContentScale.Fit
 						)
 					}
+
 					AssistChip(
 						onClick = { filterByType(entryDef.type) },
 						label = { Text(entryDef.type.toStringResource().get()) },
@@ -177,4 +202,20 @@ internal fun EncyclopediaEntryItem(
 			}
 		}
 	}
+}
+
+@Composable
+fun GradientDivider(modifier: Modifier = Modifier) {
+	Box(
+		modifier = modifier
+			.fillMaxWidth()
+			.background(
+				brush = Brush.verticalGradient(
+					colors = listOf(
+						Color.Transparent,
+						Color(0xFF222222),
+					)
+				)
+			)
+	)
 }
