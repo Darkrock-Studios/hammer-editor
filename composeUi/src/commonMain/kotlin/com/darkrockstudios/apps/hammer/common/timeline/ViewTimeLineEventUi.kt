@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -22,12 +25,15 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ViewTimeLineEventUi(
 	component: ViewTimeLineEvent,
 	modifier: Modifier = Modifier,
 	scope: CoroutineScope,
 	rootSnackbar: RootSnackbarHostState,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val strRes = rememberStrRes()
 
@@ -39,126 +45,145 @@ fun ViewTimeLineEventUi(
 
 	val event = remember(state.event) { state.event }
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.XL)
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-	) {
-		Column(
-			modifier = Modifier.padding(Ui.Padding.XL).widthIn(128.dp, 700.dp).wrapContentHeight()
+	with(sharedTransitionScope) {
+		Card(
+			modifier = modifier
+				.padding(Ui.Padding.XL)
+				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+				.sharedElement(
+					sharedContentState = rememberSharedContentState(key = "timeline-card-${event?.id}"),
+					animatedVisibilityScope = animatedVisibilityScope
+				),
+			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 		) {
-			Row(
-				modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-				horizontalArrangement = Arrangement.End,
-				verticalAlignment = Alignment.CenterVertically
+			Column(
+				modifier = Modifier.padding(Ui.Padding.XL).widthIn(128.dp, 700.dp).wrapContentHeight()
 			) {
-				Text(
-					Res.string.timeline_view_title.get(),
-					modifier = Modifier.weight(1f),
-					style = MaterialTheme.typography.displaySmall,
-				)
+				Row(
+					modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+					horizontalArrangement = Arrangement.End,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
+						Res.string.timeline_view_title.get(),
+						modifier = Modifier.weight(1f),
+						style = MaterialTheme.typography.displaySmall,
+					)
 
-				if (event != null && state.isEditing) {
-					IconButton(onClick = {
-						scope.launch(dispatcherDefault) {
-							val success = component.storeEvent(
-								event.copy(
-									date = dateText,
-									content = eventText
+					if (event != null && state.isEditing) {
+						IconButton(onClick = {
+							scope.launch(dispatcherDefault) {
+								val success = component.storeEvent(
+									event.copy(
+										date = dateText,
+										content = eventText
+									)
 								)
-							)
 
-							if (success) {
-								scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_success))
-								}
-							} else {
-								scope.launch {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_failure))
+								if (success) {
+									scope.launch {
+										rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_success))
+									}
+								} else {
+									scope.launch {
+										rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_failure))
+									}
 								}
 							}
+						}) {
+							Icon(
+								Icons.Filled.Check,
+								Res.string.timeline_view_save_button.get(),
+								tint = MaterialTheme.colorScheme.onSurface
+							)
 						}
-					}) {
+
+						IconButton(onClick = {
+							component.confirmDiscard()
+						}) {
+							Icon(
+								Icons.Filled.Cancel,
+								Res.string.timeline_view_cancel_button.get(),
+								tint = MaterialTheme.colorScheme.error
+							)
+						}
+
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+						Divider(
+							color = MaterialTheme.colorScheme.outline,
+							modifier = Modifier.fillMaxHeight().width(1.dp)
+								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+						)
+
+						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					}
+
+					ViewEventMenuUi(component)
+
+					IconButton(
+						onClick = { component.confirmClose() },
+					) {
 						Icon(
-							Icons.Filled.Check,
-							Res.string.timeline_view_save_button.get(),
+							Icons.Filled.Close,
+							contentDescription = Res.string.timeline_view_close_button.get(),
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
+				}
 
-					IconButton(onClick = {
-						component.confirmDiscard()
-					}) {
-						Icon(
-							Icons.Filled.Cancel,
-							Res.string.timeline_view_cancel_button.get(),
-							tint = MaterialTheme.colorScheme.error
-						)
+				if (event != null) {
+					event.date?.let { date ->
+						if (state.isEditing) {
+							TextField(
+								modifier = Modifier.wrapContentHeight().fillMaxWidth(),
+								value = dateText,
+								onValueChange = { component.onDateTextChanged(it) },
+								placeholder = { Text(Res.string.timeline_view_date_label.get()) }
+							)
+						} else {
+							Text(
+								date,
+								style = MaterialTheme.typography.headlineMedium,
+								color = MaterialTheme.colorScheme.onSurface,
+								modifier = Modifier
+									.wrapContentHeight()
+									.fillMaxWidth()
+									.sharedElement(
+										sharedContentState = rememberSharedContentState(key = "timeline-date-${event.id}"),
+										animatedVisibilityScope = animatedVisibilityScope
+									)
+									.clickable { component.beginEdit() }
+							)
+						}
 					}
 
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+					Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-					Divider(
-						color = MaterialTheme.colorScheme.outline,
-						modifier = Modifier.fillMaxHeight().width(1.dp)
-							.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
-					)
-
-					Spacer(modifier = Modifier.size(Ui.Padding.XL))
-				}
-
-				ViewEventMenuUi(component)
-
-				IconButton(
-					onClick = { component.confirmClose() },
-				) {
-					Icon(
-						Icons.Filled.Close,
-						contentDescription = Res.string.timeline_view_close_button.get(),
-						tint = MaterialTheme.colorScheme.onSurface
-					)
-				}
-			}
-
-			if (event != null) {
-				event.date?.let { date ->
 					if (state.isEditing) {
-						TextField(
-							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-							value = dateText,
-							onValueChange = { component.onDateTextChanged(it) },
-							placeholder = { Text(Res.string.timeline_view_date_label.get()) }
+						OutlinedTextField(
+							value = eventText,
+							onValueChange = { component.onEventTextChanged(it) },
+							modifier = Modifier.fillMaxWidth()
+								.padding(PaddingValues(bottom = Ui.Padding.XL)),
+							placeholder = { Text(text = Res.string.timeline_view_content_placeholder.get()) },
+							maxLines = 10,
 						)
 					} else {
 						Text(
-							date,
-							style = MaterialTheme.typography.headlineMedium,
+							event.content,
+							style = MaterialTheme.typography.bodyMedium,
 							color = MaterialTheme.colorScheme.onSurface,
-							modifier = Modifier.wrapContentHeight().fillMaxWidth()
+							modifier = Modifier
+								.wrapContentHeight()
+								.fillMaxWidth()
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								)
 								.clickable { component.beginEdit() }
 						)
 					}
-				}
-
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-				if (state.isEditing) {
-					OutlinedTextField(
-						value = eventText,
-						onValueChange = { component.onEventTextChanged(it) },
-						modifier = Modifier.fillMaxWidth()
-							.padding(PaddingValues(bottom = Ui.Padding.XL)),
-						placeholder = { Text(text = Res.string.timeline_view_content_placeholder.get()) },
-						maxLines = 10,
-					)
-				} else {
-					Text(
-						event.content,
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurface,
-						modifier = Modifier.wrapContentHeight().fillMaxWidth()
-							.clickable { component.beginEdit() }
-					)
 				}
 			}
 		}

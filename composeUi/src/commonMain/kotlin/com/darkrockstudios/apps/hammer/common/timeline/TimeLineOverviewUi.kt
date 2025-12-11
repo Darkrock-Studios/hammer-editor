@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,12 +39,15 @@ import kotlinx.coroutines.launch
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun TimeLineOverviewUi(
 	component: TimeLineOverview,
 	scope: CoroutineScope,
 	showCreate: () -> Unit,
-	viewEvent: (eventId: Int) -> Unit
+	viewEvent: (eventId: Int) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val state by component.state.subscribeAsState()
 
@@ -70,7 +76,13 @@ fun TimeLineOverviewUi(
 				},
 				modifier = Modifier.fillMaxSize().testTag(TIME_LINE_LIST_TAG)
 			) { event, isDragging ->
-				EventCard(event, isDragging, viewEvent)
+				EventCard(
+					event = event,
+					isDragging = isDragging,
+					viewEvent = viewEvent,
+					sharedTransitionScope = sharedTransitionScope,
+					animatedVisibilityScope = animatedVisibilityScope,
+				)
 			}
 		}
 	}
@@ -81,8 +93,15 @@ const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
 const val EVENT_CARD_MAX_CONTENT_LENGTH = 256
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: Int) -> Unit) {
+fun EventCard(
+	event: TimeLineEvent,
+	isDragging: Boolean,
+	viewEvent: (eventId: Int) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
 	val lineColor = MaterialTheme.colorScheme.outline
 	Box(
 		modifier = Modifier
@@ -109,46 +128,63 @@ fun EventCard(event: TimeLineEvent, isDragging: Boolean, viewEvent: (eventId: In
 	) {
 		Column {
 			event.date?.let { date ->
-				Text(
-					modifier = Modifier
-						.padding(start = Ui.Padding.XL + Ui.Padding.L)
-						.testTag(EVENT_CARD_DATE_TAG),
-					text = date,
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onBackground
-				)
+				with(sharedTransitionScope) {
+					Text(
+						modifier = Modifier
+							.padding(start = Ui.Padding.XL + Ui.Padding.L)
+							.sharedElement(
+								sharedContentState = rememberSharedContentState(key = "timeline-date-${event.id}"),
+								animatedVisibilityScope = animatedVisibilityScope
+							)
+							.testTag(EVENT_CARD_DATE_TAG),
+						text = date,
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onBackground
+					)
+				}
 			}
 
-			Card(
-				modifier = Modifier.padding(
-					start = Ui.Padding.XL * 3,
-					end = Ui.Padding.XL,
-					top = Ui.Padding.XL,
-					bottom = Ui.Padding.XL
-				).fillMaxWidth()
-					.clickable { viewEvent(event.id) }
-					.testTag(EVENT_CARD_TAG),
-				elevation = CardDefaults.elevatedCardElevation(),
-				border = if (isDragging) {
-					BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
-				} else {
-					null
-				}
-			) {
-				Column(modifier = Modifier.padding(Ui.Padding.L)) {
-					val content by remember {
-						derivedStateOf {
-							if (event.content.length > EVENT_CARD_MAX_CONTENT_LENGTH) {
-								event.content.substring(0, EVENT_CARD_MAX_CONTENT_LENGTH - 1) + "…"
-							} else {
-								event.content
+			with(sharedTransitionScope) {
+				Card(
+					modifier = Modifier.padding(
+						start = Ui.Padding.XL * 3,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.XL
+					).fillMaxWidth()
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(key = "timeline-card-${event.id}"),
+							animatedVisibilityScope = animatedVisibilityScope
+						)
+						.clickable { viewEvent(event.id) }
+						.testTag(EVENT_CARD_TAG),
+					elevation = CardDefaults.elevatedCardElevation(),
+					border = if (isDragging) {
+						BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer)
+					} else {
+						null
+					}
+				) {
+					Column(modifier = Modifier.padding(Ui.Padding.L)) {
+						val content by remember {
+							derivedStateOf {
+								if (event.content.length > EVENT_CARD_MAX_CONTENT_LENGTH) {
+									event.content.substring(0, EVENT_CARD_MAX_CONTENT_LENGTH - 1) + "…"
+								} else {
+									event.content
+								}
 							}
 						}
+						Text(
+							content,
+							modifier = Modifier
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								)
+								.testTag(EVENT_CARD_CONTENT_TAG)
+						)
 					}
-					Text(
-						content,
-						modifier = Modifier.testTag(EVENT_CARD_CONTENT_TAG)
-					)
 				}
 			}
 		}

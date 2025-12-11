@@ -69,13 +69,18 @@ internal fun ViewEntryUi(
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center
 	) {
-		Card(
-			modifier = modifier
-				.padding(Ui.Padding.XXL)
-				.heightIn(max = maxHeight)
-				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-		) {
+		with(sharedTransitionScope) {
+			Card(
+				modifier = modifier
+					.padding(Ui.Padding.XXL)
+					.heightIn(max = maxHeight)
+					.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = "encyclopedia-card-${state.entryDef.id}"),
+						animatedVisibilityScope = animatedVisibilityScope
+					),
+				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
+			) {
 			Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
 				if (state.editName) {
 					TextField(
@@ -91,7 +96,13 @@ internal fun ViewEntryUi(
 							style = MaterialTheme.typography.displaySmall,
 							color = MaterialTheme.colorScheme.onBackground,
 							textAlign = TextAlign.Center,
-							modifier = Modifier.weight(1f).clickable { component.startNameEdit() }
+							modifier = Modifier
+								.weight(1f)
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${state.entryDef.id}"),
+									animatedVisibilityScope = animatedVisibilityScope
+								)
+								.clickable { component.startNameEdit() }
 						)
 
 						ViewEntryMenuUi(component)
@@ -201,7 +212,9 @@ internal fun ViewEntryUi(
 							state = state,
 							editText = state.editText,
 							entryText = entryText,
-							setEntryText = { entryText = it }
+							setEntryText = { entryText = it },
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
 						) { component.startTextEdit() }
 					}
 				} else {
@@ -219,10 +232,13 @@ internal fun ViewEntryUi(
 							state = state,
 							editText = state.editText,
 							entryText = entryText,
-							setEntryText = { entryText = it }
+							setEntryText = { entryText = it },
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
 						) { component.startTextEdit() }
 					}
 				}
+			}
 			}
 		}
 	}
@@ -305,7 +321,7 @@ private fun Image(
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 private fun Contents(
 	modifier: Modifier = Modifier,
@@ -314,6 +330,8 @@ private fun Contents(
 	editText: Boolean,
 	entryText: String,
 	setEntryText: (String) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	beginEdit: () -> Unit,
 ) {
 	val scope = rememberCoroutineScope()
@@ -324,18 +342,25 @@ private fun Contents(
 		modifier = modifier
 			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
 	) {
-		AssistChip(
-			onClick = {},
-			enabled = false,
-			label = { Text(state.entryDef.type.toStringResource().get()) },
-			leadingIcon = {
-				Icon(
-					getEntryTypeIcon(state.entryDef.type),
-					state.entryDef.type.toStringResource().get()
-				)
-			},
-			modifier = Modifier.padding(end = Ui.Padding.L)
-		)
+		with(sharedTransitionScope) {
+			AssistChip(
+				onClick = {},
+				enabled = false,
+				label = { Text(state.entryDef.type.toStringResource().get()) },
+				leadingIcon = {
+					Icon(
+						getEntryTypeIcon(state.entryDef.type),
+						state.entryDef.type.toStringResource().get()
+					)
+				},
+				modifier = Modifier
+					.padding(end = Ui.Padding.L)
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${state.entryDef.id}"),
+						animatedVisibilityScope = animatedVisibilityScope
+					)
+			)
+		}
 
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
@@ -353,12 +378,20 @@ private fun Contents(
 				val text = entryText.ifBlank {
 					Res.string.encyclopedia_entry_body_empty_label.get()
 				}
-				Text(
-					text,
-					modifier = Modifier.fillMaxWidth().clickable { beginEdit() },
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onBackground,
-				)
+				with(sharedTransitionScope) {
+					Text(
+						text,
+						modifier = Modifier
+							.fillMaxWidth()
+							.sharedElement(
+								sharedContentState = rememberSharedContentState(key = "encyclopedia-text-${state.entryDef.id}"),
+								animatedVisibilityScope = animatedVisibilityScope
+							)
+							.clickable { beginEdit() },
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onBackground,
+					)
+				}
 			}
 
 			Spacer(modifier = Modifier.size(Ui.Padding.XL))
