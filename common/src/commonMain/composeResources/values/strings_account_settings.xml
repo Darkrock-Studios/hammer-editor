@@ -63,7 +63,7 @@
 		create secure backups.
 	</string>
 	<string name="settings_server_connection_header">Server Connection</string>
-	<string name="settings_server_connected">Connected</string>
+	<string name="settings_server_configured">Configured</string>
 	<string name="settings_server_sync_backup_preferences">Sync &amp; Backup Preferences</string>
 	<string name="settings_server_danger_zone">Danger Zone</string>
 </resources>

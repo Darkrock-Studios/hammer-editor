@@ -135,7 +135,7 @@ fun ServerSettingsUi(
 						)
 						Spacer(modifier = Modifier.size(Ui.Padding.S))
 						Text(
-							Res.string.settings_server_connected.get(),
+							Res.string.settings_server_configured.get(),
 							style = MaterialTheme.typography.bodyMedium,
 							color = successColor
 						)
