@@ -151,7 +151,7 @@ internal class ProjectRootRouter(
 	}
 
 	override fun isAtRoot(): Boolean {
-		return state.value.backStack.isEmpty()
+		return state.value.active.configuration is Config.HomeConfig
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
