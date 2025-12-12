@@ -2,6 +2,7 @@
 <resources>
 	<string name="project_home_stat_header">Stats:</string>
 	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_loading_stats">Calculating statistics...</string>
 	<string name="project_home_stat_num_scenes">Scenes</string>
 	<string name="project_home_stat_total_words">Total Words</string>
 	<string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>

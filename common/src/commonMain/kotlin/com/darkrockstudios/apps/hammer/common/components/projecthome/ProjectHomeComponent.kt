@@ -50,7 +50,8 @@ class ProjectHomeComponent(
 		ProjectHome.State(
 			projectDef = projectDef,
 			numberOfScenes = 0,
-			created = ""
+			created = "",
+			isLoadingStats = true
 		)
 	)
 	override val state: Value<ProjectHome.State> = _state
@@ -120,6 +121,12 @@ class ProjectHomeComponent(
 
 	private fun loadData() {
 		scope.launch(dispatcherDefault) {
+			withContext(dispatcherMain) {
+				_state.getAndUpdate {
+					it.copy(isLoadingStats = true)
+				}
+			}
+
 			val metadata = sceneEditorRepository.getMetadata()
 			val created = metadata.info.created.formatLocal("dd MMM `yy")
 
@@ -176,7 +183,8 @@ class ProjectHomeComponent(
 						totalWords = words,
 						wordsByChapter = wordsByChapter,
 						encyclopediaEntriesByType = entriesByType,
-						hasServer = globalSettingsRepository.serverSettings != null
+						hasServer = globalSettingsRepository.serverSettings != null,
+						isLoadingStats = false
 					)
 				}
 			}
