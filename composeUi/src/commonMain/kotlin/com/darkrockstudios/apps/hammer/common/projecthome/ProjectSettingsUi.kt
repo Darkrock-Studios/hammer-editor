@@ -44,6 +44,7 @@ fun ProjectSettingsUi(
 					IconButton(onClick = onClose) {
 						Icon(
 							Icons.Default.Close,
+							tint = MaterialTheme.colorScheme.onBackground,
 							contentDescription = Res.string.project_home_settings_close_button.get()
 						)
 					}

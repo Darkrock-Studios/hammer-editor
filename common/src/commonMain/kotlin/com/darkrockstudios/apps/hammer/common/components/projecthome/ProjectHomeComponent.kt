@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -43,7 +43,7 @@ class ProjectHomeComponent(
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
-	override val contentRouterState: Value<ChildSlot<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
+	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
 		contentRouter.state
 
 	private val _state = MutableValue(
@@ -189,6 +189,7 @@ class ProjectHomeComponent(
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
+	override fun onBack() = contentRouter.onBack()
 }
 
 val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

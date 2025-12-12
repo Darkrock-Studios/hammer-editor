@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.ChildSlot
-import com.arkivanov.decompose.router.slot.SlotNavigation
-import com.arkivanov.decompose.router.slot.activate
-import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
@@ -15,19 +12,23 @@ class ProjectHomeContentRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
 ) : Router {
-	private val navigation = SlotNavigation<Config>()
+	private val navigation = StackNavigation<Config>()
 
-	val state: Value<ChildSlot<Config, ProjectHome.ContentDestination>> =
-		componentContext.childSlot(
+	val state: Value<ChildStack<Config, ProjectHome.ContentDestination>> =
+		componentContext.childStack(
 			source = navigation,
-			initialConfiguration = { Config.Stats },
+			initialConfiguration = Config.Stats,
 			key = "ProjectHomeContentRouter",
 			childFactory = ::createChild,
 			serializer = Config.serializer(),
 		)
 
 	override fun isAtRoot(): Boolean {
-		return state.value.child?.instance is ProjectHome.ContentDestination.Stats
+		return state.value.active.instance is ProjectHome.ContentDestination.Stats
+	}
+
+	fun onBack() {
+		navigation.pop()
 	}
 
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
@@ -47,11 +48,11 @@ class ProjectHomeContentRouter(
 		}
 
 	fun showProjectStats() {
-		navigation.activate(Config.Stats)
+		navigation.popToFirst()
 	}
 
 	fun showProjectSettings() {
-		navigation.activate(Config.ProjectSettings)
+		navigation.pushToFront(Config.ProjectSettings)
 	}
 
 	@Serializable
