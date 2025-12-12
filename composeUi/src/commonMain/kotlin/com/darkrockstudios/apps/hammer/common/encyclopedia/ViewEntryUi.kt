@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -305,8 +306,9 @@ private fun Image(
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
 			with(sharedTransitionScope) {
-				ImageItem(
-					path = state.entryImagePath,
+				AsyncImage(
+					model = state.entryImagePath,
+					contentDescription = null,
 					modifier = Modifier.wrapContentHeight()
 						.fillMaxWidth()
 						.align(Alignment.TopEnd)

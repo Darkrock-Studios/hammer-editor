@@ -19,9 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
-import com.darkrockstudios.apps.hammer.common.compose.ImageItem
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
@@ -139,8 +139,9 @@ internal fun EncyclopediaEntryItem(
 							GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
 
 							// Foreground: fitted image
-							ImageItem(
-								path = entryImagePath,
+							AsyncImage(
+								model = entryImagePath,
+								contentDescription = null,
 								modifier = Modifier
 									.align(Alignment.Center)
 									.sharedElement(
