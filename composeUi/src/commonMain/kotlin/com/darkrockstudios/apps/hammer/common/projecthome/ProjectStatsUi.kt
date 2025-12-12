@@ -7,23 +7,21 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
@@ -35,6 +33,8 @@ import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
@@ -42,9 +42,12 @@ private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it
 @Composable
 fun ProjectStatsUi(
 	modifier: Modifier,
-	state: ProjectHome.State,
-	otherContent: (@Composable () -> Unit)? = null
+	component: ProjectHome,
+	scope: CoroutineScope,
+	rootSnackbar: RootSnackbarHostState,
 ) {
+	val state by component.state.subscribeAsState()
+
 	LazyVerticalGrid(
 		columns = GridCells.Adaptive(300.dp),
 		modifier = modifier.fillMaxHeight(),
@@ -54,31 +57,52 @@ fun ProjectStatsUi(
 			Column {
 				val screen = LocalScreenCharacteristic.current
 				when (screen.windowWidthClass) {
-					WindowWidthSizeClass.Companion.Compact -> {
-						HeaderUi(
-							state.projectDef.name,
-							"\uD83C\uDFE1",
-							Modifier.Companion.padding(top = Ui.Padding.L)
-						)
+					WindowWidthSizeClass.Compact -> {
+						Row(
+							modifier = Modifier.fillMaxWidth(),
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.SpaceBetween,
+						) {
+							HeaderUi(
+								state.projectDef.name,
+								"\uD83C\uDFE1",
+							)
+							ProjectHomeMenu(
+								component = component,
+								scope = scope,
+								rootSnackbar = rootSnackbar
+							)
+						}
 					}
 
 					else -> {
-						Text(
-							state.projectDef.name,
-							style = MaterialTheme.typography.displayMedium,
-							color = MaterialTheme.colorScheme.onSurface
-						)
+						Row(
+							modifier = Modifier.fillMaxWidth(),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Text(
+								state.projectDef.name,
+								modifier = Modifier.weight(1f),
+								style = MaterialTheme.typography.displayMedium,
+								color = MaterialTheme.colorScheme.onSurface
+							)
+							ProjectHomeMenu(
+								component = component,
+								scope = scope,
+								rootSnackbar = rootSnackbar
+							)
+						}
 					}
 				}
 
-				Spacer(modifier = Modifier.Companion.size(Ui.Padding.XL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
 					stringResource(Res.string.project_home_stat_created, state.created),
 					style = MaterialTheme.typography.bodyLarge,
 					color = MaterialTheme.colorScheme.onSurface
 				)
-				Spacer(modifier = Modifier.Companion.size(Ui.Padding.XL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				Text(
 					Res.string.project_home_stat_header.get(),
@@ -107,13 +131,9 @@ fun ProjectStatsUi(
 				EncyclopediaChart(state = state)
 			}
 		}
-
-		if (otherContent != null) {
-			item {
-				otherContent()
-			}
-		}
 	}
+
+	ExportDirectoryPicker(state.showExportDialog, component, scope, rootSnackbar)
 }
 
 @Composable
@@ -122,7 +142,7 @@ private fun NumericStatsBlock(label: String, stateValue: Int) {
 		modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.MEDIUM)
 	) {
-		Column(modifier = Modifier.padding(Ui.Padding.L).align(CenterHorizontally)) {
+		Column(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.CenterHorizontally)) {
 
 			var targetScale by remember { mutableStateOf(1f) }
 			var targetValue by remember { mutableStateOf(0) }
@@ -180,7 +200,7 @@ private fun GenericStatsBlock(label: String, content: @Composable () -> Unit) {
 		modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.MEDIUM)
 	) {
-		Column(modifier = Modifier.padding(Ui.Padding.L).align(CenterHorizontally)) {
+		Column(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.CenterHorizontally)) {
 			content()
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 			Text(
@@ -289,5 +309,79 @@ private fun WordsInChaptersChart(
 				)
 			}
 		)
+	}
+}
+
+@Composable
+private fun ProjectHomeMenu(
+	component: ProjectHome,
+	scope: CoroutineScope,
+	rootSnackbar: RootSnackbarHostState
+) {
+	val strRes = rememberStrRes()
+	val state by component.state.subscribeAsState()
+	var expanded by remember { mutableStateOf(false) }
+
+	Box {
+		IconButton(onClick = { expanded = true }) {
+			Icon(
+				Icons.Default.MoreVert,
+				tint = MaterialTheme.colorScheme.onBackground,
+				contentDescription = Res.string.project_home_menu_button.get()
+			)
+		}
+
+		DropdownMenu(
+			expanded = expanded,
+			onDismissRequest = { expanded = false }
+		) {
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_action_settings_button.get()) },
+				onClick = {
+					component.showProjectSettings()
+					expanded = false
+				}
+			)
+
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_action_export.get()) },
+				onClick = {
+					component.beginProjectExport()
+					expanded = false
+				}
+			)
+
+			if (state.hasServer) {
+				DropdownMenuItem(
+					text = { Text(Res.string.project_home_action_sync.get()) },
+					onClick = {
+						component.startProjectSync()
+						expanded = false
+					}
+				)
+			}
+
+			if (component.supportsBackup()) {
+				DropdownMenuItem(
+					text = { Text(Res.string.project_home_action_backup.get()) },
+					onClick = {
+						component.createBackup { backup ->
+							scope.launch {
+								val message = if (backup != null) {
+									strRes.get(
+										Res.string.project_home_action_backup_toast_success,
+										backup.path.name
+									)
+								} else {
+									strRes.get(Res.string.project_home_action_backup_toast_failure)
+								}
+								rootSnackbar.showSnackbar(message)
+							}
+						}
+						expanded = false
+					}
+				)
+			}
+		}
 	}
 }

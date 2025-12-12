@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
@@ -116,9 +115,8 @@ internal fun ViewEntryUi(
 							entryNameText,
 							style = MaterialTheme.typography.displaySmall,
 							color = MaterialTheme.colorScheme.onBackground,
-							textAlign = TextAlign.Center,
 							modifier = Modifier
-								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+								.padding(top = Ui.Padding.M)
 								.weight(1f)
 								.sharedElement(
 									sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${state.entryDef.id}"),
