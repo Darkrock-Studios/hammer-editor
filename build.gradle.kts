@@ -42,6 +42,8 @@ allprojects {
 					"-opt-in=androidx.compose.material.ExperimentalMaterialApi",
 					"-opt-in=androidx.compose.material3.ExperimentalMaterialApi",
 					"-opt-in=androidx.compose.runtime.ExperimentalComposeApi",
+					"-opt-in=com.arkivanov.decompose.ExperimentalDecomposeApi",
+					"-opt-in=androidx.compose.animation.ExperimentalSharedTransitionApi",
 				)
 			)
 		}

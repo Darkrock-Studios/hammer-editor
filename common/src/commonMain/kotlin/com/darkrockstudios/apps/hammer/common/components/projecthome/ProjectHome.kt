@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
-import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -10,9 +11,9 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.serialization.Serializable
 
-interface ProjectHome : Router, HammerComponent {
+interface ProjectHome : Router, HammerComponent, BackHandlerOwner {
 	val state: Value<State>
-	val contentRouterState: Value<ChildSlot<ProjectHomeContentRouter.Config, ContentDestination>>
+	val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ContentDestination>>
 
 	suspend fun exportProject(path: String): HPath
 	fun beginProjectExport()
@@ -24,6 +25,8 @@ interface ProjectHome : Router, HammerComponent {
 
 	fun showProjectStats()
 	fun showProjectSettings()
+
+	fun onBack()
 
 	@Serializable
 	data class State(

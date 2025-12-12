@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +16,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun EncyclopediaUi(
 	component: Encyclopedia,
