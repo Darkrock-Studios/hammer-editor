@@ -51,7 +51,7 @@ moko_permissions = "0.20.1"
 decompose = "3.4.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
-mpfilepicker = "3.1.0"
+filekit = "0.12.0"
 koalaplot-core = "0.10.3"
 coil = "3.3.0"
 kmpalette = "3.1.0"
@@ -142,7 +142,7 @@ kweb-core = { module = "io.kweb:kweb-core", version.ref = "kwebCore" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
-mpfilepicker = { module = "com.darkrockstudios:mpfilepicker", version.ref = "mpfilepicker" }
+filekit_dialogs_compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
 
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }

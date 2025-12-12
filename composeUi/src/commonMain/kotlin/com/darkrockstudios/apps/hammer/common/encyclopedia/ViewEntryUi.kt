@@ -33,7 +33,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.libraries.mpfilepicker.FilePicker
+import io.github.vinceglb.filekit.absolutePath
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +55,15 @@ internal fun ViewEntryUi(
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
+
+	val filePickerLauncher = rememberFilePickerLauncher(
+		type = FileKitType.Image
+	) { file ->
+		if (file != null) {
+			scope.launch { component.setImage(file.absolutePath()) }
+		}
+		component.closeAddImageDialog()
+	}
 
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
@@ -254,11 +265,10 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	FilePicker(show = state.showAddImageDialog, fileExtensions = listOf("jpg")) { path ->
-		if (path != null) {
-			scope.launch { component.setImage(path.path) }
+	LaunchedEffect(state.showAddImageDialog) {
+		if (state.showAddImageDialog) {
+			filePickerLauncher.launch()
 		}
-		component.closeAddImageDialog()
 	}
 
 	if (state.showDeleteImageDialog) {

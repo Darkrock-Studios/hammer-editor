@@ -8,11 +8,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,10 +24,11 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.getHomeDirectory
-import com.darkrockstudios.libraries.mpfilepicker.FilePicker
-import com.darkrockstudios.libraries.mpfilepicker.MPFile
 import io.github.aakira.napier.Napier
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.absolutePath
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -53,8 +51,13 @@ internal fun CreateEntryUi(
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 	val types = rememberSaveable { EntryType.entries }
 
-	var showFilePicker by rememberSaveable { mutableStateOf(false) }
-	var imagePath by rememberSaveable { mutableStateOf<MPFile<Any>?>(null) }
+	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
+
+	val filePickerLauncher = rememberFilePickerLauncher(
+		type = FileKitType.Image
+	) { file ->
+		imagePath = file
+	}
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
@@ -129,7 +132,7 @@ internal fun CreateEntryUi(
 							modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)
 						) {
 							AsyncImage(
-								model = imagePath?.path,
+								model = imagePath?.absolutePath(),
 								contentDescription = null,
 								modifier = Modifier.size(128.dp).background(Color.LightGray),
 							)
@@ -146,7 +149,7 @@ internal fun CreateEntryUi(
 							}
 						}
 					} else {
-						Button(onClick = { showFilePicker = true }) {
+						Button(onClick = { filePickerLauncher.launch() }) {
 							Text(Res.string.encyclopedia_create_entry_select_image_button.get())
 						}
 					}
@@ -164,7 +167,7 @@ internal fun CreateEntryUi(
 									type = selectedType,
 									text = newEntryContentText.text,
 									tags = newTagsText.splitToSequence(" ").toSet(),
-									imagePath = imagePath?.path
+									imagePath = imagePath?.absolutePath()
 								)
 
 								when (result.error) {
@@ -222,15 +225,6 @@ internal fun CreateEntryUi(
 				}
 			}
 		}
-	}
-
-	FilePicker(
-		show = showFilePicker,
-		fileExtensions = listOf("jpg"),
-		initialDirectory = getHomeDirectory()
-	) { path ->
-		imagePath = path
-		showFilePicker = false
 	}
 
 	if (state.showConfirmClose) {

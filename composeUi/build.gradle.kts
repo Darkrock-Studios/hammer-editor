@@ -41,6 +41,7 @@ kotlin {
 				api(compose.uiTooling)
 				api(compose.preview)
 				api(compose.foundation)
+				api(compose.material)
 				api(compose.material3)
 				api(compose.animation)
 				api(compose.animationGraphics)
@@ -50,7 +51,7 @@ kotlin {
 				api(libs.jetbrains.compose.ui.text)
 				api(libs.decompose.compose)
 				api(libs.decompose.compose.experimental)
-				api(libs.mpfilepicker)
+				api(libs.filekit.dialogs.compose)
 				api(libs.coil.compose)
 				api(libs.coil.svg)
 				api(libs.kmpalette.core)
@@ -77,6 +78,7 @@ kotlin {
 			dependencies {
 				api(libs.koin.compose)
 				implementation(libs.androidx.window)
+				implementation(libs.activity.compose)
 				implementation(libs.moko.permissions.compose)
 			}
 		}
