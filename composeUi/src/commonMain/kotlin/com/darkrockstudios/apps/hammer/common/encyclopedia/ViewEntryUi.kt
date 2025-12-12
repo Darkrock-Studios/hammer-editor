@@ -89,7 +89,7 @@ internal fun ViewEntryUi(
 		with(sharedTransitionScope) {
 			Card(
 				modifier = modifier
-					.padding(Ui.Padding.XXL)
+					.padding(top = Ui.Padding.XL, bottom = Ui.Padding.L, start = Ui.Padding.M, end = Ui.Padding.M)
 					.heightIn(max = maxHeight)
 					.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
 					.sharedElement(
@@ -110,13 +110,12 @@ internal fun ViewEntryUi(
 						placeholder = { Text(Res.string.encyclopedia_entry_name_hint.get()) }
 					)
 				} else {
-					Row(modifier = Modifier.fillMaxWidth()) {
+					Row(modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L, start = Ui.Padding.L)) {
 						Text(
 							entryNameText,
 							style = MaterialTheme.typography.displaySmall,
 							color = MaterialTheme.colorScheme.onBackground,
 							modifier = Modifier
-								.padding(top = Ui.Padding.M)
 								.weight(1f)
 								.sharedElement(
 									sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${state.entryDef.id}"),
