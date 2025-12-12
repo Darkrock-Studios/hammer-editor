@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
@@ -127,9 +128,10 @@ internal fun CreateEntryUi(
 						Box(
 							modifier = Modifier.width(IntrinsicSize.Min).height(IntrinsicSize.Min)
 						) {
-							ImageItem(
+							AsyncImage(
+								model = imagePath?.path,
+								contentDescription = null,
 								modifier = Modifier.size(128.dp).background(Color.LightGray),
-								path = imagePath?.path
 							)
 							Button(
 								modifier = Modifier
