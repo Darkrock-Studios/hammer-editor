@@ -12,8 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,6 +30,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_load_error
+import com.kmpalette.color
+import com.kmpalette.loader.FilePathLoader
+import com.kmpalette.rememberPaletteState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -67,9 +68,12 @@ internal fun EncyclopediaEntryItem(
 
 	var hasImage by remember { mutableStateOf<Boolean?>(null) }
 
+	val paletteState = rememberPaletteState(loader = FilePathLoader)
+
 	LaunchedEffect(entryDef) {
 		entryImagePath = null
 		hasImage = null
+		paletteState.reset()
 		loadContentJob?.cancel()
 		loadContentJob = scope.launch(ioDispatcher) {
 			val imagePath = component.getImagePath(entryDef)
@@ -80,6 +84,13 @@ internal fun EncyclopediaEntryItem(
 				entryContent = content
 				loadContentJob = null
 			}
+		}
+	}
+
+	LaunchedEffect(entryImagePath) {
+		val path = entryImagePath
+		if (path != null) {
+			paletteState.generate(path)
 		}
 	}
 
@@ -97,9 +108,16 @@ internal fun EncyclopediaEntryItem(
 		) {
 			Column(modifier = Modifier.fillMaxWidth()) {
 
-				// Show image box if we have an image OR if we're still loading (hasImage == null)
-				// This prevents layout jumps when images load
+				//  (hasImage == null) means we're loading, false means no image
 				if (hasImage != false) {
+					val palette = paletteState.palette
+					val gradientStartColor = palette?.dominantSwatch?.color
+						?: palette?.vibrantSwatch?.color
+						?: MaterialTheme.colorScheme.surfaceVariant
+					val gradientEndColor = palette?.mutedSwatch?.color
+						?: palette?.darkMutedSwatch?.color
+						?: MaterialTheme.colorScheme.surface
+
 					Box(
 						modifier = Modifier
 							.fillMaxWidth()
@@ -107,14 +125,15 @@ internal fun EncyclopediaEntryItem(
 							.clip(MaterialTheme.shapes.medium)
 					) {
 						if (entryImagePath != null) {
-							// Background: blurred, cropped image to fill empty space
-							ImageItem(
-								path = entryImagePath,
+							// Background: gradient using dominant colors from the image
+							Box(
 								modifier = Modifier
 									.matchParentSize()
-									.blur(radius = 25.dp)
-									.alpha(0.6f),
-								contentScale = ContentScale.Crop
+									.background(
+										brush = Brush.verticalGradient(
+											colors = listOf(gradientStartColor, gradientEndColor)
+										)
+									)
 							)
 
 							GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
