@@ -9,25 +9,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal actual fun EditorAction(
-	iconRes: DrawableResource,
+	icon: ImageVector,
 	active: Boolean,
 	onClick: () -> Unit
 ) {
-	/*
-	// https://github.com/JetBrains/compose-jb/issues/2569
-	IconButton(
-		onClick = onClick,
-		modifier = Modifier.focusable(false)
-	) {
-	*/
+	val painter = rememberVectorPainter(icon)
+
 	Box(
 		modifier = Modifier
 			.onClick { onClick() }
@@ -35,7 +30,7 @@ internal actual fun EditorAction(
 	) {
 		Icon(
 			modifier = Modifier.size(24.dp),
-			painter = painterResource(iconRes),
+			painter = painter,
 			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
 			contentDescription = null
 		)
