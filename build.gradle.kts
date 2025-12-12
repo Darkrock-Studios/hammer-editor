@@ -39,7 +39,9 @@ allprojects {
 				listOf(
 					"-Xexpect-actual-classes",
 					"-opt-in=kotlin.time.ExperimentalTime",
-					"-opt-in=kotlin.time.ExperimentalMaterialApi",
+					"-opt-in=androidx.compose.material.ExperimentalMaterialApi",
+					"-opt-in=androidx.compose.material3.ExperimentalMaterialApi",
+					"-opt-in=androidx.compose.runtime.ExperimentalComposeApi",
 				)
 			)
 		}

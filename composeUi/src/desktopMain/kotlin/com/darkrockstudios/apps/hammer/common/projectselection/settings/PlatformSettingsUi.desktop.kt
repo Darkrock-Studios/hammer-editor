@@ -17,7 +17,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.settings_projects_directory
 import com.darkrockstudios.apps.hammer.settings_projects_directory_button
 import com.darkrockstudios.apps.hammer.settings_projects_directory_hint
-import com.darkrockstudios.libraries.mpfilepicker.DirectoryPicker
+import io.github.vinceglb.filekit.absolutePath
+import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 
 @Composable
 actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
@@ -25,7 +26,13 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 	val state by component.state.subscribeAsState()
 
 	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
-	var showDirectoryPicker by remember { mutableStateOf(false) }
+
+	val directoryPickerLauncher = rememberDirectoryPickerLauncher { directory ->
+		if (directory != null) {
+			projectsPathText = directory.absolutePath()
+			component.setProjectsDir(projectsPathText)
+		}
+	}
 
 	SpacerXL()
 
@@ -49,17 +56,8 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-		Button(onClick = { showDirectoryPicker = true }) {
+		Button(onClick = { directoryPickerLauncher.launch() }) {
 			Text(Res.string.settings_projects_directory_button.get())
-		}
-	}
-
-	DirectoryPicker(showDirectoryPicker) { path ->
-		showDirectoryPicker = false
-
-		if (path != null) {
-			projectsPathText = path
-			component.setProjectsDir(projectsPathText)
 		}
 	}
 }
