@@ -23,5 +23,7 @@
 	<string name="project_home_action_stats_button">Stats</string>
 	<string name="project_home_action_settings_button">Settings</string>
 
+	<string name="project_home_menu_button">Project menu</string>
 	<string name="project_home_settings_title">Project Settings</string>
+	<string name="project_home_settings_close_button">Close settings</string>
 </resources>
