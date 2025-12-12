@@ -31,12 +31,14 @@ import io.github.koalaplot.core.bar.VerticalBarPlot
 import io.github.koalaplot.core.gestures.GestureConfig
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
+import io.github.koalaplot.core.style.KoalaPlotTheme
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.random.Random
 
 private val spanAll: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
 
@@ -178,6 +180,7 @@ private fun NumericStatsBlock(label: String, stateValue: Int) {
 				} else {
 					tween(
 						durationMillis = 750,
+						delayMillis = Random.nextInt(300, 1000),
 						easing = LinearOutSlowInEasing
 					)
 				},
@@ -259,23 +262,43 @@ private fun EncyclopediaChart(
 		remember(state.encyclopediaEntriesByType) { state.encyclopediaEntriesByType.map { it.value.toFloat() + .01f } }
 
 	if (values.isNotEmpty() && values.sum() > 0f) {
-		PieChart(
-			modifier = modifier.focusable(false),
-			values = values,
-			label = { index ->
-				Text(
-					entryTypes[index].toStringResource().get(),
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onSurface
+		var hasAnimated by rememberSaveable { mutableStateOf(false) }
+
+		if (values.isNotEmpty() && values.sum() > 0f) {
+			KoalaPlotTheme(
+				animationSpec = if (!hasAnimated) {
+					tween(
+						durationMillis = 800,
+						delayMillis = Random.nextInt(300, 1000),
+						easing = LinearOutSlowInEasing
+					)
+				} else {
+					snap()
+				}
+			) {
+				PieChart(
+					modifier = modifier.focusable(false),
+					values = values,
+					label = { index ->
+						Text(
+							entryTypes[index].toStringResource().get(),
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					labelConnector = { i ->
+						BezierLabelConnector(
+							connectorColor = colors[i],
+							connectorStroke = Stroke(width = 3f)
+						)
+					},
 				)
-			},
-			labelConnector = { i ->
-				BezierLabelConnector(
-					connectorColor = colors[i],
-					connectorStroke = Stroke(width = 3f)
-				)
-			},
-		)
+			}
+
+			LaunchedEffect(Unit) {
+				hasAnimated = true
+			}
+		}
 	} else {
 		Spacer(modifier = Modifier.size(128.dp))
 	}
@@ -318,28 +341,46 @@ private fun WordsInChaptersChart(
 		}
 	}
 
+	var hasAnimated by rememberSaveable { mutableStateOf(false) }
+
 	if (state.wordsByChapter.size > 1) {
-		XYGraph(
-			modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
-			xAxisModel = CategoryAxisModel(xAxis),
-			yAxisModel = FloatLinearAxisModel(range = range),
-			xAxisTitle = Res.string.project_home_stat_chapter_words_x_axis.get(),
-			yAxisTitle = Res.string.project_home_stat_chapter_words_y_axis.get(),
-			xAxisLabels = { index -> (index + 1).toString() },
-			xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
-			yAxisLabels = { it.toInt().toString() },
-			yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
-			gestureConfig = disabledInput,
-			content = {
-				VerticalBarPlot(
-					xData = xAxis,
-					yData = yData,
-					bar = { _, _, _ ->
-						DefaultBar(colors.first())
-					}
+		KoalaPlotTheme(
+			animationSpec = if (!hasAnimated) {
+				tween(
+					durationMillis = 700,
+					delayMillis = Random.nextInt(300, 1000),
+					easing = LinearOutSlowInEasing
 				)
+			} else {
+				snap()
 			}
-		)
+		) {
+			XYGraph(
+				modifier = modifier.heightIn(64.dp, 196.dp).focusable(false),
+				xAxisModel = CategoryAxisModel(xAxis),
+				yAxisModel = FloatLinearAxisModel(range = range),
+				xAxisTitle = Res.string.project_home_stat_chapter_words_x_axis.get(),
+				yAxisTitle = Res.string.project_home_stat_chapter_words_y_axis.get(),
+				xAxisLabels = { index -> (index + 1).toString() },
+				xAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onBackground),
+				yAxisLabels = { it.toInt().toString() },
+				yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
+				gestureConfig = disabledInput,
+				content = {
+					VerticalBarPlot(
+						xData = xAxis,
+						yData = yData,
+						bar = { _, _, _ ->
+							DefaultBar(colors.first())
+						}
+					)
+				}
+			)
+		}
+
+		LaunchedEffect(Unit) {
+			hasAnimated = true
+		}
 	}
 }
 
