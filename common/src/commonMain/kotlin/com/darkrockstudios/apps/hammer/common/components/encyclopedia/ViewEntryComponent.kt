@@ -56,11 +56,14 @@ class ViewEntryComponent(
 	private fun reload() {
 		scope.launch {
 			val entryImagePath = getImagePath(state.value.entryDef)
+			val imageHash = encyclopediaRepository.calculateEntryImageHash(state.value.entryDef, "jpg")
+
 			val content = loadEntryContent(state.value.entryDef)
 			withContext(dispatcherMain) {
 				_state.getAndUpdate {
 					it.copy(
 						entryImagePath = entryImagePath,
+						entryImageHash = imageHash,
 						content = content
 					)
 				}

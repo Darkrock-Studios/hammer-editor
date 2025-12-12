@@ -22,6 +22,7 @@ import kotlinx.coroutines.cancel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.getKoin
 
 class HammerApplication : Application(), SingletonImageLoader.Factory {
 
@@ -44,7 +45,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 			)
 		}
 
-		KoinJavaComponent.getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+		getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
 	}
 
 	override fun newImageLoader(context: coil3.PlatformContext): ImageLoader {

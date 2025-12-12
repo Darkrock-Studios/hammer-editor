@@ -15,9 +15,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
-import okio.FileSystem
-import okio.IOException
-import okio.Path
+import okio.*
 
 class EncyclopediaDatasource(
 	private val projectDef: ProjectDef,
@@ -81,8 +79,8 @@ class EncyclopediaDatasource(
 		return path.toHPath()
 	}
 
-	fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean {
-		val path = getEntryImagePath(entryDef, fileExension).toOkioPath()
+	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean {
+		val path = getEntryImagePath(entryDef, fileExtension).toOkioPath()
 		return fileSystem.exists(path)
 	}
 
@@ -96,6 +94,24 @@ class EncyclopediaDatasource(
 			Napier.w("Message: " + e.message)
 			Napier.w("Failed to delete Entry Image: $imagePath", e)
 			false
+		}
+	}
+
+	suspend fun hashEntryImage(entryDef: EntryDef, fileExtension: String): String? {
+		return if (hasEntryImage(entryDef, fileExtension)) {
+			val path = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+			calculateFileMd5(fileSystem, path)
+		} else {
+			null
+		}
+	}
+
+	private fun calculateFileMd5(fileSystem: FileSystem, path: Path): String {
+		HashingSink.md5(blackholeSink()).use { hashingSink ->
+			fileSystem.source(path).buffer().use { source ->
+				source.readAll(hashingSink)
+			}
+			return hashingSink.hash.hex()
 		}
 	}
 
