@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -53,7 +54,7 @@ fun ProjectStatsUi(
 		modifier = modifier.fillMaxHeight(),
 		contentPadding = PaddingValues(horizontal = Ui.Padding.XL)
 	) {
-		item(span = spanAll) {
+		item(key = "header", span = spanAll) {
 			Column {
 				val screen = LocalScreenCharacteristic.current
 				when (screen.windowWidthClass) {
@@ -112,21 +113,21 @@ fun ProjectStatsUi(
 			}
 		}
 
-		item {
+		item(key = "numScenes") {
 			NumericStatsBlock(Res.string.project_home_stat_num_scenes.get(), state.numberOfScenes)
 		}
 
-		item {
+		item(key = "totalWords") {
 			NumericStatsBlock(Res.string.project_home_stat_total_words.get(), state.totalWords)
 		}
 
-		item {
+		item(key = "chapterWords") {
 			GenericStatsBlock(Res.string.project_home_stat_chapter_words.get()) {
 				WordsInChaptersChart(state = state)
 			}
 		}
 
-		item {
+		item(key = "encyclopediaEntries") {
 			GenericStatsBlock(Res.string.project_home_stat_encyclopedia_entries.get()) {
 				EncyclopediaChart(state = state)
 			}
@@ -145,16 +146,24 @@ private fun NumericStatsBlock(label: String, stateValue: Int) {
 		Column(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.CenterHorizontally)) {
 
 			var targetScale by remember { mutableStateOf(1f) }
-			var targetValue by remember { mutableStateOf(0) }
+			var hasAnimated by rememberSaveable { mutableStateOf(false) }
+			var targetValue by remember { mutableStateOf(if (hasAnimated) stateValue else 0) }
 
 			val animatedValue by animateIntAsState(
 				targetValue = targetValue,
-				animationSpec = tween(
-					durationMillis = 750,
-					easing = LinearOutSlowInEasing
-				),
+				animationSpec = if (hasAnimated) {
+					snap()
+				} else {
+					tween(
+						durationMillis = 750,
+						easing = LinearOutSlowInEasing
+					)
+				},
 				finishedListener = {
-					targetScale = 1.25f
+					if (!hasAnimated) {
+						targetScale = 1.25f
+						hasAnimated = true
+					}
 				}
 			)
 
