@@ -67,7 +67,7 @@ turbine = "1.2.1"
 work-runtime-ktx = "2.11.0"
 
 multiplatform_window_size = "0.5.0"
-mockk = "1.14.6"
+mockk = "1.14.7"
 
 tomlkt = "0.5.0"
 
