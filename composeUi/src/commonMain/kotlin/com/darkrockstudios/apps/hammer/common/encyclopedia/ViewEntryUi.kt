@@ -19,8 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -51,6 +53,7 @@ internal fun ViewEntryUi(
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+	val imageLoader = rememberKoinInject<ImageLoader>()
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
@@ -277,7 +280,13 @@ internal fun ViewEntryUi(
 			message = Res.string.encyclopedia_entry_delete_image_message.get(),
 			onDismiss = { component.closeDeleteImageDialog() }
 		) {
-			scope.launch { component.removeEntryImage() }
+			scope.launch {
+				component.removeEntryImage()
+				state.entryImagePath?.let { path ->
+					imageLoader.diskCache?.remove(path)
+					imageLoader.memoryCache?.remove(MemoryCache.Key(path))
+				}
+			}
 			component.closeDeleteImageDialog()
 		}
 	}
@@ -329,6 +338,7 @@ private fun Image(
 					model = remember(state.entryImagePath) {
 						ImageRequest.Builder(context)
 							.data(state.entryImagePath)
+							.memoryCacheKeyExtras(mapOf("hash" to state.entryImageHash.toString()))
 							.placeholderMemoryCacheKey(state.entryImagePath)
 							.crossfade(false)
 							.build()

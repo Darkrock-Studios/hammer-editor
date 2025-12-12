@@ -13,6 +13,7 @@ interface ViewEntry {
 	data class State(
 		val entryDef: EntryDef,
 		val entryImagePath: String? = null,
+		val entryImageHash: String? = null,
 		val content: EntryContent? = null,
 		val showAddImageDialog: Boolean = false,
 		val showDeleteImageDialog: Boolean = false,

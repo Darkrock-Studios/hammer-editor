@@ -68,6 +68,7 @@ class ViewEntryComponentTest : BaseTest() {
 		val newContainer = EntryContainer(newEntry)
 
 		every { encyclopediaRepository.hasEntryImage(any(), any()) } returns false
+		coEvery { encyclopediaRepository.calculateEntryImageHash(any(), any()) } returns null
 		coEvery { encyclopediaRepository.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaRepository.updateEntry(

@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
@@ -151,6 +153,9 @@ class ProjectRootActivity : AppCompatActivity() {
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
+
+		val imageLoader: ImageLoader = getKoin().get()
+		setSingletonImageLoaderFactory { imageLoader }
 
 		// Only intercept back when at Home AND there's potential unsaved work to confirm
 		// Otherwise, let Android's default back behavior close the activity
