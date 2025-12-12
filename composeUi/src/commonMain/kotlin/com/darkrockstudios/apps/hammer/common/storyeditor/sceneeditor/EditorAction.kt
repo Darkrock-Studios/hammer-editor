@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.DrawableResource
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
 internal expect fun EditorAction(
-	iconRes: DrawableResource,
+	icon: ImageVector,
 	active: Boolean,
 	onClick: () -> Unit,
 )

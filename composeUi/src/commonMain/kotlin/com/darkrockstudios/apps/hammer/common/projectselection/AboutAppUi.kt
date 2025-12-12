@@ -2,29 +2,16 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -32,9 +19,12 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.icons.AboutIcons
+import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
+import com.darkrockstudios.apps.hammer.common.compose.icons.Github
+import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -93,15 +83,15 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 					style = MaterialTheme.typography.headlineLarge,
 				)
 
-				CommunityLink(Res.string.about_community_discord_link.get(), Res.drawable.discord) {
+				CommunityLink(Res.string.about_community_discord_link.get(), AboutIcons.Discord) {
 					component.openDiscord()
 				}
 
-				CommunityLink(Res.string.about_community_reddit_link.get(), Res.drawable.reddit) {
+				CommunityLink(Res.string.about_community_reddit_link.get(), AboutIcons.Reddit) {
 					component.openReddit()
 				}
 
-				CommunityLink(Res.string.about_community_github_link.get(), Res.drawable.github) {
+				CommunityLink(Res.string.about_community_github_link.get(), AboutIcons.Github) {
 					component.openGithub()
 				}
 
@@ -135,7 +125,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 @Composable
 private fun CommunityLink(
 	label: String,
-	icon: DrawableResource,
+	icon: ImageVector,
 	onClick: () -> Unit
 ) {
 	Row(
@@ -146,7 +136,7 @@ private fun CommunityLink(
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		Icon(
-			painterResource(icon),
+			rememberVectorPainter(icon),
 			modifier = Modifier.size(12.dp),
 			contentDescription = null,
 			tint = MaterialTheme.colorScheme.tertiary

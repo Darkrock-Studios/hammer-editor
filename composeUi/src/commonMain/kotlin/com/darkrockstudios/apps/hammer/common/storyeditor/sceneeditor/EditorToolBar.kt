@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.compose.icons.*
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
@@ -40,13 +40,13 @@ fun EditorToolBar(
 
 	Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
 		EditorAction(
-			iconRes = Res.drawable.icon_bold,
+			icon = EditorIcons.IconBold,
 			active = isBoldActive,
 		) {
 			toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
 		}
 		EditorAction(
-			iconRes = Res.drawable.icon_italic,
+			icon = EditorIcons.IconItalic,
 			active = isItalicActive,
 		) {
 			toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
@@ -55,32 +55,32 @@ fun EditorToolBar(
 		Spacer(modifier = Modifier.weight(1f))
 
 		EditorAction(
-			iconRes = Res.drawable.icon_undo,
+			icon = EditorIcons.IconUndo,
 			active = state.canUndo
 		) {
 			state.undo()
 		}
 		EditorAction(
-			iconRes = Res.drawable.icon_redo,
+			icon = EditorIcons.IconRedo,
 			active = state.canRedo
 		) {
 			state.redo()
 		}
 
 		EditorAction(
-			iconRes = Res.drawable.icon_text_decrease,
+			icon = EditorIcons.IconTextDecrease,
 			active = false,
 		) {
 			decreaseTextSize()
 		}
 		EditorAction(
-			iconRes = Res.drawable.icon_text_increase,
+			icon = EditorIcons.IconTextIncrease,
 			active = false,
 		) {
 			increaseTextSize()
 		}
 		EditorAction(
-			iconRes = Res.drawable.icon_text_reset,
+			icon = EditorIcons.IconTextReset,
 			active = false,
 		) {
 			resetTextSize()
