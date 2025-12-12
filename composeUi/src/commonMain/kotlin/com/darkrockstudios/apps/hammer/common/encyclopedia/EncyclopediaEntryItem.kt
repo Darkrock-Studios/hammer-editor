@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +18,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -125,22 +126,44 @@ internal fun EncyclopediaEntryItem(
 							.clip(MaterialTheme.shapes.medium)
 					) {
 						if (entryImagePath != null) {
-							// Background: gradient using dominant colors from the image
-							Box(
-								modifier = Modifier
-									.matchParentSize()
-									.background(
-										brush = Brush.verticalGradient(
-											colors = listOf(gradientStartColor, gradientEndColor)
+							with(animatedVisibilityScope) {
+								// Background: gradient using dominant colors from the image
+								Box(
+									modifier = Modifier
+										.matchParentSize()
+										.animateEnterExit(
+											enter = fadeIn(),
+											exit = fadeOut()
 										)
-									)
-							)
+										.background(
+											brush = Brush.verticalGradient(
+												colors = listOf(gradientStartColor, gradientEndColor)
+											)
+										)
+								)
 
-							GradientDivider(modifier = Modifier.height(20.dp).align(Alignment.BottomStart))
+								GradientDivider(
+									modifier = Modifier
+										.height(20.dp)
+										.align(Alignment.BottomStart)
+										.animateEnterExit(
+											enter = fadeIn(),
+											exit = fadeOut()
+										)
+								)
+							}
 
 							// Foreground: fitted image
+							val context = LocalPlatformContext.current
 							AsyncImage(
-								model = entryImagePath,
+								model = remember(entryImagePath) {
+									ImageRequest.Builder(context)
+										.data(entryImagePath)
+										.memoryCacheKey(entryImagePath)
+										.placeholderMemoryCacheKey(entryImagePath)
+										.crossfade(false)
+										.build()
+								},
 								contentDescription = null,
 								modifier = Modifier
 									.align(Alignment.Center)

@@ -20,6 +20,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -85,7 +88,10 @@ internal fun ViewEntryUi(
 			Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
 				if (state.editName) {
 					TextField(
-						modifier = Modifier.wrapContentHeight().fillMaxWidth().padding(top = Ui.Padding.M),
+						modifier = Modifier
+							.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+							.wrapContentHeight()
+							.fillMaxWidth(),
 						value = entryNameText,
 						onValueChange = { entryNameText = it },
 						placeholder = { Text(Res.string.encyclopedia_entry_name_hint.get()) }
@@ -98,6 +104,7 @@ internal fun ViewEntryUi(
 							color = MaterialTheme.colorScheme.onBackground,
 							textAlign = TextAlign.Center,
 							modifier = Modifier
+								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
 								.weight(1f)
 								.sharedElement(
 									sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${state.entryDef.id}"),
@@ -168,10 +175,11 @@ internal fun ViewEntryUi(
 						if (screen.needsExplicitClose) {
 							Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-							Divider(
-								color = MaterialTheme.colorScheme.outline,
+							HorizontalDivider(
 								modifier = Modifier.fillMaxHeight().width(1.dp)
-									.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+									.padding(top = Ui.Padding.M, bottom = Ui.Padding.M),
+								thickness = DividerDefaults.Thickness,
+								color = MaterialTheme.colorScheme.outline
 							)
 
 							Spacer(modifier = Modifier.size(Ui.Padding.XL))
@@ -306,8 +314,15 @@ private fun Image(
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
 			with(sharedTransitionScope) {
+				val context = LocalPlatformContext.current
 				AsyncImage(
-					model = state.entryImagePath,
+					model = remember(state.entryImagePath) {
+						ImageRequest.Builder(context)
+							.data(state.entryImagePath)
+							.placeholderMemoryCacheKey(state.entryImagePath)
+							.crossfade(false)
+							.build()
+					},
 					contentDescription = null,
 					modifier = Modifier.wrapContentHeight()
 						.fillMaxWidth()
@@ -318,7 +333,7 @@ private fun Image(
 						)
 						.clip(MaterialTheme.shapes.medium)
 						.clickable(onClick = showDeleteImageDialog),
-					contentScale = ContentScale.FillWidth,
+					contentScale = ContentScale.Fit,
 				)
 			}
 		}
