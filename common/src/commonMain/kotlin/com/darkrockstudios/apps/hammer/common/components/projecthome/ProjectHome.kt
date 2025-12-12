@@ -38,6 +38,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner {
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
 		val showExportDialog: Boolean = false,
 		val hasServer: Boolean = false,
+		val isLoadingStats: Boolean = false,
 	)
 
 	sealed class ContentDestination {

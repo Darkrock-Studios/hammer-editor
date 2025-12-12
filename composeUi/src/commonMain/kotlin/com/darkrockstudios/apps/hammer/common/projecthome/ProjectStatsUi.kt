@@ -113,6 +113,28 @@ fun ProjectStatsUi(
 			}
 		}
 
+		if (state.isLoadingStats) {
+			item(key = "loading", span = spanAll) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(vertical = Ui.Padding.XL),
+					horizontalArrangement = Arrangement.Center,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(24.dp),
+						strokeWidth = 2.dp,
+						color = MaterialTheme.colorScheme.primary
+					)
+					Spacer(modifier = Modifier.width(Ui.Padding.M))
+					Text(
+						stringResource(Res.string.project_home_loading_stats),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
+			}
+		}
+
 		item(key = "numScenes") {
 			NumericStatsBlock(Res.string.project_home_stat_num_scenes.get(), state.numberOfScenes)
 		}
