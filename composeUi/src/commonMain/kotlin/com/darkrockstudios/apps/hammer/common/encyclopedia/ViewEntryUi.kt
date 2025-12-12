@@ -218,7 +218,9 @@ internal fun ViewEntryUi(
 						) { component.startTextEdit() }
 					}
 				} else {
-					Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+					Column(
+						modifier = Modifier.fillMaxWidth().wrapContentHeight().verticalScroll(rememberScrollState())
+					) {
 						Image(
 							modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(MaterialTheme.shapes.medium),
 							state = state,

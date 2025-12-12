@@ -53,6 +53,8 @@ kotlin {
 				api(libs.mpfilepicker)
 				api(libs.imageloader)
 				api(libs.imageloader.blur)
+				api(libs.kmpalette.core)
+				api(libs.kmpalette.extensions.file)
 				implementation(libs.koalaplot.core)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)

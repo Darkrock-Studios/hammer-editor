@@ -55,6 +55,7 @@ mpfilepicker = "3.1.0"
 koalaplot-core = "0.10.3"
 image-loader = "1.10.0"
 image-loader-blur = "1.7.7"
+kmpalette = "3.1.0"
 
 koin_bom = "4.1.1"
 
@@ -109,6 +110,9 @@ jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", versi
 
 imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref = "image-loader" }
 imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
+
+kmpalette_core = { group = "com.kmpalette", name = "kmpalette-core", version.ref = "kmpalette" }
+kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file", version.ref = "kmpalette" }
 
 jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 jna-platform = { group = "net.java.dev.jna", name = "jna-platform", version.ref = "jna" }
