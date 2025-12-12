@@ -53,8 +53,7 @@ essenty = "2.5.0" # This should match what ever decompose is referncing internal
 
 mpfilepicker = "3.1.0"
 koalaplot-core = "0.10.3"
-image-loader = "1.10.0"
-image-loader-blur = "1.7.7"
+coil = "3.3.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.1.1"
@@ -108,8 +107,9 @@ cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-pr
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 
-imageloader = { group = "io.github.qdsfdhvh", name = "image-loader", version.ref = "image-loader" }
-imageloader_blur = { group = "io.github.qdsfdhvh", name = "image-loader-extension-blur", version.ref = "image-loader-blur" }
+coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
+coil_svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
 
 kmpalette_core = { group = "com.kmpalette", name = "kmpalette-core", version.ref = "kmpalette" }
 kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file", version.ref = "kmpalette" }

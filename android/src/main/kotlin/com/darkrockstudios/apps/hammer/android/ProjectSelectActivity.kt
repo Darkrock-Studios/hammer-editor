@@ -12,7 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,8 +43,6 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionF
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,7 +52,6 @@ import org.koin.android.ext.android.inject
 @ExperimentalComposeApi
 class ProjectSelectActivity : AppCompatActivity() {
 
-	private val imageLoader: ImageLoader by inject()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
@@ -70,34 +70,30 @@ class ProjectSelectActivity : AppCompatActivity() {
 		}
 
 		setContent {
-			CompositionLocalProvider(
-				LocalImageLoader provides remember { imageLoader },
+			val settingsState by globalSettings.subscribeAsState()
+			val isDark = when (settingsState.uiTheme) {
+				UiTheme.Light -> false
+				UiTheme.Dark -> true
+				UiTheme.FollowSystem -> isSystemInDarkTheme()
+			}
+
+			// Dynamic color is available on Android 12+
+			val localCtx = LocalContext.current
+			fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
+				val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+				return when {
+					dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
+					dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
+					else -> null
+				}
+			}
+
+			AppTheme(
+				settings = settingsState,
+				useDarkTheme = isDark,
+				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
-				val settingsState by globalSettings.subscribeAsState()
-				val isDark = when (settingsState.uiTheme) {
-					UiTheme.Light -> false
-					UiTheme.Dark -> true
-					UiTheme.FollowSystem -> isSystemInDarkTheme()
-				}
-
-				// Dynamic color is available on Android 12+
-				val localCtx = LocalContext.current
-				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
-					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-					return when {
-						dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
-						dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
-						else -> null
-					}
-				}
-
-				AppTheme(
-					settings = settingsState,
-					useDarkTheme = isDark,
-					getOverrideColorScheme = ::getDynamicColorScheme
-				) {
-					ProjectSelectContent(component)
-				}
+				ProjectSelectContent(component)
 			}
 		}
 	}

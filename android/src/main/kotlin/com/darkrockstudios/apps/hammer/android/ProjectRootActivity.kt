@@ -49,8 +49,6 @@ import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.russhwolf.settings.Settings
-import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.LocalImageLoader
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -62,7 +60,6 @@ import org.koin.java.KoinJavaComponent.getKoin
 class ProjectRootActivity : AppCompatActivity() {
 
 	private val settings: Settings by inject()
-	private val imageLoader: ImageLoader by inject()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val mainDispatcher by injectMainDispatcher()
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
@@ -90,28 +87,26 @@ class ProjectRootActivity : AppCompatActivity() {
 			}
 
 			setContent {
-				CompositionLocalProvider(LocalImageLoader provides remember { imageLoader }) {
-					val settingsState by globalSettings.subscribeAsState()
-					val isDark = when (settingsState.uiTheme) {
-						UiTheme.Light -> false
-						UiTheme.Dark -> true
-						UiTheme.FollowSystem -> isSystemInDarkTheme()
-					}
+				val settingsState by globalSettings.subscribeAsState()
+				val isDark = when (settingsState.uiTheme) {
+					UiTheme.Light -> false
+					UiTheme.Dark -> true
+					UiTheme.FollowSystem -> isSystemInDarkTheme()
+				}
 
-					// Dynamic color is available on Android 12+
-					val localCtx = LocalContext.current
-					fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
-						val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-						return when {
-							dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
-							dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
-							else -> null
-						}
+				// Dynamic color is available on Android 12+
+				val localCtx = LocalContext.current
+				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
+					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+					return when {
+						dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
+						dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
+						else -> null
 					}
+				}
 
-					AppTheme(settingsState, isDark, ::getDynamicColorScheme) {
-						Content(component)
-					}
+				AppTheme(settingsState, isDark, ::getDynamicColorScheme) {
+					Content(component)
 				}
 			}
 		}

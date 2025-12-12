@@ -4,6 +4,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
@@ -26,8 +28,6 @@ import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
 import com.jthemedetecor.OsThemeDetector
-import com.seiko.imageloader.ImageLoader
-import com.seiko.imageloader.LocalImageLoader
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.cli.ArgParser
@@ -35,7 +35,6 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
-import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
@@ -105,7 +104,9 @@ fun main(args: Array<String>) {
 
 	application {
 		val applicationState = remember { ApplicationState() }
-		val imageLoader: ImageLoader = get(ImageLoader::class.java)
+		val imageLoader: ImageLoader = getKoin().get()
+
+		setSingletonImageLoaderFactory { imageLoader }
 
 		val settingsState by globalSettings.subscribeAsState()
 		val initialDark = when (settingsState.uiTheme) {
@@ -133,19 +134,15 @@ fun main(args: Array<String>) {
 		}
 
 		AppTheme(useDarkTheme = darkMode, settings = settingsState) {
-			CompositionLocalProvider(
-				LocalImageLoader provides remember { imageLoader },
-			) {
-				when (val windowState = applicationState.windows.value) {
-					is WindowState.ProjectSectionWindow -> {
-						ProjectSelectionWindow { project ->
-							applicationState.openProject(project)
-						}
+			when (val windowState = applicationState.windows.value) {
+				is WindowState.ProjectSectionWindow -> {
+					ProjectSelectionWindow { project ->
+						applicationState.openProject(project)
 					}
+				}
 
-					is WindowState.ProjectWindow -> {
-						ProjectEditorWindow(applicationState, windowState.projectDef)
-					}
+				is WindowState.ProjectWindow -> {
+					ProjectEditorWindow(applicationState, windowState.projectDef)
 				}
 			}
 		}
