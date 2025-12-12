@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
@@ -21,7 +23,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
 
-class HammerApplication : Application() {
+class HammerApplication : Application(), SingletonImageLoader.Factory {
 
 	private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -43,6 +45,10 @@ class HammerApplication : Application() {
 		}
 
 		KoinJavaComponent.getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+	}
+
+	override fun newImageLoader(context: coil3.PlatformContext): ImageLoader {
+		return KoinJavaComponent.getKoin().get()
 	}
 
 	private fun initializeDirectories() {
