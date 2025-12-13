@@ -58,7 +58,7 @@ internal fun SceneGroupItem(
 			modifier = groupModifier,
 			tonalElevation = if (collapsed) 1.dp else 0.dp,
 		) {
-			BoxWithConstraints {
+			Box {
 				Row(
 					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
 					verticalAlignment = Alignment.CenterVertically
