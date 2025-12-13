@@ -29,7 +29,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	suspend fun changeSceneName(newName: String)
 	fun beginSaveDraft()
 	fun endSaveDraft()
-	suspend fun saveDraft(draftName: String): Boolean
+	suspend fun saveDraft(draftName: String, newDraftName: String): Boolean
 	fun beginDelete()
 	fun endDelete()
 	fun doDelete()

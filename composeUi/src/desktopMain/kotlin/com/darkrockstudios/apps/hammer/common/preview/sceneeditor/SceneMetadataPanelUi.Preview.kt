@@ -26,6 +26,8 @@ private fun SceneMetadataPanelUiPreview() {
 
 			override fun updateOutline(text: String) {}
 			override fun updateNotes(text: String) {}
+			override fun updateDraftName(text: String) {}
+			override fun validateDraftName(text: String) = true
 		},
 		closeMetadata = {}
 	)

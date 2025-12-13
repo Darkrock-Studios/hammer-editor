@@ -7,8 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -103,6 +102,28 @@ fun SceneMetadataPanelUi(
 					)
 				},
 				textStyle = MaterialTheme.typography.bodyLarge,
+			)
+
+			SpacerXL()
+
+			var isDraftNameValid by remember {
+				mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
+			}
+
+			OutlinedTextField(
+				value = state.metadata.currentDraftName,
+				onValueChange = { newName ->
+					isDraftNameValid = component.validateDraftName(newName)
+					component.updateDraftName(newName)
+				},
+				modifier = Modifier.fillMaxWidth(),
+				maxLines = 1,
+				label = { Text(Res.string.scene_editor_metadata_draft_name_label.get()) },
+				textStyle = MaterialTheme.typography.bodyLarge,
+				isError = !isDraftNameValid,
+				supportingText = if (!isDraftNameValid) {
+					{ Text(Res.string.scene_draft_invalid_name.get()) }
+				} else null
 			)
 
 			SpacerXL()

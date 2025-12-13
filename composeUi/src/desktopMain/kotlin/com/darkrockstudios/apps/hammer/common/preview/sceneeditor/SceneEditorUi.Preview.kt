@@ -49,6 +49,8 @@ private fun fakeComponent() = object : SceneEditor {
 		override val state = MutableValue(SceneMetadataPanel.State(fakeSceneItem()))
 		override fun updateOutline(text: String) {}
 		override fun updateNotes(text: String) {}
+		override fun updateDraftName(text: String) {}
+		override fun validateDraftName(text: String) = true
 	}
 
 	override fun addEditorMenu() {}
@@ -61,7 +63,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override suspend fun changeSceneName(newName: String) {}
 	override fun beginSaveDraft() {}
 	override fun endSaveDraft() {}
-	override suspend fun saveDraft(draftName: String) = true
+	override suspend fun saveDraft(draftName: String, newDraftName: String) = true
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}

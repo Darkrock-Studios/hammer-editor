@@ -10,6 +10,8 @@ interface SceneMetadataPanel : HammerComponent {
 
 	fun updateOutline(text: String)
 	fun updateNotes(text: String)
+	fun updateDraftName(text: String)
+	fun validateDraftName(text: String): Boolean
 
 	data class State(
 		val sceneItem: SceneItem,
