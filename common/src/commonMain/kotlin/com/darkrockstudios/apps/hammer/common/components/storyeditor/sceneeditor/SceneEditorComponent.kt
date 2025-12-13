@@ -335,13 +335,16 @@ class SceneEditorComponent(
 		_state.getAndUpdate { it.copy(isSavingDraft = false) }
 	}
 
-	override suspend fun saveDraft(draftName: String): Boolean {
+	override suspend fun saveDraft(draftName: String, newDraftName: String): Boolean {
 		return if (SceneDraftsDatasource.validDraftName(draftName)) {
 			val draftDef = draftsRepository.saveDraft(
 				sceneDef,
 				draftName
 			)
 			if (draftDef != null) {
+				// Update to the new draft name
+				sceneMetadataComponent.updateDraftName(newDraftName)
+
 				Napier.i { "Draft Saved: ${draftDef.draftTimestamp}" }
 				true
 			} else {

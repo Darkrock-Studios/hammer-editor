@@ -20,6 +20,10 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.getSystemResourceEnvironment
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
@@ -49,7 +53,21 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		MockKAnnotations.init(this, relaxUnitFun = true)
+		mockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
+		mockkStatic("org.jetbrains.compose.resources.ResourceEnvironmentKt")
+		coEvery {
+			getString(any<StringResource>(), any<String>())
+		} returns "Mocked"
+		every { getSystemResourceEnvironment() } returns mockk(relaxed = true)
+
 		setupKoin()
+	}
+
+	@AfterEach
+	override fun tearDown() {
+		super.tearDown()
+		unmockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
+		mockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
 	}
 
 	private fun createDatasource(projectDef: ProjectDef): SceneMetadataDatasource {
@@ -92,7 +110,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 
 		val repo = createRepository(projDef)
 		val metadata = repo.loadSceneMetadata(sceneId)
-		assertEquals(SceneMetadata(), metadata)
+		assertEquals(SceneMetadata(currentDraftName = "New Draft"), metadata)
 	}
 
 	@Test
@@ -101,7 +119,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			info = Info(
 				created = Instant.parse("2022-01-01T00:00:00.000Z"),
 				dataVersion = 1,
-				serverProjectId = ProjectId("12345")
+				serverProjectId = ProjectId("12345"),
 			)
 		)
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns projectMetadata
@@ -116,6 +134,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 		val newMetadata = SceneMetadata(
 			outline = "Scene 1 outline updates",
 			notes = "Scene 1 notes updates",
+			currentDraftName = "Scene 1 draft updates"
 		)
 
 		val repo = createRepository(projDef)

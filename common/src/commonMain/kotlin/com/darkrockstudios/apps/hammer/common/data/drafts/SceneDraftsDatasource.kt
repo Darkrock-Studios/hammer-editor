@@ -214,7 +214,7 @@ class SceneDraftsDatasource(
 		val MAX_DRAFT_NAME_LENGTH = 128
 
 		fun validDraftName(name: String): Boolean {
-			return name.length <= MAX_DRAFT_NAME_LENGTH && DRAFT_NAME_PATTERN.matches(name)
+			return name.isNotBlank() && name.length <= MAX_DRAFT_NAME_LENGTH && DRAFT_NAME_PATTERN.matches(name)
 		}
 
 		fun validDraftFileName(filename: String): Boolean = DRAFT_FILENAME_PATTERN.matches(filename)

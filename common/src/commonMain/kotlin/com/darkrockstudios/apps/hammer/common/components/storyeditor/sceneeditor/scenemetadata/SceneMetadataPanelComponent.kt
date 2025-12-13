@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -159,6 +160,22 @@ class SceneMetadataPanelComponent(
 				metadata = it.metadata.copy(notes = text)
 			)
 		}
+	}
+
+	override fun updateDraftName(text: String) {
+		_state.getAndUpdate {
+			val updated = it.metadata.copy(currentDraftName = text)
+			if (_metadataUpdateFlow.tryEmit(updated).not()) {
+				Napier.w { "Failed to emit metadataUpdate for Draft Name" }
+			}
+			it.copy(
+				metadata = it.metadata.copy(currentDraftName = text)
+			)
+		}
+	}
+
+	override fun validateDraftName(text: String): Boolean {
+		return SceneDraftsDatasource.validDraftName(text)
 	}
 
 	override fun onDestroy() {

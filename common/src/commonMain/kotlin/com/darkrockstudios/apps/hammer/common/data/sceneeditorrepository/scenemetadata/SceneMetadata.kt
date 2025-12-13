@@ -9,4 +9,5 @@ data class SceneMetadata(
 	val outline: String = "",
 	@TomlMultilineString
 	val notes: String = "",
+	val currentDraftName: String = "",
 )

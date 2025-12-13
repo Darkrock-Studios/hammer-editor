@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
+import com.darkrockstudios.apps.hammer.default_draft_name
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import okio.IOException
 import okio.Path
+import org.jetbrains.compose.resources.getString
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
@@ -385,7 +388,13 @@ class SceneEditorRepository(
 	}
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata {
-		return sceneMetadataDatasource.loadMetadata(sceneId) ?: SceneMetadata()
+		val defaultName: String = getString(Res.string.default_draft_name)
+		val metadata = sceneMetadataDatasource.loadMetadata(sceneId) ?: SceneMetadata(currentDraftName = defaultName)
+		return if (metadata.currentDraftName.isBlank()) {
+			metadata.copy(currentDraftName = defaultName)
+		} else {
+			metadata
+		}
 	}
 
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
