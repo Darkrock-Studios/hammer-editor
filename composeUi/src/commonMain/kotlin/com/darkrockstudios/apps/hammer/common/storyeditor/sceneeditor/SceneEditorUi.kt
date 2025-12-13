@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
@@ -45,8 +46,18 @@ fun SceneEditorUi(
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
 	}
 
+	LaunchedEffect(lastForceUpdate, state.sceneBuffer) {
+		// Only update if the buffer exists and it's from an external source
+		state.sceneBuffer?.let { buffer ->
+			if (buffer.source != UpdateSource.Editor) {
+				val newContent = getInitialEditorContent(buffer.content, markdownConfig)
+				textEditorState.textState.setText(newContent)
+			}
+		}
+	}
+
 	LaunchedEffect(Unit) {
-		textEditorState.textState.editOperations.collect { operation ->
+		textEditorState.textState.editOperations.collect { _ ->
 			component.onContentChanged(ComposeRichText(markdownExtension))
 		}
 	}

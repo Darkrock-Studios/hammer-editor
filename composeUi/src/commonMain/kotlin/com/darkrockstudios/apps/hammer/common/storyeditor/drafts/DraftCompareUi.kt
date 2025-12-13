@@ -19,13 +19,12 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.texteditor.TextEditor
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
 @Composable
@@ -116,6 +115,18 @@ private fun CurrentContent(
 		val textEditorState = rememberTextEditorState(
 			initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
 		)
+
+		val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+
+		LaunchedEffect(markdownConfig) {
+			markdownExtension.updateMarkdownConfiguration(markdownConfig)
+		}
+
+		LaunchedEffect(component.draftDef.draftName) {
+			textEditorState.editOperations.collect { _ ->
+				component.onMergedContentChanged(ComposeRichText(markdownExtension))
+			}
+		}
 
 		Card(
 			modifier = modifier.padding(Ui.Padding.L),
