@@ -60,7 +60,7 @@ fun DraftCompareUi(component: DraftCompare) {
 
 @Composable
 private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
-	var tabState by rememberSaveable { mutableStateOf(0) }
+	var tabState by rememberSaveable { mutableIntStateOf(0) }
 	val titles = remember {
 		listOf(Res.string.draft_compare_tab_title_draft, Res.string.draft_compare_tab_title_current)
 	}
