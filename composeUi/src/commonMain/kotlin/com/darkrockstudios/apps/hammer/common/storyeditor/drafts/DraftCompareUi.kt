@@ -112,58 +112,38 @@ private fun CurrentContent(
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 
-	val textEditorState = rememberTextEditorState(
-		initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
-	)
+	key(state.sceneContent) {
+		val textEditorState = rememberTextEditorState(
+			initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
+		)
 
-	// I feel like there must be a better way...
-//	var sceneText by remember(state.sceneContent) {
-//		val existing = state.mergedContent as? ComposeRichText
-//
-//		if (existing == null && state.sceneContent != null) {
-//			val sceneSnapshot = (state.sceneContent?.markdown?.toAnnotatedStringFromMarkdown())
-//			if (sceneSnapshot != null) {
-//				component.onMergedContentChanged(ComposeRichText(snapshot = sceneSnapshot))
-//			}
-//
-//			mutableStateOf(
-//				sceneSnapshot ?: AnnotatedString("")
-//			)
-//		} else {
-//			mutableStateOf(
-//				RichTextValue.fromSnapshot(
-//					existing?.snapshot ?: "".markdownToSnapshot()
-//				)
-//			)
-//		}
-//	}
+		Card(
+			modifier = modifier.padding(Ui.Padding.L),
+			border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer),
+			elevation = CardDefaults.outlinedCardElevation(
+				defaultElevation = Ui.Elevation.MEDIUM
+			),
+		) {
+			Column(modifier = Modifier.padding(Ui.Padding.L)) {
+				Text(
+					Res.string.draft_compare_current_header.get(),
+					style = MaterialTheme.typography.headlineLarge
+				)
+				Text(
+					Res.string.draft_compare_current_subheader.get(),
+					style = MaterialTheme.typography.bodySmall,
+					fontStyle = FontStyle.Italic
+				)
 
-	Card(
-		modifier = modifier.padding(Ui.Padding.L),
-		border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer),
-		elevation = CardDefaults.outlinedCardElevation(
-			defaultElevation = Ui.Elevation.MEDIUM
-		),
-	) {
-		Column(modifier = Modifier.padding(Ui.Padding.L)) {
-			Text(
-				Res.string.draft_compare_current_header.get(),
-				style = MaterialTheme.typography.headlineLarge
-			)
-			Text(
-				Res.string.draft_compare_current_subheader.get(),
-				style = MaterialTheme.typography.bodySmall,
-				fontStyle = FontStyle.Italic
-			)
+				Button(onClick = { component.pickMerged() }) {
+					Text(Res.string.draft_compare_current_accept_button.get())
+				}
 
-			Button(onClick = { component.pickMerged() }) {
-				Text(Res.string.draft_compare_current_accept_button.get())
+				TextEditor(
+					modifier = Modifier.fillMaxSize(),
+					state = textEditorState,
+				)
 			}
-
-			TextEditor(
-				modifier = Modifier.fillMaxSize(),
-				state = textEditorState,
-			)
 		}
 	}
 }
@@ -173,48 +153,49 @@ private fun DraftContent(
 	modifier: Modifier,
 	component: DraftCompare,
 ) {
-	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 
-	val textEditorState = rememberTextEditorState(
-		initialText = getInitialEditorContent(state.draftContent, markdownConfig)
-	)
+	key(state.draftContent) {
+		val textEditorState = rememberTextEditorState(
+			initialText = getInitialEditorContent(state.draftContent, markdownConfig)
+		)
 
-	var headerText by remember { mutableStateOf("") }
-	LaunchedEffect(component.draftDef.draftName) {
-		headerText = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
-	}
+		var headerText by remember { mutableStateOf("") }
+		LaunchedEffect(component.draftDef.draftName) {
+			headerText = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
+		}
 
-	Card(modifier = modifier.padding(Ui.Padding.L)) {
-		Column(modifier = Modifier.padding(Ui.Padding.L)) {
+		Card(modifier = modifier.padding(Ui.Padding.L)) {
+			Column(modifier = Modifier.padding(Ui.Padding.L)) {
 
-			/*
-			val date = remember(component.draftDef.draftTimestamp) {
-				val created = component.draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
-				created.format("dd MMM `yy")
+				/*
+				val date = remember(component.draftDef.draftTimestamp) {
+					val created = component.draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
+					created.format("dd MMM `yy")
+				}
+				*/
+
+				Text(
+					headerText,
+					style = MaterialTheme.typography.headlineLarge
+				)
+				Text(
+					Res.string.draft_compare_draft_subheader.get(),
+					style = MaterialTheme.typography.bodySmall,
+					fontStyle = FontStyle.Italic
+				)
+				Button(onClick = { component.pickDraft() }) {
+					Text(Res.string.draft_compare_draft_accept_button.get())
+				}
+
+				TextEditor(
+					modifier = Modifier.fillMaxSize(),
+					state = textEditorState,
+					enabled = false,
+				)
 			}
-			*/
-
-			Text(
-				headerText,
-				style = MaterialTheme.typography.headlineLarge
-			)
-			Text(
-				Res.string.draft_compare_draft_subheader.get(),
-				style = MaterialTheme.typography.bodySmall,
-				fontStyle = FontStyle.Italic
-			)
-			Button(onClick = { component.pickDraft() }) {
-				Text(Res.string.draft_compare_draft_accept_button.get())
-			}
-
-			TextEditor(
-				modifier = Modifier.fillMaxSize(),
-				state = textEditorState,
-				enabled = true
-			)
 		}
 	}
 }
