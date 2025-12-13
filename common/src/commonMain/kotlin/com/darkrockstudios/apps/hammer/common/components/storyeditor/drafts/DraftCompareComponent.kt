@@ -63,10 +63,24 @@ class DraftCompareComponent(
 	}
 
 	override fun pickMerged() {
-		val content = SceneContent(
-			scene = sceneItem,
-			platformRepresentation = state.value.mergedContent
-		)
+		val originalMarkdown = state.value.sceneContent?.markdown
+
+		val content = if (state.value.mergedContent != null) {
+			Napier.i { "Picking merged content" }
+			SceneContent(
+				scene = sceneItem,
+				platformRepresentation = state.value.mergedContent
+			)
+		} else if (originalMarkdown != null) {
+			Napier.i { "Picking merged content, but with no changes" }
+			SceneContent(
+				scene = sceneItem,
+				markdown = originalMarkdown
+			)
+		} else {
+			error("Cannot pick merged, both scene content and merged content were NULL")
+		}
+
 		projectEditor.onContentChanged(content, UpdateSource.Drafts)
 		backToEditor()
 	}
