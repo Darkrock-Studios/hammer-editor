@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
@@ -51,14 +52,15 @@ fun DraftsListUiPreview() {
 		override fun cancel() {}
 	}
 
-
-	Column {
-		AppTheme(globalSettingsPreview) {
-			DraftsListUi(component)
-		}
-		Spacer(modifier = Modifier.size(16.dp))
-		AppTheme(globalSettingsPreview, true) {
-			DraftsListUi(component)
+	KoinApplicationPreview {
+		Column {
+			AppTheme(globalSettingsPreview) {
+				DraftsListUi(component)
+			}
+			Spacer(modifier = Modifier.size(64.dp))
+			AppTheme(globalSettingsPreview, true) {
+				DraftsListUi(component)
+			}
 		}
 	}
 }
