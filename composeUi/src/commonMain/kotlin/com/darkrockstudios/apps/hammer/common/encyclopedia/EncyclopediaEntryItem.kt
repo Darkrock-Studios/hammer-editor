@@ -155,25 +155,31 @@ internal fun EncyclopediaEntryItem(
 
 							// Foreground: fitted image
 							val context = LocalPlatformContext.current
-							AsyncImage(
-								model = remember(entryImagePath) {
-									ImageRequest.Builder(context)
-										.data(entryImagePath)
-										.memoryCacheKey(entryImagePath)
-										.placeholderMemoryCacheKey(entryImagePath)
-										.crossfade(false)
-										.build()
-								},
-								contentDescription = null,
-								modifier = Modifier
-									.align(Alignment.Center)
-									.sharedElement(
-										sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
-										animatedVisibilityScope = animatedVisibilityScope
-									)
-									.clip(MaterialTheme.shapes.medium),
-								contentScale = ContentScale.Fit
-							)
+							with(animatedVisibilityScope) {
+								AsyncImage(
+									model = remember(entryImagePath) {
+										ImageRequest.Builder(context)
+											.data(entryImagePath)
+											.memoryCacheKey(entryImagePath)
+											.placeholderMemoryCacheKey(entryImagePath)
+											.crossfade(false)
+											.build()
+									},
+									contentDescription = null,
+									modifier = Modifier
+										.align(Alignment.Center)
+										.animateEnterExit(
+											enter = fadeIn(),
+											exit = fadeOut()
+										)
+//									.sharedElement(
+//										sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
+//										animatedVisibilityScope = animatedVisibilityScope
+//									)
+										.clip(MaterialTheme.shapes.medium),
+									contentScale = ContentScale.Fit
+								)
+							}
 						} else {
 							// Loading placeholder - keeps consistent height
 							Box(

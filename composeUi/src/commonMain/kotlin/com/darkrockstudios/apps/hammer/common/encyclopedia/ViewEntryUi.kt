@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -330,28 +328,34 @@ private fun Image(
 	if (state.entryImagePath != null) {
 		Box(modifier = modifier.wrapContentHeight()) {
 			with(sharedTransitionScope) {
-				val context = LocalPlatformContext.current
-				AsyncImage(
-					model = remember(state.entryImagePath) {
-						ImageRequest.Builder(context)
-							.data(state.entryImagePath)
-							.memoryCacheKeyExtras(mapOf("hash" to state.entryImageHash.toString()))
-							.placeholderMemoryCacheKey(state.entryImagePath)
-							.crossfade(false)
-							.build()
-					},
-					contentDescription = null,
-					modifier = Modifier.wrapContentHeight()
-						.fillMaxWidth()
-						.align(Alignment.TopEnd)
-						.sharedElement(
-							sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${state.entryDef.id}"),
-							animatedVisibilityScope = animatedVisibilityScope
-						)
-						.clip(MaterialTheme.shapes.medium)
-						.clickable(onClick = showDeleteImageDialog),
-					contentScale = ContentScale.Fit,
-				)
+				with(animatedVisibilityScope) {
+					val context = LocalPlatformContext.current
+					AsyncImage(
+						model = remember(state.entryImagePath) {
+							ImageRequest.Builder(context)
+								.data(state.entryImagePath)
+								.memoryCacheKeyExtras(mapOf("hash" to state.entryImageHash.toString()))
+								.placeholderMemoryCacheKey(state.entryImagePath)
+								.crossfade(false)
+								.build()
+						},
+						contentDescription = null,
+						modifier = Modifier.wrapContentHeight()
+							.fillMaxWidth()
+							.align(Alignment.TopEnd)
+							.animateEnterExit(
+								enter = fadeIn(),
+								exit = fadeOut()
+							)
+//							.sharedElement(
+//								sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${state.entryDef.id}"),
+//								animatedVisibilityScope = animatedVisibilityScope
+//							)
+							.clip(MaterialTheme.shapes.medium)
+							.clickable(onClick = showDeleteImageDialog),
+						contentScale = ContentScale.Fit,
+					)
+				}
 			}
 		}
 	}
