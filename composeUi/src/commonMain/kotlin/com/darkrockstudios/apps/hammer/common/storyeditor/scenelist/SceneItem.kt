@@ -49,7 +49,7 @@ internal fun SceneItem(
 			tonalElevation = if (isSelected) Ui.Elevation.MEDIUM else 0.dp,
 			border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
 		) {
-			BoxWithConstraints {
+			Box {
 				Row(
 					modifier = Modifier
 						.padding(Ui.Padding.L)

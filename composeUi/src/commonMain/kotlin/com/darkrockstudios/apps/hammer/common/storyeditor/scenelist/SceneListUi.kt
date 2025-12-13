@@ -66,7 +66,7 @@ fun SceneListUi(
 	// TODO implement a real NUX system
 	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
-	BoxWithConstraints {
+	Box {
 		Column(modifier = modifier.fillMaxSize()) {
 			Row(
 				modifier = Modifier.fillMaxWidth()
@@ -335,7 +335,7 @@ private fun SceneNode(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun BoxWithConstraintsScope.Unsaved(hasDirtyBuffer: Boolean) {
+internal fun BoxScope.Unsaved(hasDirtyBuffer: Boolean) {
 	if (hasDirtyBuffer) {
 		Badge(modifier = Modifier.align(Alignment.TopEnd).padding(Ui.Padding.M))
 	}
