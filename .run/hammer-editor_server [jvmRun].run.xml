@@ -1,0 +1,29 @@
+<component name="ProjectRunConfigurationManager">
+	<configuration default="false" name="hammer-editor:server [jvmRun]" type="GradleRunConfiguration"
+				   factoryName="Gradle">
+		<ExternalSystemSettings>
+			<option name="executionName"/>
+			<option name="externalProjectPath" value="$PROJECT_DIR$/server"/>
+			<option name="externalSystemIdString" value="GRADLE"/>
+			<option name="scriptParameters" value=""/>
+			<option name="taskDescriptions">
+				<list/>
+			</option>
+			<option name="taskNames">
+				<list>
+					<option value="jvmRun"/>
+					<option value="--args=&quot;--dev&quot;"/>
+				</list>
+			</option>
+			<option name="vmOptions" value=""/>
+		</ExternalSystemSettings>
+		<ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+		<ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+		<ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
+		<DebugAllEnabled>false</DebugAllEnabled>
+		<RunAsTest>false</RunAsTest>
+		<GradleProfilingDisabled>false</GradleProfilingDisabled>
+		<GradleCoverageDisabled>false</GradleCoverageDisabled>
+		<method v="2"/>
+	</configuration>
+</component>
