@@ -1,7 +1,7 @@
 <footer class="site-footer">
 	<form action="/locale" method="post" class="language-selector">
 		<label for="lang-select">Language:</label>
-		<select id="lang-select" name="locale" onchange="this.form.submit()">
+		<select id="lang-select" name="locale" hx-post="/locale" hx-trigger="change" hx-swap="none">
 			{{#locales}}
 				<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
 			{{/locales}}
