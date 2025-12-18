@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
@@ -12,22 +13,24 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
 
-fun Route.adminRoutes(whiteListRepository: WhiteListRepository) {
+fun Route.adminRoutes(config: ServerConfig, whiteListRepository: WhiteListRepository) {
 	adminOnly {
 		route("/admin") {
-			admin(whiteListRepository)
+			admin(config, whiteListRepository)
 			whiteListRoutes(whiteListRepository)
 		}
 	}
 }
 
-private fun Route.admin(whiteListRepository: WhiteListRepository) {
+private fun Route.admin(config: ServerConfig, whiteListRepository: WhiteListRepository) {
 	get {
 		val session = call.sessions.get<UserSession>()
 		val model = mapOf(
 			"isAdmin" to (session?.isAdmin?.toString() ?: "null"),
-			// List of all whitelist users for the HMX admin page
-			"whitelist" to whiteListRepository.getWhiteList()
+			"whitelist" to whiteListRepository.getWhiteList(),
+			"whitelistEnabled" to whiteListRepository.useWhiteList(),
+			"contactEmail" to (config.contact ?: ""),
+			"serverMessage" to config.serverMessage
 		)
 		call.respond(MustacheContent("admin.mustache", call.withMessages(model)))
 	}
@@ -38,6 +41,7 @@ private fun Route.whiteListRoutes(whiteListRepository: WhiteListRepository) {
 		whitelistUserFragment(whiteListRepository)
 		whitelistAdd(whiteListRepository)
 		whitelistRemove(whiteListRepository)
+		whitelistSettings(whiteListRepository)
 	}
 }
 
@@ -87,5 +91,20 @@ private fun Route.whitelistUserFragment(whiteListRepository: WhiteListRepository
 			"whitelist" to whiteListRepository.getWhiteList()
 		)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
+	}
+}
+
+private fun Route.whitelistSettings(whiteListRepository: WhiteListRepository) {
+	post("/settings") {
+		val params = call.receiveParameters()
+		val enabled = params["enabled"] != null
+		val contact = params["contact"]
+
+		whiteListRepository.setWhiteListEnabled(enabled)
+		//whiteListRepository.setContactEmail(contact)
+		error("Not Implemented yet")
+
+		// Redirect to admin page after saving settings
+		call.respondRedirect("/admin")
 	}
 }

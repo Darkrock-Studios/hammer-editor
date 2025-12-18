@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.accountRoutes
 import com.darkrockstudios.apps.hammer.admin.adminRoutes
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
@@ -13,10 +14,10 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Application.configureRouting() {
+fun Application.configureRouting(config: ServerConfig) {
 	val logger = log
 	routing {
-		frontend()
+		frontend(config)
 		route(API_ROUTE_PREFIX) {
 			accountRoutes()
 			projectsRoutes()

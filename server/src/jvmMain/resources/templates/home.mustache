@@ -1,0 +1,107 @@
+{{> header}}
+
+<!-- Masthead/Hero Section -->
+<section class="masthead">
+	<div class="masthead-content">
+		<h1>{{msg.home_masthead_title}}</h1>
+		<h2>{{msg.home_masthead_subtitle}}</h2>
+	</div>
+</section>
+
+<!-- Main Content -->
+<main class="main-content">
+
+	<!-- Server Message (if applicable) -->
+	{{#serverMessage}}
+		<div class="server-message">
+			<h3>{{msg.home_servermessage}}</h3>
+			<div>{{serverMessage}}</div>
+
+			{{#whitelistEnabled}}
+				<div class="whitelist-message">
+					<p>{{msg.home_servermessage_whitelist}}</p>
+				</div>
+			{{/whitelistEnabled}}
+		</div>
+	{{/serverMessage}}
+
+	<!-- What is Hammer Section -->
+	<section class="paper-section">
+		<div class="text-container">
+			<h1>{{msg.home_whatishammer_title}}</h1>
+			<p>{{msg.home_whatishammer_subtitle}}</p>
+		</div>
+	</section>
+
+	<!-- Features Grid -->
+	<section>
+		<div class="feature-grid">
+			<div class="feature-card">
+				<h3>{{msg.home_feature_multiplatform_header}}</h3>
+				<p>{{msg.home_feature_multiplatform_body}}</p>
+			</div>
+
+			<div class="feature-card">
+				<h3>{{msg.home_feature_multiscreen_header}}</h3>
+				<p>{{msg.home_feature_multiscreen_body}}</p>
+			</div>
+
+			<div class="feature-card">
+				<h3>{{msg.home_feature_offlinefirst_header}}</h3>
+				<p>{{msg.home_feature_offlinefirst_body}}</p>
+			</div>
+
+			<div class="feature-card">
+				<h3>{{msg.home_feature_transparentdata_header}}</h3>
+				<p>{{msg.home_feature_transparentdata_body}}</p>
+			</div>
+		</div>
+	</section>
+
+	<!-- Decorative Divider -->
+	<div class="divider"></div>
+
+	<!-- Download Section -->
+	<section class="paper-section">
+		<div class="text-container">
+			<h1>{{msg.home_download_header}}</h1>
+		</div>
+
+		<div class="download-grid">
+			<div class="download-card">
+				<span class="download-icon">🪟</span>
+				<h3>{{msg.home_download_windows}}</h3>
+				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
+				   class="download-link">{{msg.home_download_link}}</a>
+			</div>
+
+			<div class="download-card">
+				<span class="download-icon">🐧</span>
+				<h3>{{msg.home_download_linux}}</h3>
+				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer_amd64.deb"
+				   class="download-link">{{msg.home_download_link}}</a>
+			</div>
+
+			<div class="download-card">
+				<span class="download-icon">🍎</span>
+				<h3>{{msg.home_download_macos}}</h3>
+				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
+				   class="download-link">{{msg.home_download_link}}</a>
+			</div>
+
+			<div class="download-card">
+				<span class="download-icon">🤖</span>
+				<h3>{{msg.home_download_android}}</h3>
+				<a href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
+				   class="download-link">{{msg.home_download_link}}</a>
+			</div>
+
+			<div class="download-image">
+				<img src="/assets/images/download.png" alt="Download Hammer">
+			</div>
+		</div>
+	</section>
+
+</main>
+
+{{> footer}}

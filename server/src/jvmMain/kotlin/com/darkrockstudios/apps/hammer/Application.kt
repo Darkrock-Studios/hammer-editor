@@ -110,6 +110,6 @@ fun Application.appMain(config: ServerConfig, addInModule: Module? = null) {
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
-	configureRouting()
+	configureRouting(config)
 	configureFrontEnd()
 }

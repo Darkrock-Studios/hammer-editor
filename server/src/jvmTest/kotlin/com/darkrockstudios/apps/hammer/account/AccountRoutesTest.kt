@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.*
@@ -84,7 +85,7 @@ class AccountRoutesTest : BaseTest() {
 			configureSerialization()
 			configureLocalization()
 			configureSecurity()
-			configureRouting()
+			configureRouting(ServerConfig())
 		}
 
 		createClient {
@@ -118,7 +119,7 @@ class AccountRoutesTest : BaseTest() {
 			configureSerialization()
 			configureLocalization()
 			configureSecurity()
-			configureRouting()
+			configureRouting(ServerConfig())
 		}
 
 		createClient {

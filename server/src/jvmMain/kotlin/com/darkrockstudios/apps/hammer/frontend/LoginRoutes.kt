@@ -18,7 +18,12 @@ fun Route.authRoutes(accountsRepository: AccountsRepository) {
 private fun Route.login(accountsRepository: AccountsRepository) {
 	route("/login") {
 		get {
-			call.respond(MustacheContent("login.mustache", call.withMessages()))
+			val session: UserSession? = call.sessions.get<UserSession>()
+			if (session != null) {
+				call.respondRedirect("/admin")
+			} else {
+				call.respond(MustacheContent("login.mustache", call.withMessages()))
+			}
 		}
 
 		post {

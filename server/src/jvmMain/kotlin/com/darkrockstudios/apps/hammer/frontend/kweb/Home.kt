@@ -75,7 +75,7 @@ private fun Component.serverMessage(config: ServerConfig, whiteListEnabled: Whit
 							div(fomantic.ui.info.message.column).innerHTML(
 								loc.t(
 									"home.servermessage.whitelist",
-									config.contact ?: "[foo@bar.com]"
+									"[foo@bar.com]"
 								)
 							)
 						}

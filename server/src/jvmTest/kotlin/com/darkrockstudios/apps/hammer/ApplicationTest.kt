@@ -56,7 +56,7 @@ class ApplicationTest : BaseTest() {
 			setupKtorTestKoin(this@ApplicationTest, testModule)
 			configureSecurity()
 			configureLocalization()
-			configureRouting()
+			configureRouting(ServerConfig())
 		}
 		client.get("/api/teapot").apply {
 			assertEquals(HttpStatusCode.fromValue(418), status)

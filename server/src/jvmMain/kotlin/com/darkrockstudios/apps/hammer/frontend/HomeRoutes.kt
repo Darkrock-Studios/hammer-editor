@@ -1,43 +1,25 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
-import io.ktor.htmx.*
-import io.ktor.http.*
-import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.html.div
-import kotlinx.html.p
-import kotlinx.html.stream.createHTML
 
-fun Route.homeRoutes() {
+fun Route.homeRoutes(config: ServerConfig, whiteListRepository: WhiteListRepository) {
 	route("/") {
 		get {
-			val model = mapOf(
-				"title" to "Hammer",
-				"greeting" to "Hello, World!",
-				"message" to "Welcome to Hammer Server"
-			)
-			call.respond(MustacheContent("index.mustache", call.withMessages(model)))
-		}
+			val model = call.withMessages()
+			val useWhiteList = whiteListRepository.useWhiteList()
+			model["serverMessage"] = config.serverMessage
 
-		hx.get("/clicked") {
-			// This endpoint is intended to be called via HTMX and returns a small HTML fragment
-			val ts = System.currentTimeMillis()
-			val html = createHTML().p {
-				+"You clicked at $ts"
-				div {
-
-				}
+			if (useWhiteList && config.contact.isNullOrBlank().not()) {
+				model["whitelistEnabled"] = useWhiteList
+				call.msg(model, "home_servermessage_whitelist", config.contact)
 			}
-
-			// Optional: trigger a client-side event consumers can listen to via HTMX
-			// Using the standard HX-Trigger header (no extra dependencies required)
-			call.response.headers.append(HxResponseHeaders.Trigger, "{\"clicked\":{\"ts\":$ts}}")
-
-			// Respond with the fragment for HTMX to swap into the page
-			call.respondText(html, ContentType.Text.Html)
+			call.respond(MustacheContent("home.mustache", model))
 		}
 	}
 }

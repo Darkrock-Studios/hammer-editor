@@ -25,35 +25,43 @@ fun ApplicationCall.getLocale(): Locale {
 	}
 }
 
-fun ApplicationCall.t(key: String, vararg args: Any): String {
+fun ApplicationCall.msg(key: String, vararg args: Any): String {
 	val locale = getLocale()
 	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
 	val message = bundle.getString(key)
 	return if (args.isEmpty()) message else MessageFormat.format(message, *args)
 }
 
-fun ApplicationCall.withMessages(data: Map<String, Any> = emptyMap()): Map<String, Any> {
+fun ApplicationCall.msg(data: MutableMap<String, Any>, key: String, vararg args: Any) {
+	val locale = getLocale()
+	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
+	val message = bundle.getString(key)
+	val msgData = data["msg"] as? MutableMap<String, String> ?: mutableMapOf()
+	msgData[key] = if (args.isEmpty()) message else MessageFormat.format(message, *args)
+}
+
+fun ApplicationCall.withMessages(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val locale = getLocale()
 	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
 
-	val messages = bundle.keys.asSequence().associateWith { key ->
-		bundle.getString(key)
+	val messages = mutableMapOf<String, Any>()
+	bundle.keys.asSequence().forEach { key ->
+		messages[key] = bundle.getString(key)
 	}
 
 	val availableLocales = ResUtils.getTranslatedLocales()
 	val localesForTemplate = availableLocales.map { lc ->
 		mapOf(
 			"tag" to lc.toLanguageTag(),
-			// Show each language's name in its own language (autoglottonym)
 			"label" to lc.getDisplayName(lc),
 			"selected" to (lc.language.equals(locale.language, ignoreCase = true) &&
 				(lc.country.isEmpty() || lc.country.equals(locale.country, ignoreCase = true)))
 		)
 	}
 
-	return data + mapOf(
+	return mutableMapOf(
 		"msg" to messages,
 		"locale" to locale.toLanguageTag(),
 		"locales" to localesForTemplate
-	)
+	).apply { putAll(data) }
 }
