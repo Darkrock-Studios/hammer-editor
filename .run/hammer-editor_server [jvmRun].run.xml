@@ -12,7 +12,7 @@
 			<option name="taskNames">
 				<list>
 					<option value="jvmRun"/>
-					<option value="--args=&quot;--dev&quot;"/>
+					<option value="--args=&quot;--dev --config C:\Users\adamw\hammer_data\config.toml&quot;"/>
 				</list>
 			</option>
 			<option name="vmOptions" value=""/>

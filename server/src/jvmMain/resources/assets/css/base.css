@@ -348,6 +348,32 @@ a:focus-visible {
 	color: #78350f;
 }
 
+.whitelist-message {
+	background: rgba(255, 255, 255, 0.7);
+	border: 2px solid rgba(146, 64, 14, 0.3);
+	border-radius: 0.5rem;
+	padding: 1.5rem;
+	margin-top: 1.5rem;
+	box-shadow: var(--shadow-sm);
+	position: relative;
+}
+
+.whitelist-message::before {
+	content: '🔒';
+	position: absolute;
+	top: -12px;
+	left: 1.5rem;
+	background: #fef3c7;
+	padding: 0 0.5rem;
+	font-size: 1.25rem;
+}
+
+.whitelist-message p {
+	margin: 0;
+	color: #92400e;
+	font-weight: 500;
+}
+
 /* Feature Grid - Sticky Notes! */
 .feature-grid {
 	display: grid;
@@ -427,11 +453,57 @@ a:focus-visible {
 }
 
 /* Download Section */
+.download-section {
+	text-align: center;
+}
+
+.download-hero {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin: 3rem 0 3rem 0;
+}
+
+.download-hero-icon {
+	width: 180px;
+	height: 180px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+	border-radius: 50%;
+	padding: 2.5rem;
+	box-shadow: var(--shadow-xl),
+	0 0 0 12px rgba(217, 119, 6, 0.1),
+	0 0 0 24px rgba(217, 119, 6, 0.05);
+	animation: floatAnimation 3s ease-in-out infinite;
+}
+
+@keyframes floatAnimation {
+	0%, 100% {
+		transform: translateY(0px);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
+}
+
+.download-hero-icon img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	filter: brightness(0) invert(1);
+	opacity: 0.95;
+}
+
 .download-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: 2rem;
-	margin: 3rem 0 4rem 0;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 1.5rem;
+	margin: 0;
+	max-width: 1000px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .download-card {
@@ -461,7 +533,7 @@ a:focus-visible {
 }
 
 .download-card:hover .download-icon {
-	transform: scale(1.1);
+	transform: scale(1.15) rotate(5deg);
 	filter: grayscale(0);
 }
 
@@ -472,7 +544,7 @@ a:focus-visible {
 }
 
 .download-icon {
-	font-size: 3rem;
+	font-size: 3.5rem;
 	display: block;
 	transition: all var(--transition-slow);
 	filter: grayscale(0.2);
@@ -508,28 +580,6 @@ a:focus-visible {
 .download-card:hover .download-link:hover {
 	background: var(--accent-light);
 	color: var(--neutral-900);
-}
-
-.download-image {
-	grid-column: span 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 2rem;
-	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
-	border-radius: 0.75rem;
-	border: 2px solid var(--neutral-200);
-}
-
-.download-image img {
-	max-width: 100%;
-	height: auto;
-	filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-	transition: transform var(--transition-slow);
-}
-
-.download-image:hover img {
-	transform: scale(1.05);
 }
 
 /* Footer */
@@ -678,6 +728,16 @@ a:focus-visible {
 	.download-grid {
 		grid-template-columns: 1fr;
 		gap: 1.5rem;
+	}
+
+	.download-hero-icon {
+		width: 140px;
+		height: 140px;
+		padding: 2rem;
+	}
+
+	.download-hero {
+		margin: 2rem 0;
 	}
 
 	.header-container {
