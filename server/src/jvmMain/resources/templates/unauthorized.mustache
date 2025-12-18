@@ -1,0 +1,22 @@
+{{> header}}
+
+<main class="error-page">
+	<div class="error-container">
+		<div class="error-card">
+			<div class="error-icon">🔒</div>
+			<h1 class="error-title">{{msg.error_unauthorized_title}}</h1>
+			<p class="error-message">{{msg.error_unauthorized_message}}</p>
+
+			<div class="error-actions">
+				<a href="/" class="error-button primary">{{msg.error_button_home}}</a>
+				<a href="/login" class="error-button secondary">{{msg.error_button_signin}}</a>
+			</div>
+
+			<div class="error-note">
+				<p>{{msg.error_unauthorized_note}}</p>
+			</div>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

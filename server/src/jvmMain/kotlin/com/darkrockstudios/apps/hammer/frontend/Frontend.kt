@@ -4,10 +4,14 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.http.content.*
+import io.ktor.server.mustache.*
+import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
@@ -36,6 +40,18 @@ fun Application.configureFrontEnd() {
 			cookie.path = "/"
 			cookie.maxAgeInSeconds = 7.days.inWholeSeconds
 			cookie.extensions["SameSite"] = "lax"
+		}
+	}
+
+	install(StatusPages) {
+		status(HttpStatusCode.NotFound) { call, status ->
+			call.respond(MustacheContent("notfound.mustache", call.withMessages()))
+		}
+		status(HttpStatusCode.Unauthorized) { call, status ->
+			call.respond(MustacheContent("unauthorized.mustache", call.withMessages()))
+		}
+		exception<Throwable> { call, cause ->
+			call.respond(MustacheContent("servererror.mustache", call.withMessages()))
 		}
 	}
 }

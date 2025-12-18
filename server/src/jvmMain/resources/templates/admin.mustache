@@ -1,56 +1,64 @@
 {{> header}}
-<h1>Admin</h1>
-<form action="/logout" method="get">
-	<button type="submit">Log out</button>
-</form>
-<p>{{msg.language}}</p>
-<p>{{msg.test.test}}</p>
-<p>{{message}}</p>
-<p>{{isAdmin}}</p>
 
-<section>
-	<h2>Server Message</h2>
-	<p><em>This message is read from the server configuration file and cannot be edited here.</em></p>
-	<pre
-		style="white-space: pre-wrap; padding: 0.5rem; background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px;">{{serverMessage}}</pre>
-</section>
+<main class="admin-page">
+	<div class="admin-container">
+		<!-- Admin Header -->
+		<div class="admin-header">
+			<div class="admin-header-content">
+				<h1>{{msg.admin_dashboard_title}}</h1>
+				<p class="admin-subtitle">{{msg.admin_dashboard_subtitle}}</p>
+			</div>
+			<form action="/logout" method="get" class="logout-form">
+				<button type="submit" class="logout-button">{{msg.admin_logout_button}}</button>
+			</form>
+		</div>
 
-<!--
-<section>
-    <h2>Whitelist</h2>
-    <form action="/admin/whitelist/settings" method="post" style="margin-bottom: 1rem;">
-        <div style="margin-bottom: 0.5rem;">
-            <input id="enabled" name="enabled" type="checkbox" {{#whitelistEnabled}}checked{{/whitelistEnabled}} />
-            <label for="enabled">Enable whitelist</label>
-        </div>
-        <div style="margin-bottom: 0.5rem;">
-            <label for="contact">Contact email</label>
-            <input id="contact" name="contact" type="email" placeholder="email@example.com" value="{{contactEmail}}" />
-        </div>
-        <button type="submit">Save changes</button>
-    </form>
-</section>
--->
+		<!-- Server Message Section -->
+		<section class="admin-section">
+			<div class="section-header">
+				<h2>{{msg.admin_servermessage_title}}</h2>
+				<span class="section-badge">{{msg.admin_badge_readonly}}</span>
+			</div>
+			<p class="section-description">{{msg.admin_servermessage_description}}</p>
+			<div class="message-display">
+				<pre>{{serverMessage}}</pre>
+			</div>
+		</section>
 
-<section>
-	<h2>Whitelist Users</h2>
-	<form action="/admin/whitelist/add" method="post" style="margin-bottom: 1rem;"
-		  hx-post="/admin/whitelist/add"
-		  hx-target="#whitelist"
-		  hx-swap="innerHTML"
-		  hx-on::after-request="this.reset()">
-		<label for="email">Email</label>
-		<input id="email" name="email" type="email" placeholder="email@example.com" required/>
-		<button type="submit">Add user</button>
-	</form>
+		<!-- Whitelist Management Section -->
+		<section class="admin-section">
+			<div class="section-header">
+				<h2>{{msg.admin_whitelist_management_title}}</h2>
+				<span class="section-badge accent">{{msg.admin_badge_active}}</span>
+			</div>
+			<p class="section-description">{{msg.admin_whitelist_description}}</p>
 
-	<div id="whitelist"
-		 hx-get="/admin/whitelist/user-fragment"
-		 hx-trigger="load, whitelist-updated from:body"
-		 hx-swap="innerHTML">
-		<!-- List of whitelisted users -->
+			<form action="/admin/whitelist/add" method="post" class="whitelist-form"
+				  hx-post="/admin/whitelist/add"
+				  hx-target="#whitelist"
+				  hx-swap="innerHTML"
+				  hx-on::after-request="this.reset()">
+				<div class="form-group">
+					<label for="email">{{msg.admin_whitelist_email_label}}</label>
+					<div class="form-input-group">
+						<input id="email" name="email" type="email"
+							   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
+						<button type="submit" class="add-button">{{msg.admin_whitelist_add_button}}</button>
+					</div>
+				</div>
+			</form>
+
+			<div class="whitelist-container">
+				<div id="whitelist"
+					 hx-get="/admin/whitelist/user-fragment"
+					 hx-trigger="load, whitelist-updated from:body"
+					 hx-swap="innerHTML">
+					<!-- List of whitelisted users loaded here -->
+				</div>
+			</div>
+		</section>
 	</div>
-</section>
+</main>
 
 <div id="result"></div>
 {{> footer}}

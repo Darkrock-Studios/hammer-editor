@@ -208,6 +208,7 @@ ktor_server_requestvalidation = { group = "io.ktor", name = "ktor-server-request
 ktor_server_jetty_jakarta = { group = "io.ktor", name = "ktor-server-jetty-jakarta", version.ref = "ktor" }
 ktor_server_mustache = { group = "io.ktor", name = "ktor-server-mustache", version.ref = "ktor" }
 ktor_server_html_builder = { group = "io.ktor", name = "ktor-server-html-builder", version.ref = "ktor" }
+ktor_server_status_pages = { group = "io.ktor", name = "ktor-server-status-pages", version.ref = "ktor" }
 
 # HTMX for Ktor
 ktor_htmx = { group = "io.ktor", name = "ktor-htmx", version.ref = "ktor" }

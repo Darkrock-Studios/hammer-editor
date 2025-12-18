@@ -77,6 +77,8 @@ kotlin {
 				implementation(libs.ktor.server.mustache)
 				implementation(libs.ktor.server.html.builder)
 
+				implementation(libs.ktor.server.status.pages)
+
 				implementation(libs.ktor.htmx)
 				implementation(libs.ktor.htmx.html)
 				implementation(libs.ktor.server.htmx)

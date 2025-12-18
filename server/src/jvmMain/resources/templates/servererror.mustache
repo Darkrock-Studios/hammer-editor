@@ -1,0 +1,23 @@
+{{> header}}
+
+<main class="error-page">
+	<div class="error-container">
+		<div class="error-card servererror">
+			<div class="error-icon">⚙️</div>
+			<h1 class="error-title">{{msg.error_servererror_title}}</h1>
+			<div class="error-code">500</div>
+			<p class="error-message">{{msg.error_servererror_message}}</p>
+
+			<div class="error-actions">
+				<a href="/" class="error-button primary">{{msg.error_button_home}}</a>
+				<a href="javascript:location.reload()" class="error-button secondary">{{msg.error_button_retry}}</a>
+			</div>
+
+			<div class="error-note">
+				<p>{{msg.error_servererror_note}}</p>
+			</div>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

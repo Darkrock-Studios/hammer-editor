@@ -1,20 +1,22 @@
 {{#whitelist}}
-	<ul>
-		{{#.}}
-			<li>
-				{{.}}
-				<form action="/admin/whitelist/remove" method="post" style="display:inline"
+	{{#.}}
+		<div class="whitelist-user">
+			<span class="whitelist-user-email">{{.}}</span>
+			<div class="whitelist-user-actions">
+				<form action="/admin/whitelist/remove" method="post"
 					  hx-post="/admin/whitelist/remove"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
 					  hx-confirm="Remove {{.}} from the whitelist?">
 					<input type="hidden" name="email" value="{{.}}"/>
-					<button type="submit">Remove</button>
+					<button type="submit" class="remove-button">{{msg.admin_whitelist_remove_button}}</button>
 				</form>
-			</li>
-		{{/.}}
-	</ul>
+			</div>
+		</div>
+	{{/.}}
 {{/whitelist}}
 {{^whitelist}}
-	<p>No whitelist entries.</p>
+	<div class="whitelist-empty">
+		<p>{{msg.admin_whitelist_empty}}</p>
+	</div>
 {{/whitelist}}

@@ -13,6 +13,7 @@ import io.ktor.server.sessions.*
 fun Route.authRoutes(accountsRepository: AccountsRepository) {
 	login(accountsRepository)
 	logout()
+	unauthorized()
 }
 
 private fun Route.login(accountsRepository: AccountsRepository) {
@@ -62,5 +63,13 @@ private fun Route.logout() {
 	get("/logout") {
 		call.sessions.clear<UserSession>()
 		call.respondRedirect("/")
+	}
+}
+
+private fun Route.unauthorized() {
+	route("/unauthorized") {
+		get {
+			call.respond(MustacheContent("unauthorized.mustache", call.withMessages()))
+		}
 	}
 }
