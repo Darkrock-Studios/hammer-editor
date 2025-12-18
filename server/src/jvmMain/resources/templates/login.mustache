@@ -1,23 +1,36 @@
 {{> header}}
-<h1>Login</h1>
 
-<form action="/login" method="post">
-	<div class="field">
-		<label for="email">Email</label>
-		<input type="email" id="email" name="email" required autofocus>
+<main class="login-page">
+	<div class="login-container">
+		<div class="login-card">
+			<div class="login-header">
+				<h1>Admin Login</h1>
+				<p>Enter your credentials to access the admin panel</p>
+			</div>
+
+			<form action="/login" method="post" class="login-form">
+				<div class="form-field">
+					<label for="email">Email</label>
+					<input type="email" id="email" name="email" required autofocus placeholder="admin@example.com">
+				</div>
+
+				<div class="form-field">
+					<label for="password">Password</label>
+					<input type="password" id="password" name="password" required placeholder="••••••••">
+				</div>
+
+				{{#message}}
+					<div class="login-message">
+						<p>{{message}}</p>
+					</div>
+				{{/message}}
+
+				<div class="form-actions">
+					<button type="submit" class="login-button">Sign In</button>
+				</div>
+			</form>
+		</div>
 	</div>
+</main>
 
-	<div class="field">
-		<label for="password">Password</label>
-		<input type="password" id="password" name="password" required>
-	</div>
-
-	<div class="actions">
-		<button type="submit">Sign in</button>
-	</div>
-</form>
-
-{{#message}}
-	<p class="message">{{message}}</p>
-{{/message}}
 {{> footer}}
