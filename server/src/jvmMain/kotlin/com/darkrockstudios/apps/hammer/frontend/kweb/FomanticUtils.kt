@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.frontend
+package com.darkrockstudios.apps.hammer.frontend.kweb
 
 import kweb.classes
 import kweb.plugins.fomanticUI.FomanticUIClasses

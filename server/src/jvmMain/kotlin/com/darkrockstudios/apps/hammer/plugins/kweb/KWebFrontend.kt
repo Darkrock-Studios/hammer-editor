@@ -4,10 +4,10 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
-import com.darkrockstudios.apps.hammer.frontend.adminLoginPage
-import com.darkrockstudios.apps.hammer.frontend.adminPanelPage
-import com.darkrockstudios.apps.hammer.frontend.homePage
-import com.darkrockstudios.apps.hammer.frontend.notFoundPage
+import com.darkrockstudios.apps.hammer.frontend.kweb.adminLoginPage
+import com.darkrockstudios.apps.hammer.frontend.kweb.adminPanelPage
+import com.darkrockstudios.apps.hammer.frontend.kweb.homePage
+import com.darkrockstudios.apps.hammer.frontend.kweb.notFoundPage
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import io.ktor.http.*
 import io.ktor.server.application.*

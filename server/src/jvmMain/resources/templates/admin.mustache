@@ -8,5 +8,31 @@
 <p>{{message}}</p>
 <p>{{isAdmin}}</p>
 
+<section>
+	<h2>Whitelist Users</h2>
+	<form action="/admin/whitelist/add" method="post" style="margin-bottom: 1rem;">
+		<label for="email">Email</label>
+		<input id="email" name="email" type="email" placeholder="email@example.com" required/>
+		<button type="submit">Add user</button>
+	</form>
+	{{#whitelist}}
+		<ul>
+			{{#.}}
+				<li>
+					{{.}}
+					<form action="/admin/whitelist/remove" method="post" style="display:inline"
+						  onsubmit="return confirm('Remove this user from the whitelist?');">
+						<input type="hidden" name="email" value="{{.}}"/>
+						<button type="submit">Remove</button>
+					</form>
+				</li>
+			{{/.}}
+		</ul>
+	{{/whitelist}}
+	{{^whitelist}}
+		<p>No whitelist entries.</p>
+	{{/whitelist}}
+</section>
+
 <div id="result"></div>
 {{> footer}}

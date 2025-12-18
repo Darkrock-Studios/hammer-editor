@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.frontend
+package com.darkrockstudios.apps.hammer.frontend.kweb
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.frontend
+package com.darkrockstudios.apps.hammer.frontend.kweb
 
 import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
