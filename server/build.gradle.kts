@@ -72,6 +72,14 @@ kotlin {
 				implementation(libs.kweb.core)
 				implementation(libs.ktor.server.websockets)
 
+
+				implementation(libs.ktor.server.mustache)
+				implementation(libs.ktor.server.html.builder)
+
+				implementation(libs.ktor.htmx)
+				implementation(libs.ktor.htmx.html)
+				implementation(libs.ktor.server.htmx)
+
 				implementation(libs.tomlkt)
 				implementation(libs.resources)
 

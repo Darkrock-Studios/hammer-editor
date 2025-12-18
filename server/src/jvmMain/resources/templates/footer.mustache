@@ -1,0 +1,15 @@
+<footer class="site-footer">
+	<form action="/locale" method="post" class="language-selector">
+		<label for="lang-select">Language:</label>
+		<select id="lang-select" name="locale" onchange="this.form.submit()">
+			{{#locales}}
+				<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+			{{/locales}}
+		</select>
+		<noscript>
+			<button type="submit">Change</button>
+		</noscript>
+	</form>
+</footer>
+</body>
+</html>

@@ -206,6 +206,13 @@ ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirec
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
 ktor_server_requestvalidation = { group = "io.ktor", name = "ktor-server-request-validation", version.ref = "ktor" }
 ktor_server_jetty_jakarta = { group = "io.ktor", name = "ktor-server-jetty-jakarta", version.ref = "ktor" }
+ktor_server_mustache = { group = "io.ktor", name = "ktor-server-mustache", version.ref = "ktor" }
+ktor_server_html_builder = { group = "io.ktor", name = "ktor-server-html-builder", version.ref = "ktor" }
+
+# HTMX for Ktor
+ktor_htmx = { group = "io.ktor", name = "ktor-htmx", version.ref = "ktor" }
+ktor_htmx_html = { group = "io.ktor", name = "ktor-htmx-html", version.ref = "ktor" }
+ktor_server_htmx = { group = "io.ktor", name = "ktor-server-htmx", version.ref = "ktor" }
 
 ktor_server_i18n = { group = "com.github.aymanizz", name = "ktor-i18n", version.ref = "ktor_i18n" }
 

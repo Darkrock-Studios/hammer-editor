@@ -1,0 +1,14 @@
+{{> header}}
+<h1>{{greeting}}</h1>
+<p>{{msg.language}}</p>
+<p>{{msg.test.test}}</p>
+<p>{{message}}</p>
+<p>
+	<a href="/login">Login</a>
+</p>
+
+<button hx-get="/clicked" hx-target="#result" hx-swap="innerHTML">
+	Click Me
+</button>
+<div id="result"></div>
+{{> footer}}
