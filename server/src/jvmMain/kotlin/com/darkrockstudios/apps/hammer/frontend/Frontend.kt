@@ -39,8 +39,12 @@ fun Application.configureFrontEnd() {
 fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository, whitelistRepo: WhiteListRepository) {
 	session<UserSession>("auth-session") {
 		validate { session ->
-			// Check if it's valid, eventually...
-			session
+			val account = accountRepo.getAccount(session.userId)
+			if (whitelistRepo.useWhiteList()) {
+				whitelistRepo.isOnWhiteList(account.email)
+			} else {
+				true
+			}
 		}
 		challenge {
 			call.respondRedirect("/login")

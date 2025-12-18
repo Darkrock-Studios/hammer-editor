@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserSession(
-	val userId: String,
+	val userId: Long,
 	val username: String,
 	val isAdmin: Boolean,
 	val locale: String = "en"

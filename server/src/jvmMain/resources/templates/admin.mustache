@@ -10,28 +10,22 @@
 
 <section>
 	<h2>Whitelist Users</h2>
-	<form action="/admin/whitelist/add" method="post" style="margin-bottom: 1rem;">
+	<form action="/admin/whitelist/add" method="post" style="margin-bottom: 1rem;"
+		  hx-post="/admin/whitelist/add"
+		  hx-target="#whitelist"
+		  hx-swap="innerHTML"
+		  hx-on::after-request="this.reset()">
 		<label for="email">Email</label>
 		<input id="email" name="email" type="email" placeholder="email@example.com" required/>
 		<button type="submit">Add user</button>
 	</form>
-	{{#whitelist}}
-		<ul>
-			{{#.}}
-				<li>
-					{{.}}
-					<form action="/admin/whitelist/remove" method="post" style="display:inline"
-						  onsubmit="return confirm('Remove this user from the whitelist?');">
-						<input type="hidden" name="email" value="{{.}}"/>
-						<button type="submit">Remove</button>
-					</form>
-				</li>
-			{{/.}}
-		</ul>
-	{{/whitelist}}
-	{{^whitelist}}
-		<p>No whitelist entries.</p>
-	{{/whitelist}}
+
+	<div id="whitelist"
+		 hx-get="/admin/whitelist/user-fragment"
+		 hx-trigger="load, whitelist-updated from:body"
+		 hx-swap="innerHTML">
+		<!-- List of whitelisted users -->
+	</div>
 </section>
 
 <div id="result"></div>

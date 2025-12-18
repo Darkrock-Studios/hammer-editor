@@ -1,0 +1,20 @@
+{{#whitelist}}
+	<ul>
+		{{#.}}
+			<li>
+				{{.}}
+				<form action="/admin/whitelist/remove" method="post" style="display:inline"
+					  hx-post="/admin/whitelist/remove"
+					  hx-target="#whitelist"
+					  hx-swap="innerHTML"
+					  hx-confirm="Remove {{.}} from the whitelist?">
+					<input type="hidden" name="email" value="{{.}}"/>
+					<button type="submit">Remove</button>
+				</form>
+			</li>
+		{{/.}}
+	</ul>
+{{/whitelist}}
+{{^whitelist}}
+	<p>No whitelist entries.</p>
+{{/whitelist}}

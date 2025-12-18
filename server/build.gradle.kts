@@ -43,6 +43,7 @@ kotlin {
 			languageSettings {
 				optIn("kotlin.io.encoding.ExperimentalEncodingApi")
 				optIn("kotlin.uuid.ExperimentalUuidApi")
+				optIn("io.ktor.utils.io.ExperimentalKtorApi")
 			}
 		}
 

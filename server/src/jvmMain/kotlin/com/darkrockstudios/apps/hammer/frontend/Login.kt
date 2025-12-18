@@ -36,7 +36,7 @@ private fun Route.login(accountsRepository: AccountsRepository) {
 				val isAdmin = accountsRepository.isAdmin(token.userId)
 				call.sessions.set(
 					UserSession(
-						userId = token.userId.toString(),
+						userId = token.userId,
 						username = email,
 						isAdmin = isAdmin
 					)
