@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
@@ -13,6 +14,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.http.content.*
 import io.ktor.server.mustache.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
@@ -44,15 +46,32 @@ fun Application.configureFrontEnd() {
 		}
 	}
 
+	fun ApplicationRequest.isApiCall(): Boolean = path().startsWith("/$API_ROUTE_PREFIX/")
+
 	install(StatusPages) {
 		status(HttpStatusCode.NotFound) { call, status ->
-			call.respond(MustacheContent("notfound.mustache", call.withDefaults()))
+			if (call.request.isApiCall()) {
+				call.respond(HttpStatusCode.NotFound)
+			} else {
+				call.respond(HttpStatusCode.NotFound, MustacheContent("notfound.mustache", call.withDefaults()))
+			}
 		}
 		status(HttpStatusCode.Unauthorized) { call, status ->
-			call.respond(MustacheContent("unauthorized.mustache", call.withDefaults()))
+			if (call.request.isApiCall()) {
+				call.respond(HttpStatusCode.Unauthorized)
+			} else {
+				call.respond(HttpStatusCode.Unauthorized, MustacheContent("unauthorized.mustache", call.withDefaults()))
+			}
 		}
 		exception<Throwable> { call, cause ->
-			call.respond(MustacheContent("servererror.mustache", call.withDefaults()))
+			if (call.request.isApiCall()) {
+				call.respond(HttpStatusCode.InternalServerError)
+			} else {
+				call.respond(
+					HttpStatusCode.InternalServerError,
+					MustacheContent("servererror.mustache", call.withDefaults())
+				)
+			}
 		}
 	}
 }
