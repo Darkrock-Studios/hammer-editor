@@ -33,6 +33,83 @@
 		</div>
 	</section>
 
+	<!-- Writing Features Divider -->
+	<div class="section-divider">
+		<span class="section-label">{{msg.home_section_writing}}</span>
+		<div class="section-line"></div>
+	</div>
+
+	<!-- Detailed Features Section -->
+	<section class="detailed-features">
+		<div class="detailed-features-container">
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-file-lines"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_scenes_title}}</h3>
+					<p>{{msg.home_detail_scenes_body}}</p>
+				</div>
+			</div>
+
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-arrows-up-down"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_organize_title}}</h3>
+					<p>{{msg.home_detail_organize_body}}</p>
+				</div>
+			</div>
+
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-layer-group"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_drafts_title}}</h3>
+					<p>{{msg.home_detail_drafts_body}}</p>
+				</div>
+			</div>
+
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-timeline"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_timeline_title}}</h3>
+					<p>{{msg.home_detail_timeline_body}}</p>
+				</div>
+			</div>
+
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-book"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_encyclopedia_title}}</h3>
+					<p>{{msg.home_detail_encyclopedia_body}}</p>
+				</div>
+			</div>
+
+			<div class="feature-detail">
+				<div class="feature-detail-icon">
+					<i class="fa-solid fa-note-sticky"></i>
+				</div>
+				<div class="feature-detail-content">
+					<h3>{{msg.home_detail_notes_title}}</h3>
+					<p>{{msg.home_detail_notes_body}}</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Technical Features Divider -->
+	<div class="section-divider">
+		<span class="section-label">{{msg.home_section_technical}}</span>
+		<div class="section-line"></div>
+	</div>
+
 	<!-- Features Grid -->
 	<section>
 		<div class="feature-grid">
@@ -67,16 +144,12 @@
 			<h1>{{msg.home_download_header}}</h1>
 		</div>
 
-		<div class="download-hero">
-			<div class="download-hero-icon">
-				<img src="/assets/images/download.png" alt="Download Hammer">
-			</div>
-		</div>
-
 		<div class="download-grid">
+			<!-- Desktop Platforms -->
 			<div class="download-card">
 				<span class="download-icon">🪟</span>
 				<h3>{{msg.home_download_windows}}</h3>
+				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
 				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
 				   class="download-link">{{msg.home_download_link}}</a>
 			</div>
@@ -84,6 +157,7 @@
 			<div class="download-card">
 				<span class="download-icon">🐧</span>
 				<h3>{{msg.home_download_linux}}</h3>
+				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
 				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer_amd64.deb"
 				   class="download-link">{{msg.home_download_link}}</a>
 			</div>
@@ -91,15 +165,37 @@
 			<div class="download-card">
 				<span class="download-icon">🍎</span>
 				<h3>{{msg.home_download_macos}}</h3>
+				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
 				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
 				   class="download-link">{{msg.home_download_link}}</a>
 			</div>
 
+			<!-- Mobile Platforms -->
 			<div class="download-card">
 				<span class="download-icon">🤖</span>
 				<h3>{{msg.home_download_android}}</h3>
-				<a href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
-				   class="download-link">{{msg.home_download_link}}</a>
+				<div class="download-buttons">
+					<div class="download-option">
+						<span class="download-source"><i class="fa-brands fa-google-play"></i> Google Play</span>
+						<a href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+					<div class="download-option">
+						<span class="download-source">
+							<img src="/assets/images/F-Droid-Logo.svg" alt="F-Droid" class="store-logo">
+							F-Droid
+						</span>
+						<a href="https://f-droid.org/en/packages/com.darkrockstudios.apps.hammer.android/"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+				</div>
+			</div>
+
+			<div class="download-card">
+				<span class="download-icon">🍎</span>
+				<h3>iOS</h3>
+				<span class="download-source"><i class="fa-brands fa-app-store-ios"></i> App Store</span>
+				<button class="download-link disabled" disabled>Coming Soon</button>
 			</div>
 		</div>
 	</section>

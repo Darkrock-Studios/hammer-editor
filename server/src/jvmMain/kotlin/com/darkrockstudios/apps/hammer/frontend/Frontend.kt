@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
@@ -45,13 +46,13 @@ fun Application.configureFrontEnd() {
 
 	install(StatusPages) {
 		status(HttpStatusCode.NotFound) { call, status ->
-			call.respond(MustacheContent("notfound.mustache", call.withMessages()))
+			call.respond(MustacheContent("notfound.mustache", call.withDefaults()))
 		}
 		status(HttpStatusCode.Unauthorized) { call, status ->
-			call.respond(MustacheContent("unauthorized.mustache", call.withMessages()))
+			call.respond(MustacheContent("unauthorized.mustache", call.withDefaults()))
 		}
 		exception<Throwable> { call, cause ->
-			call.respond(MustacheContent("servererror.mustache", call.withMessages()))
+			call.respond(MustacheContent("servererror.mustache", call.withDefaults()))
 		}
 	}
 }
@@ -73,3 +74,11 @@ fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository,
 		}
 	}
 }
+
+fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
+	this["version"] = BuildMetadata.APP_VERSION
+	return this
+}
+
+fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> =
+	withMessages(data).addDefaults()

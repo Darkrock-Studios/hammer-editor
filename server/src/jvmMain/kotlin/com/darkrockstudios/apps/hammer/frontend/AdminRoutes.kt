@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
-import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
@@ -32,7 +31,7 @@ private fun Route.admin(config: ServerConfig, whiteListRepository: WhiteListRepo
 			"contactEmail" to (config.contact ?: ""),
 			"serverMessage" to config.serverMessage
 		)
-		call.respond(MustacheContent("admin.mustache", call.withMessages(model)))
+		call.respond(MustacheContent("admin.mustache", call.withDefaults(model)))
 	}
 }
 
@@ -87,9 +86,8 @@ private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
 
 private fun Route.whitelistUserFragment(whiteListRepository: WhiteListRepository) {
 	hx.get("/user-fragment") {
-		val model = mapOf(
-			"whitelist" to whiteListRepository.getWhiteList()
-		)
+		val model = call.withDefaults()
+		model["whitelist"] = whiteListRepository.getWhiteList()
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
 	}
 }

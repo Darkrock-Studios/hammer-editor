@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
-import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
@@ -23,7 +22,7 @@ private fun Route.login(accountsRepository: AccountsRepository) {
 			if (session != null) {
 				call.respondRedirect("/admin")
 			} else {
-				call.respond(MustacheContent("login.mustache", call.withMessages()))
+				call.respond(MustacheContent("login.mustache", call.withDefaults()))
 			}
 		}
 
@@ -53,7 +52,7 @@ private fun Route.login(accountsRepository: AccountsRepository) {
 				val model = mapOf(
 					"message" to message
 				)
-				call.respond(MustacheContent("login.mustache", call.withMessages(model)))
+				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
 	}
@@ -69,7 +68,7 @@ private fun Route.logout() {
 private fun Route.unauthorized() {
 	route("/unauthorized") {
 		get {
-			call.respond(MustacheContent("unauthorized.mustache", call.withMessages()))
+			call.respond(MustacheContent("unauthorized.mustache", call.withDefaults()))
 		}
 	}
 }

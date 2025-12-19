@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
-import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -11,7 +10,7 @@ import io.ktor.server.routing.*
 fun Route.homeRoutes(config: ServerConfig, whiteListRepository: WhiteListRepository) {
 	route("/") {
 		get {
-			val model = call.withMessages()
+			val model = call.withDefaults()
 			val useWhiteList = whiteListRepository.useWhiteList()
 			model["serverMessage"] = config.serverMessage
 
