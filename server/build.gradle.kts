@@ -70,10 +70,7 @@ kotlin {
 
 				implementation(libs.sqldelight.driver)
 
-				implementation(libs.kweb.core)
 				implementation(libs.ktor.server.websockets)
-
-
 				implementation(libs.ktor.server.mustache)
 				implementation(libs.ktor.server.html.builder)
 
