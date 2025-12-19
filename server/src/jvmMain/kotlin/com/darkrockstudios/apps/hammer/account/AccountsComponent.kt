@@ -23,7 +23,7 @@ class AccountsComponent(
 		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email))
 			return ServerResult.failure(
 				"not on whitelist",
-				Msg.r("api.accounts.create.error.notonwhitelist")
+				Msg.r("api_accounts_create_error_notonwhitelist")
 			)
 
 		val result = accountsRepository.createAccount(email, installId, password)
@@ -74,5 +74,5 @@ class AccountsComponent(
 
 fun <T> WhiteListRejected() = SResult.failure<T>(
 	error = "User not on whitelist",
-	displayMessage = Msg.r("api.whitelist.rejected")
+	displayMessage = Msg.r("api_whitelist_rejected")
 )

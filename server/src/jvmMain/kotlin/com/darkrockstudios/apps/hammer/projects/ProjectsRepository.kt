@@ -27,7 +27,7 @@ class ProjectsRepository(
 		return if (syncSessionManager.hasActiveSyncSession(userId)) {
 			SResult.failure(
 				"User $userId already has a synchronization session",
-				Msg.r("api.project.sync.begin.error.session")
+				Msg.r("api_project_sync_begin_error_session", userId)
 			)
 		} else {
 			val newSyncId = syncSessionManager.createNewSession(userId) { user, sync ->
@@ -56,13 +56,13 @@ class ProjectsRepository(
 		return if (session == null) {
 			SResult.failure(
 				"User $userId does not have a synchronization session",
-				Msg.r("api.project.sync.end.noid", userId)
+				Msg.r("api_project_sync_end_noid", userId)
 			)
 		} else {
 			if (session.syncId != syncId) {
 				SResult.failure(
 					"Invalid sync id",
-					Msg.r("api.project.sync.end.invalidid")
+					Msg.r("api_project_sync_end_invalidid")
 				)
 			} else {
 				syncSessionManager.terminateSession(userId)

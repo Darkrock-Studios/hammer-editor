@@ -64,7 +64,7 @@ private fun Route.beginProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
 				)
 			)
 		} else if (projectIdRaw == null) {
@@ -72,7 +72,7 @@ private fun Route.beginProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
 				)
 			)
 		} else {
@@ -92,7 +92,7 @@ private fun Route.beginProjectSync() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Failed to begin sync",
-						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+						displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 					)
 				)
 			}
@@ -122,7 +122,7 @@ private fun Route.endProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
 				)
 			)
 		} else if (projectIdRaw == null) {
@@ -130,7 +130,7 @@ private fun Route.endProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
 				)
 			)
 		} else if (syncId == null) {
@@ -138,7 +138,7 @@ private fun Route.endProjectSync() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_syncidmissing"))
 				)
 			)
 		} else {
@@ -159,7 +159,7 @@ private fun Route.endProjectSync() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Failed to begin sync",
-						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+						displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 					)
 				)
 			}
@@ -187,7 +187,7 @@ private fun Route.uploadEntity() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Header",
-					displayMessage = call.t(R("api.project.error.entitytypemissing"))
+					displayMessage = call.t(R("api_project_error_entitytypemissing"))
 				)
 			)
 		} else {
@@ -204,7 +204,7 @@ private fun Route.uploadEntity() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Missing Parameter",
-						displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+						displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
 					)
 				)
 			} else if (projectIdRaw == null) {
@@ -212,7 +212,7 @@ private fun Route.uploadEntity() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Missing Parameter",
-						displayMessage = call.t(R("api.project.sync.error.projectidmissing"))
+						displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
 					)
 				)
 			} else if (entityId == null) {
@@ -220,7 +220,7 @@ private fun Route.uploadEntity() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Missing Parameter",
-						displayMessage = call.t(R("api.project.error.entityidmissing"))
+						displayMessage = call.t(R("api_project_error_entityidmissing"))
 					)
 				)
 			} else if (syncId.isNullOrBlank()) {
@@ -228,7 +228,7 @@ private fun Route.uploadEntity() {
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
 						error = "Missing Parameter",
-						displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+						displayMessage = call.t(R("api_project_sync_error_syncidmissing"))
 					)
 				)
 			} else {
@@ -288,7 +288,7 @@ private fun Route.uploadEntity() {
 									error = e.message ?: "Entity Type Conflict",
 									displayMessage = result.displayMessageText(
 										call,
-										R("api.error.unknown")
+										R("api_error_unknown")
 									)
 								)
 							)
@@ -302,7 +302,7 @@ private fun Route.uploadEntity() {
 									error = "Save Error",
 									displayMessage = result.displayMessageText(
 										call,
-										R("api.error.unknown")
+										R("api_error_unknown")
 									),
 								)
 							)
@@ -330,7 +330,7 @@ private fun Route.downloadEntity(log: Logger) {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
 				)
 			)
 		} else if (projectIdRaw == null) {
@@ -338,7 +338,7 @@ private fun Route.downloadEntity(log: Logger) {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
 				)
 			)
 		} else if (entityId == null) {
@@ -346,7 +346,7 @@ private fun Route.downloadEntity(log: Logger) {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.error.entityidmissing"))
+					displayMessage = call.t(R("api_project_error_entityidmissing"))
 				)
 			)
 		} else if (syncId == null) {
@@ -354,7 +354,7 @@ private fun Route.downloadEntity(log: Logger) {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_syncidmissing"))
 				)
 			)
 		} else {
@@ -388,7 +388,7 @@ private fun Route.downloadEntity(log: Logger) {
 								error = "Download Error",
 								displayMessage = result.displayMessageText(
 									call,
-									R("api.error.unknown")
+									R("api_error_unknown")
 								)
 							)
 						)
@@ -399,7 +399,7 @@ private fun Route.downloadEntity(log: Logger) {
 							status = HttpStatusCode.NotFound,
 							HttpResponseError(
 								error = "Download Error",
-								result.displayMessageText(call, R("api.error.unknown"))
+								result.displayMessageText(call, R("api_error_unknown"))
 							)
 						)
 					}
@@ -410,7 +410,7 @@ private fun Route.downloadEntity(log: Logger) {
 							status = HttpStatusCode.InternalServerError,
 							HttpResponseError(
 								error = "Download Error",
-								result.displayMessageText(call, R("api.error.unknown"))
+								result.displayMessageText(call, R("api_error_unknown"))
 							)
 						)
 					}
@@ -435,7 +435,7 @@ private fun Route.deleteEntity() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectnamemissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
 				)
 			)
 		} else if (projectIdRaw == null) {
@@ -443,7 +443,7 @@ private fun Route.deleteEntity() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.projectidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
 				)
 			)
 		} else if (entityId == null) {
@@ -451,7 +451,7 @@ private fun Route.deleteEntity() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Entity Id",
-					displayMessage = call.t(R("api.project.error.entityidmissing"))
+					displayMessage = call.t(R("api_project_error_entityidmissing"))
 				)
 			)
 		} else if (syncId == null) {
@@ -459,7 +459,7 @@ private fun Route.deleteEntity() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.project.sync.error.syncidmissing"))
+					displayMessage = call.t(R("api_project_sync_error_syncidmissing"))
 				)
 			)
 		} else {
@@ -478,7 +478,7 @@ private fun Route.deleteEntity() {
 						status = HttpStatusCode.InternalServerError,
 						HttpResponseError(
 							error = "Failed to delete Entity",
-							result.displayMessageText(call, R("api.error.unknown"))
+							result.displayMessageText(call, R("api_error_unknown"))
 						)
 					)
 				}

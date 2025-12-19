@@ -41,7 +41,7 @@ private fun Route.createAccount() {
 		} else {
 			val response = HttpResponseError(
 				error = "Failed to create account",
-				displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+				displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 			)
 			call.respond(status = HttpStatusCode.Conflict, response)
 		}
@@ -64,7 +64,7 @@ private fun Route.login() {
 		} else {
 			val response = HttpResponseError(
 				error = "Failed to authenticate",
-				displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+				displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 			)
 			call.respond(status = HttpStatusCode.Unauthorized, response)
 		}
@@ -91,7 +91,7 @@ private fun Route.refreshToken() {
 				status = HttpStatusCode.Unauthorized,
 				HttpResponseError(
 					error = "Unauthorized",
-					displayMessage = call.t(R("api.accounts.tokenrefresh.error"))
+					displayMessage = call.t(R("api_accounts_tokenrefresh_error"))
 				)
 			)
 		}
@@ -101,6 +101,6 @@ private fun Route.refreshToken() {
 private fun Route.testAuth() {
 	get("/test_auth/{userId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		call.respondText(call.t(R("api.accounts.testauth.error"), principal.id))
+		call.respondText(call.t(R("api_accounts_testauth_error"), principal.id))
 	}
 }

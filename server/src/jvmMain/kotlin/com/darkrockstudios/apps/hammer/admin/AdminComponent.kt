@@ -16,7 +16,7 @@ class AdminComponent(
 			whiteListRepository.addToWhiteList(email)
 			ServerResult.success(Unit)
 		} else {
-			ServerResult.failure("Invalid email", Msg.r("api.admin.addtowhitelist.invalidemail"))
+			ServerResult.failure("Invalid email", Msg.r("api_admin_addtowhitelist_invalidemail"))
 		}
 	}
 
