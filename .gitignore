@@ -60,3 +60,5 @@ fastlane/README.md
 /android/release/
 /.claude/settings.local.json
 /CLAUDE.md
+/.output.txt
+.claude/skills

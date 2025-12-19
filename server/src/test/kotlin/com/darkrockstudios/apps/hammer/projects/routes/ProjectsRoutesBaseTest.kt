@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
@@ -69,7 +70,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 			configureSerialization()
 			configureSecurity()
-			configureRouting()
+			configureRouting(ServerConfig())
 
 			if (moreSetup != null) moreSetup()
 		}

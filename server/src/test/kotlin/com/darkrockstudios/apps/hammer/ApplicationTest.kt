@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
@@ -28,6 +29,7 @@ class ApplicationTest : BaseTest() {
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var accountsComponent: AccountsComponent
 	private lateinit var adminComponent: AdminComponent
+	private lateinit var whiteListRepository: WhiteListRepository
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -39,6 +41,7 @@ class ApplicationTest : BaseTest() {
 		projectsRepository = mockk()
 		accountsComponent = mockk()
 		adminComponent = mockk()
+		whiteListRepository = mockk()
 
 		testModule = module {
 			single { accountsRepository }
@@ -46,6 +49,7 @@ class ApplicationTest : BaseTest() {
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
+			single { whiteListRepository }
 			single { mockk<Json>() }
 		}
 	}
@@ -56,7 +60,7 @@ class ApplicationTest : BaseTest() {
 			setupKtorTestKoin(this@ApplicationTest, testModule)
 			configureSecurity()
 			configureLocalization()
-			configureRouting()
+			configureRouting(ServerConfig())
 		}
 		client.get("/api/teapot").apply {
 			assertEquals(HttpStatusCode.fromValue(418), status)

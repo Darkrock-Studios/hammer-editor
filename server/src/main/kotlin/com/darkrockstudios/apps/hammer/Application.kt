@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
+import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.plugins.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -109,6 +110,6 @@ fun Application.appMain(config: ServerConfig, addInModule: Module? = null) {
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
-	configureRouting()
-	//configureKweb(config)
+	configureRouting(config)
+	configureFrontEnd()
 }

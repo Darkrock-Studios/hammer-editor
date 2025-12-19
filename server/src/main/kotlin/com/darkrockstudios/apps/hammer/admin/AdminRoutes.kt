@@ -42,7 +42,7 @@ private fun Route.addToWhiteList() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.admin.whitelist.error.emailmissing"))
+					displayMessage = call.t(R("api_admin_whitelist_error_emailmissing"))
 				)
 			)
 		} else {
@@ -54,7 +54,7 @@ private fun Route.addToWhiteList() {
 					status = HttpStatusCode.InternalServerError,
 					HttpResponseError(
 						error = "invalid email",
-						displayMessage = result.displayMessageText(call, R("api.error.unknown"))
+						displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 					)
 				)
 			}
@@ -72,12 +72,12 @@ private fun Route.removeFromWhiteList() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.admin.whitelist.error.emailmissing"))
+					displayMessage = call.t(R("api_admin_whitelist_error_emailmissing"))
 				)
 			)
 		} else {
 			adminRepository.removeFromWhiteList(email)
-			call.respond(call.t(R("api.success")))
+			call.respond(call.t(R("api_success")))
 		}
 	}
 }
@@ -92,7 +92,7 @@ private fun Route.enableWhiteList() {
 				status = HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Missing Parameter",
-					displayMessage = call.t(R("api.admin.enablewhitelist.enablemissing"))
+					displayMessage = call.t(R("api_admin_enablewhitelist_enablemissing"))
 				)
 			)
 		} else {
@@ -101,7 +101,7 @@ private fun Route.enableWhiteList() {
 			} else {
 				adminRepository.disableWhiteList()
 			}
-			call.respond(call.t(R("api.success")))
+			call.respond(call.t(R("api_success")))
 		}
 	}
 }

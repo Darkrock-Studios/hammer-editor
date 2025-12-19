@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource.Companion.def
 class ProjectsDatabaseDatasource(
 	private val projectDao: ProjectDao,
 	private val projectsDao: ProjectsDao,
-	) : ProjectsDatasource {
+) : ProjectsDatasource {
 
 	override suspend fun saveSyncData(userId: Long, data: ProjectsSyncData) {
 		projectsDao.updateProjectSyncData(

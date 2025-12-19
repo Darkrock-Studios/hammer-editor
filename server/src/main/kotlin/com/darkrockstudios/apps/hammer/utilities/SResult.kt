@@ -54,6 +54,7 @@ sealed class ServerResult<out T> {
 }
 
 typealias Msg = ServerMessage
+
 class ServerMessage private constructor(
 	@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) res: R,
 	inArgs: List<Any>

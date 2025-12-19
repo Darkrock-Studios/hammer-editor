@@ -43,7 +43,7 @@ class ProjectDao(
 	suspend fun hasProject(userId: Long, projectId: ProjectId): Boolean =
 		withContext(ioDispatcher) {
 			queries.hasProjectById(userId, projectId.id).executeAsOne()
-	}
+		}
 
 	suspend fun updateProjectName(
 		userId: Long,

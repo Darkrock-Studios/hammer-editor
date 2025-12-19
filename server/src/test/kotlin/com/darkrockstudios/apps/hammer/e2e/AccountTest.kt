@@ -23,32 +23,32 @@ class AccountTest : EndToEndTest() {
 	@Test
 	fun `Create Account the First User with Whitelist enabled, who becomes Admin`(): Unit =
 		runBlocking {
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
-		doStartServer()
-		client().apply {
-			val response = post(api("account/create")) {
-				headers {
-					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
-				}
-				setBody(
-					FormDataContent(
-						Parameters.build {
-							append("email", "test@example.com")
-							append("password", "password123!@#")
-							append("installId", "fake-install-id")
-						}
+			createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+			doStartServer()
+			client().apply {
+				val response = post(api("account/create")) {
+					headers {
+						append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					}
+					setBody(
+						FormDataContent(
+							Parameters.build {
+								append("email", "test@example.com")
+								append("password", "password123!@#")
+								append("installId", "fake-install-id")
+							}
+						)
 					)
-				)
-			}
+				}
 
-			assertEquals(HttpStatusCode.Created, response.status)
-			val body = response.bodyAsText()
-			val token = Json.decodeFromString<Token>(body)
-			assertEquals(1, token.userId)
-			assertTrue(token.auth.isNotBlank())
-			assertEquals(Token.LENGTH, createTokenBase64().decode(token.auth).size)
+				assertEquals(HttpStatusCode.Created, response.status)
+				val body = response.bodyAsText()
+				val token = Json.decodeFromString<Token>(body)
+				assertEquals(1, token.userId)
+				assertTrue(token.auth.isNotBlank())
+				assertEquals(Token.LENGTH, createTokenBase64().decode(token.auth).size)
+			}
 		}
-	}
 
 	@Test
 	fun `Create Account - Second User - Not on Whitelist - Failure`(): Unit = runBlocking {

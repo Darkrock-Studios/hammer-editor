@@ -1,0 +1,34 @@
+<footer class="site-footer">
+	<div class="footer-content">
+		<div class="footer-links">
+			<a href="https://github.com/Wavesonics/hammer-editor" target="_blank">
+				<i class="fa-brands fa-github"></i>
+				<span>{{msg.home_footer_github}}</span>
+			</a>
+			<a href="https://discord.gg/4ae6y4V4F5" target="_blank">
+				<i class="fa-brands fa-discord"></i>
+				<span>{{msg.home_footer_discord}}</span>
+			</a>
+			<a href="https://www.reddit.com/r/HammerEditor/" target="_blank">
+				<i class="fa-brands fa-reddit"></i>
+				<span>{{msg.home_footer_reddit}}</span>
+			</a>
+		</div>
+		<form action="/locale" method="post" class="language-selector">
+			<label for="lang-select">Language:</label>
+			<select id="lang-select" name="locale" hx-post="/locale" hx-trigger="change" hx-swap="none">
+				{{#locales}}
+					<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+				{{/locales}}
+			</select>
+			<noscript>
+				<button type="submit">Change</button>
+			</noscript>
+		</form>
+		{{#version}}
+			<div class="footer-version">v{{version}}</div>
+		{{/version}}
+	</div>
+</footer>
+</body>
+</html>

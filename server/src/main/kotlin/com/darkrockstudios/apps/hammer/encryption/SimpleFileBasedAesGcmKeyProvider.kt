@@ -80,7 +80,7 @@ class SimpleFileBasedAesGcmKeyProvider(
 			cachedKey
 		} else {
 			val derivedKey: SecretKey =
-					deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
+				deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
 			cache.put(clientSecret, derivedKey)
 			derivedKey
 		}
