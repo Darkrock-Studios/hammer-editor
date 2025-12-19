@@ -61,3 +61,4 @@ fastlane/README.md
 /.claude/settings.local.json
 /CLAUDE.md
 /.output.txt
+.claude/skills
