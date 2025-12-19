@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
@@ -47,6 +48,9 @@ class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var adminComponent: AdminComponent
 
+	@MockK
+	private lateinit var whiteListRepository: WhiteListRepository
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	private lateinit var json: Json
@@ -68,6 +72,7 @@ class AccountRoutesTest : BaseTest() {
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
+			single { whiteListRepository }
 			single { json }
 		}
 	}
