@@ -1,0 +1,64 @@
+{{> header}}
+
+<main class="admin-page">
+	<div class="admin-container">
+		<!-- Admin Header -->
+		<div class="admin-header">
+			<div class="admin-header-content">
+				<h1>{{msg.admin_dashboard_title}}</h1>
+				<p class="admin-subtitle">{{msg.admin_dashboard_subtitle}}</p>
+			</div>
+			<form action="/logout" method="get" class="logout-form">
+				<button type="submit" class="logout-button">{{msg.admin_logout_button}}</button>
+			</form>
+		</div>
+
+		<!-- Server Message Section -->
+		<section class="admin-section">
+			<div class="section-header">
+				<h2>{{msg.admin_servermessage_title}}</h2>
+				<span class="section-badge">{{msg.admin_badge_readonly}}</span>
+			</div>
+			<p class="section-description">{{msg.admin_servermessage_description}}</p>
+			<div class="message-display">
+				<pre>{{serverMessage}}</pre>
+			</div>
+		</section>
+
+		<!-- Whitelist Management Section -->
+		<section class="admin-section">
+			<div class="section-header">
+				<h2>{{msg.admin_whitelist_management_title}}</h2>
+				<span class="section-badge accent">{{msg.admin_badge_active}}</span>
+			</div>
+			<p class="section-description">{{msg.admin_whitelist_description}}</p>
+
+			<form action="/admin/whitelist/add" method="post" class="whitelist-form"
+				  hx-post="/admin/whitelist/add"
+				  hx-target="#whitelist"
+				  hx-swap="innerHTML"
+				  hx-on::after-request="this.reset()">
+				<div class="form-group">
+					<label for="email">{{msg.admin_whitelist_email_label}}</label>
+					<div class="form-input-group">
+						<input id="email" name="email" type="email"
+							   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
+						<button type="submit" class="add-button">{{msg.admin_whitelist_add_button}}</button>
+					</div>
+				</div>
+			</form>
+
+			<div class="whitelist-container">
+				<div id="whitelist"
+					 hx-get="/admin/whitelist/user-fragment"
+					 hx-trigger="load, whitelist-updated from:body"
+					 hx-swap="innerHTML">
+					<!-- List of whitelisted users loaded here -->
+				</div>
+			</div>
+		</section>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}

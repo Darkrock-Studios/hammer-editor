@@ -10,5 +10,7 @@ fun createJsonSerializer(): Json {
 		prettyPrintIndent = "\t"
 		encodeDefaults = true
 		coerceInputValues = true
+		allowTrailingComma = true
+		ignoreUnknownKeys = true
 	}
 }

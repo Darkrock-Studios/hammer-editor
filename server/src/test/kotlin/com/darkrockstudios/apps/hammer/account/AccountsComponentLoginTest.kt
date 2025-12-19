@@ -55,11 +55,13 @@ class AccountsComponentLoginTest {
 	fun `Login - Success`() = runTest {
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery { accountsRepository.login(
-			email = validEmail,
-			password = validPassword,
-			installId = installId
-		) } returns SResult.success(token)
+		coEvery {
+			accountsRepository.login(
+				email = validEmail,
+				password = validPassword,
+				installId = installId
+			)
+		} returns SResult.success(token)
 
 		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -73,11 +75,13 @@ class AccountsComponentLoginTest {
 		coEvery { whiteListRepository.useWhiteList() } returns true
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery { accountsRepository.login(
-			email = validEmail,
-			password = validPassword,
-			installId = installId
-		) } returns SResult.success(token)
+		coEvery {
+			accountsRepository.login(
+				email = validEmail,
+				password = validPassword,
+				installId = installId
+			)
+		} returns SResult.success(token)
 
 		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -91,11 +95,13 @@ class AccountsComponentLoginTest {
 		coEvery { whiteListRepository.useWhiteList() } returns true
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery { accountsRepository.login(
-			email = validEmail,
-			password = validPassword,
-			installId = installId
-		) } returns SResult.success(token)
+		coEvery {
+			accountsRepository.login(
+				email = validEmail,
+				password = validPassword,
+				installId = installId
+			)
+		} returns SResult.success(token)
 
 		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -107,11 +113,13 @@ class AccountsComponentLoginTest {
 	fun `Login - Failure - Account not found`() = runTest {
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns null
-		coEvery { accountsRepository.login(
-			email = validEmail,
-			password = validPassword,
-			installId = installId
-		) } returns SResult.failure("Account not found")
+		coEvery {
+			accountsRepository.login(
+				email = validEmail,
+				password = validPassword,
+				installId = installId
+			)
+		} returns SResult.failure("Account not found")
 
 		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -123,11 +131,13 @@ class AccountsComponentLoginTest {
 	fun `Login - Failure - Bad Login`() = runTest {
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery { accountsRepository.login(
-			email = validEmail,
-			password = validPassword,
-			installId = installId
-		) } returns SResult.failure("Incorrect password")
+		coEvery {
+			accountsRepository.login(
+				email = validEmail,
+				password = validPassword,
+				installId = installId
+			)
+		} returns SResult.failure("Incorrect password")
 
 		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
 		val result = comp.login(validEmail, validPassword, installId)

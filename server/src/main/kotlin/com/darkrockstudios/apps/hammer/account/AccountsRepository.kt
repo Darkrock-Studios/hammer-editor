@@ -69,13 +69,13 @@ class AccountsRepository(
 		return when {
 			existingAccount != null -> SResult.failure(
 				"account already exists",
-				Msg.r("api.accounts.create.error.accountexists"),
+				Msg.r("api_accounts_create_error_accountexists"),
 				CreateFailed("Account already exists")
 			)
 
 			!validateEmail(email) -> SResult.failure(
 				"invalid email",
-				Msg.r("api.accounts.create.error.invalidemail"),
+				Msg.r("api_accounts_create_error_invalidemail"),
 				CreateFailed("Invalid email")
 			)
 
@@ -118,9 +118,9 @@ class AccountsRepository(
 		val account = accountDao.findAccount(email)
 
 		return if (account == null) {
-			SResult.failure("Account not found", Msg.r("api.accounts.login.error.notfound"))
+			SResult.failure("Account not found", Msg.r("api_accounts_login_error_notfound"))
 		} else if (!checkPassword(account, password)) {
-			SResult.failure("Incorrect password", Msg.r("api.accounts.login.error.badpassword"))
+			SResult.failure("Incorrect password", Msg.r("api_accounts_login_error_badpassword"))
 		} else {
 			val token = getAuthToken(account.id, installId)
 			SResult.success(token)
@@ -133,7 +133,7 @@ class AccountsRepository(
 		return if (authToken != null && authToken.user_id == userId && !authToken.isExpired(clock)) {
 			SResult.success(authToken.user_id)
 		} else {
-			SResult.failure("No valid token not found", Msg.r("api.accounts.login.error.notoken"))
+			SResult.failure("No valid token not found", Msg.r("api_accounts_login_error_notoken"))
 		}
 	}
 
@@ -149,7 +149,7 @@ class AccountsRepository(
 				)
 			)
 		} else {
-			SResult.failure("No valid token not found", Msg.r("api.accounts.login.error.notoken"))
+			SResult.failure("No valid token not found", Msg.r("api_accounts_login_error_notoken"))
 		}
 	}
 

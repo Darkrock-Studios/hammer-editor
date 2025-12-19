@@ -26,6 +26,7 @@ kotlin {
 		freeCompilerArgs.addAll(
 			"-Xopt-in=kotlin.io.encoding.ExperimentalEncodingApi",
 			"-Xopt-in=kotlin.uuid.ExperimentalUuidApi",
+			"-Xopt-in=io.ktor.utils.io.ExperimentalKtorApi",
 		)
 	}
 }
@@ -71,15 +72,22 @@ dependencies {
 	implementation(libs.slf4j.simple)
 	//implementation(libs.logback.classic)
 
-	implementation(platform(libs.koin.bom))
+	implementation(project.dependencies.platform(libs.koin.bom))
 	implementation(libs.bundles.koin.server)
 
 	implementation(libs.okio)
 
 	implementation(libs.sqldelight.driver)
 
-	implementation(libs.kweb.core)
 	implementation(libs.ktor.server.websockets)
+	implementation(libs.ktor.server.mustache)
+	implementation(libs.ktor.server.html.builder)
+
+	implementation(libs.ktor.server.status.pages)
+
+	implementation(libs.ktor.htmx)
+	implementation(libs.ktor.htmx.html)
+	implementation(libs.ktor.server.htmx)
 
 	implementation(libs.tomlkt)
 	implementation(libs.resources)

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
+import com.darkrockstudios.apps.hammer.frontend.frontendAuthentication
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -45,6 +46,7 @@ fun Application.configureSecurity() {
 			}
 		}
 		admin(name = ADMIN_AUTH)
+		frontendAuthentication(accountRepo, whitelistRepo)
 	}
 }
 

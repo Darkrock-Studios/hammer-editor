@@ -53,7 +53,7 @@ class ProjectEntityRepository(
 		) {
 			SResult.failure(
 				"begin sync failure: existing session",
-				Msg.r("api.project.sync.begin.error.session", userId)
+				Msg.r("api_project_sync_begin_error_session", userId)
 			)
 		} else {
 			if (projectEntityDatasource.checkProjectExists(userId, projectDef).not()) {
@@ -101,13 +101,13 @@ class ProjectEntityRepository(
 		return if (session == null) {
 			SResult.failure(
 				"begin sync failure: existing session",
-				Msg.r("api.project.sync.begin.error.session", userId)
+				Msg.r("api_project_sync_begin_error_session", userId)
 			)
 		} else {
 			if (session.syncId != syncId) {
 				SResult.failure(
 					"end sync failure: invalid session id",
-					Msg.r("api.project.sync.end.invalidid", userId)
+					Msg.r("api_project_sync_end_invalidid", userId)
 				)
 			} else {
 				// Update sync data if it was sent
@@ -134,7 +134,7 @@ class ProjectEntityRepository(
 		if (validateSyncId(userId, projectDef, syncId).not())
 			return SResult.failure(
 				"end sync failure: invalid session id",
-				Msg.r("api.project.sync.end.invalidid", userId)
+				Msg.r("api_project_sync_end_invalidid", userId)
 			)
 
 		return if (projectEntityDatasource.checkProjectExists(userId, projectDef)) {
@@ -148,7 +148,7 @@ class ProjectEntityRepository(
 		} else {
 			SResult.failure(
 				"Project does not exist",
-				Msg.r("api.project.getproject.error.notfound")
+				Msg.r("api_project_getproject_error_notfound")
 			)
 		}
 	}
@@ -173,7 +173,7 @@ class ProjectEntityRepository(
 					existingType = existingType.toStringId(),
 					submittedType = entity.type.toStringId()
 				),
-				displayMessage = Msg.r("api.project.saveentity.error.typeconflict")
+				displayMessage = Msg.r("api_project_saveentity_error_typeconflict")
 			)
 
 		val result = when (entity) {

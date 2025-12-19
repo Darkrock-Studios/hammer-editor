@@ -32,7 +32,6 @@ androix-junit = "1.3.0"
 junit = "6.0.1"
 kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.29.0"
-kwebCore = "1.4.12"
 markdown = "0.7.3"
 material = "1.13.0"
 orchestrator = "1.6.1"
@@ -138,7 +137,6 @@ kotlinx_datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx_atomicfu" }
 kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
 
-kweb-core = { module = "io.kweb:kweb-core", version.ref = "kwebCore" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
@@ -206,6 +204,14 @@ ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirec
 ktor_server_websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
 ktor_server_requestvalidation = { group = "io.ktor", name = "ktor-server-request-validation", version.ref = "ktor" }
 ktor_server_jetty_jakarta = { group = "io.ktor", name = "ktor-server-jetty-jakarta", version.ref = "ktor" }
+ktor_server_mustache = { group = "io.ktor", name = "ktor-server-mustache", version.ref = "ktor" }
+ktor_server_html_builder = { group = "io.ktor", name = "ktor-server-html-builder", version.ref = "ktor" }
+ktor_server_status_pages = { group = "io.ktor", name = "ktor-server-status-pages", version.ref = "ktor" }
+
+# HTMX for Ktor
+ktor_htmx = { group = "io.ktor", name = "ktor-htmx", version.ref = "ktor" }
+ktor_htmx_html = { group = "io.ktor", name = "ktor-htmx-html", version.ref = "ktor" }
+ktor_server_htmx = { group = "io.ktor", name = "ktor-server-htmx", version.ref = "ktor" }
 
 ktor_server_i18n = { group = "com.github.aymanizz", name = "ktor-i18n", version.ref = "ktor_i18n" }
 
