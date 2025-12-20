@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -12,7 +14,6 @@ import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
@@ -31,17 +32,13 @@ fun <T : ApiProjectEntity> EntityConflict(
 	LocalEntity: EntityUi<T>,
 	RemoteEntity: EntityUi<T>,
 ) {
-	Column(modifier = Modifier.fillMaxSize()) {
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
+	when (screenCharacteristics.widthSizeClass) {
+		WindowWidthSizeClass.Compact -> {
+			CompactConflictUi(Modifier.fillMaxSize(), entityConflict, component, LocalEntity, RemoteEntity)
+		}
 
-		when (screenCharacteristics.widthSizeClass) {
-			WindowWidthSizeClass.Compact -> {
-				CompactConflictUi(Modifier.fillMaxSize(), entityConflict, component, LocalEntity, RemoteEntity)
-			}
-
-			else -> {
-				ExpandedConflictUi(Modifier.fillMaxSize(), entityConflict, component, LocalEntity, RemoteEntity)
-			}
+		else -> {
+			ExpandedConflictUi(Modifier.fillMaxSize(), entityConflict, component, LocalEntity, RemoteEntity)
 		}
 	}
 }

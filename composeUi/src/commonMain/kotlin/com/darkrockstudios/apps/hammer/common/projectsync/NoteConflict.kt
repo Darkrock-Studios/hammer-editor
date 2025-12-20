@@ -50,7 +50,7 @@ private fun LocalNote(
 	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
 	var contentError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
 
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -76,25 +76,23 @@ private fun LocalNote(
 				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
-		Text(
-			text = Res.string.sync_conflict_merge_explained.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_title_note_field_name.get()) },
 			label = { Text(Res.string.sync_conflict_title_note_field_name.get()) },
 			isError = (contentError != null),
+			modifier = Modifier.fillMaxWidth().weight(1f)
 		)
-		Text(
-			contentError ?: "",
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.error
-		)
+		if (contentError != null) {
+			Text(
+				contentError ?: "",
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.error
+			)
+		}
 	}
 }
 
@@ -104,7 +102,7 @@ private fun RemoteNote(
 	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.NoteEntity>,
 	component: ProjectSynchronization
 ) {
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -118,13 +116,13 @@ private fun RemoteNote(
 				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_title_note_field_name.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
-		SelectionContainer {
+		SelectionContainer(modifier = Modifier.weight(1f)) {
 			Text(
 				entityConflict.serverEntity.content,
 				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())

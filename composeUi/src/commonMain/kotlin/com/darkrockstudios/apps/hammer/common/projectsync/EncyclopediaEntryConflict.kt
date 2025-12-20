@@ -52,7 +52,7 @@ private fun LocalEntry(
 	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.text ?: "") }
 	var contentError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
 
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -79,56 +79,54 @@ private fun LocalEntry(
 				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
-		Text(
-			text = Res.string.sync_conflict_merge_explained.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 
-		SelectionContainer {
+		Row {
+			Text(entityConflict.clientEntity.entryType, modifier = Modifier.padding(end = Ui.Padding.M))
 			Text(
-				entityConflict.clientEntity.name,
+				if (entityConflict.clientEntity.image != null)
+					Res.string.sync_conflict_encyclopedia_has_image.get()
+				else
+					Res.string.sync_conflict_encyclopedia_no_image.get(),
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
-		Text(entityConflict.serverEntity.entryType)
-		Text(
-			if (entityConflict.serverEntity.image != null)
-				Res.string.sync_conflict_encyclopedia_has_image.get()
-			else
-				Res.string.sync_conflict_encyclopedia_no_image.get(),
-			style = MaterialTheme.typography.bodyLarge
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = nameTextValue,
 			onValueChange = { nameTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_encyclopedia_label_name.get()) },
 			label = { Text(Res.string.sync_conflict_encyclopedia_label_name.get()) },
 			isError = (nameError != null),
+			modifier = Modifier.fillMaxWidth(),
+			singleLine = true
 		)
-		Text(
-			nameError ?: "",
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.error
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		if (nameError != null) {
+			Text(
+				nameError ?: "",
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.error
+			)
+		}
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_encyclopedia_label_content.get()) },
 			label = { Text(Res.string.sync_conflict_encyclopedia_label_content.get()) },
 			isError = (contentError != null),
+			modifier = Modifier.fillMaxWidth().weight(1f)
 		)
-		Text(
-			contentError ?: "",
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.error
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		if (contentError != null) {
+			Text(
+				contentError ?: "",
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.error
+			)
+		}
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_encyclopedia_label_tags.get(),
 			style = MaterialTheme.typography.bodyLarge,
@@ -161,7 +159,7 @@ fun RemoteEntry(
 	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>,
 	component: ProjectSynchronization
 ) {
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -175,7 +173,7 @@ fun RemoteEntry(
 				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
-
+		Spacer(Modifier.size(Ui.Padding.M))
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
@@ -183,7 +181,6 @@ fun RemoteEntry(
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
-
 			SelectionContainer {
 				Text(
 					entityConflict.serverEntity.name,
@@ -191,7 +188,6 @@ fun RemoteEntry(
 				)
 			}
 		}
-
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
@@ -199,13 +195,11 @@ fun RemoteEntry(
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
-
 			Text(
 				text = entityConflict.serverEntity.entryType,
 				style = MaterialTheme.typography.bodyLarge,
 			)
 		}
-
 		Row {
 			Text(
 				modifier = Modifier.padding(end = Ui.Padding.M),
@@ -213,7 +207,6 @@ fun RemoteEntry(
 				style = MaterialTheme.typography.bodyLarge,
 				fontWeight = FontWeight.Bold
 			)
-
 			Text(
 				if (entityConflict.serverEntity.image != null)
 					Res.string.sync_conflict_encyclopedia_has_image.get()
@@ -222,22 +215,19 @@ fun RemoteEntry(
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
-
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
-			modifier = Modifier.padding(end = Ui.Padding.M),
 			text = Res.string.sync_conflict_encyclopedia_label_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
-		SelectionContainer {
+		SelectionContainer(modifier = Modifier.weight(1f)) {
 			Text(
 				entityConflict.serverEntity.text,
 				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
 			)
 		}
-
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_encyclopedia_label_tags.get(),
 			style = MaterialTheme.typography.bodyLarge,

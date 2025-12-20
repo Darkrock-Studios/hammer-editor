@@ -7,19 +7,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -46,11 +41,8 @@ internal fun ProjectSynchronization(
 		title = Res.string.sync_project_dialog_title.get(),
 		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
 		visible = true,
-		// TODO this size is a hold over from the old Dialog, maybe we dont need it
-		modifier = Modifier.size(
-			width = 1024.dp,
-			height = 768.dp
-		),
+		modifier = Modifier.fillMaxSize(0.9f),
+		overridePlatformWidth = true
 	) {
 		val screenCharacteristics = calculateWindowSizeClass()
 		ProjectSynchronizationContent(component, showSnackbar, screenCharacteristics)
@@ -66,6 +58,7 @@ internal fun ProjectSynchronizationContent(
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	LaunchedEffect(Unit) {
 		component.syncProject { success ->
@@ -79,7 +72,8 @@ internal fun ProjectSynchronizationContent(
 		}
 	}
 
-	Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
+	Box(modifier = Modifier.fillMaxSize()) {
+		Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
 		Row {
 			if (state.isSyncing) {
 				Text(
@@ -137,18 +131,32 @@ internal fun ProjectSynchronizationContent(
 					modifier = Modifier.fillMaxWidth(),
 					contentAlignment = Alignment.Center
 				) {
-					Row {
+					Row(verticalAlignment = Alignment.CenterVertically) {
 						Icon(
 							Icons.Default.Warning,
 							contentDescription = Res.string.sync_conflict_icon_description.get(),
-							modifier = Modifier.size(32.dp).align(Alignment.CenterVertically),
+							modifier = Modifier.size(32.dp),
 							tint = MaterialTheme.colorScheme.error
 						)
 
 						Text(
 							text = state.conflictTitle?.get() ?: "error",
 							style = MaterialTheme.typography.headlineSmall,
-							modifier = Modifier.padding(start = Ui.Padding.L).align(Alignment.CenterVertically)
+							modifier = Modifier.padding(start = Ui.Padding.L)
+						)
+
+						val infoMessage = Res.string.sync_conflict_merge_explained.get()
+						Icon(
+							Icons.Default.Info,
+							contentDescription = infoMessage,
+							modifier = Modifier
+								.padding(start = Ui.Padding.M)
+								.clickable {
+									scope.launch {
+										snackbarHostState.showSnackbar(infoMessage)
+									}
+								},
+							tint = MaterialTheme.colorScheme.onSurfaceVariant
 						)
 					}
 				}
@@ -186,6 +194,12 @@ internal fun ProjectSynchronizationContent(
 				SyncLog(state, scope)
 			}
 		}
+	}
+
+		SnackbarHost(
+			hostState = snackbarHostState,
+			modifier = Modifier.align(Alignment.BottomCenter)
+		)
 	}
 }
 

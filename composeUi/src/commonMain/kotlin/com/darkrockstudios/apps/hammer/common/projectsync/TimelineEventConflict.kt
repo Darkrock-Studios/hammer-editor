@@ -16,7 +16,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -59,7 +58,7 @@ private fun LocalEvent(
 	var dateTextValue by rememberSaveable(entity) { mutableStateOf(entity?.date ?: "") }
 	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
 
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -80,26 +79,22 @@ private fun LocalEvent(
 				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
-
-		Text(
-			text = Res.string.sync_conflict_merge_explained.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic
-		)
-
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = dateTextValue,
 			onValueChange = { dateTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) },
-			label = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) }
+			label = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) },
+			modifier = Modifier.fillMaxWidth(),
+			singleLine = true
 		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) },
-			label = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) }
+			label = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) },
+			modifier = Modifier.fillMaxWidth().weight(1f)
 		)
 	}
 }
@@ -110,7 +105,7 @@ private fun RemoteEvent(
 	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
 	component: ProjectSynchronization
 ) {
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,7 +119,7 @@ private fun RemoteEvent(
 				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_title_timeline_event_field_date.get(),
 			style = MaterialTheme.typography.bodyLarge,
@@ -136,13 +131,13 @@ private fun RemoteEvent(
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_title_timeline_event_field_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
-		SelectionContainer {
+		SelectionContainer(modifier = Modifier.weight(1f)) {
 			Text(
 				entityConflict.serverEntity.content,
 				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
