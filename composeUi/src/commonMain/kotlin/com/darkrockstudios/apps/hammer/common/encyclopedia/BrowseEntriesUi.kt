@@ -21,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -40,7 +39,6 @@ fun BrowseEntriesUi(
 	val types = remember { EntryType.entries }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	val searchText by component.filterText.subscribeAsState()
-	val strRes = rememberStrRes()
 
 	val filteredEntries by remember(
 		Triple(

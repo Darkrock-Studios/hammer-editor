@@ -99,7 +99,6 @@ private fun LocalScene(
 						modifier = Modifier.fillMaxWidth().weight(1f)
 					)
 				}
-
 				SceneConflictTab.METADATA -> {
 					TextField(
 						value = nameTextValue,
@@ -194,7 +193,6 @@ private fun RemoteScene(
 						)
 					}
 				}
-
 				SceneConflictTab.METADATA -> {
 					Text(
 						Res.string.sync_conflict_title_scene_field_name.get(),
