@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -122,7 +123,7 @@ internal fun ProjectSynchronizationContent(
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-		Column(modifier = Modifier.fillMaxSize()) {
+			Column(modifier = Modifier.fillMaxSize().border(1.dp, MaterialTheme.colorScheme.outline)) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 			val conflict = state.entityConflict
@@ -153,7 +154,7 @@ internal fun ProjectSynchronizationContent(
 								.padding(start = Ui.Padding.M)
 								.clickable {
 									scope.launch {
-										snackbarHostState.showSnackbar(infoMessage)
+										snackbarHostState.showSnackbar(infoMessage, duration = SnackbarDuration.Long)
 									}
 								},
 							tint = MaterialTheme.colorScheme.onSurfaceVariant
