@@ -30,7 +30,9 @@ class FetchLocalDataOperation(
 
 			val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 			val serverProjectId = metadata.info.serverProjectId
-				?: error("Server project ID missing for: ${projectDef.name}")
+			if (serverProjectId == null) {
+				return CResult.failure(MissingProjectIdException(projectDef.name))
+			}
 
 			val clientSyncData = syncDataRepository.loadSyncData()
 			val entityState = if (state.onlyNew) {
@@ -53,9 +55,7 @@ class FetchLocalDataOperation(
 
 			CResult.success(fetchLocalDataState)
 		} catch (e: Exception) {
-			// TODO probably use a special exception here?
-			//state.error = "Failed to fetch local modifications: ${e.message}"
-			CResult.failure(e)
+			CResult.failure(SyncOperationException(cause = e))
 		}
 	}
 
@@ -68,3 +68,7 @@ class FetchLocalDataOperation(
 		return ClientEntityState(entities)
 	}
 }
+
+open class SyncOperationException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
+class MissingProjectIdException(projectName: String) :
+	SyncOperationException("Server project ID missing for: $projectName")

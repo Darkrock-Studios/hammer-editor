@@ -343,7 +343,18 @@ class ProjectsListComponent(
 				projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
 
-				projects.parallelMap { projectDef ->
+				// Filter to only sync projects that have a serverProjectId assigned
+				val projectsToSync = projects.filter { projectDef ->
+					val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+					val hasServerId = metadata.info.serverProjectId != null
+					if (!hasServerId) {
+						Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
+						syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
+					}
+					hasServerId
+				}
+
+				projectsToSync.parallelMap { projectDef ->
 					newScope.launch {
 						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
