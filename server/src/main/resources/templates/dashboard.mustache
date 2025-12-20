@@ -1,0 +1,55 @@
+{{> header}}
+
+<main class="admin-page">
+	<div class="admin-container">
+		<!-- Dashboard Header -->
+		<div class="admin-header">
+			<div class="admin-header-content">
+				<h1>{{msg.dashboard_title}}</h1>
+				<p class="admin-subtitle">{{msg.dashboard_subtitle}} {{username}}</p>
+			</div>
+			<div class="dashboard-header-actions">
+				{{#isAdmin}}
+					<a href="/admin" class="manage-server-button">{{msg.dashboard_manage_server}}</a>
+				{{/isAdmin}}
+				<form action="/logout" method="get" class="logout-form">
+					<button type="submit" class="logout-button">{{msg.admin_logout_button}}</button>
+				</form>
+			</div>
+		</div>
+
+		<!-- Projects Section -->
+		<section class="admin-section">
+			<div class="section-header">
+				<div class="section-title-group">
+					<h2>{{msg.dashboard_projects_title}}</h2>
+				</div>
+			</div>
+			<p class="section-description">{{msg.dashboard_projects_description}}</p>
+
+			<div class="projects-container">
+				{{#hasProjects}}
+					<div class="projects-list">
+						{{#projects}}
+							<div class="project-card">
+								<div class="project-info">
+									<span class="project-name">{{name}}</span>
+									<span class="project-sync-date">
+								{{msg.dashboard_last_sync}}: {{lastSync}}
+							</span>
+								</div>
+							</div>
+						{{/projects}}
+					</div>
+				{{/hasProjects}}
+				{{^hasProjects}}
+					<div class="projects-empty">
+						<p>{{msg.dashboard_no_projects}}</p>
+					</div>
+				{{/hasProjects}}
+			</div>
+		</section>
+	</div>
+</main>
+
+{{> footer}}

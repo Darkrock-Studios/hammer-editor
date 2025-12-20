@@ -20,7 +20,6 @@ import okio.FileSystem
 import org.koin.core.context.startKoin
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 
@@ -64,7 +63,7 @@ class FilesystemToDatabaseMigration : DataMigration {
 
 		val accountDao = AccountDao(db)
 		val projectsDao = ProjectsDao(db)
-		val projectDao = ProjectDao(db, Clock.System)
+		val projectDao = ProjectDao(db)
 		val deletedProjectDao = DeletedProjectDao(db)
 		val storyEntityDao = StoryEntityDao(db)
 		val deletedEntityDao = DeletedEntityDao(db)

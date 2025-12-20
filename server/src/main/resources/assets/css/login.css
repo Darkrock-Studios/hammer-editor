@@ -239,6 +239,50 @@
 	}
 }
 
+/* Login Info Section */
+.login-info {
+	margin-top: 2rem;
+	padding-top: 1.5rem;
+	border-top: 2px dashed var(--neutral-200);
+}
+
+.login-info-text {
+	color: var(--text-secondary);
+	font-size: 0.9375rem;
+	text-align: center;
+	margin: 0;
+	line-height: 1.6;
+}
+
+.login-info-whitelist {
+	margin-top: 1rem;
+	padding: 1rem 1.25rem;
+	background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+	border: 2px solid #f59e0b;
+	border-radius: 0.5rem;
+}
+
+.login-info-whitelist p {
+	color: #92400e;
+	font-size: 0.875rem;
+	margin: 0;
+	line-height: 1.5;
+}
+
+.login-info-whitelist p + p {
+	margin-top: 0.5rem;
+}
+
+.login-info-whitelist a {
+	color: #92400e;
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.login-info-whitelist a:hover {
+	color: #78350f;
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
 	.login-card {

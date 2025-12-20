@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.GetProjectsWithSyncDate
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -7,12 +8,10 @@ import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 class ProjectDao(
 	database: Database,
-	private val clock: Clock,
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.projectQueries
@@ -21,6 +20,11 @@ class ProjectDao(
 		val projects = queries.getProjects(userId).executeAsList()
 		return@withContext projects.map { ProjectDefinition.wrap(it.name, it.uuid) }.toSet()
 	}
+
+	suspend fun getProjectsWithSyncDate(userId: Long): List<GetProjectsWithSyncDate> =
+		withContext(ioDispatcher) {
+			queries.getProjectsWithSyncDate(userId).executeAsList()
+		}
 
 	suspend fun createProject(
 		userId: Long,

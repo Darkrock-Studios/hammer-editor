@@ -23,6 +23,12 @@ class ProjectsDatabaseDatasource(
 		return projectDao.getProjects(userId)
 	}
 
+	override suspend fun getProjectsWithSyncDate(userId: Long): List<ProjectWithSyncDate> {
+		return projectDao.getProjectsWithSyncDate(userId).map {
+			ProjectWithSyncDate(name = it.name, uuid = it.uuid, lastSync = it.last_sync)
+		}
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		val data = projectDao.findProjectData(userId, projectName)
 		return if (data != null) {
