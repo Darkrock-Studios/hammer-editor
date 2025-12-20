@@ -19,8 +19,8 @@
 	<string name="sync_conflict_local_entry">Local Entry:</string>
 	<string name="sync_conflict_local_use_button">Use Local</string>
 
-	<string name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually
-		merge the two by copying parts of the remote into your local copy, and then taking that.
+	<string
+		name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually merge the two by copying parts of the remote into your local copy, and then taking that.
 	</string>
 
 	<string name="sync_conflict_remote_entry">Remote Entry:</string>
@@ -110,8 +110,8 @@
 	<string name="sync_log_end_projects">Projects Sync Complete</string>
 	<string name="sync_log_begin_project">Syncing Project: %1$s</string>
 
-	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order
-		to resolve it
+	<string
+		name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order to resolve it
 	</string>
 
 	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
@@ -127,8 +127,8 @@
 	</string>
 	<string name="sync_log_entity_delete_failed">Failed to delete ID %1$d on server: %2$s</string>
 	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
-	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d
-		TYPE: %2$s
+	<string
+		name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s
 	</string>
 	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
 	<string name="sync_log_entities_transferred">Entities transferred</string>
