@@ -3,12 +3,14 @@ package com.darkrockstudios.apps.hammer.projects.routes
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.server.application.*
@@ -40,7 +42,10 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var adminComponent: AdminComponent
 
 	@MockK(relaxed = true)
-	protected lateinit var configRepository: com.darkrockstudios.apps.hammer.admin.ConfigRepository
+	protected lateinit var configRepository: ConfigRepository
+
+	@MockK(relaxed = true)
+	protected lateinit var storyExportService: StoryExportService
 
 	@MockK(relaxed = true)
 	protected lateinit var json: Json
@@ -63,6 +68,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { accountsComponent }
 			single { adminComponent }
 			single { configRepository }
+			single { storyExportService }
 			single { json }
 		}
 	}

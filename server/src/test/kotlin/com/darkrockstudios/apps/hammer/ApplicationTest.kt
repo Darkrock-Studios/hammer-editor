@@ -11,13 +11,16 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
@@ -27,26 +30,36 @@ import kotlin.test.assertEquals
 
 class ApplicationTest : BaseTest() {
 
+	@MockK
 	private lateinit var accountsRepository: AccountsRepository
+
+	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
+
+	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
+
+	@MockK
 	private lateinit var accountsComponent: AccountsComponent
+
+	@MockK
 	private lateinit var adminComponent: AdminComponent
+
+	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
+
+	@MockK
 	private lateinit var configRepository: ConfigRepository
+
+	@MockK
+	private lateinit var storyExportService: StoryExportService
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
-		accountsRepository = mockk()
-		projectEntityRepository = mockk()
-		projectsRepository = mockk()
-		accountsComponent = mockk()
-		adminComponent = mockk()
-		whiteListRepository = mockk()
-		configRepository = mockk()
+		MockKAnnotations.init(this)
 		coEvery { configRepository.get(any<ServerConfigKey<*>>()) } returns "en"
 
 		testModule = module {
@@ -57,6 +70,7 @@ class ApplicationTest : BaseTest() {
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
+			single { storyExportService }
 			single { mockk<Json>() }
 		}
 	}

@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.util.logging.*
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +68,7 @@ fun mainModule(
 	singleOf(::ProjectEntityRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
+	singleOf(::StoryExportService)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class

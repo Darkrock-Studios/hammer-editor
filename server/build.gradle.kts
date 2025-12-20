@@ -91,6 +91,7 @@ dependencies {
 
 	implementation(libs.tomlkt)
 	implementation(libs.resources)
+	implementation(libs.markdown)
 
 //	implementation(libs.cryptography.core)
 //	implementation(libs.cryptography.provider.jdk)

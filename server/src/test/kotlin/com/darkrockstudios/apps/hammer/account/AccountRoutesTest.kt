@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.*
@@ -10,6 +12,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -34,24 +37,20 @@ import kotlin.test.assertTrue
 class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
-
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
-
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
-
 	@MockK
 	private lateinit var accountsComponent: AccountsComponent
-
 	@MockK
 	private lateinit var adminComponent: AdminComponent
-
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
-
 	@MockK
-	private lateinit var configRepository: com.darkrockstudios.apps.hammer.admin.ConfigRepository
+	private lateinit var configRepository: ConfigRepository
+	@MockK
+	private lateinit var storyExportService: StoryExportService
 
 	private lateinit var testModule: org.koin.core.module.Module
 
@@ -67,7 +66,7 @@ class AccountRoutesTest : BaseTest() {
 		MockKAnnotations.init(this)
 
 		json = createJsonSerializer()
-		coEvery { configRepository.get(any<com.darkrockstudios.apps.hammer.admin.ServerConfigKey<*>>()) } returns "en"
+		coEvery { configRepository.get(any<ServerConfigKey<*>>()) } returns "en"
 
 		testModule = module {
 			single { accountsRepository }
@@ -77,6 +76,7 @@ class AccountRoutesTest : BaseTest() {
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
+			single { storyExportService }
 			single { json }
 		}
 	}
