@@ -7,9 +7,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -42,7 +42,8 @@ internal fun ProjectSynchronization(
 		title = Res.string.sync_project_dialog_title.get(),
 		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
 		visible = true,
-		modifier = Modifier.fillMaxSize(0.9f),
+		modifier = Modifier.wrapContentSize(),
+		dialogContainerModifier = Modifier.fillMaxSize(0.9f).wrapContentSize(Alignment.Center),
 		overridePlatformWidth = true
 	) {
 		val screenCharacteristics = calculateWindowSizeClass()
@@ -73,129 +74,139 @@ internal fun ProjectSynchronizationContent(
 		}
 	}
 
-	Box(modifier = Modifier.fillMaxSize()) {
-		Column(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		Row {
-			if (state.isSyncing) {
-				Text(
-					Res.string.sync_status_in_progress.get(),
-					style = MaterialTheme.typography.headlineSmall
-				)
-			} else {
-				if (state.failed) {
+	Box(modifier = Modifier.wrapContentSize()) {
+		Column(modifier = Modifier.wrapContentSize().padding(Ui.Padding.XL)) {
+			Row {
+				if (state.isSyncing) {
 					Text(
-						Res.string.sync_status_failed.get(),
+						Res.string.sync_status_in_progress.get(),
 						style = MaterialTheme.typography.headlineSmall
 					)
 				} else {
-					Text(
-						Res.string.sync_status_success.get(),
-						style = MaterialTheme.typography.headlineSmall
+					if (state.failed) {
+						Text(
+							Res.string.sync_status_failed.get(),
+							style = MaterialTheme.typography.headlineSmall
+						)
+					} else {
+						Text(
+							Res.string.sync_status_success.get(),
+							style = MaterialTheme.typography.headlineSmall
+						)
+					}
+				}
+
+				Spacer(modifier = Modifier.weight(1f))
+
+				if (state.isSyncing) {
+					Icon(
+						Icons.Default.Cancel,
+						contentDescription = Res.string.sync_cancel_button.get(),
+						modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
+						tint = MaterialTheme.colorScheme.onBackground
 					)
 				}
-			}
 
-			Spacer(modifier = Modifier.weight(1f))
-
-			if (state.isSyncing) {
 				Icon(
-					Icons.Default.Cancel,
-					contentDescription = Res.string.sync_cancel_button.get(),
-					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
+					Icons.AutoMirrored.Filled.List,
+					contentDescription = null,
+					modifier = Modifier.padding(Ui.Padding.S).clickable { component.showLog(!state.showLog) },
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
 
-			Icon(
-				Icons.Default.List,
-				contentDescription = null,
-				modifier = Modifier.padding(Ui.Padding.S).clickable { component.showLog(!state.showLog) },
-				tint = MaterialTheme.colorScheme.onBackground
-			)
-		}
-
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-		LinearProgressIndicator(
-			progress = state.syncProgress,
-			modifier = Modifier.fillMaxWidth()
-		)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-			Column(modifier = Modifier.fillMaxSize().border(1.dp, MaterialTheme.colorScheme.outline)) {
 			Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-			val conflict = state.entityConflict
-			if (conflict != null) {
-				Box(
-					modifier = Modifier.fillMaxWidth(),
-					contentAlignment = Alignment.Center
-				) {
-					Row(verticalAlignment = Alignment.CenterVertically) {
-						Icon(
-							Icons.Default.Warning,
-							contentDescription = Res.string.sync_conflict_icon_description.get(),
-							modifier = Modifier.size(32.dp),
-							tint = MaterialTheme.colorScheme.error
-						)
+			LinearProgressIndicator(
+				progress = { state.syncProgress },
+				modifier = Modifier.fillMaxWidth(),
+				color = ProgressIndicatorDefaults.linearColor,
+				trackColor = ProgressIndicatorDefaults.linearTrackColor,
+				strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+			)
 
-						Text(
-							text = state.conflictTitle?.get() ?: "error",
-							style = MaterialTheme.typography.headlineSmall,
-							modifier = Modifier.padding(start = Ui.Padding.L)
-						)
+			Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-						val infoMessage = Res.string.sync_conflict_merge_explained.get()
-						Icon(
-							Icons.Default.Info,
-							contentDescription = infoMessage,
-							modifier = Modifier
-								.padding(start = Ui.Padding.M)
-								.clickable {
-									scope.launch {
-										snackbarHostState.showSnackbar(infoMessage, duration = SnackbarDuration.Long)
-									}
-								},
-							tint = MaterialTheme.colorScheme.onSurfaceVariant
-						)
+			Column(modifier = Modifier.wrapContentSize()) {
+				Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+				val conflict = state.entityConflict
+				if (conflict != null) {
+					Column(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline)) {
+						Box(
+							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
+							contentAlignment = Alignment.Center
+						) {
+							Row(verticalAlignment = Alignment.CenterVertically) {
+								Icon(
+									Icons.Default.Warning,
+									contentDescription = Res.string.sync_conflict_icon_description.get(),
+									modifier = Modifier.size(32.dp),
+									tint = MaterialTheme.colorScheme.error
+								)
+
+								Text(
+									text = state.conflictTitle?.get() ?: "error",
+									style = MaterialTheme.typography.headlineSmall,
+									modifier = Modifier.padding(start = Ui.Padding.L)
+								)
+
+								val infoMessage = Res.string.sync_conflict_merge_explained.get()
+								Icon(
+									Icons.Default.Info,
+									contentDescription = infoMessage,
+									modifier = Modifier
+										.padding(start = Ui.Padding.M)
+										.clickable {
+											scope.launch {
+												snackbarHostState.showSnackbar(
+													infoMessage,
+													duration = SnackbarDuration.Long
+												)
+											}
+										},
+									tint = MaterialTheme.colorScheme.onSurfaceVariant
+								)
+							}
+						}
+
+						when (conflict) {
+							is ProjectSynchronization.EntityConflict.SceneConflict -> {
+								val sceneConflict =
+									state.entityConflict as ProjectSynchronization.EntityConflict.SceneConflict
+								SceneConflict(sceneConflict, component, screenCharacteristics)
+							}
+
+							is ProjectSynchronization.EntityConflict.NoteConflict -> {
+								val noteConflict =
+									state.entityConflict as ProjectSynchronization.EntityConflict.NoteConflict
+								NoteConflict(noteConflict, component, screenCharacteristics)
+							}
+
+							is ProjectSynchronization.EntityConflict.TimelineEventConflict -> {
+								val timelineEventConflict =
+									state.entityConflict as ProjectSynchronization.EntityConflict.TimelineEventConflict
+								TimelineEventConflict(timelineEventConflict, component, screenCharacteristics)
+							}
+
+							is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> {
+								val encyclopediaEntryConflict =
+									state.entityConflict as ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict
+								EncyclopediaEntryConflict(encyclopediaEntryConflict, component, screenCharacteristics)
+							}
+
+							is ProjectSynchronization.EntityConflict.SceneDraftConflict -> {
+								val sceneDraftConflict =
+									state.entityConflict as ProjectSynchronization.EntityConflict.SceneDraftConflict
+								SceneDraftConflict(sceneDraftConflict, component, screenCharacteristics)
+							}
+						}
 					}
+				} else if (state.showLog) {
+					SyncLog(state, scope)
 				}
-
-				when (conflict) {
-					is ProjectSynchronization.EntityConflict.SceneConflict -> {
-						val sceneConflict = state.entityConflict as ProjectSynchronization.EntityConflict.SceneConflict
-						SceneConflict(sceneConflict, component, screenCharacteristics)
-					}
-
-					is ProjectSynchronization.EntityConflict.NoteConflict -> {
-						val noteConflict = state.entityConflict as ProjectSynchronization.EntityConflict.NoteConflict
-						NoteConflict(noteConflict, component, screenCharacteristics)
-					}
-
-					is ProjectSynchronization.EntityConflict.TimelineEventConflict -> {
-						val timelineEventConflict =
-							state.entityConflict as ProjectSynchronization.EntityConflict.TimelineEventConflict
-						TimelineEventConflict(timelineEventConflict, component, screenCharacteristics)
-					}
-
-					is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> {
-						val encyclopediaEntryConflict =
-							state.entityConflict as ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict
-						EncyclopediaEntryConflict(encyclopediaEntryConflict, component, screenCharacteristics)
-					}
-
-					is ProjectSynchronization.EntityConflict.SceneDraftConflict -> {
-						val sceneDraftConflict =
-							state.entityConflict as ProjectSynchronization.EntityConflict.SceneDraftConflict
-						SceneDraftConflict(sceneDraftConflict, component, screenCharacteristics)
-					}
-				}
-			} else if (state.showLog) {
-				SyncLog(state, scope)
 			}
 		}
-	}
 
 		SnackbarHost(
 			hostState = snackbarHostState,
@@ -208,7 +219,7 @@ internal fun ProjectSynchronizationContent(
 internal fun SyncLog(state: ProjectSynchronization.State, scope: CoroutineScope) {
 
 	val listState: LazyListState = rememberLazyListState()
-	LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
+	LazyColumn(modifier = Modifier.fillMaxWidth().wrapContentHeight(), state = listState) {
 		items(count = state.syncLog.size, key = { it }) { index ->
 			SyncLogMessageUi(state.syncLog[index], false)
 		}
