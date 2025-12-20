@@ -1,4 +1,5 @@
 import com.darkrockstudios.build.getVersionCode
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
@@ -108,7 +109,6 @@ android {
 			)
 		}
 	}
-	kotlinOptions.jvmTarget = libs.versions.jvm.get()
 	packaging {
 		resources {
 			excludes += setOf(
@@ -116,6 +116,12 @@ android {
 				"/META-INF/versions/9/previous-compilation-data.bin"
 			)
 		}
+	}
+}
+
+kotlin {
+	compilerOptions {
+		jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 	}
 }
 
