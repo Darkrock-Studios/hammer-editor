@@ -6,7 +6,7 @@ data_version = "1.0"
 # Kotlin
 jvm = "21"
 kache = "2.1.1"
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 
 # Android
 android_gradle_plugin = "8.11.2"
@@ -15,7 +15,7 @@ android_sdk_target = "36"
 android_sdk_min = "26"
 
 # Other libraries
-activity-compose = "1.12.1"
+activity-compose = "1.12.2"
 androidx-runner = "1.7.0"
 androidx-datastore = "1.2.0"
 androidx-window = "1.5.1"
