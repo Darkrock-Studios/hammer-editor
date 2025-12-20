@@ -8,7 +8,7 @@ import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.homeRoutes(
+fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository
 ) {

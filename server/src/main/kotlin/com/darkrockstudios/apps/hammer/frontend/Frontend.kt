@@ -28,10 +28,10 @@ fun Route.frontend() {
 
 	staticResources("/assets", "/assets")
 
-	homeRoutes(whiteListRepository, configRepository)
+	homePage(whiteListRepository, configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository)
-	adminRoutes(whiteListRepository, configRepository)
+	adminPage(whiteListRepository, configRepository)
 }
 
 const val COOKIE_USER_SESSION = "user_session"

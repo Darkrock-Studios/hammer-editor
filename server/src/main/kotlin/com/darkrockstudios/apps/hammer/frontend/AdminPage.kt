@@ -17,7 +17,7 @@ import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
 import kotlin.math.ceil
 
-fun Route.adminRoutes(
+fun Route.adminPage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository
 ) {
