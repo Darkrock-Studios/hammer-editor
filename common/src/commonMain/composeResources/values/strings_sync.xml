@@ -44,6 +44,10 @@
 	<string name="sync_conflict_title_scene_local">Local Scene:</string>
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Scene Content</string>
+	<string name="sync_conflict_title_scene_field_outline">Outline</string>
+	<string name="sync_conflict_title_scene_field_notes">Notes</string>
+	<string name="sync_conflict_scene_tab_content">Content</string>
+	<string name="sync_conflict_scene_tab_metadata">Metadata</string>
 
 	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
 	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>
