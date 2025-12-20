@@ -17,4 +17,13 @@ DELETE FROM white_list
 WHERE email = ?;
 
 getAll:
-SELECT * FROM white_list;
+SELECT * FROM white_list
+ORDER BY email ASC;
+
+getPaginated:
+SELECT * FROM white_list
+ORDER BY email ASC
+LIMIT ? OFFSET ?;
+
+getCount:
+SELECT count(*) FROM white_list;

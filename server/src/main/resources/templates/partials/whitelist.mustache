@@ -1,4 +1,5 @@
 {{#whitelist}}
+	{{#items}}
 	{{#.}}
 		<div class="whitelist-user">
 			<span class="whitelist-user-email">{{.}}</span>
@@ -9,14 +10,42 @@
 					  hx-swap="innerHTML"
 					  hx-confirm="Remove {{.}} from the whitelist?">
 					<input type="hidden" name="email" value="{{.}}"/>
+					<input type="hidden" name="page" value="{{currentPage}}"/>
 					<button type="submit" class="remove-button">{{msg.admin_whitelist_remove_button}}</button>
 				</form>
 			</div>
 		</div>
 	{{/.}}
-{{/whitelist}}
-{{^whitelist}}
+	{{/items}}
+	{{^items}}
 	<div class="whitelist-empty">
 		<p>{{msg.admin_whitelist_empty}}</p>
 	</div>
+	{{/items}}
+
+	{{#totalPages}}
+		<div class="pagination">
+			{{#hasPrevPage}}
+				<button hx-get="/admin/whitelist/user-fragment?page={{prevPage}}"
+				hx-target="#whitelist"
+				hx-swap="innerHTML"
+				class="pagination-button">
+				&laquo; {{msg.admin_pagination_prev}}
+				</button>
+			{{/hasPrevPage}}
+
+			<span class="pagination-info">
+        {{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}
+    </span>
+
+			{{#hasNextPage}}
+				<button hx-get="/admin/whitelist/user-fragment?page={{nextPage}}"
+				hx-target="#whitelist"
+				hx-swap="innerHTML"
+				class="pagination-button">
+				{{msg.admin_pagination_next}} &raquo;
+				</button>
+			{{/hasNextPage}}
+		</div>
+	{{/totalPages}}
 {{/whitelist}}

@@ -29,7 +29,9 @@
 		<section class="admin-section">
 			<div class="section-header">
 				<h2>{{msg.admin_whitelist_management_title}}</h2>
+				{{#whitelist.enabled}}
 				<span class="section-badge accent">{{msg.admin_badge_active}}</span>
+				{{/whitelist.enabled}}
 			</div>
 			<p class="section-description">{{msg.admin_whitelist_description}}</p>
 

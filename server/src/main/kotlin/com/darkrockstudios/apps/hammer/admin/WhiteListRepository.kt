@@ -42,6 +42,16 @@ class WhiteListRepository(
 		return whiteListDao.getAllWhiteListedEmails()
 	}
 
+	suspend fun getWhiteList(page: Int, pageSize: Int): List<String> {
+		val limit = pageSize.toLong()
+		val offset = (page * pageSize).toLong()
+		return whiteListDao.getWhiteListPaginated(limit, offset)
+	}
+
+	suspend fun getWhiteListCount(): Long {
+		return whiteListDao.getWhiteListCount()
+	}
+
 	suspend fun isOnWhiteList(email: String): Boolean {
 		val cleanedEmail = cleanEmail(email)
 		return whiteListDao.isWhiteListed(cleanedEmail)
