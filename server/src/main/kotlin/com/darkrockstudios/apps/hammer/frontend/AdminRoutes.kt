@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
+import com.darkrockstudios.apps.hammer.utilities.ResUtils
+import io.ktor.htmx.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
@@ -14,27 +17,63 @@ import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
 import kotlin.math.ceil
 
-fun Route.adminRoutes(config: ServerConfig, whiteListRepository: WhiteListRepository) {
+fun Route.adminRoutes(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+) {
 	adminOnly {
 		route("/admin") {
-			admin(config, whiteListRepository)
+			admin(whiteListRepository, configRepository)
 			whiteListRoutes(whiteListRepository)
+			serverSettingsRoutes(configRepository)
 		}
 	}
 }
 
-private fun Route.admin(config: ServerConfig, whiteListRepository: WhiteListRepository) {
+private fun Route.admin(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+) {
 	get {
 		val session = call.sessions.get<UserSession>()
+		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
+		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
+			mapOf(
+				"tag" to lc.toLanguageTag(),
+				"label" to lc.getDisplayName(lc),
+				"selected" to (lc.toLanguageTag() == configuredDefaultLocale)
+			)
+		}
+
 		val model = mapOf(
 			"isAdmin" to (session?.isAdmin?.toString() ?: "null"),
 			"whitelist" to mapOf(
 				"enabled" to whiteListRepository.useWhiteList()
 			),
-			"contactEmail" to (config.contact ?: ""),
-			"serverMessage" to config.serverMessage
+			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
+			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
+			"defaultLocale" to configuredDefaultLocale,
+			"availableLocales" to availableLocales
 		)
 		call.respond(MustacheContent("admin.mustache", call.withDefaults(model)))
+	}
+}
+
+private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
+	hx.post("/settings") {
+		val params = call.receiveParameters()
+		val contact = params["contact"]?.trim().orEmpty()
+		val message = params["message"]?.trim().orEmpty()
+		val defaultLocale = params["defaultLocale"]?.trim().orEmpty()
+
+		configRepository.set(AdminServerConfig.CONTACT_EMAIL, contact)
+		configRepository.set(AdminServerConfig.SERVER_MESSAGE, message)
+		if (defaultLocale.isNotEmpty()) {
+			configRepository.set(AdminServerConfig.DEFAULT_LOCALE, defaultLocale)
+		}
+
+		call.response.header(HxResponseHeaders.Refresh, "true")
+		call.respond(io.ktor.http.HttpStatusCode.OK, "")
 	}
 }
 
@@ -43,7 +82,17 @@ private fun Route.whiteListRoutes(whiteListRepository: WhiteListRepository) {
 		whitelistUserFragment(whiteListRepository)
 		whitelistAdd(whiteListRepository)
 		whitelistRemove(whiteListRepository)
-		whitelistSettings(whiteListRepository)
+		whitelistToggle(whiteListRepository)
+	}
+}
+
+private fun Route.whitelistToggle(whiteListRepository: WhiteListRepository) {
+	hx.post("/toggle") {
+		val enabled = whiteListRepository.useWhiteList()
+		whiteListRepository.setWhiteListEnabled(!enabled)
+
+		call.response.header(HxResponseHeaders.Refresh, "true")
+		call.respond(io.ktor.http.HttpStatusCode.OK, "")
 	}
 }
 
@@ -58,15 +107,8 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 			whiteListRepository.addToWhiteList(email)
 		}
 
-		// If called via HTMX, return the updated fragment. Otherwise, redirect.
-		val isHtmx = call.request.headers["HX-Request"] == "true"
-		if (isHtmx) {
-			val model = getWhitelistModel(call, whiteListRepository, page)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
-		} else {
-			// Always return to the admin page; any feedback can be added later if needed
-			call.respondRedirect("/admin")
-		}
+		val model = getWhitelistModel(call, whiteListRepository, page)
+		call.respond(MustacheContent("partials/whitelist.mustache", model))
 	}
 }
 
@@ -120,19 +162,4 @@ private suspend fun getWhitelistModel(
 	model["whitelist"] = whitelist
 
 	return model
-}
-
-private fun Route.whitelistSettings(whiteListRepository: WhiteListRepository) {
-	post("/settings") {
-		val params = call.receiveParameters()
-		val enabled = params["enabled"] != null
-		val contact = params["contact"]
-
-		whiteListRepository.setWhiteListEnabled(enabled)
-		//whiteListRepository.setContactEmail(contact)
-		error("Not Implemented yet")
-
-		// Redirect to admin page after saving settings
-		call.respondRedirect("/admin")
-	}
 }

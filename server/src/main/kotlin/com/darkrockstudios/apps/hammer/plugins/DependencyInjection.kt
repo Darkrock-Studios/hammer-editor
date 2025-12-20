@@ -1,10 +1,8 @@
 package com.darkrockstudios.apps.hammer.plugins
 
-import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import io.ktor.server.application.*
-import kotlinx.coroutines.runBlocking
 import org.koin.core.module.Module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
@@ -28,10 +26,5 @@ fun Application.configureDependencyInjection(addInModule: Module? = null) {
 
 	environment.monitor.subscribe(ApplicationStopped) {
 		db.close()
-	}
-
-	runBlocking {
-		val whiteListRepository: WhiteListRepository = get()
-		whiteListRepository.initialize()
 	}
 }

@@ -13,8 +13,6 @@ _Note: For now, the server is only available as a Java executable. Eventually we
 ```toml
 host = "example.com"
 port = 80
-serverMessage = "Welcome to the my personal Hammer server!"
-contact = "bob@example.com"
 
 # Below this line is optional, if you don't care about HTTPS, just leave it out
 
@@ -63,4 +61,7 @@ You can run `sudo certbot renew` which should automatically renew your certifica
 Once it completes successfully, re-run `convert.sh` to convert the new PEM to JKS, then restart the Hammer server and you should be good to go. 
 
 ## Whitelisting Users
-By default, the server is closed to everyone after the first account. You can open it by going to `/admin` on the website, logging in as your admin account, and unchecking "Enable White List". Otherwise you can
+
+By default, the server is closed to everyone after the first account. You can open it by going to `/admin` on the
+website, logging in as your admin account, and unchecking "Enable White List". Otherwise you can add individual users to
+the whitelist using the admin page.

@@ -1,41 +1,23 @@
 package com.darkrockstudios.apps.hammer.admin
 
-import com.darkrockstudios.apps.hammer.base.http.readJson
-import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
-import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import io.ktor.util.*
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import okio.FileSystem
-import okio.Path
 import org.koin.core.component.KoinComponent
 
 class WhiteListRepository(
 	private val whiteListDao: WhiteListDao,
-	private val fileSystem: FileSystem,
-	private val json: Json,
+	private val configRepository: ConfigRepository,
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
 
-	suspend fun initialize() {
-		val file = getConfigFile()
-		if (fileSystem.exists(file).not()) {
-			storeConfig(WhiteListConfig())
-		}
-	}
-
 	suspend fun useWhiteList(): Boolean {
-		val config = loadConfig()
-		return config.enabled
+		return configRepository.get(AdminServerConfig.WHITELIST_ENABLED)
 	}
 
 	suspend fun setWhiteListEnabled(enabled: Boolean) {
-		updateConfig {
-			it.copy(enabled = enabled)
-		}
+		configRepository.set(AdminServerConfig.WHITELIST_ENABLED, enabled)
 	}
 
 	suspend fun getWhiteList(): List<String> {
@@ -67,40 +49,8 @@ class WhiteListRepository(
 		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
-	private fun getConfigFile(): Path {
-		return getRootDataDirectory(fileSystem) / FILENAME
-	}
-
-	private suspend fun loadConfig(): WhiteListConfig = withContext(ioDispatcher) {
-		val file = getConfigFile()
-		val config = fileSystem.readJson<WhiteListConfig>(file, json)
-		return@withContext if (config == null) {
-			val default = WhiteListConfig()
-			fileSystem.writeJson(file, json, default)
-			default
-		} else {
-			config
-		}
-	}
-
-	private suspend fun storeConfig(config: WhiteListConfig) = withContext(ioDispatcher) {
-		val file = getConfigFile()
-		fileSystem.createDirectories(file.parent ?: error("Failed to get store directory"))
-		fileSystem.writeJson(file, json, config)
-	}
-
-	private suspend fun updateConfig(block: (WhiteListConfig) -> WhiteListConfig) {
-		val original = loadConfig()
-		val updated = block(original)
-		storeConfig(updated)
-	}
-
 	private fun cleanEmail(email: String): String {
 		val cleanedEmail = email.trim().toLowerCasePreservingASCIIRules()
 		return cleanedEmail
-	}
-
-	companion object {
-		private const val FILENAME = "whitelist_config.json"
 	}
 }

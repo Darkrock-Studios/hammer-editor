@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
@@ -21,16 +21,17 @@ import io.ktor.server.sessions.*
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.days
 
-fun Route.frontend(config: ServerConfig) {
+fun Route.frontend() {
 	val accountsRepository: AccountsRepository by inject()
 	val whiteListRepository: WhiteListRepository by inject()
+	val configRepository: ConfigRepository by inject()
 
 	staticResources("/assets", "/assets")
 
-	homeRoutes(config, whiteListRepository)
+	homeRoutes(whiteListRepository, configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository)
-	adminRoutes(config, whiteListRepository)
+	adminRoutes(whiteListRepository, configRepository)
 }
 
 const val COOKIE_USER_SESSION = "user_session"
@@ -99,5 +100,5 @@ fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	return this
 }
 
-fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> =
+suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> =
 	withMessages(data).addDefaults()

@@ -1,13 +1,10 @@
 package com.darkrockstudios.apps.hammer.admin
 
-import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
-import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -18,8 +15,8 @@ class WhiteListRepositoryTest : BaseTest() {
 
 	private lateinit var db: SqliteTestDatabase
 	private lateinit var whiteListDao: WhiteListDao
-	private lateinit var fileSystem: FakeFileSystem
-	private lateinit var json: Json
+	private lateinit var configDao: ServerConfigDao
+	private lateinit var configRepository: ConfigRepository
 
 	@BeforeEach
 	override fun setup() {
@@ -28,36 +25,23 @@ class WhiteListRepositoryTest : BaseTest() {
 		db = SqliteTestDatabase()
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
-
-		fileSystem = FakeFileSystem()
-		json = createJsonSerializer()
+		configDao = ServerConfigDao(db)
+		configRepository = ConfigRepository(configDao)
 
 		setupKoin()
 	}
 
-	private fun createRepo() = WhiteListRepository(whiteListDao, fileSystem, json)
-
-	@Test
-	fun `initialize - creates config if not exists`() = runTest {
-		val repo = createRepo()
-		repo.initialize()
-
-		val configFile = getRootDataDirectory(fileSystem) / "whitelist_config.json"
-		assertTrue(fileSystem.exists(configFile), "Config file should be created")
-	}
+	private fun createRepo() = WhiteListRepository(whiteListDao, configRepository)
 
 	@Test
 	fun `useWhiteList - returns true by default`() = runTest {
 		val repo = createRepo()
-		repo.initialize()
-
 		assertTrue(repo.useWhiteList(), "Should be enabled by default")
 	}
 
 	@Test
 	fun `setWhiteListEnabled - updates config`() = runTest {
 		val repo = createRepo()
-		repo.initialize()
 
 		repo.setWhiteListEnabled(false)
 		assertFalse(repo.useWhiteList(), "Should be disabled after setting to false")
@@ -69,7 +53,6 @@ class WhiteListRepositoryTest : BaseTest() {
 	@Test
 	fun `setWhiteListEnabled - persists`() = runTest {
 		val repo1 = createRepo()
-		repo1.initialize()
 		repo1.setWhiteListEnabled(false)
 
 		val repo2 = createRepo()

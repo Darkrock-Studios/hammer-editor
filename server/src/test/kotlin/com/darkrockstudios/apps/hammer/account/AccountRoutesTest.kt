@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
@@ -51,6 +50,9 @@ class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
 
+	@MockK
+	private lateinit var configRepository: com.darkrockstudios.apps.hammer.admin.ConfigRepository
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	private lateinit var json: Json
@@ -65,6 +67,7 @@ class AccountRoutesTest : BaseTest() {
 		MockKAnnotations.init(this)
 
 		json = createJsonSerializer()
+		coEvery { configRepository.get(any<com.darkrockstudios.apps.hammer.admin.ServerConfigKey<*>>()) } returns "en"
 
 		testModule = module {
 			single { accountsRepository }
@@ -73,6 +76,7 @@ class AccountRoutesTest : BaseTest() {
 			single { accountsComponent }
 			single { adminComponent }
 			single { whiteListRepository }
+			single { configRepository }
 			single { json }
 		}
 	}
@@ -90,7 +94,7 @@ class AccountRoutesTest : BaseTest() {
 			configureSerialization()
 			configureLocalization()
 			configureSecurity()
-			configureRouting(ServerConfig())
+			configureRouting()
 		}
 
 		createClient {
@@ -124,7 +128,7 @@ class AccountRoutesTest : BaseTest() {
 			configureSerialization()
 			configureLocalization()
 			configureSecurity()
-			configureRouting(ServerConfig())
+			configureRouting()
 		}
 
 		createClient {
