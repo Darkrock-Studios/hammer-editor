@@ -120,7 +120,9 @@ class ProjectsListComponent(
 					projectsSynchronizer.initialSync.not()
 				) {
 					projectsSynchronizer.initialSync = true
-					showProjectsSync()
+					withContext(mainDispatcher) {
+						showProjectsSync()
+					}
 				}
 			}
 		}
@@ -278,18 +280,20 @@ class ProjectsListComponent(
 		return success
 	}
 
-	private fun syncNewProjectStatus(projects: List<ProjectDef>) {
+	private suspend fun syncNewProjectStatus(projects: List<ProjectDef>) {
 		val newStatuses = mutableMapOf<String, ProjectsList.ProjectSyncStatus>()
 		projects.forEach { projDef ->
 			newStatuses[projDef.name] = ProjectsList.ProjectSyncStatus(projectName = projDef.name)
 		}
 
-		_state.getAndUpdate {
-			it.copy(
-				syncState = it.syncState.copy(
-					projectsStatus = newStatuses
+		withContext(mainDispatcher) {
+			_state.getAndUpdate {
+				it.copy(
+					syncState = it.syncState.copy(
+						projectsStatus = newStatuses
+					)
 				)
-			)
+			}
 		}
 	}
 
