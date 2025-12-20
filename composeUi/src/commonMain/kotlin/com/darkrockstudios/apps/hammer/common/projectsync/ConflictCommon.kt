@@ -2,10 +2,12 @@ package com.darkrockstudios.apps.hammer.common.projectsync
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -97,6 +99,8 @@ private fun <T : ApiProjectEntity> ExpandedConflictUi(
 			entityConflict,
 			component
 		)
+
+		VerticalDivider(modifier = Modifier.fillMaxHeight())
 
 		LocalEntity(
 			Modifier.weight(1f),
