@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.close_dialog_button
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -22,15 +23,19 @@ fun SimpleDialog(
 	onCloseRequest: () -> Unit,
 	visible: Boolean,
 	title: String,
-	modifier: Modifier = Modifier.padding(Ui.Padding.XL),
+	modifier: Modifier = Modifier,
+	overridePlatformWidth: Boolean = false,
 	content: @Composable ColumnScope.() -> Unit
 ) {
 	if (visible) {
 		Dialog(
 			onDismissRequest = onCloseRequest,
+			properties = DialogProperties(
+				usePlatformDefaultWidth = !overridePlatformWidth
+			),
 			content = {
-				Card(modifier = Modifier.wrapContentSize()) {
-					Column(modifier = modifier) {
+				Card(modifier = modifier) {
+					Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 						Row(
 							modifier = Modifier.fillMaxWidth(),
 							horizontalArrangement = Arrangement.SpaceBetween,

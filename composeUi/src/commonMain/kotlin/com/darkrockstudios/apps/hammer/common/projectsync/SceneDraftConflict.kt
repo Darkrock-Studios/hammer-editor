@@ -51,7 +51,7 @@ private fun LocalDraft(
 	var nameError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
 	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
 
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -78,31 +78,31 @@ private fun LocalDraft(
 				Text(Res.string.sync_conflict_local_use_button.get())
 			}
 		}
-		Text(
-			text = Res.string.sync_conflict_merge_explained.get(),
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = nameTextValue,
 			onValueChange = { nameTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
 			label = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
 			isError = (nameError != null),
+			modifier = Modifier.fillMaxWidth(),
+			singleLine = true
 		)
-		Text(
-			nameError ?: "",
-			style = MaterialTheme.typography.bodySmall,
-			fontStyle = FontStyle.Italic,
-			color = MaterialTheme.colorScheme.error
-		)
-		Spacer(Modifier.size(Ui.Padding.XL))
+		if (nameError != null) {
+			Text(
+				nameError ?: "",
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.error
+			)
+		}
+		Spacer(Modifier.size(Ui.Padding.M))
 		TextField(
 			value = contentTextValue,
 			onValueChange = { contentTextValue = it },
 			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) },
-			label = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) }
+			label = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) },
+			modifier = Modifier.fillMaxWidth().weight(1f)
 		)
 	}
 }
@@ -113,7 +113,7 @@ private fun RemoteDraft(
 	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
 	component: ProjectSynchronization
 ) {
-	Column(modifier = modifier.padding(Ui.Padding.L)) {
+	Column(modifier = modifier.padding(Ui.Padding.M)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,7 +127,7 @@ private fun RemoteDraft(
 				Text(Res.string.sync_conflict_remote_use_button.get())
 			}
 		}
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_title_scene_draft_field_name.get(),
 			style = MaterialTheme.typography.bodyLarge,
@@ -139,13 +139,13 @@ private fun RemoteDraft(
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
-		Spacer(Modifier.size(Ui.Padding.XL))
+		Spacer(Modifier.size(Ui.Padding.M))
 		Text(
 			Res.string.sync_conflict_title_scene_draft_field_content.get(),
 			style = MaterialTheme.typography.bodyLarge,
 			fontWeight = FontWeight.Bold
 		)
-		SelectionContainer {
+		SelectionContainer(modifier = Modifier.weight(1f)) {
 			Text(
 				entityConflict.serverEntity.content,
 				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
