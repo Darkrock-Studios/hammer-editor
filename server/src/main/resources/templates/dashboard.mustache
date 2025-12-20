@@ -31,14 +31,14 @@
 				{{#hasProjects}}
 					<div class="projects-list">
 						{{#projects}}
-							<div class="project-card">
+							<a href="/story/{{uuid}}" class="project-card">
 								<div class="project-info">
 									<span class="project-name">{{name}}</span>
 									<span class="project-sync-date">
 								{{msg.dashboard_last_sync}}: {{lastSync}}
 							</span>
 								</div>
-							</div>
+							</a>
 						{{/projects}}
 					</div>
 				{{/hasProjects}}

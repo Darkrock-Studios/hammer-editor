@@ -1,0 +1,27 @@
+{{> header}}
+
+<main class="story-page">
+	<div class="story-container">
+		<!-- Story Header -->
+		<div class="story-header">
+			<a href="/dashboard" class="back-link">
+				<i class="fas fa-arrow-left"></i> {{msg.story_back_to_dashboard}}
+			</a>
+			<h1 class="story-title">{{projectName}}</h1>
+		</div>
+
+		<!-- Story Content -->
+		<article class="story-content">
+			{{#hasContent}}
+				{{{storyHtml}}}
+			{{/hasContent}}
+			{{^hasContent}}
+				<div class="story-empty">
+					<p>{{msg.story_no_scenes}}</p>
+				</div>
+			{{/hasContent}}
+		</article>
+	</div>
+</main>
+
+{{> footer}}
