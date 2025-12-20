@@ -24,6 +24,7 @@ fun SimpleDialog(
 	visible: Boolean,
 	title: String,
 	modifier: Modifier = Modifier,
+	dialogContainerModifier: Modifier = Modifier,
 	overridePlatformWidth: Boolean = false,
 	content: @Composable ColumnScope.() -> Unit
 ) {
@@ -34,34 +35,39 @@ fun SimpleDialog(
 				usePlatformDefaultWidth = !overridePlatformWidth
 			),
 			content = {
-				Card(modifier = modifier) {
-					Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							horizontalArrangement = Arrangement.SpaceBetween,
-							verticalAlignment = Alignment.CenterVertically
-						) {
-							Text(
-								text = title,
-								style = MaterialTheme.typography.titleLarge,
-								fontWeight = FontWeight.Bold,
-								modifier = Modifier
-									.weight(1f)
-									.padding(Ui.Padding.XL)
-							)
+				Box(
+					modifier = dialogContainerModifier,
+					contentAlignment = Alignment.Center
+				) {
+					Card(modifier = modifier) {
+						Column(modifier = Modifier.padding(Ui.Padding.XL)) {
+							Row(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.SpaceBetween,
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Text(
+									text = title,
+									style = MaterialTheme.typography.titleLarge,
+									fontWeight = FontWeight.Bold,
+									modifier = Modifier
+										.weight(1f)
+										.padding(Ui.Padding.XL)
+								)
 
-							Icon(
-								Icons.Default.Close,
-								contentDescription = Res.string.close_dialog_button.get(),
-								modifier = Modifier
-									.padding(Ui.Padding.L)
-									.clickable {
-										onCloseRequest()
-									}
-							)
+								Icon(
+									Icons.Default.Close,
+									contentDescription = Res.string.close_dialog_button.get(),
+									modifier = Modifier
+										.padding(Ui.Padding.L)
+										.clickable {
+											onCloseRequest()
+										}
+								)
+							}
+							Spacer(modifier = Modifier.size(Ui.Padding.L))
+							content()
 						}
-						Spacer(modifier = Modifier.size(Ui.Padding.L))
-						content()
 					}
 				}
 			}
