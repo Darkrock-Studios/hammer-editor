@@ -1,21 +1,24 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.text.input.VisualTransformation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> ExposedDropDown(
 	items: List<T>,
 	selectedItem: T?,
+	modifier: Modifier = Modifier,
 	label: String? = null,
 	getText: @Composable ((T) -> String)? = null,
-	modifier: Modifier = Modifier,
 	noneOption: String? = null,
 	enabled: Boolean = true,
 	onValueChanged: (T?) -> Unit
@@ -35,28 +38,53 @@ fun <T> ExposedDropDown(
 
 	var isExpanded by rememberSaveable { mutableStateOf(false) }
 	val selectedText = getItemText(selectedItem)
+	val interactionSource = remember { MutableInteractionSource() }
 
 	ExposedDropdownMenuBox(
 		expanded = isExpanded,
 		onExpandedChange = { if (enabled) isExpanded = it },
-		modifier = Modifier,
+		modifier = modifier.pointerHoverIcon(PointerIcon.Default),
 	) {
-		TextField(
+		BasicTextField(
 			value = selectedText,
 			onValueChange = {},
 			readOnly = true,
 			enabled = enabled,
-			trailingIcon = {
-				ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
-			},
-			label = {
-				if (label != null) {
-					Text(text = label)
-				}
-			},
-			colors = ExposedDropdownMenuDefaults.textFieldColors(),
-			modifier = modifier.menuAnchor(),
-		)
+			singleLine = true,
+			interactionSource = interactionSource,
+			modifier = Modifier
+				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+				.pointerHoverIcon(PointerIcon.Default),
+		) { innerTextField ->
+			val colors = ExposedDropdownMenuDefaults.textFieldColors()
+			val textColor = if (enabled) colors.focusedTextColor else colors.disabledTextColor
+			TextFieldDefaults.DecorationBox(
+				value = selectedText,
+				innerTextField = {
+					Box {
+						Text(
+							selectedText,
+							color = textColor,
+							modifier = Modifier.pointerHoverIcon(PointerIcon.Default)
+						)
+					}
+				},
+				enabled = enabled,
+				singleLine = true,
+				visualTransformation = VisualTransformation.None,
+				interactionSource = interactionSource,
+				trailingIcon = {
+					ExposedDropdownMenuDefaults.TrailingIcon(
+						expanded = isExpanded,
+						modifier = Modifier.pointerHoverIcon(PointerIcon.Default)
+					)
+				},
+				label = if (label != null) {
+					{ Text(text = label, modifier = Modifier.pointerHoverIcon(PointerIcon.Default)) }
+				} else null,
+				colors = colors,
+			)
+		}
 
 		ExposedDropdownMenu(
 			expanded = isExpanded && enabled,
@@ -64,7 +92,6 @@ fun <T> ExposedDropDown(
 		) {
 			if (noneOption != null) {
 				DropdownMenuItem(
-					modifier = Modifier.exposedDropdownSize(),
 					text = {
 						Text(text = noneOption)
 					},
@@ -79,7 +106,6 @@ fun <T> ExposedDropDown(
 				val text = getItemText(item)
 
 				DropdownMenuItem(
-					modifier = Modifier.exposedDropdownSize(),
 					text = {
 						Text(text = text)
 					},
