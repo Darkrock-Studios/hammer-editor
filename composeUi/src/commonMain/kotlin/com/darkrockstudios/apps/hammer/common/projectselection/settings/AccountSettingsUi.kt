@@ -118,6 +118,18 @@ internal fun AccountSettingsUi(
 					SpacerXL()
 
 					SettingsSectionGroup {
+						ServerSettingsUi(component, scope, rootSnackbar)
+					}
+
+					SpacerXL()
+
+					SettingsSectionGroup {
+						PlatformSettingsUi(component.platformSettings)
+					}
+
+					SpacerXL()
+
+					SettingsSectionGroup {
 						Column {
 							Text(
 								Res.string.settings_example_project_header.get(),
@@ -142,18 +154,6 @@ internal fun AccountSettingsUi(
 								Text(Res.string.settings_example_project_button.get())
 							}
 						}
-					}
-
-					SpacerXL()
-
-					SettingsSectionGroup {
-						ServerSettingsUi(component, scope, rootSnackbar)
-					}
-
-					SpacerXL()
-
-					SettingsSectionGroup {
-						PlatformSettingsUi(component.platformSettings)
 					}
 
 					SpacerXL()
