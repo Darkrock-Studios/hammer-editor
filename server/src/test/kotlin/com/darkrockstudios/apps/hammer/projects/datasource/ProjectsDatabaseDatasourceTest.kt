@@ -49,7 +49,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 
 	private fun createDatasource(): ProjectsDatabaseDatasource {
 		return ProjectsDatabaseDatasource(
-			projectDao = ProjectDao(testDatabase, clock),
+			projectDao = ProjectDao(testDatabase),
 			projectsDao = ProjectsDao(testDatabase),
 		)
 	}

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -25,12 +26,14 @@ fun Route.frontend() {
 	val accountsRepository: AccountsRepository by inject()
 	val whiteListRepository: WhiteListRepository by inject()
 	val configRepository: ConfigRepository by inject()
+	val projectsRepository: ProjectsRepository by inject()
 
 	staticResources("/assets", "/assets")
 
 	homePage(whiteListRepository, configRepository)
 	localeRoutes()
-	authRoutes(accountsRepository)
+	authRoutes(accountsRepository, whiteListRepository, configRepository)
+	dashboardPage(projectsRepository)
 	adminPage(whiteListRepository, configRepository)
 }
 
@@ -100,5 +103,14 @@ fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	return this
 }
 
-suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> =
-	withMessages(data).addDefaults()
+suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
+	val model = withMessages(data).addDefaults()
+	val session = sessions.get<UserSession>()
+	if (session != null) {
+		model["isLoggedIn"] = true
+		model["sessionUsername"] = session.username
+	} else {
+		model["isLoggedIn"] = false
+	}
+	return model
+}

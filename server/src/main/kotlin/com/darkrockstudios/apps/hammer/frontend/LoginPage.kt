@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.mustache.*
@@ -9,20 +12,29 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 
-fun Route.authRoutes(accountsRepository: AccountsRepository) {
-	loginPage(accountsRepository)
+fun Route.authRoutes(
+	accountsRepository: AccountsRepository,
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+) {
+	loginPage(accountsRepository, whiteListRepository, configRepository)
 	logout()
 	unauthorized()
 }
 
-private fun Route.loginPage(accountsRepository: AccountsRepository) {
+private fun Route.loginPage(
+	accountsRepository: AccountsRepository,
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+) {
 	route("/login") {
 		get {
 			val session: UserSession? = call.sessions.get<UserSession>()
 			if (session != null) {
-				call.respondRedirect("/admin")
+				call.respondRedirect("/dashboard")
 			} else {
-				call.respond(MustacheContent("login.mustache", call.withDefaults()))
+				val model = buildLoginModel(whiteListRepository, configRepository)
+				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
 
@@ -46,14 +58,28 @@ private fun Route.loginPage(accountsRepository: AccountsRepository) {
 						isAdmin = isAdmin
 					)
 				)
-				call.respondRedirect("/admin")
+				call.respondRedirect("/dashboard")
 			} else {
 				val message = result.displayMessageText(call) ?: "Login failed"
-				val model = mapOf(
-					"message" to message
-				)
+				val model = buildLoginModel(whiteListRepository, configRepository).toMutableMap()
+				model["message"] = message
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
+		}
+	}
+}
+
+private suspend fun buildLoginModel(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+): Map<String, Any> {
+	val useWhiteList = whiteListRepository.useWhiteList()
+	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
+
+	return buildMap {
+		put("whitelistEnabled", useWhiteList)
+		if (contactEmail.isNotBlank()) {
+			put("contactEmail", contactEmail)
 		}
 	}
 }

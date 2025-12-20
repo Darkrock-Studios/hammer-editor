@@ -23,6 +23,10 @@ class ProjectsRepository(
 
 	suspend fun createUserData(userId: Long) = projectsDatasource.createUserData(userId)
 
+	suspend fun getProjectsWithSyncDate(userId: Long): List<ProjectWithSyncDate> {
+		return projectsDatasource.getProjectsWithSyncDate(userId)
+	}
+
 	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
 		return if (syncSessionManager.hasActiveSyncSession(userId)) {
 			SResult.failure(

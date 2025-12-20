@@ -67,6 +67,10 @@ class ProjectsFileSystemDatasource(
 			.toSet()
 	}
 
+	override suspend fun getProjectsWithSyncDate(userId: Long): List<ProjectWithSyncDate> {
+		error("getProjectsWithSyncDate not implemented for FileSystem datasource")
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		error("findProjectByName not implemented for FileSystem datasource")
 	}

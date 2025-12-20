@@ -20,7 +20,12 @@
 			<h1 class="site-title">Hammer</h1>
 		</a>
 		<nav class="header-nav">
-			<a href="/login" class="btn">Admin</a>
+			{{#isLoggedIn}}
+				<a href="/dashboard" class="btn">{{msg.home_header_dashboardbutton}}</a>
+			{{/isLoggedIn}}
+			{{^isLoggedIn}}
+				<a href="/login" class="btn">{{msg.home_header_loginbutton}}</a>
+			{{/isLoggedIn}}
 		</nav>
 	</div>
 </header>

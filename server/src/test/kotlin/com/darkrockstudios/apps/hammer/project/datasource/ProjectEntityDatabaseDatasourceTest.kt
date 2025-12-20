@@ -72,7 +72,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private fun createDatasource(): ProjectEntityDatabaseDatasource {
 		return ProjectEntityDatabaseDatasource(
 			accountDao = AccountDao(testDatabase),
-			projectDao = ProjectDao(testDatabase, clock),
+			projectDao = ProjectDao(testDatabase),
 			deletedProjectDao = DeletedProjectDao(testDatabase),
 			storyEntityDao = StoryEntityDao(testDatabase),
 			deletedEntityDao = DeletedEntityDao(testDatabase),

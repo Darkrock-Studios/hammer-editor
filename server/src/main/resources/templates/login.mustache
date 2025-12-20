@@ -31,6 +31,19 @@
 					<button type="submit" class="login-button">{{msg.login_signin_button}}</button>
 				</div>
 			</form>
+
+			<div class="login-info">
+				<p class="login-info-text">{{msg.login_info_create_account}}</p>
+				{{#whitelistEnabled}}
+					<div class="login-info-whitelist">
+						<p>{{msg.login_info_whitelist_notice}}</p>
+						{{#contactEmail}}
+							<p>{{msg.login_info_whitelist_contact}} <a
+								href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
+						{{/contactEmail}}
+					</div>
+				{{/whitelistEnabled}}
+			</div>
 		</div>
 	</div>
 </main>
