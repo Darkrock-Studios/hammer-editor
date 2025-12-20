@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
@@ -59,11 +60,13 @@ fun mainModule(
 	singleOf(::ProjectDao)
 	singleOf(::DeletedProjectDao)
 	singleOf(::DeletedEntityDao)
+	singleOf(::ServerConfigDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
 	singleOf(::WhiteListRepository)
+	singleOf(::ConfigRepository)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
