@@ -75,7 +75,7 @@ class SimpleFileBasedAesGcmKeyProvider(
 		val serverSecret = cachedServerSecret ?: getServerSecret()
 		cachedServerSecret = serverSecret
 
-		val cachedKey = cache.get(serverSecret)
+		val cachedKey = cache.get(clientSecret)
 		return if (cachedKey != null) {
 			cachedKey
 		} else {
