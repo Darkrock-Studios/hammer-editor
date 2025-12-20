@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
-import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
@@ -41,6 +40,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var adminComponent: AdminComponent
 
 	@MockK(relaxed = true)
+	protected lateinit var configRepository: com.darkrockstudios.apps.hammer.admin.ConfigRepository
+
+	@MockK(relaxed = true)
 	protected lateinit var json: Json
 
 	protected lateinit var testModule: org.koin.core.module.Module
@@ -60,6 +62,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
+			single { configRepository }
 			single { json }
 		}
 	}
@@ -70,7 +73,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 			configureSerialization()
 			configureSecurity()
-			configureRouting(ServerConfig())
+			configureRouting()
 
 			if (moreSetup != null) moreSetup()
 		}

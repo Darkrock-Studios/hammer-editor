@@ -38,7 +38,6 @@ class FilesystemToDatabaseMigration : DataMigration {
 
 		val db = SqliteDatabase(fileSystem)
 		db.initialize()
-		//ServerDatabase.Schema.migrate(db.getDriver(), 1, 2)
 
 		val rootFilesDir = ProjectsFileSystemDatasource.getRootDirectory(fileSystem)
 		if (fileSystem.exists(rootFilesDir).not()) {

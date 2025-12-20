@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
@@ -15,6 +17,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +33,7 @@ class ApplicationTest : BaseTest() {
 	private lateinit var accountsComponent: AccountsComponent
 	private lateinit var adminComponent: AdminComponent
 	private lateinit var whiteListRepository: WhiteListRepository
+	private lateinit var configRepository: ConfigRepository
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -42,6 +46,8 @@ class ApplicationTest : BaseTest() {
 		accountsComponent = mockk()
 		adminComponent = mockk()
 		whiteListRepository = mockk()
+		configRepository = mockk()
+		coEvery { configRepository.get(any<ServerConfigKey<*>>()) } returns "en"
 
 		testModule = module {
 			single { accountsRepository }
@@ -50,6 +56,7 @@ class ApplicationTest : BaseTest() {
 			single { accountsComponent }
 			single { adminComponent }
 			single { whiteListRepository }
+			single { configRepository }
 			single { mockk<Json>() }
 		}
 	}
@@ -60,7 +67,7 @@ class ApplicationTest : BaseTest() {
 			setupKtorTestKoin(this@ApplicationTest, testModule)
 			configureSecurity()
 			configureLocalization()
-			configureRouting(ServerConfig())
+			configureRouting()
 		}
 		client.get("/api/teapot").apply {
 			assertEquals(HttpStatusCode.fromValue(418), status)

@@ -32,8 +32,10 @@ class SqliteDatabase(fileSystem: FileSystem) : Database {
 			setSchemaVersion()
 		} else {
 			val currentVersion = getSchemaVersion()
-			ServerDatabase.Schema.migrate(driver, currentVersion, ServerDatabase.Schema.version)
-			setSchemaVersion()
+			if (currentVersion < ServerDatabase.Schema.version) {
+				ServerDatabase.Schema.migrate(driver, currentVersion, ServerDatabase.Schema.version)
+				setSchemaVersion()
+			}
 		}
 
 		_serverDatabase = ServerDatabase(driver)

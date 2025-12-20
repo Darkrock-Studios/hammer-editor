@@ -13,25 +13,78 @@
 			</form>
 		</div>
 
-		<!-- Server Message Section -->
+		<!-- Server Settings Section -->
 		<section class="admin-section">
 			<div class="section-header">
-				<h2>{{msg.admin_servermessage_title}}</h2>
-				<span class="section-badge">{{msg.admin_badge_readonly}}</span>
+				<div class="section-title-group">
+					<h2>{{msg.admin_serversettings_title}}</h2>
+				</div>
 			</div>
-			<p class="section-description">{{msg.admin_servermessage_description}}</p>
-			<div class="message-display">
-				<pre>{{serverMessage}}</pre>
-			</div>
+			<p class="section-description">{{msg.admin_serversettings_description}}</p>
+
+			<form action="/admin/settings" method="post" class="settings-form"
+				  hx-post="/admin/settings"
+				  hx-swap="none">
+				<div class="form-group">
+					<label for="contact">{{msg.admin_serversettings_contact_label}}</label>
+					<div class="form-input-group">
+						<input id="contact" name="contact" type="email" value="{{contactEmail}}"
+							   placeholder="{{msg.admin_serversettings_contact_placeholder}}"/>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label for="defaultLocale">{{msg.admin_serversettings_default_locale_label}}</label>
+					<div class="form-input-group">
+						<select id="defaultLocale" name="defaultLocale" class="settings-select">
+							{{#availableLocales}}
+								<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+							{{/availableLocales}}
+						</select>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label for="message">{{msg.admin_serversettings_message_label}}</label>
+					<div class="form-input-group">
+						<textarea id="message" name="message" rows="4"
+								  class="settings-textarea">{{serverMessage}}</textarea>
+					</div>
+				</div>
+
+				<div class="form-actions">
+					<button type="submit" class="save-button">{{msg.admin_serversettings_save_button}}</button>
+				</div>
+			</form>
 		</section>
 
 		<!-- Whitelist Management Section -->
 		<section class="admin-section">
 			<div class="section-header">
-				<h2>{{msg.admin_whitelist_management_title}}</h2>
-				{{#whitelist.enabled}}
-				<span class="section-badge accent">{{msg.admin_badge_active}}</span>
-				{{/whitelist.enabled}}
+				<div class="section-title-group">
+					<h2>{{msg.admin_whitelist_management_title}}</h2>
+					<p class="admin-subtitle">
+						{{#whitelist.enabled}}
+							{{msg.admin_whitelist_enabled_subtitle}}
+						{{/whitelist.enabled}}
+						{{^whitelist.enabled}}
+							{{msg.admin_whitelist_disabled_subtitle}}
+						{{/whitelist.enabled}}
+					</p>
+				</div>
+				<div class="section-header-actions">
+					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
+						  hx-post="/admin/whitelist/toggle"
+						  hx-swap="none">
+						<button type="submit" class="toggle-button {{#whitelist.enabled}}active{{/whitelist.enabled}}">
+							{{#whitelist.enabled}}Disable Whitelist{{/whitelist.enabled}}
+							{{^whitelist.enabled}}Enable Whitelist{{/whitelist.enabled}}
+						</button>
+					</form>
+					{{#whitelist.enabled}}
+						<span class="section-badge accent">{{msg.admin_badge_active}}</span>
+					{{/whitelist.enabled}}
+				</div>
 			</div>
 			<p class="section-description">{{msg.admin_whitelist_description}}</p>
 

@@ -1,0 +1,5 @@
+CREATE TABLE server_config (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);

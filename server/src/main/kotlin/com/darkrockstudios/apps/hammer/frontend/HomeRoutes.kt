@@ -1,22 +1,29 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.homeRoutes(config: ServerConfig, whiteListRepository: WhiteListRepository) {
+fun Route.homeRoutes(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository
+) {
 	route("/") {
 		get {
 			val model = call.withDefaults()
 			val useWhiteList = whiteListRepository.useWhiteList()
-			model["serverMessage"] = config.serverMessage
+			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 
-			if (useWhiteList && config.contact.isNullOrBlank().not()) {
+			model["serverMessage"] = serverMessage
+
+			if (useWhiteList && contactEmail.isNotBlank()) {
 				model["whitelistEnabled"] = useWhiteList
-				call.msg(model, "home_servermessage_whitelist", config.contact)
+				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}
 			call.respond(MustacheContent("home.mustache", model))
 		}
