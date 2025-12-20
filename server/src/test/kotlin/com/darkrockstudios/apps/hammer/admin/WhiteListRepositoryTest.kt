@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.admin
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.database.WhiteListDao
+import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
@@ -14,7 +16,8 @@ import kotlin.test.assertTrue
 
 class WhiteListRepositoryTest : BaseTest() {
 
-	private lateinit var whiteListDao: FakeWhiteListDao
+	private lateinit var db: SqliteTestDatabase
+	private lateinit var whiteListDao: WhiteListDao
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var json: Json
 
@@ -22,7 +25,10 @@ class WhiteListRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		whiteListDao = FakeWhiteListDao()
+		db = SqliteTestDatabase()
+		db.initialize()
+		whiteListDao = WhiteListDao(db)
+
 		fileSystem = FakeFileSystem()
 		json = createJsonSerializer()
 
