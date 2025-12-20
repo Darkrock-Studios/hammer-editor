@@ -185,4 +185,43 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			assertFalse { endResult.isSuccess }
 		}
 	}
+
+	@Test
+	fun `validateSyncId rejects expired syncIds`() = runTest {
+		// The allowExpired parameter is set to false in validateSyncId
+		// This test verifies that expired syncIds are rejected
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		// Return false to simulate an expired session when allowExpired=false
+		coEvery { projectSessionManager.validateSyncId(any(), any(), false) } returns false
+
+		createProjectRepository().apply {
+			val result = getProjectSyncData(userId, projectDefinition, "expired-sync-id")
+			assertFalse(result.isSuccess)
+		}
+	}
+
+	@Test
+	fun `getProjectSyncData succeeds with valid non-expired syncId`() = runTest {
+		val syncData = ProjectSyncData(
+			lastSync = clock.now(),
+			lastId = 5,
+			deletedIds = setOf(1, 2)
+		)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		coEvery { projectSessionManager.validateSyncId(any(), any(), false) } returns true
+		coEvery {
+			projectEntityDatasource.checkProjectExists(userId, projectDefinition)
+		} returns true
+		coEvery {
+			projectEntityDatasource.loadProjectSyncData(userId, projectDefinition)
+		} returns syncData
+
+		createProjectRepository().apply {
+			val result = getProjectSyncData(userId, projectDefinition, "valid-sync-id")
+			assertTrue(isSuccess(result))
+			assertEquals(syncData.lastId, result.data.lastId)
+			assertEquals(syncData.lastSync, result.data.lastSync)
+		}
+	}
 }
