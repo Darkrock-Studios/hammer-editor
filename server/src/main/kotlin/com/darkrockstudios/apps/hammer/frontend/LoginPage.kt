@@ -10,12 +10,12 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 
 fun Route.authRoutes(accountsRepository: AccountsRepository) {
-	login(accountsRepository)
+	loginPage(accountsRepository)
 	logout()
 	unauthorized()
 }
 
-private fun Route.login(accountsRepository: AccountsRepository) {
+private fun Route.loginPage(accountsRepository: AccountsRepository) {
 	route("/login") {
 		get {
 			val session: UserSession? = call.sessions.get<UserSession>()
