@@ -51,7 +51,7 @@ decompose = "3.4.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
 filekit = "0.12.0"
-koalaplot-core = "0.10.3"
+koalaplot-core = "0.10.4"
 coil = "3.3.0"
 kmpalette = "3.1.0"
 
