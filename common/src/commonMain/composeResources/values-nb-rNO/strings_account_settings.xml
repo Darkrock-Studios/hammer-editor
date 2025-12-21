@@ -23,6 +23,7 @@
 	<string name="settings_server_sync_backup">Sikkerhetskopi ved synkronisering</string>
 	<string name="settings_server_sync_auto_close">Lukk dialoger etter vellykket synkronisering</string>
 	<string name="settings_server_max_backups">Maks sikkerhetskopier per prosjekt</string>
+	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_test_auth_button">Test autentisering</string>
 	<string name="settings_server_reauth_button">Re-autentiser</string>
 	<string name="settings_server_remove_server_button">Fjern server</string>

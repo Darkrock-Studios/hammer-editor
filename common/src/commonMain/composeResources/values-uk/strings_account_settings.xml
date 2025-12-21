@@ -23,6 +23,7 @@
 	<string name="settings_server_sync_backup">Резервна копія під час синхронізації</string>
 	<string name="settings_server_sync_auto_close">Закривати діалоги після успішної синхронізації</string>
 	<string name="settings_server_max_backups">Макс. резервних копій на проєкт</string>
+	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_test_auth_button">Перевірити автентифікацію</string>
 	<string name="settings_server_reauth_button">Повторна автентифікація</string>
 	<string name="settings_server_remove_server_button">Видалити сервер</string>

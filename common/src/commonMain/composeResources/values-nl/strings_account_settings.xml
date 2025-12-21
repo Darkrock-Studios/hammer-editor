@@ -23,6 +23,7 @@
 	<string name="settings_server_sync_backup">Back-up bij synchronisatie</string>
 	<string name="settings_server_sync_auto_close">Dialoogvensters sluiten na succesvolle synchronisatie</string>
 	<string name="settings_server_max_backups">Max. back-ups per project</string>
+	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_test_auth_button">Authenticatie testen</string>
 	<string name="settings_server_reauth_button">Opnieuw authenticeren</string>
 	<string name="settings_server_remove_server_button">Server verwijderen</string>

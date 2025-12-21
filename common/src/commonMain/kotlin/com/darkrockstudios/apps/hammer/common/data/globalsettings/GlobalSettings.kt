@@ -18,7 +18,7 @@ data class GlobalSettings(
 	val uiTheme: UiTheme = UiTheme.FollowSystem,
 	val automaticBackups: Boolean = true,
 	val autoCloseSyncDialog: Boolean = true,
-	val maxBackups: Int = DEFAULT_MAX_BACKUPS,
+	val maxBackups: Int = DEFAULT_BACKUPS,
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
@@ -31,7 +31,8 @@ data class GlobalSettings(
 ) {
 	companion object {
 
-		const val DEFAULT_MAX_BACKUPS = 50
+		const val DEFAULT_BACKUPS = 20
+		const val MAX_BACKUPS = 50
 		const val DEFAULT_FONT_SIZE = 16f
 	}
 }

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -12,12 +12,16 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,7 +74,9 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
-							uiTheme = settings.uiTheme
+							uiTheme = settings.uiTheme,
+							syncAutomaticBackups = settings.automaticBackups,
+							maxBackups = settings.maxBackups,
 						)
 					}
 				}
@@ -180,11 +186,16 @@ class AccountSettingsComponent(
 		}
 	}
 
-	override suspend fun setMaxBackups(value: Int) {
-		globalSettingsRepository.updateSettings {
-			it.copy(
-				maxBackups = value
-			)
+	override suspend fun setMaxBackups(value: Int): Boolean {
+		return if (value in 1..GlobalSettings.MAX_BACKUPS) {
+			globalSettingsRepository.updateSettings {
+				it.copy(
+					maxBackups = value
+				)
+			}
+			true
+		} else {
+			false
 		}
 	}
 

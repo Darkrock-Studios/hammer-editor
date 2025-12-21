@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectselection.ServerSetupDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -222,14 +223,19 @@ fun ServerSettingsUi(
 					}
 					Box(modifier = Modifier.padding(start = Ui.Padding.XL + Ui.Padding.M, top = Ui.Padding.S)) {
 						var maxBackupsValue by remember(state.maxBackups) { mutableStateOf("${state.maxBackups}") }
+						val isMaxBackupsError = remember(maxBackupsValue) {
+							val value = maxBackupsValue.toIntOrNull()
+							value == null || value !in 1..GlobalSettings.MAX_BACKUPS
+						}
+
 						OutlinedTextField(
-							modifier = Modifier.width(140.dp),
+							modifier = Modifier.width(200.dp),
 							value = maxBackupsValue,
 							onValueChange = { newText ->
 								if (newText.isEmpty() || newText.all { it.isDigit() }) {
 									maxBackupsValue = newText
 									newText.toIntOrNull()?.let { value ->
-										if (value >= 0) {
+										if (value in 1..GlobalSettings.MAX_BACKUPS) {
 											scope.launch { component.setMaxBackups(value) }
 										}
 									}
@@ -237,6 +243,12 @@ fun ServerSettingsUi(
 							},
 							label = { Text(Res.string.settings_server_max_backups.get()) },
 							singleLine = true,
+							isError = isMaxBackupsError,
+							supportingText = {
+								if (isMaxBackupsError) {
+									Text(Res.string.settings_server_max_backups_error.get(GlobalSettings.MAX_BACKUPS))
+								}
+							}
 						)
 					}
 				}
@@ -259,7 +271,7 @@ fun ServerSettingsUi(
 					containerColor = Color.Transparent
 				),
 				border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-				modifier = Modifier.fillMaxWidth()
+				modifier = Modifier.fillMaxWidth(),
 			) {
 				Text(Res.string.settings_server_remove_server_button.get())
 			}
