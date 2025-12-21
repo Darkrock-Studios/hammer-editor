@@ -322,7 +322,7 @@ class ProjectEntityRepository(
 	): Boolean {
 		val syncKey = ProjectSyncKey(userId, projectDef)
 		return !projectsSessions.hasActiveSyncSession(userId) &&
-			sessionManager.validateSyncId(syncKey, syncId, false)
+			sessionManager.validateSyncId(syncKey, syncId)
 	}
 
 	private suspend fun getUpdateSequence(
