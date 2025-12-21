@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.util.logging.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -48,6 +49,7 @@ fun mainModule(
 	single { logger }
 
 	singleOf(::createJsonSerializer) bind Json::class
+	single { Toml { ignoreUnknownKeys = true } } bind Toml::class
 	single { Clock.System } bind Clock::class
 	single { createTokenBase64() } bind Base64::class
 	single { SecureRandom.getInstanceStrong() } bind SecureRandom::class

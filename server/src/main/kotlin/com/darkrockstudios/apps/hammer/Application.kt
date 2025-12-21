@@ -68,7 +68,7 @@ private fun runDataMigrator() {
 }
 
 private fun loadConfig(path: String): ServerConfig {
-	return FileSystem.SYSTEM.readToml(path.toPath(), Toml, ServerConfig::class)
+	return FileSystem.SYSTEM.readToml(path.toPath(), Toml { ignoreUnknownKeys = true }, ServerConfig::class)
 }
 
 private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
