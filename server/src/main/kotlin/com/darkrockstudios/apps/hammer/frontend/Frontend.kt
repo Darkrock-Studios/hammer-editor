@@ -71,6 +71,10 @@ fun Application.configureFrontEnd() {
 			}
 		}
 		exception<Throwable> { call, cause ->
+			call.application.log.error(
+				"Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}",
+				cause
+			)
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.InternalServerError)
 			} else {
