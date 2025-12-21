@@ -23,30 +23,35 @@ fun SyncLogMessageUi(logMsg: SyncLogMessage, showProjectName: Boolean = true) {
 			contentColor = logMsg.getForegroundColor()
 		)
 	) {
-		Row(
-			modifier = Modifier.padding(4.dp),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			Icon(
-				logMsg.getIcon(),
-				logMsg.level.name,
-				modifier = Modifier.size(16.dp)
-			)
-			Spacer(modifier = Modifier.width(8.dp))
-			if (showProjectName) {
-				logMsg.projectName?.let {
-					Text(
-						it,
-						fontWeight = FontWeight.Bold,
-						textDecoration = TextDecoration.Underline
-					)
-					Spacer(modifier = Modifier.width(8.dp))
-				}
-			}
-			SelectionContainer {
-				Text(
-					logMsg.message,
+		Column {
+			Row(
+				modifier = Modifier.padding(4.dp),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Icon(
+					logMsg.getIcon(),
+					logMsg.level.name,
+					modifier = Modifier.size(16.dp)
 				)
+				Spacer(modifier = Modifier.width(8.dp))
+				Column {
+					if (showProjectName) {
+						logMsg.projectName?.let {
+							Text(
+								it,
+								fontWeight = FontWeight.Bold,
+								textDecoration = TextDecoration.Underline
+							)
+							Spacer(modifier = Modifier.width(8.dp))
+						}
+					}
+
+					SelectionContainer {
+						Text(
+							logMsg.message,
+						)
+					}
+				}
 			}
 		}
 	}
