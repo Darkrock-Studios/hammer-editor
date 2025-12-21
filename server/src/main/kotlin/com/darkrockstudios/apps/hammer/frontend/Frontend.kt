@@ -35,7 +35,7 @@ fun Route.frontend() {
 	homePage(whiteListRepository, configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
-	dashboardPage(projectsRepository)
+	dashboardPage(projectsRepository, accountsRepository)
 	storyPage(storyExportService)
 	adminPage(whiteListRepository, configRepository)
 }
