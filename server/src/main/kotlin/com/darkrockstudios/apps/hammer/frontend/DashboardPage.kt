@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -9,13 +10,17 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 
-fun Route.dashboardPage(projectsRepository: ProjectsRepository) {
+fun Route.dashboardPage(
+	projectsRepository: ProjectsRepository,
+	accountsRepository: AccountsRepository
+) {
 	authenticatedOnly {
 		route("/dashboard") {
 			get {
 				val session = call.sessions.get<UserSession>()!!
 
 				val projects = projectsRepository.getProjectsWithSyncDate(session.userId)
+				val account = accountsRepository.getAccount(session.userId)
 
 				val projectsForTemplate = projects.map { project ->
 					mapOf(
@@ -29,6 +34,8 @@ fun Route.dashboardPage(projectsRepository: ProjectsRepository) {
 					mapOf(
 						"page_stylesheet" to "/assets/css/dashboard.css",
 						"username" to session.username,
+						"email" to account.email,
+						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
 						"projects" to projectsForTemplate,
 						"hasProjects" to projects.isNotEmpty()

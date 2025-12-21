@@ -251,6 +251,32 @@
 	font-style: italic;
 }
 
+/* Account Info */
+.account-container {
+	margin-top: 1.5rem;
+}
+
+.account-info {
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	padding: 1.5rem;
+	box-shadow: var(--shadow-sm);
+}
+
+.account-info p {
+	margin: 0.5rem 0;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.1rem;
+	color: var(--text-primary);
+}
+
+.account-info p strong {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--text-secondary);
+	margin-right: 0.5rem;
+}
+
 /* Responsive Design */
 @media only screen and (max-width: 768px) {
 	.dashboard-page {
