@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.11.1] - 2025-12-21
+
+Client:
+- Huge ammount of infrastructure updates
+- UI overhaul! Lots of animations and polish on all parts of the UI
+- Predictive back and Edge to Edge support on Android
+- Drafts: Set the name of the draft when you create it
+- TextEditor bug fixes!
+- Spell Checker replaced with the system spell checker
+
+Server:
+- Complete web-frontend rewrite
+  + Regular User's can now log in and view their stories
+- Security improvements
+- Encryption performance improvements
+- Hotfix
+
+
 ## [1.11.0] - 2025-12-20
 
 Client:
