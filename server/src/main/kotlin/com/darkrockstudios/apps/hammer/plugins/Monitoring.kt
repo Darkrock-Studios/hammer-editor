@@ -5,9 +5,12 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.request.*
 import org.slf4j.event.Level
 
-fun Application.configureMonitoring() {
+fun Application.configureMonitoring(passedLogLevel: Level? = null) {
+	val logLevel = passedLogLevel ?: Level.INFO
+
 	install(CallLogging) {
-		level = Level.INFO
+		level = logLevel
 		filter { call -> call.request.path().startsWith("/") }
 	}
+	log.info("Monitoring enabled - Level Level: $logLevel")
 }
