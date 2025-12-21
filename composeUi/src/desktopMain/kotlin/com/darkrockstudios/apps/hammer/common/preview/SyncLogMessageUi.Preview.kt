@@ -1,10 +1,11 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlin.time.Clock
 
 @Preview
