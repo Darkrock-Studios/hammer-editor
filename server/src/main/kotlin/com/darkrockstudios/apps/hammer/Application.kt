@@ -14,6 +14,7 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
+import org.slf4j.event.Level
 import java.io.File
 import java.security.KeyStore
 
@@ -31,8 +32,16 @@ fun main(args: Array<String>) {
 		fullName = "dev",
 		description = "Run in development mode"
 	)
+	val logLevelArg by parser.option(
+		ArgType.Choice(listOf("TRACE", "DEBUG", "INFO", "WARN", "ERROR"), { it }),
+		shortName = "l",
+		fullName = "logLevel",
+		description = "Log Level"
+	)
 
 	parser.parse(args)
+
+	val logLevel = parseLogLevel(logLevelArg)
 
 	val config: ServerConfig = configPathArg?.let {
 		loadConfig(it)
@@ -40,7 +49,15 @@ fun main(args: Array<String>) {
 
 	runDataMigrator()
 
-	startServer(config, devModeArg ?: false)
+	startServer(config, devModeArg ?: false, logLevel)
+}
+
+private fun parseLogLevel(logLevelArg: String?): Level? {
+	return try {
+		logLevelArg?.let { Level.valueOf(it.uppercase()) }
+	} catch (_: Exception) {
+		null
+	}
 }
 
 private fun runDataMigrator() {
@@ -54,7 +71,7 @@ private fun loadConfig(path: String): ServerConfig {
 	return FileSystem.SYSTEM.readToml(path.toPath(), Toml, ServerConfig::class)
 }
 
-private fun startServer(config: ServerConfig, devMode: Boolean) {
+private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
 	// This is overkill most of the time
 	//	if(devMode) {
 	//		// Sets the log mode for SLFJ, if we ever move to Logback, we'll need to set this a different way
@@ -69,7 +86,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean) {
 			configureServer(config, bindHost)
 		},
 		module = {
-			appMain(config)
+			appMain(config, logLevel = logLevel)
 		}
 	).start(wait = true)
 }
@@ -103,10 +120,14 @@ private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
 }
 
-fun Application.appMain(config: ServerConfig, addInModule: Module? = null) {
+fun Application.appMain(
+	config: ServerConfig,
+	addInModule: Module? = null,
+	logLevel: Level? = null
+) {
 	configureDependencyInjection(addInModule)
 	configureSerialization()
-	configureMonitoring()
+	configureMonitoring(logLevel)
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
