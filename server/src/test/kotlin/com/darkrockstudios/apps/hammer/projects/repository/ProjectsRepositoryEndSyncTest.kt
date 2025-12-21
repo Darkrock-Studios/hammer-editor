@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.projects.repository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import io.mockk.coEvery
-import io.mockk.verify
+import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
@@ -19,7 +19,7 @@ class ProjectsRepositoryEndSyncTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = endProjectsSync(userId, syncId)
 			assertTrue(result.isFailure)
-			verify(exactly = 0) { projectsSessionManager.terminateSession(any()) }
+			coVerify(exactly = 0) { projectsSessionManager.terminateSession(any()) }
 		}
 	}
 
@@ -49,7 +49,7 @@ class ProjectsRepositoryEndSyncTest : ProjectsRepositoryBaseTest() {
 			val result = endProjectsSync(userId, syncId)
 			assertTrue(result.isSuccess)
 
-			verify { projectsSessionManager.terminateSession(userId) }
+			coVerify { projectsSessionManager.terminateSession(userId) }
 		}
 	}
 }

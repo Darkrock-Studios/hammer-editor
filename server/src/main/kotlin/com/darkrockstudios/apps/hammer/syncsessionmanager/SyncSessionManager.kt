@@ -14,8 +14,20 @@ class SyncSessionManager<K, T : SynchronizationSession>(
 	private val syncIdGenerator = RandomString(30, secureRandom)
 	private val synchronizationSessions = mutableMapOf<K, T>()
 
-	fun findSession(key: K): T? = synchronizationSessions[key]
-	fun terminateSession(key: K): Boolean = synchronizationSessions.remove(key) != null
+	private fun findSessionInternal(key: K): T? = synchronizationSessions[key]
+	private fun terminateSessionInternal(key: K): Boolean = synchronizationSessions.remove(key) != null
+
+	suspend fun findSession(key: K): T? {
+		lock.withLock {
+			return findSessionInternal(key)
+		}
+	}
+
+	suspend fun terminateSession(key: K): Boolean {
+		lock.withLock {
+			return terminateSessionInternal(key)
+		}
+	}
 
 	suspend fun createNewSession(key: K, createSession: (key: K, syncId: String) -> T): String {
 		lock.withLock {
@@ -52,13 +64,13 @@ class SyncSessionManager<K, T : SynchronizationSession>(
 
 	suspend fun validateSyncId(key: K, syncId: String, allowExpired: Boolean): Boolean {
 		lock.withLock {
-			val session = findSession(key)
+			val session = findSessionInternal(key)
 			return if (session?.syncId == syncId) {
 				if (session.isExpired(clock).not() || allowExpired) {
 					session.updateLastAccessed(clock)
 					true
 				} else {
-					terminateSession(key)
+					terminateSessionInternal(key)
 					false
 				}
 			} else {
