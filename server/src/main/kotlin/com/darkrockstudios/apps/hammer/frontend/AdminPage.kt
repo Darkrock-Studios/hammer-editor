@@ -143,7 +143,7 @@ private suspend fun getWhitelistModel(
 	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
 	val actualPage = page ?: queryPage ?: 0
 
-	val pageSize = 5
+	val pageSize = 10
 	val totalCount = whiteListRepository.getWhiteListCount()
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
