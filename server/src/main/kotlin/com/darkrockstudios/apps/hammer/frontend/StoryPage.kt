@@ -33,6 +33,7 @@ fun Route.storyPage(storyExportService: StoryExportService) {
 					is StoryExportResult.Success -> {
 						val model = call.withDefaults(
 							mapOf(
+								"page_stylesheet" to "/assets/css/story.css",
 								"projectName" to result.projectName,
 								"storyHtml" to result.html,
 								"hasContent" to result.hasContent
@@ -47,7 +48,10 @@ fun Route.storyPage(storyExportService: StoryExportService) {
 
 					is StoryExportResult.Error -> {
 						val model = call.withDefaults(
-							mapOf("errorMessage" to result.message)
+							mapOf(
+								"page_stylesheet" to "/assets/css/story.css",
+								"errorMessage" to result.message,
+							)
 						)
 						call.respond(
 							HttpStatusCode.InternalServerError,

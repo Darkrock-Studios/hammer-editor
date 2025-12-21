@@ -15,6 +15,7 @@ fun Route.homePage(
 	route("/") {
 		get {
 			val model = call.withDefaults()
+			model["page_stylesheet"] = "/assets/css/home.css"
 			val useWhiteList = whiteListRepository.useWhiteList()
 			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)

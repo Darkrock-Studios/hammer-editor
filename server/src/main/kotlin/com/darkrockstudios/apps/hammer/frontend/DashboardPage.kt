@@ -27,6 +27,7 @@ fun Route.dashboardPage(projectsRepository: ProjectsRepository) {
 
 				val model = call.withDefaults(
 					mapOf(
+						"page_stylesheet" to "/assets/css/dashboard.css",
 						"username" to session.username,
 						"isAdmin" to session.isAdmin,
 						"projects" to projectsForTemplate,

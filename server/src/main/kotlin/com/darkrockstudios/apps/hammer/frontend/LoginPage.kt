@@ -77,6 +77,7 @@ private suspend fun buildLoginModel(
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 
 	return buildMap {
+		put("page_stylesheet", "/assets/css/login.css")
 		put("whitelistEnabled", useWhiteList)
 		if (contactEmail.isNotBlank()) {
 			put("contactEmail", contactEmail)
