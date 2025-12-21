@@ -71,7 +71,7 @@ kotlin {
 				implementation(kotlin("test"))
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				api(compose.uiTestJUnit4)
+				implementation(compose.desktop.uiTestJUnit4)
 			}
 		}
 		val androidMain by getting {
