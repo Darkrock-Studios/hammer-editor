@@ -46,6 +46,7 @@ private fun Route.admin(
 		}
 
 		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
 			"isAdmin" to (session?.isAdmin?.toString() ?: "null"),
 			"whitelist" to mapOf(
 				"enabled" to whiteListRepository.useWhiteList()
@@ -53,7 +54,7 @@ private fun Route.admin(
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"defaultLocale" to configuredDefaultLocale,
-			"availableLocales" to availableLocales
+			"availableLocales" to availableLocales,
 		)
 		call.respond(MustacheContent("admin.mustache", call.withDefaults(model)))
 	}
