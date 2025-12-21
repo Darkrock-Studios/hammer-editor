@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -39,7 +40,7 @@ fun SimpleDialog(
 					modifier = dialogContainerModifier,
 					contentAlignment = Alignment.Center
 				) {
-					Card(modifier = modifier) {
+					Card(modifier = modifier.animateContentSize()) {
 						Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 							Row(
 								modifier = Modifier.fillMaxWidth(),
