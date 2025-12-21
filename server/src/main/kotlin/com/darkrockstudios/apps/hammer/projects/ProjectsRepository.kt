@@ -80,7 +80,7 @@ class ProjectsRepository(
 	}
 
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
-		if (syncSessionManager.validateSyncId(userId, syncId, false).not()) return SResult.failure(
+		if (syncSessionManager.validateSyncId(userId, syncId).not()) return SResult.failure(
 			InvalidSyncIdException()
 		)
 
@@ -112,7 +112,7 @@ class ProjectsRepository(
 		syncId: String,
 		projectName: String
 	): SResult<ProjectCreatedResult> {
-		if (syncSessionManager.validateSyncId(userId, syncId, false).not())
+		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (validateProjectName(projectName).not())
@@ -137,7 +137,7 @@ class ProjectsRepository(
 		projectId: ProjectId,
 		newProjectName: String?,
 	): SResult<Unit> {
-		if (syncSessionManager.validateSyncId(userId, syncId, false).not())
+		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (!validateProjectName(newProjectName))
