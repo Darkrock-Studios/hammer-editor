@@ -5,7 +5,7 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.jetbrains.compose)
-	alias(libs.plugins.android.library)
+	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 }
 
@@ -13,7 +13,19 @@ group = "com.darkrockstudios.apps.hammer.composeui"
 version = libs.versions.app.get()
 
 kotlin {
-	androidTarget()
+	androidLibrary {
+		namespace = "com.darkrockstudios.apps.hammer.composeui"
+		compileSdk = libs.versions.android.sdk.compile.get().toInt()
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+
+		androidResources {
+			enable = true
+		}
+
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
+		}
+	}
 	jvm("desktop") {
 		compilerOptions {
 			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
@@ -106,24 +118,6 @@ kotlin {
 				implementation(libs.mockk)
 			}
 		}
-	}
-}
-
-android {
-	namespace = "com.darkrockstudios.apps.hammer.composeui"
-	compileSdk = libs.versions.android.sdk.compile.get().toInt()
-	sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-	sourceSets["main"].res.srcDirs("src/androidMain/res", "src/commonMain/resources")
-	defaultConfig {
-		minSdk = libs.versions.android.sdk.min.get().toInt()
-		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
-	}
-	compileOptions {
-		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
-		targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
-	}
-	buildFeatures {
-		buildConfig = true
 	}
 }
 

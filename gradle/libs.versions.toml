@@ -261,6 +261,7 @@ kotlin-powerassert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.
 kotlinx_atomicfu = { id = "org.jetbrains.kotlin.plugin.atomicfu", version.ref = "kotlin" }
 android_application = { id = "com.android.application", version.ref = "android_gradle_plugin" }
 android_library = { id = "com.android.library", version.ref = "android_gradle_plugin" }
+android_kotlin_multiplatform_library = { id = "com.android.kotlin.multiplatform.library", version.ref = "android_gradle_plugin" }
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }

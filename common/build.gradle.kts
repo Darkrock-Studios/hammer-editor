@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -5,18 +6,31 @@ plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.kotlin.powerassert)
-	alias(libs.plugins.android.library)
+	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.kotlin.parcelize)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.compose.compiler)
+	alias(libs.plugins.buildconfig)
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
 kotlin {
-	androidTarget()
+	androidLibrary {
+		namespace = "com.darkrockstudios.apps.hammer.common"
+		compileSdk = libs.versions.android.sdk.compile.get().toInt()
+		minSdk = libs.versions.android.sdk.min.get().toInt()
+
+		androidResources {
+			enable = true
+		}
+
+		compilerOptions {
+			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
+		}
+	}
 	jvm("desktop") {
 		compilerOptions {
 			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
@@ -109,10 +123,6 @@ kotlin {
 			}
 		}
 		val iosTest by getting
-		val androidUnitTest by getting {
-			dependencies {
-			}
-		}
 		val desktopMain by getting {
 			dependencies {
 				implementation(libs.slf4j.simple)
@@ -140,30 +150,12 @@ compose.resources {
 	packageOfResClass = "com.darkrockstudios.apps.hammer"
 }
 
-android {
-	namespace = "com.darkrockstudios.apps.hammer.common"
-	compileSdk = libs.versions.android.sdk.compile.get().toInt()
-	sourceSets {
-		named("main") {
-			manifest.srcFile("src/androidMain/AndroidManifest.xml")
-			res.srcDirs(
-				"resources",
-				"src/androidMain/res",
-				"src/commonMain/resources"
-			)
-		}
-	}
-	buildFeatures {
-		buildConfig = true
-	}
-	defaultConfig {
-		minSdk = libs.versions.android.sdk.min.get().toInt()
-		lint.targetSdk = libs.versions.android.sdk.target.get().toInt()
-	}
-	compileOptions {
-		sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
-		targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.get().toInt())
-	}
+buildConfig {
+	useKotlinOutput { internalVisibility = false }
+	packageName("com.darkrockstudios.apps.hammer.common")
+
+	val isDebug = project.findProperty("hammer.debug")?.toString()?.toBoolean() ?: false
+	buildConfigField("Boolean", "DEBUG", isDebug.toString())
 }
 
 kover {
