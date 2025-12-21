@@ -1,0 +1,145 @@
+/* Story Page Styles */
+.story-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	justify-content: center;
+}
+
+.story-container {
+	max-width: 800px;
+	width: 100%;
+	animation: fadeIn 0.5s ease-out;
+	box-sizing: border-box;
+}
+
+.story-header {
+	margin-bottom: 2rem;
+}
+
+.back-link {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--accent);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+	transition: color var(--transition-base);
+}
+
+.back-link:hover {
+	color: var(--accent-dark);
+}
+
+.story-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 2.5rem;
+	color: var(--text-primary);
+	margin: 0;
+	padding-bottom: 1rem;
+	border-bottom: 3px solid var(--accent);
+}
+
+.story-content {
+	background: white;
+	padding: 3rem;
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-lg);
+	line-height: 1.8;
+	font-size: 1.125rem;
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+	word-break: normal;
+	overflow-x: hidden;
+	hyphens: auto;
+}
+
+.story-content h1 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 2rem;
+	color: var(--text-primary);
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+}
+
+.story-content h2 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: var(--text-primary);
+	margin-top: 4rem;
+	margin-bottom: 1rem;
+	padding-top: 2rem;
+	border-top: 1px dashed var(--neutral-300);
+	text-align: center;
+}
+
+.story-content p {
+	margin-bottom: 0;
+	text-indent: 2em;
+	text-align: justify;
+}
+
+/* Standard typographic rule: don't indent the first paragraph after a heading */
+.story-content h1 + p,
+.story-content h2 + p,
+.story-content h3 + p {
+	text-indent: 0;
+}
+
+.story-content pre {
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+.story-content code {
+	word-break: break-all;
+}
+
+.story-content blockquote {
+	margin: 1rem 0;
+	padding-left: 1rem;
+	border-left: 3px solid var(--neutral-300);
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.story-empty {
+	text-align: center;
+	padding: 3rem;
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+/* Story Error Page */
+.story-error {
+	text-align: center;
+}
+
+.story-error .error-message {
+	color: var(--text-secondary);
+	margin: 1.5rem 0;
+}
+
+@media only screen and (max-width: 768px) {
+	.story-content {
+		padding: 1.5rem;
+	}
+
+	.story-title {
+		font-size: 2rem;
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
