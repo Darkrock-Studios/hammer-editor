@@ -63,7 +63,7 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override suspend fun setAutomaticBackups(value: Boolean) {}
 		override suspend fun setAutoCloseDialogs(value: Boolean) {}
 		override suspend fun setAutoSyncing(value: Boolean) {}
-		override suspend fun setMaxBackups(value: Int) {}
+		override suspend fun setMaxBackups(value: Int) = true
 		override fun reauthenticate() {}
 		override fun updateServerUrl(url: String) {}
 		override fun updateServerSsl(ssl: Boolean) {}

@@ -23,6 +23,7 @@
 	<string name="settings_server_sync_backup">Sauvegarde lors de la synchronisation</string>
 	<string name="settings_server_sync_auto_close">Fermer les dialogues après une synchronisation réussie</string>
 	<string name="settings_server_max_backups">Sauvegardes max. par projet</string>
+	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_test_auth_button">Tester l'authentification</string>
 	<string name="settings_server_reauth_button">Réauthentifier</string>
 	<string name="settings_server_remove_server_button">Supprimer le serveur</string>

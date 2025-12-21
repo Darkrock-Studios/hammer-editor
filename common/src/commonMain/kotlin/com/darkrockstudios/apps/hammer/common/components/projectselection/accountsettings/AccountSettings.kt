@@ -30,7 +30,7 @@ interface AccountSettings : ComponentToaster {
 	suspend fun setAutomaticBackups(value: Boolean)
 	suspend fun setAutoCloseDialogs(value: Boolean)
 	suspend fun setAutoSyncing(value: Boolean)
-	suspend fun setMaxBackups(value: Int)
+	suspend fun setMaxBackups(value: Int): Boolean
 	fun reauthenticate()
 	fun updateServerUrl(url: String)
 	fun updateServerSsl(ssl: Boolean)

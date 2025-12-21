@@ -21,6 +21,7 @@
 	<string name="settings_server_sync_backup">同步时备份</string>
 	<string name="settings_server_sync_auto_close">同步成功后关闭对话框</string>
 	<string name="settings_server_max_backups">每个项目的最大备份数量</string>
+	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_test_auth_button">测试认证</string>
 	<string name="settings_server_reauth_button">重新认证</string>
 	<string name="settings_server_remove_server_button">移除服务器</string>
