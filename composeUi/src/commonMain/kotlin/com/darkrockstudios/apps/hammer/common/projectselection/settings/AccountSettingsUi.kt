@@ -79,17 +79,17 @@ internal fun AccountSettingsUi(
 
 				Column(
 					modifier = Modifier
-						.fillMaxWidth()
+						.widthIn(max = Ui.MAX_PANEL_WIDTH)
 						.verticalScroll(rememberScrollState())
 						.padding(horizontal = Ui.Padding.L)
 						.padding(bottom = Ui.Padding.XL)
 				) {
 					SettingsSectionGroup {
-						Column {
+						Column(modifier = Modifier.padding(Ui.Padding.M)) {
 							Text(
 								Res.string.settings_theme_label.get(),
-								style = MaterialTheme.typography.titleMedium,
-								color = MaterialTheme.colorScheme.onSurfaceVariant
+								style = MaterialTheme.typography.headlineSmall,
+								color = MaterialTheme.colorScheme.onBackground,
 							)
 							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
