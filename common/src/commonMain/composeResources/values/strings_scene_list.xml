@@ -10,14 +10,11 @@
 	<string name="scene_group_item_collapsed">Group Collapsed</string>
 	<string name="scene_group_item_expanded">Group Expanded</string>
 	<string name="scene_delete_dialog_title">Delete Scene</string>
-	<string name="scene_delete_dialog_message">Are you sure you want to delete this scene:
-		"%1$s"
-	</string>
+	<string name="scene_delete_dialog_message">Are you sure you want to delete this scene: "%1$s"</string>
 	<string name="scene_delete_dialog_delete_button">Delete</string>
 	<string name="scene_delete_dialog_dismiss_button">Dismiss</string>
 	<string name="group_cannot_delete_dialog_title">Cannot Delete Group</string>
-	<string name="group_cannot_delete_dialog_message">You cannot delete a group while it still has children:
-		"%1$s"
+	<string name="group_cannot_delete_dialog_message">You cannot delete a group while it still has children: "%1$s"
 	</string>
 	<string name="create_sceneitem_dialog_create_button">Create</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancel</string>

@@ -6,8 +6,8 @@
 	<string name="settings_projects_directory_hint">Path to Projects Directory</string>
 	<string name="settings_projects_directory_button">Select Dir</string>
 	<string name="settings_example_project_header">Example Project</string>
-	<string name="settings_example_project_description">Install an example project to see how different features are
-		used.
+	<string
+		name="settings_example_project_description">Install an example project to see how different features are used.
 	</string>
 	<string name="settings_example_project_button">Reinstall</string>
 	<string name="settings_example_project_success_message">Example project created.</string>
@@ -46,9 +46,8 @@
 	<string name="settings_server_setup_toast_failure_unknown">Unknown Error</string>
 	<string name="settings_server_setup_toast_success">Server setup complete!</string>
 	<string name="remove_local_dialog_title">Remove Local Content?</string>
-	<string name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we
-		will attempt to merge your local content with the server content. If the content is unrelated, it could cause
-		problems.
+	<string
+		name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we will attempt to merge your local content with the server content. If the content is unrelated, it could cause problems.
 	</string>
 	<string name="settings_platform_settings_title">Platform Settings</string>
 	<string name="settings_keep_screen_on">Keep screen on</string>
@@ -60,8 +59,8 @@
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
 	<string name="settings_server_enable_sync_backup">Enable Sync &amp; Backup</string>
-	<string name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and
-		create secure backups.
+	<string
+		name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and create secure backups.
 	</string>
 	<string name="settings_server_connection_header">Server Connection</string>
 	<string name="settings_server_configured">Configured</string>
