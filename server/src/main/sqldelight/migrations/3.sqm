@@ -1,0 +1,27 @@
+DROP TABLE IF EXISTS tmp_account;
+CREATE TABLE tmp_account (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    pen_name TEXT UNIQUE DEFAULT(NULL),
+    salt TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    cipher_secret TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    is_admin INTEGER DEFAULT FALSE NOT NULL,
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL
+);
+
+INSERT INTO tmp_account (id, email, salt, password_hash, cipher_secret, created, is_admin, last_sync)
+SELECT id, email, salt, password_hash, cipher_secret, created, is_admin, last_sync FROM account;
+
+DROP TABLE account;
+ALTER TABLE tmp_account RENAME TO account;
+
+CREATE TABLE project_access (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    project_id INTEGER NOT NULL,
+    access_password TEXT DEFAULT NULL,
+    expires_at TEXT DEFAULT NULL,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    UNIQUE(project_id)
+);
