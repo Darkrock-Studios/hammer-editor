@@ -37,4 +37,6 @@ object Ui {
 
 	val MIN_TOUCH_SIZE = 48.dp
 	val TOP_BAR_HEIGHT = 56.dp
+
+	val MAX_PANEL_WIDTH = 640.dp
 }

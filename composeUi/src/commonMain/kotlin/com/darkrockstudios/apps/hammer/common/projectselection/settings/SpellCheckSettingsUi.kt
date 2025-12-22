@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontStyle
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
-import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
@@ -38,8 +37,6 @@ internal fun SpellCheckSettingsUi(
 			fontStyle = FontStyle.Italic,
 			color = MaterialTheme.colorScheme.onBackground,
 		)
-
-		SpacerM()
 
 		var spellCheckingEnabledValue by remember { mutableStateOf(state.spellCheckingEnabled) }
 		Row {
