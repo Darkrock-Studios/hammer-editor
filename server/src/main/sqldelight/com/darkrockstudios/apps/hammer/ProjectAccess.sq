@@ -1,0 +1,21 @@
+CREATE TABLE project_access (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    project_id INTEGER NOT NULL,
+    access_password TEXT DEFAULT NULL,
+    expires_at TEXT DEFAULT NULL,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    UNIQUE(project_id)
+);
+
+getAccessForProject:
+SELECT *
+FROM project_access
+WHERE project_id = :projectId;
+
+updateAccess:
+INSERT OR REPLACE INTO project_access(project_id, access_password, expires_at)
+VALUES (?, ?, ?);
+
+deleteAccess:
+DELETE FROM project_access
+WHERE project_id = :projectId;

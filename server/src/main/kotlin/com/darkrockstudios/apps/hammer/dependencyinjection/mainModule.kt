@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
@@ -64,10 +65,12 @@ fun mainModule(
 	singleOf(::DeletedProjectDao)
 	singleOf(::DeletedEntityDao)
 	singleOf(::ServerConfigDao)
+	singleOf(::ProjectAccessDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
+	singleOf(::ProjectAccessRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)
