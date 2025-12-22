@@ -3,6 +3,8 @@
 	<string name="settings_heading">⚙ Settings</string>
 	<string name="settings_theme_label">UI Theme</string>
 	<string name="settings_projects_directory">Projects Directory</string>
+	<string name="settings_projects_directory_description">Set the directory Hammer will use to store project data in.
+	</string>
 	<string name="settings_projects_directory_hint">Path to Projects Directory</string>
 	<string name="settings_projects_directory_button">Select Dir</string>
 	<string name="settings_example_project_header">Example Project</string>
