@@ -603,3 +603,55 @@
 		width: 100%;
 	}
 }
+
+/* ========================================
+   Public Story Page
+   Simplified layout for public readers
+   ======================================== */
+
+.public-story-page .story-container {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.public-story-page .back-link {
+	display: none;
+}
+
+.public-story-attribution {
+	margin-bottom: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+}
+
+.public-story-attribution .by-line {
+	font-style: italic;
+}
+
+.public-story-attribution .author-name {
+	font-weight: 600;
+	color: var(--accent);
+}
+
+.public-story-footer {
+	margin-top: 3rem;
+	padding-top: 1.5rem;
+	border-top: 1px dashed var(--neutral-300);
+	text-align: center;
+}
+
+.public-story-footer .powered-by {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.public-story-footer a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+.public-story-footer a:hover {
+	text-decoration: underline;
+}

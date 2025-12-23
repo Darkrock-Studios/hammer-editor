@@ -5,6 +5,14 @@ import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 
+data class PublicProjectInfo(
+	val projectUuid: String,
+	val userId: Long,
+	val projectName: String,
+	val penName: String,
+	val expiresAt: String?
+)
+
 class ProjectAccessDao(
 	database: Database,
 ) : KoinComponent {
@@ -35,5 +43,22 @@ class ProjectAccessDao(
 		withContext(ioDispatcher) {
 			queries.deleteAllAccessForUser(userId)
 		}
+	}
+
+	suspend fun findPublicProjectByPenNameAndProjectName(
+		penName: String,
+		projectName: String
+	): PublicProjectInfo? = withContext(ioDispatcher) {
+		queries.findPublicProjectByPenNameAndProjectName(penName, projectName)
+			.executeAsOneOrNull()
+			?.let {
+				PublicProjectInfo(
+					projectUuid = it.project_uuid,
+					userId = it.user_id,
+					projectName = it.project_name,
+					penName = it.pen_name ?: "",
+					expiresAt = it.expires_at
+				)
+			}
 	}
 }

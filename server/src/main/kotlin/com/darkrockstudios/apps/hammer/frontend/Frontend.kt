@@ -41,6 +41,7 @@ fun Route.frontend() {
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
+	publicStoryPage(storyExportService, projectAccessRepository)
 	adminPage(whiteListRepository, configRepository)
 }
 

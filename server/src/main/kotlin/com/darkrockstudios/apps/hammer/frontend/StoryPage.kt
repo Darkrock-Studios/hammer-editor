@@ -16,6 +16,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import java.net.URLEncoder
 
 fun Route.storyPage(
 	storyExportService: StoryExportService,
@@ -46,8 +47,10 @@ fun Route.storyPage(
 						val hasPenName = !account.pen_name.isNullOrBlank()
 
 						val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
-						val publicUrl = if (isPublished) {
-							"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/public/story/$projectUuidStr"
+						val publicUrl = if (isPublished && hasPenName) {
+							val penNameForUrl = formatForUrl(account.pen_name)
+							val projectNameForUrl = formatForUrl(result.projectName)
+							"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
 						} else {
 							""
 						}
@@ -121,7 +124,15 @@ fun Route.storyPage(
 
 				// Build the public URL if published
 				val publicUrl = if (newIsPublished) {
-					"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/public/story/$projectUuidStr"
+					val account = accountsRepository.getAccount(session.userId)
+					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
+					if (account.pen_name != null && project != null) {
+						val penNameForUrl = formatForUrl(account.pen_name)
+						val projectNameForUrl = formatForUrl(project.name)
+						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+					} else {
+						""
+					}
 				} else {
 					""
 				}
@@ -156,3 +167,10 @@ private fun formatSyncDate(sqliteDateTime: String): String {
 		sqliteDateTime
 	}
 }
+
+/**
+ * Format a string for use in a URL: replace spaces with dashes, then URL encode.
+ * Example: "My Story Name" -> "My-Story-Name"
+ */
+private fun formatForUrl(name: String): String =
+	URLEncoder.encode(name.replace(' ', '-'), "UTF-8")
