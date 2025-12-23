@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import io.ktor.http.*
@@ -29,6 +30,7 @@ fun Route.frontend() {
 	val configRepository: ConfigRepository by inject()
 	val projectsRepository: ProjectsRepository by inject()
 	val storyExportService: StoryExportService by inject()
+	val projectAccessRepository: ProjectAccessRepository by inject()
 
 	staticResources("/assets", "/assets")
 
@@ -36,7 +38,7 @@ fun Route.frontend() {
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
 	dashboardPage(projectsRepository, accountsRepository)
-	storyPage(storyExportService)
+	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	adminPage(whiteListRepository, configRepository)
 }
 

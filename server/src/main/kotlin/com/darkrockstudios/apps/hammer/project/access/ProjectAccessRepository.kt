@@ -23,4 +23,15 @@ class ProjectAccessRepository(
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		projectAccessDao.updateAccess(projectId, password, expiresAt)
 	}
+
+	suspend fun deleteAccess(userId: Long, projectUuid: ProjectId) {
+		val projectId = projectDao.getProjectId(userId, projectUuid)
+		projectAccessDao.deleteAccess(projectId)
+	}
+
+	suspend fun isPublished(userId: Long, projectUuid: ProjectId): Boolean {
+		val access = getAccessForProject(userId, projectUuid)
+		// Published means: has a record with null password and null expiry
+		return access != null && access.access_password == null && access.expires_at == null
+	}
 }

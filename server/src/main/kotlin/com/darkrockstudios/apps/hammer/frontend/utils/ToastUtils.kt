@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
+import com.github.mustachejava.DefaultMustacheFactory
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.io.StringWriter
 
 /**
  * Toast notification types for server-driven OOB swaps
@@ -65,6 +67,40 @@ suspend fun RoutingContext.respondToast(
 ) {
 	call.respondText(
 		text = toastHtml(message, toast),
+		contentType = ContentType.Text.Html,
+		status = status
+	)
+}
+
+/**
+ * Mustache factory for rendering templates to strings.
+ */
+private val mustacheFactory = DefaultMustacheFactory("templates")
+
+/**
+ * Renders a Mustache template to a string.
+ */
+fun renderTemplate(templatePath: String, model: Map<String, Any?>): String {
+	val mustache = mustacheFactory.compile(templatePath)
+	val writer = StringWriter()
+	mustache.execute(writer, model)
+	return writer.toString()
+}
+
+/**
+ * Responds with rendered Mustache template content plus an OOB toast notification.
+ */
+suspend fun RoutingContext.respondTemplateWithToast(
+	templatePath: String,
+	model: Map<String, Any?>,
+	message: String,
+	toast: Toast = Toast.Success,
+	status: HttpStatusCode = HttpStatusCode.OK
+) {
+	val content = renderTemplate(templatePath, model)
+	val toastHtml = toastHtml(message, toast)
+	call.respondText(
+		text = "$content$toastHtml",
 		contentType = ContentType.Text.Html,
 		status = status
 	)
