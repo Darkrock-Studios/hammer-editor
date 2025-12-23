@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -33,30 +34,26 @@ class ApplicationTest : BaseTest() {
 
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
-
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
-
 	@MockK
 	private lateinit var projectAccessRepository: ProjectAccessRepository
-
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
-
 	@MockK
 	private lateinit var accountsComponent: AccountsComponent
-
 	@MockK
 	private lateinit var adminComponent: AdminComponent
-
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
-
 	@MockK
 	private lateinit var configRepository: ConfigRepository
-
 	@MockK
 	private lateinit var storyExportService: StoryExportService
+
+	@MockK
+	private lateinit var penNameService: PenNameService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -76,6 +73,7 @@ class ApplicationTest : BaseTest() {
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyExportService }
+			single { penNameService }
 			single { mockk<Json>() }
 		}
 	}

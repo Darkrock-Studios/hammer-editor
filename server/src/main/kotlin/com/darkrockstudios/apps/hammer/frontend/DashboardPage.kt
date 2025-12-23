@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.PenNameResult
+import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
@@ -20,7 +21,8 @@ import kotlin.math.ceil
 
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
-	accountsRepository: AccountsRepository
+	accountsRepository: AccountsRepository,
+	penNameService: PenNameService
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -57,11 +59,21 @@ fun Route.dashboardPage(
 				val formParameters = call.receiveParameters()
 				val newPenName = formParameters["penName"]?.trim()?.takeIf { it.isNotEmpty() }
 
-				when (val result = accountsRepository.updatePenName(session.userId, newPenName)) {
+				if (newPenName == null) {
+					respondHtmlWithToast(
+						content = "",
+						message = penNameResultToMessage(call, PenNameResult.TOO_SHORT),
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				when (val result = penNameService.setPenName(session.userId, newPenName)) {
 					PenNameResult.VALID -> {
 						call.response.header(HxResponseHeaders.Trigger, "penNameUpdated")
 						respondHtmlWithToast(
-							content = newPenName ?: "",
+							content = newPenName,
 							message = call.msg("penname_toast_saved"),
 							toast = Toast.Success
 						)
@@ -81,7 +93,7 @@ fun Route.dashboardPage(
 			hx.delete("/penname") {
 				val session = call.sessions.requireUser()
 
-				accountsRepository.updatePenName(session.userId, null)
+				penNameService.releasePenName(session.userId)
 
 				respondToast(call.msg("penname_toast_released"), Toast.Success)
 			}
@@ -104,10 +116,10 @@ fun Route.dashboardPage(
 					return@get
 				}
 
-				val validationResult = accountsRepository.validatePenName(penName)
+				val validationResult = penNameService.validatePenName(penName)
 				val isValid = validationResult == PenNameResult.VALID
 				val isAvailable = if (isValid) {
-					accountsRepository.isPenNameAvailable(penName, session.userId)
+					penNameService.isPenNameAvailable(penName, session.userId)
 				} else {
 					false
 				}
@@ -192,8 +204,8 @@ private fun kotlin.time.Instant.formatLocal(format: String): String {
 private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNameResult): String {
 	return when (result) {
 		PenNameResult.VALID -> call.msg("penname_validation_valid")
-		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", AccountsRepository.MIN_PEN_NAME_LENGTH)
-		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", AccountsRepository.MAX_PEN_NAME_LENGTH)
+		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", PenNameService.MIN_PEN_NAME_LENGTH)
+		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", PenNameService.MAX_PEN_NAME_LENGTH)
 		PenNameResult.INVALID_CHARACTERS -> call.msg("penname_validation_invalid_chars")
 		PenNameResult.NOT_AVAILABLE -> call.msg("penname_validation_taken")
 	}

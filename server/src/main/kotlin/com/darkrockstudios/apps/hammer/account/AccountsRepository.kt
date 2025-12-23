@@ -174,35 +174,12 @@ class AccountsRepository(
 		return accountDao.getAccount(userId) ?: throw AccountNotFound(userId)
 	}
 
-	suspend fun updatePenName(userId: Long, penName: String?): PenNameResult {
-		if (penName != null) {
-			val validationResult = validatePenName(penName)
-			if (validationResult != PenNameResult.VALID) {
-				return validationResult
-			}
-
-			val isAvailable = isPenNameAvailable(penName, userId)
-			if (!isAvailable) {
-				return PenNameResult.NOT_AVAILABLE
-			}
-		}
-
+	suspend fun updatePenName(userId: Long, penName: String?) {
 		accountDao.updatePenName(userId, penName?.trim())
-		return PenNameResult.VALID
 	}
 
 	suspend fun isPenNameAvailable(penName: String, excludeUserId: Long? = null): Boolean {
 		return accountDao.isPenNameAvailable(penName.trim(), excludeUserId)
-	}
-
-	fun validatePenName(penName: String): PenNameResult {
-		val trimmed = penName.trim()
-		return when {
-			trimmed.length < MIN_PEN_NAME_LENGTH -> PenNameResult.TOO_SHORT
-			trimmed.length > MAX_PEN_NAME_LENGTH -> PenNameResult.TOO_LONG
-			!penNamePattern.matches(trimmed) -> PenNameResult.INVALID_CHARACTERS
-			else -> PenNameResult.VALID
-		}
 	}
 
 	companion object {
@@ -211,15 +188,8 @@ class AccountsRepository(
 		const val PASSWORD_SALT_LENGTH = 8
 		const val CIPHER_SALT_LENGTH = 16
 
-		const val MIN_PEN_NAME_LENGTH = 4
-		const val MAX_PEN_NAME_LENGTH = 32
-
 		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
 		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
-
-		// Allow Unicode letters, spaces, hyphens, and underscores for pen names
-		// This supports international characters while still being URL-safe when encoded
-		private val penNamePattern = Regex("^[\\p{L}][\\p{L}\\p{N} _-]*$")
 
 		enum class PasswordResult {
 			VALID,
@@ -229,14 +199,6 @@ class AccountsRepository(
 			NO_LOWERCASE,
 			NO_NUMBER,
 			NO_SPECIAL
-		}
-
-		enum class PenNameResult {
-			VALID,
-			TOO_SHORT,
-			TOO_LONG,
-			INVALID_CHARACTERS,
-			NOT_AVAILABLE
 		}
 
 		fun hashPassword(password: String, salt: String): String {
