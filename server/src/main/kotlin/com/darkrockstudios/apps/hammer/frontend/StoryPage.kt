@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.story.StoryExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import io.ktor.http.*
@@ -15,7 +15,7 @@ fun Route.storyPage(storyExportService: StoryExportService) {
 	authenticatedOnly {
 		route("/story/{projectUuid}") {
 			get {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 				val projectUuidStr = call.parameters["projectUuid"]
 
 				if (projectUuidStr.isNullOrBlank()) {

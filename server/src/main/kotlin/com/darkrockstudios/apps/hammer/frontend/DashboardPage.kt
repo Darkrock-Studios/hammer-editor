@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.PenNameResult
-import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
@@ -26,9 +25,10 @@ fun Route.dashboardPage(
 	authenticatedOnly {
 		route("/dashboard") {
 			get {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 				val account = accountsRepository.getAccount(session.userId)
 				val projectsModel = getProjectsModel(call, projectsRepository, session.userId)
+				val projects = projectsModel["projects"] ?: error("Projects model not found")
 
 				val model = call.withDefaults(
 					mapOf(
@@ -39,7 +39,7 @@ fun Route.dashboardPage(
 						"penName" to (account.pen_name ?: ""),
 						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
-						"projects" to projectsModel["projects"]!!,
+						"projects" to projects,
 					)
 				)
 
@@ -47,13 +47,13 @@ fun Route.dashboardPage(
 			}
 
 			hx.get("/projects-fragment") {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 				val model = getProjectsModel(call, projectsRepository, session.userId)
 				call.respond(MustacheContent("partials/projects.mustache", model))
 			}
 
 			hx.post("/penname") {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 				val formParameters = call.receiveParameters()
 				val newPenName = formParameters["penName"]?.trim()?.takeIf { it.isNotEmpty() }
 
@@ -79,7 +79,7 @@ fun Route.dashboardPage(
 			}
 
 			hx.delete("/penname") {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 
 				accountsRepository.updatePenName(session.userId, null)
 
@@ -87,7 +87,7 @@ fun Route.dashboardPage(
 			}
 
 			hx.get("/penname/check") {
-				val session = call.sessions.get<UserSession>()!!
+				val session = call.sessions.requireUser()
 				val penName = call.request.queryParameters["penName"]?.trim() ?: ""
 
 				if (penName.isEmpty()) {
