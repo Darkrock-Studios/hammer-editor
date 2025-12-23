@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.projects.routes
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -52,6 +53,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var storyExportService: StoryExportService
 
 	@MockK(relaxed = true)
+	protected lateinit var penNameService: PenNameService
+
+	@MockK(relaxed = true)
 	protected lateinit var json: Json
 
 	protected lateinit var testModule: org.koin.core.module.Module
@@ -74,6 +78,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { adminComponent }
 			single { configRepository }
 			single { storyExportService }
+			single { penNameService }
 			single { json }
 		}
 	}

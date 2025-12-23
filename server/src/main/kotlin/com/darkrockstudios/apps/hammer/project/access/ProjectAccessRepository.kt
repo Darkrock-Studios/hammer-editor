@@ -34,4 +34,8 @@ class ProjectAccessRepository(
 		// Published means: has a record with null password and null expiry
 		return access != null && access.access_password == null && access.expires_at == null
 	}
+
+	suspend fun deleteAllAccessForUser(userId: Long) {
+		projectAccessDao.deleteAllAccessForUser(userId)
+	}
 }

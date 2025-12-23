@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
@@ -31,13 +32,14 @@ fun Route.frontend() {
 	val projectsRepository: ProjectsRepository by inject()
 	val storyExportService: StoryExportService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
+	val penNameService: PenNameService by inject()
 
 	staticResources("/assets", "/assets")
 
 	homePage(whiteListRepository, configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
-	dashboardPage(projectsRepository, accountsRepository)
+	dashboardPage(projectsRepository, accountsRepository, penNameService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	adminPage(whiteListRepository, configRepository)
 }

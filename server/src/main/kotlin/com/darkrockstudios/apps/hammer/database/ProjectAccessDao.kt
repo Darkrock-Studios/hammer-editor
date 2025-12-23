@@ -30,4 +30,10 @@ class ProjectAccessDao(
 			queries.deleteAccess(projectId)
 		}
 	}
+
+	suspend fun deleteAllAccessForUser(userId: Long) {
+		withContext(ioDispatcher) {
+			queries.deleteAllAccessForUser(userId)
+		}
+	}
 }
