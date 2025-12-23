@@ -17,6 +17,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.math.ceil
 
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
@@ -26,17 +27,8 @@ fun Route.dashboardPage(
 		route("/dashboard") {
 			get {
 				val session = call.sessions.get<UserSession>()!!
-
-				val projects = projectsRepository.getProjectsWithSyncDate(session.userId)
 				val account = accountsRepository.getAccount(session.userId)
-
-				val projectsForTemplate = projects.map { project ->
-					mapOf(
-						"name" to project.name,
-						"uuid" to project.uuid,
-						"lastSync" to formatSyncDate(project.lastSync)
-					)
-				}
+				val projectsModel = getProjectsModel(call, projectsRepository, session.userId)
 
 				val model = call.withDefaults(
 					mapOf(
@@ -47,12 +39,17 @@ fun Route.dashboardPage(
 						"penName" to (account.pen_name ?: ""),
 						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
-						"projects" to projectsForTemplate,
-						"hasProjects" to projects.isNotEmpty()
+						"projects" to projectsModel["projects"]!!,
 					)
 				)
 
 				call.respond(MustacheContent("dashboard.mustache", model))
+			}
+
+			hx.get("/projects-fragment") {
+				val session = call.sessions.get<UserSession>()!!
+				val model = getProjectsModel(call, projectsRepository, session.userId)
+				call.respond(MustacheContent("partials/projects.mustache", model))
 			}
 
 			hx.post("/penname") {
@@ -134,6 +131,47 @@ fun Route.dashboardPage(
 			}
 		}
 	}
+}
+
+private suspend fun getProjectsModel(
+	call: ApplicationCall,
+	projectsRepository: ProjectsRepository,
+	userId: Long,
+	page: Int? = null
+): MutableMap<String, Any> {
+	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
+	val actualPage = page ?: queryPage ?: 0
+
+	val pageSize = 10
+	val totalCount = projectsRepository.getProjectsCount(userId)
+	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
+	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
+
+	val projects = projectsRepository.getProjectsWithSyncDate(userId, currentPage, pageSize)
+	val projectsForTemplate = projects.map { project ->
+		mapOf(
+			"name" to project.name,
+			"uuid" to project.uuid,
+			"lastSync" to formatSyncDate(project.lastSync)
+		)
+	}
+
+	val projectsModel = mutableMapOf<String, Any>()
+	projectsModel["items"] = projectsForTemplate
+	projectsModel["currentPage"] = currentPage
+	projectsModel["currentPageDisplay"] = currentPage + 1
+	projectsModel["totalPages"] = totalPages
+	projectsModel["hasNextPage"] = currentPage < totalPages - 1
+	projectsModel["hasPrevPage"] = currentPage > 0
+	projectsModel["nextPage"] = currentPage + 1
+	projectsModel["prevPage"] = currentPage - 1
+	projectsModel["hasProjects"] = projectsForTemplate.isNotEmpty()
+	projectsModel["isPaged"] = totalPages > 1
+
+	val model = call.withDefaults()
+	model["projects"] = projectsModel
+
+	return model
 }
 
 private fun formatSyncDate(sqliteDateTime: String): String {
