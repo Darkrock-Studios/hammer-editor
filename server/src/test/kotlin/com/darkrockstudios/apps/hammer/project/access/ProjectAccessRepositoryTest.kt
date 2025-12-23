@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -12,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
 
 class ProjectAccessRepositoryTest {
 
@@ -30,7 +32,7 @@ class ProjectAccessRepositoryTest {
 	@BeforeEach
 	fun setup() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
-		repository = ProjectAccessRepository(projectAccessDao, projectDao)
+		repository = ProjectAccessRepository(projectAccessDao, projectDao, TestClock(Clock.System))
 	}
 
 	@Test

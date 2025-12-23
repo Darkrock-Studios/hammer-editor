@@ -25,3 +25,17 @@ DELETE FROM project_access
 WHERE project_id IN (
     SELECT id FROM project WHERE user_id = :userId
 );
+
+findPublicProjectByPenNameAndProjectName:
+SELECT
+    project.uuid AS project_uuid,
+    project.user_id,
+    project.name AS project_name,
+    account.pen_name,
+    project_access.expires_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE account.pen_name = :penName
+  AND project.name = :projectName
+  AND project_access.access_password IS NULL;

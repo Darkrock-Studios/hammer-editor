@@ -1,0 +1,33 @@
+{{> header}}
+
+<main class="story-page public-story-page">
+	<div class="story-container">
+		<!-- Story Header -->
+		<div class="story-header">
+			<div class="public-story-attribution">
+				<span class="by-line">{{msg.public_story_by}}</span>
+				<span class="author-name">{{authorPenName}}</span>
+			</div>
+			<h1 class="story-title">{{projectName}}</h1>
+		</div>
+
+		<!-- Story Content -->
+		<article class="story-content">
+			{{#hasContent}}
+				{{{storyHtml}}}
+			{{/hasContent}}
+			{{^hasContent}}
+				<div class="story-empty">
+					<p>{{msg.story_no_scenes}}</p>
+				</div>
+			{{/hasContent}}
+		</article>
+
+		<!-- Public Footer Attribution -->
+		<div class="public-story-footer">
+			<p class="powered-by">{{msg.public_story_powered_by}} <a href="/">Hammer</a></p>
+		</div>
+	</div>
+</main>
+
+{{> footer}}
