@@ -28,25 +28,9 @@
 			<p class="section-description">{{msg.dashboard_projects_description}}</p>
 
 			<div class="projects-container">
-				{{#hasProjects}}
-					<div class="projects-list">
-						{{#projects}}
-							<a href="/story/{{uuid}}" class="project-card">
-								<div class="project-info">
-									<span class="project-name">{{name}}</span>
-									<span class="project-sync-date">
-								{{msg.dashboard_last_sync}}: {{lastSync}}
-							</span>
-								</div>
-							</a>
-						{{/projects}}
-					</div>
-				{{/hasProjects}}
-				{{^hasProjects}}
-					<div class="projects-empty">
-						<p>{{msg.dashboard_no_projects}}</p>
-					</div>
-				{{/hasProjects}}
+				<div id="projects-list-container">
+					{{> partials/projects}}
+				</div>
 			</div>
 		</section>
 

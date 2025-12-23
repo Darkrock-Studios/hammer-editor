@@ -1,0 +1,49 @@
+{{#projects}}
+	{{#hasProjects}}
+		<div class="projects-list">
+			{{#items}}
+				<a href="/story/{{uuid}}" class="project-card">
+					<div class="project-info">
+						<span class="project-name">{{name}}</span>
+						<span class="project-sync-date">
+							{{msg.dashboard_last_sync}}: {{lastSync}}
+						</span>
+					</div>
+				</a>
+			{{/items}}
+		</div>
+	{{/hasProjects}}
+	{{^hasProjects}}
+		<div class="projects-empty">
+			<p>{{msg.dashboard_no_projects}}</p>
+		</div>
+	{{/hasProjects}}
+
+	{{#totalPages}}
+		{{#isPaged}}
+			<div class="pagination">
+				{{#hasPrevPage}}
+					<button hx-get="/dashboard/projects-fragment?page={{prevPage}}"
+					hx-target="#projects-list-container"
+					hx-swap="innerHTML"
+					class="pagination-button">
+					&laquo; {{msg.admin_pagination_prev}}
+					</button>
+				{{/hasPrevPage}}
+
+				<span class="pagination-info">
+				{{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}
+			</span>
+
+				{{#hasNextPage}}
+					<button hx-get="/dashboard/projects-fragment?page={{nextPage}}"
+					hx-target="#projects-list-container"
+					hx-swap="innerHTML"
+					class="pagination-button">
+					{{msg.admin_pagination_next}} &raquo;
+					</button>
+				{{/hasNextPage}}
+			</div>
+		{{/isPaged}}
+	{{/totalPages}}
+{{/projects}}

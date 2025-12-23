@@ -510,3 +510,42 @@ a:focus-visible {
 	background: var(--accent-light);
 	color: white;
 }
+
+
+/* Pagination */
+.pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 1.5rem;
+	margin-top: 2rem;
+	padding-top: 1.5rem;
+	border-top: 2px dashed var(--neutral-200);
+}
+
+.pagination-button {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	padding: 0.5rem 1.25rem;
+	background: white;
+	color: var(--accent);
+	border: 2px solid var(--accent);
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	box-shadow: var(--shadow-sm);
+}
+
+.pagination-button:hover {
+	background: var(--accent);
+	color: white;
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.pagination-info {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	font-weight: 500;
+}
