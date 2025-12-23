@@ -41,6 +41,7 @@ fun Route.dashboardPage(
 				val model = call.withDefaults(
 					mapOf(
 						"page_stylesheet" to "/assets/css/dashboard.css",
+						"page_script" to "/assets/js/dashboard.js",
 						"username" to session.username,
 						"email" to account.email,
 						"penName" to (account.pen_name ?: ""),
