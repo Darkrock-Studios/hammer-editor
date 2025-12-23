@@ -1,0 +1,17 @@
+<!-- Display State: Shows current pen name or claim button -->
+<div class="pen-name-display" id="pen-name-display-state">
+	<!-- Pen name display (shown when pen name exists) -->
+	<div class="pen-name-current {{^penName}}hidden{{/penName}}">
+		<span class="pen-name-value" id="pen-name-value">{{penName}}</span>
+		<button type="button" class="release-pen-name-link" id="release-pen-name-link" onclick="enterReleaseMode()">
+			<span class="release-icon">&#9888;</span>
+			{{msg.penname_release_button}}
+		</button>
+	</div>
+	<!-- Claim button (shown when no pen name) -->
+	<button type="button" class="claim-pen-name-btn {{#penName}}hidden{{/penName}}" id="claim-pen-name-btn"
+			onclick="enterPenNameEditMode()">
+		<span class="quill-icon">&#9998;</span>
+		{{msg.penname_claim_button}}
+	</button>
+</div>
