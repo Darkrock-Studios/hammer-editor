@@ -55,7 +55,7 @@ fun mainModule(
 	single { createTokenBase64() } bind Base64::class
 	single { SecureRandom.getInstanceStrong() } bind SecureRandom::class
 	single { FileSystem.SYSTEM } bind FileSystem::class
-	singleOf(::SqliteDatabase) bind Database::class
+	single { SqliteDatabase(fileSystem = get()) } bind Database::class
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
 	singleOf(::WhiteListDao)

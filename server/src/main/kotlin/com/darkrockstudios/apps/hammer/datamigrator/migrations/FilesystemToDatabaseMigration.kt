@@ -23,20 +23,19 @@ import java.security.SecureRandom
 import kotlin.time.Instant
 
 
-class FilesystemToDatabaseMigration : DataMigration {
+class FilesystemToDatabaseMigration(
+	private val fileSystem: FileSystem,
+	private val database: Database
+) : DataMigration {
 
 	override suspend fun migrate() {
 
-		val fileSystem = FileSystem.SYSTEM
 		val json = Json {
 			prettyPrint = true
 			prettyPrintIndent = "\t"
 			encodeDefaults = true
 			coerceInputValues = true
 		}
-
-		val db = SqliteDatabase(fileSystem)
-		db.initialize()
 
 		val rootFilesDir = ProjectsFileSystemDatasource.getRootDirectory(fileSystem)
 		if (fileSystem.exists(rootFilesDir).not()) {
@@ -61,12 +60,12 @@ class FilesystemToDatabaseMigration : DataMigration {
 			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom)
 		val contentEncryptor = AesGcmContentEncryptor(simpleAesKeyProvider, secureRandom)
 
-		val accountDao = AccountDao(db)
-		val projectsDao = ProjectsDao(db)
-		val projectDao = ProjectDao(db)
-		val deletedProjectDao = DeletedProjectDao(db)
-		val storyEntityDao = StoryEntityDao(db)
-		val deletedEntityDao = DeletedEntityDao(db)
+		val accountDao = AccountDao(database)
+		val projectsDao = ProjectsDao(database)
+		val projectDao = ProjectDao(database)
+		val deletedProjectDao = DeletedProjectDao(database)
+		val storyEntityDao = StoryEntityDao(database)
+		val deletedEntityDao = DeletedEntityDao(database)
 
 		val projectsDbDatasource = ProjectsDatabaseDatasource(projectDao, projectsDao)
 		val projectDbDatasource =
@@ -84,7 +83,7 @@ class FilesystemToDatabaseMigration : DataMigration {
 
 			// Create a new cipher secret for the account as it didn't exist before
 			val accountCipherSecret = cipherSaltGenerator.generateToken()
-			db.serverDatabase.accountQueries.migration_setCipherSecret(
+			database.serverDatabase.accountQueries.migration_setCipherSecret(
 				id = account.id,
 				cipherSecret = accountCipherSecret
 			)
@@ -131,7 +130,6 @@ class FilesystemToDatabaseMigration : DataMigration {
 			}
 		}
 
-		db.close()
 		koinApp.close()
 
 		fileSystem.atomicMove(rootFilesDir, rootFilesDir.parent!! / "userdata_migration_backup")

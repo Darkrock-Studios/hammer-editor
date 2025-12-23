@@ -1,13 +1,17 @@
 package com.darkrockstudios.apps.hammer.database
 
-import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.FileSystem
 import java.util.*
 
-class SqliteDatabase(fileSystem: FileSystem) : Database {
-	private lateinit var driver: JdbcSqliteDriver
+class SqliteDatabase(
+	fileSystem: FileSystem,
+	private val enforceForeignKeys: Boolean = true
+) : Database {
+	private lateinit var _driver: JdbcSqliteDriver
+	override val driver: JdbcSqliteDriver
+		get() = _driver
 
 	private lateinit var _serverDatabase: ServerDatabase
 	override val serverDatabase: ServerDatabase
@@ -22,46 +26,22 @@ class SqliteDatabase(fileSystem: FileSystem) : Database {
 			dbFile.parentFile.mkdirs()
 		}
 
-		driver = JdbcSqliteDriver(
+		_driver = JdbcSqliteDriver(
 			url = "jdbc:sqlite:" + dbFile.absolutePath,
-			properties = Properties().apply { put("foreign_keys", "true") }
+			properties = Properties().apply {
+				put("foreign_keys", if (enforceForeignKeys) "true" else "false")
+			}
 		)
 
 		if (!dbFile.exists()) {
-			ServerDatabase.Schema.create(driver)
-			setSchemaVersion()
-		} else {
-			val currentVersion = getSchemaVersion()
-			if (currentVersion < ServerDatabase.Schema.version) {
-				ServerDatabase.Schema.migrate(driver, currentVersion, ServerDatabase.Schema.version)
-				setSchemaVersion()
-			}
+			ServerDatabase.Schema.create(_driver)
+			_driver.execute(null, "PRAGMA user_version = ${ServerDatabase.Schema.version}", 0)
 		}
 
-		_serverDatabase = ServerDatabase(driver)
-	}
-
-	private fun getSchemaVersion(): Long {
-		val currentVersion = driver.executeQuery(
-			identifier = null,
-			sql = "PRAGMA user_version",
-			mapper = { cursor -> QueryResult.Value(cursor.getLong(0)) },
-			parameters = 0,
-			binders = null
-		).value ?: 1L
-		return currentVersion
-	}
-
-	private fun setSchemaVersion() {
-		driver.execute(
-			identifier = null,
-			sql = "PRAGMA user_version = ${ServerDatabase.Schema.version}",
-			parameters = 0,
-			binders = null
-		)
+		_serverDatabase = ServerDatabase(_driver)
 	}
 
 	override fun close() {
-		driver.close()
+		_driver.close()
 	}
 }
