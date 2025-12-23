@@ -77,7 +77,8 @@ class AccountsRepositoryTest : BaseTest() {
 			cipher_secret = cipherSecret,
 			created = (Clock.System.now() - 128.days).toSqliteDateTimeString(),
 			is_admin = true,
-			last_sync = Clock.System.now().toSqliteDateTimeString()
+			last_sync = Clock.System.now().toSqliteDateTimeString(),
+			pen_name = null
 		)
 	}
 
