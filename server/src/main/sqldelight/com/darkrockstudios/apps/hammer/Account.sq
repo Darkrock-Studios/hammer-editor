@@ -1,6 +1,7 @@
 CREATE TABLE account(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    pen_name TEXT UNIQUE DEFAULT(NULL),
     salt TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     cipher_secret TEXT NOT NULL,
@@ -49,6 +50,19 @@ INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin, created
 
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
+
+updatePenName:
+UPDATE account SET pen_name = ? WHERE id = ?;
+
+findAccountByPenName:
+SELECT *
+FROM account
+WHERE pen_name = ?;
+
+isPenNameTaken:
+SELECT COUNT(*) > 0
+FROM account
+WHERE pen_name = ? AND (:excludeUserId IS NULL OR id != :excludeUserId);
 
 lastInsertedRowId:
 SELECT last_insert_rowid();

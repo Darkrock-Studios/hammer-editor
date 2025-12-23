@@ -55,4 +55,19 @@ class AccountDao(
 		val query = queries.count()
 		return@withContext query.executeAsOne()
 	}
+
+	suspend fun updatePenName(userId: Long, penName: String?) = withContext(ioDispatcher) {
+		queries.updatePenName(penName, userId)
+	}
+
+	suspend fun isPenNameAvailable(penName: String, excludeUserId: Long? = null): Boolean =
+		withContext(ioDispatcher) {
+			val isTaken = queries.isPenNameTaken(penName, excludeUserId).executeAsOne()
+			return@withContext !isTaken
+		}
+
+	suspend fun findAccountByPenName(penName: String): Account? = withContext(ioDispatcher) {
+		val query = queries.findAccountByPenName(penName)
+		return@withContext query.executeAsOneOrNull()
+	}
 }
