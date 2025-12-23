@@ -33,7 +33,8 @@ class StoryExportService(
 				return StoryExportResult.Success(
 					projectName = projectDef.name,
 					html = "",
-					hasContent = false
+					hasContent = false,
+					sceneCount = 0
 				)
 			}
 
@@ -55,7 +56,8 @@ class StoryExportService(
 			StoryExportResult.Success(
 				projectName = projectDef.name,
 				html = html,
-				hasContent = true
+				hasContent = true,
+				sceneCount = scenes.size
 			)
 		} catch (e: Exception) {
 			StoryExportResult.Error(e.message ?: "Unknown error occurred")
@@ -132,7 +134,8 @@ sealed class StoryExportResult {
 	data class Success(
 		val projectName: String,
 		val html: String,
-		val hasContent: Boolean
+		val hasContent: Boolean,
+		val sceneCount: Int
 	) : StoryExportResult()
 
 	data object ProjectNotFound : StoryExportResult()

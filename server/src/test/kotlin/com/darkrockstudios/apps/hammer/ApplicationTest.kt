@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -35,6 +36,9 @@ class ApplicationTest : BaseTest() {
 
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
+
+	@MockK
+	private lateinit var projectAccessRepository: ProjectAccessRepository
 
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
@@ -65,6 +69,7 @@ class ApplicationTest : BaseTest() {
 		testModule = module {
 			single { accountsRepository }
 			single { projectEntityRepository }
+			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }

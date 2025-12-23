@@ -10,17 +10,57 @@
 			<h1 class="story-title">{{projectName}}</h1>
 		</div>
 
-		<!-- Story Content -->
-		<article class="story-content">
-			{{#hasContent}}
-				{{{storyHtml}}}
-			{{/hasContent}}
-			{{^hasContent}}
-				<div class="story-empty">
-					<p>{{msg.story_no_scenes}}</p>
+		<!-- Main Layout: Story + Sidebar -->
+		<div class="story-layout">
+			<!-- Story Content -->
+			<article class="story-content">
+				{{#hasContent}}
+					{{{storyHtml}}}
+				{{/hasContent}}
+				{{^hasContent}}
+					<div class="story-empty">
+						<p>{{msg.story_no_scenes}}</p>
+					</div>
+				{{/hasContent}}
+			</article>
+
+			<!-- Settings Sidebar -->
+			<aside class="story-sidebar">
+				<!-- Info Panel -->
+				<div class="story-info-panel">
+					<div class="info-panel-header">
+						<span class="info-panel-icon"><i class="fas fa-info-circle"></i></span>
+						<span class="info-panel-title">{{msg.story_info_title}}</span>
+					</div>
+					<div class="info-panel-content">
+						<div class="info-item">
+							<span class="info-label">{{msg.story_info_scenes}}:</span>
+							<span class="info-value">{{sceneCount}}</span>
+						</div>
+						<div class="info-item">
+							<span class="info-label">{{msg.story_info_last_sync}}:</span>
+							<span class="info-value">{{lastSync}}</span>
+						</div>
+					</div>
 				</div>
-			{{/hasContent}}
-		</article>
+
+				{{#hasPenName}}
+					<!-- Sharing Panel -->
+					<div class="story-settings-panel" id="story-settings-panel">
+						<button class="settings-toggle-btn" id="settings-toggle-btn" type="button" aria-expanded="false"
+								aria-controls="settings-content">
+							<span class="settings-toggle-icon"><i class="fas fa-cog"></i></span>
+							<span class="settings-toggle-text">{{msg.story_settings_title}}</span>
+							<span class="settings-chevron"><i class="fas fa-chevron-down"></i></span>
+						</button>
+
+						<div class="settings-content" id="settings-content" aria-hidden="true">
+							{{> partials/story-publish}}
+						</div>
+					</div>
+				{{/hasPenName}}
+			</aside>
+		</div>
 	</div>
 </main>
 

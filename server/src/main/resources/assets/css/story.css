@@ -8,10 +8,36 @@
 }
 
 .story-container {
-	max-width: 800px;
+	max-width: 1200px;
 	width: 100%;
 	animation: fadeIn 0.5s ease-out;
 	box-sizing: border-box;
+}
+
+/* Story Layout - Side by side on wide screens */
+.story-layout {
+	display: flex;
+	flex-direction: column-reverse;
+	gap: 1.5rem;
+}
+
+@media only screen and (min-width: 1024px) {
+	.story-layout {
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
+	.story-content {
+		flex: 1;
+		max-width: 800px;
+	}
+
+	.story-sidebar {
+		position: sticky;
+		top: 100px;
+		width: 320px;
+		flex-shrink: 0;
+	}
 }
 
 .story-header {
@@ -141,5 +167,439 @@
 	}
 	to {
 		opacity: 1;
+	}
+}
+
+/* ========================================
+   Story Info Panel
+   Displays story metadata at a glance
+   ======================================== */
+
+.story-info-panel {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	margin-bottom: 1rem;
+}
+
+.info-panel-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem 1.25rem;
+	background: rgba(255, 255, 255, 0.6);
+	border-bottom: 1px dashed var(--neutral-200);
+}
+
+.info-panel-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	background: var(--primary);
+	border-radius: 50%;
+	color: white;
+	font-size: 0.875rem;
+}
+
+.info-panel-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	color: var(--text-primary);
+}
+
+.info-panel-content {
+	padding: 1rem 1.25rem;
+}
+
+.info-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 0.5rem 0;
+	border-bottom: 1px dotted var(--neutral-200);
+}
+
+.info-item:last-child {
+	border-bottom: none;
+	padding-bottom: 0;
+}
+
+.info-item:first-child {
+	padding-top: 0;
+}
+
+.info-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+}
+
+.info-value {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+/* ========================================
+   Story Settings Panel
+   A refined, collapsible panel with
+   editorial-inspired design elements
+   ======================================== */
+
+.story-settings-panel {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	position: relative;
+}
+
+/* Decorative top accent bar */
+.story-settings-panel::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+	var(--neutral-300) 0%,
+	var(--accent) 20%,
+	var(--accent) 80%,
+	var(--neutral-300) 100%
+	);
+	opacity: 0.7;
+}
+
+/* Settings Toggle Button */
+.settings-toggle-btn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.25rem;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	transition: all var(--transition-base);
+	text-align: left;
+}
+
+.settings-toggle-btn:hover {
+	background: rgba(217, 119, 6, 0.05);
+	color: var(--text-primary);
+}
+
+.settings-toggle-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: var(--neutral-100);
+	border-radius: 50%;
+	color: var(--accent);
+	transition: all var(--transition-base);
+}
+
+.settings-toggle-btn:hover .settings-toggle-icon {
+	background: var(--accent);
+	color: white;
+	transform: rotate(90deg);
+}
+
+.settings-toggle-text {
+	flex: 1;
+	font-weight: 500;
+}
+
+.settings-chevron {
+	font-size: 0.75rem;
+	color: var(--neutral-400);
+	transition: transform var(--transition-base);
+}
+
+.settings-toggle-btn[aria-expanded="true"] .settings-chevron {
+	transform: rotate(180deg);
+}
+
+/* Settings Content Area */
+.settings-content {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+	padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	background: rgba(255, 255, 255, 0.5);
+}
+
+.settings-content.open {
+	max-height: 500px;
+}
+
+.settings-section {
+	padding: 0 1.25rem 1.25rem 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+/* Publish Setting Row */
+.publish-setting {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1rem;
+	padding-top: 1.25rem;
+}
+
+.publish-info {
+	flex: 1;
+}
+
+.publish-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.0625rem;
+	color: var(--text-primary);
+	margin: 0 0 0.375rem 0;
+}
+
+.publish-description {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+/* Publish Toggle - Custom Switch */
+.publish-toggle-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.publish-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	user-select: none;
+}
+
+.publish-toggle-checkbox {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.publish-toggle-track {
+	position: relative;
+	width: 52px;
+	height: 28px;
+	background: linear-gradient(135deg, var(--neutral-300) 0%, var(--neutral-400) 100%);
+	border-radius: 14px;
+	transition: all var(--transition-base);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.publish-toggle-thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 22px;
+	height: 22px;
+	background: linear-gradient(135deg, #ffffff 0%, #f5f5f4 100%);
+	border-radius: 50%;
+	transition: all var(--transition-base);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2),
+	0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle Active State */
+.publish-toggle-checkbox:checked + .publish-toggle-track {
+	background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+}
+
+.publish-toggle-checkbox:checked + .publish-toggle-track .publish-toggle-thumb {
+	left: calc(100% - 25px);
+	background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%);
+}
+
+/* Toggle Focus State */
+.publish-toggle-checkbox:focus-visible + .publish-toggle-track {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Toggle Hover Effects */
+.publish-toggle:hover .publish-toggle-track {
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15),
+	0 0 0 3px rgba(217, 119, 6, 0.1);
+}
+
+.publish-toggle:hover .publish-toggle-thumb {
+	transform: scale(1.05);
+}
+
+/* Status Labels */
+.publish-toggle-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	min-width: 5rem;
+	text-align: left;
+}
+
+.label-published,
+.label-private {
+	display: none;
+	padding: 0.25rem 0.625rem;
+	border-radius: 0.25rem;
+	font-weight: 500;
+}
+
+.label-published {
+	color: var(--success);
+	background: rgba(16, 185, 129, 0.1);
+}
+
+.label-private {
+	color: var(--neutral-500);
+	background: rgba(120, 113, 108, 0.1);
+}
+
+.publish-toggle-checkbox:checked ~ .publish-toggle-label .label-published {
+	display: inline-block;
+}
+
+.publish-toggle-checkbox:not(:checked) ~ .publish-toggle-label .label-private {
+	display: inline-block;
+}
+
+/* Loading Indicator */
+.publish-loading {
+	font-size: 1rem;
+	color: var(--accent);
+}
+
+.publish-loading.htmx-indicator {
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.htmx-request .publish-loading.htmx-indicator,
+.htmx-request.publish-loading.htmx-indicator {
+	opacity: 1;
+}
+
+/* Public URL Section */
+.publish-url-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.publish-url-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+}
+
+.publish-url-container {
+	display: flex;
+	gap: 0;
+	border-radius: 0.375rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.publish-url-input {
+	flex: 1;
+	padding: 0.75rem 1rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-right: none;
+	border-radius: 0.375rem 0 0 0.375rem;
+	cursor: text;
+}
+
+.publish-url-input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.copy-url-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 1.25rem;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+	color: white;
+	border: 2px solid var(--accent-dark);
+	border-radius: 0 0.375rem 0.375rem 0;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	font-size: 1rem;
+}
+
+.copy-url-btn:hover {
+	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+	transform: translateY(-1px);
+}
+
+.copy-url-btn:active {
+	transform: translateY(0);
+}
+
+.copy-url-btn.copied {
+	background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+	border-color: var(--success);
+}
+
+/* Responsive Design for Settings Panel */
+@media only screen and (max-width: 768px) {
+	.publish-url-container {
+		flex-direction: column;
+	}
+
+	.publish-url-input {
+		border-right: 2px solid var(--neutral-200);
+		border-bottom: none;
+		border-radius: 0.375rem 0.375rem 0 0;
+	}
+
+	.copy-url-btn {
+		border-radius: 0 0 0.375rem 0.375rem;
+		padding: 0.75rem;
+	}
+}
+
+/* On mobile, ensure sidebar comes after content */
+@media only screen and (max-width: 1023px) {
+	.story-sidebar {
+		width: 100%;
 	}
 }

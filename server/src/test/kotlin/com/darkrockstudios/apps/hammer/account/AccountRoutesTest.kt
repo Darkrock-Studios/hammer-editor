@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -39,6 +40,9 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var accountsRepository: AccountsRepository
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
+	@MockK
+	private lateinit var projectAccessRepository: ProjectAccessRepository
+
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
 	@MockK
@@ -71,6 +75,7 @@ class AccountRoutesTest : BaseTest() {
 		testModule = module {
 			single { accountsRepository }
 			single { projectEntityRepository }
+			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
