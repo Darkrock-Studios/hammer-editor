@@ -1,0 +1,65 @@
+{{> header}}
+
+<main class="admin-page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<!-- Admin Header -->
+			<div class="admin-header">
+				<div class="admin-header-content">
+					<h1>{{msg.admin_dashboard_title}}</h1>
+					<p class="admin-subtitle">{{msg.admin_dashboard_subtitle}}</p>
+				</div>
+			</div>
+
+			<!-- Server Settings Section -->
+			<section class="admin-section">
+				<div class="section-header">
+					<div class="section-title-group">
+						<h2>{{msg.admin_serversettings_title}}</h2>
+					</div>
+				</div>
+				<p class="section-description">{{msg.admin_serversettings_description}}</p>
+
+				<form action="/admin/settings" method="post" class="settings-form"
+					  hx-post="/admin/settings"
+					  hx-swap="none">
+					<div class="form-group">
+						<label for="contact">{{msg.admin_serversettings_contact_label}}</label>
+						<div class="form-input-group">
+							<input id="contact" name="contact" type="email" value="{{contactEmail}}"
+								   placeholder="{{msg.admin_serversettings_contact_placeholder}}"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="defaultLocale">{{msg.admin_serversettings_default_locale_label}}</label>
+						<div class="form-input-group">
+							<select id="defaultLocale" name="defaultLocale" class="settings-select">
+								{{#availableLocales}}
+									<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+								{{/availableLocales}}
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="message">{{msg.admin_serversettings_message_label}}</label>
+						<div class="form-input-group">
+							<textarea id="message" name="message" rows="4"
+									  class="settings-textarea">{{serverMessage}}</textarea>
+						</div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="save-button">{{msg.admin_serversettings_save_button}}</button>
+					</div>
+				</form>
+			</section>
+		</div>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}
