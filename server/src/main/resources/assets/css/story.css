@@ -167,15 +167,6 @@
 	}
 }
 
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
 /* ========================================
    Story Info Panel
    Displays story metadata at a glance
@@ -703,175 +694,112 @@
 }
 
 /* ========================================
-   Share Dialog (Modal)
+   Dialog Customizations for Story Page
+   Additional styling for story-specific dialogs
    ======================================== */
 
-.share-dialog-overlay {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1000;
-	animation: fadeIn 0.2s ease-out;
-	backdrop-filter: blur(2px);
-}
-
-.share-dialog-overlay.closing {
-	animation: fadeOut 0.2s ease-out forwards;
-}
-
-@keyframes fadeOut {
-	from { opacity: 1; }
-	to { opacity: 0; }
-}
-
-.share-dialog {
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 250, 245, 1) 100%);
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.75rem;
-	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0, 0, 0, 0.05);
-	max-width: 420px;
-	width: 90%;
-	animation: slideInUp 0.3s ease-out;
-}
-
-@keyframes slideInUp {
-	from {
-		opacity: 0;
-		transform: translateY(20px) scale(0.95);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-}
-
-.share-dialog-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 1.25rem 1.5rem;
-	border-bottom: 1px dashed var(--neutral-200);
-}
-
-.share-dialog-header h3 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.25rem;
-	color: var(--text-primary);
-	margin: 0;
-}
-
-.dialog-close-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	background: transparent;
-	border: none;
-	border-radius: 50%;
-	color: var(--text-secondary);
-	cursor: pointer;
-	transition: all var(--transition-base);
-}
-
-.dialog-close-btn:hover {
-	background: var(--neutral-100);
-	color: var(--text-primary);
-}
-
-.share-dialog-body {
-	padding: 1.5rem;
-}
-
-.share-dialog .form-field {
-	margin-bottom: 1.25rem;
-}
-
-.share-dialog .form-field:last-child {
-	margin-bottom: 0;
-}
-
-.share-dialog .form-field label {
-	display: block;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.875rem;
-	color: var(--text-secondary);
-	margin-bottom: 0.5rem;
-}
-
-.share-dialog .form-field .optional-label {
+/* Optional label styling */
+.optional-label {
 	font-style: italic;
 	color: var(--neutral-400);
 }
 
-.share-dialog .form-field input {
-	width: 100%;
-	padding: 0.75rem 1rem;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 1rem;
-	color: var(--text-primary);
-	background: white;
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.375rem;
-	box-sizing: border-box;
-	transition: border-color var(--transition-base);
+/* Warning dialog header with icon */
+.dialog__header--warning {
+	background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(245, 158, 11, 0.05) 100%);
+	border-bottom: 1px dashed rgba(217, 119, 6, 0.25);
+	position: relative;
 }
 
-.share-dialog .form-field input:focus {
-	outline: none;
-	border-color: var(--accent);
+.dialog__header--warning::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+	transparent 0%,
+	rgba(245, 158, 11, 0.6) 20%,
+	rgba(217, 119, 6, 0.8) 50%,
+	rgba(245, 158, 11, 0.6) 80%,
+	transparent 100%
+	);
 }
 
-.share-dialog .form-field input::placeholder {
-	color: var(--neutral-400);
-}
-
-.share-dialog-actions {
+.warning-icon-wrapper {
 	display: flex;
-	gap: 0.75rem;
-	justify-content: flex-end;
-	padding: 1rem 1.5rem;
-	background: rgba(255, 255, 255, 0.5);
-	border-top: 1px dashed var(--neutral-200);
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
+	border: 1.5px solid rgba(217, 119, 6, 0.3);
+	border-radius: 50%;
+	flex-shrink: 0;
+	animation: warningPulse 2s ease-in-out infinite;
 }
 
-.share-dialog .cancel-btn {
-	padding: 0.625rem 1.25rem;
-	background: transparent;
-	color: var(--text-secondary);
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.375rem;
-	font-family: 'Kingthings Typewriter', monospace;
+@keyframes warningPulse {
+	0%, 100% {
+		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+	}
+	50% {
+		box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+	}
+}
+
+.warning-icon-wrapper i {
+	font-size: 1.125rem;
+	color: #b45309;
+}
+
+/* Warning Body Content */
+.warning-text {
+	font-family: 'Lora', Georgia, serif;
 	font-size: 0.9375rem;
-	cursor: pointer;
-	transition: all var(--transition-base);
-}
-
-.share-dialog .cancel-btn:hover {
-	background: var(--neutral-100);
-	border-color: var(--neutral-400);
+	line-height: 1.7;
 	color: var(--text-primary);
+	margin: 0 0 1.25rem 0;
+	text-align: justify;
+	hyphens: auto;
 }
 
-.share-dialog .create-access-btn {
-	padding: 0.625rem 1.25rem;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-	color: white;
-	border: 2px solid var(--accent-dark);
-	border-radius: 0.375rem;
+/* Recommendation Callout */
+.warning-recommendation {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1rem 1.125rem;
+	background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.04) 100%);
+	border: 1.5px solid rgba(16, 185, 129, 0.2);
+	border-radius: 0.5rem;
+	border-left: 3px solid var(--success);
+}
+
+.warning-recommendation i {
+	font-size: 1rem;
+	color: var(--success);
+	margin-top: 0.125rem;
+	flex-shrink: 0;
+}
+
+.warning-recommendation span {
 	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all var(--transition-base);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: var(--text-secondary);
 }
 
-.share-dialog .create-access-btn:hover {
-	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
-	transform: translateY(-1px);
+/* Publish confirm button with icon */
+.publish-confirm-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.publish-confirm-btn i {
+	font-size: 0.875rem;
 }
 
 /* ========================================
@@ -1100,36 +1028,6 @@
 	text-align: left;
 }
 
-.password-form .form-field {
-	margin-bottom: 1rem;
-}
-
-.password-form .form-field label {
-	display: block;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.875rem;
-	color: var(--text-secondary);
-	margin-bottom: 0.5rem;
-}
-
-.password-form .form-field input {
-	width: 100%;
-	padding: 0.875rem 1rem;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 1rem;
-	color: var(--text-primary);
-	background: white;
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.375rem;
-	box-sizing: border-box;
-	transition: border-color var(--transition-base);
-}
-
-.password-form .form-field input:focus {
-	outline: none;
-	border-color: var(--accent);
-}
-
 .password-error {
 	display: flex;
 	align-items: center;
@@ -1164,233 +1062,6 @@
 
 .password-submit-btn:active {
 	transform: translateY(0);
-}
-
-/* ========================================
-   Publish Warning Dialog
-   A thoughtful caution before public publishing
-   ======================================== */
-
-.publish-warning-overlay {
-	position: fixed;
-	inset: 0;
-	background: rgba(41, 37, 36, 0.6);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1000;
-	animation: fadeIn 0.2s ease-out;
-	backdrop-filter: blur(3px);
-}
-
-.publish-warning-overlay.closing {
-	animation: fadeOut 0.2s ease-out forwards;
-}
-
-.publish-warning-dialog {
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.99) 0%, rgba(255, 251, 235, 1) 100%);
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.75rem;
-	box-shadow:
-		var(--shadow-xl),
-		0 0 0 1px rgba(217, 119, 6, 0.1),
-		0 0 40px rgba(217, 119, 6, 0.08);
-	max-width: 480px;
-	width: 90%;
-	animation: warningSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-	overflow: hidden;
-}
-
-@keyframes warningSlideIn {
-	from {
-		opacity: 0;
-		transform: translateY(-20px) scale(0.95);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-}
-
-/* Warning Header with Icon */
-.publish-warning-header {
-	display: flex;
-	align-items: center;
-	gap: 0.875rem;
-	padding: 1.25rem 1.5rem;
-	background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(245, 158, 11, 0.05) 100%);
-	border-bottom: 1px dashed rgba(217, 119, 6, 0.25);
-	position: relative;
-}
-
-.publish-warning-header::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg,
-		transparent 0%,
-		rgba(245, 158, 11, 0.6) 20%,
-		rgba(217, 119, 6, 0.8) 50%,
-		rgba(245, 158, 11, 0.6) 80%,
-		transparent 100%
-	);
-}
-
-.warning-icon-wrapper {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.5rem;
-	height: 2.5rem;
-	background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
-	border: 1.5px solid rgba(217, 119, 6, 0.3);
-	border-radius: 50%;
-	flex-shrink: 0;
-	animation: warningPulse 2s ease-in-out infinite;
-}
-
-@keyframes warningPulse {
-	0%, 100% {
-		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
-	}
-	50% {
-		box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
-	}
-}
-
-.warning-icon-wrapper i {
-	font-size: 1.125rem;
-	color: #b45309;
-}
-
-.publish-warning-header h3 {
-	flex: 1;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.25rem;
-	color: var(--text-primary);
-	margin: 0;
-	letter-spacing: 0.02em;
-}
-
-.publish-warning-header .dialog-close-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	background: transparent;
-	border: none;
-	border-radius: 50%;
-	color: var(--text-secondary);
-	cursor: pointer;
-	transition: all var(--transition-base);
-}
-
-.publish-warning-header .dialog-close-btn:hover {
-	background: rgba(217, 119, 6, 0.1);
-	color: #b45309;
-}
-
-/* Warning Body */
-.publish-warning-body {
-	padding: 1.5rem;
-}
-
-.warning-text {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.9375rem;
-	line-height: 1.7;
-	color: var(--text-primary);
-	margin: 0 0 1.25rem 0;
-	text-align: justify;
-	hyphens: auto;
-}
-
-/* Recommendation Callout */
-.warning-recommendation {
-	display: flex;
-	align-items: flex-start;
-	gap: 0.75rem;
-	padding: 1rem 1.125rem;
-	background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.04) 100%);
-	border: 1.5px solid rgba(16, 185, 129, 0.2);
-	border-radius: 0.5rem;
-	border-left: 3px solid var(--success);
-}
-
-.warning-recommendation i {
-	font-size: 1rem;
-	color: var(--success);
-	margin-top: 0.125rem;
-	flex-shrink: 0;
-}
-
-.warning-recommendation span {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.8125rem;
-	line-height: 1.5;
-	color: var(--text-secondary);
-}
-
-/* Warning Actions */
-.publish-warning-actions {
-	display: flex;
-	gap: 0.75rem;
-	justify-content: flex-end;
-	padding: 1rem 1.5rem;
-	background: rgba(255, 255, 255, 0.6);
-	border-top: 1px dashed var(--neutral-200);
-}
-
-.publish-warning-actions .cancel-btn {
-	padding: 0.625rem 1.25rem;
-	background: transparent;
-	color: var(--text-secondary);
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.375rem;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	cursor: pointer;
-	transition: all var(--transition-base);
-}
-
-.publish-warning-actions .cancel-btn:hover {
-	background: var(--neutral-100);
-	border-color: var(--neutral-400);
-	color: var(--text-primary);
-}
-
-.publish-confirm-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.625rem 1.25rem;
-	background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-	color: white;
-	border: 2px solid #92400e;
-	border-radius: 0.375rem;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all var(--transition-base);
-}
-
-.publish-confirm-btn:hover {
-	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-	transform: translateY(-1px);
-	box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
-}
-
-.publish-confirm-btn:active {
-	transform: translateY(0);
-}
-
-.publish-confirm-btn i {
-	font-size: 0.875rem;
 }
 
 /* ========================================
@@ -1452,50 +1123,6 @@
 	border-top: 1px dashed var(--neutral-300);
 }
 
-.pagination-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.75rem 1.25rem;
-	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
-	color: var(--text-primary);
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.375rem;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all var(--transition-base);
-	text-decoration: none;
-}
-
-.pagination-button:hover:not(.disabled) {
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-	color: white;
-	border-color: var(--accent-dark);
-	transform: translateY(-1px);
-}
-
-.pagination-button:active:not(.disabled) {
-	transform: translateY(0);
-}
-
-.pagination-button.disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.pagination-button i {
-	font-size: 0.75rem;
-}
-
-.pagination-info {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.875rem;
-	color: var(--text-secondary);
-	padding: 0 1rem;
-}
-
 /* Responsive pagination */
 @media only screen and (max-width: 480px) {
 	.story-pagination {
@@ -1503,12 +1130,12 @@
 		gap: 0.75rem;
 	}
 
-	.pagination-button {
+	.story-pagination .pagination-button {
 		padding: 0.625rem 1rem;
 		font-size: 0.875rem;
 	}
 
-	.pagination-info {
+	.story-pagination .pagination-info {
 		width: 100%;
 		text-align: center;
 		order: -1;

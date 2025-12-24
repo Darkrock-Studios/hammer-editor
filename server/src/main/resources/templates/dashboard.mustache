@@ -1,14 +1,14 @@
 {{> header}}
 
-<main class="dashboard-page">
-	<div class="dashboard-container">
+<main class="page">
+	<div class="page__container">
 		<!-- Dashboard Header -->
-		<div class="dashboard-header">
-			<div class="dashboard-header-content">
-				<h1>{{msg.dashboard_title}}</h1>
-				<p class="dashboard-subtitle">{{msg.dashboard_subtitle}} {{username}}</p>
+		<div class="page-header">
+			<div class="page-header__content">
+				<h1 class="page-header__title">{{msg.dashboard_title}}</h1>
+				<p class="page-header__subtitle">{{msg.dashboard_subtitle}} {{username}}</p>
 			</div>
-			<div class="dashboard-header-actions">
+			<div class="page-header__actions">
 				{{#isAdmin}}
 					<a href="/admin" class="manage-server-button">{{msg.dashboard_manage_server}}</a>
 				{{/isAdmin}}
@@ -19,11 +19,9 @@
 		</div>
 
 		<!-- Projects Section -->
-		<section class="dashboard-section">
+		<section class="paper-section">
 			<div class="section-header">
-				<div class="section-title-group">
-					<h2>{{msg.dashboard_projects_title}}</h2>
-				</div>
+				<h2 class="section-header__title">{{msg.dashboard_projects_title}}</h2>
 			</div>
 			<p class="section-description">{{msg.dashboard_projects_description}}</p>
 
@@ -35,11 +33,9 @@
 		</section>
 
 		<!-- Account Section -->
-		<section class="dashboard-section">
+		<section class="paper-section">
 			<div class="section-header">
-				<div class="section-title-group">
-					<h2>{{msg.dashboard_account_title}}</h2>
-				</div>
+				<h2 class="section-header__title">{{msg.dashboard_account_title}}</h2>
 			</div>
 			<div class="account-container">
 				<div class="account-info">

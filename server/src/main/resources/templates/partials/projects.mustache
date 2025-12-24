@@ -1,21 +1,21 @@
 {{#projects}}
 	{{#hasProjects}}
-		<div class="projects-list">
+		<div class="card-list">
 			{{#items}}
-				<a href="/story/{{uuid}}" class="project-card">
-					<div class="project-info">
-						<span class="project-name">{{name}}</span>
-						<span class="project-sync-date">
+				<a href="/story/{{uuid}}" class="card card--interactive">
+					<div class="card__info">
+						<span class="card__title">{{name}}</span>
+						<span class="card__subtitle">
 							{{msg.dashboard_last_sync}}: {{lastSync}}
 						</span>
 					</div>
-					<i class="fa-solid fa-chevron-right project-arrow"></i>
+					<i class="fa-solid fa-chevron-right card__arrow"></i>
 				</a>
 			{{/items}}
 		</div>
 	{{/hasProjects}}
 	{{^hasProjects}}
-		<div class="projects-empty">
+		<div class="empty-state">
 			<p>{{msg.dashboard_no_projects}}</p>
 		</div>
 	{{/hasProjects}}

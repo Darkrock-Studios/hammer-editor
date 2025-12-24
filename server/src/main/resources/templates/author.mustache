@@ -1,7 +1,7 @@
 {{> header}}
 
-<main class="author-page">
-	<div class="author-container">
+<main class="page">
+	<div class="page__container page__container--author">
 		<!-- Stories Section -->
 		<section class="stories-section">
 			<!-- Author Info inside the card -->
@@ -16,14 +16,14 @@
 			</header>
 
 			{{#hasStories}}
-				<div class="stories-list">
+				<div class="card-list">
 					{{#stories}}
-						<a href="/a/{{urlPenName}}/{{urlName}}" class="story-card">
-							<div class="story-info">
-								<h2 class="story-name">{{name}}</h2>
-								<span class="story-date">{{msg.author_story_published_on}} {{publishedAt}}</span>
+						<a href="/a/{{urlPenName}}/{{urlName}}" class="card card--gradient card--interactive">
+							<div class="card__info">
+								<h2 class="card__title">{{name}}</h2>
+								<span class="card__subtitle">{{msg.author_story_published_on}} {{publishedAt}}</span>
 							</div>
-							<i class="fa-solid fa-chevron-right story-arrow"></i>
+							<i class="fa-solid fa-chevron-right card__arrow"></i>
 						</a>
 					{{/stories}}
 				</div>
