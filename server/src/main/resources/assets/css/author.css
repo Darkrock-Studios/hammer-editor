@@ -1,0 +1,303 @@
+/* Author Page Styles */
+/* A clean, simple literary portfolio */
+
+.author-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	justify-content: center;
+}
+
+.author-container {
+	max-width: 900px;
+	width: 100%;
+}
+
+/* ========================================
+   Stories Section (main card)
+   ======================================== */
+
+.stories-section {
+	background: var(--surface);
+	border-radius: 0.75rem;
+	padding: clamp(2rem, 5vw, 3rem);
+	box-shadow: var(--shadow-lg);
+	animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* ========================================
+   Author Header (inside the card)
+   ======================================== */
+
+.author-header {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	padding-bottom: 2rem;
+	margin-bottom: 2rem;
+	border-bottom: 2px dashed var(--neutral-200);
+}
+
+.author-avatar {
+	width: 4rem;
+	height: 4rem;
+	background: linear-gradient(145deg, var(--accent) 0%, var(--accent-dark) 100%);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+	flex-shrink: 0;
+}
+
+.avatar-letter {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.75rem;
+	color: white;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	text-transform: uppercase;
+}
+
+.author-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.author-name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: clamp(1.75rem, 4vw, 2.5rem);
+	color: var(--text-primary);
+	margin: 0 0 0.25rem;
+	line-height: 1.2;
+}
+
+.author-subtitle {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0;
+	font-style: italic;
+}
+
+/* ========================================
+   Stories List
+   ======================================== */
+
+.stories-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+/* ========================================
+   Story Card
+   ======================================== */
+
+.story-card {
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+	background: linear-gradient(135deg, #fdfcfb 0%, #f5f4f0 100%);
+	border: 1px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-sm);
+	transition: all 0.2s ease;
+	padding: 1rem 1.25rem;
+}
+
+.story-card:hover {
+	background: white;
+	border-color: var(--accent);
+	box-shadow: var(--shadow-md);
+}
+
+.story-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.story-name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.125rem;
+	color: var(--text-primary);
+	margin: 0 0 0.25rem;
+	line-height: 1.3;
+	transition: color 0.2s ease;
+}
+
+.story-card:hover .story-name {
+	color: var(--accent-dark);
+}
+
+.story-date {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.story-arrow {
+	color: var(--neutral-400);
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	margin-left: 1rem;
+}
+
+.story-card:hover .story-arrow {
+	color: var(--accent);
+	transform: translateX(3px);
+}
+
+/* ========================================
+   Story Count
+   ======================================== */
+
+.story-count {
+	text-align: center;
+	margin: 2rem 0 0;
+	padding-top: 1.5rem;
+	border-top: 1px dashed var(--neutral-200);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+/* ========================================
+   No Stories State
+   ======================================== */
+
+.no-stories {
+	text-align: center;
+	padding: 3rem 2rem;
+}
+
+.no-stories-icon {
+	width: 4rem;
+	height: 4rem;
+	margin: 0 auto 1.25rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.no-stories-icon i {
+	font-size: 1.5rem;
+	color: var(--accent);
+}
+
+.no-stories h2 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.25rem;
+	color: var(--text-primary);
+	margin: 0 0 0.5rem;
+}
+
+.no-stories p {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0;
+	font-style: italic;
+}
+
+/* ========================================
+   Author Footer
+   ======================================== */
+
+.author-footer {
+	margin-top: 2rem;
+	text-align: center;
+}
+
+.author-footer .powered-by {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.author-footer a {
+	color: var(--accent);
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.author-footer a:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media only screen and (max-width: 768px) {
+	.author-page {
+		padding: 1.5rem 1rem;
+	}
+
+	.stories-section {
+		padding: 1.5rem;
+		border-radius: 0.5rem;
+	}
+
+	.author-header {
+		padding-bottom: 1.5rem;
+		margin-bottom: 1.5rem;
+		gap: 1rem;
+	}
+
+	.author-avatar {
+		width: 3.5rem;
+		height: 3.5rem;
+	}
+
+	.avatar-letter {
+		font-size: 1.5rem;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.author-header {
+		flex-direction: column;
+		text-align: center;
+	}
+
+	.author-name {
+		font-size: 1.5rem;
+	}
+
+	.story-card {
+		padding: 0.875rem 1rem;
+	}
+
+	.story-name {
+		font-size: 1rem;
+	}
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.stories-section,
+	.story-card,
+	.read-link i {
+		animation: none;
+		transition: none;
+	}
+}
+
+/* Focus styles for keyboard navigation */
+.story-card:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 2px;
+}

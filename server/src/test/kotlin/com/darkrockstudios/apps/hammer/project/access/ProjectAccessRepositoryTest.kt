@@ -49,7 +49,8 @@ class ProjectAccessRepositoryTest {
 			id = 1,
 			project_id = projectId,
 			access_password = "password",
-			expires_at = null
+			expires_at = null,
+			published_at = "2025-12-25 23:51:32"
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -101,7 +102,8 @@ class ProjectAccessRepositoryTest {
 			id = 1,
 			project_id = projectId,
 			access_password = null,
-			expires_at = null
+			expires_at = null,
+			published_at = "2025-12-25 23:51:32",
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -125,7 +127,13 @@ class ProjectAccessRepositoryTest {
 	@Test
 	fun `hasAnyAccess - returns true when access entries exist`() = runTest {
 		val accessList = listOf(
-			Project_access(id = 1, project_id = projectId, access_password = "pass", expires_at = null)
+			Project_access(
+				id = 1,
+				project_id = projectId,
+				access_password = "pass",
+				expires_at = null,
+				published_at = "2025-12-25 23:51:32"
+			)
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -162,7 +170,8 @@ class ProjectAccessRepositoryTest {
 			id = 1,
 			project_id = projectId,
 			access_password = null,
-			expires_at = null
+			expires_at = null,
+			published_at = "2025-12-25 23:51:32"
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -213,12 +222,14 @@ class ProjectAccessRepositoryTest {
 				access_password = "pass1",
 				expires_at = "2099-06-15 12:00:00",
 				project_id = 1,
+				published_at = "2025-12-25 23:51:32"
 			),
 			GetPrivateAccessForProject(
 				id = 2,
 				access_password = "pass2",
 				expires_at = null,
 				project_id = 2,
+				published_at = "2025-12-25 23:51:32"
 			)
 		)
 
@@ -244,6 +255,7 @@ class ProjectAccessRepositoryTest {
 				access_password = "expired-pass",
 				expires_at = "2020-01-01 00:00:00",
 				project_id = 1,
+				published_at = "2025-12-25 23:51:32"
 			)
 		)
 
@@ -360,7 +372,13 @@ class ProjectAccessRepositoryTest {
 
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
-		coEvery { projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password) } returns privateInfo
+		coEvery {
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
+				penName,
+				projectName,
+				password
+			)
+		} returns privateInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)
 
@@ -374,7 +392,13 @@ class ProjectAccessRepositoryTest {
 
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
-		coEvery { projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, wrongPassword) } returns null
+		coEvery {
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
+				penName,
+				projectName,
+				wrongPassword
+			)
+		} returns null
 
 		val result = repository.findAccessibleProject(penName, projectName, wrongPassword)
 
@@ -394,7 +418,13 @@ class ProjectAccessRepositoryTest {
 
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
-		coEvery { projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password) } returns expiredInfo
+		coEvery {
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
+				penName,
+				projectName,
+				password
+			)
+		} returns expiredInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)
 
@@ -419,9 +449,20 @@ class ProjectAccessRepositoryTest {
 			expiresAt = null
 		)
 
-		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns expiredPublicInfo
+		coEvery {
+			projectAccessDao.findPublicProjectByPenNameAndProjectName(
+				penName,
+				projectName
+			)
+		} returns expiredPublicInfo
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
-		coEvery { projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password) } returns validPrivateInfo
+		coEvery {
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
+				penName,
+				projectName,
+				password
+			)
+		} returns validPrivateInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)
 

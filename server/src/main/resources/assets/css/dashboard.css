@@ -561,6 +561,32 @@
 	color: var(--warning);
 }
 
+/* Author Page Link */
+.author-page-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--accent);
+	background: none;
+	border: 1px solid var(--accent);
+	border-radius: 0.25rem;
+	padding: 0.375rem 0.625rem;
+	text-decoration: none;
+	transition: all 0.2s ease;
+	margin-left: auto;
+}
+
+.author-page-link:hover {
+	background: var(--accent);
+	color: white;
+}
+
+.author-page-link i {
+	font-size: 0.75rem;
+}
+
 /* ========================================
    Danger Zone - Release Pen Name
    ======================================== */

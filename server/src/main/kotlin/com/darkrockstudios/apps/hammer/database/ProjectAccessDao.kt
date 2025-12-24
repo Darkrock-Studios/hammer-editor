@@ -14,6 +14,12 @@ data class PublicProjectInfo(
 	val expiresAt: String?
 )
 
+data class PublishedStoryInfo(
+	val projectUuid: String,
+	val projectName: String,
+	val publishedAt: String
+)
+
 class ProjectAccessDao(
 	database: Database,
 ) : KoinComponent {
@@ -120,5 +126,15 @@ class ProjectAccessDao(
 		projectName: String
 	): Boolean = withContext(ioDispatcher) {
 		queries.hasAnyAccessForProject(penName, projectName).executeAsOne()
+	}
+
+	suspend fun getPublishedStoriesByPenName(penName: String): List<PublishedStoryInfo> = withContext(ioDispatcher) {
+		queries.getPublishedStoriesByPenName(penName).executeAsList().map {
+			PublishedStoryInfo(
+				projectUuid = it.project_uuid,
+				projectName = it.project_name,
+				publishedAt = it.published_at
+			)
+		}
 	}
 }
