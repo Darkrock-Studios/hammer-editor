@@ -57,12 +57,12 @@ UPDATE account SET pen_name = ? WHERE id = ?;
 findAccountByPenName:
 SELECT *
 FROM account
-WHERE pen_name = ?;
+WHERE LOWER(pen_name) = LOWER(?);
 
 isPenNameTaken:
 SELECT COUNT(*) > 0
 FROM account
-WHERE pen_name = ? AND (:excludeUserId IS NULL OR id != :excludeUserId);
+WHERE LOWER(pen_name) = LOWER(?) AND (:excludeUserId IS NULL OR id != :excludeUserId);
 
 lastInsertedRowId:
 SELECT last_insert_rowid();

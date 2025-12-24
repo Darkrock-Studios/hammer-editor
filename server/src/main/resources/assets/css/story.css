@@ -343,7 +343,7 @@
 }
 
 .settings-content.open {
-	max-height: 500px;
+	max-height: 2000px;
 }
 
 .settings-section {
@@ -654,4 +654,508 @@
 
 .public-story-footer a:hover {
 	text-decoration: underline;
+}
+
+/* ========================================
+   Share Private Button
+   ======================================== */
+
+.share-private-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.share-private-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.25rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+	color: var(--text-primary);
+	border: 2px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.share-private-btn:hover {
+	background: linear-gradient(135deg, var(--neutral-200) 0%, var(--neutral-300) 100%);
+	border-color: var(--neutral-400);
+	transform: translateY(-1px);
+}
+
+.share-private-btn:active {
+	transform: translateY(0);
+}
+
+.share-private-btn i {
+	color: var(--accent);
+}
+
+/* ========================================
+   Share Dialog (Modal)
+   ======================================== */
+
+.share-dialog-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	animation: fadeIn 0.2s ease-out;
+	backdrop-filter: blur(2px);
+}
+
+.share-dialog-overlay.closing {
+	animation: fadeOut 0.2s ease-out forwards;
+}
+
+@keyframes fadeOut {
+	from { opacity: 1; }
+	to { opacity: 0; }
+}
+
+.share-dialog {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 250, 245, 1) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0, 0, 0, 0.05);
+	max-width: 420px;
+	width: 90%;
+	animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px) scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.share-dialog-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px dashed var(--neutral-200);
+}
+
+.share-dialog-header h3 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.25rem;
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.dialog-close-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: transparent;
+	border: none;
+	border-radius: 50%;
+	color: var(--text-secondary);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.dialog-close-btn:hover {
+	background: var(--neutral-100);
+	color: var(--text-primary);
+}
+
+.share-dialog-body {
+	padding: 1.5rem;
+}
+
+.share-dialog .form-field {
+	margin-bottom: 1.25rem;
+}
+
+.share-dialog .form-field:last-child {
+	margin-bottom: 0;
+}
+
+.share-dialog .form-field label {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+}
+
+.share-dialog .form-field .optional-label {
+	font-style: italic;
+	color: var(--neutral-400);
+}
+
+.share-dialog .form-field input {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-primary);
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.375rem;
+	box-sizing: border-box;
+	transition: border-color var(--transition-base);
+}
+
+.share-dialog .form-field input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.share-dialog .form-field input::placeholder {
+	color: var(--neutral-400);
+}
+
+.share-dialog-actions {
+	display: flex;
+	gap: 0.75rem;
+	justify-content: flex-end;
+	padding: 1rem 1.5rem;
+	background: rgba(255, 255, 255, 0.5);
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.share-dialog .cancel-btn {
+	padding: 0.625rem 1.25rem;
+	background: transparent;
+	color: var(--text-secondary);
+	border: 2px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.share-dialog .cancel-btn:hover {
+	background: var(--neutral-100);
+	border-color: var(--neutral-400);
+	color: var(--text-primary);
+}
+
+.share-dialog .create-access-btn {
+	padding: 0.625rem 1.25rem;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+	color: white;
+	border: 2px solid var(--accent-dark);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.share-dialog .create-access-btn:hover {
+	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+	transform: translateY(-1px);
+}
+
+/* ========================================
+   Access List
+   ======================================== */
+
+.access-list-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.access-list-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0 0 0.75rem 0;
+}
+
+.access-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.access-entry {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.875rem 1rem;
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	transition: all var(--transition-base);
+}
+
+.access-entry:hover {
+	border-color: var(--neutral-300);
+	box-shadow: var(--shadow-sm);
+}
+
+.access-entry.expired {
+	opacity: 0.6;
+	border-color: var(--error);
+	background: var(--neutral-50);
+}
+
+.access-entry-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	flex: 1;
+	min-width: 0;
+}
+
+.access-entry-main {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.access-type {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.access-type i {
+	color: var(--accent);
+}
+
+.access-password-display {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: monospace;
+	font-size: 0.875rem;
+}
+
+.access-password-display code {
+	background: var(--neutral-100);
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	color: var(--text-primary);
+}
+
+.access-password-display .password-masked {
+	color: var(--neutral-400);
+	letter-spacing: 0.1em;
+}
+
+.password-toggle-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	padding: 0;
+	background: transparent;
+	border: none;
+	border-radius: 0.25rem;
+	color: var(--neutral-400);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.password-toggle-btn:hover {
+	background: var(--neutral-100);
+	color: var(--accent);
+}
+
+.password-toggle-btn.revealed {
+	color: var(--accent);
+}
+
+.access-entry-expiry {
+	display: flex;
+	align-items: center;
+}
+
+.access-expiry {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.access-expiry i {
+	font-size: 0.6875rem;
+}
+
+.access-expiry.expired {
+	color: var(--error);
+}
+
+.access-expiry.never {
+	color: var(--neutral-400);
+}
+
+.delete-access-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: transparent;
+	border: none;
+	border-radius: 0.375rem;
+	color: var(--neutral-400);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	flex-shrink: 0;
+	margin-left: 0.5rem;
+}
+
+.delete-access-btn:hover {
+	background: rgba(239, 68, 68, 0.1);
+	color: var(--error);
+}
+
+/* ========================================
+   Password Form Page (Public Access)
+   ======================================== */
+
+.password-form-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.password-form-container {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 250, 245, 1) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-lg);
+	padding: 2.5rem;
+	max-width: 400px;
+	width: 100%;
+	text-align: center;
+	animation: fadeIn 0.5s ease-out;
+}
+
+.password-form-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 4rem;
+	height: 4rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+	border-radius: 50%;
+	margin-bottom: 1.5rem;
+}
+
+.password-form-icon i {
+	font-size: 1.75rem;
+	color: var(--accent);
+}
+
+.password-form-container h2 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: var(--text-primary);
+	margin: 0 0 0.75rem 0;
+}
+
+.password-form-description {
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0 0 1.5rem 0;
+	line-height: 1.5;
+}
+
+.password-form {
+	text-align: left;
+}
+
+.password-form .form-field {
+	margin-bottom: 1rem;
+}
+
+.password-form .form-field label {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+}
+
+.password-form .form-field input {
+	width: 100%;
+	padding: 0.875rem 1rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-primary);
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.375rem;
+	box-sizing: border-box;
+	transition: border-color var(--transition-base);
+}
+
+.password-form .form-field input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.password-error {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: 0.375rem;
+	color: var(--error);
+	font-size: 0.875rem;
+	margin-bottom: 1rem;
+}
+
+.password-submit-btn {
+	width: 100%;
+	padding: 0.875rem 1.5rem;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+	color: white;
+	border: 2px solid var(--accent-dark);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.password-submit-btn:hover {
+	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+	transform: translateY(-1px);
+}
+
+.password-submit-btn:active {
+	transform: translateY(0);
 }

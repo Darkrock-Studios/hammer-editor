@@ -3,14 +3,35 @@ CREATE TABLE project_access (
     project_id INTEGER NOT NULL,
     access_password TEXT DEFAULT NULL,
     expires_at TEXT DEFAULT NULL,
-    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
-    UNIQUE(project_id)
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_project_access_project_id ON project_access(project_id);
 
 getAccessForProject:
 SELECT *
 FROM project_access
 WHERE project_id = :projectId;
+
+getAllAccessForProject:
+SELECT *
+FROM project_access
+WHERE project_id = :projectId;
+
+getPublicAccessForProject:
+SELECT *
+FROM project_access
+WHERE project_id = :projectId AND access_password IS NULL
+LIMIT 1;
+
+getPrivateAccessForProject:
+SELECT *
+FROM project_access
+WHERE project_id = :projectId AND access_password IS NOT NULL;
+
+insertAccess:
+INSERT INTO project_access(project_id, access_password, expires_at)
+VALUES (?, ?, ?);
 
 updateAccess:
 INSERT OR REPLACE INTO project_access(project_id, access_password, expires_at)
@@ -19,6 +40,14 @@ VALUES (?, ?, ?);
 deleteAccess:
 DELETE FROM project_access
 WHERE project_id = :projectId;
+
+deleteAccessById:
+DELETE FROM project_access
+WHERE id = :accessId;
+
+deletePublicAccessForProject:
+DELETE FROM project_access
+WHERE project_id = :projectId AND access_password IS NULL;
 
 deleteAllAccessForUser:
 DELETE FROM project_access
@@ -36,6 +65,30 @@ SELECT
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE account.pen_name = :penName
-  AND project.name = :projectName
+WHERE LOWER(account.pen_name) = LOWER(:penName)
+  AND LOWER(project.name) = LOWER(:projectName)
   AND project_access.access_password IS NULL;
+
+findProjectByPenNameProjectNameAndPassword:
+SELECT
+    project.uuid AS project_uuid,
+    project.user_id,
+    project.name AS project_name,
+    account.pen_name,
+    project_access.expires_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE LOWER(account.pen_name) = LOWER(:penName)
+  AND LOWER(project.name) = LOWER(:projectName)
+  AND project_access.access_password = :password;
+
+hasAnyAccessForProject:
+SELECT EXISTS(
+    SELECT 1
+    FROM project
+    INNER JOIN account ON project.user_id = account.id
+    INNER JOIN project_access ON project.id = project_access.project_id
+    WHERE LOWER(account.pen_name) = LOWER(:penName)
+      AND LOWER(project.name) = LOWER(:projectName)
+) AS has_access;

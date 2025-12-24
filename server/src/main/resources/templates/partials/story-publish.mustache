@@ -27,7 +27,7 @@
 		</div>
 	</div>
 
-	{{#isPublished}}
+	{{#hasAnyAccess}}
 		<div class="publish-url-section" id="publish-url-section">
 			<div class="publish-url-label">{{msg.story_public_url}}:</div>
 			<div class="publish-url-container">
@@ -41,5 +41,24 @@
 				</button>
 			</div>
 		</div>
+	{{/hasAnyAccess}}
+
+	{{^isPublished}}
+	<div class="share-private-section">
+		<h3 class="publish-title">{{msg.story_private_share_title}}</h3>
+		<button type="button"
+				class="share-private-btn"
+				hx-get="/story/{{projectUuid}}/share-dialog"
+				hx-target="#share-dialog-container"
+				hx-swap="innerHTML">
+			<i class="fas fa-lock"></i> {{msg.story_share_private}}
+		</button>
+	</div>
+
+	<div id="access-list-container">
+		{{> access-list}}
+	</div>
 	{{/isPublished}}
+
+	<div id="share-dialog-container"></div>
 </div>

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.GetPrivateAccessForProject
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
@@ -23,6 +24,28 @@ class ProjectAccessDao(
 		queries.getAccessForProject(projectId).executeAsOneOrNull()
 	}
 
+	suspend fun getAllAccessForProject(projectId: Long): List<Project_access> = withContext(ioDispatcher) {
+		queries.getAllAccessForProject(projectId).executeAsList()
+	}
+
+	suspend fun getPublicAccessForProject(projectId: Long): Project_access? = withContext(ioDispatcher) {
+		queries.getPublicAccessForProject(projectId).executeAsOneOrNull()
+	}
+
+	suspend fun getPrivateAccessForProject(projectId: Long): List<GetPrivateAccessForProject> = withContext(ioDispatcher) {
+		queries.getPrivateAccessForProject(projectId).executeAsList()
+	}
+
+	suspend fun insertAccess(
+		projectId: Long,
+		password: String?,
+		expiresAt: String?
+	) {
+		withContext(ioDispatcher) {
+			queries.insertAccess(projectId, password, expiresAt)
+		}
+	}
+
 	suspend fun updateAccess(
 		projectId: Long,
 		password: String?,
@@ -36,6 +59,18 @@ class ProjectAccessDao(
 	suspend fun deleteAccess(projectId: Long) {
 		withContext(ioDispatcher) {
 			queries.deleteAccess(projectId)
+		}
+	}
+
+	suspend fun deleteAccessById(accessId: Long) {
+		withContext(ioDispatcher) {
+			queries.deleteAccessById(accessId)
+		}
+	}
+
+	suspend fun deletePublicAccessForProject(projectId: Long) {
+		withContext(ioDispatcher) {
+			queries.deletePublicAccessForProject(projectId)
 		}
 	}
 
@@ -60,5 +95,30 @@ class ProjectAccessDao(
 					expiresAt = it.expires_at
 				)
 			}
+	}
+
+	suspend fun findProjectByPenNameProjectNameAndPassword(
+		penName: String,
+		projectName: String,
+		password: String
+	): PublicProjectInfo? = withContext(ioDispatcher) {
+		queries.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
+			.executeAsOneOrNull()
+			?.let {
+				PublicProjectInfo(
+					projectUuid = it.project_uuid,
+					userId = it.user_id,
+					projectName = it.project_name,
+					penName = it.pen_name ?: "",
+					expiresAt = it.expires_at
+				)
+			}
+	}
+
+	suspend fun hasAnyAccessForProject(
+		penName: String,
+		projectName: String
+	): Boolean = withContext(ioDispatcher) {
+		queries.hasAnyAccessForProject(penName, projectName).executeAsOne()
 	}
 }
