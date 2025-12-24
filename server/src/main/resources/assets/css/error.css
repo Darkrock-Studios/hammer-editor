@@ -1,16 +1,7 @@
 /* Error Page Styles */
 
-.error-page {
-	min-height: calc(100vh - 200px);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 2rem;
-	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
-}
-
-.error-container {
-	width: 100%;
+/* Error-specific container width */
+.page__container--error {
 	max-width: 600px;
 }
 
@@ -181,10 +172,6 @@
 
 /* Responsive Design */
 @media only screen and (max-width: 600px) {
-	.error-page {
-		padding: 1.5rem;
-	}
-
 	.error-card {
 		padding: 2.5rem 2rem;
 		transform: rotate(0deg);
@@ -232,15 +219,6 @@
 @media (prefers-reduced-motion: reduce) {
 	.error-card {
 		animation: fadeIn 0.3s ease-out;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
 	}
 
 	.error-card::before {

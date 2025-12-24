@@ -1,66 +1,6 @@
-/* Dashboard Page Styles */
+/* Dashboard Page Styles - Page-specific overrides */
 
-.dashboard-page {
-	min-height: calc(100vh - 200px);
-	padding: 2rem;
-	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
-}
-
-.dashboard-container {
-	max-width: 1000px;
-	margin: 0 auto;
-	animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
-/* Dashboard Header */
-.dashboard-header {
-	background: var(--neutral-900);
-	color: white;
-	padding: 2.5rem 3rem;
-	border-radius: 0.75rem;
-	margin-bottom: 2rem;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	box-shadow: var(--shadow-lg);
-	border-bottom: 3px solid var(--accent);
-	animation: slideInDown 0.5s ease-out;
-}
-
-@keyframes slideInDown {
-	from {
-		opacity: 0;
-		transform: translateY(-20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.dashboard-header-content h1 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 2.5rem;
-	color: white;
-	margin-bottom: 0.5rem;
-}
-
-.dashboard-subtitle {
-	color: var(--neutral-700);
-	font-size: 1.0625rem;
-	font-style: italic;
-	margin: 0;
-}
-
+/* Dashboard-specific header buttons */
 .logout-form {
 	margin: 0;
 }
@@ -89,85 +29,6 @@
 	transform: translateY(0);
 }
 
-/* Section Cards */
-.dashboard-section {
-	background: var(--surface);
-	background-image: repeating-linear-gradient(
-		transparent,
-		transparent 31px,
-		rgba(0, 0, 0, 0.03) 31px,
-		rgba(0, 0, 0, 0.03) 32px
-	);
-	padding: 2.5rem 3rem 2.5rem 4rem;
-	margin-bottom: 2rem;
-	border-radius: 0.75rem;
-	box-shadow: var(--shadow-lg),
-	inset 0 0 0 1px rgba(0, 0, 0, 0.05);
-	border-left: 4px solid var(--accent);
-	position: relative;
-	animation: slideInUp 0.5s ease-out;
-	animation-fill-mode: both;
-}
-
-@keyframes slideInUp {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-/* Red margin line like notebook paper */
-.dashboard-section::before {
-	content: '';
-	position: absolute;
-	left: 2.5rem;
-	top: 0;
-	bottom: 0;
-	width: 2px;
-	background: rgba(239, 68, 68, 0.2);
-	pointer-events: none;
-}
-
-/* Section Headers */
-.section-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 1rem;
-	margin-bottom: 1rem;
-}
-
-.section-title-group {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.section-header h2 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 2rem;
-	color: var(--text-primary);
-	margin: 0;
-}
-
-.section-description {
-	color: var(--text-secondary);
-	font-size: 1rem;
-	margin-bottom: 1.5rem;
-	line-height: 1.6;
-}
-
-/* Dashboard Header Actions */
-.dashboard-header-actions {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-}
-
 .manage-server-button {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 1rem;
@@ -187,14 +48,6 @@
 	color: white;
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-md);
-}
-
-.account-info p {
-	margin-bottom: 0.5rem;
-}
-
-.hidden {
-	display: none !important;
 }
 
 /* ========================================
@@ -760,81 +613,11 @@
 	box-shadow: none;
 }
 
-/* Projects List */
+/* Projects and Account containers */
 .projects-container {
 	margin-top: 1.5rem;
 }
 
-.projects-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.project-card {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 1.25rem 1.5rem;
-	background: white;
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.5rem;
-	transition: all var(--transition-base);
-	box-shadow: var(--shadow-sm);
-	text-decoration: none;
-	color: inherit;
-	cursor: pointer;
-}
-
-.project-card:hover {
-	border-color: var(--accent);
-	box-shadow: var(--shadow-md);
-	transform: translateX(4px);
-}
-
-.project-info {
-	display: flex;
-	flex-direction: column;
-	gap: 0.375rem;
-}
-
-.project-name {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.25rem;
-	color: var(--text-primary);
-	font-weight: normal;
-}
-
-.project-sync-date {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.875rem;
-	color: var(--text-secondary);
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.project-arrow {
-	color: var(--neutral-400);
-	font-size: 0.875rem;
-	transition: all 0.2s ease;
-	margin-left: 1rem;
-}
-
-.project-card:hover .project-arrow {
-	color: var(--accent);
-	transform: translateX(3px);
-}
-
-/* Projects Empty State */
-.projects-empty {
-	text-align: center;
-	padding: 3rem 2rem;
-	color: var(--text-secondary);
-	font-style: italic;
-}
-
-/* Account Info */
 .account-container {
 	margin-top: 1.5rem;
 }
@@ -862,54 +645,9 @@
 
 /* Responsive Design */
 @media only screen and (max-width: 768px) {
-	.dashboard-page {
-		padding: 1.5rem;
-	}
-
-	.dashboard-header {
-		flex-direction: column;
-		gap: 1.5rem;
-		padding: 2rem 1.75rem;
-		text-align: center;
-	}
-
-	.dashboard-header-content h1 {
-		font-size: 2rem;
-	}
-
-	.dashboard-header-actions {
-		flex-direction: column;
-		gap: 0.75rem;
-		width: 100%;
-	}
-
 	.manage-server-button {
 		width: 100%;
 		text-align: center;
-	}
-
-	.dashboard-section {
-		padding: 2rem 1.75rem 2rem 3rem;
-	}
-
-	.dashboard-section::before {
-		left: 1.5rem;
-	}
-
-	.section-header {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.5rem;
-	}
-
-	.section-header h2 {
-		font-size: 1.75rem;
-	}
-
-	.project-card {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.75rem;
 	}
 
 	/* Pen Name Responsive */
@@ -975,30 +713,12 @@
 	}
 }
 
-@media only screen and (max-width: 480px) {
-	.dashboard-header-content h1 {
-		font-size: 1.75rem;
-	}
-
-	.dashboard-subtitle {
-		font-size: 0.9375rem;
-	}
-
-	.section-header h2 {
-		font-size: 1.5rem;
-	}
-}
-
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-	.dashboard-container,
-	.dashboard-header,
-	.dashboard-section,
 	.pen-name-edit {
 		animation: none;
 	}
 
-	.project-card:hover,
 	.claim-pen-name-btn:hover,
 	.set-pen-name-btn:hover:not(:disabled) {
 		transform: none;

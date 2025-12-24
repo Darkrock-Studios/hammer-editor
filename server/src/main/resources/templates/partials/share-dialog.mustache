@@ -1,8 +1,8 @@
-<div class="share-dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
-	<div class="share-dialog" onclick="event.stopPropagation()">
-		<div class="share-dialog-header">
+<div class="dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
+	<div class="dialog" onclick="event.stopPropagation()">
+		<div class="dialog__header">
 			<h3>{{msg.story_share_private_title}}</h3>
-			<button type="button" class="dialog-close-btn" onclick="closeShareDialog()">
+			<button type="button" class="dialog__close" onclick="closeShareDialog()">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
@@ -10,33 +10,35 @@
 			  hx-target="#publish-section"
 			  hx-swap="outerHTML"
 			  hx-on::after-request="closeShareDialog()">
-			<div class="share-dialog-body">
+			<div class="dialog__body">
 				<div class="form-field">
-					<label for="access-password">{{msg.story_access_password}}</label>
+					<label for="access-password" class="form-field__label">{{msg.story_access_password}}</label>
 					<input type="text"
 						   id="access-password"
 						   name="password"
+						   class="form-input"
 						   required
 						   minlength="1"
 						   autocomplete="off"
 						   placeholder="{{msg.story_access_password_placeholder}}">
 				</div>
 				<div class="form-field">
-					<label for="access-expires">
+					<label for="access-expires" class="form-field__label">
 						{{msg.story_access_expires}}
 						<span class="optional-label">({{msg.story_access_optional}})</span>
 					</label>
 					<input type="date"
 						   id="access-expires"
 						   name="expiresAt"
+						   class="form-input"
 						   min="{{minDate}}">
 				</div>
 			</div>
-			<div class="share-dialog-actions">
-				<button type="button" class="cancel-btn" onclick="closeShareDialog()">
+			<div class="dialog__actions">
+				<button type="button" class="btn btn--ghost" onclick="closeShareDialog()">
 					{{msg.story_cancel}}
 				</button>
-				<button type="submit" class="create-access-btn">
+				<button type="submit" class="btn btn--accent">
 					{{msg.story_create_access}}
 				</button>
 			</div>
