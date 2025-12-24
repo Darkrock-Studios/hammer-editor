@@ -183,6 +183,23 @@ fun Route.storyPage(
 				call.respond(MustacheContent("partials/share-dialog.mustache", model))
 			}
 
+			hx.get("/publish-warning") {
+				val projectUuidStr = call.parameters["projectUuid"]
+
+				if (projectUuidStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				val model = call.withDefaults(
+					mapOf(
+						"projectUuid" to projectUuidStr
+					)
+				)
+
+				call.respond(MustacheContent("partials/publish-warning-dialog.mustache", model))
+			}
+
 			hx.post("/access") {
 				val session = call.sessions.requireUser()
 				val projectUuidStr = call.parameters["projectUuid"]

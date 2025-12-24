@@ -1,4 +1,4 @@
-<div class="settings-section" id="publish-section">
+<div class="settings-section" id="publish-section" data-project-uuid="{{projectUuid}}">
 	<div class="publish-setting">
 		<div class="publish-info">
 			<h3 class="publish-title">{{msg.story_publish_title}}</h3>
@@ -10,11 +10,16 @@
 					   id="publish-toggle-input"
 					   class="publish-toggle-checkbox"
 					   {{#isPublished}}checked{{/isPublished}}
+					   {{#isPublished}}
 					   hx-post="/story/{{projectUuid}}/publish"
 					   hx-trigger="change"
 					   hx-target="#publish-section"
 					   hx-swap="outerHTML"
-					   hx-indicator=".publish-loading">
+					   hx-indicator=".publish-loading"
+					   {{/isPublished}}
+					   {{^isPublished}}
+					   onchange="handlePublishToggle(this)"
+					   {{/isPublished}}>
 				<span class="publish-toggle-track">
 					<span class="publish-toggle-thumb"></span>
 				</span>
@@ -61,4 +66,5 @@
 	{{/isPublished}}
 
 	<div id="share-dialog-container"></div>
+	<div id="publish-warning-container"></div>
 </div>

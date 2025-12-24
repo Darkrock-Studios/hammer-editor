@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
 	initCopyUrl();
 	initShareDialog();
+	initPublishWarning();
 });
 
 /**
@@ -130,4 +131,89 @@ function togglePasswordVisibility(button) {
 		icon.classList.add('fa-eye-slash');
 		button.classList.add('revealed');
 	}
+}
+
+/**
+ * Initialize publish warning dialog functionality
+ */
+function initPublishWarning() {
+	// Close dialog on Escape key
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') {
+			closePublishWarning();
+		}
+	});
+}
+
+/**
+ * Handle publish toggle change - show warning when enabling
+ * @param {HTMLInputElement} checkbox - The publish toggle checkbox
+ */
+function handlePublishToggle(checkbox) {
+	if (checkbox.checked) {
+		// User is trying to enable publish - show warning dialog
+		checkbox.checked = false; // Reset the toggle until confirmed
+		showPublishWarning();
+	}
+}
+
+/**
+ * Show the publish warning dialog
+ */
+function showPublishWarning() {
+	const container = document.getElementById('publish-warning-container');
+	const publishSection = document.getElementById('publish-section');
+
+	if (!container || !publishSection) return;
+
+	const projectUuid = publishSection.dataset.projectUuid;
+
+	// Fetch the dialog template via HTMX
+	htmx.ajax('GET', '/story/' + projectUuid + '/publish-warning', {
+		target: '#publish-warning-container',
+		swap: 'innerHTML'
+	});
+}
+
+/**
+ * Close the publish warning dialog with animation
+ * @param {Event} event - Optional click event (for overlay clicks)
+ */
+function closePublishWarning(event) {
+	// If event is provided and it's not on the overlay itself, ignore
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('publish-warning-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('publish-warning-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+/**
+ * Confirm publish action - proceed with the HTMX request
+ */
+function confirmPublish() {
+	const publishSection = document.getElementById('publish-section');
+	if (!publishSection) return;
+
+	const projectUuid = publishSection.dataset.projectUuid;
+
+	// Close the warning dialog
+	closePublishWarning();
+
+	// Wait for dialog animation to complete, then trigger the publish
+	setTimeout(function () {
+		htmx.ajax('POST', '/story/' + projectUuid + '/publish', {
+			target: '#publish-section',
+			swap: 'outerHTML'
+		});
+	}, 220);
 }
