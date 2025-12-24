@@ -43,7 +43,7 @@ fun Route.frontend() {
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	authorPage(accountsRepository, projectAccessRepository)
 	publicStoryPage(storyExportService, projectAccessRepository)
-	adminPage(whiteListRepository, configRepository)
+	adminPage(whiteListRepository, configRepository, accountsRepository, projectsRepository)
 }
 
 const val COOKIE_USER_SESSION = "user_session"

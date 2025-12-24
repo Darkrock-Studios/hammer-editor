@@ -69,3 +69,9 @@ SELECT last_insert_rowid();
 
 migration_setCipherSecret:
 UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;
+
+getAccountsPaginated:
+SELECT id, email, pen_name, created, last_sync
+FROM account
+ORDER BY created DESC
+LIMIT :limit OFFSET :offset;

@@ -13,11 +13,22 @@
 				</div>
 			</div>
 
-			<!-- User Management Section (Placeholder) -->
+			<!-- User Management Section -->
 			<section class="admin-section">
-				<div class="placeholder-content">
-					<i class="fa-solid fa-users placeholder-icon"></i>
-					<p>{{msg.admin_users_placeholder}}</p>
+				<div class="section-header">
+					<div class="section-title-group">
+						<h2>{{msg.admin_users_list_title}}</h2>
+					</div>
+				</div>
+				<p class="section-description">{{msg.admin_users_description}}</p>
+
+				<div class="users-container">
+					<div id="users"
+						 hx-get="/admin/users/user-fragment"
+						 hx-trigger="load"
+						 hx-swap="innerHTML">
+						<!-- List of users loaded here -->
+					</div>
 				</div>
 			</section>
 		</div>

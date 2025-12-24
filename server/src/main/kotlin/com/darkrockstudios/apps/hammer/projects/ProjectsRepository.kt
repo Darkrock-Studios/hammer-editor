@@ -40,6 +40,10 @@ class ProjectsRepository(
 		return projectsDatasource.getProjectsCount(userId)
 	}
 
+	suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		return projectsDatasource.getMostRecentSyncForUser(userId)
+	}
+
 	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
 		return if (syncSessionManager.hasActiveSyncSession(userId)) {
 			SResult.failure(

@@ -35,6 +35,11 @@ SELECT count(*)
 FROM project
 WHERE user_id = :userId;
 
+getMostRecentSyncForUser:
+SELECT MAX(last_sync) AS last_sync
+FROM project
+WHERE user_id = :userId;
+
 insertProject:
 INSERT INTO project(user_id, name, uuid, last_sync, last_id)
 VALUES(:userId, :name, :uuid, :lastSync, :lastId);
