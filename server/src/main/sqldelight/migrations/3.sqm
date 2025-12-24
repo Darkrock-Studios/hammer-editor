@@ -23,6 +23,7 @@ CREATE TABLE project_access (
     access_password TEXT DEFAULT NULL,
     expires_at TEXT DEFAULT NULL,
     published_at TEXT DEFAULT (datetime('now')) NOT NULL,
-    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
-    UNIQUE(project_id)
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_project_access_project_id ON project_access(project_id);
