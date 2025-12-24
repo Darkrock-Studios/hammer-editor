@@ -1,0 +1,28 @@
+<div class="publish-warning-overlay" id="publish-warning-overlay" onclick="closePublishWarning(event)">
+	<div class="publish-warning-dialog" onclick="event.stopPropagation()">
+		<div class="publish-warning-header">
+			<div class="warning-icon-wrapper">
+				<i class="fas fa-exclamation-triangle"></i>
+			</div>
+			<h3>{{msg.story_publish_warning_title}}</h3>
+			<button type="button" class="dialog-close-btn" onclick="closePublishWarning()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<div class="publish-warning-body">
+			<p class="warning-text">{{msg.story_publish_warning_content}}</p>
+			<div class="warning-recommendation">
+				<i class="fas fa-lightbulb"></i>
+				<span>{{msg.story_publish_warning_recommendation}}</span>
+			</div>
+		</div>
+		<div class="publish-warning-actions">
+			<button type="button" class="cancel-btn" onclick="closePublishWarning()">
+				{{msg.story_cancel}}
+			</button>
+			<button type="button" class="publish-confirm-btn" onclick="confirmPublish()">
+				<i class="fas fa-globe"></i> {{msg.story_publish_publicly}}
+			</button>
+		</div>
+	</div>
+</div>
