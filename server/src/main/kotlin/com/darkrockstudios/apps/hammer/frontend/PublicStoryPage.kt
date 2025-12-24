@@ -3,10 +3,11 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
-import com.darkrockstudios.apps.hammer.story.StoryExportResult
+import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.*
-import io.ktor.server.htmx.hx
+import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -30,8 +31,9 @@ fun Route.publicStoryPage(
 			val penName = ProjectName.decodeFromUrl(penNameParam)
 			val projectName = ProjectName.decodeFromUrl(projectNameParam)
 
-			// Check for password in query parameter
+			// Check for password and page in query parameters
 			val password = call.request.queryParameters["p"]
+			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
 			when (val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)) {
 				is PublicProjectResult.NotFound -> {
@@ -52,32 +54,46 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
-					val exportResult = storyExportService.exportStoryAsHtml(
+					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
 						userId = result.userId,
-						projectId = result.projectUuid
+						projectId = result.projectUuid,
+						page = page
 					)
 
 					when (exportResult) {
-						is StoryExportResult.Success -> {
+						is PaginatedExportResult.Success -> {
+							val data = exportResult.data
+							val passwordParam = if (!password.isNullOrBlank()) "&p=$password" else ""
+
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
-									"projectName" to exportResult.projectName,
+									"projectName" to data.projectName,
 									"authorPenName" to result.penName,
 									"authorPenNameUrl" to ProjectName.formatForUrl(result.penName),
-									"storyHtml" to exportResult.html,
-									"hasContent" to exportResult.hasContent,
-									"sceneCount" to exportResult.sceneCount
+									"storyHtml" to data.pageHtml,
+									"hasContent" to data.hasContent,
+									"sceneCount" to data.sceneCount,
+									"totalWordCount" to data.totalWordCount,
+									"formattedWordCount" to WordCountUtils.formatWordCount(data.totalWordCount),
+									"estimatedReadingTime" to data.estimatedReadingTimeMinutes,
+									"currentPage" to data.currentPage,
+									"totalPages" to data.totalPages,
+									"hasPagination" to (data.totalPages > 1),
+									"hasNextPage" to data.hasNextPage,
+									"hasPrevPage" to data.hasPrevPage,
+									"nextPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.nextPage}$passwordParam",
+									"prevPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.prevPage}$passwordParam"
 								)
 							)
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 
-						is StoryExportResult.ProjectNotFound -> {
+						is PaginatedExportResult.ProjectNotFound -> {
 							call.respond(HttpStatusCode.NotFound)
 						}
 
-						is StoryExportResult.Error -> {
+						is PaginatedExportResult.Error -> {
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
