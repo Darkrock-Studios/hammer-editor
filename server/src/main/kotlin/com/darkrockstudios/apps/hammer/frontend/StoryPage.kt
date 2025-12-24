@@ -47,9 +47,11 @@ fun Route.storyPage(
 						val hasPenName = !account.pen_name.isNullOrBlank()
 
 						val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
-						val publicUrl = if (isPublished && hasPenName) {
-							val penNameForUrl = formatForUrl(account.pen_name)
-							val projectNameForUrl = formatForUrl(result.projectName)
+						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+						val publicUrl = if (hasAnyAccess && hasPenName) {
+							val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
+							val projectNameForUrl = ProjectName.formatForUrl(result.projectName)
 							"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
 						} else {
 							""
@@ -68,9 +70,12 @@ fun Route.storyPage(
 								"hasContent" to result.hasContent,
 								"hasPenName" to hasPenName,
 								"isPublished" to isPublished,
+								"hasAnyAccess" to hasAnyAccess,
 								"publicUrl" to publicUrl,
 								"lastSync" to lastSyncFormatted,
-								"sceneCount" to result.sceneCount
+								"sceneCount" to result.sceneCount,
+								"accessEntries" to accessEntries,
+								"hasAccessEntries" to accessEntries.isNotEmpty()
 							)
 						)
 						call.respond(MustacheContent("story.mustache", model))
@@ -108,27 +113,26 @@ fun Route.storyPage(
 				val isCurrentlyPublished = projectAccessRepository.isPublished(session.userId, projectId)
 
 				val (newIsPublished, toastMessage, toastType) = if (isCurrentlyPublished) {
-					// Unpublish: delete the access record
-					projectAccessRepository.deleteAccess(session.userId, projectId)
+					// Unpublish: delete only the public access record
+					projectAccessRepository.unpublish(session.userId, projectId)
 					Triple(false, call.msg("story_toast_unpublished"), Toast.Info)
 				} else {
-					// Publish: create access record with null password and null expiry
-					projectAccessRepository.setAccess(
-						userId = session.userId,
-						projectUuid = projectId,
-						password = null,
-						expiresAt = null
-					)
+					// Publish: create public access record
+					projectAccessRepository.publish(session.userId, projectId)
 					Triple(true, call.msg("story_toast_published"), Toast.Success)
 				}
 
-				// Build the public URL if published
-				val publicUrl = if (newIsPublished) {
+				// Check if any access exists (public or private)
+				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+				// Build the public URL if any access exists
+				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
 					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
 					if (account.pen_name != null && project != null) {
-						val penNameForUrl = formatForUrl(account.pen_name)
-						val projectNameForUrl = formatForUrl(project.name)
+						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
+						val projectNameForUrl = ProjectName.formatForUrl(project.name)
 						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
 					} else {
 						""
@@ -142,7 +146,10 @@ fun Route.storyPage(
 					mapOf(
 						"projectUuid" to projectUuidStr,
 						"isPublished" to newIsPublished,
-						"publicUrl" to publicUrl
+						"hasAnyAccess" to hasAnyAccess,
+						"publicUrl" to publicUrl,
+						"accessEntries" to accessEntries,
+						"hasAccessEntries" to accessEntries.isNotEmpty()
 					)
 				)
 
@@ -151,6 +158,146 @@ fun Route.storyPage(
 					model = model,
 					message = toastMessage,
 					toast = toastType
+				)
+			}
+
+			hx.get("/share-dialog") {
+				val projectUuidStr = call.parameters["projectUuid"]
+
+				if (projectUuidStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				// Get tomorrow's date as minimum date for the date picker
+				val tomorrow = java.time.LocalDate.now().plusDays(1)
+				val minDate = tomorrow.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+
+				val model = call.withDefaults(
+					mapOf(
+						"projectUuid" to projectUuidStr,
+						"minDate" to minDate
+					)
+				)
+
+				call.respond(MustacheContent("partials/share-dialog.mustache", model))
+			}
+
+			hx.post("/access") {
+				val session = call.sessions.requireUser()
+				val projectUuidStr = call.parameters["projectUuid"]
+
+				if (projectUuidStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@post
+				}
+
+				val formParams = call.receiveParameters()
+				val password = formParams["password"]
+				val expiresAt = formParams["expiresAt"]?.ifBlank { null }
+
+				if (password.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@post
+				}
+
+				val projectId = ProjectId(projectUuidStr)
+
+				// Convert date to SQLite datetime format (YYYY-MM-DD HH:MM:SS)
+				val expiresAtSqlite = expiresAt?.let { "$it 23:59:59" }
+
+				projectAccessRepository.createPrivateAccess(
+					userId = session.userId,
+					projectUuid = projectId,
+					password = password,
+					expiresAt = expiresAtSqlite
+				)
+
+				// Return updated publish section
+				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
+				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+				val publicUrl = if (hasAnyAccess) {
+					val account = accountsRepository.getAccount(session.userId)
+					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
+					if (account.pen_name != null && project != null) {
+						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
+						val projectNameForUrl = ProjectName.formatForUrl(project.name)
+						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+					} else ""
+				} else ""
+
+				val model = call.withDefaults(
+					mapOf(
+						"projectUuid" to projectUuidStr,
+						"isPublished" to isPublished,
+						"hasAnyAccess" to hasAnyAccess,
+						"publicUrl" to publicUrl,
+						"accessEntries" to accessEntries,
+						"hasAccessEntries" to accessEntries.isNotEmpty()
+					)
+				)
+
+				respondTemplateWithToast(
+					templatePath = "partials/story-publish.mustache",
+					model = model,
+					message = call.msg("story_toast_access_created"),
+					toast = Toast.Success
+				)
+			}
+
+			hx.delete("/access/{accessId}") {
+				val session = call.sessions.requireUser()
+				val projectUuidStr = call.parameters["projectUuid"]
+				val accessIdStr = call.parameters["accessId"]
+
+				if (projectUuidStr.isNullOrBlank() || accessIdStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@delete
+				}
+
+				val projectId = ProjectId(projectUuidStr)
+				val accessId = accessIdStr.toLongOrNull()
+
+				if (accessId == null) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@delete
+				}
+
+				projectAccessRepository.deleteAccessById(session.userId, projectId, accessId)
+
+				// Return updated publish section
+				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
+				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+				val publicUrl = if (hasAnyAccess) {
+					val account = accountsRepository.getAccount(session.userId)
+					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
+					if (account.pen_name != null && project != null) {
+						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
+						val projectNameForUrl = ProjectName.formatForUrl(project.name)
+						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+					} else ""
+				} else ""
+
+				val model = call.withDefaults(
+					mapOf(
+						"projectUuid" to projectUuidStr,
+						"isPublished" to isPublished,
+						"hasAnyAccess" to hasAnyAccess,
+						"publicUrl" to publicUrl,
+						"accessEntries" to accessEntries,
+						"hasAccessEntries" to accessEntries.isNotEmpty()
+					)
+				)
+
+				respondTemplateWithToast(
+					templatePath = "partials/story-publish.mustache",
+					model = model,
+					message = call.msg("story_toast_access_deleted"),
+					toast = Toast.Info
 				)
 			}
 		}
@@ -167,10 +314,3 @@ private fun formatSyncDate(sqliteDateTime: String): String {
 		sqliteDateTime
 	}
 }
-
-/**
- * Format a string for use in a URL: replace spaces with dashes, then URL encode.
- * Example: "My Story Name" -> "My-Story-Name"
- */
-private fun formatForUrl(name: String): String =
-	URLEncoder.encode(name.replace(' ', '-'), "UTF-8")

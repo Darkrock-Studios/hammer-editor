@@ -1,11 +1,12 @@
 /**
  * Story Page JavaScript
- * Handles settings panel interactions and copy URL functionality
+ * Handles settings panel interactions, copy URL functionality, and share dialog
  */
 
 document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
 	initCopyUrl();
+	initShareDialog();
 });
 
 /**
@@ -62,4 +63,71 @@ function initCopyUrl() {
 			}, 2000);
 		}
 	});
+}
+
+/**
+ * Initialize share dialog functionality
+ */
+function initShareDialog() {
+	// Close dialog on Escape key
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') {
+			closeShareDialog();
+		}
+	});
+}
+
+/**
+ * Close the share dialog with animation
+ * @param {Event} event - Optional click event (for overlay clicks)
+ */
+function closeShareDialog(event) {
+	// If event is provided and it's not on the overlay itself, ignore
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('share-dialog-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('share-dialog-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+/**
+ * Toggle password visibility in access list
+ * @param {HTMLElement} button - The toggle button that was clicked
+ */
+function togglePasswordVisibility(button) {
+	const container = button.closest('.access-password-display');
+	if (!container) return;
+
+	const masked = container.querySelector('.password-masked');
+	const revealed = container.querySelector('.password-revealed');
+	const icon = button.querySelector('i');
+
+	if (!masked || !revealed || !icon) return;
+
+	const isRevealed = revealed.style.display !== 'none';
+
+	if (isRevealed) {
+		// Hide password
+		masked.style.display = '';
+		revealed.style.display = 'none';
+		icon.classList.remove('fa-eye-slash');
+		icon.classList.add('fa-eye');
+		button.classList.remove('revealed');
+	} else {
+		// Show password
+		masked.style.display = 'none';
+		revealed.style.display = '';
+		icon.classList.remove('fa-eye');
+		icon.classList.add('fa-eye-slash');
+		button.classList.add('revealed');
+	}
 }

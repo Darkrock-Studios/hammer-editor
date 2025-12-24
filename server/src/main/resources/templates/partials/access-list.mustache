@@ -1,0 +1,49 @@
+{{#hasAccessEntries}}
+<div class="access-list-section">
+	<h4 class="access-list-title">{{msg.story_access_list_title}}</h4>
+	<div class="access-list">
+		{{#accessEntries}}
+		<div class="access-entry {{#isExpired}}expired{{/isExpired}}">
+			<div class="access-entry-info">
+				<div class="access-entry-main">
+					<span class="access-type">
+						<i class="fas fa-key"></i> {{msg.story_access_passworded}}
+					</span>
+					<span class="access-password-display">
+						<code class="password-masked">••••••••</code>
+						<code class="password-revealed" style="display: none;">{{password}}</code>
+						<button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility(this)" title="{{msg.story_access_show_password}}">
+							<i class="fas fa-eye"></i>
+						</button>
+					</span>
+				</div>
+				<div class="access-entry-expiry">
+					{{#expiresAtFormatted}}
+					<span class="access-expiry {{#isExpired}}expired{{/isExpired}}">
+						<i class="fas fa-calendar"></i>
+						{{#isExpired}}{{msg.story_access_expired}}: {{/isExpired}}
+						{{^isExpired}}{{msg.story_access_expires}}: {{/isExpired}}
+						{{expiresAtFormatted}}
+					</span>
+					{{/expiresAtFormatted}}
+					{{^expiresAtFormatted}}
+					<span class="access-expiry never">
+						<i class="fas fa-infinity"></i> {{msg.story_access_no_expiry}}
+					</span>
+					{{/expiresAtFormatted}}
+				</div>
+			</div>
+			<button type="button"
+					class="delete-access-btn"
+					hx-delete="/story/{{projectUuid}}/access/{{id}}"
+					hx-target="#publish-section"
+					hx-swap="outerHTML"
+					hx-confirm="{{msg.story_access_delete_confirm}}"
+					title="{{msg.story_access_delete}}">
+				<i class="fas fa-trash"></i>
+			</button>
+		</div>
+		{{/accessEntries}}
+	</div>
+</div>
+{{/hasAccessEntries}}

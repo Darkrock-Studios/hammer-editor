@@ -1,14 +1,16 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.story.StoryExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import io.ktor.http.*
+import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.net.URLDecoder
 
 fun Route.publicStoryPage(
 	storyExportService: StoryExportService,
@@ -25,12 +27,28 @@ fun Route.publicStoryPage(
 			}
 
 			// Decode URL: URL decode then replace dashes with spaces
-			val penName = decodeFromUrl(penNameParam)
-			val projectName = decodeFromUrl(projectNameParam)
+			val penName = ProjectName.decodeFromUrl(penNameParam)
+			val projectName = ProjectName.decodeFromUrl(projectNameParam)
 
-			when (val result = projectAccessRepository.findPublicProject(penName, projectName)) {
+			// Check for password in query parameter
+			val password = call.request.queryParameters["p"]
+
+			when (val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)) {
 				is PublicProjectResult.NotFound -> {
 					call.respond(HttpStatusCode.NotFound)
+				}
+
+				is PublicProjectResult.PasswordRequired -> {
+					// Show password form
+					val model = call.withDefaults(
+						mapOf(
+							"page_stylesheet" to "/assets/css/story.css",
+							"penName" to penNameParam,
+							"projectName" to projectNameParam,
+							"error" to (password != null) // Show error if password was provided but invalid
+						)
+					)
+					call.respond(MustacheContent("password-form.mustache", model))
 				}
 
 				is PublicProjectResult.Success -> {
@@ -74,12 +92,25 @@ fun Route.publicStoryPage(
 				}
 			}
 		}
+
+		hx.post {
+			val penNameParam = call.parameters["penName"]
+			val projectNameParam = call.parameters["projectName"]
+
+			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
+				call.respond(HttpStatusCode.NotFound)
+				return@post
+			}
+
+			val formParams = call.receiveParameters()
+			val password = formParams["password"]
+
+			// Redirect to GET with password in query param
+			if (!password.isNullOrBlank()) {
+				call.respondRedirect("/u/$penNameParam/$projectNameParam?p=$password")
+			} else {
+				call.respondRedirect("/u/$penNameParam/$projectNameParam")
+			}
+		}
 	}
 }
-
-/**
- * Decode a URL segment: URL decode then replace dashes with spaces.
- * Example: "My-Story-Name" -> "My Story Name"
- */
-private fun decodeFromUrl(urlSegment: String): String =
-	URLDecoder.decode(urlSegment, "UTF-8").replace('-', ' ')
