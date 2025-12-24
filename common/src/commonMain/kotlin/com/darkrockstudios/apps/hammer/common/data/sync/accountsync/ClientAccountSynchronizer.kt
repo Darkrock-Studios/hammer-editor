@@ -371,19 +371,31 @@ class ClientAccountSynchronizer(
 				// Save the newly provisioned project id
 				val response = result.getOrThrow()
 				val projectDef = projectsRepository.getProjectDefinition(projectName)
-				projectsRepository.setProjectId(projectDef, response.projectId)
+				try {
+					projectsRepository.setProjectId(projectDef, response.projectId)
 
-				onLog(
-					syncAccLogI(
-						strRes.get(
-							Res.string.sync_log_account_project_create_server_success,
-							projectName
+					onLog(
+						syncAccLogI(
+							strRes.get(
+								Res.string.sync_log_account_project_create_server_success,
+								projectName
+							)
 						)
 					)
-				)
-				updateSyncData { syncData ->
-					syncData.copy(
-						projectsToCreate = syncData.projectsToCreate - projectName,
+					updateSyncData { syncData ->
+						syncData.copy(
+							projectsToCreate = syncData.projectsToCreate - projectName,
+						)
+					}
+				} catch (e: Exception) {
+					Napier.e("Failed to save project id for $projectName", e)
+					onLog(
+						syncAccLogE(
+							strRes.get(
+								Res.string.sync_log_account_project_create_server_failure,
+								projectName
+							)
+						)
 					)
 				}
 			} else {
