@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
-import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import io.ktor.htmx.*
@@ -13,7 +12,6 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
 import kotlin.math.ceil
 
@@ -23,19 +21,18 @@ fun Route.adminPage(
 ) {
 	adminOnly {
 		route("/admin") {
-			admin(whiteListRepository, configRepository)
+			adminSettingsPage(configRepository)
+			adminWhitelistPage(whiteListRepository)
+			adminUsersPage()
 			whiteListRoutes(whiteListRepository)
 			serverSettingsRoutes(configRepository)
 		}
 	}
 }
 
-private fun Route.admin(
-	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
-) {
+// GET /admin - Server Settings page (default)
+private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 	get {
-		val session = call.sessions.get<UserSession>()
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
 		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
 			mapOf(
@@ -47,16 +44,44 @@ private fun Route.admin(
 
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
-			"isAdmin" to (session?.isAdmin?.toString() ?: "null"),
-			"whitelist" to mapOf(
-				"enabled" to whiteListRepository.useWhiteList()
-			),
+			"activeSettings" to true,
+			"activeWhitelist" to false,
+			"activeUsers" to false,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"defaultLocale" to configuredDefaultLocale,
 			"availableLocales" to availableLocales,
 		)
-		call.respond(MustacheContent("admin.mustache", call.withDefaults(model)))
+		call.respond(MustacheContent("admin-settings.mustache", call.withDefaults(model)))
+	}
+}
+
+// GET /admin/whitelist - Whitelist Management page
+private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
+	get("/whitelist") {
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to true,
+			"activeUsers" to false,
+			"whitelist" to mapOf(
+				"enabled" to whiteListRepository.useWhiteList()
+			),
+		)
+		call.respond(MustacheContent("admin-whitelist.mustache", call.withDefaults(model)))
+	}
+}
+
+// GET /admin/users - User Management page (placeholder)
+private fun Route.adminUsersPage() {
+	get("/users") {
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to false,
+			"activeUsers" to true,
+		)
+		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
 	}
 }
 

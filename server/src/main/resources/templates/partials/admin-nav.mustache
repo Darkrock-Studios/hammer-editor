@@ -1,0 +1,22 @@
+<nav class="admin-nav">
+	<ul class="admin-nav-list">
+		<li class="admin-nav-item">
+			<a href="/admin" class="admin-nav-link {{#activeSettings}}active{{/activeSettings}}">
+				<i class="fa-solid fa-gear"></i>
+				<span>{{msg.admin_nav_settings}}</span>
+			</a>
+		</li>
+		<li class="admin-nav-item">
+			<a href="/admin/whitelist" class="admin-nav-link {{#activeWhitelist}}active{{/activeWhitelist}}">
+				<i class="fa-solid fa-list-check"></i>
+				<span>{{msg.admin_nav_whitelist}}</span>
+			</a>
+		</li>
+		<li class="admin-nav-item">
+			<a href="/admin/users" class="admin-nav-link {{#activeUsers}}active{{/activeUsers}}">
+				<i class="fa-solid fa-users"></i>
+				<span>{{msg.admin_nav_users}}</span>
+			</a>
+		</li>
+	</ul>
+</nav>
