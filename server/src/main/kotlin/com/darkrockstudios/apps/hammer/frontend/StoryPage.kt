@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -72,6 +73,8 @@ fun Route.storyPage(
 								"publicUrl" to publicUrl,
 								"lastSync" to lastSyncFormatted,
 								"sceneCount" to result.sceneCount,
+								"totalWordCount" to result.totalWordCount,
+								"formattedWordCount" to WordCountUtils.formatWordCount(result.totalWordCount),
 								"accessEntries" to accessEntries,
 								"hasAccessEntries" to accessEntries.isNotEmpty()
 							)
