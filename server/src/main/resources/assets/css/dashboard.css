@@ -814,6 +814,18 @@
 	gap: 0.5rem;
 }
 
+.project-arrow {
+	color: var(--neutral-400);
+	font-size: 0.875rem;
+	transition: all 0.2s ease;
+	margin-left: 1rem;
+}
+
+.project-card:hover .project-arrow {
+	color: var(--accent);
+	transform: translateX(3px);
+}
+
 /* Projects Empty State */
 .projects-empty {
 	text-align: center;
