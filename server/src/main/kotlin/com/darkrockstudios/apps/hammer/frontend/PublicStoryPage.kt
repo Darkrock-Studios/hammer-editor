@@ -16,7 +16,7 @@ fun Route.publicStoryPage(
 	storyExportService: StoryExportService,
 	projectAccessRepository: ProjectAccessRepository
 ) {
-	route("/u/{penName}/{projectName}") {
+	route("/a/{penName}/{projectName}") {
 		get {
 			val penNameParam = call.parameters["penName"]
 			val projectNameParam = call.parameters["projectName"]
@@ -64,6 +64,7 @@ fun Route.publicStoryPage(
 									"page_stylesheet" to "/assets/css/story.css",
 									"projectName" to exportResult.projectName,
 									"authorPenName" to result.penName,
+									"authorPenNameUrl" to ProjectName.formatForUrl(result.penName),
 									"storyHtml" to exportResult.html,
 									"hasContent" to exportResult.hasContent,
 									"sceneCount" to exportResult.sceneCount
@@ -107,9 +108,9 @@ fun Route.publicStoryPage(
 
 			// Redirect to GET with password in query param
 			if (!password.isNullOrBlank()) {
-				call.respondRedirect("/u/$penNameParam/$projectNameParam?p=$password")
+				call.respondRedirect("/a/$penNameParam/$projectNameParam?p=$password")
 			} else {
-				call.respondRedirect("/u/$penNameParam/$projectNameParam")
+				call.respondRedirect("/a/$penNameParam/$projectNameParam")
 			}
 		}
 	}

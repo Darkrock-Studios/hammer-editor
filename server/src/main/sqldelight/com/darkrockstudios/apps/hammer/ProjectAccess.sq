@@ -3,6 +3,7 @@ CREATE TABLE project_access (
     project_id INTEGER NOT NULL,
     access_password TEXT DEFAULT NULL,
     expires_at TEXT DEFAULT NULL,
+    published_at TEXT DEFAULT (datetime('now')) NOT NULL,
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
 
@@ -92,3 +93,16 @@ SELECT EXISTS(
     WHERE LOWER(account.pen_name) = LOWER(:penName)
       AND LOWER(project.name) = LOWER(:projectName)
 ) AS has_access;
+
+getPublishedStoriesByPenName:
+SELECT
+    project.uuid AS project_uuid,
+    project.name AS project_name,
+    project_access.published_at AS published_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE LOWER(account.pen_name) = LOWER(:penName)
+  AND project_access.access_password IS NULL
+  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'))
+ORDER BY project.name ASC;

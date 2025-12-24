@@ -32,6 +32,8 @@ fun Route.dashboardPage(
 				val projectsModel = getProjectsModel(call, projectsRepository, session.userId)
 				val projects = projectsModel["projects"] ?: error("Projects model not found")
 
+				val penNameUrl = account.pen_name?.let { ProjectName.formatForUrl(it) }
+
 				val model = call.withDefaults(
 					mapOf(
 						"page_stylesheet" to "/assets/css/dashboard.css",
@@ -39,6 +41,7 @@ fun Route.dashboardPage(
 						"username" to session.username,
 						"email" to account.email,
 						"penName" to (account.pen_name ?: ""),
+						"penNameUrl" to (penNameUrl ?: ""),
 						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
 						"projects" to projects,

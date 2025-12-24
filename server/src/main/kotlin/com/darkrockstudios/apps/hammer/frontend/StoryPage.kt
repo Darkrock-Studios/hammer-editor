@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.story.StoryExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
 import io.ktor.server.plugins.*
@@ -16,7 +17,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import java.net.URLEncoder
 
 fun Route.storyPage(
 	storyExportService: StoryExportService,
@@ -50,9 +50,7 @@ fun Route.storyPage(
 						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
 						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
 						val publicUrl = if (hasAnyAccess && hasPenName) {
-							val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
-							val projectNameForUrl = ProjectName.formatForUrl(result.projectName)
-							"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+							call.constructPublicUrl(account.pen_name, result.projectName)
 						} else {
 							""
 						}
@@ -131,9 +129,7 @@ fun Route.storyPage(
 					val account = accountsRepository.getAccount(session.userId)
 					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
 					if (account.pen_name != null && project != null) {
-						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
-						val projectNameForUrl = ProjectName.formatForUrl(project.name)
-						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+						call.constructPublicUrl(account.pen_name, project.name)
 					} else {
 						""
 					}
@@ -239,9 +235,7 @@ fun Route.storyPage(
 					val account = accountsRepository.getAccount(session.userId)
 					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
 					if (account.pen_name != null && project != null) {
-						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
-						val projectNameForUrl = ProjectName.formatForUrl(project.name)
-						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+						call.constructPublicUrl(account.pen_name, project.name)
 					} else ""
 				} else ""
 
@@ -293,9 +287,7 @@ fun Route.storyPage(
 					val account = accountsRepository.getAccount(session.userId)
 					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
 					if (account.pen_name != null && project != null) {
-						val penNameForUrl = ProjectName.formatForUrl(account.pen_name)
-						val projectNameForUrl = ProjectName.formatForUrl(project.name)
-						"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/u/$penNameForUrl/$projectNameForUrl"
+						call.constructPublicUrl(account.pen_name, project.name)
 					} else ""
 				} else ""
 
@@ -319,6 +311,12 @@ fun Route.storyPage(
 			}
 		}
 	}
+}
+
+private fun ApplicationCall.constructPublicUrl(penName: String, projectName: String): String {
+	val penNameForUrl = ProjectName.formatForUrl(penName)
+	val projectNameForUrl = ProjectName.formatForUrl(projectName)
+	return "${request.origin.scheme}://${request.host()}:${request.port()}/a/$penNameForUrl/$projectNameForUrl"
 }
 
 private fun formatSyncDate(sqliteDateTime: String): String {

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
@@ -215,5 +216,9 @@ class ProjectAccessRepository(
 			projectName = passwordInfo.projectName,
 			penName = passwordInfo.penName
 		)
+	}
+
+	suspend fun getPublishedStoriesByPenName(penName: String): List<PublishedStoryInfo> {
+		return projectAccessDao.getPublishedStoriesByPenName(penName)
 	}
 }

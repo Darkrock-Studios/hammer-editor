@@ -182,6 +182,10 @@ class AccountsRepository(
 		return accountDao.isPenNameAvailable(penName.trim(), excludeUserId)
 	}
 
+	suspend fun findAccountByPenName(penName: String): Account? {
+		return accountDao.findAccountByPenName(penName)
+	}
+
 	companion object {
 		const val MIN_PASSWORD_LENGTH = 8
 		const val MAX_PASSWORD_LENGTH = 64
