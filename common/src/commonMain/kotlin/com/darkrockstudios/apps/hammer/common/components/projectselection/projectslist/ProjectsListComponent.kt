@@ -360,18 +360,28 @@ class ProjectsListComponent(
 
 				projectsToSync.parallelMap { projectDef ->
 					newScope.launch {
-						syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+						try {
+							syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
-						suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
-							syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
-							if (message != null) onSyncLog(message)
+							suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
+								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+								if (message != null) onSyncLog(message)
+							}
+
+							val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
+							allSuccess = allSuccess && projectSuccess
+
+							val newStatus =
+								if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+							syncProgressStatus(projectDef.name, newStatus)
+						} catch (e: CancellationException) {
+							throw e
+						} catch (e: Exception) {
+							Napier.e("Project sync failed for ${projectDef.name}", e)
+							onSyncLog(syncLogE("Sync failed: ${e.message ?: "Unknown error"}", projectDef))
+							allSuccess = false
+							syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
 						}
-
-						val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
-						allSuccess = allSuccess && projectSuccess
-
-						val newStatus = if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
-						syncProgressStatus(projectDef.name, newStatus)
 					}
 				}.joinAll()
 			} else {
