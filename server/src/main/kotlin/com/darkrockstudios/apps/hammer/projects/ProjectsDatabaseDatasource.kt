@@ -45,6 +45,10 @@ class ProjectsDatabaseDatasource(
 		return projectDao.getProjectsCount(userId)
 	}
 
+	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		return projectDao.getMostRecentSyncForUser(userId)
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		val data = projectDao.findProjectData(userId, projectName)
 		return if (data != null) {

@@ -10,6 +10,7 @@ interface ProjectsDatasource {
 	suspend fun getProjectsWithSyncDate(userId: Long): List<ProjectWithSyncDate>
 	suspend fun getProjectsWithSyncDate(userId: Long, page: Int, pageSize: Int): List<ProjectWithSyncDate>
 	suspend fun getProjectsCount(userId: Long): Long
+	suspend fun getMostRecentSyncForUser(userId: Long): String?
 	suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition?
 	suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition?
 	suspend fun loadSyncData(userId: Long): ProjectsSyncData

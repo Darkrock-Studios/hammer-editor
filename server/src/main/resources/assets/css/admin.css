@@ -616,6 +616,146 @@
 	margin: 0 auto;
 }
 
+/* ========================================
+   User Management List
+   ======================================== */
+
+.users-container {
+	margin-top: 2rem;
+}
+
+#users {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.user-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem 1.25rem;
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	transition: all var(--transition-base);
+	box-shadow: var(--shadow-sm);
+}
+
+.user-item:hover {
+	border-color: var(--neutral-300);
+	box-shadow: var(--shadow-md);
+	transform: translateX(4px);
+}
+
+.user-info {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.user-email {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.user-penname {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--accent);
+	text-decoration: none;
+	padding: 0.25rem 0.75rem;
+	background: rgba(217, 119, 6, 0.1);
+	border-radius: 0.375rem;
+	transition: all var(--transition-base);
+}
+
+.user-penname:hover {
+	background: rgba(217, 119, 6, 0.2);
+	color: var(--accent-dark);
+}
+
+.user-meta {
+	display: flex;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.user-projects,
+.user-created,
+.user-lastsync {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.user-projects i,
+.user-created i,
+.user-lastsync i {
+	color: var(--neutral-400);
+	font-size: 0.75rem;
+}
+
+.users-empty {
+	text-align: center;
+	padding: 3rem 2rem;
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.users-empty::before {
+	content: '\f0c0';
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	display: block;
+	font-size: 3rem;
+	margin-bottom: 1rem;
+	opacity: 0.3;
+}
+
+/* Pagination Styles */
+.pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 2rem;
+	padding-top: 1.5rem;
+	border-top: 2px solid var(--neutral-200);
+}
+
+.pagination-button {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	padding: 0.5rem 1rem;
+	background: var(--neutral-100);
+	color: var(--text-primary);
+	border: 2px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.pagination-button:hover {
+	background: var(--accent);
+	color: white;
+	border-color: var(--accent);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-sm);
+}
+
+.pagination-info {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
 /* Responsive: Stack on mobile */
 @media only screen and (max-width: 900px) {
 	.admin-layout {
@@ -663,6 +803,26 @@
 	}
 
 	.admin-header-actions {
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.user-item {
+		padding: 1rem;
+	}
+
+	.user-info {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.user-meta {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.pagination {
 		flex-direction: column;
 		gap: 0.75rem;
 	}

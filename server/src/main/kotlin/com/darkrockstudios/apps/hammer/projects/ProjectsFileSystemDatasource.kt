@@ -83,6 +83,10 @@ class ProjectsFileSystemDatasource(
 		error("getProjectsCount not implemented for FileSystem datasource")
 	}
 
+	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		error("getMostRecentSyncForUser not implemented for FileSystem datasource")
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		error("findProjectByName not implemented for FileSystem datasource")
 	}

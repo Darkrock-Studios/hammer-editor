@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -70,4 +71,13 @@ class AccountDao(
 		val query = queries.findAccountByPenName(penName)
 		return@withContext query.executeAsOneOrNull()
 	}
+
+	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> =
+		withContext(ioDispatcher) {
+			val offset = page * pageSize
+			return@withContext queries.getAccountsPaginated(
+				limit = pageSize.toLong(),
+				offset = offset.toLong()
+			).executeAsList()
+		}
 }

@@ -36,6 +36,11 @@ class ProjectDao(
 			queries.getProjectsCount(userId).executeAsOne()
 		}
 
+	suspend fun getMostRecentSyncForUser(userId: Long): String? =
+		withContext(ioDispatcher) {
+			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
+		}
+
 	suspend fun createProject(
 		userId: Long,
 		uuid: ProjectId,
