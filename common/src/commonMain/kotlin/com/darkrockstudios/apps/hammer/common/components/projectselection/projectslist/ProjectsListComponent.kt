@@ -490,4 +490,12 @@ class ProjectsListComponent(
 	override fun dismissProjectRename() {
 		modalRouter.dismissProjectRename()
 	}
+
+	override fun showProjectDelete(projectDef: ProjectDef) {
+		modalRouter.showProjectDelete(projectDef)
+	}
+
+	override fun dismissProjectDelete() {
+		modalRouter.dismissProjectDelete()
+	}
 }

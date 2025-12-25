@@ -31,6 +31,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun onProjectNameUpdate(newProjectName: String)
 	fun showProjectRename(projectDef: ProjectDef)
 	fun dismissProjectRename()
+	fun showProjectDelete(projectDef: ProjectDef)
+	fun dismissProjectDelete()
 
 	@Serializable
 	data class State(
@@ -68,6 +70,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectSync : ModalDestination()
 		data class ProjectRename(val projectDef: ProjectDef) : ModalDestination()
 		data object ProjectCreate : ModalDestination()
+		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
 	}
 }
