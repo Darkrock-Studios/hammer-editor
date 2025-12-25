@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
@@ -316,19 +315,28 @@ fun Route.storyPage(
 	}
 }
 
-private fun ApplicationCall.constructPublicUrl(penName: String, projectName: String): String {
-	val penNameForUrl = ProjectName.formatForUrl(penName)
-	val projectNameForUrl = ProjectName.formatForUrl(projectName)
-	return "${request.origin.scheme}://${request.host()}:${request.port()}/a/$penNameForUrl/$projectNameForUrl"
+fun ApplicationCall.constructPublicUrl(penName: String, projectName: String): String {
+	return buildPublicUrl(
+		scheme = request.origin.scheme,
+		host = request.host(),
+		port = request.port(),
+		penName = penName,
+		projectName = projectName
+	)
 }
 
-private fun formatSyncDate(sqliteDateTime: String): String {
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")
-		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(java.time.ZoneId.systemDefault())
-		formatter.format(zoned)
-	} catch (e: Exception) {
-		sqliteDateTime
+fun buildPublicUrl(
+	scheme: String,
+	host: String,
+	port: Int,
+	penName: String,
+	projectName: String
+): String {
+	val penNameForUrl = ProjectName.formatForUrl(penName)
+	val projectNameForUrl = ProjectName.formatForUrl(projectName)
+	return if (port == 80 || port == 443) {
+		"$scheme://$host/a/$penNameForUrl/$projectNameForUrl"
+	} else {
+		"$scheme://$host:$port/a/$penNameForUrl/$projectNameForUrl"
 	}
 }

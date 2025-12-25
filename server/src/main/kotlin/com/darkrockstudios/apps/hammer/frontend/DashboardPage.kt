@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.htmx.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -187,21 +186,6 @@ private suspend fun getProjectsModel(
 	model["projects"] = projectsModel
 
 	return model
-}
-
-private fun formatSyncDate(sqliteDateTime: String): String {
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		instant.formatLocal("MMM dd, yyyy 'at' HH:mm")
-	} catch (e: Exception) {
-		sqliteDateTime
-	}
-}
-
-private fun kotlin.time.Instant.formatLocal(format: String): String {
-	val formatter = java.time.format.DateTimeFormatter.ofPattern(format)
-	val zoned = java.time.Instant.ofEpochSecond(epochSeconds).atZone(java.time.ZoneId.systemDefault())
-	return formatter.format(zoned)
 }
 
 private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNameResult): String {
