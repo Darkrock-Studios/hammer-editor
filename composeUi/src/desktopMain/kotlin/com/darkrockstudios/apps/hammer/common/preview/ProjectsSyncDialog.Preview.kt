@@ -101,4 +101,6 @@ private val fakeProjectsList = object : ProjectsList {
 	override fun onProjectNameUpdate(newProjectName: String) {}
 	override fun showProjectRename(projectDef: ProjectDef) {}
 	override fun dismissProjectRename() {}
+	override fun showProjectDelete(projectDef: ProjectDef) {}
+	override fun dismissProjectDelete() {}
 }
