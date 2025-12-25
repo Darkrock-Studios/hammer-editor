@@ -171,7 +171,7 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 	) {
 		// End Sync
 		val endSyncResponse =
-			get(api("project/$userId/${TestDataSet1.project1.name}/end_sync")) {
+			post(api("project/$userId/${TestDataSet1.project1.name}/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")

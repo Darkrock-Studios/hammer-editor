@@ -60,7 +60,7 @@ class ServerProjectApi(
 		lastId: Int?,
 		syncEnd: Instant?,
 	): Result<String> {
-		return get(
+		return post(
 			path = "/api/project/$userId/$projectName/end_sync",
 			parse = { it.body() },
 			builder = {
