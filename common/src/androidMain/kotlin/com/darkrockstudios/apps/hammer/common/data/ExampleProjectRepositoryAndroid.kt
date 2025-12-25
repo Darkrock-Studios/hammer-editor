@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import android.content.Context
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import io.github.aakira.napier.Napier
 import org.koin.core.module.dsl.singleOf
@@ -17,16 +16,12 @@ actual val exampleProjectModule = module {
 
 class ExampleProjectRepositoryAndroid(
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val context: Context
 ) : ExampleProjectRepository(globalSettingsRepository) {
 
-	private fun loadExampleProjectZip(platform: Any?): ByteArray {
-		with(platform as Context) {
-			val resourceId = resources.getIdentifier(
-				EXAMPLE_PROJECT_FILE_NAME.substringBefore("."), "raw", packageName
-			)
-			return resources.openRawResource(resourceId)
-				.readBytes()
+	private fun loadExampleProjectZip(): ByteArray {
+		val path = "/raw/$EXAMPLE_PROJECT_FILE_NAME"
+		this::class.java.getResourceAsStream(path).use { inputStream ->
+			return inputStream?.readBytes() ?: error("Failed to read example project from $path")
 		}
 	}
 
@@ -40,7 +35,7 @@ class ExampleProjectRepositoryAndroid(
 		if (!projectFile.exists()) {
 			Napier.i("Creating example project")
 
-			val zipBytes = loadExampleProjectZip(context)
+			val zipBytes = loadExampleProjectZip()
 			val bais = ByteArrayInputStream(zipBytes)
 			ZipInputStream(bais).use { zip ->
 				forEachZipEntryRecursive(zip) { zipEntry, subZipStream ->
