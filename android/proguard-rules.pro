@@ -1,5 +1,10 @@
 -dontobfuscate
 
+# Keep exception class names and their constructors for proper stack traces
+-keep class * extends java.lang.Exception { *; }
+-keep class * extends java.lang.RuntimeException { *; }
+-keep class * extends java.lang.Throwable { *; }
+
 # Keep `Companion` object fields of serializable classes.
 # This avoids serializer lookup through `getDeclaredClasses` as done for named companion objects.
 -if @kotlinx.serialization.Serializable class **
