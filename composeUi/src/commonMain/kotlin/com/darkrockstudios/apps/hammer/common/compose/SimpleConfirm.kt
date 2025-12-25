@@ -1,13 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -26,15 +22,14 @@ fun SimpleConfirm(
 	onConfirm: () -> Unit,
 ) {
 	AlertDialog(
-		//modifier = Modifier.requiredWidthIn(256.dp, 768.dp),
 		onDismissRequest = { if (implicitCancel) onDismiss() },
 		title = {
 			Text(
 				title,
 				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.onBackground,
+				color = MaterialTheme.colorScheme.onSurface,
 				fontWeight = FontWeight.Bold,
-				modifier = Modifier.padding(Ui.Padding.XL)
+				modifier = Modifier.padding(Ui.Padding.L)
 			)
 		},
 		text = if (message != null) {
@@ -42,8 +37,8 @@ fun SimpleConfirm(
 				Text(
 					message,
 					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onBackground,
-					modifier = Modifier.padding(Ui.Padding.XL)
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					modifier = Modifier.padding(horizontal = Ui.Padding.L)
 				)
 			}
 		} else {
@@ -55,17 +50,14 @@ fun SimpleConfirm(
 			}
 		},
 		dismissButton = {
-			Button(onClick = {
+			TextButton(onClick = {
 				if (onNegative != null) {
 					onNegative()
 				} else {
 					onDismiss()
 				}
 			}) {
-				Text(
-					negativeButton ?: Res.string.confirm_dialog_negative.get(),
-					fontStyle = FontStyle.Italic
-				)
+				Text(negativeButton ?: Res.string.confirm_dialog_negative.get())
 			}
 		}
 	)
