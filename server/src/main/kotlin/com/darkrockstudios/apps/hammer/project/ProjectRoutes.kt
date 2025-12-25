@@ -103,19 +103,30 @@ private fun Route.beginProjectSync() {
 private fun Route.endProjectSync() {
 	val projectEntityRepository: ProjectEntityRepository = get()
 
-	get("/end_sync") {
+	post("/end_sync") {
+		val log = call.application.log
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectName = call.parameters["projectName"]
 		val projectIdRaw = call.request.queryParameters["projectId"]
 		val syncId = call.request.headers[HEADER_SYNC_ID]
 
-		val formParameters = call.receiveParameters()
+		log.info("end_sync: userId=${principal.id}, project=$projectName, projectId=$projectIdRaw, syncId=$syncId")
+
+		val formParameters = try {
+			call.receiveParameters()
+		} catch (e: Exception) {
+			log.error("end_sync: Failed to read request body", e)
+			throw e
+		}
+
 		val lastSync = try {
 			Instant.parse(formParameters["lastSync"].toString())
 		} catch (e: IllegalArgumentException) {
 			null
 		}
 		val lastId = formParameters["lastId"].toString().toIntOrNull()
+
+		log.info("end_sync: parsed lastSync=$lastSync, lastId=$lastId")
 
 		if (projectName == null) {
 			call.respond(
@@ -152,13 +163,15 @@ private fun Route.endProjectSync() {
 					lastId
 				)
 			if (isSuccess(result)) {
+				log.info("end_sync: success for project=$projectName")
 				val success = result.data
 				call.respond(success)
 			} else {
+				log.warn("end_sync: failed for project=$projectName - ${result.error}")
 				call.respond(
 					status = HttpStatusCode.BadRequest,
 					HttpResponseError(
-						error = "Failed to begin sync",
+						error = "Failed to end sync",
 						displayMessage = result.displayMessageText(call, R("api_error_unknown"))
 					)
 				)
