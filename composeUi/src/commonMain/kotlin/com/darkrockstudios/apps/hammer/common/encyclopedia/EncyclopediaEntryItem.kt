@@ -92,7 +92,8 @@ internal fun EncyclopediaEntryItem(
 	LaunchedEffect(entryImagePath) {
 		val path = entryImagePath
 		if (path != null) {
-			paletteState.generate(path)
+			// TODO: This is too perfy, I like the effect, but disable for now
+			//paletteState.generate(path)
 		}
 	}
 
