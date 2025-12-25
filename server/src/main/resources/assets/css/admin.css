@@ -147,7 +147,8 @@
 	gap: 0.75rem;
 }
 
-.form-input-group .form-input {
+.form-input-group .form-input,
+.form-input-group .form-textarea {
 	flex: 1;
 }
 
