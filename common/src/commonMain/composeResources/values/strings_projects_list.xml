@@ -18,7 +18,8 @@
 	<string name="account_sync_dialog_status_complete">Sync Complete</string>
 	<string name="account_sync_dialog_status_canceled">Canceled</string>
 	<string name="delete_project_title">Delete Project</string>
-	<string name="delete_project_message">Are you sure you want to delete this project:\n%1$s</string>
+	<string name="delete_project_warning">This action cannot be undone. All project data will be permanently deleted.</string>
+	<string name="delete_project_confirm_hint">Type "%1$s" to confirm</string>
 	<string name="delete_project_confirm">Delete</string>
 	<string name="delete_project_cancel">Cancel</string>
 	<string name="rename_project_title">Rename Project</string>

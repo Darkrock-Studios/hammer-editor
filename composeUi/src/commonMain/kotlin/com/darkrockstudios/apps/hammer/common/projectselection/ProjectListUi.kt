@@ -26,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
-import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -145,14 +144,10 @@ fun ModalContent(component: ProjectsList) {
 		}
 
 		is ProjectsList.ModalDestination.ProjectDelete -> {
-			SimpleConfirm(
-				title = Res.string.delete_project_title.get(),
-				message = stringResource(Res.string.delete_project_message, overlay.projectDef.name),
-				onDismiss = { component.dismissProjectDelete() },
-				onConfirm = {
-					component.deleteProject(overlay.projectDef)
-					component.dismissProjectDelete()
-				}
+			ProjectDeleteDialog(
+				component = component,
+				projectDef = overlay.projectDef,
+				close = { component.dismissProjectDelete() }
 			)
 		}
 
