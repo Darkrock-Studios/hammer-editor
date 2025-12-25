@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -10,6 +11,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -32,27 +34,26 @@ class ApplicationTest : BaseTest() {
 
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
-
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
-
+	@MockK
+	private lateinit var projectAccessRepository: ProjectAccessRepository
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
-
 	@MockK
 	private lateinit var accountsComponent: AccountsComponent
-
 	@MockK
 	private lateinit var adminComponent: AdminComponent
-
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
-
 	@MockK
 	private lateinit var configRepository: ConfigRepository
-
 	@MockK
 	private lateinit var storyExportService: StoryExportService
+
+	@MockK
+	private lateinit var penNameService: PenNameService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -65,12 +66,14 @@ class ApplicationTest : BaseTest() {
 		testModule = module {
 			single { accountsRepository }
 			single { projectEntityRepository }
+			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyExportService }
+			single { penNameService }
 			single { mockk<Json>() }
 		}
 	}

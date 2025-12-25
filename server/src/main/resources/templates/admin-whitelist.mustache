@@ -1,0 +1,72 @@
+{{> header}}
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<!-- Admin Header -->
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_whitelist_management_title}}</h1>
+					<p class="page-header__subtitle">
+						{{#whitelist.enabled}}
+							{{msg.admin_whitelist_enabled_subtitle}}
+						{{/whitelist.enabled}}
+						{{^whitelist.enabled}}
+							{{msg.admin_whitelist_disabled_subtitle}}
+						{{/whitelist.enabled}}
+					</p>
+				</div>
+				<div class="page-header__actions">
+					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
+						  hx-post="/admin/whitelist/toggle"
+						  hx-swap="none">
+						<button type="submit" class="toggle-button {{#whitelist.enabled}}active{{/whitelist.enabled}}">
+							{{#whitelist.enabled}}Disable Whitelist{{/whitelist.enabled}}
+							{{^whitelist.enabled}}Enable Whitelist{{/whitelist.enabled}}
+						</button>
+					</form>
+					{{#whitelist.enabled}}
+						<span class="section-badge accent">{{msg.admin_badge_active}}</span>
+					{{/whitelist.enabled}}
+				</div>
+			</div>
+
+			<!-- Whitelist Management Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_whitelist_add_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_whitelist_description}}</p>
+
+				<form action="/admin/whitelist/add" method="post" class="whitelist-form"
+					  hx-post="/admin/whitelist/add"
+					  hx-target="#whitelist"
+					  hx-swap="innerHTML"
+					  hx-on::after-request="this.reset()">
+					<div class="form-group">
+						<label for="email" class="form-field__label">{{msg.admin_whitelist_email_label}}</label>
+						<div class="form-input-group">
+							<input id="email" name="email" type="email" class="form-input"
+								   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
+							<button type="submit" class="add-button">{{msg.admin_whitelist_add_button}}</button>
+						</div>
+					</div>
+				</form>
+
+				<div class="whitelist-container">
+					<div id="whitelist"
+						 hx-get="/admin/whitelist/user-fragment"
+						 hx-trigger="load, whitelist-updated from:body"
+						 hx-swap="innerHTML">
+						<!-- List of whitelisted users loaded here -->
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}

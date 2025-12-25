@@ -1,0 +1,38 @@
+<!-- Edit State: Input form with validation -->
+<div class="pen-name-edit hidden" id="pen-name-edit-state">
+	<form id="pen-name-form"
+		  hx-post="/dashboard/penname"
+		  hx-target="#pen-name-value"
+		  hx-swap="innerHTML"
+		  onsubmit="return validateBeforeSubmit()">
+		<div class="pen-name-input-wrapper">
+			<label for="pen-name-input" class="pen-name-edit-label">{{msg.penname_edit_label}}</label>
+			<div class="pen-name-input-row">
+				<div class="input-container">
+					<input type="text"
+						   id="pen-name-input"
+						   name="penName"
+						   value="{{penName}}"
+						   placeholder="{{msg.penname_edit_placeholder}}"
+						   maxlength="32"
+						   autocomplete="off"
+						   oninput="onPenNameInput(this.value)">
+					<span class="char-count" id="char-count">0/32</span>
+				</div>
+			</div>
+			<div class="validation-feedback" id="validation-feedback">
+				<span class="feedback-icon"></span>
+				<span class="feedback-message"></span>
+			</div>
+		</div>
+		<div class="pen-name-actions">
+			<button type="submit" class="set-pen-name-btn" id="set-pen-name-btn" disabled>
+				{{msg.penname_set_button}}
+			</button>
+			<button type="button" class="cancel-btn" onclick="exitPenNameEditMode()">
+				{{msg.penname_cancel_button}}
+			</button>
+		</div>
+		<p class="pen-name-explainer">{{msg.penname_explainer}}</p>
+	</form>
+</div>

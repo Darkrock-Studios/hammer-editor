@@ -55,6 +55,9 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
 
 	@MockK
+	private lateinit var ensureProjectIdOperation: EnsureProjectIdOperation
+
+	@MockK
 	private lateinit var fetchLocalDataOperation: FetchLocalDataOperation
 
 	@MockK
@@ -95,6 +98,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				addSynchronizers(mockSynchronizers)
 
 				factory { prepareForSyncOperation }
+				factory { ensureProjectIdOperation }
 				factory { fetchLocalDataOperation }
 				factory { fetchServerDataOperation }
 				factory { collateIdsOperation }
@@ -132,6 +136,15 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
 		coEvery {
 			prepareForSyncOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery {
+			ensureProjectIdOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -195,6 +208,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertTrue(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(
@@ -231,6 +245,15 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		val failure = CResult.failure<SyncOperationState>(Exception("Test failure"))
 		coEvery {
 			prepareForSyncOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery {
+			ensureProjectIdOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -294,6 +317,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(
@@ -339,6 +363,15 @@ class ClientProjectSynchronizerTest : BaseTest() {
 
 		coEvery {
 			prepareForSyncOperation.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns result
+		coEvery {
+			ensureProjectIdOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -403,6 +436,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(

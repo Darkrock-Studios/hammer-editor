@@ -1,0 +1,45 @@
+<!-- Release State: Danger zone confirmation -->
+<div class="pen-name-release hidden" id="pen-name-release-state">
+	<div class="danger-zone">
+		<div class="danger-zone-header">
+			<span class="danger-icon">&#9888;</span>
+			<h3>{{msg.penname_release_title}}</h3>
+		</div>
+		<div class="danger-zone-content">
+			<p class="danger-warning">
+				{{msg.penname_release_warning1}}
+			</p>
+			<p class="danger-warning">
+				<strong>{{msg.penname_release_warning2}}</strong>
+			</p>
+			<div class="current-pen-name-display">
+				<span class="current-label">{{msg.penname_release_current_label}}</span>
+				<span class="current-value" id="release-current-penname">{{penName}}</span>
+			</div>
+			<div class="release-confirm-input">
+				<label for="release-confirm-field">{{msg.penname_release_confirm_label}}</label>
+				<input type="text"
+					   id="release-confirm-field"
+					   placeholder="{{msg.penname_release_confirm_placeholder}}"
+					   autocomplete="off"
+					   oninput="onReleaseConfirmInput(this.value)">
+			</div>
+		</div>
+		<div class="danger-zone-actions">
+			<form id="release-form"
+				  hx-delete="/dashboard/penname"
+				  hx-swap="none"
+				  onsubmit="return confirmRelease()">
+				<button type="submit"
+						class="release-btn"
+						id="release-btn"
+						disabled>
+					{{msg.penname_release_confirm_button}}
+				</button>
+			</form>
+			<button type="button" class="cancel-btn" onclick="exitReleaseMode()">
+				{{msg.penname_cancel_button}}
+			</button>
+		</div>
+	</div>
+</div>

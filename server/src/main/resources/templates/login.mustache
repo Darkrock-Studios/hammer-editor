@@ -1,8 +1,8 @@
 {{> header}}
 
-<main class="login-page">
-	<div class="login-container">
-		<div class="login-card">
+<main class="page page--centered">
+	<div class="page__container page__container--narrow">
+		<div class="paper-section paper-section--compact">
 			<div class="login-header">
 				<h1>{{msg.login_title}}</h1>
 				<p>{{msg.login_subtitle}}</p>
@@ -10,14 +10,14 @@
 
 			<form action="/login" method="post" class="login-form">
 				<div class="form-field">
-					<label for="email">{{msg.login_email_label}}</label>
-					<input type="email" id="email" name="email" required autofocus
+					<label for="email" class="form-field__label">{{msg.login_email_label}}</label>
+					<input type="email" id="email" name="email" class="form-input" required autofocus
 						   placeholder="{{msg.login_email_placeholder}}">
 				</div>
 
 				<div class="form-field">
-					<label for="password">{{msg.login_password_label}}</label>
-					<input type="password" id="password" name="password" required
+					<label for="password" class="form-field__label">{{msg.login_password_label}}</label>
+					<input type="password" id="password" name="password" class="form-input" required
 						   placeholder="{{msg.login_password_placeholder}}">
 				</div>
 

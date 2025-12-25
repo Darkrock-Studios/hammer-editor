@@ -50,6 +50,9 @@ val projectListComponent = object : ProjectsList {
 	override fun onProjectNameUpdate(newProjectName: String) {}
 	override fun showProjectRename(projectDef: ProjectDef) {}
 	override fun dismissProjectRename() {}
+	override fun showProjectDelete(projectDef: ProjectDef) {}
+	override fun dismissProjectDelete() {}
+
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}

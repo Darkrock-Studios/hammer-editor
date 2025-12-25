@@ -8,10 +8,36 @@
 }
 
 .story-container {
-	max-width: 800px;
+	max-width: 1200px;
 	width: 100%;
 	animation: fadeIn 0.5s ease-out;
 	box-sizing: border-box;
+}
+
+/* Story Layout - Side by side on wide screens */
+.story-layout {
+	display: flex;
+	flex-direction: column-reverse;
+	gap: 1.5rem;
+}
+
+@media only screen and (min-width: 1024px) {
+	.story-layout {
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
+	.story-content {
+		flex: 1;
+		max-width: 800px;
+	}
+
+	.story-sidebar {
+		position: sticky;
+		top: 100px;
+		width: 320px;
+		flex-shrink: 0;
+	}
 }
 
 .story-header {
@@ -76,6 +102,12 @@
 	text-align: center;
 }
 
+.story-content h2:first-child {
+	border-top: none;
+	margin-top: 0;
+	padding-top: 0;
+}
+
 .story-content p {
 	margin-bottom: 0;
 	text-indent: 2em;
@@ -135,11 +167,987 @@
 	}
 }
 
-@keyframes fadeIn {
+/* ========================================
+   Story Info Panel
+   Displays story metadata at a glance
+   ======================================== */
+
+.story-info-panel {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	margin-bottom: 1rem;
+}
+
+.info-panel-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem 1.25rem;
+	background: rgba(255, 255, 255, 0.6);
+	border-bottom: 1px dashed var(--neutral-200);
+}
+
+.info-panel-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	background: var(--primary);
+	border-radius: 50%;
+	color: white;
+	font-size: 0.875rem;
+}
+
+.info-panel-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	color: var(--text-primary);
+}
+
+.info-panel-content {
+	padding: 1rem 1.25rem;
+}
+
+.info-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 0.5rem 0;
+	border-bottom: 1px dotted var(--neutral-200);
+}
+
+.info-item:last-child {
+	border-bottom: none;
+	padding-bottom: 0;
+}
+
+.info-item:first-child {
+	padding-top: 0;
+}
+
+.info-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+}
+
+.info-value {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+/* ========================================
+   Story Settings Panel
+   A refined, collapsible panel with
+   editorial-inspired design elements
+   ======================================== */
+
+.story-settings-panel {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	position: relative;
+}
+
+/* Decorative top accent bar */
+.story-settings-panel::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+	var(--neutral-300) 0%,
+	var(--accent) 20%,
+	var(--accent) 80%,
+	var(--neutral-300) 100%
+	);
+	opacity: 0.7;
+}
+
+/* Settings Toggle Button */
+.settings-toggle-btn {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.25rem;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	transition: all var(--transition-base);
+	text-align: left;
+}
+
+.settings-toggle-btn:hover {
+	background: rgba(217, 119, 6, 0.05);
+	color: var(--text-primary);
+}
+
+.settings-toggle-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: var(--neutral-100);
+	border-radius: 50%;
+	color: var(--accent);
+	transition: all var(--transition-base);
+}
+
+.settings-toggle-btn:hover .settings-toggle-icon {
+	background: var(--accent);
+	color: white;
+	transform: rotate(90deg);
+}
+
+.settings-toggle-text {
+	flex: 1;
+	font-weight: 500;
+}
+
+.settings-chevron {
+	font-size: 0.75rem;
+	color: var(--neutral-400);
+	transition: transform var(--transition-base);
+}
+
+.settings-toggle-btn[aria-expanded="true"] .settings-chevron {
+	transform: rotate(180deg);
+}
+
+/* Settings Content Area */
+.settings-content {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+	padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	background: rgba(255, 255, 255, 0.5);
+}
+
+.settings-content.open {
+	max-height: 2000px;
+}
+
+.settings-section {
+	padding: 0 1.25rem 1.25rem 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+/* Publish Setting Row */
+.publish-setting {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1rem;
+	padding-top: 1.25rem;
+}
+
+.publish-info {
+	flex: 1;
+}
+
+.publish-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.0625rem;
+	color: var(--text-primary);
+	margin: 0 0 0.375rem 0;
+}
+
+.publish-description {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+/* Publish Toggle - Custom Switch */
+.publish-toggle-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.publish-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	user-select: none;
+}
+
+.publish-toggle-checkbox {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.publish-toggle-track {
+	position: relative;
+	width: 52px;
+	height: 28px;
+	background: linear-gradient(135deg, var(--neutral-300) 0%, var(--neutral-400) 100%);
+	border-radius: 14px;
+	transition: all var(--transition-base);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.publish-toggle-thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 22px;
+	height: 22px;
+	background: linear-gradient(135deg, #ffffff 0%, #f5f5f4 100%);
+	border-radius: 50%;
+	transition: all var(--transition-base);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2),
+	0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle Active State */
+.publish-toggle-checkbox:checked + .publish-toggle-track {
+	background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+}
+
+.publish-toggle-checkbox:checked + .publish-toggle-track .publish-toggle-thumb {
+	left: calc(100% - 25px);
+	background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%);
+}
+
+/* Toggle Focus State */
+.publish-toggle-checkbox:focus-visible + .publish-toggle-track {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Toggle Hover Effects */
+.publish-toggle:hover .publish-toggle-track {
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15),
+	0 0 0 3px rgba(217, 119, 6, 0.1);
+}
+
+.publish-toggle:hover .publish-toggle-thumb {
+	transform: scale(1.05);
+}
+
+/* Status Labels */
+.publish-toggle-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	min-width: 5rem;
+	text-align: left;
+}
+
+.label-published,
+.label-private {
+	display: none;
+	padding: 0.25rem 0.625rem;
+	border-radius: 0.25rem;
+	font-weight: 500;
+}
+
+.label-published {
+	color: var(--success);
+	background: rgba(16, 185, 129, 0.1);
+}
+
+.label-private {
+	color: var(--neutral-500);
+	background: rgba(120, 113, 108, 0.1);
+}
+
+.publish-toggle-checkbox:checked ~ .publish-toggle-label .label-published {
+	display: inline-block;
+}
+
+.publish-toggle-checkbox:not(:checked) ~ .publish-toggle-label .label-private {
+	display: inline-block;
+}
+
+/* Loading Indicator */
+.publish-loading {
+	font-size: 1rem;
+	color: var(--accent);
+}
+
+.publish-loading.htmx-indicator {
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.htmx-request .publish-loading.htmx-indicator,
+.htmx-request.publish-loading.htmx-indicator {
+	opacity: 1;
+}
+
+/* Public URL Section */
+.publish-url-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
 	from {
 		opacity: 0;
+		transform: translateY(-10px);
 	}
 	to {
 		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.publish-url-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+}
+
+.publish-url-container {
+	display: flex;
+	gap: 0;
+	border-radius: 0.375rem;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.publish-url-input {
+	flex: 1;
+	padding: 0.75rem 1rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-right: none;
+	border-radius: 0.375rem 0 0 0.375rem;
+	cursor: text;
+}
+
+.publish-url-input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.copy-url-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 1.25rem;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+	color: white;
+	border: 2px solid var(--accent-dark);
+	border-radius: 0 0.375rem 0.375rem 0;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	font-size: 1rem;
+}
+
+.copy-url-btn:hover {
+	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+	transform: translateY(-1px);
+}
+
+.copy-url-btn:active {
+	transform: translateY(0);
+}
+
+.copy-url-btn.copied {
+	background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+	border-color: var(--success);
+}
+
+/* Responsive Design for Settings Panel */
+@media only screen and (max-width: 768px) {
+	.publish-url-container {
+		flex-direction: column;
+	}
+
+	.publish-url-input {
+		border-right: 2px solid var(--neutral-200);
+		border-bottom: none;
+		border-radius: 0.375rem 0.375rem 0 0;
+	}
+
+	.copy-url-btn {
+		border-radius: 0 0 0.375rem 0.375rem;
+		padding: 0.75rem;
+	}
+}
+
+/* On mobile, ensure sidebar comes after content */
+@media only screen and (max-width: 1023px) {
+	.story-sidebar {
+		width: 100%;
+	}
+}
+
+/* ========================================
+   Public Story Page
+   Simplified layout for public readers
+   ======================================== */
+
+.public-story-page .story-container {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.public-story-page .back-link {
+	display: none;
+}
+
+.public-story-attribution {
+	margin-bottom: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+}
+
+.public-story-attribution .by-line {
+	font-style: italic;
+}
+
+.public-story-attribution .author-name {
+	font-weight: 600;
+	color: var(--accent);
+}
+
+.public-story-footer {
+	margin-top: 3rem;
+	padding-top: 1.5rem;
+	border-top: 1px dashed var(--neutral-300);
+	text-align: center;
+}
+
+.public-story-footer .powered-by {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.public-story-footer a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+.public-story-footer a:hover {
+	text-decoration: underline;
+}
+
+/* ========================================
+   Share Private Button
+   ======================================== */
+
+.share-private-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.share-private-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.25rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+	color: var(--text-primary);
+	border: 2px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.share-private-btn:hover {
+	background: linear-gradient(135deg, var(--neutral-200) 0%, var(--neutral-300) 100%);
+	border-color: var(--neutral-400);
+	transform: translateY(-1px);
+}
+
+.share-private-btn:active {
+	transform: translateY(0);
+}
+
+.share-private-btn i {
+	color: var(--accent);
+}
+
+/* ========================================
+   Dialog Customizations for Story Page
+   Additional styling for story-specific dialogs
+   ======================================== */
+
+/* Optional label styling */
+.optional-label {
+	font-style: italic;
+	color: var(--neutral-400);
+}
+
+/* Warning dialog header with icon */
+.dialog__header--warning {
+	background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(245, 158, 11, 0.05) 100%);
+	border-bottom: 1px dashed rgba(217, 119, 6, 0.25);
+	position: relative;
+}
+
+.dialog__header--warning::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+	transparent 0%,
+	rgba(245, 158, 11, 0.6) 20%,
+	rgba(217, 119, 6, 0.8) 50%,
+	rgba(245, 158, 11, 0.6) 80%,
+	transparent 100%
+	);
+}
+
+.warning-icon-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.15) 100%);
+	border: 1.5px solid rgba(217, 119, 6, 0.3);
+	border-radius: 50%;
+	flex-shrink: 0;
+	animation: warningPulse 2s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+	0%, 100% {
+		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3);
+	}
+	50% {
+		box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+	}
+}
+
+.warning-icon-wrapper i {
+	font-size: 1.125rem;
+	color: #b45309;
+}
+
+/* Warning Body Content */
+.warning-text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	line-height: 1.7;
+	color: var(--text-primary);
+	margin: 0 0 1.25rem 0;
+	text-align: justify;
+	hyphens: auto;
+}
+
+/* Recommendation Callout */
+.warning-recommendation {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 1rem 1.125rem;
+	background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.04) 100%);
+	border: 1.5px solid rgba(16, 185, 129, 0.2);
+	border-radius: 0.5rem;
+	border-left: 3px solid var(--success);
+}
+
+.warning-recommendation i {
+	font-size: 1rem;
+	color: var(--success);
+	margin-top: 0.125rem;
+	flex-shrink: 0;
+}
+
+.warning-recommendation span {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: var(--text-secondary);
+}
+
+/* Publish confirm button with icon */
+.publish-confirm-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.publish-confirm-btn i {
+	font-size: 0.875rem;
+}
+
+/* ========================================
+   Access List
+   ======================================== */
+
+.access-list-section {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.access-list-title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0 0 0.75rem 0;
+}
+
+.access-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.access-entry {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.875rem 1rem;
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	transition: all var(--transition-base);
+}
+
+.access-entry:hover {
+	border-color: var(--neutral-300);
+	box-shadow: var(--shadow-sm);
+}
+
+.access-entry.expired {
+	opacity: 0.6;
+	border-color: var(--error);
+	background: var(--neutral-50);
+}
+
+.access-entry-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	flex: 1;
+	min-width: 0;
+}
+
+.access-entry-main {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.access-type {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.access-type i {
+	color: var(--accent);
+}
+
+.access-password-display {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: monospace;
+	font-size: 0.875rem;
+}
+
+.access-password-display code {
+	background: var(--neutral-100);
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	color: var(--text-primary);
+}
+
+.access-password-display .password-masked {
+	color: var(--neutral-400);
+	letter-spacing: 0.1em;
+}
+
+.password-toggle-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	padding: 0;
+	background: transparent;
+	border: none;
+	border-radius: 0.25rem;
+	color: var(--neutral-400);
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.password-toggle-btn:hover {
+	background: var(--neutral-100);
+	color: var(--accent);
+}
+
+.password-toggle-btn.revealed {
+	color: var(--accent);
+}
+
+.access-entry-expiry {
+	display: flex;
+	align-items: center;
+}
+
+.access-expiry {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.access-expiry i {
+	font-size: 0.6875rem;
+}
+
+.access-expiry.expired {
+	color: var(--error);
+}
+
+.access-expiry.never {
+	color: var(--neutral-400);
+}
+
+.delete-access-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: transparent;
+	border: none;
+	border-radius: 0.375rem;
+	color: var(--neutral-400);
+	cursor: pointer;
+	transition: all var(--transition-base);
+	flex-shrink: 0;
+	margin-left: 0.5rem;
+}
+
+.delete-access-btn:hover {
+	background: rgba(239, 68, 68, 0.1);
+	color: var(--error);
+}
+
+/* ========================================
+   Password Form Page (Public Access)
+   ======================================== */
+
+.password-form-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.password-form-container {
+	background: linear-gradient(135deg, rgba(255, 253, 250, 0.98) 0%, rgba(255, 250, 245, 1) 100%);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-lg);
+	padding: 2.5rem;
+	max-width: 400px;
+	width: 100%;
+	text-align: center;
+	animation: fadeIn 0.5s ease-out;
+}
+
+.password-form-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 4rem;
+	height: 4rem;
+	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%);
+	border-radius: 50%;
+	margin-bottom: 1.5rem;
+}
+
+.password-form-icon i {
+	font-size: 1.75rem;
+	color: var(--accent);
+}
+
+.password-form-container h2 {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: var(--text-primary);
+	margin: 0 0 0.75rem 0;
+}
+
+.password-form-description {
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0 0 1.5rem 0;
+	line-height: 1.5;
+}
+
+.password-form {
+	text-align: left;
+}
+
+.password-error {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: 0.375rem;
+	color: var(--error);
+	font-size: 0.875rem;
+	margin-bottom: 1rem;
+}
+
+.password-submit-btn {
+	width: 100%;
+	padding: 0.875rem 1.5rem;
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+	color: white;
+	border: 2px solid var(--accent-dark);
+	border-radius: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all var(--transition-base);
+}
+
+.password-submit-btn:hover {
+	background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+	transform: translateY(-1px);
+}
+
+.password-submit-btn:active {
+	transform: translateY(0);
+}
+
+/* ========================================
+   Story Stats (Public Page)
+   Word count and reading time display
+   ======================================== */
+
+.story-stats {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	margin-top: 1rem;
+	padding: 0.75rem 0;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.story-stats .stat-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.story-stats .stat-item i {
+	color: var(--accent);
+	font-size: 0.9rem;
+}
+
+.story-stats .stat-separator {
+	color: var(--neutral-300);
+}
+
+/* ========================================
+   Page Indicator (top of content)
+   ======================================== */
+
+.page-indicator {
+	text-align: right;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	margin-bottom: 0.5rem;
+}
+
+/* ========================================
+   Story Pagination
+   Page navigation for long stories
+   ======================================== */
+
+.story-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 3rem;
+	padding-top: 2rem;
+	border-top: 1px dashed var(--neutral-300);
+}
+
+/* Responsive pagination */
+@media only screen and (max-width: 480px) {
+	.story-pagination {
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	.story-pagination .pagination-button {
+		padding: 0.625rem 1rem;
+		font-size: 0.875rem;
+	}
+
+	.story-pagination .pagination-info {
+		width: 100%;
+		text-align: center;
+		order: -1;
+		padding: 0 0 0.5rem 0;
+	}
+
+	.story-stats {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.story-stats .stat-separator {
+		display: none;
 	}
 }

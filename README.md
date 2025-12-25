@@ -8,14 +8,13 @@ A simple tool for building stories.
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
 [![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
+[![Crowdin](https://badges.crowdin.net/hammer-editor/localized.svg)](https://crowdin.com/project/hammer-editor)
 
 ### Available on:
 
 [![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&logoColor=green&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Dcom.darkrockstudios.apps.hammer.android%26l%3DGoogle%2520Play%26m%3D%24version)](https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android)
 [![F-Droid](https://img.shields.io/f-droid/v/com.darkrockstudios.apps.hammer.android?logo=FDROID)](https://f-droid.org/en/packages/com.darkrockstudios.apps.hammer.android/)
 [![GitHub](https://img.shields.io/github/v/release/Wavesonics/hammer-editor?include_prereleases&logo=github)](https://github.com/Wavesonics/hammer-editor/releases/latest)
-
-### _**Note:** This is currently Alpha quality software, users beware!_
 
 Take a look at the [Roadmap](docs/ROADMAP.md) to see whats coming.
 

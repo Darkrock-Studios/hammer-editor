@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -37,20 +38,33 @@ import kotlin.test.assertTrue
 class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
+
 	@MockK
 	private lateinit var projectEntityRepository: ProjectEntityRepository
+
+	@MockK
+	private lateinit var projectAccessRepository: ProjectAccessRepository
+
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
+
 	@MockK
 	private lateinit var accountsComponent: AccountsComponent
+
 	@MockK
 	private lateinit var adminComponent: AdminComponent
+
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
+
 	@MockK
 	private lateinit var configRepository: ConfigRepository
+
 	@MockK
 	private lateinit var storyExportService: StoryExportService
+
+	@MockK
+	private lateinit var penNameService: PenNameService
 
 	private lateinit var testModule: org.koin.core.module.Module
 
@@ -71,12 +85,14 @@ class AccountRoutesTest : BaseTest() {
 		testModule = module {
 			single { accountsRepository }
 			single { projectEntityRepository }
+			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyExportService }
+			single { penNameService }
 			single { json }
 		}
 	}

@@ -22,9 +22,13 @@ import kotlin.io.encoding.Base64
 /**
  * Base class for End to End Tests.
  * This will start up and tear down a server running on
- * port 8080, and writing to a FakeFileSystem.
+ * port 54321, and writing to a FakeFileSystem.
  */
 abstract class EndToEndTest {
+
+	companion object {
+		const val TEST_PORT = 54321
+	}
 
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
@@ -61,7 +65,7 @@ abstract class EndToEndTest {
 		server.stop(1000, 3000)
 	}
 
-	protected fun route(path: String): String = "http://127.0.0.1:8080/$path"
+	protected fun route(path: String): String = "http://127.0.0.1:$TEST_PORT/$path"
 	protected fun api(path: String): String = route("api/$path")
 
 	fun doStartServer() {
@@ -79,7 +83,7 @@ abstract class EndToEndTest {
 
 		val server = embeddedServer(
 			Jetty,
-			port = 8080,
+			port = TEST_PORT,
 			host = "0.0.0.0",
 			module = {
 				appMain(config, testModule)

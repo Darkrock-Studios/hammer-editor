@@ -41,6 +41,7 @@ class ProjectListModalRouter(
 			is Config.ProjectSync -> ProjectsList.ModalDestination.ProjectSync
 			is Config.ProjectRename -> ProjectsList.ModalDestination.ProjectRename(config.projectDef)
 			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate
+			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(config.projectDef)
 			is Config.ServerReauth -> ProjectsList.ModalDestination.ServerReauth(
 				ServerReauthenticationComponent(
 					componentContext = componentContext,
@@ -74,6 +75,14 @@ class ProjectListModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showProjectDelete(projectDef: ProjectDef) {
+		navigation.activate(Config.ProjectDelete(projectDef))
+	}
+
+	fun dismissProjectDelete() {
+		navigation.activate(Config.None)
+	}
+
 	fun showServerReauthentication() {
 		navigation.activate(Config.ServerReauth)
 	}
@@ -95,6 +104,9 @@ class ProjectListModalRouter(
 
 		@Serializable
 		data object ProjectCreate : Config()
+
+		@Serializable
+		data class ProjectDelete(val projectDef: ProjectDef) : Config()
 
 		@Serializable
 		data object ServerReauth : Config()

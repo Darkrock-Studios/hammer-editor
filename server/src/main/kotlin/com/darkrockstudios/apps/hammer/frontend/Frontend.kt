@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
@@ -8,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import io.ktor.http.*
@@ -29,15 +31,19 @@ fun Route.frontend() {
 	val configRepository: ConfigRepository by inject()
 	val projectsRepository: ProjectsRepository by inject()
 	val storyExportService: StoryExportService by inject()
+	val projectAccessRepository: ProjectAccessRepository by inject()
+	val penNameService: PenNameService by inject()
 
 	staticResources("/assets", "/assets")
 
 	homePage(whiteListRepository, configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
-	dashboardPage(projectsRepository, accountsRepository)
-	storyPage(storyExportService)
-	adminPage(whiteListRepository, configRepository)
+	dashboardPage(projectsRepository, accountsRepository, penNameService)
+	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
+	authorPage(accountsRepository, projectAccessRepository)
+	publicStoryPage(storyExportService, projectAccessRepository)
+	adminPage(whiteListRepository, configRepository, accountsRepository, projectsRepository)
 }
 
 const val COOKIE_USER_SESSION = "user_session"

@@ -1,0 +1,35 @@
+<article class="story-content">{{{storyHtml}}}</article>
+
+{{#hasPagination}}
+	<nav class="story-pagination">
+		{{#hasPrevPage}}
+			<a href="{{prevPageUrl}}" class="pagination-button prev">
+				<i class="fa-solid fa-chevron-left"></i>
+				{{msg.public_story_prev_page}}
+			</a>
+		{{/hasPrevPage}}
+		{{^hasPrevPage}}
+			<span class="pagination-button prev disabled">
+		<i class="fa-solid fa-chevron-left"></i>
+				{{msg.public_story_prev_page}}
+	</span>
+		{{/hasPrevPage}}
+
+		<span class="pagination-info">
+		{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+	</span>
+
+		{{#hasNextPage}}
+			<a href="{{nextPageUrl}}" class="pagination-button next">
+				{{msg.public_story_next_page}}
+				<i class="fa-solid fa-chevron-right"></i>
+			</a>
+		{{/hasNextPage}}
+		{{^hasNextPage}}
+			<span class="pagination-button next disabled">
+		{{msg.public_story_next_page}}
+				<i class="fa-solid fa-chevron-right"></i>
+	</span>
+		{{/hasNextPage}}
+	</nav>
+{{/hasPagination}}

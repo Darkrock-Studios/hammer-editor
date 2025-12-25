@@ -1,0 +1,53 @@
+{{> header}}
+
+<main class="story-page public-story-page">
+	<div class="story-container">
+		<!-- Story Header -->
+		<div class="story-header">
+			<div class="public-story-attribution">
+				<span class="by-line">{{msg.public_story_by}}</span>
+				<a href="/a/{{authorPenNameUrl}}" class="author-name">{{authorPenName}}</a>
+			</div>
+			<h1 class="story-title">{{projectName}}</h1>
+			{{#hasContent}}
+				<div class="story-stats">
+				<span class="stat-item">
+					<i class="fa-solid fa-book-open"></i>
+					{{formattedWordCount}} {{msg.public_story_words}}
+				</span>
+					<span class="stat-separator">|</span>
+					<span class="stat-item">
+					<i class="fa-regular fa-clock"></i>
+						{{estimatedReadingTime}} {{msg.public_story_min_read}}
+				</span>
+				</div>
+			{{/hasContent}}
+		</div>
+
+		<!-- Story Content -->
+		{{#hasContent}}
+			{{#hasPagination}}
+				<div class="page-indicator">
+					{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+				</div>
+			{{/hasPagination}}
+			<div id="story-page-content">
+				{{> partials/story-page-content}}
+			</div>
+		{{/hasContent}}
+		{{^hasContent}}
+			<article class="story-content">
+				<div class="story-empty">
+					<p>{{msg.story_no_scenes}}</p>
+				</div>
+		</article>
+		{{/hasContent}}
+
+		<!-- Public Footer Attribution -->
+		<div class="public-story-footer">
+			<p class="powered-by">{{msg.public_story_powered_by}} <a href="/">Hammer</a></p>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

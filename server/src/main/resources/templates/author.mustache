@@ -1,0 +1,56 @@
+{{> header}}
+
+<main class="page">
+	<div class="page__container page__container--author">
+		<!-- Stories Section -->
+		<section class="stories-section">
+			<!-- Author Info inside the card -->
+			<header class="author-header">
+				<div class="author-avatar">
+					<span class="avatar-letter">{{penName.0}}</span>
+				</div>
+				<div class="author-info">
+					<h1 class="author-name">{{penName}}</h1>
+					<p class="author-subtitle">{{msg.author_published_works}}</p>
+				</div>
+			</header>
+
+			{{#hasStories}}
+				<div class="card-list">
+					{{#stories}}
+						<a href="/a/{{urlPenName}}/{{urlName}}" class="card card--gradient card--interactive">
+							<div class="card__info">
+								<h2 class="card__title">{{name}}</h2>
+								<span class="card__subtitle">{{msg.author_story_published_on}} {{publishedAt}}</span>
+							</div>
+							<i class="fa-solid fa-chevron-right card__arrow"></i>
+						</a>
+					{{/stories}}
+				</div>
+
+				{{#storyCount}}
+					<p class="story-count">
+						{{storyCount}} {{msg.author_story_count}}
+					</p>
+				{{/storyCount}}
+			{{/hasStories}}
+
+			{{^hasStories}}
+				<div class="no-stories">
+					<div class="no-stories-icon">
+						<i class="fa-solid fa-feather-pointed"></i>
+					</div>
+					<h2>{{msg.author_no_stories_title}}</h2>
+					<p>{{msg.author_no_stories_subtitle}}</p>
+				</div>
+			{{/hasStories}}
+		</section>
+
+		<!-- Footer Attribution -->
+		<div class="author-footer">
+			<p class="powered-by">{{msg.public_story_powered_by}} <a href="/">Hammer</a></p>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

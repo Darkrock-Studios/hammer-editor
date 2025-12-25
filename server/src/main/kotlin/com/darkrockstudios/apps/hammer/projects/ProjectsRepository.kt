@@ -27,6 +27,23 @@ class ProjectsRepository(
 		return projectsDatasource.getProjectsWithSyncDate(userId)
 	}
 
+	suspend fun getProjectsWithSyncDate(userId: Long, page: Int, pageSize: Int): List<ProjectWithSyncDate> {
+		return projectsDatasource.getProjectsWithSyncDate(userId, page, pageSize)
+	}
+
+	suspend fun getProjectWithSyncDate(userId: Long, projectId: ProjectId): ProjectWithSyncDate? {
+		return projectsDatasource.getProjectsWithSyncDate(userId)
+			.find { it.uuid == projectId.id }
+	}
+
+	suspend fun getProjectsCount(userId: Long): Long {
+		return projectsDatasource.getProjectsCount(userId)
+	}
+
+	suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		return projectsDatasource.getMostRecentSyncForUser(userId)
+	}
+
 	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
 		return if (syncSessionManager.hasActiveSyncSession(userId)) {
 			SResult.failure(

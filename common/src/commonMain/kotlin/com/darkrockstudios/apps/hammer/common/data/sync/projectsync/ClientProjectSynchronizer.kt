@@ -40,6 +40,7 @@ class ClientProjectSynchronizer(
 
 	private val operations = listOf(
 		projectScope.get<PrepareForSyncOperation>(),
+		projectScope.get<EnsureProjectIdOperation>(),
 		projectScope.get<FetchLocalDataOperation>(),
 		projectScope.get<FetchServerDataOperation>(),
 		projectScope.get<CollateIdsOperation>(),

@@ -143,6 +143,7 @@ val mainModule = module {
 		scopedOf(::ClientSceneDraftSynchronizer)
 
 		factoryOf(::PrepareForSyncOperation)
+		factoryOf(::EnsureProjectIdOperation)
 		factoryOf(::FetchLocalDataOperation)
 		factoryOf(::FetchServerDataOperation)
 		factoryOf(::CollateIdsOperation)

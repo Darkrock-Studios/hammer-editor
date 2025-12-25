@@ -7,26 +7,34 @@ import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.ServerDatabase
 import java.util.*
 
-class SqliteTestDatabase : Database {
-	private lateinit var driver: SqlDriver
+class SqliteTestDatabase(
+	private val createSchema: Boolean = true,
+	private val enforceForeignKeys: Boolean = true
+) : Database {
+	private lateinit var _driver: SqlDriver
+	override val driver: SqlDriver
+		get() = _driver
 
 	private lateinit var _serverDatabase: ServerDatabase
 	override val serverDatabase: ServerDatabase
 		get() = _serverDatabase
 
 	override fun initialize() {
-		if (::driver.isInitialized.not()) {
-			driver = JdbcSqliteDriver(
+		if (::_driver.isInitialized.not()) {
+			_driver = JdbcSqliteDriver(
 				url = JdbcSqliteDriver.IN_MEMORY,
-				properties = Properties().apply { put("foreign_keys", "true") }
+				properties = Properties().apply { put("foreign_keys", if (enforceForeignKeys) "true" else "false") }
 			)
-			ServerDatabase.Schema.create(driver)
-			_serverDatabase = ServerDatabase(driver)
+			if (createSchema) {
+				ServerDatabase.Schema.create(_driver)
+				_driver.execute(null, "PRAGMA user_version = ${ServerDatabase.Schema.version}", 0)
+			}
+			_serverDatabase = ServerDatabase(_driver)
 		}
 	}
 
 	fun execute(sql: String): QueryResult<Long> {
-		return driver.execute(null, sql, 0)
+		return _driver.execute(null, sql, 0)
 	}
 
 	suspend fun executeAsync(sql: String): Long {
@@ -34,6 +42,6 @@ class SqliteTestDatabase : Database {
 	}
 
 	override fun close() {
-		driver.close()
+		_driver.close()
 	}
 }

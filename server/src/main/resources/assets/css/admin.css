@@ -1,149 +1,81 @@
-/* Admin Page Styles */
+/* Admin Page Styles - Page-specific overrides */
 
-.admin-page {
-	min-height: calc(100vh - 200px);
-	padding: 2rem;
-	background: linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
-}
+/* ========================================
+   Admin Layout with Sidebar
+   ======================================== */
 
-.admin-container {
-	max-width: 1000px;
+.admin-layout {
+	display: flex;
+	gap: 2rem;
+	max-width: 1200px;
 	margin: 0 auto;
-	animation: fadeIn 0.5s ease-out;
 }
 
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
-
-/* Admin Header */
-.admin-header {
-	background: var(--neutral-900);
-	color: white;
-	padding: 2.5rem 3rem;
-	border-radius: 0.75rem;
-	margin-bottom: 2rem;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	box-shadow: var(--shadow-lg);
-	border-bottom: 3px solid var(--accent);
-	animation: slideInDown 0.5s ease-out;
-}
-
-@keyframes slideInDown {
-	from {
-		opacity: 0;
-		transform: translateY(-20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.admin-header-content h1 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 2.5rem;
-	color: white;
-	margin-bottom: 0.5rem;
-}
-
-.admin-subtitle {
-	color: var(--neutral-700);
-	font-size: 1.0625rem;
-	font-style: italic;
-	margin: 0;
-}
-
-.logout-form {
-	margin: 0;
-}
-
-
-/* Section Cards */
-.admin-section {
+/* Sidebar Navigation */
+.admin-nav {
+	flex-shrink: 0;
+	width: 240px;
+	position: sticky;
+	top: 100px;
+	height: fit-content;
 	background: var(--surface);
-	background-image: repeating-linear-gradient(
-		transparent,
-		transparent 31px,
-		rgba(0, 0, 0, 0.03) 31px,
-		rgba(0, 0, 0, 0.03) 32px
-	);
-	padding: 2.5rem 3rem 2.5rem 4rem;
-	margin-bottom: 2rem;
 	border-radius: 0.75rem;
-	box-shadow: var(--shadow-lg),
-	inset 0 0 0 1px rgba(0, 0, 0, 0.05);
-	border-left: 4px solid var(--accent);
-	position: relative;
-	animation: slideInUp 0.5s ease-out;
-	animation-fill-mode: both;
+	box-shadow: var(--shadow-lg);
+	border: 2px solid var(--neutral-200);
+	overflow: hidden;
 }
 
-.admin-section:nth-child(2) {
-	animation-delay: 0.1s;
+.admin-nav-list {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0;
 }
 
-.admin-section:nth-child(3) {
-	animation-delay: 0.2s;
-}
-
-@keyframes slideInUp {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-/* Red margin line like notebook paper */
-.admin-section::before {
-	content: '';
-	position: absolute;
-	left: 2.5rem;
-	top: 0;
-	bottom: 0;
-	width: 2px;
-	background: rgba(239, 68, 68, 0.2);
-	pointer-events: none;
-}
-
-/* Section Headers */
-.section-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 1rem;
-	margin-bottom: 1rem;
-}
-
-.section-title-group {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.section-header h2 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 2rem;
-	color: var(--text-primary);
+.admin-nav-item {
 	margin: 0;
 }
 
-.section-header-actions {
+.admin-nav-link {
 	display: flex;
 	align-items: center;
-	gap: 1rem;
+	gap: 0.875rem;
+	padding: 1rem 1.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+	transition: all var(--transition-base);
+	border-left: 4px solid transparent;
 }
+
+.admin-nav-link:hover {
+	color: var(--text-primary);
+	background: var(--neutral-100);
+	border-left-color: var(--neutral-300);
+}
+
+.admin-nav-link.active {
+	color: var(--accent-dark);
+	background: rgba(217, 119, 6, 0.08);
+	border-left-color: var(--accent);
+	font-weight: 500;
+}
+
+.admin-nav-link i {
+	font-size: 1.125rem;
+	width: 1.5rem;
+	text-align: center;
+}
+
+/* Content Area */
+.admin-content {
+	flex: 1;
+	min-width: 0;
+}
+
+/* ========================================
+   Admin-specific Buttons
+   ======================================== */
 
 .toggle-button {
 	font-family: 'Kingthings Typewriter', monospace;
@@ -188,32 +120,14 @@
 	color: var(--accent-dark);
 }
 
-.section-description {
-	color: var(--text-secondary);
-	font-size: 1rem;
-	margin-bottom: 1.5rem;
-	line-height: 1.6;
-}
+/* ========================================
+   Form Styling
+   ======================================== */
 
-/* Message Display */
-.message-display {
-	background: var(--neutral-100);
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.5rem;
-	padding: 1.5rem;
-	margin-top: 1rem;
-}
-
-.message-display pre {
-	font-family: 'Courier New', monospace;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	white-space: pre-wrap;
-	line-height: 1.6;
+.logout-form {
 	margin: 0;
 }
 
-/* Whitelist Form */
 .whitelist-form {
 	margin: 1.5rem 0;
 	padding: 1.5rem;
@@ -228,44 +142,13 @@
 	gap: 0.75rem;
 }
 
-.form-group label {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.125rem;
-	color: var(--text-primary);
-}
-
 .form-input-group {
 	display: flex;
 	gap: 0.75rem;
 }
 
-.form-input-group input {
+.form-input-group .form-input {
 	flex: 1;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 1rem;
-	padding: 0.875rem 1rem;
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.5rem;
-	background: white;
-	color: var(--text-primary);
-	transition: all var(--transition-base);
-	box-shadow: var(--shadow-sm);
-}
-
-.form-input-group input::placeholder {
-	color: var(--neutral-400);
-	font-style: italic;
-}
-
-.form-input-group input:hover {
-	border-color: var(--neutral-400);
-}
-
-.form-input-group input:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: var(--shadow-md),
-	0 0 0 3px rgba(217, 119, 6, 0.1);
 }
 
 .add-button,
@@ -301,60 +184,19 @@
 	gap: 1.5rem;
 }
 
-.settings-select {
-	width: 100%;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 1rem;
-	padding: 0.875rem 1rem;
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.5rem;
-	background: white;
-	color: var(--text-primary);
-	transition: all var(--transition-base);
-	box-shadow: var(--shadow-sm);
-	cursor: pointer;
-}
-
-.settings-select:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: var(--shadow-md),
-	0 0 0 3px rgba(217, 119, 6, 0.1);
-}
-
-.settings-textarea {
-	width: 100%;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 1rem;
-	padding: 0.875rem 1rem;
-	border: 2px solid var(--neutral-300);
-	border-radius: 0.5rem;
-	background: white;
-	color: var(--text-primary);
-	transition: all var(--transition-base);
-	box-shadow: var(--shadow-sm);
-	resize: vertical;
-	min-height: 100px;
-}
-
-.settings-textarea:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: var(--shadow-md),
-	0 0 0 3px rgba(217, 119, 6, 0.1);
-}
-
 .form-actions {
 	display: flex;
 	justify-content: flex-end;
 }
 
-/* Whitelist Container */
+/* ========================================
+   Whitelist Items
+   ======================================== */
+
 .whitelist-container {
 	margin-top: 2rem;
 }
 
-/* Whitelist User Items (for HTMX loaded content) */
 #whitelist {
 	display: flex;
 	flex-direction: column;
@@ -414,57 +256,143 @@
 	transform: translateY(0);
 }
 
-/* Empty State */
-.whitelist-empty {
-	text-align: center;
-	padding: 3rem 2rem;
+/* ========================================
+   User Management List
+   ======================================== */
+
+.users-container {
+	margin-top: 2rem;
+}
+
+#users {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.user-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem 1.25rem;
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	transition: all var(--transition-base);
+	box-shadow: var(--shadow-sm);
+}
+
+.user-item:hover {
+	border-color: var(--neutral-300);
+	box-shadow: var(--shadow-md);
+	transform: translateX(4px);
+}
+
+.user-info {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.user-email {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.user-penname {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--accent);
+	text-decoration: none;
+	padding: 0.25rem 0.75rem;
+	background: rgba(217, 119, 6, 0.1);
+	border-radius: 0.375rem;
+	transition: all var(--transition-base);
+}
+
+.user-penname:hover {
+	background: rgba(217, 119, 6, 0.2);
+	color: var(--accent-dark);
+}
+
+.user-meta {
+	display: flex;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.user-projects,
+.user-created,
+.user-lastsync {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
 	color: var(--text-secondary);
-	font-style: italic;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
 }
 
-.whitelist-empty::before {
-	content: '📝';
-	display: block;
-	font-size: 3rem;
-	margin-bottom: 1rem;
-	opacity: 0.5;
+.user-projects i,
+.user-created i,
+.user-lastsync i {
+	color: var(--neutral-400);
+	font-size: 0.75rem;
 }
 
-/* Responsive Design */
-@media only screen and (max-width: 768px) {
-	.admin-page {
-		padding: 1.5rem;
-	}
+/* ========================================
+   Responsive Design
+   ======================================== */
 
-	.admin-header {
+@media only screen and (max-width: 900px) {
+	.admin-layout {
 		flex-direction: column;
 		gap: 1.5rem;
-		padding: 2rem 1.75rem;
-		text-align: center;
 	}
 
-	.admin-header-content h1 {
-		font-size: 2rem;
+	.admin-nav {
+		width: 100%;
+		position: static;
 	}
 
-	.admin-section {
-		padding: 2rem 1.75rem 2rem 3rem;
+	.admin-nav-list {
+		display: flex;
+		flex-wrap: wrap;
+		padding: 0.5rem;
+		gap: 0.25rem;
 	}
 
-	.admin-section::before {
-		left: 1.5rem;
+	.admin-nav-item {
+		flex: 1;
+		min-width: 120px;
 	}
 
-	.section-header {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.5rem;
+	.admin-nav-link {
+		justify-content: center;
+		padding: 0.75rem 1rem;
+		border-left: none;
+		border-bottom: 3px solid transparent;
+		border-radius: 0.375rem;
 	}
 
-	.section-header h2 {
-		font-size: 1.75rem;
+	.admin-nav-link:hover {
+		border-left: none;
+		border-bottom-color: var(--neutral-300);
 	}
 
+	.admin-nav-link.active {
+		border-left: none;
+		border-bottom-color: var(--accent);
+	}
+
+	.admin-nav-link span {
+		font-size: 0.875rem;
+	}
+}
+
+@media only screen and (max-width: 768px) {
 	.form-input-group {
 		flex-direction: column;
 	}
@@ -486,71 +414,27 @@
 	.remove-button {
 		flex: 1;
 	}
-}
 
-@media only screen and (max-width: 480px) {
-	.admin-header-content h1 {
-		font-size: 1.75rem;
+	.user-item {
+		padding: 1rem;
 	}
 
-	.admin-subtitle {
-		font-size: 0.9375rem;
+	.user-info {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
 	}
 
-	.section-header h2 {
-		font-size: 1.5rem;
+	.user-meta {
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 }
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-	.admin-container,
-	.admin-header,
-	.admin-section {
-		animation: none;
-	}
-
-	.whitelist-user:hover {
+	.whitelist-user:hover,
+	.user-item:hover {
 		transform: none;
 	}
 }
-
-/* Pagination */
-.pagination {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	gap: 1.5rem;
-	margin-top: 2rem;
-	padding-top: 1.5rem;
-	border-top: 2px dashed var(--neutral-200);
-}
-
-.pagination-button {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	padding: 0.5rem 1.25rem;
-	background: white;
-	color: var(--accent);
-	border: 2px solid var(--accent);
-	border-radius: 0.5rem;
-	cursor: pointer;
-	transition: all var(--transition-base);
-	box-shadow: var(--shadow-sm);
-}
-
-.pagination-button:hover {
-	background: var(--accent);
-	color: white;
-	transform: translateY(-2px);
-	box-shadow: var(--shadow-md);
-}
-
-.pagination-info {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1rem;
-	color: var(--text-secondary);
-	font-weight: 500;
-}
-
-

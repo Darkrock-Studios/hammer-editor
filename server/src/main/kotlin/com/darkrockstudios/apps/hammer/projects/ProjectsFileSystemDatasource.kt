@@ -71,6 +71,22 @@ class ProjectsFileSystemDatasource(
 		error("getProjectsWithSyncDate not implemented for FileSystem datasource")
 	}
 
+	override suspend fun getProjectsWithSyncDate(
+		userId: Long,
+		page: Int,
+		pageSize: Int
+	): List<ProjectWithSyncDate> {
+		error("getProjectsWithSyncDate paged not implemented for FileSystem datasource")
+	}
+
+	override suspend fun getProjectsCount(userId: Long): Long {
+		error("getProjectsCount not implemented for FileSystem datasource")
+	}
+
+	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		error("getMostRecentSyncForUser not implemented for FileSystem datasource")
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		error("findProjectByName not implemented for FileSystem datasource")
 	}

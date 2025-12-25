@@ -1,0 +1,70 @@
+<div class="settings-section" id="publish-section" data-project-uuid="{{projectUuid}}">
+	<div class="publish-setting">
+		<div class="publish-info">
+			<h3 class="publish-title">{{msg.story_publish_title}}</h3>
+			<p class="publish-description">{{msg.story_publish_description}}</p>
+		</div>
+		<div class="publish-toggle-wrapper">
+			<label class="publish-toggle" for="publish-toggle-input">
+				<input type="checkbox"
+					   id="publish-toggle-input"
+					   class="publish-toggle-checkbox"
+					   {{#isPublished}}checked{{/isPublished}}
+					   {{#isPublished}}
+					   hx-post="/story/{{projectUuid}}/publish"
+					   hx-trigger="change"
+					   hx-target="#publish-section"
+					   hx-swap="outerHTML"
+					   hx-indicator=".publish-loading"
+					   {{/isPublished}}
+					   {{^isPublished}}
+					   onchange="handlePublishToggle(this)"
+					   {{/isPublished}}>
+				<span class="publish-toggle-track">
+					<span class="publish-toggle-thumb"></span>
+				</span>
+				<span class="publish-toggle-label">
+					<span class="label-published">{{msg.story_status_published}}</span>
+					<span class="label-private">{{msg.story_status_private}}</span>
+				</span>
+			</label>
+			<span class="publish-loading htmx-indicator"><i class="fas fa-spinner fa-spin"></i></span>
+		</div>
+	</div>
+
+	{{#hasAnyAccess}}
+		<div class="publish-url-section" id="publish-url-section">
+			<div class="publish-url-label">{{msg.story_public_url}}:</div>
+			<div class="publish-url-container">
+				<input type="text"
+					   class="publish-url-input"
+					   id="publish-url-input"
+					   value="{{publicUrl}}"
+					   readonly>
+				<button type="button" class="copy-url-btn" id="copy-url-btn" title="{{msg.story_copy_url}}">
+					<i class="fas fa-copy"></i>
+				</button>
+			</div>
+		</div>
+	{{/hasAnyAccess}}
+
+	{{^isPublished}}
+	<div class="share-private-section">
+		<h3 class="publish-title">{{msg.story_private_share_title}}</h3>
+		<button type="button"
+				class="share-private-btn"
+				hx-get="/story/{{projectUuid}}/share-dialog"
+				hx-target="#share-dialog-container"
+				hx-swap="innerHTML">
+			<i class="fas fa-lock"></i> {{msg.story_share_private}}
+		</button>
+	</div>
+
+	<div id="access-list-container">
+		{{> access-list}}
+	</div>
+	{{/isPublished}}
+
+	<div id="share-dialog-container"></div>
+	<div id="publish-warning-container"></div>
+</div>

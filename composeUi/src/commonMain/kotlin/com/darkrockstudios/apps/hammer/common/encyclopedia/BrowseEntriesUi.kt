@@ -4,12 +4,14 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.*
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,25 +56,7 @@ fun BrowseEntriesUi(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.SpaceAround,
 		) {
-			SearchBar(
-				query = searchText,
-				onQueryChange = { component.updateFilter(it, selectedType) },
-				onSearch = { component.updateFilter(it, selectedType) },
-				placeholder = { Text(Res.string.encyclopedia_search_hint.get()) },
-				active = false,
-				onActiveChange = {},
-				modifier = Modifier.moveFocusOnTab().weight(1f).padding(end = Ui.Padding.L),
-				trailingIcon = {
-					IconButton(onClick = {
-						component.clearFilterText()
-					}) {
-						Icon(
-							imageVector = Icons.Filled.Clear,
-							Res.string.encyclopedia_search_clear_button.get()
-						)
-					}
-				},
-			) {}
+			EntrySearchBar(searchText, component, selectedType)
 
 			ExposedDropDown(
 				getText = { it.toStringResource().get() },
@@ -87,8 +71,8 @@ fun BrowseEntriesUi(
 			}
 		}
 
-		LazyVerticalStaggeredGrid(
-			columns = StaggeredGridCells.Adaptive(480.dp),
+		LazyVerticalGrid(
+			columns = GridCells.Adaptive(480.dp),
 			modifier = Modifier.fillMaxSize(),
 			contentPadding = PaddingValues(Ui.Padding.XL)
 		) {
@@ -117,6 +101,52 @@ fun BrowseEntriesUi(
 			}
 		}
 	}
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun RowScope.EntrySearchBar(
+	searchText: String,
+	component: BrowseEntries,
+	selectedType: EntryType?
+) {
+	val onActiveChange = { b: Boolean -> }
+	SearchBar(
+		inputField = {
+			SearchBarDefaults.InputField(
+				query = searchText,
+				onQueryChange = { component.updateFilter(it, selectedType) },
+				onSearch = { component.updateFilter(it, selectedType) },
+				expanded = false,
+				onExpandedChange = onActiveChange,
+				enabled = true,
+				placeholder = { Text(Res.string.encyclopedia_search_hint.get()) },
+				leadingIcon = null,
+				trailingIcon = {
+					IconButton(onClick = {
+						component.clearFilterText()
+					}) {
+						Icon(
+							imageVector = Icons.Filled.Clear,
+							Res.string.encyclopedia_search_clear_button.get()
+						)
+					}
+				},
+				colors = SearchBarDefaults.colors().inputFieldColors,
+				interactionSource = null,
+			)
+		},
+		expanded = false,
+		onExpandedChange = onActiveChange,
+		modifier = Modifier.moveFocusOnTab().weight(1f).padding(end = Ui.Padding.L),
+		shape = SearchBarDefaults.inputFieldShape,
+		colors = SearchBarDefaults.colors(),
+		tonalElevation = SearchBarDefaults.TonalElevation,
+		shadowElevation = SearchBarDefaults.ShadowElevation,
+		windowInsets = SearchBarDefaults.windowInsets,
+		content = {
+		},
+	)
 }
 
 @Composable

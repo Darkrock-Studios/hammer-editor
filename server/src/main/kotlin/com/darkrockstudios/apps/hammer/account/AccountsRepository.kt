@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
@@ -172,6 +173,26 @@ class AccountsRepository(
 
 	suspend fun getAccount(userId: Long): Account {
 		return accountDao.getAccount(userId) ?: throw AccountNotFound(userId)
+	}
+
+	suspend fun updatePenName(userId: Long, penName: String?) {
+		accountDao.updatePenName(userId, penName?.trim())
+	}
+
+	suspend fun isPenNameAvailable(penName: String, excludeUserId: Long? = null): Boolean {
+		return accountDao.isPenNameAvailable(penName.trim(), excludeUserId)
+	}
+
+	suspend fun findAccountByPenName(penName: String): Account? {
+		return accountDao.findAccountByPenName(penName)
+	}
+
+	suspend fun numAccounts(): Long {
+		return accountDao.numAccounts()
+	}
+
+	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> {
+		return accountDao.getAccountsPaginated(page, pageSize)
 	}
 
 	companion object {

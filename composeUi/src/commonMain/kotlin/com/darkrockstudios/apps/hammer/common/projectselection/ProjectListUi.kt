@@ -15,9 +15,6 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
@@ -28,9 +25,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
-import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -41,7 +36,6 @@ fun ProjectListUi(
 ) {
 	val windowSizeClass = calculateWindowSizeClass()
 	val state by component.state.subscribeAsState()
-	var projectDefDeleteTarget by rememberSaveable { mutableStateOf<ProjectDef?>(null) }
 
 	Toaster(component, rootSnackbar)
 
@@ -112,7 +106,7 @@ fun ProjectListUi(
 						ProjectCard(
 							projectData = state.projects[index],
 							onProjectClick = component::selectProject,
-							onProjectAltClick = { project -> projectDefDeleteTarget = project },
+							onProjectAltClick = { project -> component.showProjectDelete(project) },
 							onProjectRenameClick = { project -> component.showProjectRename(project) },
 						)
 					}
@@ -120,18 +114,6 @@ fun ProjectListUi(
 				MpScrollBarList(state = listState)
 			}
 		}
-	}
-
-	projectDefDeleteTarget?.let { project ->
-		SimpleConfirm(
-			title = Res.string.delete_project_title.get(),
-			message = stringResource(Res.string.delete_project_message, project.name),
-			onDismiss = { projectDefDeleteTarget = null },
-			onConfirm = {
-				component.deleteProject(project)
-				projectDefDeleteTarget = null
-			}
-		)
 	}
 
 	ModalContent(component)
@@ -159,6 +141,14 @@ fun ModalContent(component: ProjectsList) {
 			ProjectCreateDialog(true, component) {
 				component.hideCreate()
 			}
+		}
+
+		is ProjectsList.ModalDestination.ProjectDelete -> {
+			ProjectDeleteDialog(
+				component = component,
+				projectDef = overlay.projectDef,
+				close = { component.dismissProjectDelete() }
+			)
 		}
 
 		is ProjectsList.ModalDestination.ServerReauth -> {

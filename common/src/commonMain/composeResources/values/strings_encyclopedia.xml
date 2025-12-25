@@ -23,11 +23,8 @@
 	<string name="encyclopedia_create_entry_create_button">Create</string>
 	<string name="encyclopedia_create_entry_cancel_button">Cancel</string>
 	<string name="encyclopedia_create_entry_toast_success">Entry Created</string>
-	<string name="encyclopedia_create_entry_toast_too_long">Entry Name was too long. Max %1$d
-	</string>
-	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name must be
-		alphanumeric
-	</string>
+	<string name="encyclopedia_create_entry_toast_too_long">Entry Name was too long. Max %1$d</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name must be alphanumeric</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag is too long. Max %1$d</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_short">Tag is too short</string>
 	<string name="encyclopedia_create_entry_discard_title">Discard New Entry?</string>

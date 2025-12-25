@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -91,7 +92,8 @@ internal fun EncyclopediaEntryItem(
 	LaunchedEffect(entryImagePath) {
 		val path = entryImagePath
 		if (path != null) {
-			paletteState.generate(path)
+			// TODO: This is too perfy, I like the effect, but disable for now
+			//paletteState.generate(path)
 		}
 	}
 
@@ -112,12 +114,27 @@ internal fun EncyclopediaEntryItem(
 				//  (hasImage == null) means we're loading, false means no image
 				if (hasImage != false) {
 					val palette = paletteState.palette
-					val gradientStartColor = palette?.dominantSwatch?.color
+					val defaultStartColor = MaterialTheme.colorScheme.surfaceVariant
+					val defaultEndColor = MaterialTheme.colorScheme.surface
+
+					val targetStartColor = palette?.dominantSwatch?.color
 						?: palette?.vibrantSwatch?.color
-						?: MaterialTheme.colorScheme.surfaceVariant
-					val gradientEndColor = palette?.mutedSwatch?.color
+						?: defaultStartColor
+					val targetEndColor = palette?.mutedSwatch?.color
 						?: palette?.darkMutedSwatch?.color
-						?: MaterialTheme.colorScheme.surface
+						?: defaultEndColor
+
+					// Animate color transitions for smooth fade-in
+					val gradientStartColor by animateColorAsState(
+						targetValue = targetStartColor,
+						animationSpec = tween(durationMillis = 400),
+						label = "gradientStartColor"
+					)
+					val gradientEndColor by animateColorAsState(
+						targetValue = targetEndColor,
+						animationSpec = tween(durationMillis = 400),
+						label = "gradientEndColor"
+					)
 
 					Box(
 						modifier = Modifier
@@ -162,7 +179,7 @@ internal fun EncyclopediaEntryItem(
 											.data(entryImagePath)
 											.memoryCacheKey(entryImagePath)
 											.placeholderMemoryCacheKey(entryImagePath)
-											.crossfade(false)
+											.crossfade(300)
 											.build()
 									},
 									contentDescription = null,
@@ -172,10 +189,6 @@ internal fun EncyclopediaEntryItem(
 											enter = fadeIn(),
 											exit = fadeOut()
 										)
-//									.sharedElement(
-//										sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${entryDef.id}"),
-//										animatedVisibilityScope = animatedVisibilityScope
-//									)
 										.clip(MaterialTheme.shapes.medium),
 									contentScale = ContentScale.Fit
 								)

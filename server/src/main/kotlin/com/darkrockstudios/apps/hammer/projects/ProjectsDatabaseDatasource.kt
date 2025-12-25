@@ -29,6 +29,26 @@ class ProjectsDatabaseDatasource(
 		}
 	}
 
+	override suspend fun getProjectsWithSyncDate(
+		userId: Long,
+		page: Int,
+		pageSize: Int
+	): List<ProjectWithSyncDate> {
+		val limit = pageSize.toLong()
+		val offset = (page * pageSize).toLong()
+		return projectDao.getProjectsWithSyncDatePaged(userId, limit, offset).map {
+			ProjectWithSyncDate(name = it.name, uuid = it.uuid, lastSync = it.last_sync)
+		}
+	}
+
+	override suspend fun getProjectsCount(userId: Long): Long {
+		return projectDao.getProjectsCount(userId)
+	}
+
+	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+		return projectDao.getMostRecentSyncForUser(userId)
+	}
+
 	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
 		val data = projectDao.findProjectData(userId, projectName)
 		return if (data != null) {

@@ -26,6 +26,21 @@ class ProjectDao(
 			queries.getProjectsWithSyncDate(userId).executeAsList()
 		}
 
+	suspend fun getProjectsWithSyncDatePaged(userId: Long, limit: Long, offset: Long) =
+		withContext(ioDispatcher) {
+			queries.getProjectsWithSyncDatePaged(userId, limit, offset).executeAsList()
+		}
+
+	suspend fun getProjectsCount(userId: Long): Long =
+		withContext(ioDispatcher) {
+			queries.getProjectsCount(userId).executeAsOne()
+		}
+
+	suspend fun getMostRecentSyncForUser(userId: Long): String? =
+		withContext(ioDispatcher) {
+			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
+		}
+
 	suspend fun createProject(
 		userId: Long,
 		uuid: ProjectId,

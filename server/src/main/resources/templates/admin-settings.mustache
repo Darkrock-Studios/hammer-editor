@@ -1,0 +1,66 @@
+{{> header}}
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<!-- Admin Header -->
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_dashboard_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_dashboard_subtitle}}</p>
+				</div>
+			</div>
+
+			<!-- Server Settings Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_serversettings_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_serversettings_description}}</p>
+
+				<form action="/admin/settings" method="post" class="settings-form"
+					  hx-post="/admin/settings"
+					  hx-swap="none">
+					<div class="form-group">
+						<label for="contact"
+							   class="form-field__label">{{msg.admin_serversettings_contact_label}}</label>
+						<div class="form-input-group">
+							<input id="contact" name="contact" type="email" value="{{contactEmail}}" class="form-input"
+								   placeholder="{{msg.admin_serversettings_contact_placeholder}}"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="defaultLocale"
+							   class="form-field__label">{{msg.admin_serversettings_default_locale_label}}</label>
+						<div class="form-input-group">
+							<select id="defaultLocale" name="defaultLocale" class="form-select">
+								{{#availableLocales}}
+									<option value="{{tag}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+								{{/availableLocales}}
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="message"
+							   class="form-field__label">{{msg.admin_serversettings_message_label}}</label>
+						<div class="form-input-group">
+							<textarea id="message" name="message" rows="4"
+									  class="form-textarea">{{serverMessage}}</textarea>
+						</div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="save-button">{{msg.admin_serversettings_save_button}}</button>
+					</div>
+				</form>
+			</section>
+		</div>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}

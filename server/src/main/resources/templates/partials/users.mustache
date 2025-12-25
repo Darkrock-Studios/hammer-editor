@@ -1,0 +1,59 @@
+{{#users}}
+	{{#items}}
+		{{#.}}
+			<div class="user-item">
+				<div class="user-info">
+					<span class="user-email">{{email}}</span>
+					{{#hasPenName}}
+						<a href="/a/{{penName}}" class="user-penname">{{penName}}</a>
+					{{/hasPenName}}
+				</div>
+				<div class="user-meta">
+					<span class="user-projects">
+						<i class="fa-solid fa-book"></i>
+						{{msg.admin_users_projects}}: {{projectCount}}
+					</span>
+					<span class="user-created">
+						<i class="fa-solid fa-calendar-plus"></i>
+						{{msg.admin_users_created}}: {{created}}
+					</span>
+					<span class="user-lastsync">
+						<i class="fa-solid fa-sync"></i>
+						{{msg.admin_users_last_sync}}: {{lastSync}}
+					</span>
+				</div>
+			</div>
+		{{/.}}
+	{{/items}}
+	{{^items}}
+		<div class="empty-state">
+			<p>{{msg.admin_users_empty}}</p>
+		</div>
+	{{/items}}
+
+	{{#totalPages}}
+		<div class="pagination">
+			{{#hasPrevPage}}
+				<button hx-get="/admin/users/user-fragment?page={{prevPage}}"
+				hx-target="#users"
+				hx-swap="innerHTML"
+				class="pagination-button">
+				&laquo; {{msg.admin_pagination_prev}}
+				</button>
+			{{/hasPrevPage}}
+
+			<span class="pagination-info">
+        {{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}
+    </span>
+
+			{{#hasNextPage}}
+				<button hx-get="/admin/users/user-fragment?page={{nextPage}}"
+				hx-target="#users"
+				hx-swap="innerHTML"
+				class="pagination-button">
+				{{msg.admin_pagination_next}} &raquo;
+				</button>
+			{{/hasNextPage}}
+		</div>
+	{{/totalPages}}
+{{/users}}

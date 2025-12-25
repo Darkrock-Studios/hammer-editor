@@ -1,11 +1,13 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
-import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
+import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.htmx.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
@@ -13,29 +15,32 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
 import io.ktor.utils.io.*
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
 fun Route.adminPage(
 	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
+	configRepository: ConfigRepository,
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository
 ) {
 	adminOnly {
 		route("/admin") {
-			admin(whiteListRepository, configRepository)
+			adminSettingsPage(configRepository)
+			adminWhitelistPage(whiteListRepository)
+			adminUsersPage()
 			whiteListRoutes(whiteListRepository)
 			serverSettingsRoutes(configRepository)
+			usersRoutes(accountsRepository, projectsRepository)
 		}
 	}
 }
 
-private fun Route.admin(
-	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
-) {
+// GET /admin - Server Settings page (default)
+private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 	get {
-		val session = call.sessions.get<UserSession>()
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
 		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
 			mapOf(
@@ -47,16 +52,124 @@ private fun Route.admin(
 
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
-			"isAdmin" to (session?.isAdmin?.toString() ?: "null"),
-			"whitelist" to mapOf(
-				"enabled" to whiteListRepository.useWhiteList()
-			),
+			"activeSettings" to true,
+			"activeWhitelist" to false,
+			"activeUsers" to false,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"defaultLocale" to configuredDefaultLocale,
 			"availableLocales" to availableLocales,
 		)
-		call.respond(MustacheContent("admin.mustache", call.withDefaults(model)))
+		call.respond(MustacheContent("admin-settings.mustache", call.withDefaults(model)))
+	}
+}
+
+// GET /admin/whitelist - Whitelist Management page
+private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
+	get("/whitelist") {
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to true,
+			"activeUsers" to false,
+			"whitelist" to mapOf(
+				"enabled" to whiteListRepository.useWhiteList()
+			),
+		)
+		call.respond(MustacheContent("admin-whitelist.mustache", call.withDefaults(model)))
+	}
+}
+
+// GET /admin/users - User Management page
+private fun Route.adminUsersPage() {
+	get("/users") {
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to false,
+			"activeUsers" to true,
+		)
+		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
+	}
+}
+
+private fun Route.usersRoutes(accountsRepository: AccountsRepository, projectsRepository: ProjectsRepository) {
+	route("/users") {
+		usersFragment(accountsRepository, projectsRepository)
+	}
+}
+
+private fun Route.usersFragment(accountsRepository: AccountsRepository, projectsRepository: ProjectsRepository) {
+	hx.get("/user-fragment") {
+		val model = getUsersModel(call, accountsRepository, projectsRepository)
+		call.respond(MustacheContent("partials/users.mustache", model))
+	}
+}
+
+private suspend fun getUsersModel(
+	call: ApplicationCall,
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository,
+	page: Int? = null
+): MutableMap<String, Any> {
+	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
+	val actualPage = page ?: queryPage ?: 0
+
+	val pageSize = 10
+	val totalCount = accountsRepository.numAccounts()
+	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
+	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
+
+	val accounts = accountsRepository.getAccountsPaginated(currentPage, pageSize)
+	val usersList = accounts.map { account ->
+		val projectCount = projectsRepository.getProjectsCount(account.id)
+		val mostRecentSync = projectsRepository.getMostRecentSyncForUser(account.id)
+		mutableMapOf<String, Any?>(
+			"email" to account.email,
+			"created" to formatDate(account.created),
+			"lastSync" to formatLastSync(mostRecentSync),
+			"penName" to account.pen_name,
+			"hasPenName" to (account.pen_name != null),
+			"projectCount" to projectCount
+		)
+	}
+
+	val users = mutableMapOf<String, Any>()
+	users["items"] = usersList
+	users["currentPage"] = currentPage
+	users["currentPageDisplay"] = currentPage + 1
+	users["totalPages"] = totalPages
+	users["hasNextPage"] = currentPage < totalPages - 1
+	users["hasPrevPage"] = currentPage > 0
+	users["nextPage"] = currentPage + 1
+	users["prevPage"] = currentPage - 1
+
+	val model = call.withDefaults()
+	model["users"] = users
+
+	return model
+}
+
+private fun formatDate(sqliteDateTime: String): String {
+	return try {
+		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
+		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
+		formatter.format(zoned)
+	} catch (e: Exception) {
+		sqliteDateTime
+	}
+}
+
+private fun formatLastSync(sqliteDateTime: String?): String {
+	if (sqliteDateTime == null) return "Never"
+	return try {
+		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
+		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")
+		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
+		formatter.format(zoned)
+	} catch (e: Exception) {
+		"Never"
 	}
 }
 

@@ -1,0 +1,37 @@
+{{> header}}
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<!-- Admin Header -->
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_users_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_users_subtitle}}</p>
+				</div>
+			</div>
+
+			<!-- User Management Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_users_list_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_users_description}}</p>
+
+				<div class="users-container">
+					<div id="users"
+						 hx-get="/admin/users/user-fragment"
+						 hx-trigger="load"
+						 hx-swap="innerHTML">
+						<!-- List of users loaded here -->
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}

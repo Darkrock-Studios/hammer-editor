@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -13,6 +14,7 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
@@ -54,7 +56,7 @@ fun mainModule(
 	single { createTokenBase64() } bind Base64::class
 	single { SecureRandom.getInstanceStrong() } bind SecureRandom::class
 	single { FileSystem.SYSTEM } bind FileSystem::class
-	singleOf(::SqliteDatabase) bind Database::class
+	single { SqliteDatabase(fileSystem = get()) } bind Database::class
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
 	singleOf(::WhiteListDao)
@@ -64,13 +66,16 @@ fun mainModule(
 	singleOf(::DeletedProjectDao)
 	singleOf(::DeletedEntityDao)
 	singleOf(::ServerConfigDao)
+	singleOf(::ProjectAccessDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
+	singleOf(::ProjectAccessRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)
+	singleOf(::PenNameService)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
