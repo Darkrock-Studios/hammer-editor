@@ -27,6 +27,7 @@
 	<string name="create_project_title">Create Project</string>
 	<string name="create_project_heading">New Project Name</string>
 	<string name="create_project_button">Create Project</string>
+	<string name="create_project_cancel_button">Cancel</string>
 	<string name="create_project_error_already_exists">Project already exists</string>
 	<string name="create_project_error_null_filename">Missing Project Name</string>
 	<string name="create_project_error_too_long">Project name too long</string>
