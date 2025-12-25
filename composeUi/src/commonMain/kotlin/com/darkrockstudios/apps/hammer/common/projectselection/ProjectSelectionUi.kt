@@ -4,9 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,7 +31,7 @@ import com.darkrockstudios.apps.hammer.projects_list_create_button
 
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
-		ProjectSelection.Locations.Projects -> Icons.Filled.LibraryBooks
+		ProjectSelection.Locations.Projects -> Icons.AutoMirrored.Filled.LibraryBooks
 		ProjectSelection.Locations.Settings -> Icons.Filled.Settings
 		ProjectSelection.Locations.AboutApp -> Icons.Filled.Info
 	}
