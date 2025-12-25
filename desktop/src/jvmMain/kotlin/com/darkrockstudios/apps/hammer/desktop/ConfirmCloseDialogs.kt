@@ -1,66 +1,29 @@
 package com.darkrockstudios.apps.hammer.desktop
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.UnsavedScenesConfirmDialog
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @ExperimentalComposeApi
 @Composable
 internal fun confirmCloseUnsavedScenesDialog(
 	closeType: ApplicationState.CloseType,
 	dismissDialog: (ConfirmCloseResult, ApplicationState.CloseType) -> Unit
 ) {
-	AlertDialog(
-		onDismissRequest = { /* Noop */ },
-		modifier = Modifier.width(300.dp).padding(Ui.Padding.XL)
-	) {
-		Card {
-			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-				Text(
-					Res.string.unsaved_scenes_dialog_title.get(),
-					color = MaterialTheme.colorScheme.onSurface,
-					style = MaterialTheme.typography.headlineLarge
-				)
-
-				Text(
-					Res.string.unsaved_scenes_dialog_message.get(),
-					color = MaterialTheme.colorScheme.onSurface,
-					style = MaterialTheme.typography.bodyMedium,
-				)
-
-				Spacer(modifier = Modifier.padding(Ui.Padding.XL))
-
-				FlowRow(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L, Alignment.CenterHorizontally)
-				) {
-					Button(onClick = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) }) {
-						Text(Res.string.unsaved_entity_dialog_positive_button.get())
-					}
-					Button(onClick = { dismissDialog(ConfirmCloseResult.Discard, closeType) }) {
-						Text(Res.string.unsaved_entity_dialog_negative_button.get())
-					}
-					Button(onClick = {
-						dismissDialog(
-							ConfirmCloseResult.Cancel,
-							ApplicationState.CloseType.None
-						)
-					}) {
-						Text(Res.string.unsaved_entity_dialog_neutral_button.get())
-					}
-				}
-			}
-		}
-	}
+	UnsavedScenesConfirmDialog(
+		title = Res.string.unsaved_scenes_dialog_title.get(),
+		message = Res.string.unsaved_scenes_dialog_message.get(),
+		saveButtonText = Res.string.unsaved_entity_dialog_positive_button.get(),
+		discardButtonText = Res.string.unsaved_entity_dialog_negative_button.get(),
+		cancelButtonText = Res.string.unsaved_entity_dialog_neutral_button.get(),
+		onSave = { dismissDialog(ConfirmCloseResult.SaveAll, closeType) },
+		onDiscard = { dismissDialog(ConfirmCloseResult.Discard, closeType) },
+		onCancel = { dismissDialog(ConfirmCloseResult.Cancel, ApplicationState.CloseType.None) }
+	)
 }
 
 @ExperimentalComposeApi
