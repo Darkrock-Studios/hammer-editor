@@ -24,6 +24,7 @@
 	<string name="rename_project_title">Rename Project</string>
 	<string name="rename_project_heading">New Project Name</string>
 	<string name="rename_project_button">Rename Project</string>
+	<string name="rename_project_cancel_button">Cancel</string>
 	<string name="create_project_title">Create Project</string>
 	<string name="create_project_heading">New Project Name</string>
 	<string name="create_project_button">Create Project</string>
