@@ -1,0 +1,62 @@
+name: hammer-editor
+base: core22
+version: '1.12.2'
+summary: A simple tool for building stories
+description: |
+    Hammer is a multi-platform story editor application. It's designed for
+    novelists and storytellers who want an offline-first writing experience
+    with optional self-hosted synchronization.
+
+grade: stable
+confinement: strict
+
+architectures:
+    -   build-on: amd64
+
+apps:
+    hammer-editor:
+        command: bin/hammer
+        extensions: [ gnome ]
+        plugs:
+            - home
+            - network
+            - network-bind
+            - desktop
+            - desktop-legacy
+            - wayland
+            - x11
+            - opengl
+            - removable-media
+
+parts:
+    hammer:
+        plugin: gradle
+        source: .
+        gradle-task: ':desktop:createDistributable'
+        gradle-parameters: [ '-x', 'test' ]
+        build-packages:
+            - openjdk-21-jdk
+        stage-packages:
+            - openjdk-21-jre
+        override-build: |
+            craftctl default
+            # Copy the gradle output to the install directory
+            # Note: outputBaseDir is set to 'installers' in build.gradle.kts
+            mkdir -p $CRAFT_PART_INSTALL/lib
+            cp -r desktop/build/installers/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
+            # Create the bin directory and launcher script
+            mkdir -p $CRAFT_PART_INSTALL/bin
+            cat > $CRAFT_PART_INSTALL/bin/hammer << 'EOF'
+            #!/bin/bash
+            export JAVA_HOME=$SNAP/usr/lib/jvm/java-21-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
+            exec $SNAP/lib/hammer/bin/hammer "$@"
+            EOF
+            chmod +x $CRAFT_PART_INSTALL/bin/hammer
+
+    desktop-entry:
+        plugin: dump
+        source: snap/gui
+        organize:
+            hammer-editor.desktop: usr/share/applications/hammer-editor.desktop
+            hammer-editor.png: usr/share/icons/hicolor/256x256/apps/hammer-editor.png

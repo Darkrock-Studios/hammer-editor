@@ -56,13 +56,21 @@ compose.desktop {
 	application {
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
-			targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+			targetFormats(
+				TargetFormat.Dmg,
+				TargetFormat.Pkg,
+				TargetFormat.AppImage,
+				TargetFormat.Msi,
+				TargetFormat.Exe,
+				TargetFormat.Deb,
+				TargetFormat.Rpm
+			)
 			modules = arrayListOf(":base", ":common", ":composeUi", ":desktop")
 			includeAllModules = true
 			packageName = "hammer"
 			packageVersion = libs.versions.app.get()
 			description = "A simple tool for building stories."
-			copyright = "© 2023 Adam W. Brown, All rights reserved."
+			copyright = "© 2025 Adam W. Brown, All rights reserved."
 			licenseFile.set(project.file("../LICENSE"))
 			outputBaseDir.set(project.buildDir.resolve("installers"))
 

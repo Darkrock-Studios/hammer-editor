@@ -68,7 +68,7 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
   notify:
-    needs: publish-google-play
+    needs: [ publish-google-play ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification

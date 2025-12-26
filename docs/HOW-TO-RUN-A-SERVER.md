@@ -28,7 +28,7 @@ keyAlias = "certificate"
 ```bash
 #!/bin/bash
 cd server
-./server --args="--config=../serverConfig.toml"
+./server --args="--config /some/path/serverConfig.toml"
 ```
 7. Make the script executable: `chmod +x run.sh`
 8. Go ahead and test it out: `./run.sh`
@@ -63,5 +63,5 @@ Once it completes successfully, re-run `convert.sh` to convert the new PEM to JK
 ## Whitelisting Users
 
 By default, the server is closed to everyone after the first account. You can open it by going to `/admin` on the
-website, logging in as your admin account, and unchecking "Enable White List". Otherwise you can add individual users to
+website, logging in as your admin account, and clicking "Disable Whitelist". Otherwise, you can add individual users to
 the whitelist using the admin page.

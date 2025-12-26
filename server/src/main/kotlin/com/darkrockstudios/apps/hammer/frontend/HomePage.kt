@@ -21,6 +21,7 @@ fun Route.homePage(
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 
 			model["serverMessage"] = serverMessage
+			model["page_script"] = "/assets/js/home.js"
 
 			if (useWhiteList && contactEmail.isNotBlank()) {
 				model["whitelistEnabled"] = useWhiteList
