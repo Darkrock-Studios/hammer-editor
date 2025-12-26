@@ -149,43 +149,55 @@
 			<div class="download-card">
 				<span class="download-icon">🪟</span>
 				<h3>{{msg.home_download_windows}}</h3>
-				<div class="download-buttons">
-					<div class="download-option">
-						<span class="download-source"><i class="fa-solid fa-box"></i> Installer (.msi)</span>
-						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
-					<div class="download-option">
-						<span class="download-source"><i class="fa-solid fa-file-zipper"></i> Installer (.exe)</span>
-						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.exe"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
+				<div class="download-buttons download-selector">
+					<select id="windows-format-select" class="format-dropdown">
+						<option value="msi" data-icon="fa-solid fa-box"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi">
+							Installer (.msi)
+						</option>
+						<option value="exe" data-icon="fa-solid fa-file-zipper"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.exe">
+							Installer (.exe)
+						</option>
+					</select>
+					<a id="windows-download-btn"
+					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
+					   class="download-link download-btn">
+						<i id="windows-download-icon" class="fa-solid fa-box"></i>
+						<span>{{msg.home_download_link}}</span>
+					</a>
 				</div>
 			</div>
 
 			<div class="download-card">
 				<span class="download-icon">🍎</span>
 				<h3>{{msg.home_download_macos}}</h3>
-				<div class="download-buttons">
-					<div class="download-option">
-						<span class="download-source"><i class="fa-solid fa-compact-disc"></i> Disk Image (.dmg)</span>
-						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
-					<div class="download-option">
-						<span class="download-source"><i class="fa-solid fa-box"></i> Installer (.pkg)</span>
-						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.pkg"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
+				<div class="download-buttons download-selector">
+					<select id="macos-format-select" class="format-dropdown">
+						<option value="dmg" data-icon="fa-solid fa-compact-disc"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg">
+							Disk Image (.dmg)
+						</option>
+						<option value="pkg" data-icon="fa-solid fa-box"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.pkg">
+							Installer (.pkg)
+						</option>
+					</select>
+					<a id="macos-download-btn"
+					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
+					   class="download-link download-btn">
+						<i id="macos-download-icon" class="fa-solid fa-compact-disc"></i>
+						<span>{{msg.home_download_link}}</span>
+					</a>
 				</div>
 			</div>
 
-			<!-- Desktop Platforms - Row 2: Linux (full width) -->
-			<div class="download-card download-card-linux">
+			<!-- Desktop Platforms - Row 2: Linux -->
+			<div class="download-card">
 				<span class="download-icon">🐧</span>
 				<h3>{{msg.home_download_linux}}</h3>
-				<div class="download-buttons linux-download-selector">
-					<select id="linux-format-select" class="linux-format-dropdown">
+				<div class="download-buttons download-selector">
+					<select id="linux-format-select" class="format-dropdown">
 						<option value="deb" data-icon="fa-brands fa-debian"
 								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.deb">
 							Debian / Ubuntu (.deb)
@@ -203,12 +215,19 @@
 							Flatpak
 						</option>
 						<option value="snap" data-icon="fa-brands fa-snapchat"
-								data-url="https://snapcraft.io/hammer-editor">Snap Store
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer-editor.snap">
+							Snap
 						</option>
+						<!--
+						<option value="snap" data-icon="fa-brands fa-snapchat"
+								data-url="https://snapcraft.io/hammer-editor">
+							Snap Store
+						</option>
+						-->
 					</select>
 					<a id="linux-download-btn"
 					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.deb"
-					   class="download-link linux-download-btn">
+					   class="download-link download-btn">
 						<i id="linux-download-icon" class="fa-brands fa-debian"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
