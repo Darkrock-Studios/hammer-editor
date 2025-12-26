@@ -122,11 +122,20 @@ tasks.register("prepareForRelease") {
 		val jvmVersion = libs.versions.jvm.get()
 		updateSnapcraftYaml(releaseInfo.semVar, jvmVersion, snapcraftFile)
 
+		// Update Flatpak manifest and metainfo with new version and JVM version
+		val flatpakManifestPath = "flatpak/com.darkrockstudios.hammer.yaml".replace("/", File.separator)
+		val flatpakManifestFile = project.rootDir.resolve(flatpakManifestPath)
+		val flatpakMetainfoPath = "flatpak/com.darkrockstudios.hammer.metainfo.xml".replace("/", File.separator)
+		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
+		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile)
+
 		// Commit the changes to the repo
 		exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }
+		exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }
+		exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }
 		exec {
 			commandLine =
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
