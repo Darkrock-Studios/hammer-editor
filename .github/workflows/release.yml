@@ -33,29 +33,56 @@ jobs:
       - name: Package Windows ".msi" distribution
         run: ./gradlew :desktop:packageReleaseMsi
 
-      - name: Rename Artifact
+      - name: Rename MSI Artifact
         shell: cmd
         run: |
           setlocal enabledelayedexpansion
-          
+
           set "pattern=hammer-*.msi"
           set "newName=hammer.msi"
           set "foundFile="
-          
+
           for /r %%i in (%pattern%) do (
             set "foundFile=%%i"
           )
-          
+
           if defined foundFile (
           echo Renaming !foundFile! to %newName%
             ren "!foundFile!" "%newName%"
           ) else (
             echo No file matching pattern found.
           )
-          
+
           endlocal
-          
+
           echo Successfully renamed file to "hammer.msi"
+
+      - name: Package Windows ".exe" distribution
+        run: ./gradlew :desktop:packageReleaseExe
+
+      - name: Rename EXE Artifact
+        shell: cmd
+        run: |
+          setlocal enabledelayedexpansion
+
+          set "pattern=hammer-*.exe"
+          set "newName=hammer.exe"
+          set "foundFile="
+
+          for /r %%i in (%pattern%) do (
+            set "foundFile=%%i"
+          )
+
+          if defined foundFile (
+          echo Renaming !foundFile! to %newName%
+            ren "!foundFile!" "%newName%"
+          ) else (
+            echo No file matching pattern found.
+          )
+
+          endlocal
+
+          echo Successfully renamed file to "hammer.exe"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -66,7 +93,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi"
+          artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi,D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\exe\\hammer.exe"
 
   linux:
     runs-on: ubuntu-latest
@@ -93,7 +120,7 @@ jobs:
       - name: Package Linux ".deb" distribution
         run: ./gradlew :desktop:packageReleaseDeb
 
-      - name: Rename Artifact
+      - name: Rename DEB Artifact
         run: |
           cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/
           # find the file matching the pattern and store its name in a variable
@@ -110,6 +137,46 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Package Linux ".rpm" distribution
+        run: ./gradlew :desktop:packageReleaseRpm
+
+      - name: Rename RPM Artifact
+        run: |
+          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/rpm/
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name 'hammer-*.rpm' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.rpm"
+          mv "$file" "hammer.rpm"
+
+          echo "File renamed successfully."
+
+      - name: Package Linux ".appimage" distribution
+        run: ./gradlew :desktop:packageReleaseAppImage
+
+      - name: Rename AppImage Artifact
+        run: |
+          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/app-image/
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name 'hammer-*.AppImage' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.AppImage"
+          mv "$file" "hammer.AppImage"
+
+          echo "File renamed successfully."
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -119,7 +186,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb"
+          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb,/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/rpm/hammer.rpm,/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/app-image/hammer.AppImage"
 
   macos:
     runs-on: macos-latest
@@ -146,7 +213,7 @@ jobs:
       - name: Package MacOS ".dmg" distribution
         run: ./gradlew :desktop:packageReleaseDmg
 
-      - name: Rename Artifact
+      - name: Rename DMG Artifact
         run: |
           cd /Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/
           # find the file matching the pattern and store its name in a variable
@@ -163,6 +230,26 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Package MacOS ".pkg" distribution
+        run: ./gradlew :desktop:packageReleasePkg
+
+      - name: Rename PKG Artifact
+        run: |
+          cd /Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/pkg/
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name 'hammer-*.pkg' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no file matching the pattern found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.pkg"
+          mv "$file" "hammer.pkg"
+
+          echo "File renamed successfully."
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -172,7 +259,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg"
+          artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg,/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/pkg/hammer.pkg"
 
   server:
     runs-on: ubuntu-latest
