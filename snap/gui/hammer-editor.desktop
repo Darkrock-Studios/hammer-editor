@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Hammer
+Comment=A simple tool for building stories
+Exec=hammer-editor
+Icon=${SNAP}/usr/share/icons/hicolor/256x256/apps/hammer-editor.png
+Terminal=false
+Type=Application
+Categories=Office;TextEditor;
+Keywords=writing;story;novel;editor;
