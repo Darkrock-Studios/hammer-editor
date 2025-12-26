@@ -17,4 +17,5 @@
 	setupDownloadSelector('windows-format-select', 'windows-download-btn', 'windows-download-icon');
 	setupDownloadSelector('macos-format-select', 'macos-download-btn', 'macos-download-icon');
 	setupDownloadSelector('linux-format-select', 'linux-download-btn', 'linux-download-icon');
+	setupDownloadSelector('android-format-select', 'android-download-btn', 'android-download-icon');
 })();

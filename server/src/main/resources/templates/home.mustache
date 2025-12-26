@@ -238,20 +238,27 @@
 			<div class="download-card">
 				<span class="download-icon">🤖</span>
 				<h3>{{msg.home_download_android}}</h3>
-				<div class="download-buttons">
-					<div class="download-option">
-						<span class="download-source"><i class="fa-brands fa-google-play"></i> Google Play</span>
-						<a href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
-					<div class="download-option">
-						<span class="download-source">
-							<img src="/assets/images/F-Droid-Logo.svg" alt="F-Droid" class="store-logo">
+				<div class="download-buttons download-selector">
+					<select id="android-format-select" class="format-dropdown">
+						<option value="playstore" data-icon="fa-brands fa-google-play"
+								data-url="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android">
+							Google Play
+						</option>
+						<option value="fdroid" data-icon="fa-brands fa-android"
+								data-url="https://f-droid.org/en/packages/com.darkrockstudios.apps.hammer.android/">
 							F-Droid
-						</span>
-						<a href="https://f-droid.org/en/packages/com.darkrockstudios.apps.hammer.android/"
-						   class="download-link">{{msg.home_download_link}}</a>
-					</div>
+						</option>
+						<option value="apk" data-icon="fa-brands fa-github"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/android-release.apk">
+							GitHub (.apk)
+						</option>
+					</select>
+					<a id="android-download-btn"
+					   href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
+					   class="download-link download-btn">
+						<i id="android-download-icon" class="fa-brands fa-google-play"></i>
+						<span>{{msg.home_download_link}}</span>
+					</a>
 				</div>
 			</div>
 
