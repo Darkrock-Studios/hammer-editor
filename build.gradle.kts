@@ -1,7 +1,4 @@
-import com.darkrockstudios.build.configureRelease
-import com.darkrockstudios.build.parseSemVar
-import com.darkrockstudios.build.writeChangelogMarkdown
-import com.darkrockstudios.build.writeSemvar
+import com.darkrockstudios.build.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -119,10 +116,17 @@ tasks.register("prepareForRelease") {
 		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
 		writeChangelogMarkdown(releaseInfo, globalChangelogFile)
 
+		// Update snapcraft.yaml with new version and JVM version
+		val snapcraftPath = "snap/snapcraft.yaml".replace("/", File.separator)
+		val snapcraftFile = project.rootDir.resolve(snapcraftPath)
+		val jvmVersion = libs.versions.jvm.get()
+		updateSnapcraftYaml(releaseInfo.semVar, jvmVersion, snapcraftFile)
+
 		// Commit the changes to the repo
 		exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }
 		exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }
+		exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }
 		exec {
 			commandLine =
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
