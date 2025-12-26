@@ -145,32 +145,77 @@
 		</div>
 
 		<div class="download-grid">
-			<!-- Desktop Platforms -->
+			<!-- Desktop Platforms - Row 1: Windows & macOS -->
 			<div class="download-card">
 				<span class="download-icon">🪟</span>
 				<h3>{{msg.home_download_windows}}</h3>
-				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
-				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
-				   class="download-link">{{msg.home_download_link}}</a>
-			</div>
-
-			<div class="download-card">
-				<span class="download-icon">🐧</span>
-				<h3>{{msg.home_download_linux}}</h3>
-				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
-				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer_amd64.deb"
-				   class="download-link">{{msg.home_download_link}}</a>
+				<div class="download-buttons">
+					<div class="download-option">
+						<span class="download-source"><i class="fa-solid fa-box"></i> Installer (.msi)</span>
+						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+					<div class="download-option">
+						<span class="download-source"><i class="fa-solid fa-file-zipper"></i> Installer (.exe)</span>
+						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.exe"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+				</div>
 			</div>
 
 			<div class="download-card">
 				<span class="download-icon">🍎</span>
 				<h3>{{msg.home_download_macos}}</h3>
-				<span class="download-source"><i class="fa-brands fa-github"></i> GitHub Releases</span>
-				<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
-				   class="download-link">{{msg.home_download_link}}</a>
+				<div class="download-buttons">
+					<div class="download-option">
+						<span class="download-source"><i class="fa-solid fa-compact-disc"></i> Disk Image (.dmg)</span>
+						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+					<div class="download-option">
+						<span class="download-source"><i class="fa-solid fa-box"></i> Installer (.pkg)</span>
+						<a href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.pkg"
+						   class="download-link">{{msg.home_download_link}}</a>
+					</div>
+				</div>
 			</div>
 
-			<!-- Mobile Platforms -->
+			<!-- Desktop Platforms - Row 2: Linux (full width) -->
+			<div class="download-card download-card-linux">
+				<span class="download-icon">🐧</span>
+				<h3>{{msg.home_download_linux}}</h3>
+				<div class="download-buttons linux-download-selector">
+					<select id="linux-format-select" class="linux-format-dropdown">
+						<option value="deb" data-icon="fa-brands fa-debian"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.deb">
+							Debian / Ubuntu (.deb)
+						</option>
+						<option value="rpm" data-icon="fa-brands fa-fedora"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.rpm">
+							Fedora / RHEL (.rpm)
+						</option>
+						<option value="appimage" data-icon="fa-solid fa-cube"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.AppImage">
+							AppImage (Universal)
+						</option>
+						<option value="flatpak" data-icon="fa-solid fa-box-open"
+								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer-editor.flatpak">
+							Flatpak
+						</option>
+						<option value="snap" data-icon="fa-brands fa-snapchat"
+								data-url="https://snapcraft.io/hammer-editor">Snap Store
+						</option>
+					</select>
+					<a id="linux-download-btn"
+					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.deb"
+					   class="download-link linux-download-btn">
+						<i id="linux-download-icon" class="fa-brands fa-debian"></i>
+						<span>{{msg.home_download_link}}</span>
+					</a>
+				</div>
+			</div>
+
+			<!-- Mobile Platforms - Row 2: Android & iOS -->
 			<div class="download-card">
 				<span class="download-icon">🤖</span>
 				<h3>{{msg.home_download_android}}</h3>
