@@ -32,6 +32,11 @@
 	<content_rating type="oars-1.1"/>
 
 	<releases>
+        <release version="1.12.2" date="2025-12-26">
+            <description>
+                <p>Latest release</p>
+            </description>
+        </release>
 		<release version="1.12.1" date="2024-01-01">
 			<description>
 				<p>Latest release</p>

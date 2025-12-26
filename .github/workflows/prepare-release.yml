@@ -93,7 +93,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\msi\\hammer.msi,D:\\a\\hammer-editor\\hammer-editor\\desktop\\build\\installers\\main-release\\exe\\hammer.exe"
+          artifacts: "${{ github.workspace }}\\desktop\\build\\installers\\main-release\\msi\\hammer.msi,${{ github.workspace }}\\desktop\\build\\installers\\main-release\\exe\\hammer.exe"
 
   linux:
     runs-on: ubuntu-latest
@@ -122,7 +122,7 @@ jobs:
 
       - name: Rename DEB Artifact
         run: |
-          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/
+          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/deb/
           # find the file matching the pattern and store its name in a variable
           file=$(find . -type f -name 'hammer_*.deb' -print -quit)
 
@@ -142,7 +142,7 @@ jobs:
 
       - name: Rename RPM Artifact
         run: |
-          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/rpm/
+          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/rpm/
           # find the file matching the pattern and store its name in a variable
           file=$(find . -type f -name 'hammer-*.rpm' -print -quit)
 
@@ -157,25 +157,62 @@ jobs:
 
           echo "File renamed successfully."
 
-      - name: Package Linux ".appimage" distribution
-        run: ./gradlew :desktop:packageReleaseAppImage
+      - name: Create release app directory for AppImage
+        run: ./gradlew :desktop:createReleaseDistributable
 
-      - name: Rename AppImage Artifact
+      - name: Create Linux ".appimage" distribution
         run: |
-          cd /home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/app-image/
-          # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer-*.AppImage' -print -quit)
+          # The gradle createReleaseDistributable task creates an app directory
+          # We use appimagetool to package it into an actual AppImage
 
-          # if no file was found, exit with an error message
-          if [ -z "$file" ]; then
-            echo "Error: no file matching the pattern found."
-            exit 1
-          fi
+          # Debug: Show what gradle created
+          echo "=== Contents of app directory ==="
+          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/
+          echo "=== Contents of app/hammer directory ==="
+          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/hammer/ || echo "No hammer subdirectory"
 
-          # rename the file to "hammer.AppImage"
-          mv "$file" "hammer.AppImage"
+          # Download appimagetool
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
 
-          echo "File renamed successfully."
+          # Create AppDir structure from the gradle-built app
+          APP_DIR="$GITHUB_WORKSPACE/Hammer.AppDir"
+          mkdir -p "$APP_DIR/usr/share/applications"
+          mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
+
+          # Copy the application (the app directory contains bin/, lib/, etc.)
+          cp -r $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/hammer/* "$APP_DIR/usr/"
+
+          # Create desktop file
+          cat > "$APP_DIR/usr/share/applications/hammer.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=Hammer
+          Comment=A simple tool for building stories
+          Exec=hammer
+          Icon=hammer
+          Type=Application
+          Categories=Office;TextEditor;
+          EOF
+          # Remove leading spaces from desktop file
+          sed -i 's/^[[:space:]]*//' "$APP_DIR/usr/share/applications/hammer.desktop"
+
+          # Copy icon
+          cp $GITHUB_WORKSPACE/desktop/icons/linux.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/hammer.png"
+
+          # Create symlinks at AppDir root (required by AppImage)
+          ln -sf usr/share/applications/hammer.desktop "$APP_DIR/hammer.desktop"
+          ln -sf usr/share/icons/hicolor/256x256/apps/hammer.png "$APP_DIR/hammer.png"
+          ln -sf usr/bin/hammer "$APP_DIR/AppRun"
+
+          echo "=== AppDir structure ==="
+          find "$APP_DIR" -type f | head -20
+
+          # Create the AppImage
+          mkdir -p $GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APP_DIR" "$GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage/hammer.AppImage"
+
+          echo "AppImage created successfully"
+          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage/
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -186,7 +223,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/deb/hammer.deb,/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/rpm/hammer.rpm,/home/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/app-image/hammer.AppImage"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
 
   macos:
     runs-on: macos-latest
@@ -215,7 +252,7 @@ jobs:
 
       - name: Rename DMG Artifact
         run: |
-          cd /Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/
+          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/dmg/
           # find the file matching the pattern and store its name in a variable
           file=$(find . -type f -name 'hammer-*.dmg' -print -quit)
 
@@ -235,7 +272,7 @@ jobs:
 
       - name: Rename PKG Artifact
         run: |
-          cd /Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/pkg/
+          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/pkg/
           # find the file matching the pattern and store its name in a variable
           file=$(find . -type f -name 'hammer-*.pkg' -print -quit)
 
@@ -249,6 +286,8 @@ jobs:
           mv "$file" "hammer.pkg"
 
           echo "File renamed successfully."
+          echo "Contents of pkg directory:"
+          ls -la
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -259,7 +298,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/dmg/hammer.dmg,/Users/runner/work/hammer-editor/hammer-editor/desktop/build/installers/main-release/pkg/hammer.pkg"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/dmg/hammer.dmg,${{ github.workspace }}/desktop/build/installers/main-release/pkg/hammer.pkg"
 
   server:
     runs-on: ubuntu-latest
@@ -314,7 +353,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/server/build/distributions/*.*"
+          artifacts: "${{ github.workspace }}/server/build/distributions/*.*"
 
   android:
     runs-on: ubuntu-latest
@@ -339,7 +378,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Restore key
-        working-directory: /home/runner/work/hammer-editor/hammer-editor/
+        working-directory: ${{ github.workspace }}
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
           echo ${{ secrets.RELEASE_STORE_PASSWORD_BASE64 }} | base64 -d > passphrase
@@ -347,12 +386,29 @@ jobs:
 
       - name: Build APK
         env:
-          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
+          RELEASE_STORE_FILE: ${{ github.workspace }}/release.keystore
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           ./gradlew :android:assembleRelease
+
+      - name: Rename APK Artifact
+        run: |
+          cd $GITHUB_WORKSPACE/android/build/outputs/apk/release/
+          # find the file matching the pattern and store its name in a variable
+          file=$(find . -type f -name '*.apk' -print -quit)
+
+          # if no file was found, exit with an error message
+          if [ -z "$file" ]; then
+            echo "Error: no APK file found."
+            exit 1
+          fi
+
+          # rename the file to "hammer.apk"
+          mv "$file" "hammer.apk"
+
+          echo "File renamed successfully."
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -363,11 +419,85 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "/home/runner/work/hammer-editor/hammer-editor/android/build/outputs/apk/release/*.apk"
+          artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk"
+
+  snap:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
+      - name: Build Snap
+        uses: snapcore/action-build@v1
+        id: build-snap
+
+      - name: Rename Snap Artifact
+        run: |
+          mv "${{ steps.build-snap.outputs.snap }}" hammer.snap
+          echo "File renamed successfully."
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: true
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          artifacts: hammer.snap
+
+  flatpak:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install Flatpak SDK and runtime
+        run: |
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08
+          flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.freedesktop.Sdk.Extension.openjdk21//24.08
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --user --install-deps-from=flathub --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
+          flatpak-builder --user --repo=repo --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
+          flatpak build-bundle repo hammer.flatpak com.darkrockstudios.hammer
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: true
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          artifacts: "${{ github.workspace }}/hammer.flatpak"
 
   set-release-body:
     runs-on: ubuntu-latest
-    needs: [ windows, linux, macos, android, server ]
+    needs: [ windows, linux, macos, android, server, snap, flatpak ]
     if: success()
 
     steps:

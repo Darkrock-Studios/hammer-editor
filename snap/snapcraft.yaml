@@ -1,6 +1,6 @@
 name: hammer-editor
 base: core22
-version: '1.12.1'
+version: '1.12.2'
 summary: A simple tool for building stories
 description: |
     Hammer is a multi-platform story editor application. It's designed for
@@ -32,14 +32,18 @@ parts:
     hammer:
         plugin: gradle
         source: .
-        gradle-options: [ ':desktop:createDistributable', '-x', 'test' ]
-        gradle-output-dir: desktop/build/compose/binaries/main/app/hammer
+        gradle-task: ':desktop:createDistributable'
+        gradle-parameters: [ '-x', 'test' ]
         build-packages:
             - openjdk-21-jdk
         stage-packages:
             - openjdk-21-jre
         override-build: |
             craftctl default
+            # Copy the gradle output to the install directory
+            # Note: outputBaseDir is set to 'installers' in build.gradle.kts
+            mkdir -p $CRAFT_PART_INSTALL/lib
+            cp -r desktop/build/installers/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
             # Create the bin directory and launcher script
             mkdir -p $CRAFT_PART_INSTALL/bin
             cat > $CRAFT_PART_INSTALL/bin/hammer << 'EOF'
@@ -49,8 +53,6 @@ parts:
             exec $SNAP/lib/hammer/bin/hammer "$@"
             EOF
             chmod +x $CRAFT_PART_INSTALL/bin/hammer
-        organize:
-            desktop/build/compose/binaries/main/app/hammer: lib/hammer
 
     desktop-entry:
         plugin: dump
