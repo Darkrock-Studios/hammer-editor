@@ -1,6 +1,6 @@
 app-id: com.darkrockstudios.hammer
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 sdk-extensions:
     - org.freedesktop.Sdk.Extension.openjdk21
@@ -9,7 +9,7 @@ command: hammer
 
 finish-args:
     # Display access
-    - --socket=fallback-x11
+    - --socket=x11
     - --socket=wayland
     - --share=ipc
     - --device=dri
@@ -28,6 +28,8 @@ modules:
     -   name: hammer
         buildsystem: simple
         build-options:
+            build-args:
+                - --share=network
             env:
                 JAVA_HOME: /usr/lib/sdk/openjdk21/jvm/openjdk-21
                 PATH: /usr/lib/sdk/openjdk21/jvm/openjdk-21/bin:/app/bin:/usr/bin
@@ -35,9 +37,9 @@ modules:
             # Build the distributable
             - chmod +x gradlew
             - ./gradlew :desktop:createDistributable -x test --no-daemon
-            # Install the app
+            # Install the app (outputBaseDir is set to 'installers' in build.gradle.kts)
             - mkdir -p /app/lib/hammer
-            - cp -r desktop/build/compose/binaries/main/app/hammer/* /app/lib/hammer/
+            - cp -r desktop/build/installers/main/app/hammer/* /app/lib/hammer/
             # Create launcher script
             - mkdir -p /app/bin
             - |
