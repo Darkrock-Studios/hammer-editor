@@ -98,8 +98,43 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-flatpak:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      RELEASE_BUILD: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install Flatpak SDK and runtime
+        run: |
+          flatpak install --user -y flathub org.freedesktop.Platform//23.08
+          flatpak install --user -y flathub org.freedesktop.Sdk//23.08
+          flatpak install --user -y flathub org.freedesktop.Sdk.Extension.openjdk21//23.08
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --user --install-deps-from=flathub --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
+          flatpak-builder --user --repo=repo --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
+          flatpak build-bundle repo hammer-editor.flatpak com.darkrockstudios.hammer
+
+      - name: Upload Flatpak to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: hammer-editor.flatpak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   notify:
-    needs: [ publish-google-play, publish-snap ]
+    needs: [ publish-google-play, publish-snap, publish-flatpak ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification

@@ -1,0 +1,57 @@
+app-id: com.darkrockstudios.hammer
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+    - org.freedesktop.Sdk.Extension.openjdk21
+
+command: hammer
+
+finish-args:
+    # Display access
+    - --socket=fallback-x11
+    - --socket=wayland
+    - --share=ipc
+    - --device=dri
+    # File access
+    - --filesystem=home
+    - --filesystem=xdg-documents
+    # Network for sync
+    - --share=network
+
+modules:
+    -   name: openjdk
+        buildsystem: simple
+        build-commands:
+            - /usr/lib/sdk/openjdk21/install.sh
+
+    -   name: hammer
+        buildsystem: simple
+        build-options:
+            env:
+                JAVA_HOME: /usr/lib/sdk/openjdk21/jvm/openjdk-21
+                PATH: /usr/lib/sdk/openjdk21/jvm/openjdk-21/bin:/app/bin:/usr/bin
+        build-commands:
+            # Build the distributable
+            - chmod +x gradlew
+            - ./gradlew :desktop:createDistributable -x test --no-daemon
+            # Install the app
+            - mkdir -p /app/lib/hammer
+            - cp -r desktop/build/compose/binaries/main/app/hammer/* /app/lib/hammer/
+            # Create launcher script
+            - mkdir -p /app/bin
+            - |
+                cat > /app/bin/hammer << 'EOF'
+                #!/bin/bash
+                export JAVA_HOME=/app/jre
+                export PATH=$JAVA_HOME/bin:$PATH
+                exec /app/lib/hammer/bin/hammer "$@"
+                EOF
+            - chmod +x /app/bin/hammer
+            # Install desktop file and icon
+            - install -Dm644 flatpak/com.darkrockstudios.hammer.desktop /app/share/applications/com.darkrockstudios.hammer.desktop
+            - install -Dm644 desktop/icons/linux.png /app/share/icons/hicolor/256x256/apps/com.darkrockstudios.hammer.png
+            - install -Dm644 flatpak/com.darkrockstudios.hammer.metainfo.xml /app/share/metainfo/com.darkrockstudios.hammer.metainfo.xml
+        sources:
+            -   type: dir
+                path: ..
