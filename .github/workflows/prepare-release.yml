@@ -101,13 +101,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Download and setup JBR
-        run: |
-          # Download JetBrains Runtime 21
-          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          tar -xzf jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3/bin" >> $GITHUB_PATH
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'adopt'
+          java-version: 21
 
       - name: Gradle caching
         uses: actions/cache@v5
@@ -380,10 +378,10 @@ jobs:
       - name: Download and setup JBR
         run: |
           # Download JetBrains Runtime 21
-          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          tar -xzf jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3/bin" >> $GITHUB_PATH
+          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
 
       - name: Grant Permission to Execute
         run: chmod +x gradlew
@@ -419,10 +417,10 @@ jobs:
       - name: Download and setup JBR
         run: |
           # Download JetBrains Runtime 21
-          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          tar -xzf jbr_jcef-21.0.5-linux-x64-b631.3.tar.gz
-          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.5-linux-x64-b631.3/bin" >> $GITHUB_PATH
+          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
 
       - name: Install Flatpak and flatpak-builder
         run: |
