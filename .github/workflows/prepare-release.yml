@@ -101,10 +101,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up JDK
+      - name: Set up JBR
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
+          distribution: 'jetbrains'
           java-version: 21
 
       - name: Gradle caching
