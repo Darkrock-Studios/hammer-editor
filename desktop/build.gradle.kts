@@ -1,3 +1,4 @@
+import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 val data_version: String by extra
@@ -115,3 +116,5 @@ aboutLibraries {
 		excludeFields.addAll("generated")
 	}
 }
+
+registerLinuxDistributionTasks(libs.versions.app.get())

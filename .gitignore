@@ -62,3 +62,14 @@ fastlane/README.md
 /CLAUDE.md
 /.output.txt
 .claude/skills
+
+# Snap/Flatpak/AppImage build artifacts
+/flatpak-build/
+/flatpak-repo/
+*.snap
+*.flatpak
+/parts/
+/prime/
+/stage/
+/Hammer.AppDir/
+/appimagetool-x86_64.AppImage

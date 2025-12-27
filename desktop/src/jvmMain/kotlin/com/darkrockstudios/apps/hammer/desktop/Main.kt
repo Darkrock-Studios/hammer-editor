@@ -71,8 +71,6 @@ private fun setupLogging(appScope: CoroutineScope) {
 fun main(args: Array<String>) {
 	handleArguments(args)
 
-	linuxScalingFix()
-
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
 

@@ -157,62 +157,8 @@ jobs:
 
           echo "File renamed successfully."
 
-      - name: Create release app directory for AppImage
-        run: ./gradlew :desktop:createReleaseDistributable
-
-      - name: Create Linux ".appimage" distribution
-        run: |
-          # The gradle createReleaseDistributable task creates an app directory
-          # We use appimagetool to package it into an actual AppImage
-
-          # Debug: Show what gradle created
-          echo "=== Contents of app directory ==="
-          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/
-          echo "=== Contents of app/hammer directory ==="
-          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/hammer/ || echo "No hammer subdirectory"
-
-          # Download appimagetool
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-
-          # Create AppDir structure from the gradle-built app
-          APP_DIR="$GITHUB_WORKSPACE/Hammer.AppDir"
-          mkdir -p "$APP_DIR/usr/share/applications"
-          mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
-
-          # Copy the application (the app directory contains bin/, lib/, etc.)
-          cp -r $GITHUB_WORKSPACE/desktop/build/installers/main-release/app/hammer/* "$APP_DIR/usr/"
-
-          # Create desktop file
-          cat > "$APP_DIR/usr/share/applications/hammer.desktop" << 'EOF'
-          [Desktop Entry]
-          Name=Hammer
-          Comment=A simple tool for building stories
-          Exec=hammer
-          Icon=hammer
-          Type=Application
-          Categories=Office;TextEditor;
-          EOF
-          # Remove leading spaces from desktop file
-          sed -i 's/^[[:space:]]*//' "$APP_DIR/usr/share/applications/hammer.desktop"
-
-          # Copy icon
-          cp $GITHUB_WORKSPACE/desktop/icons/linux.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/hammer.png"
-
-          # Create symlinks at AppDir root (required by AppImage)
-          ln -sf usr/share/applications/hammer.desktop "$APP_DIR/hammer.desktop"
-          ln -sf usr/share/icons/hicolor/256x256/apps/hammer.png "$APP_DIR/hammer.png"
-          ln -sf usr/bin/hammer "$APP_DIR/AppRun"
-
-          echo "=== AppDir structure ==="
-          find "$APP_DIR" -type f | head -20
-
-          # Create the AppImage
-          mkdir -p $GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APP_DIR" "$GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage/hammer.AppImage"
-
-          echo "AppImage created successfully"
-          ls -la $GITHUB_WORKSPACE/desktop/build/installers/main-release/appimage/
+      - name: Build Linux ".appimage" distribution
+        run: ./gradlew buildDistAppImage
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -429,11 +375,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
+      - name: Download and setup JBR
+        run: |
+          # Download JetBrains Runtime 21
+          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
 
       - name: Grant Permission to Execute
         run: chmod +x gradlew
@@ -466,6 +414,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Download and setup JBR
+        run: |
+          # Download JetBrains Runtime 21
+          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
+
       - name: Install Flatpak and flatpak-builder
         run: |
           sudo apt-get update
@@ -478,11 +434,11 @@ jobs:
           flatpak install --user -y flathub org.freedesktop.Sdk//24.08
           flatpak install --user -y flathub org.freedesktop.Sdk.Extension.openjdk21//24.08
 
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
       - name: Build Flatpak
-        run: |
-          flatpak-builder --user --install-deps-from=flathub --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
-          flatpak-builder --user --repo=repo --force-clean build-dir flatpak/com.darkrockstudios.hammer.yaml
-          flatpak build-bundle repo hammer.flatpak com.darkrockstudios.hammer
+        run: ./gradlew buildDistFlatpak
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -493,7 +449,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/hammer.flatpak"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main/flatpak/hammer.flatpak"
 
   set-release-body:
     runs-on: ubuntu-latest
