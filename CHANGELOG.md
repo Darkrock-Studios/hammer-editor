@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.12.3] - 2025-12-26
+
+- Added story sharing on the web: publish stories publicly with author pages or share privately
+- Redesigned server web UI with user management admin page
+- Improved sync error handling for projects with missing IDs
+- Fixed many bugs with the Rich Text Editor
+- UI improvements: better dialogs, encyclopedia performance, edge-to-edge Android
+- Hotfix for syncing issue
+- New distributions!
+
+
 ## [1.12.2] - 2025-12-26
 
 - Added story sharing on the web: publish stories publicly with author pages or share privately
