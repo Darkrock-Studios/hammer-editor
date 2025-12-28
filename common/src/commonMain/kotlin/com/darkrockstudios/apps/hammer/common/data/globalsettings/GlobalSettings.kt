@@ -22,6 +22,7 @@ data class GlobalSettings(
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
+	val enableDndInFocusMode: Boolean = false,
 	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(
 		locale = Locale.forLanguage(
 			language = "en",

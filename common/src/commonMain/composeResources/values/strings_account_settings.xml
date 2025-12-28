@@ -53,6 +53,11 @@
 	</string>
 	<string name="settings_platform_settings_title">Platform Settings</string>
 	<string name="settings_keep_screen_on">Keep screen on</string>
+	<string name="settings_enable_dnd_focus_mode_title">Enable Do Not Disturb when in Focus Mode</string>
+	<string name="settings_dnd_permission_button">Grant DND Permission</string>
+	<string
+		name="settings_dnd_permission_explanation">Hammer needs permission to enable Do Not Disturb mode when you are in Focus Mode.
+	</string>
 
 	<string name="settings_spellcheck_heading">Spell Checking</string>
 	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.

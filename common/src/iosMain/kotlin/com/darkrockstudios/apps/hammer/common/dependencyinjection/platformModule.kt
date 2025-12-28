@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.IosSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeService
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -17,4 +18,5 @@ actual val platformModule = module {
 	singleOf(::LanguageUtil)
 	factory { params -> IosSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class
 	singleOf(::PlatformSpellCheckerFactory)
+	factory { FocusModeService() } bind FocusModeService::class
 }
