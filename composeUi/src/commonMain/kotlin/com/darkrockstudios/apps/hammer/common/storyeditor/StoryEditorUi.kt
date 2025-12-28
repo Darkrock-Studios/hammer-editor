@@ -58,7 +58,7 @@ fun StoryEditorUi(
 				LIST_PANE_WIDTH
 			}
 
-		val listModifier = if (isMultiPane && fullScreen.child?.configuration is StoryEditor.FullScreenConfig.None) {
+		val listModifier = if (isMultiPane && fullScreen.active.configuration is StoryEditor.FullScreenConfig.None) {
 			Modifier.requiredWidthIn(0.dp, dividerX).fillMaxHeight()
 				.rightBorder(1.dp, MaterialTheme.colorScheme.outline)
 		} else {
@@ -115,13 +115,22 @@ private fun DialogUi(component: StoryEditor) {
 private fun FullscreenUi(component: StoryEditor) {
 	val state by component.fullscreenState.subscribeAsState()
 
-	when (val dest = state.child?.instance) {
-		is StoryEditor.ChildDestination.FullScreen.FocusModeDestination -> {
-			FocusModeUi(dest.component)
-		}
+	Children(
+		stack = state,
+		modifier = Modifier.fillMaxSize(),
+		animation = predictiveBackAnimation(
+			backHandler = component.backHandler,
+			fallbackAnimation = stackAnimation { _ -> fade() },
+			onBack = component::exitFocusMode,
+		),
+	) {
+		when (val child = it.instance) {
+			is StoryEditor.ChildDestination.FullScreen.FocusModeDestination -> {
+				FocusModeUi(child.component)
+			}
 
-		is StoryEditor.ChildDestination.FullScreen.None -> {}
-		null -> {}
+			is StoryEditor.ChildDestination.FullScreen.None -> {}
+		}
 	}
 }
 

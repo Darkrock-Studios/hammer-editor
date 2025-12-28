@@ -5,7 +5,7 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
-import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -85,12 +85,12 @@ class StoryEditorComponent(
 		}
 	}
 
-	private val fullscreenNavigation = SlotNavigation<StoryEditor.FullScreenConfig>()
-	private val fullscreenRouter = componentContext.childSlot(
+	private val fullscreenNavigation = StackNavigation<StoryEditor.FullScreenConfig>()
+	private val fullscreenRouter = childStack(
 		source = fullscreenNavigation,
 		key = "fullscreenRouter",
-		initialConfiguration = { StoryEditor.FullScreenConfig.None },
-		handleBackButton = false,
+		initialConfiguration = StoryEditor.FullScreenConfig.None,
+		handleBackButton = true,
 		serializer = StoryEditor.FullScreenConfig.serializer(),
 	) { config, componentContext ->
 		createFullScreenChild(config, componentContext)
@@ -114,7 +114,7 @@ class StoryEditorComponent(
 	override val listRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.List>> = listRouter.state
 	override val detailsRouterState: Value<ChildStack<*, StoryEditor.ChildDestination.Detail>> = detailsRouter.state
 	override val dialogState: Value<ChildSlot<*, StoryEditor.ChildDestination.DialogDestination>> = dialogRouter
-	override val fullscreenState: Value<ChildSlot<*, StoryEditor.ChildDestination.FullScreen>> = fullscreenRouter
+	override val fullscreenState: Value<ChildStack<*, StoryEditor.ChildDestination.FullScreen>> = fullscreenRouter
 
 	override fun isDetailShown(): Boolean {
 		return detailsRouterState.value.active.instance !is StoryEditor.ChildDestination.Detail.None
@@ -138,13 +138,13 @@ class StoryEditorComponent(
 	override fun enterFocusMode(sceneItem: SceneItem) {
 		listRouter.moveToBackStack()
 		detailsRouter.closeScene()
-		fullscreenNavigation.activate(StoryEditor.FullScreenConfig.FocusMode(sceneItem))
+		fullscreenNavigation.pushNew(StoryEditor.FullScreenConfig.FocusMode(sceneItem))
 	}
 
 	override fun exitFocusMode() {
-		val config = fullscreenRouter.value.child?.configuration as? StoryEditor.FullScreenConfig.FocusMode
+		val config = fullscreenRouter.value.active.configuration as? StoryEditor.FullScreenConfig.FocusMode
 		if (config != null) {
-			fullscreenNavigation.activate(StoryEditor.FullScreenConfig.None)
+			fullscreenNavigation.pop()
 			onSceneSelected(config.sceneItem)
 		} else {
 			error("Should not have been able to exitFocusMode() without being in FocusMode")
@@ -173,8 +173,8 @@ class StoryEditorComponent(
 	override fun setMultiPane(isMultiPane: Boolean) {
 		_state.getAndUpdate { it.copy(isMultiPane = isMultiPane) }
 
-		val fullScreenConfig = fullscreenState.value.child?.configuration
-		val inFullScreen = (fullScreenConfig != null) && (fullScreenConfig is StoryEditor.FullScreenConfig.FocusMode)
+		val fullScreenConfig = fullscreenState.value.active.configuration
+		val inFullScreen = fullScreenConfig is StoryEditor.FullScreenConfig.FocusMode
 
 		// Do nothing if we are showing a fullscreen component
 		if (inFullScreen.not()) {
