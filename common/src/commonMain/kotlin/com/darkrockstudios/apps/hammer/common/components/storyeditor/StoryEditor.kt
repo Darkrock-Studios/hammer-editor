@@ -23,7 +23,7 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 	val listRouterState: Value<ChildStack<*, ChildDestination.List>>
 	val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 	val dialogState: Value<ChildSlot<*, ChildDestination.DialogDestination>>
-	val fullscreenState: Value<ChildSlot<*, ChildDestination.FullScreen>>
+	val fullscreenState: Value<ChildStack<*, ChildDestination.FullScreen>>
 
 	data class State(
 		val projectDef: ProjectDef,
