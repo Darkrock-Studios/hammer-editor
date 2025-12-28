@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
@@ -85,6 +86,7 @@ fun FocusModeUi(component: FocusMode) {
 		) {
 			SpellCheckingTextEditor(
 				state = textEditorState,
+				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 					.fillMaxHeight()
