@@ -1,15 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
-import korlibs.io.file.PathInfo
-import korlibs.io.file.combine
-import korlibs.io.file.std.applicationDataVfs
-import korlibs.io.file.std.openAsZip
-import korlibs.io.file.std.resourcesVfs
 import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.Path.Companion.toPath
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -24,25 +22,28 @@ private class ExampleProjectRepositoryiOs(
 ) : ExampleProjectRepository(globalSettingsRepository) {
 
 	override fun removeExampleProject() {
-		val projectPath = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
+		val projectPath = projectsDir() / PROJECT_NAME
 		fileSystem.deleteRecursively(projectPath)
 	}
 
+	@OptIn(ExperimentalResourceApi::class)
 	override fun platformInstall() {
-		// TODO eventually replace with a more targeted solution. Currently this uses Korge Core
-		// which is a huge library. Hopefully Okio will implement multiplatform zip handling and
-		// we can just use that
-		runBlocking {
-			val projDir = PathInfo(globalSettingsRepository.globalSettings.projectsDirectory).combine(
-				PathInfo(PROJECT_NAME)
-			)
+		val projectPath = projectsDir() / PROJECT_NAME
+		if (!fileSystem.exists(projectPath)) {
+			Napier.i("Creating example project")
 
-			Napier.d("Installing Example to: ${projDir.fullPath}")
-
-			val source = resourcesVfs[EXAMPLE_PROJECT_FILE_NAME].openAsZip()
-			val destination = applicationDataVfs[projDir.fullPath]
-
-			source.copyToRecursively(destination)
+			runBlocking {
+				val zipBytes = Res.readBytes("raw/$EXAMPLE_PROJECT_FILE_NAME")
+				unzipBytesToDirectory(
+					fileSystem = fileSystem,
+					zipBytes = zipBytes,
+					destinationDirectory = projectsDir()
+				)
+			}
+		} else {
+			Napier.i("Skipping example project creation")
 		}
 	}
+
+	private fun projectsDir() = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
 }

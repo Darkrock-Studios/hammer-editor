@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,20 +57,21 @@ fun FocusModeUi(component: FocusMode) {
 	Column(modifier = Modifier.fillMaxSize()) {
 		Row(
 			modifier = Modifier
-				.padding(
-					start = Ui.Padding.L,
-					end = Ui.Padding.L,
-				)
 				.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 		) {
-			Text(
-				state.sceneItem.name,
-				style = MaterialTheme.typography.headlineLarge,
-				color = MaterialTheme.colorScheme.onBackground,
+			EditorToolBar(
+				markdownState = markdownExtension,
+				decreaseTextSize = component::decreaseTextSize,
+				increaseTextSize = component::increaseTextSize,
+				resetTextSize = component::resetTextSize,
+				modifier = Modifier.weight(1f),
 			)
 
-			IconButton(onClick = component::dismiss) {
+			IconButton(
+				onClick = component::dismiss,
+				modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+			) {
 				Icon(
 					imageVector = Icons.Default.Close,
 					contentDescription = Res.string.scene_editor_menu_item_close.get(),
@@ -76,24 +80,17 @@ fun FocusModeUi(component: FocusMode) {
 			}
 		}
 
-		EditorToolBar(
-			markdownState = markdownExtension,
-			decreaseTextSize = component::decreaseTextSize,
-			increaseTextSize = component::increaseTextSize,
-			resetTextSize = component::resetTextSize,
-		)
-
 		Row(
 			modifier = Modifier.fillMaxSize(),
 			horizontalArrangement = Arrangement.Center
 		) {
 			SpellCheckingTextEditor(
 				state = textEditorState,
+				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 					.fillMaxHeight()
-					.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH)
-					.padding(horizontal = Ui.Padding.XL),
+					.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
 			)
 		}
 	}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="android_focus_mode_rule_name">Hammer Focus Mode</string>
+	<string name="android_focus_mode_condition_active">Writing Focus Active</string>
+	<string name="android_focus_mode_condition_inactive">Focus Inactive</string>
+</resources>

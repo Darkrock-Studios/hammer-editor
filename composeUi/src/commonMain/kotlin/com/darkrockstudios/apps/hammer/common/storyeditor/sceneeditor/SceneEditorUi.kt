@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownCon
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
+import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -38,7 +39,8 @@ fun SceneEditorUi(
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = state.spellChecker.toEditorSpellChecker(),
 		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
-		enableSpellChecking = state.spellCheckingEnabled
+		enableSpellChecking = state.spellCheckingEnabled,
+		spellCheckMode = SpellCheckMode.Word,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 

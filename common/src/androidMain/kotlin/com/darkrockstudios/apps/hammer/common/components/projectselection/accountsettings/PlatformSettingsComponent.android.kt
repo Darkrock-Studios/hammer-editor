@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import android.app.Activity
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Environment
 import android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.net.toUri
 import com.arkivanov.decompose.ComponentContext
@@ -65,11 +68,16 @@ class AndroidPlatformSettingsComponent(
 			val internalStorage =
 				settings.getBoolean(AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE, true)
 			val externalStorageAccess = isExternalStorageGranted()
+			val dndSelected = globalSettingsRepository.globalSettings.enableDndInFocusMode
+			val dndGranted = isNotificationPolicyGranted()
+
 			_state.getAndUpdate {
 				it.copy(
 					keepScreenOn = screenOn,
 					dataStorageInternal = internalStorage,
 					fileAccessGranted = externalStorageAccess,
+					enableDndInFocusMode = dndSelected,
+					dndPermissionGranted = dndGranted,
 				)
 			}
 		}
@@ -92,9 +100,11 @@ class AndroidPlatformSettingsComponent(
 		scope.launch {
 			if (_state != null) {
 				val externalStorageAccess = isExternalStorageGranted()
+				val dndGranted = isNotificationPolicyGranted()
 				_state.getAndUpdate {
 					it.copy(
-						fileAccessGranted = externalStorageAccess
+						fileAccessGranted = externalStorageAccess,
+						dndPermissionGranted = dndGranted,
 					)
 				}
 			}
@@ -108,6 +118,17 @@ class AndroidPlatformSettingsComponent(
 			it.copy(
 				keepScreenOn = keepOn
 			)
+		}
+	}
+
+	fun updateEnableDndInFocusMode(enabled: Boolean) {
+		scope.launch {
+			globalSettingsRepository.updateSettings {
+				it.copy(enableDndInFocusMode = enabled)
+			}
+			_state.getAndUpdate {
+				it.copy(enableDndInFocusMode = enabled)
+			}
 		}
 	}
 
@@ -216,11 +237,23 @@ class AndroidPlatformSettingsComponent(
 		}
 	}
 
+	fun isNotificationPolicyGranted(): Boolean {
+		val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+		return nm.isNotificationPolicyAccessGranted
+	}
+
+	fun launchNotificationPolicyPermissionScreen(activity: Activity) {
+		val intent = Intent(ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+		activity.startActivity(intent)
+	}
+
 	@Serializable
 	data class PlatformState(
 		val keepScreenOn: Boolean = false,
 		val dataStorageInternal: Boolean = true,
 		val fileAccessGranted: Boolean = false,
+		val enableDndInFocusMode: Boolean = false,
+		val dndPermissionGranted: Boolean = false,
 		val projectsDir: HPath,
 	)
 }

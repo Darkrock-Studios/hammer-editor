@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	initCopyUrl();
 	initShareDialog();
 	initPublishWarning();
+	initSceneSelector();
 });
 
 /**
@@ -166,10 +167,10 @@ function showPublishWarning() {
 
 	if (!container || !publishSection) return;
 
-	const projectUuid = publishSection.dataset.projectUuid;
+	const projectNameForUrl = publishSection.dataset.projectNameForUrl;
 
 	// Fetch the dialog template via HTMX
-	htmx.ajax('GET', '/story/' + projectUuid + '/publish-warning', {
+	htmx.ajax('GET', '/story/' + projectNameForUrl + '/publish-warning', {
 		target: '#publish-warning-container',
 		swap: 'innerHTML'
 	});
@@ -204,16 +205,31 @@ function confirmPublish() {
 	const publishSection = document.getElementById('publish-section');
 	if (!publishSection) return;
 
-	const projectUuid = publishSection.dataset.projectUuid;
+	const projectNameForUrl = publishSection.dataset.projectNameForUrl;
 
 	// Close the warning dialog
 	closePublishWarning();
 
 	// Wait for dialog animation to complete, then trigger the publish
 	setTimeout(function () {
-		htmx.ajax('POST', '/story/' + projectUuid + '/publish', {
+		htmx.ajax('POST', '/story/' + projectNameForUrl + '/publish', {
 			target: '#publish-section',
 			swap: 'outerHTML'
 		});
 	}, 220);
+}
+
+/**
+ * Initialize scene selector functionality
+ * Scrolls content to top when a new scene is loaded
+ */
+function initSceneSelector() {
+	const contentArea = document.getElementById('story-content-area');
+	if (!contentArea) return;
+
+	// Listen for HTMX swap events on the content area
+	contentArea.addEventListener('htmx:afterSwap', function () {
+		// Smooth scroll to the top of the content area
+		contentArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+	});
 }

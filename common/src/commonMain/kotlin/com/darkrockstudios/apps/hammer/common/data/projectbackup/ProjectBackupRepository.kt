@@ -7,23 +7,23 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.format
+import com.darkrockstudios.apps.hammer.common.util.zip.unzipToDirectory
+import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.datetime.*
 import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-abstract class ProjectBackupRepository(
+open class ProjectBackupRepository(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
+	protected val globalSettingsRepository: GlobalSettingsRepository,
 	protected val clock: Clock
 ) : KoinComponent {
-
-	protected val globalSettingsRepository: GlobalSettingsRepository by inject()
 
 	fun getBackupsDirectory(): HPath {
 		val dir = (projectsRepository.getProjectsDirectory().toOkioPath() / BACKUP_DIRECTORY)
@@ -84,6 +84,21 @@ abstract class ProjectBackupRepository(
 		return "$backupName-$dateStr.zip"
 	}
 
+	fun deleteBackup(backup: ProjectBackupDef) {
+		try {
+			val path = backup.path.toOkioPath()
+			if (fileSystem.exists(path)) {
+				fileSystem.delete(path)
+				Napier.i("Deleted backup: ${backup.path.name}")
+			} else {
+				Napier.w("Backup file not found: ${backup.path.name}")
+			}
+		} catch (e: Exception) {
+			Napier.e("Failed to delete backup: ${backup.path.name}", e)
+			throw e
+		}
+	}
+
 	fun cullBackups(project: ProjectDef) {
 		val settings = globalSettingsRepository.globalSettings
 
@@ -134,9 +149,46 @@ abstract class ProjectBackupRepository(
 		}
 	}
 
-	abstract fun supportsBackup(): Boolean
+	open fun supportsBackup(): Boolean = true
 
-	abstract suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef?
+	open suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? {
+		val projectDir = projectsRepository.getProjectDirectory(projectDef.name).toOkioPath()
+		val newBackupDef = createNewProjectBackupDef(projectDef)
+
+		return try {
+			zipDirectory(
+				fileSystem = fileSystem,
+				sourceDirectory = projectDir,
+				destinationZip = newBackupDef.path.toOkioPath(),
+				skipHiddenFiles = false
+			)
+
+			cullBackups(projectDef)
+
+			newBackupDef
+		} catch (e: Exception) {
+			Napier.e("Failed to make backup for project: ${projectDef.name}", e)
+			null
+		}
+	}
+
+	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean {
+		return try {
+			val targetOkioPath = targetDir.toOkioPath()
+			fileSystem.deleteRecursively(targetOkioPath)
+			fileSystem.createDirectories(targetOkioPath)
+
+			unzipToDirectory(
+				fileSystem = fileSystem,
+				zipPath = backupDef.path.toOkioPath(),
+				destinationDirectory = targetOkioPath
+			)
+			true
+		} catch (e: Exception) {
+			Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
+			false
+		}
+	}
 
 	private fun localDateTime(dateTimeStr: String): LocalDateTime {
 		val match = DATE_PATTERN.matchEntire(dateTimeStr) ?: throw IllegalArgumentException("Failed to parse date time")
@@ -166,7 +218,7 @@ abstract class ProjectBackupRepository(
 
 private fun Instant.toBackupDate(): String {
 	val dateTime = toLocalDateTime(TimeZone.UTC)
-	val dateStr = dateTime.format("YYYY-MM-dd'T'hhmmss'Z'")
+	val dateStr = dateTime.format("yyyy-MM-dd'T'HHmmss'Z'")
 
 	return dateStr
 }

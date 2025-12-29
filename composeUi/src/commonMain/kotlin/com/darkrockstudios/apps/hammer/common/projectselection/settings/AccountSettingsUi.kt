@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
@@ -124,36 +123,19 @@ internal fun AccountSettingsUi(
 					SpacerXL()
 
 					SettingsSectionGroup {
+						BackupsSettingsUi(component, scope)
+					}
+
+					SpacerXL()
+
+					SettingsSectionGroup {
 						PlatformSettingsUi(component.platformSettings)
 					}
 
 					SpacerXL()
 
 					SettingsSectionGroup {
-						Column {
-							Text(
-								Res.string.settings_example_project_header.get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onBackground,
-							)
-							Text(
-								Res.string.settings_example_project_description.get(),
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onBackground,
-								fontStyle = FontStyle.Italic
-							)
-
-							Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-							val successMessage = Res.string.settings_example_project_success_message.get()
-							OutlinedButton(onClick = {
-								component.reinstallExampleProject {
-									rootSnackbar.showSnackbar(successMessage)
-								}
-							}) {
-								Text(Res.string.settings_example_project_button.get())
-							}
-						}
+						ExampleProjectUi(component, rootSnackbar)
 					}
 
 					SpacerXL()
@@ -172,13 +154,44 @@ internal fun AccountSettingsUi(
 }
 
 @Composable
+private fun ExampleProjectUi(
+	component: AccountSettings,
+	rootSnackbar: RootSnackbarHostState
+) {
+	Column {
+		Text(
+			Res.string.settings_example_project_header.get(),
+			style = MaterialTheme.typography.headlineSmall,
+			color = MaterialTheme.colorScheme.onBackground,
+		)
+		Text(
+			Res.string.settings_example_project_description.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onBackground,
+			fontStyle = FontStyle.Italic
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+		val successMessage = Res.string.settings_example_project_success_message.get()
+		OutlinedButton(onClick = {
+			component.reinstallExampleProject {
+				rootSnackbar.showSnackbar(successMessage)
+			}
+		}) {
+			Text(Res.string.settings_example_project_button.get())
+		}
+	}
+}
+
+@Composable
 private fun SettingsSectionGroup(
 	modifier: Modifier = Modifier,
 	content: @Composable ColumnScope.() -> Unit
 ) {
 	Surface(
 		modifier = modifier.fillMaxWidth(),
-		shape = RoundedCornerShape(16.dp),
+		shape = RoundedCornerShape(Ui.Padding.XL),
 		color = MaterialTheme.colorScheme.surfaceContainerLow,
 	) {
 		Column(

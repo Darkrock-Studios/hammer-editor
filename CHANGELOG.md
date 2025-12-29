@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.13.0] - 2025-12-29
+
+- The backup system is now implemented on all Clients, not just Desktop
+- Added Backup Managment UI to delete or restore from backups
+- Improved the Project page for authors on the web
+- Minor Text Editor improvements in the Scene Editor
+- Focus Mode Improvements:
+  + Better use of screen space on small screens
+  + Android clients now enable Do Not Disturb when in focus mode
+
+
 ## [1.12.4] - 2025-12-27
 
 - Added story sharing on the web: publish stories publicly with author pages or share privately

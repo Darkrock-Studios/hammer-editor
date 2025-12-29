@@ -92,6 +92,7 @@ kotlin {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
 				implementation(libs.platform.spellcheckerkt)
+				implementation(libs.kompress.core)
 			}
 		}
 		val commonTest by getting {
@@ -102,7 +103,14 @@ kotlin {
 				implementation(libs.kotlin.reflect)
 			}
 		}
+		val jvmMain by creating {
+			dependsOn(commonMain)
+		}
+		val jvmTest by creating {
+			dependsOn(commonTest)
+		}
 		val androidMain by getting {
+			dependsOn(jvmMain)
 			dependencies {
 				api(libs.androidx.core.ktx)
 				api(libs.coroutines.android)
@@ -117,13 +125,11 @@ kotlin {
 				api(libs.decompose)
 				api(libs.bundles.essenty)
 				api(libs.ktor.client.darwin)
-				// TODO Remove this when there is a better way to read zip files on iOS
-				// this library is quite big
-				implementation(libs.korge.core)
 			}
 		}
 		val iosTest by getting
 		val desktopMain by getting {
+			dependsOn(jvmMain)
 			dependencies {
 				implementation(libs.slf4j.simple)
 				api(libs.serialization.jvm)
@@ -134,6 +140,7 @@ kotlin {
 			}
 		}
 		val desktopTest by getting {
+			dependsOn(jvmTest)
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)

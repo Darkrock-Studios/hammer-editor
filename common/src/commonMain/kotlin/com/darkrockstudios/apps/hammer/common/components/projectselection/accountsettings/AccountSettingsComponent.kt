@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.Res
@@ -25,6 +26,7 @@ import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
@@ -41,6 +43,18 @@ class AccountSettingsComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val accountUseCase: AccountUseCase by inject()
 	private val projectsRepository: ProjectsRepository by inject()
+
+	private val backupManagerNavigation = SlotNavigation<BackupManagerConfig>()
+
+	override val backupManagerSlot: Value<ChildSlot<BackupManagerConfig, BackupManager>> =
+		componentContext.childSlot(
+			source = backupManagerNavigation,
+			serializer = BackupManagerConfig.serializer(),
+			key = "BackupManagerSlot",
+			childFactory = { _, childContext ->
+				BackupManagerComponent(childContext)
+			}
+		)
 
 	private var serverSetupJob: Job? = null
 
@@ -226,6 +240,14 @@ class AccountSettingsComponent(
 		_state.getAndUpdate { it.copy(serverPassword = password) }
 	}
 
+	override fun showBackupManager() {
+		backupManagerNavigation.activate(BackupManagerConfig)
+	}
+
+	override fun dismissBackupManager() {
+		backupManagerNavigation.dismiss()
+	}
+
 	override fun setupServer(
 		ssl: Boolean,
 		url: String,
@@ -317,3 +339,6 @@ class AccountSettingsComponent(
 		}
 	}
 }
+
+@Serializable
+data object BackupManagerConfig

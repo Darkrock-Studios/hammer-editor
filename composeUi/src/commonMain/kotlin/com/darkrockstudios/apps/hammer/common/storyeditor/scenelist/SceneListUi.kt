@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -202,7 +205,6 @@ private fun DeleteSceneDialog(
 	}
 }
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
 private fun RenameSceneDialog(
 	scene: SceneItem,
@@ -211,24 +213,13 @@ private fun RenameSceneDialog(
 	mainDispatcher: CoroutineContext,
 	onDismiss: () -> Unit
 ) {
-	val strRes = rememberStrRes()
-	var errorMessage by remember { mutableStateOf<String?>(null) }
-	SceneRenameDialog(scene, errorMessage) { newName ->
+	SceneRenameDialog(scene) { newName ->
 		scope.launch {
 			if (newName != null) {
-				if (component.renameScene(scene, newName)) {
-					withContext(mainDispatcher) {
-						errorMessage = null
-						onDismiss()
-					}
-				} else {
-					errorMessage = strRes.get(Res.string.scene_rename_failed_error_invalid_name)
-				}
-			} else {
-				withContext(mainDispatcher) {
-					errorMessage = null
-					onDismiss()
-				}
+				component.renameScene(scene, newName)
+			}
+			withContext(mainDispatcher) {
+				onDismiss()
 			}
 		}
 	}

@@ -5,9 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
-import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.story.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
@@ -25,17 +23,46 @@ fun Route.storyPage(
 	accountsRepository: AccountsRepository
 ) {
 	authenticatedOnly {
-		route("/story/{projectUuid}") {
+		route("/story/{projectName}") {
 			get {
 				val session = call.sessions.requireUser()
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 
-				if (projectUuidStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@get
 				}
 
-				val projectId = ProjectId(projectUuidStr)
+				val projectName = ProjectName.decodeFromUrl(projectNameParam)
+				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@get
+				}
+
+				val projectId = ProjectId(project.uuid)
+				val projectNameForUrl = ProjectName.formatForUrl(project.name)
+
+				// Get scene hierarchy first to determine what to show
+				val hierarchyResult = storyExportService.getSceneHierarchy(session.userId, projectId)
+				val sceneHierarchyItems = when (hierarchyResult) {
+					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					else -> emptyList()
+				}
+
+				// If there are scenes, load the first one; otherwise load the full story (which will be empty)
+				val firstSceneId = sceneHierarchyItems.firstOrNull()?.id
+				val (storyHtml, hasContent) = if (firstSceneId != null) {
+					when (val sceneResult =
+						storyExportService.exportSceneAsHtml(session.userId, projectId, firstSceneId)) {
+						is SingleSceneExportResult.Success -> sceneResult.html to sceneResult.hasContent
+						else -> "" to false
+					}
+				} else {
+					"" to false
+				}
+
+				// Get full story stats (for sidebar info)
 				val result = storyExportService.exportStoryAsHtml(
 					userId = session.userId,
 					projectId = projectId
@@ -55,17 +82,29 @@ fun Route.storyPage(
 							""
 						}
 
-						val projectSyncData = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
-						val lastSyncFormatted = projectSyncData?.let { formatSyncDate(it.lastSync) } ?: ""
+						val lastSyncFormatted = formatSyncDate(project.lastSync)
+
+						// Build scene hierarchy with selected state
+						val sceneHierarchy = sceneHierarchyItems.map { scene ->
+							mapOf(
+								"id" to scene.id,
+								"name" to scene.name,
+								"isGroup" to scene.isGroup,
+								"isScene" to scene.isScene,
+								"depth" to scene.depth,
+								"indent" to scene.getIndent(),
+								"isSelected" to (scene.id == firstSceneId)
+							)
+						}
 
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
 								"projectName" to result.projectName,
-								"projectUuid" to projectUuidStr,
-								"storyHtml" to result.html,
-								"hasContent" to result.hasContent,
+								"projectNameForUrl" to projectNameForUrl,
+								"storyHtml" to storyHtml,
+								"hasContent" to hasContent,
 								"hasPenName" to hasPenName,
 								"isPublished" to isPublished,
 								"hasAnyAccess" to hasAnyAccess,
@@ -75,7 +114,9 @@ fun Route.storyPage(
 								"totalWordCount" to result.totalWordCount,
 								"formattedWordCount" to WordCountUtils.formatWordCount(result.totalWordCount),
 								"accessEntries" to accessEntries,
-								"hasAccessEntries" to accessEntries.isNotEmpty()
+								"hasAccessEntries" to accessEntries.isNotEmpty(),
+								"sceneHierarchy" to sceneHierarchy,
+								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
 						)
 						call.respond(MustacheContent("story.mustache", model))
@@ -100,16 +141,110 @@ fun Route.storyPage(
 				}
 			}
 
+			hx.get("/scene") {
+				val session = call.sessions.requireUser()
+				val projectNameParam = call.parameters["projectName"]
+				val sceneIdStr = call.request.queryParameters["sceneId"]
+
+				if (projectNameParam.isNullOrBlank() || sceneIdStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				val projectName = ProjectName.decodeFromUrl(projectNameParam)
+				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@get
+				}
+
+				val projectId = ProjectId(project.uuid)
+
+				// Handle "all" as a special case for full story view
+				if (sceneIdStr == "all") {
+					val result = storyExportService.exportStoryAsHtml(
+						userId = session.userId,
+						projectId = projectId
+					)
+
+					when (result) {
+						is StoryExportResult.Success -> {
+							val model = call.withDefaults(
+								mapOf(
+									"storyHtml" to result.html,
+									"hasContent" to result.hasContent
+								)
+							)
+							call.respond(MustacheContent("partials/story-content.mustache", model))
+						}
+
+						is StoryExportResult.ProjectNotFound -> {
+							call.respond(HttpStatusCode.NotFound)
+						}
+
+						is StoryExportResult.Error -> {
+							call.respond(HttpStatusCode.InternalServerError, result.message)
+						}
+					}
+					return@get
+				}
+
+				// Parse scene ID
+				val sceneId = sceneIdStr.toIntOrNull()
+				if (sceneId == null) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				val result = storyExportService.exportSceneAsHtml(
+					userId = session.userId,
+					projectId = projectId,
+					sceneId = sceneId
+				)
+
+				when (result) {
+					is SingleSceneExportResult.Success -> {
+						val model = call.withDefaults(
+							mapOf(
+								"storyHtml" to result.html,
+								"hasContent" to result.hasContent
+							)
+						)
+						call.respond(MustacheContent("partials/story-content.mustache", model))
+					}
+
+					is SingleSceneExportResult.ProjectNotFound -> {
+						call.respond(HttpStatusCode.NotFound)
+					}
+
+					is SingleSceneExportResult.SceneNotFound -> {
+						call.respond(HttpStatusCode.NotFound, "Scene not found")
+					}
+
+					is SingleSceneExportResult.Error -> {
+						call.respond(HttpStatusCode.InternalServerError, result.message)
+					}
+				}
+			}
+
 			hx.post("/publish") {
 				val session = call.sessions.requireUser()
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 
-				if (projectUuidStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@post
 				}
 
-				val projectId = ProjectId(projectUuidStr)
+				val projectName = ProjectName.decodeFromUrl(projectNameParam)
+				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@post
+				}
+
+				val projectId = ProjectId(project.uuid)
+				val projectNameForUrl = ProjectName.formatForUrl(project.name)
 				val isCurrentlyPublished = projectAccessRepository.isPublished(session.userId, projectId)
 
 				val (newIsPublished, toastMessage, toastType) = if (isCurrentlyPublished) {
@@ -129,8 +264,7 @@ fun Route.storyPage(
 				// Build the public URL if any access exists
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
-					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
-					if (account.pen_name != null && project != null) {
+					if (account.pen_name != null) {
 						call.constructPublicUrl(account.pen_name, project.name)
 					} else {
 						""
@@ -142,7 +276,7 @@ fun Route.storyPage(
 				// Render the partial with updated state
 				val model = call.withDefaults(
 					mapOf(
-						"projectUuid" to projectUuidStr,
+						"projectNameForUrl" to projectNameForUrl,
 						"isPublished" to newIsPublished,
 						"hasAnyAccess" to hasAnyAccess,
 						"publicUrl" to publicUrl,
@@ -160,9 +294,9 @@ fun Route.storyPage(
 			}
 
 			hx.get("/share-dialog") {
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 
-				if (projectUuidStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@get
 				}
@@ -173,7 +307,7 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectUuid" to projectUuidStr,
+						"projectNameForUrl" to projectNameParam,
 						"minDate" to minDate
 					)
 				)
@@ -182,16 +316,16 @@ fun Route.storyPage(
 			}
 
 			hx.get("/publish-warning") {
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 
-				if (projectUuidStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@get
 				}
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectUuid" to projectUuidStr
+						"projectNameForUrl" to projectNameParam
 					)
 				)
 
@@ -200,9 +334,9 @@ fun Route.storyPage(
 
 			hx.post("/access") {
 				val session = call.sessions.requireUser()
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 
-				if (projectUuidStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@post
 				}
@@ -216,7 +350,15 @@ fun Route.storyPage(
 					return@post
 				}
 
-				val projectId = ProjectId(projectUuidStr)
+				val projectName = ProjectName.decodeFromUrl(projectNameParam)
+				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@post
+				}
+
+				val projectId = ProjectId(project.uuid)
+				val projectNameForUrl = ProjectName.formatForUrl(project.name)
 
 				// Convert date to SQLite datetime format (YYYY-MM-DD HH:MM:SS)
 				val expiresAtSqlite = expiresAt?.let { "$it 23:59:59" }
@@ -235,15 +377,14 @@ fun Route.storyPage(
 
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
-					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
-					if (account.pen_name != null && project != null) {
+					if (account.pen_name != null) {
 						call.constructPublicUrl(account.pen_name, project.name)
 					} else ""
 				} else ""
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectUuid" to projectUuidStr,
+						"projectNameForUrl" to projectNameForUrl,
 						"isPublished" to isPublished,
 						"hasAnyAccess" to hasAnyAccess,
 						"publicUrl" to publicUrl,
@@ -262,15 +403,23 @@ fun Route.storyPage(
 
 			hx.delete("/access/{accessId}") {
 				val session = call.sessions.requireUser()
-				val projectUuidStr = call.parameters["projectUuid"]
+				val projectNameParam = call.parameters["projectName"]
 				val accessIdStr = call.parameters["accessId"]
 
-				if (projectUuidStr.isNullOrBlank() || accessIdStr.isNullOrBlank()) {
+				if (projectNameParam.isNullOrBlank() || accessIdStr.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@delete
 				}
 
-				val projectId = ProjectId(projectUuidStr)
+				val projectName = ProjectName.decodeFromUrl(projectNameParam)
+				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@delete
+				}
+
+				val projectId = ProjectId(project.uuid)
+				val projectNameForUrl = ProjectName.formatForUrl(project.name)
 				val accessId = accessIdStr.toLongOrNull()
 
 				if (accessId == null) {
@@ -287,15 +436,14 @@ fun Route.storyPage(
 
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
-					val project = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
-					if (account.pen_name != null && project != null) {
+					if (account.pen_name != null) {
 						call.constructPublicUrl(account.pen_name, project.name)
 					} else ""
 				} else ""
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectUuid" to projectUuidStr,
+						"projectNameForUrl" to projectNameForUrl,
 						"isPublished" to isPublished,
 						"hasAnyAccess" to hasAnyAccess,
 						"publicUrl" to publicUrl,

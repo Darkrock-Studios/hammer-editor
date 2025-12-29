@@ -28,6 +28,7 @@ class FocusModeComponent(
 
 	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val spellCheckRepository: SpellCheckRepository by inject()
+	private val focusModeService: FocusModeService by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 
 	private var bufferUpdateSubscription: Job? = null
@@ -48,6 +49,16 @@ class FocusModeComponent(
 		loadSceneContent()
 		subscribeToBufferUpdates()
 		watchSettings()
+	}
+
+	override fun onStart() {
+		super.onResume()
+		focusModeService.enterFocusMode()
+	}
+
+	override fun onStop() {
+		super.onStop()
+		focusModeService.exitFocusMode()
 	}
 
 	private fun loadSceneContent() {

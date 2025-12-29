@@ -19,6 +19,7 @@ fun EditorToolBar(
 	decreaseTextSize: () -> Unit,
 	increaseTextSize: () -> Unit,
 	resetTextSize: () -> Unit,
+	modifier: Modifier = Modifier.fillMaxWidth(),
 ) {
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
@@ -38,7 +39,7 @@ fun EditorToolBar(
 		}
 	}
 
-	Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
+	Row(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant)) {
 		EditorAction(
 			icon = EditorIcons.IconBold,
 			active = isBoldActive,
