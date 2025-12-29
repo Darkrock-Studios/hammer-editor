@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.projectselection.BackupManagerDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -24,6 +25,7 @@ fun BackupsSettingsUi(
 	scope: CoroutineScope,
 ) {
 	val state by component.state.subscribeAsState()
+	val backupManagerSlot by component.backupManagerSlot.subscribeAsState()
 
 	Column(
 		modifier = Modifier.padding(Ui.Padding.M)
@@ -35,6 +37,15 @@ fun BackupsSettingsUi(
 		)
 		Text(
 			Res.string.settings_backups_description.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onBackground,
+			fontStyle = FontStyle.Italic
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.L))
+
+		Text(
+			Res.string.settings_backups_explainations.get(),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onBackground,
 			fontStyle = FontStyle.Italic
@@ -74,9 +85,18 @@ fun BackupsSettingsUi(
 		Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 		Button(onClick = {
-			// TODO: Launch new dialog (to be created later)
+			component.showBackupManager()
 		}) {
 			Text(Res.string.settings_backups_manage_button.get())
 		}
+	}
+
+	backupManagerSlot.child?.instance?.let { backupManager ->
+		BackupManagerDialog(
+			component = backupManager,
+			onDismissRequest = {
+				component.dismissBackupManager()
+			}
+		)
 	}
 }

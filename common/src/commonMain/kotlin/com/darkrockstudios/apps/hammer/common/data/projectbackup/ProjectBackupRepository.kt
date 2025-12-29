@@ -84,6 +84,21 @@ open class ProjectBackupRepository(
 		return "$backupName-$dateStr.zip"
 	}
 
+	fun deleteBackup(backup: ProjectBackupDef) {
+		try {
+			val path = backup.path.toOkioPath()
+			if (fileSystem.exists(path)) {
+				fileSystem.delete(path)
+				Napier.i("Deleted backup: ${backup.path.name}")
+			} else {
+				Napier.w("Backup file not found: ${backup.path.name}")
+			}
+		} catch (e: Exception) {
+			Napier.e("Failed to delete backup: ${backup.path.name}", e)
+			throw e
+		}
+	}
+
 	fun cullBackups(project: ProjectDef) {
 		val settings = globalSettingsRepository.globalSettings
 

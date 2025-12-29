@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.BackupManager
+import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.BackupManagerConfig
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
@@ -44,6 +47,9 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 
 			override fun setProjectsDir(path: String) {}
 		}
+		override val backupManagerSlot: Value<ChildSlot<BackupManagerConfig, BackupManager>> =
+			MutableValue(ChildSlot(child = null))
+
 		override fun setUiTheme(theme: UiTheme) {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
@@ -82,6 +88,10 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 				override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
 				override suspend fun setSpellCheckLanguage(language: Locale) {}
 			}
+
+		override fun showBackupManager() {}
+		override fun dismissBackupManager() {}
+
 		override val toast = MutableSharedFlow<ToastMessage>()
 		override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
 		override fun showToast(scope: CoroutineScope, message: Msg) {}
