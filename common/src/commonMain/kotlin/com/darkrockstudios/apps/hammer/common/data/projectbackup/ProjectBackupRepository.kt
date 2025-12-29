@@ -145,7 +145,7 @@ open class ProjectBackupRepository(
 				fileSystem = fileSystem,
 				sourceDirectory = projectDir,
 				destinationZip = newBackupDef.path.toOkioPath(),
-				skipHiddenFiles = true
+				skipHiddenFiles = false
 			)
 
 			cullBackups(projectDef)
@@ -159,10 +159,14 @@ open class ProjectBackupRepository(
 
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean {
 		return try {
+			val targetOkioPath = targetDir.toOkioPath()
+			fileSystem.deleteRecursively(targetOkioPath)
+			fileSystem.createDirectories(targetOkioPath)
+
 			unzipToDirectory(
 				fileSystem = fileSystem,
 				zipPath = backupDef.path.toOkioPath(),
-				destinationDirectory = targetDir.toOkioPath()
+				destinationDirectory = targetOkioPath
 			)
 			true
 		} catch (e: Exception) {
