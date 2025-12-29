@@ -12,6 +12,7 @@ interface ProjectsDatasource {
 	suspend fun getProjectsCount(userId: Long): Long
 	suspend fun getMostRecentSyncForUser(userId: Long): String?
 	suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition?
+	suspend fun findProjectByNameWithSyncDate(userId: Long, projectName: String): ProjectWithSyncDate?
 	suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition?
 	suspend fun loadSyncData(userId: Long): ProjectsSyncData
 	suspend fun createUserData(userId: Long)

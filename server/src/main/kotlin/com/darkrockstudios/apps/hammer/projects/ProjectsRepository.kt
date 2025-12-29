@@ -36,6 +36,10 @@ class ProjectsRepository(
 			.find { it.uuid == projectId.id }
 	}
 
+	suspend fun getProjectByName(userId: Long, projectName: String): ProjectWithSyncDate? {
+		return projectsDatasource.findProjectByNameWithSyncDate(userId, projectName)
+	}
+
 	suspend fun getProjectsCount(userId: Long): Long {
 		return projectsDatasource.getProjectsCount(userId)
 	}

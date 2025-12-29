@@ -6,7 +6,7 @@
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
-		<form hx-post="/story/{{projectUuid}}/access"
+		<form hx-post="/story/{{projectNameForUrl}}/access"
 			  hx-target="#publish-section"
 			  hx-swap="outerHTML"
 			  hx-on::after-request="closeShareDialog()">

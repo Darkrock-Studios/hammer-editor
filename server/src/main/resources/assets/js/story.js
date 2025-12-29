@@ -167,10 +167,10 @@ function showPublishWarning() {
 
 	if (!container || !publishSection) return;
 
-	const projectUuid = publishSection.dataset.projectUuid;
+	const projectNameForUrl = publishSection.dataset.projectNameForUrl;
 
 	// Fetch the dialog template via HTMX
-	htmx.ajax('GET', '/story/' + projectUuid + '/publish-warning', {
+	htmx.ajax('GET', '/story/' + projectNameForUrl + '/publish-warning', {
 		target: '#publish-warning-container',
 		swap: 'innerHTML'
 	});
@@ -205,14 +205,14 @@ function confirmPublish() {
 	const publishSection = document.getElementById('publish-section');
 	if (!publishSection) return;
 
-	const projectUuid = publishSection.dataset.projectUuid;
+	const projectNameForUrl = publishSection.dataset.projectNameForUrl;
 
 	// Close the warning dialog
 	closePublishWarning();
 
 	// Wait for dialog animation to complete, then trigger the publish
 	setTimeout(function () {
-		htmx.ajax('POST', '/story/' + projectUuid + '/publish', {
+		htmx.ajax('POST', '/story/' + projectNameForUrl + '/publish', {
 			target: '#publish-section',
 			swap: 'outerHTML'
 		});

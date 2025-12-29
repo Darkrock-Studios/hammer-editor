@@ -166,6 +166,7 @@ private suspend fun getProjectsModel(
 		mapOf(
 			"name" to project.name,
 			"uuid" to project.uuid,
+			"nameForUrl" to ProjectName.formatForUrl(project.name),
 			"lastSync" to formatSyncDate(project.lastSync)
 		)
 	}
