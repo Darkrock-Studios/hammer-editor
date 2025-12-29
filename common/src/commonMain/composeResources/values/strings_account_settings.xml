@@ -3,6 +3,9 @@
 	<string name="settings_heading">⚙ Settings</string>
 	<string name="settings_backups_header">Backups</string>
 	<string name="settings_backups_description">Manage your project backups</string>
+	<string
+		name="settings_backups_explainations">This backup system is meant to protect against data loss and corruption. It is NOT intended as a way to keep older revisions of your stories. Please use the Drafts system for that.
+	</string>
 	<string name="settings_backups_manage_button">Manage Backups</string>
 	<string name="settings_theme_label">UI Theme</string>
 	<string name="settings_projects_directory">Projects Directory</string>
@@ -76,4 +79,15 @@
 	<string name="settings_server_configured">Configured</string>
 	<string name="settings_server_sync_backup_preferences">Sync &amp; Backup Preferences</string>
 	<string name="settings_server_danger_zone">Danger Zone</string>
+
+	<!-- Backup Manager Dialog -->
+	<string name="backup_manager_error_load_backups">Failed to load backups: %1$s</string>
+	<string name="backup_manager_error_load_project_backups">Failed to load backups for project: %1$s</string>
+	<string name="backup_manager_error_delete_backup">Failed to delete backup: %1$s</string>
+	<string name="backup_restore_dialog_title">Restore Backup</string>
+	<string
+		name="backup_restore_dialog_message">Warning: Restoring this backup will completely replace the current contents of the project. All existing files will be deleted and replaced with the backup data. This action cannot be undone.
+	</string>
+	<string name="backup_restore_dialog_confirm">Restore</string>
+	<string name="backup_restore_dialog_cancel">Cancel</string>
 </resources>

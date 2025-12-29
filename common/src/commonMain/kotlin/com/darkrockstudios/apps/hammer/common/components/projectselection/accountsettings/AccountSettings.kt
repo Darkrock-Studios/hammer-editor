@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -10,6 +11,7 @@ import kotlinx.serialization.Serializable
 interface AccountSettings : ComponentToaster {
 	val state: Value<State>
 	val platformSettings: PlatformSettings
+	val backupManagerSlot: Value<ChildSlot<BackupManagerConfig, BackupManager>>
 
 	fun setUiTheme(theme: UiTheme)
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
@@ -38,6 +40,9 @@ interface AccountSettings : ComponentToaster {
 	fun updateServerPassword(password: String)
 
 	val spellCheckSettings: SpellCheckSettings
+
+	fun showBackupManager()
+	fun dismissBackupManager()
 
 	@Serializable
 	data class State(

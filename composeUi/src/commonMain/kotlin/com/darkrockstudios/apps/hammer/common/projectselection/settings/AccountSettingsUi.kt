@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
@@ -192,7 +191,7 @@ private fun SettingsSectionGroup(
 ) {
 	Surface(
 		modifier = modifier.fillMaxWidth(),
-		shape = RoundedCornerShape(16.dp),
+		shape = RoundedCornerShape(Ui.Padding.XL),
 		color = MaterialTheme.colorScheme.surfaceContainerLow,
 	) {
 		Column(
