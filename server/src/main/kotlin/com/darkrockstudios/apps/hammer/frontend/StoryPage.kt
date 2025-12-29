@@ -5,9 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
-import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.story.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
@@ -36,6 +34,27 @@ fun Route.storyPage(
 				}
 
 				val projectId = ProjectId(projectUuidStr)
+
+				// Get scene hierarchy first to determine what to show
+				val hierarchyResult = storyExportService.getSceneHierarchy(session.userId, projectId)
+				val sceneHierarchyItems = when (hierarchyResult) {
+					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					else -> emptyList()
+				}
+
+				// If there are scenes, load the first one; otherwise load the full story (which will be empty)
+				val firstSceneId = sceneHierarchyItems.firstOrNull()?.id
+				val (storyHtml, hasContent) = if (firstSceneId != null) {
+					when (val sceneResult =
+						storyExportService.exportSceneAsHtml(session.userId, projectId, firstSceneId)) {
+						is SingleSceneExportResult.Success -> sceneResult.html to sceneResult.hasContent
+						else -> "" to false
+					}
+				} else {
+					"" to false
+				}
+
+				// Get full story stats (for sidebar info)
 				val result = storyExportService.exportStoryAsHtml(
 					userId = session.userId,
 					projectId = projectId
@@ -58,14 +77,27 @@ fun Route.storyPage(
 						val projectSyncData = projectsRepository.getProjectWithSyncDate(session.userId, projectId)
 						val lastSyncFormatted = projectSyncData?.let { formatSyncDate(it.lastSync) } ?: ""
 
+						// Build scene hierarchy with selected state
+						val sceneHierarchy = sceneHierarchyItems.map { scene ->
+							mapOf(
+								"id" to scene.id,
+								"name" to scene.name,
+								"isGroup" to scene.isGroup,
+								"isScene" to scene.isScene,
+								"depth" to scene.depth,
+								"indent" to scene.getIndent(),
+								"isSelected" to (scene.id == firstSceneId)
+							)
+						}
+
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
 								"projectName" to result.projectName,
 								"projectUuid" to projectUuidStr,
-								"storyHtml" to result.html,
-								"hasContent" to result.hasContent,
+								"storyHtml" to storyHtml,
+								"hasContent" to hasContent,
 								"hasPenName" to hasPenName,
 								"isPublished" to isPublished,
 								"hasAnyAccess" to hasAnyAccess,
@@ -75,7 +107,9 @@ fun Route.storyPage(
 								"totalWordCount" to result.totalWordCount,
 								"formattedWordCount" to WordCountUtils.formatWordCount(result.totalWordCount),
 								"accessEntries" to accessEntries,
-								"hasAccessEntries" to accessEntries.isNotEmpty()
+								"hasAccessEntries" to accessEntries.isNotEmpty(),
+								"sceneHierarchy" to sceneHierarchy,
+								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
 						)
 						call.respond(MustacheContent("story.mustache", model))
@@ -96,6 +130,85 @@ fun Route.storyPage(
 							HttpStatusCode.InternalServerError,
 							MustacheContent("storyerror.mustache", model)
 						)
+					}
+				}
+			}
+
+			hx.get("/scene") {
+				val session = call.sessions.requireUser()
+				val projectUuidStr = call.parameters["projectUuid"]
+				val sceneIdStr = call.request.queryParameters["sceneId"]
+
+				if (projectUuidStr.isNullOrBlank() || sceneIdStr.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				val projectId = ProjectId(projectUuidStr)
+
+				// Handle "all" as a special case for full story view
+				if (sceneIdStr == "all") {
+					val result = storyExportService.exportStoryAsHtml(
+						userId = session.userId,
+						projectId = projectId
+					)
+
+					when (result) {
+						is StoryExportResult.Success -> {
+							val model = call.withDefaults(
+								mapOf(
+									"storyHtml" to result.html,
+									"hasContent" to result.hasContent
+								)
+							)
+							call.respond(MustacheContent("partials/story-content.mustache", model))
+						}
+
+						is StoryExportResult.ProjectNotFound -> {
+							call.respond(HttpStatusCode.NotFound)
+						}
+
+						is StoryExportResult.Error -> {
+							call.respond(HttpStatusCode.InternalServerError, result.message)
+						}
+					}
+					return@get
+				}
+
+				// Parse scene ID
+				val sceneId = sceneIdStr.toIntOrNull()
+				if (sceneId == null) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@get
+				}
+
+				val result = storyExportService.exportSceneAsHtml(
+					userId = session.userId,
+					projectId = projectId,
+					sceneId = sceneId
+				)
+
+				when (result) {
+					is SingleSceneExportResult.Success -> {
+						val model = call.withDefaults(
+							mapOf(
+								"storyHtml" to result.html,
+								"hasContent" to result.hasContent
+							)
+						)
+						call.respond(MustacheContent("partials/story-content.mustache", model))
+					}
+
+					is SingleSceneExportResult.ProjectNotFound -> {
+						call.respond(HttpStatusCode.NotFound)
+					}
+
+					is SingleSceneExportResult.SceneNotFound -> {
+						call.respond(HttpStatusCode.NotFound, "Scene not found")
+					}
+
+					is SingleSceneExportResult.Error -> {
+						call.respond(HttpStatusCode.InternalServerError, result.message)
 					}
 				}
 			}

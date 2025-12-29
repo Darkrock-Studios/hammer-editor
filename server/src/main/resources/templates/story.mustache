@@ -12,17 +12,46 @@
 
 		<!-- Main Layout: Story + Sidebar -->
 		<div class="story-layout">
-			<!-- Story Content -->
-			<article class="story-content">
-				{{#hasContent}}
-					{{{storyHtml}}}
-				{{/hasContent}}
-				{{^hasContent}}
-					<div class="story-empty">
-						<p>{{msg.story_no_scenes}}</p>
+			<!-- Story Content Area -->
+			<div class="story-main">
+				{{#hasScenes}}
+					<!-- Scene Selector -->
+					<div class="scene-selector">
+						<label class="scene-selector__label" for="scene-select">
+							<i class="fas fa-book-open"></i>
+							{{msg.story_scene_selector_label}}
+						</label>
+						<select class="scene-selector__dropdown form-select"
+								id="scene-select"
+								name="sceneId"
+								hx-get="/story/{{projectUuid}}/scene"
+								hx-target="#story-content-area"
+								hx-swap="innerHTML"
+								hx-indicator="#scene-loading">
+							<option value="all">{{msg.story_view_all}}</option>
+							{{#sceneHierarchy}}
+								<option value="{{id}}"
+										{{#isGroup}}class="scene-option--group"{{/isGroup}} {{#isSelected}}selected{{/isSelected}}>{{indent}}{{name}}</option>
+							{{/sceneHierarchy}}
+						</select>
+						<span class="scene-loading htmx-indicator" id="scene-loading">
+							<i class="fas fa-spinner fa-spin"></i>
+						</span>
 					</div>
-				{{/hasContent}}
-			</article>
+				{{/hasScenes}}
+
+				<!-- Story Content -->
+				<article class="story-content" id="story-content-area">
+					{{#hasContent}}
+						{{{storyHtml}}}
+					{{/hasContent}}
+					{{^hasContent}}
+						<div class="story-empty">
+							<p>{{msg.story_no_scenes}}</p>
+						</div>
+					{{/hasContent}}
+				</article>
+			</div>
 
 			<!-- Settings Sidebar -->
 			<aside class="story-sidebar">

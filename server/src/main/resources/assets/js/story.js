@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	initCopyUrl();
 	initShareDialog();
 	initPublishWarning();
+	initSceneSelector();
 });
 
 /**
@@ -216,4 +217,19 @@ function confirmPublish() {
 			swap: 'outerHTML'
 		});
 	}, 220);
+}
+
+/**
+ * Initialize scene selector functionality
+ * Scrolls content to top when a new scene is loaded
+ */
+function initSceneSelector() {
+	const contentArea = document.getElementById('story-content-area');
+	if (!contentArea) return;
+
+	// Listen for HTMX swap events on the content area
+	contentArea.addEventListener('htmx:afterSwap', function () {
+		// Smooth scroll to the top of the content area
+		contentArea.scrollIntoView({behavior: 'smooth', block: 'start'});
+	});
 }
