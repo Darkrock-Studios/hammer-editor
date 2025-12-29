@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
@@ -187,6 +188,7 @@ private fun FrameWindowScope.EditorMenuBar(
 private fun AppContent(component: ProjectRoot) {
 	val destinations = remember { ProjectRoot.DestinationTypes.entries }
 	val router by component.routerState.subscribeAsState()
+	val rootSnackbar = rememberRootSnackbarHostState()
 
 	Box {
 		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -201,8 +203,15 @@ private fun AppContent(component: ProjectRoot) {
 				}
 			}
 
-			ProjectRootUi(component)
+			ProjectRootUi(component, rootSnackbar)
 		}
+
+		SnackbarHost(
+			rootSnackbar.snackbarHostState,
+			modifier = Modifier
+				.align(Alignment.BottomCenter)
+				.padding(bottom = Ui.Padding.XL)
+		)
 
 		Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
 			ProjectRootFab(
