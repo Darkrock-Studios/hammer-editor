@@ -138,6 +138,8 @@ abstract class ProjectBackupRepository(
 
 	abstract suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef?
 
+	abstract suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean
+
 	private fun localDateTime(dateTimeStr: String): LocalDateTime {
 		val match = DATE_PATTERN.matchEntire(dateTimeStr) ?: throw IllegalArgumentException("Failed to parse date time")
 		val year = match.groupValues[1].toInt()
@@ -166,7 +168,7 @@ abstract class ProjectBackupRepository(
 
 private fun Instant.toBackupDate(): String {
 	val dateTime = toLocalDateTime(TimeZone.UTC)
-	val dateStr = dateTime.format("YYYY-MM-dd'T'hhmmss'Z'")
+	val dateStr = dateTime.format("yyyy-MM-dd'T'HHmmss'Z'")
 
 	return dateStr
 }
