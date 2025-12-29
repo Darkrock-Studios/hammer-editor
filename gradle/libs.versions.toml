@@ -86,7 +86,7 @@ korge-core = "6.0.0"
 kzip = "1.1.0"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.0.0"
+compose-texteditor = "1.1.0"
 platform-spellcheckerkt = "1.0.0"
 
 [libraries]
