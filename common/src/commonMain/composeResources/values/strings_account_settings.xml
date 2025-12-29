@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="settings_heading">⚙ Settings</string>
+	<string name="settings_backups_header">Backups</string>
+	<string name="settings_backups_description">Manage your project backups</string>
+	<string name="settings_backups_manage_button">Manage Backups</string>
 	<string name="settings_theme_label">UI Theme</string>
 	<string name="settings_projects_directory">Projects Directory</string>
 	<string name="settings_projects_directory_description">Set the directory Hammer will use to store project data in.

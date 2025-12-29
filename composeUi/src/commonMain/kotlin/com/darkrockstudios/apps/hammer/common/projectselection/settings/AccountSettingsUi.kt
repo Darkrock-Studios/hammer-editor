@@ -124,6 +124,12 @@ internal fun AccountSettingsUi(
 					SpacerXL()
 
 					SettingsSectionGroup {
+						BackupsSettingsUi(component, scope)
+					}
+
+					SpacerXL()
+
+					SettingsSectionGroup {
 						PlatformSettingsUi(component.platformSettings)
 					}
 
