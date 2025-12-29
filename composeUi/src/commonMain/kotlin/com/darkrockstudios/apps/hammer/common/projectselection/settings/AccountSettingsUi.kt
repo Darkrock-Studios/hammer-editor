@@ -136,30 +136,7 @@ internal fun AccountSettingsUi(
 					SpacerXL()
 
 					SettingsSectionGroup {
-						Column {
-							Text(
-								Res.string.settings_example_project_header.get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onBackground,
-							)
-							Text(
-								Res.string.settings_example_project_description.get(),
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onBackground,
-								fontStyle = FontStyle.Italic
-							)
-
-							Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-							val successMessage = Res.string.settings_example_project_success_message.get()
-							OutlinedButton(onClick = {
-								component.reinstallExampleProject {
-									rootSnackbar.showSnackbar(successMessage)
-								}
-							}) {
-								Text(Res.string.settings_example_project_button.get())
-							}
-						}
+						ExampleProjectUi(component, rootSnackbar)
 					}
 
 					SpacerXL()
@@ -173,6 +150,37 @@ internal fun AccountSettingsUi(
 					}
 				}
 			}
+		}
+	}
+}
+
+@Composable
+private fun ExampleProjectUi(
+	component: AccountSettings,
+	rootSnackbar: RootSnackbarHostState
+) {
+	Column {
+		Text(
+			Res.string.settings_example_project_header.get(),
+			style = MaterialTheme.typography.headlineSmall,
+			color = MaterialTheme.colorScheme.onBackground,
+		)
+		Text(
+			Res.string.settings_example_project_description.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onBackground,
+			fontStyle = FontStyle.Italic
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+		val successMessage = Res.string.settings_example_project_success_message.get()
+		OutlinedButton(onClick = {
+			component.reinstallExampleProject {
+				rootSnackbar.showSnackbar(successMessage)
+			}
+		}) {
+			Text(Res.string.settings_example_project_button.get())
 		}
 	}
 }
