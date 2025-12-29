@@ -284,6 +284,187 @@ class StoryExportService(
 		val markdown: String
 	)
 
+	/**
+	 * Get the scene hierarchy for a project, suitable for populating a dropdown.
+	 */
+	suspend fun getSceneHierarchy(
+		userId: Long,
+		projectId: ProjectId
+	): SceneHierarchyResult {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+			?: return SceneHierarchyResult.ProjectNotFound
+
+		return try {
+			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+				userId = userId,
+				projectDef = projectDef,
+				type = ApiProjectEntity.Type.SCENE
+			)
+
+			if (sceneDefs.isEmpty()) {
+				return SceneHierarchyResult.Success(
+					projectName = projectDef.name,
+					scenes = emptyList()
+				)
+			}
+
+			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
+				val result = projectEntityDatasource.loadEntity(
+					userId = userId,
+					projectDef = projectDef,
+					entityId = def.id,
+					entityType = ApiProjectEntity.Type.SCENE,
+					serializer = ApiProjectEntity.SceneEntity.serializer()
+				)
+				if (isSuccess(result)) result.data else null
+			}
+
+			val hierarchyItems = buildSceneHierarchy(scenes)
+
+			SceneHierarchyResult.Success(
+				projectName = projectDef.name,
+				scenes = hierarchyItems
+			)
+		} catch (e: Exception) {
+			SceneHierarchyResult.Error(e.message ?: "Unknown error occurred")
+		}
+	}
+
+	/**
+	 * Build a flat list of scene hierarchy items from the scene list.
+	 * Items are ordered by their position in the tree, with depth indicating nesting level.
+	 */
+	private fun buildSceneHierarchy(
+		scenes: List<ApiProjectEntity.SceneEntity>
+	): List<SceneHierarchyItem> {
+		val result = mutableListOf<SceneHierarchyItem>()
+		val scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>> = scenes.groupBy { scene ->
+			scene.path.lastOrNull() ?: ROOT_KEY
+		}
+
+		fun addScenesRecursively(parentId: Int, depth: Int) {
+			val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
+			for (scene in children) {
+				result.add(
+					SceneHierarchyItem(
+						id = scene.id,
+						name = scene.name,
+						type = scene.sceneType,
+						depth = depth,
+						order = scene.order
+					)
+				)
+				// If it's a group, recursively add its children
+				if (scene.sceneType == ApiSceneType.Group) {
+					addScenesRecursively(scene.id, depth + 1)
+				}
+			}
+		}
+
+		// Start with root-level scenes (parent = 0)
+		addScenesRecursively(0, 0)
+
+		return result
+	}
+
+	/**
+	 * Export a single scene or group as HTML.
+	 * If sceneId is a group, exports all scenes within it.
+	 */
+	suspend fun exportSceneAsHtml(
+		userId: Long,
+		projectId: ProjectId,
+		sceneId: Int
+	): SingleSceneExportResult {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+			?: return SingleSceneExportResult.ProjectNotFound
+
+		return try {
+			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+				userId = userId,
+				projectDef = projectDef,
+				type = ApiProjectEntity.Type.SCENE
+			)
+
+			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
+				val result = projectEntityDatasource.loadEntity(
+					userId = userId,
+					projectDef = projectDef,
+					entityId = def.id,
+					entityType = ApiProjectEntity.Type.SCENE,
+					serializer = ApiProjectEntity.SceneEntity.serializer()
+				)
+				if (isSuccess(result)) result.data else null
+			}
+
+			val targetScene = scenes.find { it.id == sceneId }
+				?: return SingleSceneExportResult.SceneNotFound
+
+			val scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>> = scenes.groupBy { scene ->
+				scene.path.lastOrNull() ?: ROOT_KEY
+			}
+
+			val (markdown, wordCount) = if (targetScene.sceneType == ApiSceneType.Scene) {
+				// Single scene - just its content
+				val content = if (targetScene.content.isNotBlank()) {
+					"## ${targetScene.name}\n\n${targetScene.content}\n"
+				} else {
+					"## ${targetScene.name}\n"
+				}
+				content to WordCountUtils.countWords(targetScene.content)
+			} else {
+				// Group - collect all child scenes' content
+				buildGroupMarkdown(targetScene, scenesByParent)
+			}
+
+			val html = markdownToHtml(markdown)
+
+			SingleSceneExportResult.Success(
+				projectName = projectDef.name,
+				sceneName = targetScene.name,
+				html = html,
+				hasContent = markdown.isNotBlank() && wordCount > 0,
+				wordCount = wordCount
+			)
+		} catch (e: Exception) {
+			SingleSceneExportResult.Error(e.message ?: "Unknown error occurred")
+		}
+	}
+
+	/**
+	 * Build markdown content for a group and all its children.
+	 * Returns the markdown string and total word count.
+	 */
+	private fun buildGroupMarkdown(
+		group: ApiProjectEntity.SceneEntity,
+		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
+	): Pair<String, Int> {
+		val builder = StringBuilder()
+		var totalWordCount = 0
+
+		builder.append("## ${group.name}\n\n")
+
+		fun collectGroupContent(parentId: Int) {
+			val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
+			for (child in children) {
+				if (child.sceneType == ApiSceneType.Scene) {
+					if (child.content.isNotBlank()) {
+						builder.append(child.content)
+						builder.append("\n")
+						totalWordCount += WordCountUtils.countWords(child.content)
+					}
+				} else {
+					// Recursively collect nested group content
+					collectGroupContent(child.id)
+				}
+			}
+		}
+
+		collectGroupContent(group.id)
+
+		return builder.toString() to totalWordCount
+	}
+
 	companion object {
 		private const val ROOT_KEY = -1
 		const val DEFAULT_WORDS_PER_PAGE = 2000
@@ -323,4 +504,53 @@ sealed class PaginatedExportResult {
 	data class Success(val data: PaginatedStoryExportResult) : PaginatedExportResult()
 	data object ProjectNotFound : PaginatedExportResult()
 	data class Error(val message: String) : PaginatedExportResult()
+}
+
+/**
+ * Represents a scene or group in the hierarchy for dropdown display.
+ */
+data class SceneHierarchyItem(
+	val id: Int,
+	val name: String,
+	val type: ApiSceneType,
+	val depth: Int,
+	val order: Int
+) {
+	val isGroup: Boolean get() = type == ApiSceneType.Group
+	val isScene: Boolean get() = type == ApiSceneType.Scene
+
+	/**
+	 * Returns indentation string for dropdown display (using em-dashes).
+	 */
+	fun getIndent(): String = if (depth > 0) "\u2003".repeat(depth) + "— " else ""
+}
+
+/**
+ * Result of getting the scene hierarchy for a project.
+ */
+sealed class SceneHierarchyResult {
+	data class Success(
+		val projectName: String,
+		val scenes: List<SceneHierarchyItem>
+	) : SceneHierarchyResult()
+
+	data object ProjectNotFound : SceneHierarchyResult()
+	data class Error(val message: String) : SceneHierarchyResult()
+}
+
+/**
+ * Result of exporting a single scene or group.
+ */
+sealed class SingleSceneExportResult {
+	data class Success(
+		val projectName: String,
+		val sceneName: String,
+		val html: String,
+		val hasContent: Boolean,
+		val wordCount: Int
+	) : SingleSceneExportResult()
+
+	data object ProjectNotFound : SingleSceneExportResult()
+	data object SceneNotFound : SingleSceneExportResult()
+	data class Error(val message: String) : SingleSceneExportResult()
 }
