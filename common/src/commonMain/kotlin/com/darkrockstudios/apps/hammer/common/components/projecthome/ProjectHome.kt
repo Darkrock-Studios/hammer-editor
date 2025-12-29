@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
+import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -11,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.serialization.Serializable
 
-interface ProjectHome : Router, HammerComponent, BackHandlerOwner {
+interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToaster {
 	val state: Value<State>
 	val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ContentDestination>>
 
