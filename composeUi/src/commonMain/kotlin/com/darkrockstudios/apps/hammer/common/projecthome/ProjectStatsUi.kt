@@ -22,7 +22,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
@@ -36,7 +38,6 @@ import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 
@@ -47,7 +48,6 @@ fun ProjectStatsUi(
 	modifier: Modifier,
 	component: ProjectHome,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState,
 ) {
 	val state by component.state.subscribeAsState()
 
@@ -73,7 +73,6 @@ fun ProjectStatsUi(
 							ProjectHomeMenu(
 								component = component,
 								scope = scope,
-								rootSnackbar = rootSnackbar
 							)
 						}
 					}
@@ -92,7 +91,6 @@ fun ProjectStatsUi(
 							ProjectHomeMenu(
 								component = component,
 								scope = scope,
-								rootSnackbar = rootSnackbar
 							)
 						}
 					}
@@ -158,7 +156,7 @@ fun ProjectStatsUi(
 		}
 	}
 
-	ExportDirectoryPicker(state.showExportDialog, component, scope, rootSnackbar)
+	ExportDirectoryPicker(state.showExportDialog, component, scope)
 }
 
 @Composable
@@ -388,9 +386,7 @@ private fun WordsInChaptersChart(
 private fun ProjectHomeMenu(
 	component: ProjectHome,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var expanded by remember { mutableStateOf(false) }
 
@@ -438,19 +434,8 @@ private fun ProjectHomeMenu(
 					text = { Text(Res.string.project_home_action_backup.get()) },
 					onClick = {
 						component.createBackup { backup ->
-							scope.launch {
-								val message = if (backup != null) {
-									strRes.get(
-										Res.string.project_home_action_backup_toast_success,
-										backup.path.name
-									)
-								} else {
-									strRes.get(Res.string.project_home_action_backup_toast_failure)
-								}
-								rootSnackbar.showSnackbar(message)
-							}
+							expanded = false
 						}
-						expanded = false
 					}
 				)
 			}
