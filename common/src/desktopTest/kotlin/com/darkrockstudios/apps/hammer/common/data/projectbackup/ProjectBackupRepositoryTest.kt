@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -18,13 +19,15 @@ class ProjectBackupRepositoryTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val projectsRepository = mockk<ProjectsRepository>()
+	private val globalSettingsRepository = mockk<GlobalSettingsRepository>()
 	private val clock = mockk<Clock>()
 
 	private class TestRepo(
 		fileSystem: FileSystem,
 		projectsRepository: ProjectsRepository,
+		globalSettingsRepository: GlobalSettingsRepository,
 		clock: Clock
-	) : ProjectBackupRepository(fileSystem, projectsRepository, clock) {
+	) : ProjectBackupRepository(fileSystem, projectsRepository, globalSettingsRepository, clock) {
 		override fun supportsBackup(): Boolean = true
 		override suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? = null
 		override suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean = true
@@ -40,7 +43,7 @@ class ProjectBackupRepositoryTest {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
 		val projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
-		val repo = TestRepo(fileSystem, projectsRepository, clock)
+		val repo = TestRepo(fileSystem, projectsRepository, globalSettingsRepository, clock)
 		val backupDef = repo.testCreateNewProjectBackupDef(projectDef)
 
 		val filename = backupDef.path.name
@@ -60,7 +63,7 @@ class ProjectBackupRepositoryTest {
 		every { projectsRepository.getProjectDirectory("Test Project") } returns "/projects/Test Project".toPath()
 			.toHPath()
 
-		val repo = TestRepo(fileSystem, projectsRepository, clock)
+		val repo = TestRepo(fileSystem, projectsRepository, globalSettingsRepository, clock)
 		val backups = repo.getBackups(projectDef)
 
 		assertEquals(1, backups.size)

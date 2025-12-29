@@ -19,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.createProjectBackup
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -99,7 +98,7 @@ val mainModule = module {
 
 	singleOf(::ClientAccountSynchronizer)
 
-	singleOf(::createProjectBackup) bind ProjectBackupRepository::class
+	singleOf(::ProjectBackupRepository)
 
 	singleOf(::ProjectMetadataDatasource)
 
