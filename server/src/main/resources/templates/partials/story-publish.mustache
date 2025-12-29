@@ -1,4 +1,4 @@
-<div class="settings-section" id="publish-section" data-project-uuid="{{projectUuid}}">
+<div class="settings-section" id="publish-section" data-project-name-for-url="{{projectNameForUrl}}">
 	<div class="publish-setting">
 		<div class="publish-info">
 			<h3 class="publish-title">{{msg.story_publish_title}}</h3>
@@ -11,7 +11,7 @@
 					   class="publish-toggle-checkbox"
 					   {{#isPublished}}checked{{/isPublished}}
 					   {{#isPublished}}
-					   hx-post="/story/{{projectUuid}}/publish"
+					   hx-post="/story/{{projectNameForUrl}}/publish"
 					   hx-trigger="change"
 					   hx-target="#publish-section"
 					   hx-swap="outerHTML"
@@ -53,7 +53,7 @@
 		<h3 class="publish-title">{{msg.story_private_share_title}}</h3>
 		<button type="button"
 				class="share-private-btn"
-				hx-get="/story/{{projectUuid}}/share-dialog"
+				hx-get="/story/{{projectNameForUrl}}/share-dialog"
 				hx-target="#share-dialog-container"
 				hx-swap="innerHTML">
 			<i class="fas fa-lock"></i> {{msg.story_share_private}}
