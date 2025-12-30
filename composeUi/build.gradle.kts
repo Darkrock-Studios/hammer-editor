@@ -7,6 +7,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
+	alias(libs.plugins.compose.report.generator)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
