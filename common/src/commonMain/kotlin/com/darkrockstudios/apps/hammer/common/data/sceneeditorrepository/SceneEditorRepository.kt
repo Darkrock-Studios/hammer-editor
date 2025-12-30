@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -74,6 +75,7 @@ class SceneEditorRepository(
 
 	private val dispatcherMain by injectMainDispatcher()
 	private val dispatcherDefault by injectDefaultDispatcher()
+	private val dispatcherIo by injectIoDispatcher()
 	private val editorScope = CoroutineScope(dispatcherDefault)
 
 	private val _contentFlow = MutableSharedFlow<SceneContentUpdate>(
@@ -903,6 +905,10 @@ class SceneEditorRepository(
 
 			newBuffer
 		}
+	}
+
+	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
+		loadSceneBuffer(sceneItem)
 	}
 
 	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
