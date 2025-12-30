@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -57,6 +58,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -119,6 +121,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			)
 
 		metadataDatasource = mockk(relaxed = true)
+		statisticsRepository = mockk(relaxed = true)
 
 		syncDataRepository = mockk()
 		every { syncDataRepository.isServerSynchronized() } returns false
@@ -159,6 +162,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectMetadataDatasource = metadataRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
+			statisticsRepository = statisticsRepository,
 		)
 	}
 

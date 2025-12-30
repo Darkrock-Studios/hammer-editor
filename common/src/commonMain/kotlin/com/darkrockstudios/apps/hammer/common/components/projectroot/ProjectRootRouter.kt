@@ -147,7 +147,7 @@ internal class ProjectRootRouter(
 	}
 
 	fun showHome() {
-		navigation.bringToFront(Config.HomeConfig(projectDef = projectDef))
+		navigation.popWhile { it !is Config.HomeConfig }
 	}
 
 	override fun isAtRoot(): Boolean {

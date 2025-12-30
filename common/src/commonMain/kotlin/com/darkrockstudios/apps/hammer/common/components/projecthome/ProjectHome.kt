@@ -23,6 +23,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 	fun getExportStoryFileName(): String
+	fun refreshStatistics()
 
 	fun showProjectStats()
 	fun showProjectSettings()
@@ -40,6 +41,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val showExportDialog: Boolean = false,
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
+		val isStatsDirty: Boolean = false,
 	)
 
 	sealed class ContentDestination {
