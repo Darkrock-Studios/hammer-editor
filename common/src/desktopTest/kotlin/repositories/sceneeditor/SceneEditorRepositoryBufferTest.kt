@@ -4,6 +4,7 @@ import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -42,6 +43,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var statisticsRepository: StatisticsRepository
 
 	@BeforeEach
 	override fun setup() {
@@ -51,6 +53,8 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
 		MockKAnnotations.init(this, relaxUnitFun = true)
 		setupKoin()
+
+		statisticsRepository = mockk(relaxed = true)
 
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns mockk(relaxed = true)
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
@@ -76,6 +80,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
+			statisticsRepository = statisticsRepository,
 		)
 	}
 

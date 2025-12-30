@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
@@ -43,6 +44,9 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var syncDataRepository: SyncDataRepository
 
+	@MockK
+	lateinit var statisticsRepository: StatisticsRepository
+
 	lateinit var datasource: EncyclopediaDatasource
 
 	private lateinit var fileSystem: FakeFileSystem
@@ -73,7 +77,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idRepository = idRepository,
 			datasource = datasource,
-			syncDataRepository = syncDataRepository
+			syncDataRepository = syncDataRepository,
+			statisticsRepository = statisticsRepository,
 		)
 	}
 

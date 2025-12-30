@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -44,6 +46,7 @@ class SceneEditorRepository(
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
+	private val statisticsRepository: StatisticsRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -72,6 +75,7 @@ class SceneEditorRepository(
 
 	private val dispatcherMain by injectMainDispatcher()
 	private val dispatcherDefault by injectDefaultDispatcher()
+	private val dispatcherIo by injectIoDispatcher()
 	private val editorScope = CoroutineScope(dispatcherDefault)
 
 	private val _contentFlow = MutableSharedFlow<SceneContentUpdate>(
@@ -786,6 +790,7 @@ class SceneEditorRepository(
 			Napier.i("createScene: $cleanedNamed")
 
 			reloadScenes()
+			statisticsRepository.markDirty()
 
 			newSceneItem
 		}
@@ -810,6 +815,7 @@ class SceneEditorRepository(
 				}
 
 				reloadScenes()
+				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -840,6 +846,7 @@ class SceneEditorRepository(
 				Napier.w("Group ${scene.id} deleted")
 
 				reloadScenes()
+				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -900,6 +907,10 @@ class SceneEditorRepository(
 		}
 	}
 
+	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
+		loadSceneBuffer(sceneItem)
+	}
+
 	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
 		val buffer = getSceneBuffer(sceneItem)
 		if (buffer == null) {
@@ -917,6 +928,7 @@ class SceneEditorRepository(
 			updateSceneBuffer(cleanBuffer)
 
 			clearTempScene(sceneItem)
+			statisticsRepository.markDirty()
 		}
 
 		return success

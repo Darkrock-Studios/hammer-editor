@@ -62,9 +62,13 @@ class FocusModeComponent(
 	}
 
 	private fun loadSceneContent() {
-		_state.getAndUpdate {
-			val buffer = sceneEditor.loadSceneBuffer(sceneItem)
-			it.copy(sceneBuffer = buffer)
+		scope.launch {
+			val buffer = sceneEditor.loadSceneBufferAsync(sceneItem)
+			withContext(dispatcherMain) {
+				_state.getAndUpdate {
+					it.copy(sceneBuffer = buffer, isLoading = false)
+				}
+			}
 		}
 	}
 

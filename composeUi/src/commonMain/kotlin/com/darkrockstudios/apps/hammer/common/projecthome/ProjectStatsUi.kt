@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -22,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
@@ -36,7 +40,6 @@ import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 
@@ -47,7 +50,6 @@ fun ProjectStatsUi(
 	modifier: Modifier,
 	component: ProjectHome,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState,
 ) {
 	val state by component.state.subscribeAsState()
 
@@ -73,7 +75,6 @@ fun ProjectStatsUi(
 							ProjectHomeMenu(
 								component = component,
 								scope = scope,
-								rootSnackbar = rootSnackbar
 							)
 						}
 					}
@@ -92,7 +93,6 @@ fun ProjectStatsUi(
 							ProjectHomeMenu(
 								component = component,
 								scope = scope,
-								rootSnackbar = rootSnackbar
 							)
 						}
 					}
@@ -107,11 +107,42 @@ fun ProjectStatsUi(
 				)
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				Text(
-					Res.string.project_home_stat_header.get(),
-					style = MaterialTheme.typography.headlineLarge,
-					color = MaterialTheme.colorScheme.onSurface
-				)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Text(
+						Res.string.project_home_stat_header.get(),
+						style = MaterialTheme.typography.headlineLarge,
+						color = MaterialTheme.colorScheme.onSurface
+					)
+
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						if (state.isStatsDirty) {
+							Icon(
+								Icons.Default.Warning,
+								contentDescription = stringResource(Res.string.project_home_stats_dirty_indicator),
+								tint = MaterialTheme.colorScheme.tertiary,
+								modifier = Modifier.size(20.dp)
+							)
+							Spacer(modifier = Modifier.width(4.dp))
+						}
+						IconButton(
+							onClick = { component.refreshStatistics() },
+							enabled = !state.isLoadingStats
+						) {
+							Icon(
+								Icons.Default.Refresh,
+								contentDescription = stringResource(Res.string.project_home_refresh_stats_button),
+								tint = if (state.isLoadingStats)
+									MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+								else
+									MaterialTheme.colorScheme.primary
+							)
+						}
+					}
+				}
 			}
 		}
 
@@ -158,7 +189,7 @@ fun ProjectStatsUi(
 		}
 	}
 
-	ExportDirectoryPicker(state.showExportDialog, component, scope, rootSnackbar)
+	ExportDirectoryPicker(state.showExportDialog, component, scope)
 }
 
 @Composable
@@ -388,9 +419,7 @@ private fun WordsInChaptersChart(
 private fun ProjectHomeMenu(
 	component: ProjectHome,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var expanded by remember { mutableStateOf(false) }
 
@@ -438,19 +467,8 @@ private fun ProjectHomeMenu(
 					text = { Text(Res.string.project_home_action_backup.get()) },
 					onClick = {
 						component.createBackup { backup ->
-							scope.launch {
-								val message = if (backup != null) {
-									strRes.get(
-										Res.string.project_home_action_backup_toast_success,
-										backup.path.name
-									)
-								} else {
-									strRes.get(Res.string.project_home_action_backup_toast_failure)
-								}
-								rootSnackbar.showSnackbar(message)
-							}
+							expanded = false
 						}
-						expanded = false
 					}
 				)
 			}

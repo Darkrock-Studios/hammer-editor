@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
 
 internal fun findInsertPosition(
@@ -14,12 +15,12 @@ internal fun findInsertPosition(
 	layouts: List<LazyListItemInfo>,
 	collapsedGroups: SnapshotStateMap<Int, Boolean>,
 	tree: ImmutableTree<SceneItem>,
-	selectedId: Int,
+	selectedNode: TreeValue<SceneItem>?,
 ): InsertPosition? {
+	if (selectedNode == null) return null
 	val dragY = dragOffset.y
 
-	val selectedItemIndex = tree.indexOf { it.id == selectedId }
-
+	val selectedId = selectedNode.value.id
 	var foundItemId: InsertPosition? = null
 	for (layout in layouts) {
 		val id = layout.key as Int
@@ -30,10 +31,10 @@ internal fun findInsertPosition(
 			&& dragY >= itemPos
 			&& dragY <= (itemPos + size)
 		) {
-			val leafGlobalIndex = tree.indexOf { it.id == id }
+			val leaf = tree.findBy { it.id == id } ?: continue
 			val isAncestorOf = tree.isAncestorOf(
-				needleIndex = selectedItemIndex,
-				leafIndex = leafGlobalIndex
+				needleIndex = selectedNode.index,
+				leafIndex = leaf.index
 			)
 			if (!isAncestorOf) {
 				// Decide above or below
@@ -41,7 +42,6 @@ internal fun findInsertPosition(
 				val localY = dragY - itemPos
 				val before = localY < halfHeight
 
-				val leaf = tree[leafGlobalIndex]
 				if (leaf.value.type == SceneItem.Type.Root) continue
 
 				// Leaf is a group
@@ -60,12 +60,13 @@ internal fun findInsertPosition(
 							val coords = tree.getCoordinatesFor(leaf.children[0])
 							InsertPosition(coords, true)
 						} else {
+							// Empty group - use -1 as sentinel for globalIndex
 							val coords = NodeCoordinates(
-								globalIndex = leaf.index + 1,
+								globalIndex = -1,
 								parentIndex = leaf.index,
 								childLocalIndex = 0
 							)
-							InsertPosition(coords, true)
+							InsertPosition(coords, false)
 						}
 					}
 				}

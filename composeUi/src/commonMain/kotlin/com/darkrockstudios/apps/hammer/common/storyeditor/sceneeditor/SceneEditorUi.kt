@@ -4,10 +4,12 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -69,35 +71,44 @@ fun SceneEditorUi(
 	BoxWithConstraints(modifier = modifier) {
 		val boxWithConstraintsScope = this
 
-		Column(modifier = Modifier.fillMaxHeight()) {
-			EditorTopBar(component, rootSnackbar)
-
-			EditorToolBar(
-				markdownState = markdownExtension,
-				decreaseTextSize = component::decreaseTextSize,
-				increaseTextSize = component::increaseTextSize,
-				resetTextSize = component::resetTextSize,
-			)
-
-			Row(
+		if (state.isLoading) {
+			Box(
 				modifier = Modifier.fillMaxSize(),
-				horizontalArrangement = Arrangement.Center
+				contentAlignment = Alignment.Center
 			) {
-				SpellCheckingTextEditor(
-					state = textEditorState,
-					contentPadding = PaddingValues(Ui.Padding.XL),
-					modifier = Modifier
-						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
-						.fillMaxHeight()
-						.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
+				CircularProgressIndicator()
+			}
+		} else {
+			Column(modifier = Modifier.fillMaxHeight()) {
+				EditorTopBar(component, rootSnackbar)
+
+				EditorToolBar(
+					markdownState = markdownExtension,
+					decreaseTextSize = component::decreaseTextSize,
+					increaseTextSize = component::increaseTextSize,
+					resetTextSize = component::resetTextSize,
 				)
 
-				HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
+				Row(
+					modifier = Modifier.fillMaxSize(),
+					horizontalArrangement = Arrangement.Center
+				) {
+					SpellCheckingTextEditor(
+						state = textEditorState,
+						contentPadding = PaddingValues(Ui.Padding.XL),
+						modifier = Modifier
+							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+							.fillMaxHeight()
+							.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
+					)
 
-				val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
-					boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+					HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
+
+					val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
+						boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+					}
+					SceneMetadataSidebar(component, remainingWidth)
 				}
-				SceneMetadataSidebar(component, remainingWidth)
 			}
 		}
 	}

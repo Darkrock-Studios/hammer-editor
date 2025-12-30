@@ -12,6 +12,7 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -22,6 +23,9 @@ fun ProjectHomeUi(
 ) {
 	val scope = rememberCoroutineScope()
 	val contentState by component.contentRouterState.subscribeAsState()
+
+	Toaster(component, rootSnackbar)
+
 	ChildStack(
 		stack = contentState,
 		modifier = Modifier.fillMaxSize(),
@@ -41,7 +45,6 @@ fun ProjectHomeUi(
 					modifier = modifier,
 					component = component,
 					scope = scope,
-					rootSnackbar = rootSnackbar
 				)
 			}
 
@@ -61,5 +64,4 @@ expect fun ExportDirectoryPicker(
 	show: Boolean,
 	component: ProjectHome,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState,
 )

@@ -1,14 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -21,7 +17,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
-import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
@@ -48,18 +43,12 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 @Composable
 fun ProjectRootUi(
 	component: ProjectRoot,
+	rootSnackbar: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
-	val rootSnackbar = rememberRootSnackbarHostState()
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		Box {
-			FeatureContent(modifier.fillMaxSize(), component, rootSnackbar, navWidth)
-			SnackbarHost(
-				rootSnackbar.snackbarHostState,
-				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
-			)
-		}
+		FeatureContent(modifier.fillMaxSize(), component, rootSnackbar, navWidth)
 	}
 
 	ModalContent(component) { message ->

@@ -140,9 +140,13 @@ class SceneEditorComponent(
 	}
 
 	override fun loadSceneContent() {
-		_state.getAndUpdate {
-			val buffer = sceneEditor.loadSceneBuffer(sceneDef)
-			it.copy(sceneBuffer = buffer)
+		scope.launch {
+			val buffer = sceneEditor.loadSceneBufferAsync(sceneDef)
+			withContext(dispatcherMain) {
+				_state.getAndUpdate {
+					it.copy(sceneBuffer = buffer, isLoading = false)
+				}
+			}
 		}
 	}
 

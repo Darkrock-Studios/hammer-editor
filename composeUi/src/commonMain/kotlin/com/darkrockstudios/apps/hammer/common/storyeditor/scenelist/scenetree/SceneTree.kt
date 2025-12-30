@@ -94,18 +94,10 @@ private fun shouldCollapseNode(
 	summary: SceneSummary,
 	collapsedNodes: SnapshotStateMap<Int, Boolean>
 ): Boolean {
-	return if (collapsedNodes.isEmpty()) {
-		false
-	} else {
-		val branch = summary.sceneTree.getBranch(index, true)
-		if (branch.isEmpty()) {
-			false
-		} else {
-			summary.sceneTree.getBranch(index, true)
-				.map { collapsedNodes[it.value.id] == true }
-				.reduce { acc, treeNodeCollapsed -> acc || treeNodeCollapsed }
-		}
-	}
+	if (collapsedNodes.isEmpty()) return false
+
+	val branch = summary.sceneTree.getBranch(index, true)
+	return branch.any { collapsedNodes[it.value.id] == true }
 }
 
 @Composable
@@ -139,7 +131,7 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 					layouts = layoutInfo.visibleItemsInfo,
 					collapsedGroups = collapsedNodes,
 					tree = summary.sceneTree,
-					selectedId = selectedId,
+					selectedNode = selectedNode,
 				)
 
 				if (insertAt != insertPosition) {
@@ -170,10 +162,15 @@ private fun drawInsertLine(
 ) {
 	state.apply {
 		insertAt?.let { insertPos ->
-			val node = if (summary.sceneTree.totalChildren <= insertPos.coords.globalIndex) {
-				summary.sceneTree.last()
-			} else {
-				summary.sceneTree[insertPos.coords.globalIndex]
+			val node = try {
+				if (insertPos.coords.globalIndex < 0) {
+					// Inserting into empty group - use parent node
+					summary.sceneTree[insertPos.coords.parentIndex]
+				} else {
+					summary.sceneTree[insertPos.coords.globalIndex]
+				}
+			} catch (e: IndexOutOfBoundsException) {
+				return@let
 			}
 
 			listState.layoutInfo.visibleItemsInfo.find { it.key == node.value.id }

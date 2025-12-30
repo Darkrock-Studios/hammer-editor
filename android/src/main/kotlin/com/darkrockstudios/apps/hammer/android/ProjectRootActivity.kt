@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,7 +23,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
@@ -35,7 +35,9 @@ import com.arkivanov.essenty.statekeeper.getSerializable
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -153,6 +155,7 @@ class ProjectRootActivity : AppCompatActivity() {
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
+		val rootSnackbar = rememberRootSnackbarHostState()
 
 		val imageLoader: ImageLoader = getKoin().get()
 		setSingletonImageLoaderFactory { imageLoader }
@@ -166,17 +169,17 @@ class ProjectRootActivity : AppCompatActivity() {
 		val windowSizeClass = calculateWindowSizeClass()
 		when (windowSizeClass.widthSizeClass) {
 			WindowWidthSizeClass.Compact -> {
-				CompactNavigation(component)
+				CompactNavigation(component, rootSnackbar)
 			}
 
 			WindowWidthSizeClass.Medium -> {
-				MediumNavigation(component)
+				MediumNavigation(component, rootSnackbar)
 			}
 
 			WindowWidthSizeClass.Expanded -> {
-				//ExpandedNavigation(component)
+				//ExpandedNavigation(component, rootSnackbar)
 				// TODO revisit this, I think tablets should still have the Expanded Nav
-				MediumNavigation(component)
+				MediumNavigation(component, rootSnackbar)
 			}
 		}
 
@@ -230,15 +233,17 @@ class ProjectRootViewModel : ViewModel() {
 @Composable
 private fun CompactNavigation(
 	component: ProjectRoot,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		snackbarHost = { SnackbarHost(rootSnackbar.snackbarHostState) },
 		content = { scaffoldPadding ->
-			Box(modifier = Modifier.fillMaxSize())
 			ProjectRootUi(
 				component,
+				rootSnackbar,
 				modifier = Modifier.rootElement(scaffoldPadding),
 				navWidth = 0.dp
 			)
@@ -268,11 +273,13 @@ private fun CompactNavigation(
 @Composable
 private fun MediumNavigation(
 	component: ProjectRoot,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		snackbarHost = { SnackbarHost(rootSnackbar.snackbarHostState) },
 		content = { scaffoldPadding ->
 			Row(
 				modifier = Modifier.rootElement(scaffoldPadding)
@@ -313,7 +320,7 @@ private fun MediumNavigation(
 					)
 				}
 
-				ProjectRootUi(component, navRailWidth, Modifier.padding(scaffoldPadding))
+				ProjectRootUi(component, rootSnackbar, navRailWidth, Modifier.padding(scaffoldPadding))
 			}
 		},
 		floatingActionButton = {
@@ -325,11 +332,13 @@ private fun MediumNavigation(
 @Composable
 private fun ExpandedNavigation(
 	component: ProjectRoot,
+	rootSnackbar: RootSnackbarHostState,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
 		contentWindowInsets = WindowInsets(0, 0, 0, 0),
+		snackbarHost = { SnackbarHost(rootSnackbar.snackbarHostState) },
 		content = { scaffoldPadding ->
 			val density = LocalDensity.current
 			var navRailWidth by remember { mutableStateOf<Dp>(0.dp) }
@@ -373,7 +382,7 @@ private fun ExpandedNavigation(
 					}
 				},
 				content = {
-					ProjectRootUi(component, navRailWidth, Modifier.rootElement(scaffoldPadding))
+					ProjectRootUi(component, rootSnackbar, navRailWidth, Modifier.rootElement(scaffoldPadding))
 				}
 			)
 		},

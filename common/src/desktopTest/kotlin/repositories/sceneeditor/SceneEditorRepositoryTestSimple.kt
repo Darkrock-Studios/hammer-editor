@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -44,6 +45,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
 
@@ -124,6 +126,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 		setupKoin()
 		sceneDatasource = SceneDatasource(projectDef, ffs)
+		statisticsRepository = mockk()
 	}
 
 	@AfterEach
@@ -140,6 +143,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			projectMetadataDatasource = projectMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
+			statisticsRepository = statisticsRepository,
 		)
 	}
 

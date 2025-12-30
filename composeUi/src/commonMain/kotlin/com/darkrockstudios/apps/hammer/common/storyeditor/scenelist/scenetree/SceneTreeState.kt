@@ -9,7 +9,9 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -56,6 +58,7 @@ class SceneTreeState(
 ) {
 	internal var summary by mutableStateOf(sceneSummary)
 	var selectedId by mutableStateOf(NO_SELECTION)
+	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
 	var insertAt by mutableStateOf<InsertPosition?>(null)
 
 	private var scrollJob by mutableStateOf<Job?>(null)
@@ -75,15 +78,11 @@ class SceneTreeState(
 		if (treeHash != newHash) {
 			treeHash = newHash
 
-			// Prune layouts if the id is not found in the tree
-			val nodeIt = collapsedNodes.iterator()
-			while (nodeIt.hasNext()) {
-				val (id, _) = nodeIt.next()
-				val foundNode = summary.sceneTree.findBy { it.id == id }
-				if (foundNode == null) {
-					nodeIt.remove()
-				}
-			}
+			// Build set of valid IDs once for O(1) lookups
+			val validIds = summary.sceneTree.mapTo(HashSet()) { it.value.id }
+
+			// Prune collapsed nodes for deleted items
+			collapsedNodes.keys.removeAll { it !in validIds }
 		}
 	}
 
@@ -100,26 +99,17 @@ class SceneTreeState(
 	}
 
 	fun autoScroll(up: Boolean) {
-		val previousIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
-		if (scrollJob?.isActive != true) {
-			scrollJob = if (up) {
-				if (previousIndex > 0) {
-					coroutineScope.launch {
-						listState.animateScrollToItem(previousIndex)
-					}
-				} else {
-					null
-				}
-			} else {
-				coroutineScope.launch {
-					listState.layoutInfo.apply {
-						val viewportHeight = viewportEndOffset + viewportStartOffset
-						val index = visibleItemsInfo.size + previousIndex
-						val lastInfo = visibleItemsInfo[visibleItemsInfo.size - 1]
-						val offset = lastInfo.size - viewportHeight
+		if (scrollJob?.isActive == true) return
 
-						listState.animateScrollToItem(index, offset)
-					}
+		scrollJob = coroutineScope.launch {
+			if (up) {
+				val targetIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+				listState.animateScrollToItem(targetIndex)
+			} else {
+				val visibleItems = listState.layoutInfo.visibleItemsInfo
+				if (visibleItems.isNotEmpty()) {
+					val nextIndex = listState.firstVisibleItemIndex + 1
+					listState.animateScrollToItem(nextIndex)
 				}
 			}
 		}
@@ -128,13 +118,13 @@ class SceneTreeState(
 	fun startDragging(id: Int) {
 		if (selectedId == NO_SELECTION) {
 			selectedId = id
+			selectedNode = summary.sceneTree.findBy { it.id == id }
 		}
 	}
 
 	fun stopDragging() {
 		val insertPosition = insertAt
-		val selectedIndex = summary.sceneTree.indexOf { it.id == selectedId }
-		if (selectedIndex > 0 && insertPosition != null) {
+		if (selectedId != ROOT_ID && insertPosition != null) {
 			val request = MoveRequest(
 				selectedId,
 				insertPosition
@@ -143,6 +133,7 @@ class SceneTreeState(
 		}
 
 		selectedId = NO_SELECTION
+		selectedNode = null
 		insertAt = null
 	}
 
