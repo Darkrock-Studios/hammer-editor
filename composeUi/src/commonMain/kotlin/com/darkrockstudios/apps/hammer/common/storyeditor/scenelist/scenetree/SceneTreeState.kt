@@ -9,6 +9,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -100,26 +101,17 @@ class SceneTreeState(
 	}
 
 	fun autoScroll(up: Boolean) {
-		val previousIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
-		if (scrollJob?.isActive != true) {
-			scrollJob = if (up) {
-				if (previousIndex > 0) {
-					coroutineScope.launch {
-						listState.animateScrollToItem(previousIndex)
-					}
-				} else {
-					null
-				}
-			} else {
-				coroutineScope.launch {
-					listState.layoutInfo.apply {
-						val viewportHeight = viewportEndOffset + viewportStartOffset
-						val index = visibleItemsInfo.size + previousIndex
-						val lastInfo = visibleItemsInfo[visibleItemsInfo.size - 1]
-						val offset = lastInfo.size - viewportHeight
+		if (scrollJob?.isActive == true) return
 
-						listState.animateScrollToItem(index, offset)
-					}
+		scrollJob = coroutineScope.launch {
+			if (up) {
+				val targetIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+				listState.animateScrollToItem(targetIndex)
+			} else {
+				val visibleItems = listState.layoutInfo.visibleItemsInfo
+				if (visibleItems.isNotEmpty()) {
+					val nextIndex = listState.firstVisibleItemIndex + 1
+					listState.animateScrollToItem(nextIndex)
 				}
 			}
 		}
@@ -133,8 +125,7 @@ class SceneTreeState(
 
 	fun stopDragging() {
 		val insertPosition = insertAt
-		val selectedIndex = summary.sceneTree.indexOf { it.id == selectedId }
-		if (selectedIndex > 0 && insertPosition != null) {
+		if (selectedId != ROOT_ID && insertPosition != null) {
 			val request = MoveRequest(
 				selectedId,
 				insertPosition

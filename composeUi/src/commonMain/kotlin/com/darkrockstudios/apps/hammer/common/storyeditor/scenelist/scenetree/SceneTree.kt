@@ -170,10 +170,15 @@ private fun drawInsertLine(
 ) {
 	state.apply {
 		insertAt?.let { insertPos ->
-			val node = if (summary.sceneTree.totalChildren <= insertPos.coords.globalIndex) {
-				summary.sceneTree.last()
-			} else {
-				summary.sceneTree[insertPos.coords.globalIndex]
+			val node = try {
+				if (insertPos.coords.globalIndex < 0) {
+					// Inserting into empty group - use parent node
+					summary.sceneTree[insertPos.coords.parentIndex]
+				} else {
+					summary.sceneTree[insertPos.coords.globalIndex]
+				}
+			} catch (e: IndexOutOfBoundsException) {
+				return@let
 			}
 
 			listState.layoutInfo.visibleItemsInfo.find { it.key == node.value.id }
