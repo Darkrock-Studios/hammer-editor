@@ -18,7 +18,7 @@ internal fun findInsertPosition(
 ): InsertPosition? {
 	val dragY = dragOffset.y
 
-	val selectedItemIndex = tree.indexOf { it.id == selectedId }
+	val selectedNode = tree.findBy { it.id == selectedId } ?: return null
 
 	var foundItemId: InsertPosition? = null
 	for (layout in layouts) {
@@ -30,10 +30,10 @@ internal fun findInsertPosition(
 			&& dragY >= itemPos
 			&& dragY <= (itemPos + size)
 		) {
-			val leafGlobalIndex = tree.indexOf { it.id == id }
+			val leaf = tree.findBy { it.id == id } ?: continue
 			val isAncestorOf = tree.isAncestorOf(
-				needleIndex = selectedItemIndex,
-				leafIndex = leafGlobalIndex
+				needleIndex = selectedNode.index,
+				leafIndex = leaf.index
 			)
 			if (!isAncestorOf) {
 				// Decide above or below
@@ -41,7 +41,6 @@ internal fun findInsertPosition(
 				val localY = dragY - itemPos
 				val before = localY < halfHeight
 
-				val leaf = tree[leafGlobalIndex]
 				if (leaf.value.type == SceneItem.Type.Root) continue
 
 				// Leaf is a group
@@ -60,12 +59,13 @@ internal fun findInsertPosition(
 							val coords = tree.getCoordinatesFor(leaf.children[0])
 							InsertPosition(coords, true)
 						} else {
+							// Empty group - use -1 as sentinel for globalIndex
 							val coords = NodeCoordinates(
-								globalIndex = leaf.index + 1,
+								globalIndex = -1,
 								parentIndex = leaf.index,
 								childLocalIndex = 0
 							)
-							InsertPosition(coords, true)
+							InsertPosition(coords, false)
 						}
 					}
 				}
