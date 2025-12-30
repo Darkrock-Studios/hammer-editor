@@ -90,4 +90,12 @@
 	</string>
 	<string name="backup_restore_dialog_confirm">Restore</string>
 	<string name="backup_restore_dialog_cancel">Cancel</string>
+	<string name="backup_manager_title">Manage Backups</string>
+	<string name="backup_manager_close_content_description">Close</string>
+	<string name="backup_manager_no_backups">No backups found</string>
+	<string name="backup_manager_select_project_hint">Select a project</string>
+	<string name="backup_manager_project_label">Project</string>
+	<string name="backup_manager_no_backups_for_project">No backups for this project</string>
+	<string name="backup_manager_restore_button">Restore</string>
+	<string name="backup_manager_delete_content_description">Delete backup</string>
 </resources>

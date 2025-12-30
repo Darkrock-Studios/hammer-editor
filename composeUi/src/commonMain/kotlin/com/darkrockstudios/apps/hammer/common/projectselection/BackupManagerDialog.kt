@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -57,22 +56,21 @@ fun BackupManagerDialog(
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
-						.background(MaterialTheme.colorScheme.primaryContainer)
-						.padding(Ui.Padding.XL),
+						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Text(
-						text = "Manage Backups",
+						text = Res.string.backup_manager_title.get(),
 						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onPrimaryContainer
+						color = MaterialTheme.colorScheme.onBackground
 					)
 
 					IconButton(onClick = onDismissRequest) {
 						Icon(
 							imageVector = Icons.Default.Close,
-							contentDescription = "Close",
-							tint = MaterialTheme.colorScheme.onPrimaryContainer
+							contentDescription = Res.string.backup_manager_close_content_description.get(),
+							tint = MaterialTheme.colorScheme.onBackground
 						)
 					}
 				}
@@ -83,7 +81,7 @@ fun BackupManagerDialog(
 						projects = state.availableProjects,
 						selectedProject = state.selectedProject,
 						onProjectSelected = component::selectProject,
-						modifier = Modifier.padding(Ui.Padding.XL)
+						modifier = Modifier.padding(horizontal = Ui.Padding.XL)
 					)
 				}
 
@@ -118,7 +116,7 @@ fun BackupManagerDialog(
 
 						state.availableProjects.isEmpty() -> {
 							Text(
-								text = "No backups found",
+								text = Res.string.backup_manager_no_backups.get(),
 								style = MaterialTheme.typography.bodyLarge,
 								modifier = Modifier.align(Alignment.Center)
 							)
@@ -169,10 +167,10 @@ private fun ProjectSelector(
 		modifier = modifier
 	) {
 		OutlinedTextField(
-			value = selectedProject ?: "Select a project",
+			value = selectedProject ?: Res.string.backup_manager_select_project_hint.get(),
 			onValueChange = {},
 			readOnly = true,
-			label = { Text("Project") },
+			label = { Text(Res.string.backup_manager_project_label.get()) },
 			trailingIcon = {
 				ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
 			},
@@ -210,14 +208,15 @@ private fun BackupsList(
 			contentAlignment = Alignment.Center
 		) {
 			Text(
-				text = "No backups for this project",
+				text = Res.string.backup_manager_no_backups_for_project.get(),
 				style = MaterialTheme.typography.bodyLarge
 			)
 		}
 	} else {
 		LazyColumn(
 			verticalArrangement = Arrangement.spacedBy(8.dp),
-			modifier = Modifier.fillMaxSize()
+			modifier = Modifier.fillMaxSize(),
+			contentPadding = PaddingValues(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M)
 		) {
 			items(backups) { backup ->
 				BackupItem(
@@ -270,13 +269,13 @@ private fun BackupItem(
 				horizontalArrangement = Arrangement.spacedBy(8.dp)
 			) {
 				TextButton(onClick = onRestore) {
-					Text("Restore")
+					Text(Res.string.backup_manager_restore_button.get())
 				}
 
 				IconButton(onClick = onDelete) {
 					Icon(
 						imageVector = Icons.Default.Delete,
-						contentDescription = "Delete backup",
+						contentDescription = Res.string.backup_manager_delete_content_description.get(),
 						tint = MaterialTheme.colorScheme.error
 					)
 				}
