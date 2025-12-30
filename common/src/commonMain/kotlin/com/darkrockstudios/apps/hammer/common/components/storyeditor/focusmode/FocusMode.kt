@@ -23,6 +23,7 @@ interface FocusMode {
 		val projectDef: ProjectDef,
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
+		val isLoading: Boolean = true,
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
 		val spellChecker: PlatformSpellChecker? = null,
 		val spellCheckingEnabled: Boolean = false,

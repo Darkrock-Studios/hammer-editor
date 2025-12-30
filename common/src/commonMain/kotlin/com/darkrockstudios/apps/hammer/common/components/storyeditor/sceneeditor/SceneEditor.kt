@@ -42,6 +42,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	data class State(
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
+		val isLoading: Boolean = true,
 		val isEditingName: Boolean = false,
 		val isSavingDraft: Boolean = false,
 		val confirmDelete: Boolean = false,
