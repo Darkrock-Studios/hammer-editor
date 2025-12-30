@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
 
 internal fun findInsertPosition(
@@ -14,12 +15,12 @@ internal fun findInsertPosition(
 	layouts: List<LazyListItemInfo>,
 	collapsedGroups: SnapshotStateMap<Int, Boolean>,
 	tree: ImmutableTree<SceneItem>,
-	selectedId: Int,
+	selectedNode: TreeValue<SceneItem>?,
 ): InsertPosition? {
+	if (selectedNode == null) return null
 	val dragY = dragOffset.y
 
-	val selectedNode = tree.findBy { it.id == selectedId } ?: return null
-
+	val selectedId = selectedNode.value.id
 	var foundItemId: InsertPosition? = null
 	for (layout in layouts) {
 		val id = layout.key as Int

@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ class SceneTreeState(
 ) {
 	internal var summary by mutableStateOf(sceneSummary)
 	var selectedId by mutableStateOf(NO_SELECTION)
+	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
 	var insertAt by mutableStateOf<InsertPosition?>(null)
 
 	private var scrollJob by mutableStateOf<Job?>(null)
@@ -76,15 +78,11 @@ class SceneTreeState(
 		if (treeHash != newHash) {
 			treeHash = newHash
 
-			// Prune layouts if the id is not found in the tree
-			val nodeIt = collapsedNodes.iterator()
-			while (nodeIt.hasNext()) {
-				val (id, _) = nodeIt.next()
-				val foundNode = summary.sceneTree.findBy { it.id == id }
-				if (foundNode == null) {
-					nodeIt.remove()
-				}
-			}
+			// Build set of valid IDs once for O(1) lookups
+			val validIds = summary.sceneTree.mapTo(HashSet()) { it.value.id }
+
+			// Prune collapsed nodes for deleted items
+			collapsedNodes.keys.removeAll { it !in validIds }
 		}
 	}
 
@@ -120,6 +118,7 @@ class SceneTreeState(
 	fun startDragging(id: Int) {
 		if (selectedId == NO_SELECTION) {
 			selectedId = id
+			selectedNode = summary.sceneTree.findBy { it.id == id }
 		}
 	}
 
@@ -134,6 +133,7 @@ class SceneTreeState(
 		}
 
 		selectedId = NO_SELECTION
+		selectedNode = null
 		insertAt = null
 	}
 
