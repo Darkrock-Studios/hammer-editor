@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -46,6 +47,9 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+
+	@MockK
+	private lateinit var statisticsRepository: StatisticsRepository
 
 	@BeforeEach
 	override fun setup() {
@@ -88,6 +92,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			projectMetadataDatasource = projectMetadataDatasource,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
+			statisticsRepository = statisticsRepository,
 		)
 	}
 

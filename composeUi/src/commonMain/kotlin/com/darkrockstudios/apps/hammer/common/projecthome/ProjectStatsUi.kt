@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -105,11 +107,42 @@ fun ProjectStatsUi(
 				)
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				Text(
-					Res.string.project_home_stat_header.get(),
-					style = MaterialTheme.typography.headlineLarge,
-					color = MaterialTheme.colorScheme.onSurface
-				)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
+					Text(
+						Res.string.project_home_stat_header.get(),
+						style = MaterialTheme.typography.headlineLarge,
+						color = MaterialTheme.colorScheme.onSurface
+					)
+
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						if (state.isStatsDirty) {
+							Icon(
+								Icons.Default.Warning,
+								contentDescription = stringResource(Res.string.project_home_stats_dirty_indicator),
+								tint = MaterialTheme.colorScheme.tertiary,
+								modifier = Modifier.size(20.dp)
+							)
+							Spacer(modifier = Modifier.width(4.dp))
+						}
+						IconButton(
+							onClick = { component.refreshStatistics() },
+							enabled = !state.isLoadingStats
+						) {
+							Icon(
+								Icons.Default.Refresh,
+								contentDescription = stringResource(Res.string.project_home_refresh_stats_button),
+								tint = if (state.isLoadingStats)
+									MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+								else
+									MaterialTheme.colorScheme.primary
+							)
+						}
+					}
+				}
 			}
 		}
 

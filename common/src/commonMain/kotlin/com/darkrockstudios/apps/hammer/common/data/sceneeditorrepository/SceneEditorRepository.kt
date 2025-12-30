@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -44,6 +45,7 @@ class SceneEditorRepository(
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
+	private val statisticsRepository: StatisticsRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -786,6 +788,7 @@ class SceneEditorRepository(
 			Napier.i("createScene: $cleanedNamed")
 
 			reloadScenes()
+			statisticsRepository.markDirty()
 
 			newSceneItem
 		}
@@ -810,6 +813,7 @@ class SceneEditorRepository(
 				}
 
 				reloadScenes()
+				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -840,6 +844,7 @@ class SceneEditorRepository(
 				Napier.w("Group ${scene.id} deleted")
 
 				reloadScenes()
+				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -917,6 +922,7 @@ class SceneEditorRepository(
 			updateSceneBuffer(cleanBuffer)
 
 			clearTempScene(sceneItem)
+			statisticsRepository.markDirty()
 		}
 
 		return success

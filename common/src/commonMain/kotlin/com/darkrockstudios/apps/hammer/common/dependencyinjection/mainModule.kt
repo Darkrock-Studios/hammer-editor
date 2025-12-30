@@ -21,6 +21,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -132,6 +135,10 @@ val mainModule = module {
 
 		scopedOf(::TimeLineDatasource)
 		scopedOf(::TimeLineRepository)
+
+		scopedOf(::StatisticsDatasource)
+		scopedOf(::StatisticsRepository)
+		scopedOf(::StatisticsService)
 
 		scopedOf(::SyncDataDatasource)
 
