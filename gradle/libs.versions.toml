@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "1.13.0"
+app = "1.13.1"
 data_version = "1.0"
 
 # Kotlin
@@ -44,6 +44,7 @@ coroutines = "1.10.2"
 datetime = "0.7.1"
 napier = "2.7.1"
 jetbrains_compose = "1.9.3"
+compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.4"
 
 moko_permissions = "0.20.1"
@@ -270,6 +271,7 @@ android_library = { id = "com.android.library", version.ref = "android_gradle_pl
 android_kotlin_multiplatform_library = { id = "com.android.kotlin.multiplatform.library", version.ref = "android_gradle_plugin" }
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose_report_generator = { id = "dev.shreyaspatil.compose-compiler-report-generator", version.ref = "compose_compiler_report_generator" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

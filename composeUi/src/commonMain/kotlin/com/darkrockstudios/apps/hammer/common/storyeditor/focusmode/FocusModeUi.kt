@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
@@ -46,9 +44,26 @@ fun FocusModeUi(component: FocusMode) {
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
 	}
 
-	LaunchedEffect(Unit) {
-		textEditorState.textState.editOperations.collect { operation ->
-			component.onContentChanged(ComposeRichText(markdownExtension))
+	var hasReceivedInitialBuffer by remember { mutableStateOf(false) }
+
+	LaunchedEffect(lastForceUpdate, state.sceneBuffer) {
+		state.sceneBuffer?.let { buffer ->
+			// Always update on first buffer (initial load), or when external update occurs
+			if (!hasReceivedInitialBuffer || buffer.source != UpdateSource.Editor) {
+				val newContent = getInitialEditorContent(buffer.content, markdownConfig)
+				textEditorState.textState.setText(newContent)
+				hasReceivedInitialBuffer = true
+			}
+		}
+	}
+
+	LaunchedEffect(hasReceivedInitialBuffer) {
+		// Only start collecting edit operations after the initial buffer has been loaded
+		// to prevent empty content from being sent to the buffer before it's populated
+		if (hasReceivedInitialBuffer) {
+			textEditorState.textState.editOperations.collect { operation ->
+				component.onContentChanged(ComposeRichText(markdownExtension))
+			}
 		}
 	}
 
@@ -93,6 +108,7 @@ fun FocusModeUi(component: FocusMode) {
 				SpellCheckingTextEditor(
 					state = textEditorState,
 					contentPadding = PaddingValues(Ui.Padding.XL),
+					enabled = hasReceivedInitialBuffer,
 					modifier = Modifier
 						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 						.fillMaxHeight()

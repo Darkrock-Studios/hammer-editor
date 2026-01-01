@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="scene_list_header">Scenes:</string>
+	<string name="scene_list_header">Scenes</string>
 	<string name="scene_list_create_group_button">Create Group</string>
 	<string name="scene_list_create_scene_button">Create Scene</string>
 	<string name="scene_list_create_group_dialog_title">Create Group</string>

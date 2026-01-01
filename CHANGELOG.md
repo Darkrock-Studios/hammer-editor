@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.13.1] - 2025-12-31
+
+- The backup system is now implemented on all Clients, not just Desktop
+- Added Backup Managment UI to delete or restore from backups
+- Improved the Project page for authors on the web
+- Minor Text Editor improvements in the Scene Editor
+- UI Polish: bettery dialogs, performance improvements, fix snackbars
+- Focus Mode Improvements:
+  + Better use of screen space on small screens
+  + Android clients now enable Do Not Disturb when in focus mode
+- Fix race condition in FocusMode
+
+
 ## [1.13.0] - 2025-12-30
 
 - The backup system is now implemented on all Clients, not just Desktop

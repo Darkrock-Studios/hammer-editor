@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -25,7 +24,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -60,42 +58,19 @@ fun ProjectStatsUi(
 	) {
 		item(key = "header", span = spanAll) {
 			Column {
-				val screen = LocalScreenCharacteristic.current
-				when (screen.windowWidthClass) {
-					WindowWidthSizeClass.Compact -> {
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.SpaceBetween,
-						) {
-							HeaderUi(
-								state.projectDef.name,
-								"\uD83C\uDFE1",
-							)
-							ProjectHomeMenu(
-								component = component,
-								scope = scope,
-							)
-						}
-					}
-
-					else -> {
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							verticalAlignment = Alignment.CenterVertically
-						) {
-							Text(
-								state.projectDef.name,
-								modifier = Modifier.weight(1f),
-								style = MaterialTheme.typography.displayMedium,
-								color = MaterialTheme.colorScheme.onSurface
-							)
-							ProjectHomeMenu(
-								component = component,
-								scope = scope,
-							)
-						}
-					}
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.SpaceBetween,
+				) {
+					HeaderUi(
+						state.projectDef.name,
+						"\uD83C\uDFE1",
+					)
+					ProjectHomeMenu(
+						component = component,
+						scope = scope,
+					)
 				}
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
