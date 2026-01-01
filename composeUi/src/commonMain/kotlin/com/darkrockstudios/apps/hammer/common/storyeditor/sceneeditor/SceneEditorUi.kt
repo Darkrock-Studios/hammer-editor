@@ -50,19 +50,28 @@ fun SceneEditorUi(
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
 	}
 
+	var hasReceivedInitialBuffer by remember { mutableStateOf(false) }
+
 	LaunchedEffect(lastForceUpdate, state.sceneBuffer) {
-		// Only update if the buffer exists and it's from an external source
+		// Update text when buffer becomes available or on force update
 		state.sceneBuffer?.let { buffer ->
-			if (buffer.source != UpdateSource.Editor) {
+			// Always update on first buffer (initial load), or when external update occurs
+			if (!hasReceivedInitialBuffer || buffer.source != UpdateSource.Editor) {
 				val newContent = getInitialEditorContent(buffer.content, markdownConfig)
 				textEditorState.textState.setText(newContent)
+				hasReceivedInitialBuffer = true
 			}
 		}
 	}
 
-	LaunchedEffect(Unit) {
-		textEditorState.textState.editOperations.collect { _ ->
-			component.onContentChanged(ComposeRichText(markdownExtension))
+	LaunchedEffect(hasReceivedInitialBuffer) {
+		// Only start collecting edit operations after the initial buffer has been loaded
+		// to prevent empty content from being sent to the buffer before it's populated
+		if (hasReceivedInitialBuffer) {
+			textEditorState.textState.editOperations
+				.collect { _ ->
+					component.onContentChanged(ComposeRichText(markdownExtension))
+				}
 		}
 	}
 
@@ -96,6 +105,7 @@ fun SceneEditorUi(
 					SpellCheckingTextEditor(
 						state = textEditorState,
 						contentPadding = PaddingValues(Ui.Padding.XL),
+						enabled = hasReceivedInitialBuffer,
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 							.fillMaxHeight()
