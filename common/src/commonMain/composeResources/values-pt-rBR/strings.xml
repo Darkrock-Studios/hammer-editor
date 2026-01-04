@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">Hammer</string>
-	<string name="unsaved_scenes_dialog_title">Hammer</string>
+	<string name="unsaved_scenes_dialog_title">Cenas não salvas</string>
 	<string name="unsaved_scenes_dialog_message">O que deve ser feito com as cenas não salvas?</string>
 	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
 	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
