@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_header">Informações:</string>
+	<string name="project_home_stat_header">Estatísticas:</string>
 	<string name="project_home_stat_created">Criado em: %1$s</string>
 	<string name="project_home_loading_stats">Calculando estatísticas...</string>
 	<string name="project_home_refresh_stats_button">Atualizar estatísticas</string>
-	<string name="project_home_stats_dirty_indicator">Statistics may be out of date</string>
+	<string name="project_home_stats_dirty_indicator">As estatísticas podem estar desatualizadas</string>
 	<string name="project_home_stat_num_scenes">Cenas</string>
 	<string name="project_home_stat_total_words">Total de Palavras</string>
 	<string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>
