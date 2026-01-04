@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Скасувати</string>
-	<string name="draft_compare_current_header">Злиття з струмом</string>
-	<string name="draft_compare_current_subheader">Скопіюйте частини проекту тут</string>
-	<string name="draft_compare_current_accept_button">Візьміть об"єднані</string>
-	<string name="draft_compare_current_body_placeholder">Почніть писати свою сцену тут</string>
-	<string name="draft_compare_draft_header">Проект: %1$s</string>
-	<string name="draft_compare_draft_subheader">Скопіюйте бажані деталі в поточні або прийміть усе це.</string>
-	<string name="draft_compare_draft_accept_button">Візьміть весь цей проект</string>
-	<string name="draft_compare_draft_body_placeholder">Розтягувати</string>
-	<string name="draft_compare_tab_title_draft">Розтягувати</string>
-	<string name="draft_compare_tab_title_current">Поточний</string>
-	<string name="draft_list_close_button">Близькі чернетки</string>
-	<string name="draft_list_header">%1$s чернетки:</string>
-	<string name="draft_list_empty">Не знайдено чернетків</string>
-	<string name="draft_list_item_created">Створено: %1$s</string>
-	<string name="scene_draft_invalid_name">Недійсне ім"я</string>
+	<string name="draft_compare_cancel_button">Cancel</string>
+	<string name="draft_compare_current_header">Merge with Current</string>
+	<string name="draft_compare_current_subheader">Copy parts of the draft into here</string>
+	<string name="draft_compare_current_accept_button">Take Merged</string>
+	<string name="draft_compare_current_body_placeholder">Begin writing your scene here</string>
+	<string name="draft_compare_draft_header">Draft: %1$s</string>
+	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
+	<string name="draft_compare_draft_accept_button">Take this whole draft</string>
+	<string name="draft_compare_draft_body_placeholder">Draft</string>
+	<string name="draft_compare_tab_title_draft">Draft</string>
+	<string name="draft_compare_tab_title_current">Current</string>
+	<string name="draft_list_close_button">Close Drafts</string>
+	<string name="draft_list_header">%1$s Drafts:</string>
+	<string name="draft_list_empty">No Drafts Found</string>
+	<string name="draft_list_item_created">Created: %1$s</string>
+	<string name="scene_draft_invalid_name">Invalid name</string>
 </resources>
