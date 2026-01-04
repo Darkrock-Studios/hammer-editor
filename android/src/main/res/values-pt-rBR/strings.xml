@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
-    <string name="title_activity_add_note">Add Note</string>
-    <string name="loading">Loading…</string>
+    <string name="title_activity_add_note">Adicionar Anotação</string>
+    <string name="loading">Carregando…</string>
     <string name="title_activity_configure_note_widget">Configure Widget</string>
     <string name="overflow_menu_button">More Menu</string>
     <string name="navdrawer_button">Navigation Drawer</string>
     <string name="note_widget_dialog_title">Add Note to:</string>
-    <string name="note_widget_dialog_save_button">Save</string>
-    <string name="note_widget_dialog_cancel_button">Cancel</string>
-    <string name="note_widget_dialog_projects_dropdown">Projects</string>
-    <string name="note_widget_dialog_failure_bad_project">Project not found: %1$s</string>
-    <string name="note_widget_confirm_cancel_title">Discard Note?</string>
-    <string name="note_widget_confirm_cancel_positive">Discard</string>
-    <string name="note_widget_confirm_cancel_negative">Cancel</string>
-    <string name="note_widget_button_description">Add Note</string>
+    <string name="note_widget_dialog_save_button">Salvar</string>
+    <string name="note_widget_dialog_cancel_button">Cancelar</string>
+    <string name="note_widget_dialog_projects_dropdown">Projetos</string>
+    <string name="note_widget_dialog_failure_bad_project">Projeto não encontrado: %1$s</string>
+    <string name="note_widget_confirm_cancel_title">Descartar anotação?</string>
+    <string name="note_widget_confirm_cancel_positive">Descartar</string>
+    <string name="note_widget_confirm_cancel_negative">Cancelar</string>
+    <string name="note_widget_button_description">Adicionar Anotação</string>
     <string name="note_widget_toast_no_projects">No projects</string>
     <string name="note_widget_toast_success">Note Added</string>
     <string name="action_add_note_short_label">Add Note</string>
