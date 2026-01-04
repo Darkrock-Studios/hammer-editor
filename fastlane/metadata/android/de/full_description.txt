@@ -1,23 +1,23 @@
-This app is still in development and should be considered Beta quality software.
+Diese App befindet sich noch in der Entwicklung und sollte als Beta-Software angesehen werden.
 
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Bitte trete unserem Discord bei, um Probleme zu melden! https://discord.gg/GTmgjZcupk
 
-Multi-platform
+Plattformübergreifend
 
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+Diese App ist wo immer du bist. Überall verfügbar – auf deinem Smartphone, Tablet, PC oder Laptop. Es ist nicht einfach nur eine "website-in-a-box". Es werden native Technologien des Endgerätes verwendet, um die bestmögliche Erfahrung zu bieten.
 
 Offline first
 
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+Ich war frustriert über die meisten Tools zum Schreiben von Geschichten, die ich gefunden habe, da sie Web-Technologien verwenden (aka: "webpage in a box"), die immer in Schwierigkeiten zu geraten scheinen, während sie für längere Zeit offline verwendet werden. Hammer ist von Grund für die lokale Nutzung konzipiert, ohne, dass jemals eine Internetverbindung erforderlich ist.
 
-Transparent Data
+Datenhoheit
 
-Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data.
+Deine Daten gehören dir. Es wird nicht in der Cloud oder einer undurchsichtigen Datenbank gespeichert. Deine Geschichte wird in einfachen und lesbaren Dateien gespeichert (nur Dateien und Ordnern), um die Projektstruktur zu definieren. Du kannst deinem Betriebssystem-Dateimanager öffnen und dir die Daten selbst anschauen. Falls Hammer nicht mehr verfügbar ist, kannst du trotzdem einfach mit deinen Daten ingeragieren.
 
-Intelligent Syncing between devices
+Intelligente Synchronisierung zwischen Geräten
 
-Your data can be synchronized between devices allowing you to work on your story from anywhere, and have no fear of a change on one device, overwriting a change on another device.
+Deine Daten können zwischen Geräten synchronisiert werden, sodass du von überall aus an deiner Geschichte weiterarbeiten kannst und keine Angst vor einer Änderung auf einem anderen Gerät haben musst.
 
-Optional and Self hosted Syncing
+Synchronisierung: optional oder selbstbetrieben
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+Synchronisierung ist vollständig optional, du kannst den Client installieren und auf einem Gerät verwenden, oder du kannst den Server installieren und deine Daten zwischen den Geräten synchronisieren.
