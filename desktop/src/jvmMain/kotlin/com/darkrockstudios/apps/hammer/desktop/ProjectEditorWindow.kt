@@ -160,30 +160,31 @@ private fun FrameWindowScope.EditorMenuBar(
 ) {
 	val menu by app.menu.subscribeAsState()
 
-	// Native menu bars don't properly update on state changes alone, force it here
-	val menuKey = menu.map { it.id }.sorted().joinToString()
-	key(menuKey) {
-		MenuBar {
-			Menu(Res.string.project_window_menu_file.get()) {
-				Item(Res.string.project_window_menu_item_close.get(), onClick = {
-					onRequestClose(component, app, ApplicationState.CloseType.Project)
-				})
-				Item(Res.string.project_window_menu_item_exit.get(), onClick = {
-					onRequestClose(component, app, ApplicationState.CloseType.Application)
-				})
-			}
+	MenuBar {
+		Menu(Res.string.project_window_menu_file.get()) {
+			Item(Res.string.project_window_menu_item_close.get(), onClick = {
+				onRequestClose(component, app, ApplicationState.CloseType.Project)
+			})
+			Item(Res.string.project_window_menu_item_exit.get(), onClick = {
+				onRequestClose(component, app, ApplicationState.CloseType.Application)
+			})
+		}
 
-			menu.forEach { menuDescriptor ->
-				Menu(menuDescriptor.label.get()) {
-					menuDescriptor.items.forEach { itemDescriptor ->
-						Item(
-							itemDescriptor.label.get(),
-							onClick = { itemDescriptor.action(itemDescriptor.id) },
-							shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
-						)
-					}
+		menu.forEach { menuDescriptor ->
+			Menu(menuDescriptor.label.get()) {
+				menuDescriptor.items.forEach { itemDescriptor ->
+					Item(
+						itemDescriptor.label.get(),
+						onClick = { itemDescriptor.action(itemDescriptor.id) },
+						shortcut = itemDescriptor.shortcut?.toDesktopShortcut()
+					)
 				}
 			}
+		}
+
+		LaunchedEffect(menu) {
+			window.jMenuBar.invalidate()
+			window.jMenuBar.repaint()
 		}
 	}
 }
