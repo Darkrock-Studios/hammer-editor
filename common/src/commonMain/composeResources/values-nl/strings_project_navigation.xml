@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-	<string name="project_nav_home">Huis</string>
-	<string name="project_nav_scene_editor">Verhaal</string>
-	<string name="project_nav_notes">Notities</string>
-	<string name="project_nav_encyclopedia">Encyclopedie</string>
-	<string name="project_nav_time_line">Tijdlijn</string>
-</resources>

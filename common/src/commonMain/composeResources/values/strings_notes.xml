@@ -20,4 +20,11 @@
 	<string name="notes_delete_toast_success">Note %1$s Deleted</string>
 
 	<string name="notes_view_header">Note</string>
+
+	<string name="notes_search_button">Search notes</string>
+	<string name="notes_search_placeholder">Search notes...</string>
+	<string name="notes_search_close">Close search</string>
+	<string name="notes_sort_ascending">Sort oldest first</string>
+	<string name="notes_sort_descending">Sort newest first</string>
+	<string name="notes_search_clear">Clear search</string>
 </resources>

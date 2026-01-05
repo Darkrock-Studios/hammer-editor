@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,26 +18,49 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
-fun ProjectsSyncDialog(component: ProjectsList) {
+fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
+	var confirmCancel by rememberSaveable { mutableStateOf(false) }
+	val syncCanceledText = Res.string.account_sync_toast_canceled.get()
 
 	SimpleDialog(
 		onCloseRequest = {
 			if (state.syncState.syncComplete) {
 				component.hideProjectsSync()
+			} else {
+				confirmCancel = true
 			}
 		},
 		visible = true,
 		title = Res.string.account_sync_dialog_title.get()
 	) {
 		ProjectsSyncDialogContents(component)
+
+		if (confirmCancel) {
+			SimpleConfirm(
+				title = Res.string.account_sync_confirm_cancel_title.get(),
+				message = Res.string.account_sync_confirm_cancel_message.get(),
+				onDismiss = { confirmCancel = false },
+				onConfirm = {
+					component.cancelProjectsSync()
+					scope.launch {
+						withContext(mainDispatcher) {
+							confirmCancel = false
+							component.hideProjectsSync()
+						}
+					}
+					rootSnackbar.showSnackbar(syncCanceledText)
+				},
+			)
+		}
 	}
 }
 
@@ -58,10 +82,10 @@ internal fun ProjectsSyncDialogContents(
 			)
 
 			Spacer(modifier = Modifier.weight(1f))
-			LocalScreenCharacteristic.current.needsExplicitClose
+
 			if (!state.syncState.syncComplete) {
 				Icon(
-					Icons.Default.Cancel,
+					Icons.Default.StopCircle,
 					contentDescription = Res.string.account_sync_dialog_cancel_button.get(),
 					modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelProjectsSync() },
 					tint = MaterialTheme.colorScheme.onBackground
@@ -77,7 +101,7 @@ internal fun ProjectsSyncDialogContents(
 			Spacer(modifier = Modifier.size(Ui.Padding.M))
 
 			Icon(
-				Icons.Default.List,
+				Icons.AutoMirrored.Filled.List,
 				contentDescription = null,
 				modifier = Modifier.padding(Ui.Padding.S).clickable { showLog = true },
 				tint = MaterialTheme.colorScheme.onBackground

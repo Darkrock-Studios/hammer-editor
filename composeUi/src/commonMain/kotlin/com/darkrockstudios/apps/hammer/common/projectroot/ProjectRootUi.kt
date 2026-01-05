@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -14,6 +12,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
@@ -27,16 +26,18 @@ import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationU
 import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
+import org.jetbrains.compose.resources.vectorResource
 
 private val WIDE_SCREEN_THRESHOLD = 650.dp
 
+@Composable
 fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 	return when (location) {
-		ProjectRoot.DestinationTypes.Editor -> Icons.Filled.Edit
-		ProjectRoot.DestinationTypes.Notes -> Icons.Filled.Notes
-		ProjectRoot.DestinationTypes.Encyclopedia -> Icons.Filled.Dataset
-		ProjectRoot.DestinationTypes.TimeLine -> Icons.Filled.CalendarMonth
-		ProjectRoot.DestinationTypes.Home -> Icons.Filled.Home
+		ProjectRoot.DestinationTypes.Editor -> vectorResource(Res.drawable.ic_editor)
+		ProjectRoot.DestinationTypes.Notes -> vectorResource(Res.drawable.ic_notes)
+		ProjectRoot.DestinationTypes.Encyclopedia -> vectorResource(Res.drawable.ic_encyclopedia)
+		ProjectRoot.DestinationTypes.TimeLine -> vectorResource(Res.drawable.ic_timeline)
+		ProjectRoot.DestinationTypes.Home -> vectorResource(Res.drawable.ic_home)
 	}
 }
 
@@ -95,8 +96,7 @@ fun FeatureContent(
 @Composable
 fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 	val state by component.modalRouterState.subscribeAsState()
-	val overlay = state.child?.instance
-	when (overlay) {
+	when (val overlay = state.child?.instance) {
 		null, ProjectRoot.ModalDestination.None -> {}
 		is ProjectRoot.ModalDestination.ProjectSync -> {
 			ProjectSynchronization(overlay.component, showSnackbar)

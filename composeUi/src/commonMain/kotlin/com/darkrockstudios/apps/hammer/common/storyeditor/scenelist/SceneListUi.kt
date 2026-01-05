@@ -72,9 +72,7 @@ fun SceneListUi(
 	Box {
 		Column(modifier = modifier.fillMaxSize()) {
 			Row(
-				modifier = Modifier.fillMaxWidth()
-					.wrapContentHeight()
-					.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L),
+				modifier = Modifier.fillMaxWidth().height(Ui.TOP_BAR_HEIGHT).padding(horizontal = Ui.Padding.XL),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {

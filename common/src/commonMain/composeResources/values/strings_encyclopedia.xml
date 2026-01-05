@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+	<string name="encyclopedia_header">Encyclopedia</string>
+
 	<string name="encyclopedia_search_hint">Search</string>
 	<string name="encyclopedia_search_clear_button">Clear</string>
 	<string name="encyclopedia_filter_by_category">Filter By</string>

@@ -2,7 +2,7 @@
 
 A simple tool for building stories.
 
-![badge-kotlin] ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![CircleCI](https://img.shields.io/circleci/build/github/Wavesonics/hammer-editor/develop)](https://app.circleci.com/pipelines/github/Wavesonics/hammer-editor) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a6b0ea91a9d94c36a4557e041a6611c1)](https://app.codacy.com/gh/Wavesonics/hammer-editor/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+![badge-kotlin] ![MIT License](https://img.shields.io/github/license/Wavesonics/hammer-editor) [![Build Status](https://github.com/Wavesonics/hammer-editor/actions/workflows/build.yml/badge.svg)](https://github.com/Wavesonics/hammer-editor/actions/workflows/build.yml) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a6b0ea91a9d94c36a4557e041a6611c1)](https://app.codacy.com/gh/Wavesonics/hammer-editor/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/github/wavesonics/hammer-editor/settings/badge.svg)](https://codecov.io/gh/Wavesonics/hammer-editor)
 
 ![badge-platform-android] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]

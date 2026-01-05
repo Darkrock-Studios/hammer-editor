@@ -1,0 +1,13 @@
+files:
+  - source: /common/src/commonMain/composeResources/values/strings*.xml
+    translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%
+    translate_attributes: 0
+    content_segmentation: 0
+  - source: /android/src/main/res/values/strings*.xml
+    translation: /android/src/main/res/values-%android_code%/%original_file_name%
+    translate_attributes: 0
+    content_segmentation: 0
+  - source: /fastlane/metadata/android/en-US/*.txt
+    translation: /fastlane/metadata/android/%locale%/%original_file_name%
+  - source: /server/src/main/resources/i18n/Messages_en.properties
+    translation: /server/src/main/resources/i18n/Messages_%locale%.properties

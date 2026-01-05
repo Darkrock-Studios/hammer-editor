@@ -33,14 +33,13 @@ fun CreateNoteUi(
 		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 	) {
 		Column(
-			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
+			modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)
 		) {
 			Text(
 				Res.string.notes_create_header.get(),
-				style = MaterialTheme.typography.displayMedium
+				style = MaterialTheme.typography.headlineLarge
 			)
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 			OutlinedTextField(
 				value = noteText,
@@ -49,22 +48,25 @@ fun CreateNoteUi(
 					.widthIn(max = TextEditorDefaults.MAX_WIDTH)
 					.weight(1f),
 				isError = newNoteError,
-				placeholder = {
+				label = {
 					Text(Res.string.notes_create_body_hint.get())
 				}
 			)
 
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
 			Row(
 				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)
 			) {
-				Button(onClick = { component.closeCreate() }) {
+				OutlinedButton(
+					modifier = Modifier.weight(1f),
+					onClick = { component.closeCreate() }
+				) {
 					Text(Res.string.notes_create_cancel_button.get())
 				}
 
-				Button(onClick = {
+				Button(
+					modifier = Modifier.weight(1f),
+					onClick = {
 					scope.launch {
 						val result = component.createNote(noteText)
 						newNoteError = !result.isSuccess

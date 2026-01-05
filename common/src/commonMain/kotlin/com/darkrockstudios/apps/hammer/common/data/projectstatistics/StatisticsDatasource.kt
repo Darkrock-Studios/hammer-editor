@@ -6,12 +6,13 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
+import okio.Path.Companion.toPath
 
 class StatisticsDatasource(
 	private val fileSystem: FileSystem,
@@ -55,23 +56,23 @@ class StatisticsDatasource(
 		}
 	}
 
-	private fun getCacheDirectory(): Path {
-		return projectDef.path.toOkioPath() / CACHE_DIRECTORY
+	private fun getProjectCacheDirectory(): Path {
+		return getCacheDirectory().toPath() / PROJECTS_DIRECTORY / projectDef.name
 	}
 
 	private fun getStatisticsPath(): Path {
-		return getCacheDirectory() / FILENAME
+		return getProjectCacheDirectory() / FILENAME
 	}
 
 	private fun ensureCacheDirectoryExists() {
-		val cacheDir = getCacheDirectory()
+		val cacheDir = getProjectCacheDirectory()
 		if (!fileSystem.exists(cacheDir)) {
 			fileSystem.createDirectories(cacheDir)
 		}
 	}
 
 	companion object {
-		const val CACHE_DIRECTORY = ".cache"
+		const val PROJECTS_DIRECTORY = "projects"
 		const val FILENAME = "stats.toml"
 	}
 }
