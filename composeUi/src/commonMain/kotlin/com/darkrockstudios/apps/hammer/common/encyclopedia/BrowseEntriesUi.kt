@@ -1,18 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -20,7 +20,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
-import com.darkrockstudios.apps.hammer.common.compose.ExposedDropDown
+import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -41,6 +41,7 @@ fun BrowseEntriesUi(
 	val types = remember { EntryType.entries }
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	val searchText by component.filterText.subscribeAsState()
+	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
 	val filteredEntries by remember(
 		Triple(
@@ -51,23 +52,58 @@ fun BrowseEntriesUi(
 	) { mutableStateOf(component.getFilteredEntries()) }
 
 	Column(modifier = Modifier.fillMaxSize()) {
-		Row(
-			modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.XL),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.SpaceAround,
-		) {
-			EntrySearchBar(searchText, component, selectedType)
+		AnimatedContent(
+			targetState = showSearchBar,
+			modifier = Modifier.fillMaxWidth().height(Ui.TOP_BAR_HEIGHT).padding(horizontal = Ui.Padding.XL),
+			transitionSpec = {
+				fadeIn() togetherWith fadeOut() using SizeTransform(clip = false)
+			},
+			contentAlignment = Alignment.Center,
+			label = "SearchBarAnimation"
+		) { isSearchVisible ->
+			if (isSearchVisible) {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+				) {
+					EntrySearchBar(
+						searchText = searchText,
+						component = component,
+						selectedType = selectedType,
+						types = types,
+						onTypeSelected = { item ->
+							selectedType = item
+							component.updateFilter(searchText, item)
+						},
+						modifier = Modifier.weight(1f)
+					)
 
-			ExposedDropDown(
-				getText = { it.toStringResource().get() },
-				label = Res.string.encyclopedia_filter_by_category.get(),
-				modifier = Modifier.width(128.dp).moveFocusOnTab(),
-				items = types,
-				noneOption = Res.string.encyclopedia_category_all.get(),
-				selectedItem = state.filterType
-			) { item ->
-				selectedType = item
-				component.updateFilter(searchText, selectedType)
+					Icon(
+						imageVector = Icons.Default.Close,
+						contentDescription = Res.string.notes_search_close.get(),
+						tint = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier
+							.size(24.dp)
+							.clickable { showSearchBar = false }
+					)
+				}
+			} else {
+				Row(
+					modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					HeaderUi(Res.string.encyclopedia_header, "\uD83D\uDCDA")
+
+					IconButton(onClick = { showSearchBar = true }) {
+						Icon(
+							imageVector = Icons.Default.Search,
+							contentDescription = Res.string.notes_search_button.get(),
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
+				}
 			}
 		}
 
@@ -105,12 +141,17 @@ fun BrowseEntriesUi(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun RowScope.EntrySearchBar(
+private fun EntrySearchBar(
 	searchText: String,
 	component: BrowseEntries,
-	selectedType: EntryType?
+	selectedType: EntryType?,
+	types: List<EntryType>,
+	onTypeSelected: (EntryType?) -> Unit,
+	modifier: Modifier = Modifier
 ) {
-	val onActiveChange = { b: Boolean -> }
+	var filterMenuExpanded by remember { mutableStateOf(false) }
+	val onActiveChange = { _: Boolean -> }
+
 	SearchBar(
 		inputField = {
 			SearchBarDefaults.InputField(
@@ -123,13 +164,80 @@ private fun RowScope.EntrySearchBar(
 				placeholder = { Text(Res.string.encyclopedia_search_hint.get()) },
 				leadingIcon = null,
 				trailingIcon = {
-					IconButton(onClick = {
-						component.clearFilterText()
-					}) {
-						Icon(
-							imageVector = Icons.Filled.Clear,
-							Res.string.encyclopedia_search_clear_button.get()
-						)
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						// Filter chip
+						Box {
+							FilterChip(
+								selected = selectedType != null,
+								onClick = { filterMenuExpanded = true },
+								label = {
+									Text(
+										text = selectedType?.toStringResource()?.get()
+											?: Res.string.encyclopedia_category_all.get(),
+										style = MaterialTheme.typography.labelSmall
+									)
+								},
+								modifier = Modifier.height(28.dp).padding(horizontal = Ui.Padding.M)
+							)
+							DropdownMenu(
+								expanded = filterMenuExpanded,
+								onDismissRequest = { filterMenuExpanded = false }
+							) {
+								// "All" option
+								DropdownMenuItem(
+									text = { Text(Res.string.encyclopedia_category_all.get()) },
+									onClick = {
+										onTypeSelected(null)
+										filterMenuExpanded = false
+									},
+									leadingIcon = if (selectedType == null) {
+										{
+											Icon(
+												Icons.Default.Search,
+												contentDescription = null,
+												modifier = Modifier.size(16.dp)
+											)
+										}
+									} else null
+								)
+								// Type options
+								types.forEach { type ->
+									DropdownMenuItem(
+										text = { Text(type.toStringResource().get()) },
+										onClick = {
+											onTypeSelected(type)
+											filterMenuExpanded = false
+										},
+										leadingIcon = if (selectedType == type) {
+											{
+												Icon(
+													Icons.Default.Search,
+													contentDescription = null,
+													modifier = Modifier.size(16.dp)
+												)
+											}
+										} else null
+									)
+								}
+							}
+						}
+
+						// Clear search button
+						if (searchText.isNotEmpty()) {
+							IconButton(
+								onClick = { component.clearFilterText() },
+								modifier = Modifier.size(32.dp)
+							) {
+								Icon(
+									imageVector = Icons.Filled.Clear,
+									contentDescription = Res.string.encyclopedia_search_clear_button.get(),
+									modifier = Modifier.size(18.dp)
+								)
+							}
+						}
 					}
 				},
 				colors = SearchBarDefaults.colors().inputFieldColors,
@@ -138,14 +246,13 @@ private fun RowScope.EntrySearchBar(
 		},
 		expanded = false,
 		onExpandedChange = onActiveChange,
-		modifier = Modifier.moveFocusOnTab().weight(1f).padding(end = Ui.Padding.L),
+		modifier = modifier.moveFocusOnTab(),
 		shape = SearchBarDefaults.inputFieldShape,
 		colors = SearchBarDefaults.colors(),
 		tonalElevation = SearchBarDefaults.TonalElevation,
 		shadowElevation = SearchBarDefaults.ShadowElevation,
 		windowInsets = SearchBarDefaults.windowInsets,
-		content = {
-		},
+		content = {},
 	)
 }
 
