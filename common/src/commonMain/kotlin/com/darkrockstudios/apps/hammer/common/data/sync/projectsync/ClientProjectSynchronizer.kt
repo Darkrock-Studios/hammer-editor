@@ -10,16 +10,14 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import okio.IOException
 import org.koin.core.component.get
@@ -36,7 +34,6 @@ class ClientProjectSynchronizer(
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
-	private val defaultDispatcher by injectDefaultDispatcher()
 
 	private val operations = listOf(
 		projectScope.get<PrepareForSyncOperation>(),
@@ -51,18 +48,9 @@ class ClientProjectSynchronizer(
 		projectScope.get<FinalizeSyncOperation>(),
 	)
 
-	private val scope = CoroutineScope(defaultDispatcher + SupervisorJob())
 	private val conflictResolution = Channel<ApiProjectEntity>()
 
 	val syncCompleteEvent = Channel<Boolean>()
-
-	init {
-		scope.launch {
-			for (conflict in conflictResolution) {
-				entitySynchronizers.handleConflict(conflict)
-			}
-		}
-	}
 
 	suspend fun sync(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
@@ -71,25 +59,33 @@ class ClientProjectSynchronizer(
 		onComplete: suspend () -> Unit,
 		onlyNew: Boolean = false,
 		onUnauthorized: suspend () -> Unit,
-	): Boolean {
-		val initialState = InitialSyncOperationState(onlyNew = onlyNew)
-		val result = execute(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
+	): Boolean = coroutineScope {
+		val conflictListenerJob = launch {
+			for (conflict in conflictResolution) {
+				entitySynchronizers.handleConflict(conflict)
+			}
+		}
 
-		syncCompleteEvent.trySend(isSuccess(result))
+		try {
+			val initialState = InitialSyncOperationState(onlyNew = onlyNew)
+			val result = execute(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
 
-		return if (isSuccess(result)) {
-			Napier.i("Sync completed successfully.")
-			true
-		} else {
-			Napier.e("Sync failed with error: ${result.exception?.message}", result.exception)
-			false
+			syncCompleteEvent.trySend(isSuccess(result))
+
+			if (isSuccess(result)) {
+				Napier.i("Sync completed successfully.")
+				true
+			} else {
+				Napier.e("Sync failed with error: ${result.exception?.message}", result.exception)
+				false
+			}
+		} finally {
+			conflictListenerJob.cancel()
 		}
 	}
 
 	fun resolveConflict(entity: ApiProjectEntity) {
-		scope.launch {
-			conflictResolution.send(entity)
-		}
+		conflictResolution.trySend(entity)
 	}
 
 	suspend fun execute(

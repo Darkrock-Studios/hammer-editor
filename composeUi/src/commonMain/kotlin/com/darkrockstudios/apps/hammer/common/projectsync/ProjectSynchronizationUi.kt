@@ -8,27 +8,27 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -37,10 +37,19 @@ internal fun ProjectSynchronization(
 	showSnackbar: (String) -> Unit
 ) {
 	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
+	val mainDispatcher = rememberMainDispatcher()
+	var confirmCancel by rememberSaveable { mutableStateOf(false) }
 
 	SimpleDialog(
 		title = Res.string.sync_project_dialog_title.get(),
-		onCloseRequest = { if (state.isSyncing.not()) component.endSync() },
+		onCloseRequest = {
+			if (state.isSyncing.not()) {
+				component.endSync()
+			} else {
+				confirmCancel = true
+			}
+		},
 		visible = true,
 		modifier = Modifier.wrapContentSize(),
 		dialogContainerModifier = Modifier.fillMaxSize(0.9f).wrapContentSize(Alignment.Center),
@@ -48,6 +57,25 @@ internal fun ProjectSynchronization(
 	) {
 		val screenCharacteristics = calculateWindowSizeClass()
 		ProjectSynchronizationContent(component, showSnackbar, screenCharacteristics)
+		val syncCanceledText = Res.string.account_sync_toast_canceled.get()
+
+		if (confirmCancel) {
+			SimpleConfirm(
+				title = Res.string.account_sync_confirm_cancel_title.get(),
+				message = Res.string.account_sync_confirm_cancel_message.get(),
+				onDismiss = { confirmCancel = false },
+				onConfirm = {
+					component.cancelSync()
+					scope.launch {
+						withContext(mainDispatcher) {
+							confirmCancel = false
+							component.endSync()
+						}
+					}
+					showSnackbar(syncCanceledText)
+				},
+			)
+		}
 	}
 }
 
@@ -100,7 +128,7 @@ internal fun ProjectSynchronizationContent(
 
 				if (state.isSyncing) {
 					Icon(
-						Icons.Default.Cancel,
+						Icons.Default.StopCircle,
 						contentDescription = Res.string.sync_cancel_button.get(),
 						modifier = Modifier.padding(Ui.Padding.S).clickable { component.cancelSync() },
 						tint = MaterialTheme.colorScheme.onBackground
