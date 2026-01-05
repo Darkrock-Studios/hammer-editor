@@ -6,7 +6,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.Center
-import androidx.compose.ui.Alignment.Companion.End
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.*
@@ -35,31 +34,42 @@ fun CreateTimeLineEventUi(
 	val needsExplicitClose = remember { screen.needsExplicitClose }
 
 	Box(modifier = modifier.fillMaxSize()) {
-		Card(modifier = Modifier.padding(Ui.Padding.XL).widthIn(max = 512.dp).align(Center)) {
-			Column(modifier = Modifier.padding(Ui.Padding.L)) {
-				if (needsExplicitClose) {
-					IconButton(
-						onClick = component::closeCreation,
-						modifier = Modifier.align(End).padding(Ui.Padding.XL),
-					) {
-						Icon(
-							Icons.Default.Close,
-							Res.string.timeline_create_close_button.get(),
-							tint = MaterialTheme.colorScheme.onBackground
-						)
+		Card(
+			modifier = Modifier.padding(Ui.Padding.XL).widthIn(max = 512.dp).align(Center),
+			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
+		) {
+			Column(
+				modifier = Modifier.padding(Ui.Padding.XL),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)
+			) {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+				) {
+					Text(
+						Res.string.timeline_create_title.get(),
+						style = MaterialTheme.typography.headlineLarge
+					)
+					if (needsExplicitClose) {
+						IconButton(onClick = component::closeCreation) {
+							Icon(
+								Icons.Default.Close,
+								Res.string.timeline_create_close_button.get(),
+								tint = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+						}
 					}
 				}
-				Text(
-					Res.string.timeline_create_title.get(),
-					style = MaterialTheme.typography.headlineLarge,
-					color = MaterialTheme.colorScheme.onBackground
-				)
-				TextField(
+
+				OutlinedTextField(
+					modifier = Modifier.fillMaxWidth(),
 					value = dateText,
 					onValueChange = { dateText = it },
 					label = { Text(Res.string.timeline_create_date_label.get()) },
 					singleLine = true
 				)
+
 				OutlinedTextField(
 					modifier = Modifier.fillMaxWidth().height(128.dp),
 					value = contentText,
@@ -67,17 +77,32 @@ fun CreateTimeLineEventUi(
 					label = { Text(Res.string.timeline_create_content_label.get()) },
 				)
 
-				Button(onClick = {
-					scope.launch {
-						if (component.createEvent(dateText, contentText)) {
-							launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success)) }
-							component.closeCreation()
-						} else {
-							launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_failure)) }
-						}
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)
+				) {
+					OutlinedButton(
+						modifier = Modifier.weight(1f),
+						onClick = component::closeCreation
+					) {
+						Text(Res.string.timeline_create_close_button.get())
 					}
-				}) {
-					Text(Res.string.timeline_create_create_event_button.get())
+
+					Button(
+						modifier = Modifier.weight(1f),
+						onClick = {
+							scope.launch {
+								if (component.createEvent(dateText, contentText)) {
+									launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success)) }
+									component.closeCreation()
+								} else {
+									launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_failure)) }
+								}
+							}
+						}
+					) {
+						Text(Res.string.timeline_create_create_event_button.get())
+					}
 				}
 			}
 		}
