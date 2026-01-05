@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ fun <T> ExposedDropDown(
 	getText: @Composable ((T) -> String)? = null,
 	noneOption: String? = null,
 	enabled: Boolean = true,
+	expandWidth: Boolean = false,
 	onValueChanged: (T?) -> Unit
 ) {
 	@Composable
@@ -53,6 +55,7 @@ fun <T> ExposedDropDown(
 			singleLine = true,
 			interactionSource = interactionSource,
 			modifier = Modifier
+				.then(if (expandWidth) Modifier.fillMaxWidth() else Modifier)
 				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
 				.pointerHoverIcon(PointerIcon.Default),
 		) { innerTextField ->
