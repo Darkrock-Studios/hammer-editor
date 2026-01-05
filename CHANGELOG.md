@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.14.0] - 2026-1-5
+
+New Features
+- Find & Replace in text editor
+- Search & Sort for Notes
+
+Improvements
+- New icons throughout the app
+- Improved create dialogs for Encyclopedia, Notes, and Events
+- Better section headers UI
+- Improved sync cancellation with confirmation prompt
+
+Fixes
+- Desktop menu fixes
+- Removed unsupported languages
+
+
 ## [1.13.2] - 2026-1-3
 
 - The backup system is now implemented on all Clients, not just Desktop
