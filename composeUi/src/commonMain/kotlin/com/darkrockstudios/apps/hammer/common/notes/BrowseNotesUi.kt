@@ -40,7 +40,7 @@ fun BrowseNotesUi(
 	var searchQuery by rememberSaveable { mutableStateOf("") }
 	var sortAscending by rememberSaveable { mutableStateOf(false) }
 
-	val filteredSortedNotes by rememberSaveable(state.notes, searchQuery, sortAscending) {
+	val filteredSortedNotes by remember(state.notes, searchQuery, sortAscending) {
 		derivedStateOf {
 			val filtered = if (searchQuery.isBlank()) {
 				state.notes
@@ -56,7 +56,7 @@ fun BrowseNotesUi(
 		}
 	}
 
-	Column(modifier = modifier.padding(top = Ui.Padding.L)) {
+	Column {
 		AnimatedContent(
 			targetState = showSearchBar,
 			modifier = Modifier.fillMaxWidth().height(Ui.TOP_BAR_HEIGHT).padding(horizontal = Ui.Padding.XL),

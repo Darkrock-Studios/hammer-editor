@@ -53,7 +53,11 @@ fun TimeLineOverviewUi(
 
 	Box(modifier = Modifier.fillMaxSize().padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.L)) {
 		Column(modifier = Modifier.widthIn(0.dp, 700.dp).align(Alignment.Center).fillMaxWidth()) {
-			HeaderUi(Res.string.timeline_title, "\uD83D\uDCC5")
+			HeaderUi(
+				Res.string.timeline_title,
+				"\uD83D\uDCC5",
+				modifier = Modifier.height(Ui.TOP_BAR_HEIGHT)
+			)
 
 			val events = state.timeLine?.events ?: emptyList()
 			if (events.isEmpty()) {
