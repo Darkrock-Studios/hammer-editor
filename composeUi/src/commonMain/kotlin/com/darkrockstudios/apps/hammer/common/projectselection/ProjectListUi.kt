@@ -21,11 +21,17 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
+import com.darkrockstudios.apps.hammer.project_select_list_header
+import com.darkrockstudios.apps.hammer.project_select_project_list_empty
+import com.darkrockstudios.apps.hammer.projects_list_sync_button
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -116,17 +122,17 @@ fun ProjectListUi(
 		}
 	}
 
-	ModalContent(component)
+	ModalContent(component, rootSnackbar)
 }
 
 @Composable
-fun ModalContent(component: ProjectsList) {
+fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.modalRouterState.subscribeAsState()
 	val overlay = state.child?.instance
 	when (overlay) {
 		null, ProjectsList.ModalDestination.None -> {}
 		is ProjectsList.ModalDestination.ProjectSync -> {
-			ProjectsSyncDialog(component)
+			ProjectsSyncDialog(component, rootSnackbar)
 		}
 
 		is ProjectsList.ModalDestination.ProjectRename -> {
