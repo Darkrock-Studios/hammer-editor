@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_list_header">Projects:</string>
+	<string name="project_select_list_header">Projects</string>
 	<string name="project_select_project_list_empty">No Projects Found</string>
 	<string name="project_select_card_delete_button">Delete</string>
 	<string name="project_select_card_rename_button">Rename</string>
