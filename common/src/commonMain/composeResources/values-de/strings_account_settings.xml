@@ -82,4 +82,7 @@
 	<string name="backup_manager_no_backups_for_project">Keine Sicherungen für dieses Projekt</string>
 	<string name="backup_manager_restore_button">Wiederherstellen</string>
 	<string name="backup_manager_delete_content_description">Backup löschen</string>
+	<string name="account_sync_confirm_cancel_title">Cancel Sync?</string>
+	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
+	<string name="account_sync_toast_canceled">Sync canceled</string>
 </resources>
