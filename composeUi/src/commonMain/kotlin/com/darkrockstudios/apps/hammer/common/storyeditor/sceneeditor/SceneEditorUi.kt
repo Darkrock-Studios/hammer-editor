@@ -20,8 +20,11 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
+import com.darkrockstudios.texteditor.find.FindBar
+import com.darkrockstudios.texteditor.find.rememberFindState
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
@@ -45,6 +48,9 @@ fun SceneEditorUi(
 		spellCheckMode = SpellCheckMode.Word,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+
+	val findState = rememberFindState(textEditorState.textState)
+	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(markdownConfig) {
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
@@ -88,7 +94,11 @@ fun SceneEditorUi(
 				CircularProgressIndicator()
 			}
 		} else {
-			Column(modifier = Modifier.fillMaxHeight()) {
+			Column(
+				modifier = Modifier
+					.fillMaxHeight()
+					.findShortcutModifier { showFindBar = true }
+			) {
 				EditorTopBar(component, rootSnackbar)
 
 				EditorToolBar(
@@ -97,6 +107,17 @@ fun SceneEditorUi(
 					increaseTextSize = component::increaseTextSize,
 					resetTextSize = component::resetTextSize,
 				)
+
+				AnimatedVisibility(
+					visible = showFindBar,
+					enter = expandVertically(expandFrom = Alignment.Top),
+					exit = shrinkVertically(shrinkTowards = Alignment.Top)
+				) {
+					FindBar(
+						state = findState,
+						onClose = { showFindBar = false }
+					)
+				}
 
 				Row(
 					modifier = Modifier.fillMaxSize(),

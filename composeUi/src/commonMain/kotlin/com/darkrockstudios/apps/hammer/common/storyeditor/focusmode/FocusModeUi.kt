@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.focusmode
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -19,10 +22,13 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
+import com.darkrockstudios.texteditor.find.FindBar
+import com.darkrockstudios.texteditor.find.rememberFindState
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -39,6 +45,9 @@ fun FocusModeUi(component: FocusMode) {
 		enableSpellChecking = state.spellCheckingEnabled,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+
+	val findState = rememberFindState(textEditorState.textState)
+	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(markdownConfig) {
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
@@ -75,7 +84,7 @@ fun FocusModeUi(component: FocusMode) {
 			CircularProgressIndicator()
 		}
 	} else {
-		Column(modifier = Modifier.fillMaxSize()) {
+		Column(modifier = Modifier.fillMaxSize().findShortcutModifier { showFindBar = true }) {
 			Row(
 				modifier = Modifier
 					.fillMaxWidth(),
@@ -99,6 +108,17 @@ fun FocusModeUi(component: FocusMode) {
 						tint = MaterialTheme.colorScheme.onBackground
 					)
 				}
+			}
+
+			AnimatedVisibility(
+				visible = showFindBar,
+				enter = expandVertically(expandFrom = Alignment.Top),
+				exit = shrinkVertically(shrinkTowards = Alignment.Top)
+			) {
+				FindBar(
+					state = findState,
+					onClose = { showFindBar = false }
+				)
 			}
 
 			Row(

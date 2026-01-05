@@ -87,7 +87,7 @@ korge-core = "6.0.0"
 kzip = "1.1.1"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.4.0"
+compose-texteditor = "1.5.2"
 platform-spellcheckerkt = "1.0.0"
 
 [libraries]
@@ -254,6 +254,7 @@ moko-permissions-storage = { group = "dev.icerock.moko", name = "permissions-sto
 moko-permissions-compose = { group = "dev.icerock.moko", name = "permissions-compose", version.ref = "moko_permissions" }
 
 compose-texteditor = { group = "com.darkrockstudios", name = "composetexteditor", version.ref = "compose-texteditor" }
+compose-texteditor-find = { group = "com.darkrockstudios", name = "composetexteditor-find", version.ref = "compose-texteditor" }
 compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "composetexteditor-spellcheck", version.ref = "compose-texteditor" }
 
 platform-spellcheckerkt = { module = "com.darkrockstudios:platform-spellcheckerkt", version.ref = "platform-spellcheckerkt" }
