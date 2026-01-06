@@ -1,1 +1,0 @@
-Uma ferramenta simples para construir histórias.
