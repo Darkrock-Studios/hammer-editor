@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeService
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -26,4 +27,6 @@ actual val platformModule = module {
 	} bind PlatformSettings::class
 	singleOf(::PlatformSpellCheckerFactory)
 	factoryOf(::FocusModeService)
+	singleOf(::AndroidShareService)
+	singleOf(::BackupManagerService)
 }

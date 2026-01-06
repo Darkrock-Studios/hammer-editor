@@ -11,6 +11,7 @@ interface BackupManager {
 	fun selectProject(projectName: String)
 	fun deleteBackup(backup: ProjectBackupDef)
 	fun restoreBackup(backup: ProjectBackupDef)
+	fun exportBackup(backup: ProjectBackupDef)
 
 	@Serializable
 	data class State(

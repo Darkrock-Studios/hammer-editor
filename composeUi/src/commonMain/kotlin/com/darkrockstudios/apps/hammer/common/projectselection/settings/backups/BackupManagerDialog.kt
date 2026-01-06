@@ -126,7 +126,8 @@ fun BackupManagerDialog(
 							BackupsList(
 								backups = state.backupsForSelectedProject,
 								onDeleteBackup = component::deleteBackup,
-								onRestoreBackup = { backup -> showRestoreConfirm.value = backup }
+								onRestoreBackup = { backup -> showRestoreConfirm.value = backup },
+								onExportBackup = component::exportBackup
 							)
 						}
 					}
@@ -200,7 +201,8 @@ private fun ProjectSelector(
 private fun BackupsList(
 	backups: List<ProjectBackupDef>,
 	onDeleteBackup: (ProjectBackupDef) -> Unit,
-	onRestoreBackup: (ProjectBackupDef) -> Unit
+	onRestoreBackup: (ProjectBackupDef) -> Unit,
+	onExportBackup: (ProjectBackupDef) -> Unit
 ) {
 	if (backups.isEmpty()) {
 		Box(
@@ -222,7 +224,8 @@ private fun BackupsList(
 				BackupItem(
 					backup = backup,
 					onDelete = { onDeleteBackup(backup) },
-					onRestore = { onRestoreBackup(backup) }
+					onRestore = { onRestoreBackup(backup) },
+					onExport = { onExportBackup(backup) }
 				)
 			}
 		}
@@ -233,7 +236,8 @@ private fun BackupsList(
 private fun BackupItem(
 	backup: ProjectBackupDef,
 	onDelete: () -> Unit,
-	onRestore: () -> Unit
+	onRestore: () -> Unit,
+	onExport: () -> Unit
 ) {
 	var expanded by remember { mutableStateOf(false) }
 
@@ -287,6 +291,12 @@ private fun BackupItem(
 							onRestore()
 						}
 					)
+
+					BackupExportMenuItem(
+						onExport = onExport,
+						onDismiss = { expanded = false }
+					)
+
 					DropdownMenuItem(
 						text = { Text(Res.string.backup_manager_delete_content_description.get()) },
 						onClick = {
