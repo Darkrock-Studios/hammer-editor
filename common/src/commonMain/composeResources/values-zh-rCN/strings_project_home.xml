@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_encyclopedia_entries">条目分布</string>
-	<string name="project_home_stat_chapter_words">各章节词数</string>
-	<string name="project_home_stat_header">统计:</string>
-	<string name="project_home_stat_created">已创建: %1$s</string>
-	<string name="project_home_stat_num_scenes">场景</string>
-	<string name="project_home_stat_total_words">字数总计</string>
-	<string name="project_home_action_backup_toast_success">已创建备份: %1$s</string>
-	<string name="project_home_action_backup">备份</string>
-	<string name="project_home_stat_chapter_words_x_axis">章节</string>
-	<string name="project_home_action_export">导出故事</string>
-	<string name="project_home_actions_header">操作:</string>
-	<string name="project_home_stat_chapter_words_y_axis">词数</string>
-	<string name="project_home_action_backup_toast_failure">备份失败</string>
-	<string name="project_home_action_sync">同步故事</string>
-	<string name="project_home_action_export_toast_success">故事已导出</string>
-	<string name="project_home_destinations_header">项目：</string>
-	<string name="project_home_action_stats_button">统计数据</string>
-	<string name="project_home_action_settings_button">设置</string>
-	<string name="project_home_settings_title">项目设置</string>
+	<string name="project_home_stat_header">Stats:</string>
+	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_loading_stats">Calculating statistics...</string>
+	<string name="project_home_refresh_stats_button">Refresh statistics</string>
+	<string name="project_home_stats_dirty_indicator">Statistics may be out of date</string>
+	<string name="project_home_stat_num_scenes">Scenes</string>
+	<string name="project_home_stat_total_words">Total Words</string>
+	<string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>
+	<string name="project_home_stat_chapter_words">Words in Chapters</string>
+	<string name="project_home_stat_chapter_words_x_axis">Chapter</string>
+	<string name="project_home_stat_chapter_words_y_axis">Words</string>
+	<string name="project_home_actions_header">Actions:</string>
+	<string name="project_home_action_export">Export Story</string>
+	<string name="project_home_action_sync">Sync Story</string>
+	<string name="project_home_action_backup">Backup</string>
+	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
+	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
+	<string name="project_home_action_export_toast_success">Story Exported</string>
+	<string name="project_home_destinations_header">Project:</string>
+	<string name="project_home_action_stats_button">Stats</string>
+	<string name="project_home_action_settings_button">Settings</string>
+	<string name="project_home_menu_button">Project menu</string>
+	<string name="project_home_settings_title">Project Settings</string>
+	<string name="project_home_settings_close_button">Close settings</string>
 </resources>

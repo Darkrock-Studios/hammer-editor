@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
-    <string name="loading">Wird geladen …</string>
-    <string name="title_activity_configure_note_widget">Widget konfigurieren</string>
     <string name="title_activity_add_note">Notiz hinzufügen</string>
-    <string name="overflow_menu_button">Mehr</string>
-    <string name="navdrawer_button">Navigation</string>
-    <string name="note_widget_dialog_save_button">Speichern</string>
-    <string name="note_widget_dialog_projects_dropdown">Projekte</string>
-    <string name="note_widget_button_description">Notiz hinzufügen</string>
-    <string name="note_widget_toast_no_projects">Keine Projekte bisher</string>
+    <string name="loading">Lädt…</string>
+    <string name="title_activity_configure_note_widget">Widget konfigurieren</string>
+    <string name="overflow_menu_button">Weitere Menüs</string>
+    <string name="navdrawer_button">Navigationsmenü</string>
     <string name="note_widget_dialog_title">Notiz hinzufügen:</string>
-    <string name="note_widget_toast_success">Notiz hinzugefügt</string>
+    <string name="note_widget_dialog_save_button">Speichern</string>
     <string name="note_widget_dialog_cancel_button">Abbrechen</string>
-    <string name="note_widget_confirm_cancel_title">Notiz verwerfen\?</string>
+    <string name="note_widget_dialog_projects_dropdown">Projekte</string>
+    <string name="note_widget_dialog_failure_bad_project">Projekt nicht gefunden: %1$s</string>
+    <string name="note_widget_confirm_cancel_title">Notiz verwerfen?</string>
+    <string name="note_widget_confirm_cancel_positive">Verwerfen</string>
     <string name="note_widget_confirm_cancel_negative">Abbrechen</string>
-    <string name="note_widget_config_project_checkbox">Notizen dem gewählten Projekt hinzufügen</string>
-    <string name="note_widget_dialog_failure_bad_project">Projekt konnte nicht gefunden werden: %1$s</string>
-    <string name="action_add_note_short_label">Neue Notiz</string>
-    <string name="note_widget_confirm_cancel_positive">Ablegen</string>
-    <string name="title_activity_add_note_widget_config">Widget bearbeiten</string>
-    <string name="action_add_note_disabled">Das Hinzufügen von Notizen ist deaktiviert</string>
-    <string name="note_widget_config_project_checkbox_explained">Wenn kein Projekt gewählt ist, wird jedes Mal gefragt für welches Projekt die Notiz ist.</string>
-    <string name="action_add_note_long_label">Neue Notiz hinzufügen</string>
+    <string name="note_widget_button_description">Notiz hinzufügen</string>
+    <string name="note_widget_toast_no_projects">Keine Projekte</string>
+    <string name="note_widget_toast_success">Notiz hinzugefügt</string>
+    <string name="action_add_note_short_label">Notiz hinzufügen</string>
+    <string name="action_add_note_long_label">Story-Notiz hinzufügen</string>
+    <string name="action_add_note_disabled">Hinzufügen von Notizen ist gerade deaktiviert</string>
+    <string name="title_activity_add_note_widget_config">Widget konfigurieren</string>
     <string name="note_widget_config_title">Notiz-Widget konfigurieren:</string>
+    <string name="note_widget_config_project_checkbox">Notizen zum angegebenen Projekt hinzufügen</string>
+    <string name="note_widget_config_project_checkbox_explained">Wenn kein Projekt ausgewählt ist, wirst du jedes Mal aufgefordert ein Projekt auszuwählen.</string>
 </resources>

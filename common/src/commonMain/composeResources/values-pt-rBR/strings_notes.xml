@@ -1,22 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="notes_header">Notas</string>
-	<string name="notes_list_empty">Nenhuma Nota Encontrada</string>
-	<string name="notes_create_note_button">Criar Nota</string>
+	<string name="notes_header">Anotações</string>
+	<string name="notes_list_empty">Nenhuma Anotação Encontrada</string>
+	<string name="notes_create_note_button">Criar Anotação</string>
 	<string name="notes_note_item_action_rename">Renomear</string>
 	<string name="notes_note_item_action_cancel">Cancelar</string>
-	<string name="notes_discard_dialog_title">Descartar Alterações\?</string>
-	<string name="notes_discard_dialog_message">Você perderá quaisquer alterações que você fez.</string>
-	<string name="notes_create_header">Criar Nota</string>
-	<string name="notes_create_body_hint">Nova Nota:</string>
+	<string name="notes_note_item_action_delete">Delete</string>
+	<string name="notes_discard_dialog_title">Descartar Alterações?</string>
+	<string name="notes_discard_dialog_message">Você perderá todas as alterações que fez.</string>
+	<string name="notes_create_header">Criar Anotação</string>
+	<string name="notes_create_body_hint">Nova Anotação:</string>
 	<string name="notes_create_create_button">Criar</string>
 	<string name="notes_create_cancel_button">Cancelar</string>
-	<string name="notes_create_toast_success">Nota Criada</string>
-	<string name="notes_create_toast_too_long">A Nota ficou muito longa</string>
-	<string name="notes_create_toast_empty">A Nota está vazia</string>
-	<string name="notes_delete_title">Deletar Nota\?</string>
-	<string name="notes_delete_toast_success">A Nota %1$s foi Deletada</string>
-	<string name="notes_note_item_action_delete">Deletar</string>
-	<string name="notes_delete_message">Esta ação não pode ser desfeita!</string>
-	<string name="notes_view_header">Nota</string>
+	<string name="notes_create_toast_success">Anotação Criada</string>
+	<string name="notes_create_toast_too_long">Note was too long</string>
+	<string name="notes_create_toast_empty">Note was empty</string>
+	<string name="notes_delete_title">Delete Note?</string>
+	<string name="notes_delete_message">This action cannot be undone!</string>
+	<string name="notes_delete_toast_success">Note %1$s Deleted</string>
+	<string name="notes_menu_group">Note</string>
+	<string name="notes_menu_delete">Delete</string>
+	<string name="notes_view_header">Note</string>
+	<string name="notes_search_button">Search notes</string>
+	<string name="notes_search_placeholder">Search notes...</string>
+	<string name="notes_search_close">Close search</string>
+	<string name="notes_sort_ascending">Sort oldest first</string>
+	<string name="notes_sort_descending">Sort newest first</string>
+	<string name="notes_search_clear">Clear search</string>
 </resources>

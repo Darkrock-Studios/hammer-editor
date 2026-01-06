@@ -1,0 +1,23 @@
+Diese App befindet sich noch in der Entwicklung und sollte als Beta-Software angesehen werden.
+
+Bitte trete unserem Discord bei, um Probleme zu melden! https://discord.gg/GTmgjZcupk
+
+Plattformübergreifend
+
+Diese App ist wo immer du bist. Überall verfügbar – auf deinem Smartphone, Tablet, PC oder Laptop. Es ist nicht einfach nur eine "website-in-a-box". Es werden native Technologien des Endgerätes verwendet, um die bestmögliche Erfahrung zu bieten.
+
+Offline first
+
+Ich war frustriert über die meisten Tools zum Schreiben von Geschichten, die ich gefunden habe, da sie Web-Technologien verwenden (aka: "webpage in a box"), die immer in Schwierigkeiten zu geraten scheinen, während sie für längere Zeit offline verwendet werden. Hammer ist von Grund für die lokale Nutzung konzipiert, ohne, dass jemals eine Internetverbindung erforderlich ist.
+
+Datenhoheit
+
+Deine Daten gehören dir. Es wird nicht in der Cloud oder einer undurchsichtigen Datenbank gespeichert. Deine Geschichte wird in einfachen und lesbaren Dateien gespeichert (nur Dateien und Ordnern), um die Projektstruktur zu definieren. Du kannst deinem Betriebssystem-Dateimanager öffnen und dir die Daten selbst anschauen. Falls Hammer nicht mehr verfügbar ist, kannst du trotzdem einfach mit deinen Daten ingeragieren.
+
+Intelligente Synchronisierung zwischen Geräten
+
+Deine Daten können zwischen Geräten synchronisiert werden, sodass du von überall aus an deiner Geschichte weiterarbeiten kannst und keine Angst vor einer Änderung auf einem anderen Gerät haben musst.
+
+Synchronisierung: optional oder selbstbetrieben
+
+Synchronisierung ist vollständig optional, du kannst den Client installieren und auf einem Gerät verwenden, oder du kannst den Server installieren und deine Daten zwischen den Geräten synchronisieren.

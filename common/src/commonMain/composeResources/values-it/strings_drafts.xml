@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Cancellare</string>
-	<string name="draft_compare_current_header">Fondersi con la corrente</string>
-	<string name="draft_compare_current_subheader">Copia parti della bozza qui</string>
-	<string name="draft_compare_current_accept_button">Prendi unito</string>
-	<string name="draft_compare_current_body_placeholder">Inizia a scrivere la tua scena qui</string>
+	<string name="draft_compare_cancel_button">Cancel</string>
+	<string name="draft_compare_current_header">Merge with Current</string>
+	<string name="draft_compare_current_subheader">Copy parts of the draft into here</string>
+	<string name="draft_compare_current_accept_button">Take Merged</string>
+	<string name="draft_compare_current_body_placeholder">Begin writing your scene here</string>
 	<string name="draft_compare_draft_header">Draft: %1$s</string>
-	<string name="draft_compare_draft_subheader">Copia le parti desiderate in corrente o accetta tutto questo.</string>
-	<string name="draft_compare_draft_accept_button">Prendi tutta questa bozza</string>
-	<string name="draft_compare_draft_body_placeholder">Bozza</string>
-	<string name="draft_compare_tab_title_draft">Bozza</string>
-	<string name="draft_compare_tab_title_current">Attuale</string>
-	<string name="draft_list_close_button">Ravvicinarsi</string>
-	<string name="draft_list_header">%1$s bozze:</string>
-	<string name="draft_list_empty">Nessuna bozza trovata</string>
-	<string name="draft_list_item_created">Creato: %1$s</string>
-	<string name="scene_draft_invalid_name">Nome non valido</string>
+	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
+	<string name="draft_compare_draft_accept_button">Take this whole draft</string>
+	<string name="draft_compare_draft_body_placeholder">Draft</string>
+	<string name="draft_compare_tab_title_draft">Draft</string>
+	<string name="draft_compare_tab_title_current">Current</string>
+	<string name="draft_list_close_button">Close Drafts</string>
+	<string name="draft_list_header">%1$s Drafts:</string>
+	<string name="draft_list_empty">No Drafts Found</string>
+	<string name="draft_list_item_created">Created: %1$s</string>
+	<string name="scene_draft_invalid_name">Invalid name</string>
 </resources>

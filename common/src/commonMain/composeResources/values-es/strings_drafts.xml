@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Cancelar</string>
-	<string name="draft_compare_current_header">Fusionarse con la corriente</string>
-	<string name="draft_compare_current_subheader">Copiar partes del borrador aquí</string>
-	<string name="draft_compare_current_accept_button">Tomar fusionado</string>
-	<string name="draft_compare_current_body_placeholder">Empiece a escribir su escena aquí</string>
-	<string name="draft_compare_draft_header">Borrador: %1$s</string>
-	<string name="draft_compare_draft_subheader">Copie las piezas deseadas en la corriente o acepte todo esto.</string>
-	<string name="draft_compare_draft_accept_button">Tome todo este borrador</string>
-	<string name="draft_compare_draft_body_placeholder">Borrador</string>
-	<string name="draft_compare_tab_title_draft">Borrador</string>
-	<string name="draft_compare_tab_title_current">Actual</string>
-	<string name="draft_list_close_button">Cerrar borradores</string>
-	<string name="draft_list_header">%1$s borradores:</string>
-	<string name="draft_list_empty">No se encontraron borradores</string>
-	<string name="draft_list_item_created">Creado: %1$s</string>
-	<string name="scene_draft_invalid_name">Nombre no válido</string>
+	<string name="draft_compare_cancel_button">Cancel</string>
+	<string name="draft_compare_current_header">Merge with Current</string>
+	<string name="draft_compare_current_subheader">Copy parts of the draft into here</string>
+	<string name="draft_compare_current_accept_button">Take Merged</string>
+	<string name="draft_compare_current_body_placeholder">Begin writing your scene here</string>
+	<string name="draft_compare_draft_header">Draft: %1$s</string>
+	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
+	<string name="draft_compare_draft_accept_button">Take this whole draft</string>
+	<string name="draft_compare_draft_body_placeholder">Draft</string>
+	<string name="draft_compare_tab_title_draft">Draft</string>
+	<string name="draft_compare_tab_title_current">Current</string>
+	<string name="draft_list_close_button">Close Drafts</string>
+	<string name="draft_list_header">%1$s Drafts:</string>
+	<string name="draft_list_empty">No Drafts Found</string>
+	<string name="draft_list_item_created">Created: %1$s</string>
+	<string name="scene_draft_invalid_name">Invalid name</string>
 </resources>
