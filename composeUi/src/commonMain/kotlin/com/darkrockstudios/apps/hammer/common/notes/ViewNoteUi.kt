@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,10 +21,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
@@ -51,7 +47,7 @@ fun ViewNoteUi(
 		AnnotatedString.Builder(noteText).toAnnotatedString()
 	}
 
-	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
 		with(sharedTransitionScope) {
 			Card(
 				modifier = Modifier
@@ -64,7 +60,8 @@ fun ViewNoteUi(
 				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 			) {
 				Column(
-					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
+					modifier = Modifier.padding(Ui.Padding.XL).widthIn(Ui.DetailCard.MIN_WIDTH, Ui.DetailCard.MAX_WIDTH)
+						.wrapContentHeight()
 				) {
 					Row(
 						modifier = Modifier.fillMaxWidth(),
@@ -77,11 +74,7 @@ fun ViewNoteUi(
 						)
 
 						Row {
-							IconButton(
-								onClick = { component.confirmDelete() },
-							) {
-								Icon(Icons.Filled.Delete, Res.string.notes_note_item_action_delete.get())
-							}
+							DetailViewDropdownMenu(menuItems = state.menuItems)
 
 							IconButton(onClick = {
 								component.confirmClose()

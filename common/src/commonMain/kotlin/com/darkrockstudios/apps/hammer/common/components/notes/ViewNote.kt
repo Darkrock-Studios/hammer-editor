@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 
@@ -14,7 +15,8 @@ interface ViewNote {
 		val confirmDiscard: Boolean = false,
 		val confirmClose: Boolean = false,
 		val confirmDelete: Boolean = false,
-		val isEditing: Boolean = false
+		val isEditing: Boolean = false,
+		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 	)
 
 	fun discardEdit()
