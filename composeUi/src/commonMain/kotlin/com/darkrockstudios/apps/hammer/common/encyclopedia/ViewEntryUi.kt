@@ -82,7 +82,7 @@ internal fun ViewEntryUi(
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize(),
-		contentAlignment = Alignment.Center
+		contentAlignment = Alignment.TopCenter
 	) {
 		with(sharedTransitionScope) {
 			Card(
@@ -96,7 +96,9 @@ internal fun ViewEntryUi(
 					),
 				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 			) {
-			Column(modifier = Modifier.widthIn(128.dp, 700.dp).wrapContentHeight()) {
+				Column(
+					modifier = Modifier.widthIn(Ui.DetailCard.MIN_WIDTH, Ui.DetailCard.MAX_WIDTH).wrapContentHeight()
+				) {
 				if (state.editName) {
 					TextField(
 						modifier = Modifier
@@ -122,7 +124,7 @@ internal fun ViewEntryUi(
 								.clickable { component.startNameEdit() }
 						)
 
-						ViewEntryMenuUi(component)
+						DetailViewDropdownMenu(menuItems = state.menuItems)
 
 						IconButton(
 							onClick = {

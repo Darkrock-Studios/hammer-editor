@@ -35,6 +35,11 @@ object Ui {
 		val widthExpanded = 240.dp
 	}
 
+	object DetailCard {
+		val MIN_WIDTH = 128.dp
+		val MAX_WIDTH = 700.dp
+	}
+
 	val MIN_TOUCH_SIZE = 48.dp
 	val TOP_BAR_HEIGHT = 56.dp
 

@@ -96,6 +96,8 @@ class NotesComponent(
 			noteId = config.noteId,
 			dismissView = ::showBrowse,
 			updateShouldClose = updateShouldClose,
+			addMenu = addMenu,
+			removeMenu = removeMenu,
 		)
 	}
 

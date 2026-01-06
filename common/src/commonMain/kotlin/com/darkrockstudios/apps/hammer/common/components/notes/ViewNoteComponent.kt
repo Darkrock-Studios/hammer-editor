@@ -3,10 +3,15 @@ package com.darkrockstudios.apps.hammer.common.components.notes
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.*
 import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.notes_menu_delete
+import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
 
 class ViewNoteComponent(
@@ -14,7 +19,9 @@ class ViewNoteComponent(
 	projectDef: ProjectDef,
 	private val noteId: Int,
 	private val dismissView: () -> Unit,
-	private val updateShouldClose: () -> Unit
+	private val updateShouldClose: () -> Unit,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
+	private val removeMenu: (id: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewNote {
 
 	private val notesRepository: NotesRepository by projectInject()
@@ -166,6 +173,47 @@ class ViewNoteComponent(
 		} else {
 			_state.getAndUpdate { it.copy(note = note) }
 			_noteText.update { note?.content ?: "" }
+		}
+	}
+
+	override fun onStart() {
+		addEntryMenu()
+	}
+
+	override fun onStop() {
+		removeEntryMenu()
+	}
+
+	private val menuId = "view-note"
+	private fun addEntryMenu() {
+		val deleteEntry = MenuItemDescriptor(
+			"view-note-delete",
+			Res.string.notes_menu_delete,
+			"",
+		) {
+			confirmDelete()
+		}
+
+		val menuItems = setOf(deleteEntry)
+		val menu = MenuDescriptor(
+			menuId,
+			Res.string.notes_menu_group,
+			menuItems.toList()
+		)
+		addMenu(menu)
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = menuItems
+			)
+		}
+	}
+
+	private fun removeEntryMenu() {
+		removeMenu(menuId)
+		_state.getAndUpdate {
+			it.copy(
+				menuItems = emptySet()
+			)
 		}
 	}
 }
