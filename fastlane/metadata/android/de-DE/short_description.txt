@@ -1,0 +1,1 @@
+Ein einfaches Werkzeug zum Erstellen von Geschichten.

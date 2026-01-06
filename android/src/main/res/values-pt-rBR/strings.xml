@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hammer</string>
+    <string name="title_activity_add_note">Adicionar Anotação</string>
     <string name="loading">Carregando…</string>
-    <string name="title_activity_configure_note_widget">Configurar Widget</string>
-    <string name="note_widget_dialog_projects_dropdown">Categorias</string>
-    <string name="note_widget_button_description">Adicionar Notas</string>
-    <string name="note_widget_toast_no_projects">Sem projetos</string>
-    <string name="note_widget_toast_success">Nota Adicionada</string>
-    <string name="title_activity_add_note">Adicionar Nota</string>
-    <string name="overflow_menu_button">Mais Opções</string>
-    <string name="navdrawer_button">Gaveta de Navegação</string>
-    <string name="note_widget_dialog_title">Adicionar Nota à:</string>
+    <string name="title_activity_configure_note_widget">Configure Widget</string>
+    <string name="overflow_menu_button">More Menu</string>
+    <string name="navdrawer_button">Navigation Drawer</string>
+    <string name="note_widget_dialog_title">Add Note to:</string>
     <string name="note_widget_dialog_save_button">Salvar</string>
     <string name="note_widget_dialog_cancel_button">Cancelar</string>
+    <string name="note_widget_dialog_projects_dropdown">Projetos</string>
     <string name="note_widget_dialog_failure_bad_project">Projeto não encontrado: %1$s</string>
-    <string name="note_widget_confirm_cancel_title">Descartar Nota\?</string>
+    <string name="note_widget_confirm_cancel_title">Descartar anotação?</string>
     <string name="note_widget_confirm_cancel_positive">Descartar</string>
     <string name="note_widget_confirm_cancel_negative">Cancelar</string>
-    <string name="action_add_note_short_label">Adicionar Nota</string>
-    <string name="title_activity_add_note_widget_config">Configurar Widget</string>
-    <string name="note_widget_config_title">Configurar Widget de Notas:</string>
-    <string name="note_widget_config_project_checkbox_explained">Será solicitado que você escolha um projeto sempre que não tiver um projeto selecionado.</string>
-    <string name="action_add_note_long_label">Adicionar Nota de História</string>
-    <string name="note_widget_config_project_checkbox">Adicionar notas ao projeto especificado</string>
-    <string name="action_add_note_disabled">A adição de notas está desabilitada agora</string>
+    <string name="note_widget_button_description">Adicionar Anotação</string>
+    <string name="note_widget_toast_no_projects">No projects</string>
+    <string name="note_widget_toast_success">Note Added</string>
+    <string name="action_add_note_short_label">Add Note</string>
+    <string name="action_add_note_long_label">Add Story Note</string>
+    <string name="action_add_note_disabled">Adding notes is disabled right now</string>
+    <string name="title_activity_add_note_widget_config">Configure Widget</string>
+    <string name="note_widget_config_title">Configure Note Widget:</string>
+    <string name="note_widget_config_project_checkbox">Add notes to specified project</string>
+    <string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
 </resources>

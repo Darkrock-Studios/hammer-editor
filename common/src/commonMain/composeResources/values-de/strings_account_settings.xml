@@ -1,62 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="settings_heading">⚙ Einstellungen</string>
-	<string name="settings_theme_label">Benutzeroberflächen-Thema</string>
+	<string name="settings_backups_header">Backups</string>
+	<string name="settings_backups_description">Projekt-Backups verwalten</string>
+	<string name="settings_backups_explainations">Dieses Backup-System soll vor Datenverlust und Beschädigung schützen. Es ist NICHT dafür gedacht, ältere Revisionen deiner Geschichten zu behalten. Bitte verwende dafür das Entwürfe-System.</string>
+	<string name="settings_backups_manage_button">Backups verwalten</string>
+	<string name="settings_theme_label">Benutzeroberfläche</string>
 	<string name="settings_projects_directory">Projektverzeichnis</string>
+	<string name="settings_projects_directory_description">Lege das Verzeichnis fest, in dem Hammer die Projektdaten speichern soll.</string>
 	<string name="settings_projects_directory_hint">Pfad zum Projektverzeichnis</string>
-	<string name="settings_projects_directory_button">Verzeichnis wählen</string>
+	<string name="settings_projects_directory_button">Wähle das Verzeichnis</string>
 	<string name="settings_example_project_header">Beispielprojekt</string>
-	<string name="settings_example_project_description">Installiere ein Beispielprojekt, um zu sehen, wie verschiedene
-		Funktionen verwendet werden.
-	</string>
-	<string name="settings_example_project_button">Neu installieren</string>
-	<string name="settings_example_project_success_message">Beispielprojekt erstellt.</string>
-	<string name="settings_data_version">Daten: v%1$s</string>
+	<string name="settings_example_project_description">Installiere ein Beispielprojekt, um zu sehen, wie unterschiedliche Funktionen verwendet werden.</string>
+	<string name="settings_example_project_button">Beispielprojekt wiederherstellen</string>
+	<string name="settings_example_project_success_message">Beispiel Projekt erstellt.</string>
+	<string name="settings_data_version">Version: %1$s</string>
 	<string name="settings_server_header">Server</string>
-	<string name="settings_server_description">Server zum Synchronisieren zwischen Geräten einrichten.</string>
+	<string name="settings_server_description">Datensynchronisierung konfigurieren</string>
 	<string name="settings_server_url_label">URL:</string>
 	<string name="settings_server_email_label">E-Mail:</string>
-	<string name="settings_server_setup_button">Einrichten</string>
+	<string name="settings_server_setup_button">Einstellen</string>
 	<string name="settings_server_modify_button">Ändern</string>
 	<string name="settings_server_unknown_error">Fehler</string>
-	<string name="settings_server_auto_sync">Automatische Synchronisation</string>
-	<string name="settings_server_sync_backup">Backup bei Synchronisation</string>
-	<string name="settings_server_sync_auto_close">Sync-Dialoge bei Erfolg schließen</string>
+	<string name="settings_server_auto_sync">Automatisch synchronisieren</string>
+	<string name="settings_server_sync_backup">Bei Synchronisierung Backup erstellen</string>
+	<string name="settings_server_sync_auto_close">Synchronisationsdialoge bei Erfolg schließen</string>
 	<string name="settings_server_max_backups">Maximale Backups pro Projekt</string>
-	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
+	<string name="settings_server_max_backups_error">Muss zwischen 1 und %1$d sein</string>
 	<string name="settings_server_test_auth_button">Authentifizierung testen</string>
 	<string name="settings_server_reauth_button">Erneut authentifizieren</string>
 	<string name="settings_server_remove_server_button">Server entfernen</string>
-	<string name="settings_server_authtest_toast_success">Authentifizierung erfolgreich</string>
-	<string name="settings_server_authtest_toast_failure">Authentifizierung fehlgeschlagen</string>
+	<string name="settings_server_authtest_toast_success">Anmeldung war erfolgreich</string>
+	<string name="settings_server_authtest_toast_failure">Anmeldung war nicht erfolgreich</string>
 	<string name="settings_remove_server_dialog_title">Server entfernen</string>
-	<string name="settings_remove_server_dialog_message">Möchtest du den Server wirklich entfernen?</string>
+	<string name="settings_remove_server_dialog_message">Bist du sicher, dass du diesen Server entfernen möchtest?</string>
 	<string name="settings_server_setup_title">Server einrichten</string>
 	<string name="settings_server_setup_header">Server konfigurieren</string>
 	<string name="settings_server_setup_ssl_label">HTTPS?</string>
-	<string name="settings_server_setup_url_hint">Server-URL: meinserver.com</string>
-	<string name="settings_server_setup_email_hint">E-Mail: benutzer@beispiel.de</string>
+	<string name="settings_server_setup_url_hint">Server-URL: hammer.ink</string>
+	<string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Passwort</string>
 	<string name="settings_server_setup_password_show">Passwort anzeigen</string>
-	<string name="settings_server_setup_password_hide">Passwort verbergen</string>
+	<string name="settings_server_setup_password_hide">Passwort verstecken</string>
 	<string name="settings_server_setup_login_button">Anmelden</string>
 	<string name="settings_server_setup_create_button">Erstellen</string>
 	<string name="settings_server_setup_cancel_button">Abbrechen</string>
-	<string name="settings_server_setup_toast_failure">Server-Einrichtung fehlgeschlagen: %1$s</string>
+	<string name="settings_server_setup_toast_failure">Server Setup fehlgeschlagen: %1$s</string>
 	<string name="settings_server_setup_toast_failure_unknown">Unbekannter Fehler</string>
-	<string name="settings_server_setup_toast_success">Server-Einrichtung abgeschlossen!</string>
-	<string name="remove_local_dialog_title">Lokale Inhalte entfernen?</string>
-	<string name="remove_local_dialog_message">Sollen deine aktuellen lokalen Inhalte vor der Synchronisation entfernt
-		werden? Wenn nicht, versuchen wir, deine lokalen Inhalte mit den Server-Inhalten zusammenzuführen. Sind die
-		Inhalte nicht verwandt, könnte dies zu Problemen führen.
-	</string>
+	<string name="settings_server_setup_toast_success">Server Setup abgeschlossen!</string>
+	<string name="remove_local_dialog_title">Lokalen Inhalt löschen?</string>
+	<string name="remove_local_dialog_message">Sollen wir deine aktuellen lokalen Inhalte vor der Synchronisierung entfernen? Falls nicht, werden wir versuchen, deine lokalen Inhalte mit den Serverinhalten zusammenzuführen. Wenn der Inhalt nicht miteinander kompatibel ist, kann es zu Problemen kommen.</string>
 	<string name="settings_platform_settings_title">Plattform-Einstellungen</string>
-	<string name="settings_keep_screen_on">Bildschirm eingeschaltet lassen</string>
-	<string name="settings_spellcheck_heading">Rechtschreibprüfung</string>
+	<string name="settings_keep_screen_on">Bildschirm nicht ausschalten</string>
+	<string name="settings_enable_dnd_focus_mode_title">\"Nicht stören\" im Fokus-Modus aktivieren</string>
+	<string name="settings_dnd_permission_button">\"Bitte nicht stören\"-Berechtigung gewähren</string>
+	<string name="settings_dnd_permission_explanation">Hammer benötigt die Berechtigung, um \"Nicht stören-Modus\" zu aktivieren, wenn du dich im Fokus-Modus befindest.</string>
+	<string name="settings_spellcheck_heading">Rechtschreibung überprüfen</string>
+	<string name="settings_spellcheck_notice">Rechtschreibprüfung ist experimentell! Wenn sie Probleme verursacht, schalte sie einfach aus.</string>
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren (experimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
-	<string name="settings_spellcheck_notice">Die Rechtschreibprüfung ist experimentell! Wenn sie Probleme verursacht,
-		schalten Sie sie einfach aus.
-	</string>
+	<string name="settings_server_enable_sync_backup">Synchronisieren aktivieren &amp; Backup</string>
+	<string name="settings_server_enable_sync_backup_desc">Richte einen Server ein, um deine Projekte zwischen den Geräten zu synchronisieren und sichere Sicherungen zu erstellen.</string>
+	<string name="settings_server_connection_header">Server Verbindung</string>
+	<string name="settings_server_configured">Konfiguriert</string>
+	<string name="settings_server_sync_backup_preferences">Synchronisiere &amp; Backup-Einstellungen</string>
+	<string name="settings_server_danger_zone">Gefahrenzone</string>
+	<!-- Backup Manager Dialog -->
+	<string name="backup_manager_error_load_backups">Fehler beim Laden der Backups: %1$s</string>
+	<string name="backup_manager_error_load_project_backups">Fehler beim Laden der Backups für das Projekt: %1$s</string>
+	<string name="backup_manager_error_delete_backup">Fehler beim Löschen der Backups: %1$s</string>
+	<string name="backup_restore_dialog_title">Backup wiederherstellen</string>
+	<string name="backup_restore_dialog_message">Warnung: Das Wiederherstellen dieses Backups ersetzt den aktuellen Inhalt des Projekts vollständig. Alle vorhandenen Dateien werden gelöscht und mit den Backup-Daten ersetzt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
+	<string name="backup_restore_dialog_confirm">Wiederherstellen</string>
+	<string name="backup_restore_dialog_cancel">Abbrechen</string>
+	<string name="backup_manager_title">Backups verwalten</string>
+	<string name="backup_manager_close_content_description">Schließen</string>
+	<string name="backup_manager_no_backups">Keine Sicherungen gefunden</string>
+	<string name="backup_manager_select_project_hint">Projekt auswählen</string>
+	<string name="backup_manager_project_label">Projekt</string>
+	<string name="backup_manager_no_backups_for_project">Keine Sicherungen für dieses Projekt</string>
+	<string name="backup_manager_restore_button">Wiederherstellen</string>
+	<string name="backup_manager_delete_content_description">Backup löschen</string>
+	<string name="backup_manager_show_button">Show in Folder</string>
+	<string name="backup_manager_export_button">Export</string>
+	<string name="account_sync_confirm_cancel_title">Cancel Sync?</string>
+	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
+	<string name="account_sync_toast_canceled">Sync canceled</string>
 </resources>

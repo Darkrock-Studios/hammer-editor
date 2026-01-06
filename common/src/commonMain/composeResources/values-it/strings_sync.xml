@@ -1,142 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="sync_project_dialog_title">Sincronizzazione del Progetto</string>
-	<string name="sync_conflict_scene_title">Conflitto della scena</string>
-	<string name="sync_conflict_scene_draft_title">Conflitto di Bozza della Scena</string>
-	<string name="sync_conflict_note_title">Nota di conflitto</string>
-	<string name="sync_conflict_timeline_title">Conflitto degli eventi nella cronologia</string>
-	<string name="sync_conflict_encyclopedia_title">Conflitto dell'Enciclopedia</string>
-	<string name="sync_conflict_draft_title">Conflitto Enciclopedico</string>
-	<string name="sync_conflict_timeline_event_missing_date">Nessuna data</string>
-	<string name="sync_conflict_tab_local">Locale</string>
-	<string name="sync_conflict_tab_remote">Remoto</string>
-	<string name="sync_conflict_icon_description">conflitto</string>
-	<string name="sync_conflict">Conflitto</string>
-	<string name="sync_conflict_local_entry">Voce locale:</string>
-	<string name="sync_conflict_local_use_button">Usa Locale</string>
-	<string name="sync_conflict_merge_explained">Puoi prendere la copia locale o remota così com'è, oppure puoi unire
-		manualmente i due copiando parti della versione remota nella tua copia locale e poi prendendo quella.
-	</string>
-	<string name="sync_conflict_remote_entry">Voce remota:</string>
-	<string name="sync_conflict_remote_use_button">Usa Remoto</string>
-	<string name="sync_conflict_encyclopedia_local">Evento locale: %1$s</string>
-	<string name="sync_conflict_encyclopedia_remote">Evento remoto: %1$s</string>
-	<string name="sync_conflict_encyclopedia_label_name">Nome:</string>
-	<string name="sync_conflict_encyclopedia_label_type">Tipo:</string>
-	<string name="sync_conflict_encyclopedia_label_image">Immagine:</string>
-	<string name="sync_conflict_encyclopedia_label_content">Contenuto:</string>
-	<string name="sync_conflict_encyclopedia_label_tags">Etichette:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Ha un'immagine</string>
-	<string name="sync_conflict_encyclopedia_no_image">Nessuna immagine</string>
-	<string name="sync_conflict_title_scene_remote">Scene remota:</string>
-	<string name="sync_conflict_title_scene_local">Scena Locale:</string>
-	<string name="sync_conflict_title_scene_field_name">Nome</string>
-	<string name="sync_conflict_title_scene_field_content">Contenuto della scena</string>
-	<string name="sync_conflict_title_scene_draft_remote">Bozza remota:</string>
-	<string name="sync_conflict_title_scene_draft_local">Bozza locale:</string>
-	<string name="sync_conflict_title_scene_draft_field_name">Nome</string>
-	<string name="sync_conflict_title_scene_draft_field_content">Contenuto della scena</string>
-	<string name="sync_conflict_title_note_remote">Nota remota:</string>
-	<string name="sync_conflict_title_note_local">Nota locale:</string>
-	<string name="sync_conflict_title_note_field_name">Contenuto della nota</string>
-	<string name="sync_conflict_title_timeline_event_remote">Evento remoto:</string>
-	<string name="sync_conflict_title_timeline_event_local">Evento locale:</string>
-	<string name="sync_conflict_title_timeline_event_field_date">Data</string>
-	<string name="sync_conflict_title_timeline_event_field_content">Contenuto dell'evento</string>
-	<string name="sync_menu_group">Sincronizza</string>
-	<string name="sync_menu_item">Inizia sincronizzazione</string>
-	<string name="sync_status_in_progress">Sincronizzazione in corso...</string>
-	<string name="sync_status_failed">Sincronizzazione fallita</string>
-	<string name="sync_status_success">Sincronizzazione completata</string>
-	<string name="sync_cancel_button">Annulla</string>
-	<string name="sync_toast_success">Sincronizzazione del progetto completata</string>
-	<string name="sync_toast_failed">Sincronizzazione del progetto non riuscita</string>
-	<string name="sync_log_account_begin">Inizia sincronizzazione</string>
-	<string name="sync_log_account_server_data_loaded">Dati del server caricati</string>
-	<string name="sync_log_account_complete">Sincronizzazione dell'account completata</string>
-	<string name="sync_log_account_failed">Impossibile sincronizzare i progetti: %1$s</string>
-	<string name="sync_log_account_project_delete_server_success">Eliminazione del progetto server:
-		ID(%1$s)
-	</string>
-	<string name="sync_log_account_project_delete_server_failure">Impossibile eliminare il progetto dal server: %1$s
-	</string>
-	<string name="sync_log_account_project_delete_client">Eliminazione del progetto locale: %1$s</string>
-	<string name="sync_log_account_project_rename_server_success">Ridenominazione del progetto del server:
-		ID(%1$s)
-	</string>
-	<string name="sync_log_account_project_rename_server_failure">Impossibile rinominare il progetto su
-		server: %1$s
-	</string>
-	<string name="sync_log_account_project_rename_client_from_server_success">Rinomina il progetto da
-		server: %1$s
-	</string>
-	<string name="sync_log_account_project_rename_client_from_server_failure">Impossibile rinominare
-		progetto dal server: %1$s
-	</string>
-	<string name="sync_log_account_project_create_server_success">Progetto creato sul server: %1$s</string>
-	<string name="sync_log_account_project_create_server_failure">Impossibile creare il progetto sul server: %1$s
-	</string>
-	<string name="sync_log_account_project_create_client">Progetto locale creato: %1$s</string>
-	<string name="sync_log_account_project_create_client_local">Impostando l'ID del server del progetto locale:
-		%1$s
-	</string>
-	<string name="sync_log_account_project_create_client_failure">Impossibile creare il progetto server:
-		%1$s
-	</string>
-	<string name="sync_log_begin_account">Sincronizzazione dell'account...</string>
-	<string name="sync_log_begin_projects">Sincronizzazione progetti...</string>
-	<string name="sync_log_end_projects">Sincronizzazione progetti completata</string>
-	<string name="sync_log_begin_project">Sincronizzazione progetto: %1$s</string>
-	<string name="sync_log_project_conflict">C'è un conflitto nel progetto: %1$s, apri quel progetto e sincronizza per
-		risolverlo.
-	</string>
-	<string name="sync_log_client_data_computed">Dati dell'entità cliente calcolati</string>
-	<string name="sync_log_server_data_loaded">Dati del server ricevuti</string>
-	<string name="sync_log_client_data_loaded">Dati del cliente caricati</string>
-	<string name="sync_log_backup_made">Backup locale creato: %1$s</string>
-	<string name="sync_log_entity_download_success">Entità %1$d scaricata</string>
-	<string name="sync_log_entity_download_failed_general">Download dell'entità %1$d non riuscito</string>
-	<string name="sync_log_entity_download_failed_not_found">Entità %1$d non trovata sul server</string>
-	<string name="sync_log_entity_download_not_modified">Entità %1$d non modificata</string>
-	<string name="sync_log_entity_upload_entity_not_owned">Impossibile caricare l'entità %1$d: tipo non posseduto da
-		nulla, probabilmente eliminato
-	</string>
-	<string name="sync_log_entity_delete_failed">Impossibile eliminare l'ID %1$d sul server: %2$s</string>
-	<string name="sync_log_entity_delete_success">ID %1$d eliminato sul server</string>
-	<string name="sync_log_entity_conflict">Conflitto riscontrato per la nuova Entità, questo non dovrebbe essere
-		possibile! ID: %1$d
-		TIPO: %2$s
-	</string>
-	<string name="sync_log_entity_failed">Sincronizzazione fallita: %1$s</string>
-	<string name="sync_log_entities_transferred">Entità trasferite</string>
-	<string name="sync_log_finalized">Sincronizzazione finalizzata</string>
-	<string name="sync_log_data_saved">Dati di sincronizzazione salvati</string>
-	<string name="sync_log_data_save_failed">I dati di sincronizzazione non sono stati salvati a causa di errori
-	</string>
-	<string name="sync_log_failed">Impossibile terminare la sincronizzazione</string>
-	<string name="sync_encyclopedia_deleted">Eliminato l'Enciclopedia ID %1$d dal cliente</string>
-	<string name="sync_note_deleted">Nota eliminata con ID %1$d dal client</string>
-	<string name="sync_draft_deleted">Draft eliminato %1$d dal client</string>
-	<string name="sync_scene_deleted">Scena %1$d eliminata dal client</string>
-	<string name="sync_scene_delete_failed">Impossibile eliminare la scena %1$d dal client</string>
-	<string name="sync_scene_delete_failed_not_found">Impossibile trovare la scena da eliminare: %1$d</string>
-	<string name="sync_event_deleted">Evento %1$d eliminato dal client</string>
-	<string name="sync_event_delete_failed">Impossibile eliminare l'evento %1$d dal client.</string>
-	<string name="sync_event_delete_failed_not_found">Impossibile trovare l'evento da eliminare: %1$d</string>
-	<string name="sync_scene_creating">Creando nuova scena %1$d</string>
-	<string name="sync_scene_downloading">Contenuto della scena scaricato per: %1$d</string>
-	<string name="sync_scene_moved_parent">Scene spostata %1$d a nuovo genitore %2$d</string>
-	<string name="sync_scene_store_content_failed">Impossibile salvare il contenuto della scena scaricata per: %1$d
-	</string>
-	<string name="sync_scene_group_creating">Creando un nuovo gruppo %1$d</string>
-	<string name="sync_scene_group_downloading">Contenuti della scena scaricati per: %1$d</string>
-	<string name="sync_scene_group_moved_parent">Spostata la scena %1$d in un nuovo genitore %2$d</string>
-	<string name="sync_unauthorized">Non autorizzato</string>
-	<string name="sync_general_error">Errore del server non gestito</string>
-	<string name="reauth_title">Ri-autorizza</string>
-	<string name="reauth_explanation">Il tuo token è scaduto, per favore riautenticati con il tuo server di
-		sincronizzazione.
-	</string>
-	<string name="reauth_server_url">Indirizzo</string>
+	<string name="sync_project_dialog_title">Project Synchronization</string>
+	<string name="sync_conflict_scene_title">Scene Conflict</string>
+	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
+	<string name="sync_conflict_note_title">Note Conflict</string>
+	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
+	<string name="sync_conflict_draft_title">Draft Conflict</string>
+	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
+	<string name="sync_conflict_tab_local">Local</string>
+	<string name="sync_conflict_tab_remote">Remote</string>
+	<string name="sync_conflict_icon_description">conflict</string>
+	<string name="sync_conflict">Conflict</string>
+	<string name="sync_conflict_local_entry">Local Entry:</string>
+	<string name="sync_conflict_local_use_button">Use Local</string>
+	<string name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually merge the two by copying parts of the remote into your local copy, and then taking that.</string>
+	<string name="sync_conflict_remote_entry">Remote Entry:</string>
+	<string name="sync_conflict_remote_use_button">Use Remote</string>
+	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
+	<string name="sync_conflict_encyclopedia_local">Local Event: %1$s</string>
+	<string name="sync_conflict_encyclopedia_remote">Remote Event: %1$s</string>
+	<string name="sync_conflict_encyclopedia_label_name">Name:</string>
+	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
+	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
+	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
+	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
+	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
+	<string name="sync_conflict_encyclopedia_no_image">No Image</string>
+	<string name="sync_conflict_title_scene_remote">Remote Scene:</string>
+	<string name="sync_conflict_title_scene_local">Local Scene:</string>
+	<string name="sync_conflict_title_scene_field_name">Name</string>
+	<string name="sync_conflict_title_scene_field_content">Scene Content</string>
+	<string name="sync_conflict_title_scene_field_outline">Outline</string>
+	<string name="sync_conflict_title_scene_field_notes">Notes</string>
+	<string name="sync_conflict_scene_tab_content">Content</string>
+	<string name="sync_conflict_scene_tab_metadata">Metadata</string>
+	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
+	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>
+	<string name="sync_conflict_title_scene_draft_field_name">Name</string>
+	<string name="sync_conflict_title_scene_draft_field_content">Scene Content</string>
+	<string name="sync_conflict_title_note_remote">Remote Note:</string>
+	<string name="sync_conflict_title_note_local">Local Note:</string>
+	<string name="sync_conflict_title_note_field_name">Note Content</string>
+	<string name="sync_conflict_title_timeline_event_remote">Remote Event:</string>
+	<string name="sync_conflict_title_timeline_event_local">Local Event:</string>
+	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
+	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
+	<string name="sync_menu_group">Sync</string>
+	<string name="sync_menu_item">Start Sync</string>
+	<string name="sync_status_in_progress">Synchronizing...</string>
+	<string name="sync_status_failed">Sync Failed</string>
+	<string name="sync_status_success">Sync Complete</string>
+	<string name="sync_cancel_button">Cancel</string>
+	<string name="sync_toast_success">Project Sync Complete</string>
+	<string name="sync_toast_failed">Project Sync Failed</string>
+	<string name="sync_log_account_begin">Begin Sync</string>
+	<string name="sync_log_account_server_data_loaded">Server data loaded</string>
+	<string name="sync_log_account_complete">Account Sync complete</string>
+	<string name="sync_log_account_failed">Failed to sync projects: %1$s</string>
+	<string name="sync_log_account_project_delete_server_success">Deleting server project:
+		ID(%1$s)</string>
+	<string name="sync_log_account_project_delete_server_failure">Failed to delete project on server: %1$s</string>
+	<string name="sync_log_account_project_delete_client">Deleting local project: %1$s</string>
+	<string name="sync_log_account_project_rename_server_success">Renaming server project:
+		ID(%1$s)</string>
+	<string name="sync_log_account_project_rename_server_failure">Failed to rename project on
+		server: %1$s</string>
+	<string name="sync_log_account_project_rename_client_from_server_success">Rename project from
+		server: %1$s</string>
+	<string name="sync_log_account_project_rename_client_from_server_failure">Failed to rename
+		project from server: %1$s</string>
+	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
+	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
+	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
+	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
+		%1$s</string>
+	<string name="sync_log_account_project_create_client_failure">Failed to create server project:
+		%1$s</string>
+	<string name="sync_log_begin_account">Syncing Account...</string>
+	<string name="sync_log_begin_projects">Syncing Projects...</string>
+	<string name="sync_log_end_projects">Projects Sync Complete</string>
+	<string name="sync_log_begin_project">Syncing Project: %1$s</string>
+	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order to resolve it</string>
+	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
+	<string name="sync_log_server_data_loaded">Server data received</string>
+	<string name="sync_log_client_data_loaded">Client data loaded</string>
+	<string name="sync_log_backup_made">Local Backup made: %1$s</string>
+	<string name="sync_log_entity_download_success">Entity %1$d downloaded</string>
+	<string name="sync_log_entity_download_failed_general">Failed to download entity %1$d</string>
+	<string name="sync_log_entity_download_failed_not_found">Entity %1$d not found on server</string>
+	<string name="sync_log_entity_download_not_modified">Entity %1$d not modified</string>
+	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything,
+		probably deleted</string>
+	<string name="sync_log_entity_delete_failed">Failed to delete ID %1$d on server: %2$s</string>
+	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
+	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s</string>
+	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
+	<string name="sync_log_entities_transferred">Entities transferred</string>
+	<string name="sync_log_finalized">Sync finalized</string>
+	<string name="sync_log_data_saved">Sync data saved</string>
+	<string name="sync_log_data_save_failed">Sync data not saved due to errors</string>
+	<string name="sync_log_failed">Failed to end sync</string>
+	<string name="sync_encyclopedia_deleted">Deleted Encyclopedia ID %1$d from client</string>
+	<string name="sync_note_deleted">Deleted note ID %1$d from client</string>
+	<string name="sync_draft_deleted">Deleted draft %1$d from client</string>
+	<string name="sync_scene_deleted">Deleted scene %1$d from client</string>
+	<string name="sync_scene_delete_failed">Failed to delete scene %1$d from client</string>
+	<string name="sync_scene_delete_failed_not_found">Failed find scene to delete: %1$d</string>
+	<string name="sync_event_deleted">Deleted event %1$d from client</string>
+	<string name="sync_event_delete_failed">Failed to delete event %1$d from client</string>
+	<string name="sync_event_delete_failed_not_found">Failed find event to delete: %1$d</string>
+	<string name="sync_scene_creating">Creating new scene %1$d</string>
+	<string name="sync_scene_downloading">Downloaded scene content for: %1$d</string>
+	<string name="sync_scene_moved_parent">Moved scene %1$d to new parent %2$d</string>
+	<string name="sync_scene_store_content_failed">Failed to save downloaded scene content for: %1$d</string>
+	<string name="sync_scene_group_creating">Creating new group %1$d</string>
+	<string name="sync_scene_group_downloading">Downloaded scene content for: %1$d</string>
+	<string name="sync_scene_group_moved_parent">Moved scene %1$d to new parent %2$d</string>
+	<string name="sync_unauthorized">Unauthorized</string>
+	<string name="sync_general_error">Unhandled server error</string>
+	<string name="reauth_title">Reauthorize</string>
+	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>
+	<string name="reauth_server_url">Address</string>
 	<string name="reauth_server_email">E-Mail</string>
 </resources>
