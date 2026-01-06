@@ -98,6 +98,8 @@
 	<string name="backup_manager_no_backups_for_project">No backups for this project</string>
 	<string name="backup_manager_restore_button">Restore</string>
 	<string name="backup_manager_delete_content_description">Delete backup</string>
+	<string name="backup_manager_show_button">Show in Folder</string>
+	<string name="backup_manager_export_button">Export</string>
 	<string name="account_sync_confirm_cancel_title">Cancel Sync?</string>
 	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
 	<string name="account_sync_toast_canceled">Sync canceled</string>
