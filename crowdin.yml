@@ -10,4 +10,4 @@ files:
   - source: /fastlane/metadata/android/en-US/*.txt
     translation: /fastlane/metadata/android/%locale%/%original_file_name%
   - source: /server/src/main/resources/i18n/Messages_en.properties
-    translation: /server/src/main/resources/i18n/Messages_%locale%.properties
+    translation: /server/src/main/resources/i18n/Messages_%locale_with_underscore%.properties
