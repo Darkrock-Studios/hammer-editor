@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection.settings
+package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.projectselection.BackupManagerDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

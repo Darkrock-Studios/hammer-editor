@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -235,6 +235,8 @@ private fun BackupItem(
 	onDelete: () -> Unit,
 	onRestore: () -> Unit
 ) {
+	var expanded by remember { mutableStateOf(false) }
+
 	Card(
 		modifier = Modifier.fillMaxWidth(),
 		elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -265,18 +267,32 @@ private fun BackupItem(
 				)
 			}
 
-			Row(
-				horizontalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				TextButton(onClick = onRestore) {
-					Text(Res.string.backup_manager_restore_button.get())
+			Box {
+				IconButton(onClick = { expanded = true }) {
+					Icon(
+						imageVector = Icons.Default.MoreVert,
+						contentDescription = Res.string.more_menu_button.get(),
+						tint = MaterialTheme.colorScheme.onSurface
+					)
 				}
 
-				IconButton(onClick = onDelete) {
-					Icon(
-						imageVector = Icons.Default.Delete,
-						contentDescription = Res.string.backup_manager_delete_content_description.get(),
-						tint = MaterialTheme.colorScheme.error
+				DropdownMenu(
+					expanded = expanded,
+					onDismissRequest = { expanded = false }
+				) {
+					DropdownMenuItem(
+						text = { Text(Res.string.backup_manager_restore_button.get()) },
+						onClick = {
+							expanded = false
+							onRestore()
+						}
+					)
+					DropdownMenuItem(
+						text = { Text(Res.string.backup_manager_delete_content_description.get()) },
+						onClick = {
+							expanded = false
+							onDelete()
+						}
 					)
 				}
 			}
