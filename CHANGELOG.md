@@ -1,10 +1,11 @@
 # Changelog
 
-## [1.14.0] - 2026-1-5
+## [1.14.0] - 2026-1-6
 
 New Features
 - Find & Replace in text editor
 - Search & Sort for Notes
+- Export Backups
 
 Improvements
 - New icons throughout the app

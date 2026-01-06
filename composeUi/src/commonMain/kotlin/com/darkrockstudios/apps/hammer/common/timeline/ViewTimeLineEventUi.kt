@@ -45,19 +45,21 @@ fun ViewTimeLineEventUi(
 
 	val event = remember(state.event) { state.event }
 
-	with(sharedTransitionScope) {
-		Card(
-			modifier = modifier
-				.padding(Ui.Padding.XL)
-				.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
-				.sharedElement(
-					sharedContentState = rememberSharedContentState(key = "timeline-card-${event?.id}"),
-					animatedVisibilityScope = animatedVisibilityScope
-				),
-			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-		) {
+	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+		with(sharedTransitionScope) {
+			Card(
+				modifier = Modifier
+					.padding(Ui.Padding.XL)
+					.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = "timeline-card-${event?.id}"),
+						animatedVisibilityScope = animatedVisibilityScope
+					),
+				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
+			) {
 			Column(
-				modifier = Modifier.padding(Ui.Padding.XL).widthIn(128.dp, 700.dp).wrapContentHeight()
+				modifier = Modifier.padding(Ui.Padding.XL).widthIn(Ui.DetailCard.MIN_WIDTH, Ui.DetailCard.MAX_WIDTH)
+					.wrapContentHeight()
 			) {
 				Row(
 					modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
@@ -110,16 +112,17 @@ fun ViewTimeLineEventUi(
 
 						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-						Divider(
-							color = MaterialTheme.colorScheme.outline,
+						HorizontalDivider(
 							modifier = Modifier.fillMaxHeight().width(1.dp)
-								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
+								.padding(top = Ui.Padding.M, bottom = Ui.Padding.M),
+							thickness = DividerDefaults.Thickness,
+							color = MaterialTheme.colorScheme.outline
 						)
 
 						Spacer(modifier = Modifier.size(Ui.Padding.XL))
 					}
 
-					ViewEventMenuUi(component)
+					DetailViewDropdownMenu(menuItems = state.menuItems)
 
 					IconButton(
 						onClick = { component.confirmClose() },
@@ -187,6 +190,7 @@ fun ViewTimeLineEventUi(
 				}
 			}
 		}
+	}
 	}
 
 	if (state.confirmClose) {

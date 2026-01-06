@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.backup_manager_error_load_project_backups
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -27,6 +28,7 @@ class BackupManagerComponent(
 	private val backupRepository by inject<ProjectBackupRepository>()
 	private val projectsRepository by inject<ProjectsRepository>()
 	private val strRes: StrRes by inject()
+	private val backupManagerService by inject<BackupManagerService>()
 
 	private val _state = MutableValue(BackupManager.State(isLoading = true))
 	override val state: Value<BackupManager.State> = _state
@@ -160,6 +162,14 @@ class BackupManagerComponent(
 	override fun restoreBackup(backup: ProjectBackupDef) {
 		scope.launch {
 			backupRepository.restoreBackup(backup, backup.projectDef.path)
+		}
+	}
+
+	override fun exportBackup(backup: ProjectBackupDef) {
+		scope.launch {
+			withContext(dispatcherIo) {
+				backupManagerService.exportBackup(backup)
+			}
 		}
 	}
 }

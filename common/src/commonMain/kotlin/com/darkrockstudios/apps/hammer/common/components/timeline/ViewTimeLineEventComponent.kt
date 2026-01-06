@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_menu_delete
+import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
 import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.first
@@ -140,7 +140,7 @@ class ViewTimeLineEventComponent(
 	private fun addEntryMenu() {
 		val deleteEntry = MenuItemDescriptor(
 			"view-timeline-event-delete",
-			Res.string.encyclopedia_entry_menu_delete,
+			Res.string.timeline_view_menu_delete,
 			"",
 		) {
 			startDeleteEvent()

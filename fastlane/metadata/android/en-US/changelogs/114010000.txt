@@ -1,6 +1,7 @@
 New Features
 - Find & Replace in text editor
 - Search & Sort for Notes
+- Export Backups
 
 Improvements
 - New icons throughout the app

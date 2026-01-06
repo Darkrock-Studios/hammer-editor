@@ -78,9 +78,10 @@ private fun ChapterOutlineUi(sceneOutline: OutlineOverview.OutlineItem.ChapterOu
 			style = MaterialTheme.typography.headlineSmall,
 		)
 
-		Divider(
+		HorizontalDivider(
 			modifier = Modifier.fillMaxWidth(),
-			color = MaterialTheme.colorScheme.outline,
+			thickness = DividerDefaults.Thickness,
+			color = MaterialTheme.colorScheme.outline
 		)
 	}
 }

@@ -81,7 +81,11 @@ fun SceneListUi(
 				OverflowMenu(component, treeState)
 			}
 
-			Divider(modifier = Modifier.fillMaxWidth())
+			HorizontalDivider(
+				modifier = Modifier.fillMaxWidth(),
+				thickness = DividerDefaults.Thickness,
+				color = DividerDefaults.color
+			)
 
 			SceneTree(
 				modifier = Modifier.fillMaxSize(),

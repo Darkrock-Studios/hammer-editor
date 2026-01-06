@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_created">Criado: %1$s</string>
-	<string name="project_home_stat_chapter_words">Palavras em Capítulos</string>
-	<string name="project_home_stat_chapter_words_x_axis">Capítulo</string>
-	<string name="project_home_stat_chapter_words_y_axis">Palavras</string>
+	<string name="project_home_stat_header">Estatísticas:</string>
+	<string name="project_home_stat_created">Criado em: %1$s</string>
+	<string name="project_home_loading_stats">Calculando estatísticas...</string>
+	<string name="project_home_refresh_stats_button">Atualizar estatísticas</string>
+	<string name="project_home_stats_dirty_indicator">As estatísticas podem estar desatualizadas</string>
+	<string name="project_home_stat_num_scenes">Cenas</string>
+	<string name="project_home_stat_total_words">Total de Palavras</string>
+	<string name="project_home_stat_encyclopedia_entries">Encyclopedia Entries</string>
+	<string name="project_home_stat_chapter_words">Words in Chapters</string>
+	<string name="project_home_stat_chapter_words_x_axis">Chapter</string>
+	<string name="project_home_stat_chapter_words_y_axis">Words</string>
 	<string name="project_home_actions_header">Ações:</string>
 	<string name="project_home_action_export">Exportar História</string>
 	<string name="project_home_action_sync">Sincronizar História</string>
-	<string name="project_home_action_backup">Cópia de Segurança</string>
-	<string name="project_home_action_backup_toast_success">Cópia de Segurança Criada: %1$s</string>
-	<string name="project_home_action_backup_toast_failure">Falha ao Fazer Cópia de Segurança</string>
-	<string name="project_home_action_export_toast_success">História Exportada</string>
-	<string name="project_home_stat_num_scenes">Cenas</string>
-	<string name="project_home_stat_header">Estatísticas:</string>
-	<string name="project_home_stat_total_words">Total de Palavras</string>
-	<string name="project_home_stat_encyclopedia_entries">Inscrições na Enciclopédia</string>
+	<string name="project_home_action_backup">Backup</string>
+	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
+	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
+	<string name="project_home_action_export_toast_success">Story Exported</string>
 	<string name="project_home_destinations_header">Projeto:</string>
-	<string name="project_home_action_stats_button">Estatísticas</string>
+	<string name="project_home_action_stats_button">Stats</string>
 	<string name="project_home_action_settings_button">Configurações</string>
-	<string name="project_home_settings_title">Configurações do Projeto</string>
+	<string name="project_home_menu_button">Project menu</string>
+	<string name="project_home_settings_title">Project Settings</string>
+	<string name="project_home_settings_close_button">Close settings</string>
 </resources>

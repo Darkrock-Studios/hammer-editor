@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">Молот</string>
-	<string name="unsaved_scenes_dialog_title">Незбагнені сцени</string>
-	<string name="unsaved_scenes_dialog_message">Що робити з незбереженими сценами?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Незбережена енциклопедія</string>
-	<string name="unsaved_encyclopedia_dialog_message">Відкинути вхід?</string>
-	<string name="unsaved_notes_dialog_title">Незбережена нота</string>
-	<string name="unsaved_notes_dialog_message">Відкинути примітку?</string>
-	<string name="unsaved_dialog_negative_button">Скасувати</string>
-	<string name="unsaved_dialog_positive_button">Відкинути і закрити</string>
-	<string name="unsaved_entity_dialog_negative_button">Відкинути</string>
-	<string name="unsaved_entity_dialog_neutral_button">Скасувати</string>
-	<string name="unsaved_entity_dialog_positive_button">Заощадити</string>
-	<string name="close_dialog_button">Закривати</string>
-	<string name="more_menu_button">Більше</string>
-	<string name="network_request_failure_connection">Помилка запиту в мережі: %1$s</string>
-	<string name="network_request_failure_parse_body">Не вдалося розібратися в тілі відповіді: %1$s</string>
-	<string name="confirm_dialog_positive">Так</string>
-	<string name="confirm_dialog_negative">Ні</string>
-	<string name="image_failed_to_load">Помилка зображення</string>
-	<string name="expand">Розширити</string>
-	<string name="collapse">Колапс</string>
+	<string name="app_name">Hammer</string>
+	<string name="unsaved_scenes_dialog_title">Unsaved Scenes</string>
+	<string name="unsaved_scenes_dialog_message">What should be done with unsaved scenes?</string>
+	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
+	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
+	<string name="unsaved_notes_dialog_title">Unsaved Note</string>
+	<string name="unsaved_notes_dialog_message">Discard note?</string>
+	<string name="unsaved_dialog_negative_button">Cancel</string>
+	<string name="unsaved_dialog_positive_button">Discard and close</string>
+	<string name="unsaved_entity_dialog_negative_button">Discard</string>
+	<string name="unsaved_entity_dialog_neutral_button">Cancel</string>
+	<string name="unsaved_entity_dialog_positive_button">Save</string>
+	<string name="close_dialog_button">Close</string>
+	<string name="more_menu_button">More</string>
+	<string name="network_request_failure_connection">Network request failed: %1$s</string>
+	<string name="network_request_failure_parse_body">Failed to parse response body: %1$s</string>
+	<string name="confirm_dialog_positive">Yes</string>
+	<string name="confirm_dialog_negative">No</string>
+	<string name="image_failed_to_load">Image Error</string>
+	<string name="expand">Expand</string>
+	<string name="collapse">Collapse</string>
 </resources>

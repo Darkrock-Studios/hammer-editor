@@ -1,0 +1,23 @@
+Este aplicativo ainda está em desenvolvimento e deve ser considerado como em versão beta.
+
+Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+
+Multi-plataforma
+
+Este aplicativo está sempre ao seu lado. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+
+Offline first
+
+I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+
+Dados Transparentes
+
+Os seus dados são seus. Eles não são armazenados na nuvem ou algum banco de dados obscuro. It is stored in simple, human readable files, just using files and folders to define the project structure. Você pode abrir o explorador de arquivos do seu sistema operacional e verificar por si mesmo. Se esse programa sumisse hoje, você ainda poderia facilmente interagir com seus dados.
+
+Sincronização inteligente entre aparelhos
+
+Seus dados podem ser sincronizados entre aparelhos, permitindo que você trabalhe na sua história em qualquer lugar, e sem temer que uma alteração em um aparelho sobrescreva a feita em outro.
+
+Optional and Self hosted Syncing
+
+Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
