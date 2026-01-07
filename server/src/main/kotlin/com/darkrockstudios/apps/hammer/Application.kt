@@ -72,6 +72,8 @@ private fun loadConfig(path: String): ServerConfig {
 }
 
 private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
+	System.setProperty("io.ktor.development", devMode.toString())
+
 	// This is overkill most of the time
 	//	if(devMode) {
 	//		// Sets the log mode for SLFJ, if we ever move to Logback, we'll need to set this a different way
