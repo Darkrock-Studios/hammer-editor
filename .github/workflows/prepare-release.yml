@@ -375,13 +375,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Download and setup JBR
-        run: |
-          # Download JetBrains Runtime 21
-          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
-          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
-          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
+      - name: Set up JBR
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'jetbrains'
+          java-version: 21
+          cache: gradle
 
       - name: Grant Permission to Execute
         run: chmod +x gradlew
@@ -414,13 +413,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Download and setup JBR
-        run: |
-          # Download JetBrains Runtime 21
-          wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
-          tar -xzf jbr_jcef-21.0.9-linux-x64-b1163.86.tar.gz
-          echo "JAVA_HOME=$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/jbr_jcef-21.0.9-linux-x64-b1163.86/bin" >> $GITHUB_PATH
+      - name: Set up JBR
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'jetbrains'
+          java-version: 21
+          cache: gradle
 
       - name: Install Flatpak and flatpak-builder
         run: |
@@ -432,7 +430,6 @@ jobs:
         run: |
           flatpak install --user -y flathub org.freedesktop.Platform//24.08
           flatpak install --user -y flathub org.freedesktop.Sdk//24.08
-          flatpak install --user -y flathub org.freedesktop.Sdk.Extension.openjdk21//24.08
 
       - name: Grant Permission to Execute
         run: chmod +x gradlew
@@ -449,7 +446,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main/flatpak/hammer.flatpak"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/flatpak/hammer.flatpak"
 
   set-release-body:
     runs-on: ubuntu-latest
