@@ -8,4 +8,7 @@
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Atribuição</string>
 	<string name="about_attribution_libraries_button">Bibliotecas</string>
+	<string name="about_version_new_available_title">New Version Available!</string>
+	<string name="about_version_new_available_message">Version %s is now available</string>
+	<string name="about_version_up_to_date">Up to date!</string>
 </resources>
