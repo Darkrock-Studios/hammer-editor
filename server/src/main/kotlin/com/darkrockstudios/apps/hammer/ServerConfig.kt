@@ -13,9 +13,25 @@ data class ServerConfig(
 
 @Serializable
 data class SslCertConfig(
-	val path: String,
-	val storePassword: String,
+	// Option 1: JKS/PKCS12 keystore file
+	val path: String? = null,
+	val storePassword: String? = null,
 	val keyAlias: String? = null,
 	val keyPassword: String? = null,
+
+	// Option 2: PEM files (e.g., from Let's Encrypt)
+	val certChainPath: String? = null,  // fullchain.pem
+	val privateKeyPath: String? = null, // privkey.pem
+
 	val forceHttps: Boolean = true
-)
+) {
+	fun validate(): Boolean {
+		val hasKeystore = path != null && storePassword != null
+		val hasPem = certChainPath != null && privateKeyPath != null
+		return hasKeystore || hasPem
+	}
+
+	fun usePem(): Boolean {
+		return certChainPath != null && privateKeyPath != null
+	}
+}

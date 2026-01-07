@@ -300,7 +300,8 @@ class ProjectsListComponent(
 	private suspend fun syncProgressStatus(projectName: String, status: ProjectsList.Status, progress: Float? = null) =
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
-				val projStatus = it.syncState.projectsStatus[projectName]!!
+				val projStatus =
+					it.syncState.projectsStatus[projectName] ?: error("Project status not found for $projectName")
 
 				val map = it.syncState.projectsStatus.toMutableMap()
 				val updatedMap = projStatus.copy(

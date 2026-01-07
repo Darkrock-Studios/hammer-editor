@@ -85,6 +85,7 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 kzip = "1.1.1"
+bouncycastle = "1.83"
 kotlinx-io-okio = "0.9.0"
 
 compose-texteditor = "1.5.2"
@@ -258,6 +259,8 @@ compose-texteditor-find = { group = "com.darkrockstudios", name = "composetexted
 compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "composetexteditor-spellcheck", version.ref = "compose-texteditor" }
 
 platform-spellcheckerkt = { module = "com.darkrockstudios:platform-spellcheckerkt", version.ref = "platform-spellcheckerkt" }
+
+bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
