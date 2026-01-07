@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
@@ -215,11 +216,42 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 	hx.post("/add") {
 		val params = call.receiveParameters()
 		val email = params["email"]?.trim().orEmpty()
+		val reason = params["reason"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
 
-		if (email.isNotEmpty()) {
-			whiteListRepository.addToWhiteList(email)
+		// Validate email format
+		if (email.isEmpty()) {
+			val model = getWhitelistModelWithError(
+				call, whiteListRepository, page,
+				call.msg("admin_whitelist_error_emailrequired")
+			)
+			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			return@post
 		}
+
+		if (!whiteListRepository.validateEmail(email)) {
+			val model = getWhitelistModelWithError(
+				call, whiteListRepository, page,
+				call.msg("admin_whitelist_error_emailinvalid")
+			)
+			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			return@post
+		}
+
+		val actualReason = reason.ifEmpty { "Added by admin" }
+
+		// Validate reason length
+		if (!whiteListRepository.validateReason(actualReason)) {
+			val model = getWhitelistModelWithError(
+				call, whiteListRepository, page,
+				call.msg("admin_whitelist_error_reasontoolong")
+			)
+			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			return@post
+		}
+
+		// All validation passed
+		whiteListRepository.addToWhiteList(email, actualReason)
 
 		val model = getWhitelistModel(call, whiteListRepository, page)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
@@ -261,8 +293,17 @@ private suspend fun getWhitelistModel(
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
 
+	val whitelistEntries = whiteListRepository.getWhiteListWithDetails(currentPage, pageSize)
+	val whitelistItems = whitelistEntries.map { entry ->
+		mapOf(
+			"email" to entry.email,
+			"dateAdded" to formatDateFromTimestamp(entry.date_added),
+			"reason" to entry.reason
+		)
+	}
+
 	val whitelist = mutableMapOf<String, Any>()
-	whitelist["items"] = whiteListRepository.getWhiteList(currentPage, pageSize)
+	whitelist["items"] = whitelistItems
 	whitelist["currentPage"] = currentPage
 	whitelist["currentPageDisplay"] = currentPage + 1
 	whitelist["totalPages"] = totalPages
@@ -276,4 +317,25 @@ private suspend fun getWhitelistModel(
 	model["whitelist"] = whitelist
 
 	return model
+}
+
+private suspend fun getWhitelistModelWithError(
+	call: ApplicationCall,
+	whiteListRepository: WhiteListRepository,
+	page: Int,
+	errorMessage: String
+): MutableMap<String, Any> {
+	val model = getWhitelistModel(call, whiteListRepository, page)
+	model["error"] = errorMessage
+	return model
+}
+
+private fun formatDateFromTimestamp(epochSeconds: Long): String {
+	return try {
+		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+		val zoned = java.time.Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault())
+		formatter.format(zoned)
+	} catch (e: Exception) {
+		"Unknown"
+	}
 }
