@@ -10,3 +10,8 @@ fun getAppVersionString(): String {
 		"v${BuildMetadata.APP_VERSION}"
 	}
 }
+
+fun isNewVersionAvailable(latestVersion: String): Boolean {
+	val curVersion = getAppVersionString()
+	return latestVersion != curVersion && curVersion.endsWith("-dev").not()
+}

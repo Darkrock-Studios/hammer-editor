@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
+import io.ktor.client.*
 import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
@@ -21,6 +22,7 @@ class ProjectSelectionComponent(
 
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
+	private val http: HttpClient by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -61,7 +63,12 @@ class ProjectSelectionComponent(
 
 			ProjectSelection.Config.AboutApp -> {
 				ProjectSelection.Destination.AboutAppDestination(
-					AboutAppComponent(componentContext, urlLauncher)
+					AboutAppComponent(
+						componentContext = componentContext,
+						urlLauncher = urlLauncher,
+						updateShouldClose = { navigation.pop() },
+						http = http
+					)
 				)
 			}
 		}
