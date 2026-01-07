@@ -1,5 +1,7 @@
 CREATE TABLE white_list(
-    email TEXT NOT NULL PRIMARY KEY
+    email TEXT NOT NULL PRIMARY KEY,
+    date_added INTEGER NOT NULL,
+    reason TEXT NOT NULL
 );
 
 isWhiteListed:
@@ -10,7 +12,7 @@ SELECT EXISTS
 
 addToWhiteList:
 INSERT OR IGNORE
-INTO white_list(email) VALUES (?);
+INTO white_list(email, date_added, reason) VALUES (?, ?, ?);
 
 removeFromWhiteList:
 DELETE FROM white_list
