@@ -58,6 +58,7 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 			"activeUsers" to false,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
+			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
 			"defaultLocale" to configuredDefaultLocale,
 			"availableLocales" to availableLocales,
 		)
@@ -179,10 +180,12 @@ private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
 		val params = call.receiveParameters()
 		val contact = params["contact"]?.trim().orEmpty()
 		val message = params["message"]?.trim().orEmpty()
+		val about = params["about"]?.trim().orEmpty().take(4096)
 		val defaultLocale = params["defaultLocale"]?.trim().orEmpty()
 
 		configRepository.set(AdminServerConfig.CONTACT_EMAIL, contact)
 		configRepository.set(AdminServerConfig.SERVER_MESSAGE, message)
+		configRepository.set(AdminServerConfig.ABOUT_SERVER, about)
 		if (defaultLocale.isNotEmpty()) {
 			configRepository.set(AdminServerConfig.DEFAULT_LOCALE, defaultLocale)
 		}
