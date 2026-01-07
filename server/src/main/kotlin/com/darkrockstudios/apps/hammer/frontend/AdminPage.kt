@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
@@ -17,6 +20,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
+import org.koin.ktor.ext.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
@@ -25,22 +29,30 @@ fun Route.adminPage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	accountsRepository: AccountsRepository,
-	projectsRepository: ProjectsRepository
+	projectsRepository: ProjectsRepository,
+	serverConfig: ServerConfig,
+	patreonSyncService: PatreonSyncService?
 ) {
+	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+
 	adminOnly {
 		route("/admin") {
-			adminSettingsPage(configRepository)
-			adminWhitelistPage(whiteListRepository)
-			adminUsersPage()
+			adminSettingsPage(configRepository, patreonFeatureEnabled)
+			adminWhitelistPage(whiteListRepository, patreonFeatureEnabled)
+			adminUsersPage(patreonFeatureEnabled)
 			whiteListRoutes(whiteListRepository)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository)
+			if (patreonFeatureEnabled && patreonSyncService != null) {
+				adminPatreonPage(configRepository, patreonSyncService)
+				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
+			}
 		}
 	}
 }
 
 // GET /admin - Server Settings page (default)
-private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
+private fun Route.adminSettingsPage(configRepository: ConfigRepository, patreonFeatureEnabled: Boolean) {
 	get {
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
 		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
@@ -56,6 +68,8 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 			"activeSettings" to true,
 			"activeWhitelist" to false,
 			"activeUsers" to false,
+			"activePatreon" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
@@ -67,13 +81,15 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 }
 
 // GET /admin/whitelist - Whitelist Management page
-private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
+private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository, patreonFeatureEnabled: Boolean) {
 	get("/whitelist") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeWhitelist" to true,
 			"activeUsers" to false,
+			"activePatreon" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
 			"whitelist" to mapOf(
 				"enabled" to whiteListRepository.useWhiteList()
 			),
@@ -83,15 +99,176 @@ private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
 }
 
 // GET /admin/users - User Management page
-private fun Route.adminUsersPage() {
+private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean) {
 	get("/users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeWhitelist" to false,
 			"activeUsers" to true,
+			"activePatreon" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
 		)
 		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
+	}
+}
+
+// GET /admin/patreon - Patreon Integration page
+private fun Route.adminPatreonPage(configRepository: ConfigRepository, patreonSyncService: PatreonSyncService) {
+	get("/patreon") {
+		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+		val patreonMemberCount = patreonSyncService.getPatreonWhitelistCount()
+		val patreonMembersWithAccounts = patreonSyncService.getPatreonMembersWithAccountsCount()
+
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to false,
+			"activeUsers" to false,
+			"activePatreon" to true,
+			"patreonFeatureEnabled" to true,
+			"patreonEnabled" to patreonConfig.enabled,
+			"campaignId" to patreonConfig.campaignId,
+			"accessToken" to patreonConfig.creatorAccessToken,
+			"webhookSecret" to patreonConfig.webhookSecret,
+			"minimumAmountDollars" to "%.2f".format(patreonConfig.minimumAmountCents / 100.0),
+			"pollIntervalMinutes" to patreonConfig.pollIntervalMinutes,
+			"lastSync" to patreonConfig.lastSync.ifEmpty { "Never" },
+			"patreonMemberCount" to patreonMemberCount,
+			"patreonMembersWithAccounts" to patreonMembersWithAccounts,
+			"webhookUrl" to "/api/patreon/webhook"
+		)
+		call.respond(MustacheContent("admin-patreon.mustache", call.withDefaults(model)))
+	}
+}
+
+private fun Route.patreonSettingsRoutes(
+	configRepository: ConfigRepository,
+	patreonSyncService: PatreonSyncService,
+	serverConfig: ServerConfig
+) {
+	val patreonApiClient: PatreonApiClient by inject()
+
+	route("/patreon") {
+		// POST /admin/patreon/fetch-campaign - Fetch Campaign ID from Patreon API
+		hx.post("/fetch-campaign") {
+			val params = call.receiveParameters()
+			val accessToken = params["accessToken"]?.trim().orEmpty()
+
+			val currentConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+			val effectiveToken = accessToken.ifEmpty { currentConfig.creatorAccessToken }
+
+			if (effectiveToken.isEmpty()) {
+				call.respondText(
+					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"\" class=\"form-input form-input--error\" placeholder=\"${
+						call.msg(
+							"admin_patreon_error_token_required"
+						)
+					}\"/>",
+					io.ktor.http.ContentType.Text.Html
+				)
+				return@post
+			}
+
+			val result = patreonApiClient.fetchCampaignId(effectiveToken)
+
+			if (result.isSuccess) {
+				val campaignId = result.getOrThrow()
+				call.respondText(
+					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"$campaignId\" class=\"form-input\" placeholder=\"123456\"/>",
+					io.ktor.http.ContentType.Text.Html
+				)
+			} else {
+				call.respondText(
+					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"\" class=\"form-input form-input--error\" placeholder=\"${
+						call.msg(
+							"admin_patreon_error_fetch_failed"
+						)
+					}\"/>",
+					io.ktor.http.ContentType.Text.Html
+				)
+			}
+		}
+
+		// POST /admin/patreon/settings - Save Patreon settings
+		hx.post("/settings") {
+			val params = call.receiveParameters()
+			val enabled = params["enabled"] == "true"
+			val campaignId = params["campaignId"]?.trim().orEmpty()
+			val accessToken = params["accessToken"]?.trim().orEmpty()
+			val webhookSecret = params["webhookSecret"]?.trim().orEmpty()
+			val minimumAmountStr = params["minimumAmount"]?.trim().orEmpty()
+			val pollIntervalStr = params["pollInterval"]?.trim().orEmpty()
+
+			val currentConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+
+			// Validation: if trying to enable, required fields must be filled
+			if (enabled) {
+				val effectiveAccessToken = accessToken.ifEmpty { currentConfig.creatorAccessToken }
+
+				if (campaignId.isEmpty()) {
+					call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
+					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.respondText(
+						"<div class=\"error-message\">${call.msg("admin_patreon_error_campaign_required")}</div>",
+						io.ktor.http.ContentType.Text.Html
+					)
+					return@post
+				}
+
+				if (effectiveAccessToken.isEmpty()) {
+					call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
+					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.respondText(
+						"<div class=\"error-message\">${call.msg("admin_patreon_error_token_required")}</div>",
+						io.ktor.http.ContentType.Text.Html
+					)
+					return@post
+				}
+			}
+
+			val minimumAmountCents = try {
+				(minimumAmountStr.toDoubleOrNull()?.times(100))?.toInt() ?: 500
+			} catch (_: Exception) {
+				500
+			}
+
+			val pollIntervalMinutes = pollIntervalStr.toIntOrNull()?.coerceAtLeast(1) ?: 60
+
+			val newConfig = currentConfig.copy(
+				enabled = enabled,
+				campaignId = campaignId,
+				creatorAccessToken = accessToken.ifEmpty { currentConfig.creatorAccessToken },
+				webhookSecret = webhookSecret.ifEmpty { currentConfig.webhookSecret },
+				minimumAmountCents = minimumAmountCents,
+				pollIntervalMinutes = pollIntervalMinutes
+			)
+
+			configRepository.set(AdminServerConfig.PATREON_CONFIG, newConfig)
+
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(io.ktor.http.HttpStatusCode.OK, "")
+		}
+
+		// POST /admin/patreon/sync - Trigger manual sync
+		hx.post("/sync") {
+			val config = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+
+			// Don't allow sync if not enabled
+			if (!config.enabled) {
+				call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
+				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+				call.respondText(
+					"<div class=\"error-message\">${call.msg("admin_patreon_error_not_enabled")}</div>",
+					io.ktor.http.ContentType.Text.Html
+				)
+				return@post
+			}
+
+			val result = patreonSyncService.performFullSync()
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(io.ktor.http.HttpStatusCode.OK, "")
+		}
 	}
 }
 

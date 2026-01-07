@@ -57,6 +57,14 @@ class WhiteListRepository(
 		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
+	suspend fun getWhiteListByReason(reason: String): List<WhiteList> {
+		return whiteListDao.getByReason(reason)
+	}
+
+	suspend fun countByReasonWithAccounts(reason: String): Long {
+		return whiteListDao.countByReasonWithAccounts(reason)
+	}
+
 	private fun cleanEmail(email: String): String {
 		val cleanedEmail = email.trim().toLowerCasePreservingASCIIRules()
 		return cleanedEmail

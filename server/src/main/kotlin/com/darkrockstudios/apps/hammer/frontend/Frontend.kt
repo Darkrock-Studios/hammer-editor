@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
@@ -9,6 +10,7 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -35,6 +37,14 @@ fun Route.frontend() {
 	val storyExportService: StoryExportService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
+	val serverConfig: ServerConfig by inject()
+
+	// Only inject PatreonSyncService if Patreon is enabled at server level
+	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
+		inject<PatreonSyncService>().value
+	} else {
+		null
+	}
 
 	staticResources("/assets", "/assets")
 
@@ -46,7 +56,14 @@ fun Route.frontend() {
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	authorPage(accountsRepository, projectAccessRepository)
 	publicStoryPage(storyExportService, projectAccessRepository)
-	adminPage(whiteListRepository, configRepository, accountsRepository, projectsRepository)
+	adminPage(
+		whiteListRepository,
+		configRepository,
+		accountsRepository,
+		projectsRepository,
+		serverConfig,
+		patreonSyncService
+	)
 }
 
 const val COOKIE_USER_SESSION = "user_session"

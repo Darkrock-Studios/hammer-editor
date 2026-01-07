@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.admin
 
+import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
+import kotlinx.serialization.json.Json
+
 data class ServerConfigKey<T>(
 	val key: String,
 	val default: T,
@@ -20,4 +23,10 @@ object AdminServerConfig {
 	val ABOUT_SERVER = ServerConfigKey.string("about_server", "")
 	val CONTACT_EMAIL = ServerConfigKey.string("contact_email", "")
 	val DEFAULT_LOCALE = ServerConfigKey.string("default_locale", "en")
+	val PATREON_CONFIG = ServerConfigKey(
+		key = "patreon_config",
+		default = PatreonConfig(),
+		parse = { Json.decodeFromString<PatreonConfig>(it) },
+		serialize = { Json.encodeToString(PatreonConfig.serializer(), it) }
+	)
 }

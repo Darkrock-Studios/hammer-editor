@@ -13,6 +13,10 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
+import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.patreon.PatreonWebhookHandler
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
@@ -85,6 +89,11 @@ fun mainModule(
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)
+
+	singleOf(::PatreonApiClient)
+	singleOf(::PatreonSyncService)
+	singleOf(::PatreonWebhookHandler)
+	singleOf(::PatreonPollingJob)
 
 	singleOf(::ServerSceneSynchronizer)
 	singleOf(::ServerNoteSynchronizer)

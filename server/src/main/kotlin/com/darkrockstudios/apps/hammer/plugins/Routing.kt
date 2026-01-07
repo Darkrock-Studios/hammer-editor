@@ -1,9 +1,11 @@
 package com.darkrockstudios.apps.hammer.plugins
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.accountRoutes
 import com.darkrockstudios.apps.hammer.admin.adminRoutes
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.frontend
+import com.darkrockstudios.apps.hammer.patreon.patreonRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
 import com.github.aymanizz.ktori18n.R
@@ -13,7 +15,7 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Application.configureRouting() {
+fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 	val logger = log
 	routing {
 		frontend()
@@ -22,6 +24,7 @@ fun Application.configureRouting() {
 			projectsRoutes()
 			projectRoutes(logger)
 			adminRoutes()
+			patreonRoutes(serverConfig)
 			teapot()
 		}
 	}

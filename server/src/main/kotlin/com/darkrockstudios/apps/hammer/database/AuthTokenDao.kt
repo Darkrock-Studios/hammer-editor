@@ -32,4 +32,8 @@ class AuthTokenDao(database: Database) {
 		val query = queries.getTokenByInstallId(userId, installId)
 		return query.executeAsOneOrNull()
 	}
+
+	suspend fun deleteTokensByUserId(userId: Long) {
+		queries.deleteByUserId(userId)
+	}
 }
