@@ -44,4 +44,12 @@ open class WhiteListDao(
 	open suspend fun getPaginated(limit: Long, offset: Long): List<WhiteList> = withContext(ioDispatcher) {
 		return@withContext queries.getPaginated(limit, offset).executeAsList()
 	}
+
+	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {
+		return@withContext queries.getByReason(reason).executeAsList()
+	}
+
+	open suspend fun countByReasonWithAccounts(reason: String): Long = withContext(ioDispatcher) {
+		return@withContext queries.countByReasonWithAccounts(reason).executeAsOne()
+	}
 }

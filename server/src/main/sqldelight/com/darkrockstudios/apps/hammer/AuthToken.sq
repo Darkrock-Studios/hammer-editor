@@ -28,3 +28,6 @@ setToken:
 INSERT OR REPLACE INTO auth_token(
     user_id, install_id, token, refresh, expires
 ) VALUES (:userId, :installId, :token, :refresh, :expires);
+
+deleteByUserId:
+DELETE FROM auth_token WHERE user_id = ?;

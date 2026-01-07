@@ -8,8 +8,8 @@ data class ServerConfig(
 	val port: Int = 8080,
 	val sslPort: Int = 443,
 	val sslCert: SslCertConfig? = null,
-) {
-}
+	val patreonEnabled: Boolean? = null,
+)
 
 @Serializable
 data class SslCertConfig(

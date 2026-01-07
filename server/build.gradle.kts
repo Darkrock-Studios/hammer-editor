@@ -89,6 +89,12 @@ dependencies {
 	implementation(libs.ktor.htmx.html)
 	implementation(libs.ktor.server.htmx)
 
+	// Ktor HTTP client for Patreon API calls
+	implementation(libs.ktor.client.core)
+	implementation(libs.ktor.client.java)
+	implementation(libs.ktor.client.content.negotiation)
+	implementation(libs.ktor.client.logging)
+
 	implementation(libs.tomlkt)
 	implementation(libs.resources)
 	implementation(libs.markdown)

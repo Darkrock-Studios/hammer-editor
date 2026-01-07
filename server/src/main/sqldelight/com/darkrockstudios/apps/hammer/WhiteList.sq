@@ -29,3 +29,12 @@ LIMIT ? OFFSET ?;
 
 getCount:
 SELECT count(*) FROM white_list;
+
+getByReason:
+SELECT * FROM white_list WHERE reason = ?;
+
+countByReasonWithAccounts:
+SELECT COUNT(*)
+FROM white_list w
+INNER JOIN account a ON w.email = a.email
+WHERE w.reason = ?;

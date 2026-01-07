@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -127,12 +128,13 @@ fun Application.appMain(
 	addInModule: Module? = null,
 	logLevel: Level? = null
 ) {
-	configureDependencyInjection(addInModule)
+	configureDependencyInjection(config, addInModule)
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
-	configureRouting()
+	configureRouting(config)
 	configureFrontEnd()
+	configurePatreonPolling(config)
 }

@@ -975,6 +975,13 @@ a:focus-visible {
 	justify-content: center;
 }
 
+.btn:disabled,
+.btn[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
 /* ----------------------------------------
    Form System
    ---------------------------------------- */
@@ -1028,6 +1035,14 @@ a:focus-visible {
 	border-color: var(--accent);
 	box-shadow: var(--shadow-md),
 	0 0 0 3px rgba(217, 119, 6, 0.1);
+}
+
+.form-input--error {
+	border-color: var(--error);
+}
+
+.form-input--error::placeholder {
+	color: var(--error);
 }
 
 .form-select {
