@@ -17,6 +17,7 @@ data class ServerConfigKey<T>(
 object AdminServerConfig {
 	val WHITELIST_ENABLED = ServerConfigKey.boolean("whitelist_enabled", true)
 	val SERVER_MESSAGE = ServerConfigKey.string("server_message", "Welcome to this instance of Hammer! Happy syncing!")
+	val ABOUT_SERVER = ServerConfigKey.string("about_server", "")
 	val CONTACT_EMAIL = ServerConfigKey.string("contact_email", "")
 	val DEFAULT_LOCALE = ServerConfigKey.string("default_locale", "en")
 }

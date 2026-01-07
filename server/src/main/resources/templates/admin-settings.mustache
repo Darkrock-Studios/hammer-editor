@@ -47,9 +47,20 @@
 					<div class="form-group">
 						<label for="message"
 							   class="form-field__label">{{msg.admin_serversettings_message_label}}</label>
+						<p class="form-field__help">{{msg.admin_serversettings_message_help}}</p>
 						<div class="form-input-group">
 							<textarea id="message" name="message" rows="4"
 									  class="form-textarea">{{serverMessage}}</textarea>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="about"
+							   class="form-field__label">{{msg.admin_serversettings_about_label}}</label>
+						<p class="form-field__help">{{msg.admin_serversettings_about_help}}</p>
+						<div class="form-input-group">
+							<textarea id="about" name="about" rows="10" maxlength="4096"
+									  class="form-textarea">{{aboutServer}}</textarea>
 						</div>
 					</div>
 
