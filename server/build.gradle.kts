@@ -68,6 +68,7 @@ dependencies {
 
 	implementation(libs.bundles.ktor.server)
 	implementation(libs.ktor.network.tlscertificates)
+	implementation(libs.bouncycastle.bcpkix)
 
 	implementation(libs.slf4j.simple)
 	//implementation(libs.logback.classic)
