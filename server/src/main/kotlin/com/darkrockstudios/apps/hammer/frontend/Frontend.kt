@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
@@ -22,6 +23,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.days
 
@@ -37,6 +39,7 @@ fun Route.frontend() {
 	staticResources("/assets", "/assets")
 
 	homePage(whiteListRepository, configRepository)
+	aboutPage(configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService)
@@ -125,5 +128,10 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	} else {
 		model["isLoggedIn"] = false
 	}
+
+	val configRepository = get<ConfigRepository>()
+	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
+	model["hasAboutPage"] = aboutContent.isNotBlank()
+
 	return model
 }
