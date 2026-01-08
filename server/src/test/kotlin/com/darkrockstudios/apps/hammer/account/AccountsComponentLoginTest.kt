@@ -38,7 +38,6 @@ class AccountsComponentLoginTest {
 	private val account = Account(
 		id = token.userId,
 		email = validEmail,
-		salt = "123",
 		password_hash = "asd123s",
 		cipher_secret = "abc",
 		created = "11 oclock",

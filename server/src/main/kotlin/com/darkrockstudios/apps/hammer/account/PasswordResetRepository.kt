@@ -6,10 +6,12 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
-import com.darkrockstudios.apps.hammer.utilities.*
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import com.github.mustachejava.DefaultMustacheFactory
 import java.io.StringWriter
-import java.security.SecureRandom
 import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -124,12 +126,10 @@ class PasswordResetRepository(
 			)
 		}
 
-		// Generate new salt and hash
-		val salt = RandomString(AccountsRepository.PASSWORD_SALT_LENGTH, SecureRandom()).nextString()
-		val hashedPassword = hashPassword(newPassword, salt)
+		val hashedPassword = hashPassword(newPassword)
 
 		// Update password in database
-		accountDao.updatePassword(userId, salt, hashedPassword)
+		accountDao.updatePassword(userId, hashedPassword)
 
 		// Invalidate all auth tokens (logout all devices)
 		authTokenDao.deleteTokensByUserId(userId)

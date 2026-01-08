@@ -30,7 +30,6 @@ class AccountDao(
 
 	suspend fun createAccount(
 		email: String,
-		salt: String,
 		hashedPassword: String,
 		cipherSecret: String,
 		isAdmin: Boolean
@@ -39,7 +38,6 @@ class AccountDao(
 			val newId = queries.transactionWithResult {
 				queries.createAccount(
 					email = email,
-					salt = salt,
 					cipher_secret = cipherSecret,
 					password_hash = hashedPassword,
 					is_admin = isAdmin
@@ -81,7 +79,7 @@ class AccountDao(
 			).executeAsList()
 		}
 
-	suspend fun updatePassword(userId: Long, salt: String, hashedPassword: String) = withContext(ioDispatcher) {
-		queries.updatePassword(salt, hashedPassword, userId)
+	suspend fun updatePassword(userId: Long, hashedPassword: String) = withContext(ioDispatcher) {
+		queries.updatePassword(hashedPassword, userId)
 	}
 }

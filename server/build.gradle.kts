@@ -104,6 +104,7 @@ dependencies {
 //	implementation(libs.cryptography.core)
 //	implementation(libs.cryptography.provider.jdk)
 	implementation(libs.kache)
+	implementation(libs.argon2.jvm)
 
 	testImplementation(libs.bundles.ktor.client)
 	testImplementation(libs.ktor.serialization.kotlinx.json)

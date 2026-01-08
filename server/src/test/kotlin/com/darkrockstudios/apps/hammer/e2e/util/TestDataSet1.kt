@@ -16,7 +16,6 @@ object TestDataSet1 {
 	val account1 = TestAccount(
 		email = "test@test.com",
 		password = "password123!@#",
-		salt = "fake-salt",
 	)
 	val project1 = TestProject(
 		name = "test-project",

@@ -38,10 +38,8 @@ class AccountsRepositoryTest : BaseTest() {
 	private val email = "test@example.com"
 	private val installId = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
 	private val password = "power123"
-	private val salt = "12345"
 	private val bearerToken = tokenGenerator.generateToken()
 	private val refreshToken = tokenGenerator.generateToken()
-	private val hashedPassword = AccountsRepository.hashPassword(password = password, salt = salt)
 	private val cipherSecret = SecureTokenGenerator(16, b64).generateToken()
 	private lateinit var secureRandom: SecureRandom
 
@@ -69,10 +67,12 @@ class AccountsRepositoryTest : BaseTest() {
 
 		clock = TestClock(Clock.System)
 
+		// Generate a fresh Argon2 hash for the password
+		val hashedPassword = AccountsRepository.hashPassword(password = password)
+
 		account = Account(
 			id = userId,
 			email = email,
-			salt = salt,
 			password_hash = hashedPassword,
 			cipher_secret = cipherSecret,
 			created = (Clock.System.now() - 128.days).toSqliteDateTimeString(),
@@ -129,7 +129,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Create Account - Success`() = runTest {
 		coEvery { accountDao.numAccounts() } returns 1
 		coEvery { accountDao.findAccount(any()) } returns null
-		coEvery { accountDao.createAccount(any(), any(), any(), any(), any()) } returns userId
+		coEvery { accountDao.createAccount(any(), any(), any(), any()) } returns userId
 		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
@@ -232,5 +232,43 @@ class AccountsRepositoryTest : BaseTest() {
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
 		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `hashPassword generates valid Argon2 encoded string`() {
+		val hash = AccountsRepository.hashPassword("testPassword123")
+
+		// Verify format starts with Argon2 identifier (i, d, or id variant)
+		assertTrue(hash.startsWith("\$argon2"), "Hash should start with \$argon2")
+	}
+
+	@Test
+	fun `hashPassword generates different salts each time`() {
+		val testPassword = "testPassword123"
+		val hash1 = AccountsRepository.hashPassword(testPassword)
+		val hash2 = AccountsRepository.hashPassword(testPassword)
+
+		// Same password should generate different hashes (due to random salt)
+		assertTrue(hash1 != hash2, "Same password should generate different hashes")
+	}
+
+	@Test
+	fun `Login fails with old SHA-256 hash`() = runTest {
+		// Create account with old-style SHA-256 hash (hex string)
+		val oldHash = "abc123def456789"
+		val accountWithOldHash = account.copy(password_hash = oldHash)
+
+		coEvery { accountDao.findAccount(any()) } returns accountWithOldHash
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+
+		val result = accountsRepository.login(
+			email = email,
+			installId = installId,
+			password = password
+		)
+
+		// Should fail because old hash cannot be verified
+		assertTrue(result.isFailure, "Login should fail with old SHA-256 hash")
 	}
 }

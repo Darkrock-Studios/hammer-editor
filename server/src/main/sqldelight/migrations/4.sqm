@@ -14,3 +14,6 @@ CREATE TABLE password_reset_token(
 
 CREATE INDEX password_reset_token_lookup ON password_reset_token(token);
 CREATE INDEX password_reset_token_expires ON password_reset_token(expires);
+
+-- Remove salt column from account table (now unused - Argon2 embeds salt in hash)
+ALTER TABLE account DROP COLUMN salt;

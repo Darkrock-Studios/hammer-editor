@@ -17,10 +17,10 @@ import kotlin.uuid.Uuid
 class TestAccount(
 	val email: String,
 	val password: String,
-	val salt: String,
 	val isAdmin: Boolean = false,
 ) {
-	val passwordHash: String = AccountsRepository.hashPassword(password, salt)
+	// Salt parameter is legacy - Argon2 generates and embeds salt automatically
+	val passwordHash: String = AccountsRepository.hashPassword(password)
 }
 
 class TestProject(
@@ -37,7 +37,6 @@ object E2eTestData {
 	fun createAccount(account: TestAccount, database: SqliteTestDatabase) {
 		database.serverDatabase.accountQueries.createAccount(
 			email = account.email,
-			salt = account.salt,
 			password_hash = account.passwordHash,
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = account.isAdmin,

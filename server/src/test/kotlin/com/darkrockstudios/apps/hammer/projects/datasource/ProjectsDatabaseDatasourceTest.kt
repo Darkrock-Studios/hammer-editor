@@ -73,7 +73,6 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			"test@test.com",
-			"salt",
 			"hash",
 			cipherSecretGenerator.generateToken(),
 			true
@@ -107,7 +106,6 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			"test@test.com",
-			"salt",
 			"hash",
 			cipherSecretGenerator.generateToken(),
 			true
@@ -144,7 +142,6 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		val instantLastUpdate = Instant.fromEpochSeconds(1234)
 		testDatabase.serverDatabase.accountQueries.testInsertAccount(
 			email = "test@test.com",
-			salt = "salt",
 			password_hash = "hash",
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = true,
@@ -180,7 +177,6 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			"test@test.com",
-			"salt",
 			"hash",
 			cipherSecretGenerator.generateToken(),
 			true

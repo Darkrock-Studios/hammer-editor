@@ -167,7 +167,6 @@ class PatreonSyncServiceTest : BaseTest() {
 			id = 1L,
 			email = "lapsed@example.com",
 			password_hash = "hash",
-			salt = "salt",
 			cipher_secret = "secret",
 			created = "2024-01-01",
 			is_admin = false,
@@ -235,7 +234,6 @@ class PatreonSyncServiceTest : BaseTest() {
 			id = 42L,
 			email = "user@example.com",
 			password_hash = "hash",
-			salt = "salt",
 			cipher_secret = "secret",
 			created = "2024-01-01",
 			is_admin = false,
@@ -318,7 +316,6 @@ class PatreonSyncServiceTest : BaseTest() {
 		// Create accounts for only some of the patrons
 		db.serverDatabase.accountQueries.testInsertAccount(
 			email = "patron1@example.com",
-			salt = "salt",
 			password_hash = "hash",
 			cipher_secret = "secret",
 			is_admin = false,
@@ -327,7 +324,6 @@ class PatreonSyncServiceTest : BaseTest() {
 		)
 		db.serverDatabase.accountQueries.testInsertAccount(
 			email = "patron3@example.com",
-			salt = "salt",
 			password_hash = "hash",
 			cipher_secret = "secret",
 			is_admin = false,
