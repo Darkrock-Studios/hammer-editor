@@ -1,7 +1,7 @@
 CREATE TABLE white_list(
     email TEXT NOT NULL PRIMARY KEY,
-    date_added INTEGER NOT NULL,
-    reason TEXT NOT NULL
+    date_added INTEGER NOT NULL DEFAULT 0,
+    reason TEXT DEFAULT ''
 );
 
 isWhiteListed:
