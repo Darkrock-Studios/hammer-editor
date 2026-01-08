@@ -16,7 +16,23 @@ CREATE INDEX password_reset_token_lookup ON password_reset_token(token);
 CREATE INDEX password_reset_token_expires ON password_reset_token(expires);
 
 -- Remove salt column from account table (now unused - Argon2 embeds salt in hash)
-ALTER TABLE account DROP COLUMN salt;
+-- and add bio column for author biographies
+-- SQLite requires table recreation to drop columns
+DROP TABLE IF EXISTS tmp_account;
+CREATE TABLE tmp_account (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    pen_name TEXT UNIQUE DEFAULT(NULL),
+    password_hash TEXT NOT NULL,
+    cipher_secret TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+    bio TEXT DEFAULT(NULL)
+);
 
--- Add bio column for author biographies
-ALTER TABLE account ADD COLUMN bio TEXT DEFAULT(NULL);
+INSERT INTO tmp_account (id, email, pen_name, password_hash, cipher_secret, created, is_admin, last_sync)
+SELECT id, email, pen_name, password_hash, cipher_secret, created, is_admin, last_sync FROM account;
+
+DROP TABLE account;
+ALTER TABLE tmp_account RENAME TO account;
