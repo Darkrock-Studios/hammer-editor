@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
@@ -39,6 +40,7 @@ fun Route.frontend() {
 	val storyExportService: StoryExportService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
+	val bioService: BioService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
 
@@ -63,7 +65,7 @@ fun Route.frontend() {
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
 	passwordResetRoutes(passwordResetRepository)
-	dashboardPage(projectsRepository, accountsRepository, penNameService)
+	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	authorPage(accountsRepository, projectAccessRepository)
 	publicStoryPage(storyExportService, projectAccessRepository)

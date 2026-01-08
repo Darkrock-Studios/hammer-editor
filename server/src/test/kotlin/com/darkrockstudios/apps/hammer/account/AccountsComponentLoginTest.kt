@@ -44,6 +44,7 @@ class AccountsComponentLoginTest {
 		is_admin = false,
 		last_sync = "12 oclock",
 		pen_name = null,
+		bio = null,
 	)
 
 	@BeforeEach

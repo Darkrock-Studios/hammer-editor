@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.utils.*
@@ -16,12 +17,16 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
 import kotlin.math.ceil
 
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
-	penNameService: PenNameService
+	penNameService: PenNameService,
+	bioService: BioService
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -33,6 +38,17 @@ fun Route.dashboardPage(
 
 				val penNameUrl = account.pen_name?.let { ProjectName.formatForUrl(it) }
 
+				// Parse bio markdown to HTML
+				val bio = account.bio
+				val bioHtml = if (!bio.isNullOrBlank()) {
+					val markdownFlavour = CommonMarkFlavourDescriptor()
+					val markdownParser = MarkdownParser(markdownFlavour)
+					val parsedTree = markdownParser.buildMarkdownTreeFromString(bio)
+					HtmlGenerator(bio, parsedTree, markdownFlavour).generateHtml()
+				} else {
+					null
+				}
+
 				val model = call.withDefaults(
 					mapOf(
 						"page_stylesheet" to "/assets/css/dashboard.css",
@@ -41,6 +57,8 @@ fun Route.dashboardPage(
 						"email" to account.email,
 						"penName" to (account.pen_name ?: ""),
 						"penNameUrl" to (penNameUrl ?: ""),
+						"bio" to (account.bio ?: ""),
+						"bioHtml" to (bioHtml ?: ""),
 						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
 						"projects" to projects,
@@ -141,6 +159,91 @@ fun Route.dashboardPage(
 						)
 					),
 					ContentType.Application.Json
+				)
+			}
+
+			hx.post("/bio") {
+				val session = call.sessions.requireUser()
+				val formParameters = call.receiveParameters()
+				val newBio = formParameters["bio"]?.trim()
+
+				val account = accountsRepository.getAccount(session.userId)
+				if (account.pen_name == null) {
+					respondHtmlWithToast(
+						content = "",
+						message = call.msg("bio_error_no_penname"),
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				when (val result = bioService.setBio(session.userId, newBio)) {
+					BioService.BioResult.VALID -> {
+						// Re-render the bio section with updated data
+						val updatedAccount = accountsRepository.getAccount(session.userId)
+						val bioHtml = if (!updatedAccount.bio.isNullOrBlank()) {
+							val markdownFlavour = CommonMarkFlavourDescriptor()
+							val markdownParser = MarkdownParser(markdownFlavour)
+							val parsedTree = markdownParser.buildMarkdownTreeFromString(updatedAccount.bio)
+							HtmlGenerator(updatedAccount.bio, parsedTree, markdownFlavour).generateHtml()
+						} else {
+							null
+						}
+
+						val model = call.withDefaults(
+							mapOf(
+								"bio" to (updatedAccount.bio ?: ""),
+								"bioHtml" to (bioHtml ?: "")
+							)
+						)
+
+						respondTemplateWithToast(
+							templatePath = "partials/bio-section.mustache",
+							model = model,
+							message = call.msg("bio_toast_saved"),
+							toast = Toast.Success
+						)
+					}
+
+					BioService.BioResult.TOO_LONG -> {
+						respondHtmlWithToast(
+							content = "",
+							message = call.msg("bio_validation_too_long", BioService.MAX_BIO_LENGTH),
+							toast = Toast.Error,
+							status = HttpStatusCode.BadRequest
+						)
+					}
+
+					BioService.BioResult.NO_PEN_NAME -> {
+						respondHtmlWithToast(
+							content = "",
+							message = call.msg("bio_error_no_penname"),
+							toast = Toast.Error,
+							status = HttpStatusCode.BadRequest
+						)
+					}
+				}
+			}
+
+			hx.delete("/bio") {
+				val session = call.sessions.requireUser()
+
+				bioService.setBio(session.userId, null)
+
+				// Re-render empty bio section
+				val model = call.withDefaults(
+					mapOf(
+						"bio" to "",
+						"bioHtml" to ""
+					)
+				)
+
+				respondTemplateWithToast(
+					templatePath = "partials/bio-section.mustache",
+					model = model,
+					message = call.msg("bio_toast_cleared"),
+					toast = Toast.Success
 				)
 			}
 		}

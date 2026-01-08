@@ -6,7 +6,8 @@ CREATE TABLE account(
     cipher_secret TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
     is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
-    last_sync TEXT DEFAULT (datetime('now')) NOT NULL
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+    bio TEXT DEFAULT(NULL)
 );
 
 getAllAccount:
@@ -77,3 +78,9 @@ LIMIT :limit OFFSET :offset;
 
 updatePassword:
 UPDATE account SET password_hash = ? WHERE id = ?;
+
+updateBio:
+UPDATE account SET bio = ? WHERE id = ?;
+
+getBio:
+SELECT bio FROM account WHERE id = ?;

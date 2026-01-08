@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
-import com.darkrockstudios.apps.hammer.account.AccountsComponent
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -57,6 +54,9 @@ class ApplicationTest : BaseTest() {
 	@MockK
 	private lateinit var penNameService: PenNameService
 
+	@MockK
+	private lateinit var bioService: BioService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -78,6 +78,7 @@ class ApplicationTest : BaseTest() {
 			single { storyExportService }
 			single { penNameService }
 			single { passwordResetRepository }
+			single { bioService }
 			single { mockk<Json>() }
 		}
 	}

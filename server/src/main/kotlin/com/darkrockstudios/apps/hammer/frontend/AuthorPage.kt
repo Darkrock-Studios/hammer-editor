@@ -8,6 +8,9 @@ import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -37,6 +40,16 @@ fun Route.authorPage(
 			// Get published stories for this author
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
 
+			// Render bio markdown to HTML
+			val bioHtml = if (!account.bio.isNullOrBlank()) {
+				val markdownFlavour = CommonMarkFlavourDescriptor()
+				val markdownParser = MarkdownParser(markdownFlavour)
+				val parsedTree = markdownParser.buildMarkdownTreeFromString(account.bio)
+				HtmlGenerator(account.bio, parsedTree, markdownFlavour).generateHtml()
+			} else {
+				null
+			}
+
 			// Format stories for the template
 			val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 			val formattedStories = stories.map { story ->
@@ -61,6 +74,8 @@ fun Route.authorPage(
 					"page_stylesheet" to "/assets/css/author.css",
 					"penName" to penName,
 					"urlPenName" to penNameParam,
+					"bio" to (account.bio ?: ""),
+					"bioHtml" to (bioHtml ?: ""),
 					"stories" to formattedStories,
 					"hasStories" to stories.isNotEmpty(),
 					"storyCount" to stories.size
