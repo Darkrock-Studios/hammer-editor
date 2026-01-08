@@ -75,3 +75,6 @@ SELECT id, email, pen_name, created, last_sync
 FROM account
 ORDER BY created DESC
 LIMIT :limit OFFSET :offset;
+
+updatePassword:
+UPDATE account SET salt = ?, password_hash = ? WHERE id = ?;

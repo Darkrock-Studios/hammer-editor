@@ -167,6 +167,134 @@
 	}
 }
 
+/* Password Reset Success State */
+.password-reset-success {
+	background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+	border: 2px solid #10b981;
+	border-radius: 0.5rem;
+	padding: 2rem 1.5rem;
+	text-align: center;
+	animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.password-reset-success__icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+	animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scaleIn {
+	0% {
+		transform: scale(0);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+.password-reset-success__message {
+	color: #065f46;
+	font-weight: 600;
+	font-size: 1.125rem;
+	margin: 0 0 0.75rem 0;
+	font-family: 'Kingthings Typewriter', monospace;
+}
+
+.password-reset-success__detail {
+	color: #047857;
+	font-size: 0.9375rem;
+	margin: 0 0 1rem 0;
+	line-height: 1.6;
+}
+
+.password-reset-success__detail strong {
+	color: #065f46;
+	font-weight: 700;
+}
+
+.password-reset-success__help {
+	color: #059669;
+	font-size: 0.875rem;
+	margin: 0;
+	font-style: italic;
+}
+
+/* Password Reset Error State */
+.password-reset-error {
+	background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+	border: 2px solid #f59e0b;
+	border-radius: 0.5rem;
+	padding: 2rem 1.5rem;
+	text-align: center;
+	animation: slideInUp 0.5s ease-out;
+}
+
+.password-reset-error__icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+	animation: shake 0.5s ease-in-out;
+}
+
+.password-reset-error__message {
+	color: #92400e;
+	font-weight: 500;
+	font-size: 1rem;
+	margin: 0;
+	line-height: 1.6;
+}
+
+/* Form Field Help Text */
+.form-field__help {
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	margin-top: 0.5rem;
+	font-style: italic;
+	line-height: 1.4;
+}
+
+/* Link Styling Within Login Info */
+.login-info-text a {
+	color: var(--primary);
+	text-decoration: none;
+	font-weight: 600;
+	transition: color var(--transition-fast);
+}
+
+.login-info-text a:hover {
+	color: var(--primary-dark);
+	text-decoration: underline;
+}
+
+/* Responsive Adjustments */
+@media only screen and (max-width: 600px) {
+	.password-reset-success,
+	.password-reset-error {
+		padding: 1.5rem 1rem;
+	}
+
+	.password-reset-success__icon,
+	.password-reset-error__icon {
+		font-size: 2.5rem;
+	}
+
+	.password-reset-success__message {
+		font-size: 1rem;
+	}
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
 	.login-message {
@@ -175,5 +303,15 @@
 
 	.login-button::before {
 		transition: none;
+	}
+
+	.password-reset-success,
+	.password-reset-error {
+		animation: none;
+	}
+
+	.password-reset-success__icon,
+	.password-reset-error__icon {
+		animation: none;
 	}
 }

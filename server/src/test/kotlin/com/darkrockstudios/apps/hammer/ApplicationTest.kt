@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -52,6 +53,8 @@ class ApplicationTest : BaseTest() {
 	private lateinit var storyExportService: StoryExportService
 
 	@MockK
+	protected lateinit var passwordResetRepository: PasswordResetRepository
+	@MockK
 	private lateinit var penNameService: PenNameService
 
 	private lateinit var testModule: org.koin.core.module.Module
@@ -74,6 +77,7 @@ class ApplicationTest : BaseTest() {
 			single { configRepository }
 			single { storyExportService }
 			single { penNameService }
+			single { passwordResetRepository }
 			single { mockk<Json>() }
 		}
 	}

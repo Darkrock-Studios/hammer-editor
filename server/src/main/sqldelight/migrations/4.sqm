@@ -1,2 +1,16 @@
 ALTER TABLE white_list ADD COLUMN date_added INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE white_list ADD COLUMN reason TEXT NOT NULL DEFAULT 'Grandfathered';
+
+-- Create password reset token table
+CREATE TABLE password_reset_token(
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    user_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    expires TEXT NOT NULL,
+    used INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX password_reset_token_lookup ON password_reset_token(token);
+CREATE INDEX password_reset_token_expires ON password_reset_token(expires);
