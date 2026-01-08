@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.*
+import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.email.SmtpEmailService
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
@@ -83,6 +85,8 @@ fun mainModule(
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+
+	singleOf(::SmtpEmailService) bind EmailService::class
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
 	factoryOf(::ProjectEntityDatabaseDatasource) bind ProjectEntityDatasource::class

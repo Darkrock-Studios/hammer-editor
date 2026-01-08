@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.email.EmailProvider
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,6 +10,7 @@ data class ServerConfig(
 	val sslPort: Int = 443,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
+	val emailProvider: EmailProvider? = null,
 )
 
 @Serializable

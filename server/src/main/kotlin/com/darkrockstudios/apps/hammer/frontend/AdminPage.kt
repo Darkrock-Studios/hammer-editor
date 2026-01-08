@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.email.EmailResult
+import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
@@ -31,28 +33,38 @@ fun Route.adminPage(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	serverConfig: ServerConfig,
-	patreonSyncService: PatreonSyncService?
+	patreonSyncService: PatreonSyncService?,
+	emailService: EmailService?
 ) {
 	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+	val emailFeatureEnabled = serverConfig.emailProvider != null
 
 	adminOnly {
 		route("/admin") {
-			adminSettingsPage(configRepository, patreonFeatureEnabled)
-			adminWhitelistPage(whiteListRepository, patreonFeatureEnabled)
-			adminUsersPage(patreonFeatureEnabled)
+			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
+			adminWhitelistPage(whiteListRepository, patreonFeatureEnabled, emailFeatureEnabled)
+			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
 			whiteListRoutes(whiteListRepository)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository)
 			if (patreonFeatureEnabled && patreonSyncService != null) {
-				adminPatreonPage(configRepository, patreonSyncService)
+				adminPatreonPage(configRepository, patreonSyncService, emailFeatureEnabled)
 				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
+			}
+			if (emailFeatureEnabled && emailService != null) {
+				adminEmailPage(configRepository, emailService, patreonFeatureEnabled)
+				emailSettingsRoutes(configRepository, emailService)
 			}
 		}
 	}
 }
 
 // GET /admin - Server Settings page (default)
-private fun Route.adminSettingsPage(configRepository: ConfigRepository, patreonFeatureEnabled: Boolean) {
+private fun Route.adminSettingsPage(
+	configRepository: ConfigRepository,
+	patreonFeatureEnabled: Boolean,
+	emailFeatureEnabled: Boolean
+) {
 	get {
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
 		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
@@ -69,7 +81,9 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository, patreonF
 			"activeWhitelist" to false,
 			"activeUsers" to false,
 			"activePatreon" to false,
+			"activeEmail" to false,
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
@@ -81,7 +95,11 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository, patreonF
 }
 
 // GET /admin/whitelist - Whitelist Management page
-private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository, patreonFeatureEnabled: Boolean) {
+private fun Route.adminWhitelistPage(
+	whiteListRepository: WhiteListRepository,
+	patreonFeatureEnabled: Boolean,
+	emailFeatureEnabled: Boolean
+) {
 	get("/whitelist") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
@@ -89,7 +107,9 @@ private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository, p
 			"activeWhitelist" to true,
 			"activeUsers" to false,
 			"activePatreon" to false,
+			"activeEmail" to false,
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 			"whitelist" to mapOf(
 				"enabled" to whiteListRepository.useWhiteList()
 			),
@@ -99,7 +119,7 @@ private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository, p
 }
 
 // GET /admin/users - User Management page
-private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean) {
+private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean, emailFeatureEnabled: Boolean) {
 	get("/users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
@@ -107,14 +127,20 @@ private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean) {
 			"activeWhitelist" to false,
 			"activeUsers" to true,
 			"activePatreon" to false,
+			"activeEmail" to false,
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 		)
 		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
 	}
 }
 
 // GET /admin/patreon - Patreon Integration page
-private fun Route.adminPatreonPage(configRepository: ConfigRepository, patreonSyncService: PatreonSyncService) {
+private fun Route.adminPatreonPage(
+	configRepository: ConfigRepository,
+	patreonSyncService: PatreonSyncService,
+	emailFeatureEnabled: Boolean
+) {
 	get("/patreon") {
 		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 		val patreonMemberCount = patreonSyncService.getPatreonWhitelistCount()
@@ -126,7 +152,9 @@ private fun Route.adminPatreonPage(configRepository: ConfigRepository, patreonSy
 			"activeWhitelist" to false,
 			"activeUsers" to false,
 			"activePatreon" to true,
+			"activeEmail" to false,
 			"patreonFeatureEnabled" to true,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 			"patreonEnabled" to patreonConfig.enabled,
 			"campaignId" to patreonConfig.campaignId,
 			"accessToken" to patreonConfig.creatorAccessToken,
@@ -517,5 +545,127 @@ private fun formatDateFromTimestamp(epochSeconds: Long): String {
 		formatter.format(zoned)
 	} catch (e: Exception) {
 		"Unknown"
+	}
+}
+
+// GET /admin/email - Email Settings page
+private fun Route.adminEmailPage(
+	configRepository: ConfigRepository,
+	emailService: EmailService,
+	patreonFeatureEnabled: Boolean
+) {
+	get("/email") {
+		val smtpConfig = configRepository.get(AdminServerConfig.SMTP_CONFIG)
+		val isConfigured = emailService.isConfigured()
+
+		val model = mapOf(
+			"page_stylesheet" to "/assets/css/admin.css",
+			"activeSettings" to false,
+			"activeWhitelist" to false,
+			"activeUsers" to false,
+			"activePatreon" to false,
+			"activeEmail" to true,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to true,
+			"emailConfigured" to isConfigured,
+			"smtpHost" to smtpConfig.host,
+			"smtpPort" to smtpConfig.port,
+			"smtpUsername" to smtpConfig.username,
+			"smtpPassword" to smtpConfig.password,
+			"smtpFromAddress" to smtpConfig.fromAddress,
+			"smtpFromName" to smtpConfig.fromName,
+			"smtpUseTls" to smtpConfig.useTls,
+			"smtpUseStartTls" to smtpConfig.useStartTls,
+		)
+		call.respond(MustacheContent("admin-email.mustache", call.withDefaults(model)))
+	}
+}
+
+private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailService: EmailService) {
+	route("/email") {
+		// POST /admin/email/settings - Save email settings
+		hx.post("/settings") {
+			val params = call.receiveParameters()
+			val host = params["host"]?.trim().orEmpty()
+			val portStr = params["port"]?.trim().orEmpty()
+			val username = params["username"]?.trim().orEmpty()
+			val password = params["password"]?.trim().orEmpty()
+			val fromAddress = params["fromAddress"]?.trim().orEmpty()
+			val fromName = params["fromName"]?.trim().orEmpty()
+			val useTls = params["useTls"] == "true"
+			val useStartTls = params["useStartTls"] == "true"
+
+			val currentConfig = configRepository.get(AdminServerConfig.SMTP_CONFIG)
+			val port = portStr.toIntOrNull() ?: 587
+
+			val newConfig = currentConfig.copy(
+				host = host,
+				port = port,
+				username = username,
+				password = password.ifEmpty { currentConfig.password },
+				fromAddress = fromAddress,
+				fromName = fromName.ifEmpty { call.msg("admin_email_default_from_name") },
+				useTls = useTls,
+				useStartTls = useStartTls,
+			)
+
+			configRepository.set(AdminServerConfig.SMTP_CONFIG, newConfig)
+
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(io.ktor.http.HttpStatusCode.OK, "")
+		}
+
+		// POST /admin/email/test - Send test email
+		hx.post("/test") {
+			val params = call.receiveParameters()
+			val testRecipient = params["testRecipient"]?.trim().orEmpty()
+
+			if (testRecipient.isEmpty()) {
+				call.response.header(HxResponseHeaders.Retarget, "#email-error")
+				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+				call.respondText(
+					"<div class=\"error-message\">${call.msg("admin_email_error_recipient_required")}</div>",
+					io.ktor.http.ContentType.Text.Html
+				)
+				return@post
+			}
+
+			if (!emailService.isConfigured()) {
+				call.response.header(HxResponseHeaders.Retarget, "#email-error")
+				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+				call.respondText(
+					"<div class=\"error-message\">${call.msg("admin_email_error_not_configured")}</div>",
+					io.ktor.http.ContentType.Text.Html
+				)
+				return@post
+			}
+
+			val result = emailService.sendEmail(
+				to = testRecipient,
+				subject = call.msg("admin_email_test_email_subject"),
+				bodyHtml = call.msg("admin_email_test_email_html"),
+				bodyText = call.msg("admin_email_test_email_text")
+			)
+
+			when (result) {
+				is EmailResult.Success -> {
+					call.response.header(HxResponseHeaders.Retarget, "#email-success")
+					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.respondText(
+						"<div class=\"success-message\">${call.msg("admin_email_test_success")}</div>",
+						io.ktor.http.ContentType.Text.Html
+					)
+				}
+
+				is EmailResult.Failure -> {
+					call.response.header(HxResponseHeaders.Retarget, "#email-error")
+					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.respondText(
+						"<div class=\"error-message\">${call.msg("admin_email_test_failed")}: ${result.reason}</div>",
+						io.ktor.http.ContentType.Text.Html
+					)
+				}
+			}
+		}
 	}
 }
