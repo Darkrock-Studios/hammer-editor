@@ -140,7 +140,9 @@
 
 				<form class="settings-form"
 					  hx-post="/admin/email/test"
-					  hx-swap="none">
+					  hx-target="#email-result"
+					  hx-swap="innerHTML"
+					  hx-on::before-request="document.getElementById('email-result').innerHTML = '';">
 
 					<div class="form-group">
 						<label for="testRecipient" class="form-field__label">{{msg.admin_email_test_recipient}}</label>
@@ -149,11 +151,17 @@
 							<input id="testRecipient" name="testRecipient" type="email"
 								   class="form-input"
 								   placeholder="{{msg.admin_email_test_recipient_placeholder}}"/>
-							<button type="submit" class="btn btn--primary">
-								{{msg.admin_email_test_send}}
+							<button type="submit" class="btn btn--primary" hx-indicator="#email-sending-indicator">
+								<span class="button-text">{{msg.admin_email_test_send}}</span>
+								<span id="email-sending-indicator" class="htmx-indicator">
+									<span class="spinner"></span> Sending...
+								</span>
 							</button>
 						</div>
 					</div>
+
+					<!-- Result container -->
+					<div id="email-result"></div>
 				</form>
 			</section>
 		</div>

@@ -288,6 +288,30 @@
 	color: #991b1b;
 	font-family: 'Lora', Georgia, serif;
 	font-size: 0.875rem;
+	animation: slideInDown 0.3s ease-out;
+}
+
+.success-message {
+	padding: 0.75rem 1rem;
+	margin-bottom: 1rem;
+	background: #d1fae5;
+	border: 2px solid #10b981;
+	border-radius: 0.5rem;
+	color: #065f46;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 #patreon-error {
@@ -296,6 +320,41 @@
 
 #patreon-error:empty {
 	display: none;
+}
+
+#email-result:empty {
+	display: none;
+}
+
+/* HTMX Loading Indicator */
+.htmx-indicator {
+	display: none;
+}
+
+.htmx-request .htmx-indicator {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.htmx-request .button-text {
+	display: none;
+}
+
+.spinner {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top-color: white;
+	border-radius: 50%;
+	animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .whitelist-entry {

@@ -620,9 +620,10 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 			val params = call.receiveParameters()
 			val testRecipient = params["testRecipient"]?.trim().orEmpty()
 
+			call.application.environment.log.info("Test email requested for recipient: $testRecipient")
+
 			if (testRecipient.isEmpty()) {
-				call.response.header(HxResponseHeaders.Retarget, "#email-error")
-				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+				call.application.environment.log.warn("Test email failed: No recipient provided")
 				call.respondText(
 					"<div class=\"error-message\">${call.msg("admin_email_error_recipient_required")}</div>",
 					io.ktor.http.ContentType.Text.Html
@@ -631,14 +632,15 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 			}
 
 			if (!emailService.isConfigured()) {
-				call.response.header(HxResponseHeaders.Retarget, "#email-error")
-				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+				call.application.environment.log.warn("Test email failed: Email service not configured")
 				call.respondText(
 					"<div class=\"error-message\">${call.msg("admin_email_error_not_configured")}</div>",
 					io.ktor.http.ContentType.Text.Html
 				)
 				return@post
 			}
+
+			call.application.environment.log.info("Attempting to send test email to: $testRecipient")
 
 			val result = emailService.sendEmail(
 				to = testRecipient,
@@ -649,8 +651,7 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 
 			when (result) {
 				is EmailResult.Success -> {
-					call.response.header(HxResponseHeaders.Retarget, "#email-success")
-					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.application.environment.log.info("Test email sent successfully to: $testRecipient")
 					call.respondText(
 						"<div class=\"success-message\">${call.msg("admin_email_test_success")}</div>",
 						io.ktor.http.ContentType.Text.Html
@@ -658,8 +659,10 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 				}
 
 				is EmailResult.Failure -> {
-					call.response.header(HxResponseHeaders.Retarget, "#email-error")
-					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
+					call.application.environment.log.error(
+						"Test email failed to $testRecipient: ${result.reason}",
+						result.exception
+					)
 					call.respondText(
 						"<div class=\"error-message\">${call.msg("admin_email_test_failed")}: ${result.reason}</div>",
 						io.ktor.http.ContentType.Text.Html

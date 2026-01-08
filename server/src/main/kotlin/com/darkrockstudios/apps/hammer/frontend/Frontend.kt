@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -39,6 +40,7 @@ fun Route.frontend() {
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
 	val serverConfig: ServerConfig by inject()
+	val passwordResetRepository: PasswordResetRepository by inject()
 
 	// Only inject PatreonSyncService if Patreon is enabled at server level
 	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
@@ -60,6 +62,7 @@ fun Route.frontend() {
 	aboutPage(configRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository)
+	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	authorPage(accountsRepository, projectAccessRepository)

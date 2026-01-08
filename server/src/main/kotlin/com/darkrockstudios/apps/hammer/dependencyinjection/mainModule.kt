@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -73,6 +74,7 @@ fun mainModule(
 	singleOf(::DeletedEntityDao)
 	singleOf(::ServerConfigDao)
 	singleOf(::ProjectAccessDao)
+	singleOf(::PasswordResetTokenDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
@@ -82,6 +84,7 @@ fun mainModule(
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
+	singleOf(::PasswordResetRepository)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class

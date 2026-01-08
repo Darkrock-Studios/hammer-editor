@@ -80,4 +80,8 @@ class AccountDao(
 				offset = offset.toLong()
 			).executeAsList()
 		}
+
+	suspend fun updatePassword(userId: Long, salt: String, hashedPassword: String) = withContext(ioDispatcher) {
+		queries.updatePassword(salt, hashedPassword, userId)
+	}
 }
