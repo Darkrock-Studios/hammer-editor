@@ -121,6 +121,7 @@ kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file",
 jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 jna-platform = { group = "net.java.dev.jna", name = "jna-platform", version.ref = "jna" }
 jSystemThemeDetector = { group = "com.github.Dansoftowner", name = "jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
+jakarta-mail = { module = "com.sun.mail:jakarta.mail", version = "2.0.1" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androix-junit" }
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androix-junit" }
 

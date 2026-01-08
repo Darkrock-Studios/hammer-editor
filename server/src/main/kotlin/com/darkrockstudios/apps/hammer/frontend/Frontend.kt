@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
+import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -46,6 +47,13 @@ fun Route.frontend() {
 		null
 	}
 
+	// Only inject EmailService if email is enabled at server level
+	val emailService: EmailService? = if (serverConfig.emailProvider != null) {
+		inject<EmailService>().value
+	} else {
+		null
+	}
+
 	staticResources("/assets", "/assets")
 
 	homePage(whiteListRepository, configRepository)
@@ -62,7 +70,8 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		serverConfig,
-		patreonSyncService
+		patreonSyncService,
+		emailService
 	)
 }
 

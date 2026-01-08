@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.admin
 
+import com.darkrockstudios.apps.hammer.email.SmtpConfig
 import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import kotlinx.serialization.json.Json
 
@@ -28,5 +29,11 @@ object AdminServerConfig {
 		default = PatreonConfig(),
 		parse = { Json.decodeFromString<PatreonConfig>(it) },
 		serialize = { Json.encodeToString(PatreonConfig.serializer(), it) }
+	)
+	val SMTP_CONFIG = ServerConfigKey(
+		key = "smtp_config",
+		default = SmtpConfig(),
+		parse = { Json.decodeFromString<SmtpConfig>(it) },
+		serialize = { Json.encodeToString(SmtpConfig.serializer(), it) }
 	)
 }
