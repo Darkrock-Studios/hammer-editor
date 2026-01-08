@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
-import com.darkrockstudios.apps.hammer.account.AccountsComponent
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -57,6 +54,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var penNameService: PenNameService
 
 	@MockK(relaxed = true)
+	protected lateinit var bioService: BioService
+
+	@MockK(relaxed = true)
 	protected lateinit var passwordResetRepository: PasswordResetRepository
 
 	@MockK(relaxed = true)
@@ -83,6 +83,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { configRepository }
 			single { storyExportService }
 			single { penNameService }
+			single { bioService }
 			single { json }
 			single { passwordResetRepository }
 		}

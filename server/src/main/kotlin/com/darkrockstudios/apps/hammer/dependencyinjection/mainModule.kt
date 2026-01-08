@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
-import com.darkrockstudios.apps.hammer.account.AccountsComponent
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -84,6 +81,7 @@ fun mainModule(
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
+	singleOf(::BioService)
 	singleOf(::PasswordResetRepository)
 
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class

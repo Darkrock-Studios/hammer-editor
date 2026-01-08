@@ -82,4 +82,12 @@ class AccountDao(
 	suspend fun updatePassword(userId: Long, hashedPassword: String) = withContext(ioDispatcher) {
 		queries.updatePassword(hashedPassword, userId)
 	}
+
+	suspend fun updateBio(userId: Long, bio: String?) = withContext(ioDispatcher) {
+		queries.updateBio(bio?.trim(), userId)
+	}
+
+	suspend fun getBio(userId: Long): String? = withContext(ioDispatcher) {
+		return@withContext queries.getBio(userId).executeAsOneOrNull()?.bio
+	}
 }

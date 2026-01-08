@@ -171,6 +171,7 @@ class PatreonSyncServiceTest : BaseTest() {
 			created = "2024-01-01",
 			is_admin = false,
 			pen_name = null,
+			bio = null,
 			last_sync = "2024-01-01"
 		)
 
@@ -238,6 +239,7 @@ class PatreonSyncServiceTest : BaseTest() {
 			created = "2024-01-01",
 			is_admin = false,
 			pen_name = null,
+			bio = null,
 			last_sync = "2024-01-01"
 		)
 

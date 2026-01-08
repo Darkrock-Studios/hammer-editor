@@ -69,6 +69,9 @@ class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var passwordResetRepository: PasswordResetRepository
 
+	@MockK
+	private lateinit var bioService: BioService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	private lateinit var json: Json
@@ -98,6 +101,7 @@ class AccountRoutesTest : BaseTest() {
 			single { penNameService }
 			single { json }
 			single { passwordResetRepository }
+			single { bioService }
 		}
 	}
 

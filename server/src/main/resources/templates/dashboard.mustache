@@ -49,10 +49,28 @@
 						{{> penname-edit}}
 						{{> penname-release}}
 					</div>
+					<div class="bio-section" id="bio-section" {{^penName}}style="display:none;"{{/penName}}>
+						{{> partials/bio-section}}
+					</div>
 				</div>
 			</div>
 		</section>
 	</div>
 </main>
+
+<script>
+	// Localized messages for client-side JavaScript
+	window.Messages = {
+		penname: {
+			checkingAvailability: '{{msg.penname_checking_availability}}',
+			available: '{{msg.penname_validation_available}}',
+			checkFailed: '{{msg.penname_check_failed}}',
+			releaseConfirm: '{{msg.penname_release_confirm_message}}'
+		},
+		bio: {
+			clearConfirm: '{{msg.bio_clear_confirm}}'
+		}
+	};
+</script>
 
 {{> footer}}

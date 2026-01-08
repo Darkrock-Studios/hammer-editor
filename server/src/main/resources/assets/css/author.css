@@ -73,6 +73,16 @@
 }
 
 /* ========================================
+   Author Bio
+   ======================================== */
+
+.author-bio {
+	padding: 1.5rem 0 2rem 0;
+	margin-bottom: 2rem;
+	border-bottom: 2px dashed var(--neutral-200);
+}
+
+/* ========================================
    Story Count
    ======================================== */
 
@@ -175,6 +185,11 @@
 
 	.avatar-letter {
 		font-size: 1.5rem;
+	}
+
+	.author-bio {
+		padding: 1.25rem 0 1.5rem 0;
+		margin-bottom: 1.5rem;
 	}
 }
 

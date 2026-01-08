@@ -187,6 +187,14 @@ class AccountsRepository(
 		return accountDao.findAccountByPenName(penName)
 	}
 
+	suspend fun updateBio(userId: Long, bio: String?) {
+		accountDao.updateBio(userId, bio?.trim())
+	}
+
+	suspend fun getBio(userId: Long): String? {
+		return accountDao.getBio(userId)
+	}
+
 	suspend fun numAccounts(): Long {
 		return accountDao.numAccounts()
 	}
