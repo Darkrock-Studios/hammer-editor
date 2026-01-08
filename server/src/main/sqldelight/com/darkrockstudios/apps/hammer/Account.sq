@@ -2,7 +2,6 @@ CREATE TABLE account(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     pen_name TEXT UNIQUE DEFAULT(NULL),
-    salt TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     cipher_secret TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
@@ -43,10 +42,10 @@ count:
 SELECT COUNT(*) FROM account;
 
 createAccount:
-INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?);
 
 testInsertAccount:
-INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
 
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
@@ -77,4 +76,4 @@ ORDER BY created DESC
 LIMIT :limit OFFSET :offset;
 
 updatePassword:
-UPDATE account SET salt = ?, password_hash = ? WHERE id = ?;
+UPDATE account SET password_hash = ? WHERE id = ?;

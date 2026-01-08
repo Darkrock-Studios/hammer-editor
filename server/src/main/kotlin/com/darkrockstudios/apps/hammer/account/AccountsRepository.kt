@@ -5,8 +5,11 @@ import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.utilities.*
-import korlibs.crypto.sha256
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import de.mkammerer.argon2.Argon2Factory
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -23,7 +26,6 @@ class AccountsRepository(
 
 	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
 	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
-	private val saltGenerator = RandomString(PASSWORD_SALT_LENGTH, secureRandom)
 
 	private suspend fun createToken(userId: Long, installId: String): Token {
 		val expires = clock.now() + tokenLifetime
@@ -87,8 +89,7 @@ class AccountsRepository(
 			)
 
 			else -> {
-				val salt = saltGenerator.nextString()
-				val hashedPassword = hashPassword(password = password, salt = salt)
+				val hashedPassword = hashPassword(password = password)
 				val cipherSalt = cipherSaltGenerator.generateToken()
 
 				// First account on the server is automatically Admin
@@ -97,7 +98,6 @@ class AccountsRepository(
 
 				val userId = accountDao.createAccount(
 					email = email,
-					salt = salt,
 					hashedPassword = hashedPassword,
 					cipherSecret = cipherSalt,
 					isAdmin = isAdmin
@@ -111,8 +111,17 @@ class AccountsRepository(
 	}
 
 	private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
-		val hashedPassword = hashPassword(password = plainTextPassword, salt = account.salt)
-		return hashedPassword == account.password_hash
+		val argon2 = Argon2Factory.create()
+		val passwordChars = plainTextPassword.toCharArray()
+
+		return try {
+			argon2.verify(account.password_hash, passwordChars)
+		} catch (e: Exception) {
+			// If verification fails (e.g., invalid format, old hash), return false
+			false
+		} finally {
+			argon2.wipeArray(passwordChars)
+		}
 	}
 
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
@@ -189,8 +198,12 @@ class AccountsRepository(
 	companion object {
 		const val MIN_PASSWORD_LENGTH = 8
 		const val MAX_PASSWORD_LENGTH = 64
-		const val PASSWORD_SALT_LENGTH = 8
 		const val CIPHER_SALT_LENGTH = 16
+
+		// Argon2 parameters
+		const val ARGON2_MEMORY_COST_KIB = 65536  // 64 MiB
+		const val ARGON2_TIME_COST = 2  // iterations
+		const val ARGON2_PARALLELISM = 1  // threads
 
 		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
 		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
@@ -205,10 +218,20 @@ class AccountsRepository(
 			NO_SPECIAL
 		}
 
-		fun hashPassword(password: String, salt: String): String {
-			val saltedPassword = salt + password
-			val hashedPassword = saltedPassword.toByteArray().sha256().toString()
-			return hashedPassword
+		fun hashPassword(password: String): String {
+			val argon2 = Argon2Factory.create()
+			val passwordChars = password.toCharArray()
+
+			try {
+				return argon2.hash(
+					ARGON2_TIME_COST,
+					ARGON2_MEMORY_COST_KIB,
+					ARGON2_PARALLELISM,
+					passwordChars
+				)
+			} finally {
+				argon2.wipeArray(passwordChars)
+			}
 		}
 
 		fun validateEmail(email: String): Boolean {

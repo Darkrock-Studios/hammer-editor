@@ -359,7 +359,6 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private fun setupAccount(testDatabase: SqliteTestDatabase) {
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			email = "test@test.com",
-			salt = "salt",
 			password_hash = "hash",
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = false,
