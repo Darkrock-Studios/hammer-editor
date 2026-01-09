@@ -2,7 +2,7 @@
 
 /* Masthead/Hero Section */
 .masthead {
-	background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+	background: url('/assets/images/masthead.jpg') center center / cover no-repeat;
 	color: white;
 	text-align: center;
 	padding: clamp(4rem, 10vw, 8rem) 2rem;
@@ -11,6 +11,7 @@
 	border-bottom: 3px solid var(--accent);
 }
 
+/* Dark overlay for text readability */
 .masthead::before {
 	content: '';
 	position: absolute;
@@ -18,13 +19,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background-image: repeating-linear-gradient(
-		90deg,
-		transparent,
-		transparent 2px,
-		rgba(255, 255, 255, 0.03) 2px,
-		rgba(255, 255, 255, 0.03) 4px
-	);
+	background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(51, 65, 85, 0.6) 100%);
 	pointer-events: none;
 }
 
@@ -50,7 +45,12 @@
 .masthead h1 {
 	color: white;
 	margin-bottom: 1.5rem;
-	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+	font-size: clamp(3.5rem, 8vw, 6rem);
+	text-shadow: /* Outline effect */ -2px -2px 0 rgba(0, 0, 0, 0.8),
+	2px -2px 0 rgba(0, 0, 0, 0.8),
+	-2px 2px 0 rgba(0, 0, 0, 0.8),
+	2px 2px 0 rgba(0, 0, 0, 0.8),
+		/* Depth shadow */ 4px 4px 8px rgba(0, 0, 0, 0.6);
 }
 
 .masthead h2 {
@@ -61,6 +61,11 @@
 	font-size: clamp(1.25rem, 2.5vw, 1.75rem);
 	opacity: 0;
 	animation: fadeInUp 0.8s ease-out 0.2s forwards;
+	text-shadow: /* Outline effect */ -1px -1px 0 rgba(0, 0, 0, 0.8),
+	1px -1px 0 rgba(0, 0, 0, 0.8),
+	-1px 1px 0 rgba(0, 0, 0, 0.8),
+	1px 1px 0 rgba(0, 0, 0, 0.8),
+		/* Depth shadow */ 3px 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 /* About Server Callout - Pinned Note Style */
@@ -728,6 +733,10 @@
 	max-width: 800px;
 	margin: 0 auto;
 	text-align: center;
+}
+
+.text-container h1 {
+	font-size: clamp(1.75rem, 4vw, 2.5rem);
 }
 
 /* Responsive Design */

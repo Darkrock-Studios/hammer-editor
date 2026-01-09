@@ -439,8 +439,6 @@ a:focus-visible {
 @media only screen and (max-width: 768px) {
 	.header-container {
 		padding: 0 1.5rem;
-		flex-direction: column;
-		gap: 1rem;
 	}
 
 	#toast-container {
