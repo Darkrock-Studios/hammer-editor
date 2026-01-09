@@ -7,7 +7,8 @@ CREATE TABLE account(
     created TEXT DEFAULT (datetime('now')) NOT NULL,
     is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
     last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
-    bio TEXT DEFAULT(NULL)
+    bio TEXT DEFAULT(NULL),
+    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
 );
 
 getAllAccount:

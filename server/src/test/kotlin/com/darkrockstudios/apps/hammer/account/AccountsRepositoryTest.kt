@@ -80,6 +80,7 @@ class AccountsRepositoryTest : BaseTest() {
 			last_sync = Clock.System.now().toSqliteDateTimeString(),
 			pen_name = null,
 			bio = null,
+			email_verified = true,
 		)
 	}
 
