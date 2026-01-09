@@ -122,4 +122,21 @@
 	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>
 	<string name="reauth_server_url">Address</string>
 	<string name="reauth_server_email">E-Mail</string>
+	<string name="server_setup_help_title">About Sync Servers</string>
+	<string name="server_setup_help_icon_description">Learn more about sync servers</string>
+	<string name="server_setup_help_intro">Sync Servers for Hammer allow you to work on your projects from multiple devices. They will sync your work across whatever devices you configure with the same server.</string>
+	<string name="server_setup_help_official_header">Official Server</string>
+	<string name="server_setup_help_official_body">You can run your own Sync server, but if that is too technical, or you just want to support the project, we run an official server at hammer.ink.</string>
+	<string name="server_setup_help_patreon">If you subscribe to our Patreon, you get access to the official server. This is the best way to support this project.</string>
+	<string name="server_setup_help_patreon_link">Patreon</string>
+	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
+	<string name="server_setup_help_registration_header">Registration</string>
+	<string name="server_setup_help_registration_body">By default, servers have closed registration, meaning you need to get added to that server\'s whitelist to be able to create an account.</string>
+	<string name="server_setup_help_setup_header">SetUp</string>
+	<string name="server_setup_help_setup_step1">Enter the server\'s URL, such as \"hammer.ink\" for the official server.</string>
+	<string name="server_setup_help_setup_step2">Enter your email and password, then hit \"Create\" to create your account.</string>
+	<string name="server_setup_help_setup_step3">In the future, and on other devices, you will simply hit \"Log In\".</string>
+	<string name="server_setup_help_note_header">Important Note</string>
+	<string name="server_setup_help_note_body">Syncing in Hammer is different from online-first applications like Google Docs. The syncing is not real-time. It usually happens when you open or close the app. Make sure you\'re synced with the latest versions of your projects before going offline. Hammer does automatic syncing, but it\'s always good to check if you\'re going to be offline for a while.</string>
+	<string name="server_setup_help_dismiss_button">Got It</string>
 </resources>
