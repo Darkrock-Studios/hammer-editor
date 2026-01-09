@@ -7,14 +7,13 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
-import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
-import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.htmx.*
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
@@ -159,9 +158,10 @@ private fun Route.adminPatreonPage(
 			"campaignId" to patreonConfig.campaignId,
 			"accessToken" to patreonConfig.creatorAccessToken,
 			"webhookSecret" to patreonConfig.webhookSecret,
+			"patreonUrl" to patreonConfig.patreonUrl,
 			"minimumAmountDollars" to "%.2f".format(patreonConfig.minimumAmountCents / 100.0),
 			"pollIntervalMinutes" to patreonConfig.pollIntervalMinutes,
-			"lastSync" to patreonConfig.lastSync.ifEmpty { "Never" },
+			"lastSync" to formatPatreonDate(patreonConfig.lastSync).ifEmpty { "Never" },
 			"patreonMemberCount" to patreonMemberCount,
 			"patreonMembersWithAccounts" to patreonMembersWithAccounts,
 			"webhookUrl" to "/api/patreon/webhook"
@@ -193,7 +193,7 @@ private fun Route.patreonSettingsRoutes(
 							"admin_patreon_error_token_required"
 						)
 					}\"/>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 				return@post
 			}
@@ -204,7 +204,7 @@ private fun Route.patreonSettingsRoutes(
 				val campaignId = result.getOrThrow()
 				call.respondText(
 					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"$campaignId\" class=\"form-input\" placeholder=\"123456\"/>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 			} else {
 				call.respondText(
@@ -213,7 +213,7 @@ private fun Route.patreonSettingsRoutes(
 							"admin_patreon_error_fetch_failed"
 						)
 					}\"/>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 			}
 		}
@@ -225,6 +225,7 @@ private fun Route.patreonSettingsRoutes(
 			val campaignId = params["campaignId"]?.trim().orEmpty()
 			val accessToken = params["accessToken"]?.trim().orEmpty()
 			val webhookSecret = params["webhookSecret"]?.trim().orEmpty()
+			val patreonUrl = params["patreonUrl"]?.trim().orEmpty()
 			val minimumAmountStr = params["minimumAmount"]?.trim().orEmpty()
 			val pollIntervalStr = params["pollInterval"]?.trim().orEmpty()
 
@@ -239,7 +240,7 @@ private fun Route.patreonSettingsRoutes(
 					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
 					call.respondText(
 						"<div class=\"error-message\">${call.msg("admin_patreon_error_campaign_required")}</div>",
-						io.ktor.http.ContentType.Text.Html
+						ContentType.Text.Html
 					)
 					return@post
 				}
@@ -249,7 +250,7 @@ private fun Route.patreonSettingsRoutes(
 					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
 					call.respondText(
 						"<div class=\"error-message\">${call.msg("admin_patreon_error_token_required")}</div>",
-						io.ktor.http.ContentType.Text.Html
+						ContentType.Text.Html
 					)
 					return@post
 				}
@@ -268,6 +269,7 @@ private fun Route.patreonSettingsRoutes(
 				campaignId = campaignId,
 				creatorAccessToken = accessToken.ifEmpty { currentConfig.creatorAccessToken },
 				webhookSecret = webhookSecret.ifEmpty { currentConfig.webhookSecret },
+				patreonUrl = patreonUrl.ifEmpty { currentConfig.patreonUrl },
 				minimumAmountCents = minimumAmountCents,
 				pollIntervalMinutes = pollIntervalMinutes
 			)
@@ -288,7 +290,7 @@ private fun Route.patreonSettingsRoutes(
 				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
 				call.respondText(
 					"<div class=\"error-message\">${call.msg("admin_patreon_error_not_enabled")}</div>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 				return@post
 			}
@@ -334,7 +336,7 @@ private suspend fun getUsersModel(
 		mutableMapOf<String, Any?>(
 			"email" to account.email,
 			"created" to formatDate(account.created),
-			"lastSync" to formatLastSync(mostRecentSync),
+			"lastSync" to (formatLastSync(mostRecentSync) ?: call.msg("admin_patreon_last_sync_never")),
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
 			"projectCount" to projectCount
@@ -358,26 +360,12 @@ private suspend fun getUsersModel(
 }
 
 private fun formatDate(sqliteDateTime: String): String {
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-		formatter.format(zoned)
-	} catch (e: Exception) {
-		sqliteDateTime
-	}
+	return formatSqliteDateTime(sqliteDateTime, "MMM dd, yyyy")
 }
 
-private fun formatLastSync(sqliteDateTime: String?): String {
-	if (sqliteDateTime == null) return "Never"
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")
-		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-		formatter.format(zoned)
-	} catch (e: Exception) {
-		"Never"
-	}
+private fun formatLastSync(sqliteDateTime: String?): String? {
+	if (sqliteDateTime == null) return null
+	return formatSyncDate(sqliteDateTime).ifEmpty { null }
 }
 
 private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
@@ -505,7 +493,8 @@ private suspend fun getWhitelistModel(
 	val whitelistItems = whitelistEntries.map { entry ->
 		mapOf(
 			"email" to entry.email,
-			"dateAdded" to formatDateFromTimestamp(entry.date_added),
+			"dateAdded" to (formatDateFromTimestamp(entry.date_added)
+				?: call.msg("admin_whitelist_date_added_unknown")),
 			"reason" to entry.reason
 		)
 	}
@@ -538,13 +527,13 @@ private suspend fun getWhitelistModelWithError(
 	return model
 }
 
-private fun formatDateFromTimestamp(epochSeconds: Long): String {
+private fun formatDateFromTimestamp(epochSeconds: Long): String? {
 	return try {
 		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
 		val zoned = java.time.Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault())
 		formatter.format(zoned)
 	} catch (e: Exception) {
-		"Unknown"
+		null
 	}
 }
 
@@ -626,7 +615,7 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 				call.application.environment.log.warn("Test email failed: No recipient provided")
 				call.respondText(
 					"<div class=\"error-message\">${call.msg("admin_email_error_recipient_required")}</div>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 				return@post
 			}
@@ -635,7 +624,7 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 				call.application.environment.log.warn("Test email failed: Email service not configured")
 				call.respondText(
 					"<div class=\"error-message\">${call.msg("admin_email_error_not_configured")}</div>",
-					io.ktor.http.ContentType.Text.Html
+					ContentType.Text.Html
 				)
 				return@post
 			}
@@ -654,7 +643,7 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 					call.application.environment.log.info("Test email sent successfully to: $testRecipient")
 					call.respondText(
 						"<div class=\"success-message\">${call.msg("admin_email_test_success")}</div>",
-						io.ktor.http.ContentType.Text.Html
+						ContentType.Text.Html
 					)
 				}
 
@@ -665,7 +654,7 @@ private fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailS
 					)
 					call.respondText(
 						"<div class=\"error-message\">${call.msg("admin_email_test_failed")}: ${result.reason}</div>",
-						io.ktor.http.ContentType.Text.Html
+						ContentType.Text.Html
 					)
 				}
 			}

@@ -63,7 +63,7 @@ fun Route.frontend() {
 	homePage(whiteListRepository, configRepository)
 	aboutPage(configRepository)
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
@@ -163,6 +163,15 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	val configRepository = get<ConfigRepository>()
 	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
 	model["hasAboutPage"] = aboutContent.isNotBlank()
+
+	// Add Patreon link for footer if configured
+	val serverConfig = get<ServerConfig>()
+	if (serverConfig.patreonEnabled == true) {
+		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {
+			model["patreonUrl"] = patreonConfig.patreonUrl
+		}
+	}
 
 	return model
 }

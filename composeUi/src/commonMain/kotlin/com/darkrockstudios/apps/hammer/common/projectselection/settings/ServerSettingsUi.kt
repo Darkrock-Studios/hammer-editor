@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,7 +22,6 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.projectselection.ServerSetupDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -34,6 +34,7 @@ fun ServerSettingsUi(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
+	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
 
 	val successColor = Color(0xFF4CAF50)
 	val dividerColor = MaterialTheme.colorScheme.outlineVariant
@@ -41,11 +42,24 @@ fun ServerSettingsUi(
 	Column(
 		modifier = Modifier.padding(Ui.Padding.M)
 	) {
-		Text(
-			Res.string.settings_server_header.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onBackground,
-		)
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			modifier = Modifier.fillMaxWidth()
+		) {
+			Text(
+				Res.string.settings_server_header.get(),
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onBackground,
+			)
+			Spacer(modifier = Modifier.weight(1f))
+			IconButton(onClick = { showHelpDialog = true }) {
+				Icon(
+					imageVector = Icons.Outlined.Info,
+					contentDescription = Res.string.server_setup_help_icon_description.get(),
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+		}
 		Text(
 			Res.string.settings_server_description.get(),
 			style = MaterialTheme.typography.bodySmall,
@@ -264,4 +278,8 @@ fun ServerSettingsUi(
 
 	Toaster(component, rootSnackbar)
 	ServerSetupDialog(component, scope)
+
+	if (showHelpDialog) {
+		ServerSetupHelpDialog(onDismiss = { showHelpDialog = false })
+	}
 }

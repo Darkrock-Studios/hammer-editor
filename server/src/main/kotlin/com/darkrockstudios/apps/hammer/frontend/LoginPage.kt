@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -15,9 +16,10 @@ import io.ktor.server.sessions.*
 fun Route.authRoutes(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig
 ) {
-	loginPage(accountsRepository, whiteListRepository, configRepository)
+	loginPage(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	logout()
 	unauthorized()
 }
@@ -25,7 +27,8 @@ fun Route.authRoutes(
 private fun Route.loginPage(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig
 ) {
 	route("/login") {
 		get {
@@ -33,7 +36,7 @@ private fun Route.loginPage(
 			if (session != null) {
 				call.respondRedirect("/dashboard")
 			} else {
-				val model = buildLoginModel(whiteListRepository, configRepository)
+				val model = buildLoginModel(whiteListRepository, configRepository, serverConfig)
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
@@ -61,7 +64,7 @@ private fun Route.loginPage(
 				call.respondRedirect("/dashboard")
 			} else {
 				val message = result.displayMessageText(call) ?: "Login failed"
-				val model = buildLoginModel(whiteListRepository, configRepository).toMutableMap()
+				val model = buildLoginModel(whiteListRepository, configRepository, serverConfig).toMutableMap()
 				model["message"] = message
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
@@ -71,16 +74,25 @@ private fun Route.loginPage(
 
 private suspend fun buildLoginModel(
 	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig
 ): Map<String, Any> {
 	val useWhiteList = whiteListRepository.useWhiteList()
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
+	val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+	val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
 
 	return buildMap {
 		put("page_stylesheet", "/assets/css/login.css")
 		put("whitelistEnabled", useWhiteList)
 		if (contactEmail.isNotBlank()) {
 			put("contactEmail", contactEmail)
+		}
+		if (patreonActive) {
+			put("patreonEnabled", true)
+			put("patreonUrl", patreonConfig.patreonUrl)
+			put("patreonMinimumAmount", "%.2f".format(patreonConfig.minimumAmountCents / 100.0))
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
