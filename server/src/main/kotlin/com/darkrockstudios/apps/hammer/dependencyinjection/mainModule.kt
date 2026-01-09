@@ -26,6 +26,8 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.util.logging.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
@@ -84,8 +86,10 @@ fun mainModule(
 	singleOf(::BioService)
 	singleOf(::PasswordResetRepository)
 
+	singleOf(::ServerSecretManager)
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+	singleOf(::TokenHasher)
 
 	singleOf(::SmtpEmailService) bind EmailService::class
 

@@ -30,6 +30,7 @@ class AccountsRepositoryTest : BaseTest() {
 	private lateinit var accountDao: AccountDao
 	private lateinit var authTokenDao: AuthTokenDao
 	private lateinit var clock: TestClock
+	private lateinit var tokenHasher: TokenHasher
 	private val b64: Base64 = createTokenBase64()
 
 	private val tokenGenerator = SecureTokenGenerator(Token.LENGTH, b64)
@@ -48,8 +49,8 @@ class AccountsRepositoryTest : BaseTest() {
 	private fun createAuthToken() = AuthToken(
 		user_id = userId,
 		install_id = installId,
-		token = bearerToken,
-		refresh = refreshToken,
+		token = "$bearerToken-hashed",  // Tokens are now stored hashed
+		refresh = "$refreshToken-hashed",  // Tokens are now stored hashed
 		created = (Clock.System.now() - 365.days).toISO8601(),
 		expires = (Clock.System.now() + 30.days).toISO8601()
 	)
@@ -60,8 +61,15 @@ class AccountsRepositoryTest : BaseTest() {
 
 		accountDao = mockk()
 		authTokenDao = mockk()
+		tokenHasher = mockk()
 
 		secureRandom = SecureRandom()
+
+		// Mock tokenHasher to return a predictable hash (just add "-hashed" suffix for testing)
+		coEvery { tokenHasher.hashToken(any()) } answers {
+			val token = firstArg<String>()
+			"$token-hashed"
+		}
 
 		setupKoin()
 
@@ -88,11 +96,11 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Login - Success`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 
-		val authToken = createAuthToken()
-		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns authToken
+		// Mock setToken since login now creates fresh tokens
+		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
 
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result =
 			accountsRepository.login(email = email, installId = installId, password = password)
@@ -103,7 +111,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Login - Wrong password`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.login(
 			email = email,
@@ -117,7 +125,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Login - No User`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.login(
 			email = "no@account.com",
@@ -134,7 +142,7 @@ class AccountsRepositoryTest : BaseTest() {
 		coEvery { accountDao.createAccount(any(), any(), any(), any()) } returns userId
 		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -151,7 +159,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Create Account - Failure - Existing Account`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -165,7 +173,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Create Account - Failure - Password Short`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -183,7 +191,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Create Account - Failure - Password Long`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.createAccount(
 			email = email,
@@ -202,7 +210,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Create Account - Failure - Invalid Email`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.createAccount(
 			email = "notanemail",
@@ -219,7 +227,7 @@ class AccountsRepositoryTest : BaseTest() {
 		val token = createAuthToken()
 		coEvery { authTokenDao.getTokenByAuthToken(any()) } returns token
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
 		assertTrue(isSuccess(result))
@@ -230,7 +238,7 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Check Token - Failure`() = runTest {
 		coEvery { authTokenDao.getTokenByAuthToken(any()) } returns null
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.checkToken(userId, bearerToken)
 		assertTrue(result.isFailure)
@@ -262,7 +270,7 @@ class AccountsRepositoryTest : BaseTest() {
 
 		coEvery { accountDao.findAccount(any()) } returns accountWithOldHash
 		val accountsRepository =
-			AccountsRepository(accountDao, authTokenDao, clock, secureRandom, b64)
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, secureRandom, b64)
 
 		val result = accountsRepository.login(
 			email = email,

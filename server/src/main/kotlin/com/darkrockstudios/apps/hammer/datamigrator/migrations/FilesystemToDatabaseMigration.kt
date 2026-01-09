@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
-import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityFilesystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
@@ -56,9 +56,8 @@ class FilesystemToDatabaseMigration(
 		val projectsFsDatasource = ProjectsFileSystemDatasource(fileSystem, json)
 		val projectFsDatasource = ProjectEntityFilesystemDatasource(fileSystem, json)
 
-		val simpleAesKeyProvider =
-			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom)
-		val contentEncryptor = AesGcmContentEncryptor(simpleAesKeyProvider, secureRandom)
+		val aesKeyProvider = koinApp.koin.get<AesGcmKeyProvider>()
+		val contentEncryptor = AesGcmContentEncryptor(aesKeyProvider, secureRandom)
 
 		val accountDao = AccountDao(database)
 		val projectsDao = ProjectsDao(database)
