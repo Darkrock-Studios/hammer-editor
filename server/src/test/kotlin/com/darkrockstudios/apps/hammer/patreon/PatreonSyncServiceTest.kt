@@ -172,7 +172,8 @@ class PatreonSyncServiceTest : BaseTest() {
 			is_admin = false,
 			pen_name = null,
 			bio = null,
-			last_sync = "2024-01-01"
+			last_sync = "2024-01-01",
+			email_verified = true,
 		)
 
 		coEvery { authTokenDao.deleteTokensByUserId(1L) } returns Unit
@@ -240,7 +241,8 @@ class PatreonSyncServiceTest : BaseTest() {
 			is_admin = false,
 			pen_name = null,
 			bio = null,
-			last_sync = "2024-01-01"
+			last_sync = "2024-01-01",
+			email_verified = true,
 		)
 
 		coEvery { authTokenDao.deleteTokensByUserId(42L) } returns Unit
