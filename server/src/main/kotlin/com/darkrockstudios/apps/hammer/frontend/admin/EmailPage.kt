@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlFragment
 import com.darkrockstudios.apps.hammer.frontend.withDefaults
 import io.ktor.htmx.*
 import io.ktor.http.*
@@ -13,6 +14,7 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.html.div
 
 // GET /admin/email - Email Settings page
 internal fun Route.adminEmailPage(
@@ -90,19 +92,23 @@ internal fun Route.emailSettingsRoutes(configRepository: ConfigRepository, email
 
 			if (testRecipient.isEmpty()) {
 				call.application.environment.log.warn("Test email failed: No recipient provided")
-				call.respondText(
-					"<div class=\"error-message\">${call.msg("admin_email_error_recipient_required")}</div>",
-					ContentType.Text.Html
-				)
+				val errorMsg = call.msg("admin_email_error_recipient_required")
+				call.respondHtmlFragment {
+					div("error-message") {
+						+errorMsg
+					}
+				}
 				return@post
 			}
 
 			if (!emailService.isConfigured()) {
 				call.application.environment.log.warn("Test email failed: Email service not configured")
-				call.respondText(
-					"<div class=\"error-message\">${call.msg("admin_email_error_not_configured")}</div>",
-					ContentType.Text.Html
-				)
+				val errorMsg = call.msg("admin_email_error_not_configured")
+				call.respondHtmlFragment {
+					div("error-message") {
+						+errorMsg
+					}
+				}
 				return@post
 			}
 
@@ -118,10 +124,12 @@ internal fun Route.emailSettingsRoutes(configRepository: ConfigRepository, email
 			when (result) {
 				is EmailResult.Success -> {
 					call.application.environment.log.info("Test email sent successfully to: $testRecipient")
-					call.respondText(
-						"<div class=\"success-message\">${call.msg("admin_email_test_success")}</div>",
-						ContentType.Text.Html
-					)
+					val successMsg = call.msg("admin_email_test_success")
+					call.respondHtmlFragment {
+						div("success-message") {
+							+successMsg
+						}
+					}
 				}
 
 				is EmailResult.Failure -> {
@@ -129,10 +137,12 @@ internal fun Route.emailSettingsRoutes(configRepository: ConfigRepository, email
 						"Test email failed to $testRecipient: ${result.reason}",
 						result.exception
 					)
-					call.respondText(
-						"<div class=\"error-message\">${call.msg("admin_email_test_failed")}: ${result.reason}</div>",
-						ContentType.Text.Html
-					)
+					val errorMsg = "${call.msg("admin_email_test_failed")}: ${result.reason}"
+					call.respondHtmlFragment {
+						div("error-message") {
+							+errorMsg
+						}
+					}
 				}
 			}
 		}
