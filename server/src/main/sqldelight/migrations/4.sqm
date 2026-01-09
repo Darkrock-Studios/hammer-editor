@@ -29,7 +29,8 @@ CREATE TABLE tmp_account (
     is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
     last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
     bio TEXT DEFAULT(NULL),
-    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
+    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    community_member INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
 );
 
 INSERT INTO tmp_account (id, email, pen_name, password_hash, cipher_secret, created, is_admin, last_sync)

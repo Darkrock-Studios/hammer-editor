@@ -46,6 +46,7 @@ class AccountsComponentLoginTest {
 		pen_name = null,
 		bio = null,
 		email_verified = true,
+		community_member = false,
 	)
 
 	@BeforeEach

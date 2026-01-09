@@ -89,6 +89,7 @@ class AccountsRepositoryTest : BaseTest() {
 			pen_name = null,
 			bio = null,
 			email_verified = true,
+			community_member = false,
 		)
 	}
 
