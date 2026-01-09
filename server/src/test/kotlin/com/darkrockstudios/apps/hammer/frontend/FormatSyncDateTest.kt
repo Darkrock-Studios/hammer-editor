@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.frontend.utils.formatPatreonDate
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import org.junit.jupiter.api.Test
 import java.time.ZoneId
@@ -136,12 +137,21 @@ class FormatSyncDateTest {
 	}
 
 	@Test
-	fun `returns original string for ISO 8601 format`() {
-		// SQLite format doesn't have T separator
-		val isoFormat = "2024-03-15T14:30:00"
+	fun `formatSyncDate does not handle ISO 8601 format`() {
+		val isoFormat = "2024-03-15T14:30:00Z"
 
 		val result = formatSyncDate(isoFormat)
 
-		assertEquals("2024-03-15T14:30:00", result)
+		assertEquals(isoFormat, result)
+	}
+
+	@Test
+	fun `formatPatreonDate handles ISO 8601 format`() {
+		val isoFormat = "2024-03-15T14:30:00Z"
+
+		val result = formatPatreonDate(isoFormat)
+
+		// Verify it matches the expected pattern (Jan 01, 2024 at 12:00)
+		assertTrue(result.matches(Regex("""\w{3} \d{2}, \d{4} at \d{2}:\d{2}""")), "Result was: $result")
 	}
 }

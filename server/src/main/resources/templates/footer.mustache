@@ -19,6 +19,12 @@
 				<i class="fa-brands fa-reddit"></i>
 				<span>{{msg.home_footer_reddit}}</span>
 			</a>
+			{{#patreonUrl}}
+				<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer">
+					<i class="fa-brands fa-patreon"></i>
+					<span>{{msg.home_footer_patreon}}</span>
+				</a>
+			{{/patreonUrl}}
 		</div>
 		<form action="/locale" method="post" class="language-selector">
 			<label for="lang-select">Language:</label>

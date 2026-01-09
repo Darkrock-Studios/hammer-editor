@@ -151,6 +151,80 @@
 	color: #78350f;
 }
 
+/* Patreon Notice */
+.login-info-patreon {
+	margin-top: 1rem;
+	padding: 1.25rem 1.5rem;
+	background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%);
+	border: 2px solid #f97316;
+	border-radius: 0.75rem;
+	text-align: center;
+	position: relative;
+	overflow: hidden;
+}
+
+.login-info-patreon::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, #f97316, #ea580c, #f97316);
+}
+
+.login-info-patreon__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: #c2410c;
+	font-size: 1.0625rem;
+	font-weight: 600;
+	margin: 0 0 0.75rem 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+.login-info-patreon__title::before {
+	content: '♦';
+	color: #f97316;
+}
+
+.login-info-patreon p {
+	color: #9a3412;
+	font-size: 0.9375rem;
+	margin: 0 0 1rem 0;
+	line-height: 1.6;
+}
+
+.login-info-patreon__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1.25rem;
+	background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+	color: white;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	text-decoration: none;
+	border-radius: 0.5rem;
+	transition: all var(--transition-base);
+	box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+}
+
+.login-info-patreon__link:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(249, 115, 22, 0.4);
+	background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+	color: white;
+}
+
+.login-info-patreon__link:active {
+	transform: translateY(0);
+	box-shadow: 0 1px 2px rgba(249, 115, 22, 0.3);
+}
+
 /* Responsive Design */
 @media only screen and (max-width: 600px) {
 	.login-header h1 {
