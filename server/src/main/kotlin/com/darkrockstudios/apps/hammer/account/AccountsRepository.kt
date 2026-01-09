@@ -5,10 +5,7 @@ import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
-import com.darkrockstudios.apps.hammer.utilities.Msg
-import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
-import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.*
 import de.mkammerer.argon2.Argon2Factory
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
@@ -19,6 +16,7 @@ class AccountsRepository(
 	private val accountDao: AccountDao,
 	private val authTokenDao: AuthTokenDao,
 	private val clock: Clock,
+	private val tokenHasher: TokenHasher,
 	secureRandom: SecureRandom,
 	base64: Base64,
 ) {
@@ -29,39 +27,31 @@ class AccountsRepository(
 
 	private suspend fun createToken(userId: Long, installId: String): Token {
 		val expires = clock.now() + tokenLifetime
-		val token = Token(
+
+		val plainAuthToken = authTokenGenerator.generateToken()
+		val plainRefreshToken = authTokenGenerator.generateToken()
+
+		val hashedAuthToken = tokenHasher.hashToken(plainAuthToken)
+		val hashedRefreshToken = tokenHasher.hashToken(plainRefreshToken)
+
+		val hashedToken = Token(
 			userId = userId,
-			auth = authTokenGenerator.generateToken(),
-			refresh = authTokenGenerator.generateToken()
+			auth = hashedAuthToken,
+			refresh = hashedRefreshToken
 		)
 
 		authTokenDao.setToken(
 			userId = userId,
 			installId = installId,
-			token = token,
+			token = hashedToken,
 			expires = expires
 		)
 
-		return token
-	}
-
-	private suspend fun getAuthToken(userId: Long, installId: String): Token {
-		val existingToken = authTokenDao.getTokenByInstallId(userId, installId)
-		return if (existingToken != null) {
-			if (existingToken.user_id != userId) {
-				error("Existing Token returned for installId `$installId` was for user: ${existingToken.user_id} instead of user: $userId")
-			} else if (existingToken.isExpired(clock)) {
-				createToken(userId = userId, installId = installId)
-			} else {
-				Token(
-					userId = existingToken.user_id,
-					auth = existingToken.token,
-					refresh = existingToken.refresh
-				)
-			}
-		} else {
-			createToken(userId = userId, installId = installId)
-		}
+		return Token(
+			userId = userId,
+			auth = plainAuthToken,
+			refresh = plainRefreshToken
+		)
 	}
 
 	suspend fun hasUsers(): Boolean = accountDao.numAccounts() > 0
@@ -132,13 +122,14 @@ class AccountsRepository(
 		} else if (!checkPassword(account, password)) {
 			SResult.failure("Incorrect password", Msg.r("api_accounts_login_error_badpassword"))
 		} else {
-			val token = getAuthToken(account.id, installId)
+			val token = createToken(account.id, installId)
 			SResult.success(token)
 		}
 	}
 
 	suspend fun checkToken(userId: Long, token: String): SResult<Long> {
-		val authToken = authTokenDao.getTokenByAuthToken(token)
+		val hashedToken = tokenHasher.hashToken(token)
+		val authToken = authTokenDao.getTokenByAuthToken(hashedToken)
 
 		return if (authToken != null && authToken.user_id == userId && !authToken.isExpired(clock)) {
 			SResult.success(authToken.user_id)
@@ -148,16 +139,12 @@ class AccountsRepository(
 	}
 
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
+		val hashedRefreshToken = tokenHasher.hashToken(refreshToken)
 		val authToken = authTokenDao.getTokenByInstallId(userId, installId)
-		return if (authToken != null && authToken.refresh == refreshToken) {
+
+		return if (authToken != null && authToken.refresh == hashedRefreshToken) {
 			val newToken = createToken(userId, installId)
-			SResult.success(
-				Token(
-					userId = userId,
-					auth = newToken.auth,
-					refresh = newToken.refresh
-				)
-			)
+			SResult.success(newToken)
 		} else {
 			SResult.failure("No valid token not found", Msg.r("api_accounts_login_error_notoken"))
 		}

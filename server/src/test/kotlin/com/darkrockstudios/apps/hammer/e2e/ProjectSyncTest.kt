@@ -23,7 +23,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		val state = ClientEntityState(
@@ -53,7 +53,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		// Entity is missing from the client, the other needs to be downloaded
@@ -133,7 +133,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		val state = ClientEntityState(entities = emptySet())
@@ -222,7 +222,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		val entityIdToUpdate = 3
@@ -290,7 +290,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		val entityIdToDownload = 7
@@ -323,7 +323,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val checkEntityId = 1
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		val state = ClientEntityState(
