@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.formatPatreonDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlFragment
 import com.darkrockstudios.apps.hammer.frontend.withDefaults
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -15,6 +16,7 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.html.*
 import org.koin.ktor.ext.inject
 
 internal fun Route.patreonSettingsRoutes(
@@ -34,14 +36,17 @@ internal fun Route.patreonSettingsRoutes(
 			val effectiveToken = accessToken.ifEmpty { currentConfig.creatorAccessToken }
 
 			if (effectiveToken.isEmpty()) {
-				call.respondText(
-					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"\" class=\"form-input form-input--error\" placeholder=\"${
-						call.msg(
-							"admin_patreon_error_token_required"
-						)
-					}\"/>",
-					ContentType.Text.Html
-				)
+				val errorMsg = call.msg("admin_patreon_error_token_required")
+				call.respondHtmlFragment {
+					input {
+						id = "campaignId"
+						name = "campaignId"
+						type = InputType.text
+						value = ""
+						classes = setOf("form-input", "form-input--error")
+						placeholder = errorMsg
+					}
+				}
 				return@post
 			}
 
@@ -49,19 +54,28 @@ internal fun Route.patreonSettingsRoutes(
 
 			if (result.isSuccess) {
 				val campaignId = result.getOrThrow()
-				call.respondText(
-					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"$campaignId\" class=\"form-input\" placeholder=\"123456\"/>",
-					ContentType.Text.Html
-				)
+				call.respondHtmlFragment {
+					input {
+						id = "campaignId"
+						name = "campaignId"
+						type = InputType.text
+						value = campaignId
+						classes = setOf("form-input")
+						placeholder = "123456"
+					}
+				}
 			} else {
-				call.respondText(
-					"<input id=\"campaignId\" name=\"campaignId\" type=\"text\" value=\"\" class=\"form-input form-input--error\" placeholder=\"${
-						call.msg(
-							"admin_patreon_error_fetch_failed"
-						)
-					}\"/>",
-					ContentType.Text.Html
-				)
+				val errorMsg = call.msg("admin_patreon_error_fetch_failed")
+				call.respondHtmlFragment {
+					input {
+						id = "campaignId"
+						name = "campaignId"
+						type = InputType.text
+						value = ""
+						classes = setOf("form-input", "form-input--error")
+						placeholder = errorMsg
+					}
+				}
 			}
 		}
 
@@ -85,20 +99,24 @@ internal fun Route.patreonSettingsRoutes(
 				if (campaignId.isEmpty()) {
 					call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
 					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
-					call.respondText(
-						"<div class=\"error-message\">${call.msg("admin_patreon_error_campaign_required")}</div>",
-						ContentType.Text.Html
-					)
+					val errorMsg = call.msg("admin_patreon_error_campaign_required")
+					call.respondHtmlFragment {
+						div("error-message") {
+							+errorMsg
+						}
+					}
 					return@post
 				}
 
 				if (effectiveAccessToken.isEmpty()) {
 					call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
 					call.response.header(HxResponseHeaders.Reswap, "innerHTML")
-					call.respondText(
-						"<div class=\"error-message\">${call.msg("admin_patreon_error_token_required")}</div>",
-						ContentType.Text.Html
-					)
+					val errorMsg = call.msg("admin_patreon_error_token_required")
+					call.respondHtmlFragment {
+						div("error-message") {
+							+errorMsg
+						}
+					}
 					return@post
 				}
 			}
@@ -135,10 +153,12 @@ internal fun Route.patreonSettingsRoutes(
 			if (!config.enabled) {
 				call.response.header(HxResponseHeaders.Retarget, "#patreon-error")
 				call.response.header(HxResponseHeaders.Reswap, "innerHTML")
-				call.respondText(
-					"<div class=\"error-message\">${call.msg("admin_patreon_error_not_enabled")}</div>",
-					ContentType.Text.Html
-				)
+				val errorMsg = call.msg("admin_patreon_error_not_enabled")
+				call.respondHtmlFragment {
+					div("error-message") {
+						+errorMsg
+					}
+				}
 				return@post
 			}
 
