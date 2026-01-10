@@ -1,0 +1,27 @@
+{{#communityEnabled}}
+	<!-- Community Callout -->
+	<div class="community-callout">
+		<a href="/community/feed" class="community-callout__inner">
+			<div class="community-callout__icon">
+				<i class="fa-solid fa-book-open-reader"></i>
+			</div>
+			<div class="community-callout__content">
+				<h3 class="community-callout__title">{{msg.community_callout_title}}</h3>
+				<p class="community-callout__text">
+					{{#hasMultipleAuthors}}
+						{{msg.community_callout_text_plural_pre}}{{communityAuthorCount}}{{msg.community_callout_text_plural_post}}
+					{{/hasMultipleAuthors}}
+					{{#hasSingleAuthor}}
+						{{msg.community_callout_text_single}}
+					{{/hasSingleAuthor}}
+					{{^hasCommunityAuthors}}
+						{{msg.community_callout_text_empty}}
+					{{/hasCommunityAuthors}}
+				</p>
+			</div>
+			<span class="community-callout__arrow">
+			<i class="fa-solid fa-arrow-right"></i>
+		</span>
+		</a>
+	</div>
+{{/communityEnabled}}

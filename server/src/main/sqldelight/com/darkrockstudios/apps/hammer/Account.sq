@@ -86,3 +86,21 @@ UPDATE account SET bio = ? WHERE id = ?;
 
 getBio:
 SELECT bio FROM account WHERE id = ?;
+
+updateCommunityMember:
+UPDATE account SET community_member = ? WHERE id = ?;
+
+getCommunityMember:
+SELECT community_member FROM account WHERE id = ?;
+
+getCommunityAuthors:
+SELECT id, pen_name, bio, created
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL
+ORDER BY pen_name COLLATE NOCASE ASC
+LIMIT :limit OFFSET :offset;
+
+countCommunityAuthors:
+SELECT COUNT(*)
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL;

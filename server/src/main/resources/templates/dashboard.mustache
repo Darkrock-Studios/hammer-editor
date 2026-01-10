@@ -52,6 +52,12 @@
 					<div class="bio-section" id="bio-section" {{^penName}}style="display:none;"{{/penName}}>
 						{{> partials/bio-section}}
 					</div>
+					{{#communityEnabled}}
+						<div class="community-section" id="community-section"
+							 {{^penName}}style="display:none;"{{/penName}}>
+							{{> partials/community-section}}
+						</div>
+					{{/communityEnabled}}
 				</div>
 			</div>
 		</section>

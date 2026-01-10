@@ -90,4 +90,39 @@ class AccountDao(
 	suspend fun getBio(userId: Long): String? = withContext(ioDispatcher) {
 		return@withContext queries.getBio(userId).executeAsOneOrNull()?.bio
 	}
+
+	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) = withContext(ioDispatcher) {
+		queries.updateCommunityMember(isCommunityMember, userId)
+	}
+
+	suspend fun getCommunityMember(userId: Long): Boolean = withContext(ioDispatcher) {
+		return@withContext queries.getCommunityMember(userId).executeAsOneOrNull() ?: false
+	}
+
+	suspend fun getCommunityAuthors(page: Int, pageSize: Int): List<CommunityAuthor> =
+		withContext(ioDispatcher) {
+			val offset = page * pageSize
+			return@withContext queries.getCommunityAuthors(
+				limit = pageSize.toLong(),
+				offset = offset.toLong()
+			).executeAsList().map { row ->
+				CommunityAuthor(
+					id = row.id,
+					penName = row.pen_name!!,
+					bio = row.bio,
+					created = row.created
+				)
+			}
+		}
+
+	suspend fun countCommunityAuthors(): Long = withContext(ioDispatcher) {
+		return@withContext queries.countCommunityAuthors().executeAsOne()
+	}
 }
+
+data class CommunityAuthor(
+	val id: Long,
+	val penName: String,
+	val bio: String?,
+	val created: String
+)

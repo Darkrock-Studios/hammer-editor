@@ -61,12 +61,12 @@ fun Route.frontend() {
 	staticResources("/assets", "/assets")
 
 	setupPage(serverConfig)
-	homePage(whiteListRepository, configRepository)
-	aboutPage(configRepository)
+	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository)
+	aboutPage(configRepository, serverConfig, accountsRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
-	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService)
+	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
 	authorPage(accountsRepository, projectAccessRepository)
 	publicStoryPage(storyExportService, projectAccessRepository)
@@ -79,6 +79,7 @@ fun Route.frontend() {
 		patreonSyncService,
 		emailService
 	)
+	communityPage(projectAccessRepository, accountsRepository, serverConfig)
 }
 
 const val COOKIE_USER_SESSION = "user_session"

@@ -1,0 +1,637 @@
+/* Feed Page Styles */
+/* A literary gazette showcasing community stories */
+
+/* Feed-specific container width */
+.page__container--feed {
+	max-width: 800px;
+}
+
+/* ========================================
+   Community Navigation
+   ======================================== */
+
+.community-nav {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
+	animation: fadeIn 0.3s ease-out;
+}
+
+.community-nav__link {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1.25rem;
+	border-radius: 2rem;
+	background: var(--surface);
+	border: 2px solid var(--neutral-200);
+	transition: all 0.2s ease;
+}
+
+.community-nav__link:hover {
+	color: var(--accent);
+	border-color: var(--accent);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.community-nav__link--active {
+	color: var(--accent);
+	border-color: var(--accent);
+	background: rgba(217, 119, 6, 0.08);
+}
+
+.community-nav__link i {
+	font-size: 0.875rem;
+}
+
+.community-nav__link:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* ========================================
+   Story Count Badge (in header)
+   ======================================== */
+
+.story-count-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: rgba(255, 255, 255, 0.9);
+	background: rgba(255, 255, 255, 0.1);
+	padding: 0.5rem 1rem;
+	border-radius: 2rem;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.story-count-badge i {
+	color: var(--accent-light);
+}
+
+/* ========================================
+   Feed Section (main content area)
+   ======================================== */
+
+.feed-section {
+	background: var(--surface);
+	border-radius: 0.75rem;
+	padding: clamp(1.5rem, 4vw, 2.5rem);
+	box-shadow: var(--shadow-lg);
+	animation: fadeIn 0.5s ease-out;
+	position: relative;
+}
+
+/* Decorative top border */
+.feed-section::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg,
+	var(--accent-dark) 0%,
+	var(--accent) 50%,
+	var(--accent-dark) 100%
+	);
+	border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* Section Header with Dividers */
+.feed-section__header {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 2rem;
+	padding-top: 0.5rem;
+}
+
+.feed-section__divider {
+	flex: 1;
+	height: 2px;
+	background: linear-gradient(90deg,
+	transparent 0%,
+	var(--neutral-300) 20%,
+	var(--neutral-300) 80%,
+	transparent 100%
+	);
+}
+
+.feed-section__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+/* ========================================
+   Story List
+   ======================================== */
+
+.story-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+/* ========================================
+   Story Entry - Notebook Page Style
+   ======================================== */
+
+.story-entry {
+	display: flex;
+	position: relative;
+	background: linear-gradient(180deg, #fffef9 0%, #fdfcf7 100%);
+	border: none;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* Lined paper effect */
+	background-image: repeating-linear-gradient(
+		transparent,
+		transparent 31px,
+		rgba(180, 83, 9, 0.06) 31px,
+		rgba(180, 83, 9, 0.06) 32px
+	);
+
+	/* Subtle paper edges */
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03),
+	inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Add separator between entries */
+.story-entry + .story-entry {
+	border-top: 1px dashed var(--neutral-200);
+}
+
+/* First entry rounded corners */
+.story-entry:first-child {
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Last entry rounded corners and shadow */
+.story-entry:last-child {
+	border-radius: 0 0 0.5rem 0.5rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06),
+	inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Only entry gets all corners */
+.story-entry:only-child {
+	border-radius: 0.5rem;
+}
+
+/* Red margin line */
+.story-entry__margin {
+	width: 3px;
+	background: linear-gradient(180deg,
+	#ef4444 0%,
+	#dc2626 100%
+	);
+	flex-shrink: 0;
+	opacity: 0.7;
+}
+
+/* Content area */
+.story-entry__content {
+	flex: 1;
+	padding: 1.5rem 1.75rem;
+	min-width: 0;
+}
+
+/* Hover state */
+.story-entry:hover {
+	background: linear-gradient(180deg, #fffef5 0%, #fdfcf3 100%);
+	background-image: repeating-linear-gradient(
+		transparent,
+		transparent 31px,
+		rgba(180, 83, 9, 0.08) 31px,
+		rgba(180, 83, 9, 0.08) 32px
+	);
+}
+
+.story-entry:hover .story-entry__margin {
+	opacity: 1;
+}
+
+.story-entry:hover .story-entry__title a {
+	color: var(--accent-dark);
+}
+
+.story-entry:hover .story-entry__read-link {
+	color: var(--accent);
+}
+
+.story-entry:hover .story-entry__read-link i {
+	transform: translateX(4px);
+}
+
+/* Meta info row */
+.story-entry__meta {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0.625rem;
+}
+
+.story-entry__date {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.story-entry__date i {
+	font-size: 0.6875rem;
+	color: var(--neutral-400);
+}
+
+/* Story title */
+.story-entry__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.375rem;
+	line-height: 1.3;
+	margin: 0 0 0.5rem;
+}
+
+.story-entry__title a {
+	color: var(--text-primary);
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.story-entry__title a:hover {
+	color: var(--accent);
+}
+
+/* Author byline */
+.story-entry__author {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	margin: 0 0 1rem;
+	font-style: italic;
+}
+
+.story-entry__author-link {
+	color: var(--accent);
+	text-decoration: none;
+	font-style: normal;
+	font-weight: 500;
+	transition: color 0.2s ease;
+}
+
+.story-entry__author-link:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+/* Read link */
+.story-entry__action {
+	display: flex;
+}
+
+.story-entry__read-link {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0;
+	transition: color 0.2s ease;
+}
+
+.story-entry__read-link i {
+	font-size: 0.75rem;
+	transition: transform 0.2s ease;
+}
+
+.story-entry__read-link:hover {
+	color: var(--accent);
+}
+
+/* ========================================
+   Staggered Animation for Entries
+   ======================================== */
+
+.story-entry {
+	animation: entrySlideIn 0.4s ease-out backwards;
+}
+
+.story-entry:nth-child(1) {
+	animation-delay: 0.05s;
+}
+
+.story-entry:nth-child(2) {
+	animation-delay: 0.1s;
+}
+
+.story-entry:nth-child(3) {
+	animation-delay: 0.15s;
+}
+
+.story-entry:nth-child(4) {
+	animation-delay: 0.2s;
+}
+
+.story-entry:nth-child(5) {
+	animation-delay: 0.25s;
+}
+
+.story-entry:nth-child(6) {
+	animation-delay: 0.3s;
+}
+
+.story-entry:nth-child(7) {
+	animation-delay: 0.35s;
+}
+
+.story-entry:nth-child(8) {
+	animation-delay: 0.4s;
+}
+
+.story-entry:nth-child(9) {
+	animation-delay: 0.45s;
+}
+
+.story-entry:nth-child(10) {
+	animation-delay: 0.5s;
+}
+
+@keyframes entrySlideIn {
+	from {
+		opacity: 0;
+		transform: translateX(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* ========================================
+   Pagination
+   ======================================== */
+
+.pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 2.5rem;
+	padding-top: 2rem;
+	border-top: 2px dashed var(--neutral-200);
+}
+
+.pagination-button {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	background: var(--paper-white);
+	border: 2px solid var(--neutral-300);
+	padding: 0.625rem 1.25rem;
+	border-radius: 0.375rem;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.pagination-button:hover:not(.pagination-button--disabled) {
+	border-color: var(--accent);
+	color: var(--accent);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.pagination-button--disabled {
+	color: var(--neutral-400);
+	border-color: var(--neutral-200);
+	background: var(--neutral-50);
+	cursor: not-allowed;
+}
+
+.pagination-info {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	padding: 0 0.5rem;
+}
+
+/* ========================================
+   Empty State
+   ======================================== */
+
+.feed-empty {
+	text-align: center;
+	padding: 4rem 2rem;
+}
+
+.feed-empty__illustration {
+	margin-bottom: 1.5rem;
+}
+
+.feed-empty__paper {
+	width: 5rem;
+	height: 6rem;
+	margin: 0 auto;
+	background: linear-gradient(180deg, #fffef9 0%, #faf8f3 100%);
+	border-radius: 0.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+	inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+	position: relative;
+	transform: rotate(2deg);
+
+	/* Lined paper effect */
+	background-image: repeating-linear-gradient(
+		transparent,
+		transparent 11px,
+		rgba(180, 83, 9, 0.08) 11px,
+		rgba(180, 83, 9, 0.08) 12px
+	);
+}
+
+/* Red margin on empty state paper */
+.feed-empty__paper::before {
+	content: '';
+	position: absolute;
+	left: 0.75rem;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: rgba(239, 68, 68, 0.5);
+}
+
+.feed-empty__paper i {
+	font-size: 1.75rem;
+	color: var(--neutral-300);
+}
+
+.feed-empty__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: var(--text-primary);
+	margin: 0 0 0.75rem;
+}
+
+.feed-empty__text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	margin: 0;
+	max-width: 400px;
+	margin: 0 auto;
+	line-height: 1.6;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+.feed-footer {
+	margin-top: 2rem;
+	text-align: center;
+}
+
+.feed-footer .powered-by {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.feed-footer a {
+	color: var(--accent);
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.feed-footer a:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media only screen and (max-width: 768px) {
+	.feed-section {
+		padding: 1.25rem;
+		border-radius: 0.5rem;
+	}
+
+	.feed-section__header {
+		margin-bottom: 1.5rem;
+	}
+
+	.feed-section__label {
+		font-size: 0.75rem;
+	}
+
+	.story-entry__content {
+		padding: 1.25rem 1.25rem;
+	}
+
+	.story-entry__title {
+		font-size: 1.25rem;
+	}
+
+	.pagination {
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	.pagination-button {
+		padding: 0.5rem 1rem;
+		font-size: 0.8125rem;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.page-header__actions {
+		display: none;
+	}
+
+	.story-entry__margin {
+		width: 2px;
+	}
+
+	.story-entry__content {
+		padding: 1rem;
+	}
+
+	.story-entry__title {
+		font-size: 1.125rem;
+	}
+
+	.story-entry__author {
+		font-size: 0.875rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.feed-empty {
+		padding: 3rem 1.5rem;
+	}
+
+	.feed-empty__paper {
+		width: 4rem;
+		height: 5rem;
+	}
+
+	.feed-empty__paper i {
+		font-size: 1.5rem;
+	}
+
+	.feed-empty__title {
+		font-size: 1.25rem;
+	}
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.feed-section,
+	.story-entry {
+		animation: none;
+	}
+
+	.story-entry:hover .story-entry__read-link i {
+		transform: none;
+	}
+}
+
+/* Focus states for keyboard navigation */
+.story-entry__title a:focus-visible,
+.story-entry__author-link:focus-visible,
+.story-entry__read-link:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.pagination-button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}

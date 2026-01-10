@@ -226,6 +226,12 @@ document.body.addEventListener('penNameUpdated', function (evt) {
 		bioSection.style.display = '';
 	}
 
+	// Show the community section (it's hidden by default when no pen name is set)
+	const communitySection = document.getElementById('community-section');
+	if (communitySection) {
+		communitySection.style.display = '';
+	}
+
 	exitPenNameEditMode();
 });
 
@@ -272,6 +278,12 @@ document.addEventListener('DOMContentLoaded', function () {
 				const bioSection = document.getElementById('bio-section');
 				if (bioSection) {
 					bioSection.style.display = 'none';
+				}
+
+				// Hide the community section when pen name is released
+				const communitySection = document.getElementById('community-section');
+				if (communitySection) {
+					communitySection.style.display = 'none';
 				}
 
 				// Exit release mode and go back to display state
@@ -328,3 +340,16 @@ document.addEventListener('DOMContentLoaded', function () {
 		updateBioCharCount(bioInput.value);
 	}
 });
+
+// ========================================
+// Community Membership Functions
+// ========================================
+
+function toggleCommunityMembership(isJoining) {
+	const endpoint = isJoining ? '/dashboard/community/join' : '/dashboard/community/leave';
+
+	htmx.ajax('POST', endpoint, {
+		target: '#community-section',
+		swap: 'innerHTML'
+	});
+}

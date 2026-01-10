@@ -1,0 +1,120 @@
+{{> header}}
+
+<main class="page">
+	<div class="page__container page__container--feed">
+		<!-- Page Header -->
+		<div class="page-header">
+			<div class="page-header__content">
+				<h1 class="page-header__title">{{msg.feed_page_title}}</h1>
+				<p class="page-header__subtitle">{{msg.feed_page_subtitle}}</p>
+			</div>
+			{{#hasStories}}
+				<div class="page-header__actions">
+				<span class="story-count-badge">
+					<i class="fa-solid fa-scroll"></i>
+					{{storyCount}} {{msg.feed_count_label}}
+				</span>
+				</div>
+			{{/hasStories}}
+		</div>
+
+		{{> partials/community-nav}}
+
+		<!-- Feed Section -->
+		<section class="feed-section">
+			<!-- Decorative header -->
+			<div class="feed-section__header">
+				<span class="feed-section__divider"></span>
+				<span class="feed-section__label">{{msg.feed_latest_stories}}</span>
+				<span class="feed-section__divider"></span>
+			</div>
+
+			{{#hasStories}}
+				<!-- Story List -->
+				<div class="story-list">
+					{{#stories}}
+						<article class="story-entry">
+							<div class="story-entry__margin"></div>
+							<div class="story-entry__content">
+								<div class="story-entry__meta">
+									<time class="story-entry__date">
+										<i class="fa-regular fa-calendar"></i>
+										{{publishedAt}}
+									</time>
+								</div>
+								<h2 class="story-entry__title">
+									<a href="/a/{{penNameUrl}}/{{projectNameUrl}}">{{projectName}}</a>
+								</h2>
+								<p class="story-entry__author">
+									{{msg.feed_story_by}}
+									<a href="/a/{{penNameUrl}}" class="story-entry__author-link">{{penName}}</a>
+								</p>
+								<div class="story-entry__action">
+									<a href="/a/{{penNameUrl}}/{{projectNameUrl}}" class="story-entry__read-link">
+										{{msg.feed_read_story}}
+										<i class="fa-solid fa-arrow-right"></i>
+									</a>
+								</div>
+							</div>
+						</article>
+					{{/stories}}
+				</div>
+
+				<!-- Pagination -->
+				{{#isPaged}}
+					<div class="pagination">
+						{{#hasPrevPage}}
+							<a href="/feed?page={{prevPage}}" class="pagination-button">
+							<i class="fa-solid fa-chevron-left"></i>
+							{{msg.admin_pagination_prev}}
+							</a>
+						{{/hasPrevPage}}
+						{{^hasPrevPage}}
+							<span class="pagination-button pagination-button--disabled">
+					<i class="fa-solid fa-chevron-left"></i>
+								{{msg.admin_pagination_prev}}
+				</span>
+						{{/hasPrevPage}}
+
+						<span class="pagination-info">
+					{{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}
+				</span>
+
+						{{#hasNextPage}}
+							<a href="/feed?page={{nextPage}}" class="pagination-button">
+							{{msg.admin_pagination_next}}
+							<i class="fa-solid fa-chevron-right"></i>
+							</a>
+						{{/hasNextPage}}
+						{{^hasNextPage}}
+							<span class="pagination-button pagination-button--disabled">
+					{{msg.admin_pagination_next}}
+								<i class="fa-solid fa-chevron-right"></i>
+				</span>
+						{{/hasNextPage}}
+					</div>
+				{{/isPaged}}
+			{{/hasStories}}
+
+			{{^hasStories}}
+				<!-- Empty State -->
+				<div class="feed-empty">
+					<div class="feed-empty__illustration">
+						<div class="feed-empty__paper">
+							<i class="fa-solid fa-feather-pointed"></i>
+						</div>
+					</div>
+					<h2 class="feed-empty__title">{{msg.feed_empty_title}}</h2>
+					<p class="feed-empty__text">{{msg.feed_empty_text}}</p>
+				</div>
+			{{/hasStories}}
+		</section>
+
+		<!-- Footer -->
+		<div class="feed-footer">
+			<p class="powered-by">{{msg.public_story_powered_by}} <a href="/">Hammer</a></p>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

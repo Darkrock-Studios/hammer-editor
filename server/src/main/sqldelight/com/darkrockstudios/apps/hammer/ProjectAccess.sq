@@ -106,3 +106,29 @@ WHERE LOWER(account.pen_name) = LOWER(:penName)
   AND project_access.access_password IS NULL
   AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'))
 ORDER BY project.name ASC;
+
+getCommunityFeedStories:
+SELECT
+    project.uuid AS project_uuid,
+    project.name AS project_name,
+    account.pen_name AS pen_name,
+    project_access.published_at AS published_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE account.community_member = 1
+  AND account.pen_name IS NOT NULL
+  AND project_access.access_password IS NULL
+  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'))
+ORDER BY project_access.published_at DESC
+LIMIT :limit OFFSET :offset;
+
+countCommunityFeedStories:
+SELECT COUNT(*)
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE account.community_member = 1
+  AND account.pen_name IS NOT NULL
+  AND project_access.access_password IS NULL
+  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'));

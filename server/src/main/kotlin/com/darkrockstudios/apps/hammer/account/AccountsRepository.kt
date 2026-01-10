@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
+import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
 import de.mkammerer.argon2.Argon2Factory
 import java.security.SecureRandom
@@ -188,6 +189,22 @@ class AccountsRepository(
 
 	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> {
 		return accountDao.getAccountsPaginated(page, pageSize)
+	}
+
+	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) {
+		accountDao.updateCommunityMember(userId, isCommunityMember)
+	}
+
+	suspend fun getCommunityMember(userId: Long): Boolean {
+		return accountDao.getCommunityMember(userId)
+	}
+
+	suspend fun getCommunityAuthors(page: Int, pageSize: Int): List<CommunityAuthor> {
+		return accountDao.getCommunityAuthors(page, pageSize)
+	}
+
+	suspend fun countCommunityAuthors(): Long {
+		return accountDao.countCommunityAuthors()
 	}
 
 	companion object {
