@@ -20,13 +20,82 @@
 			<img src="/assets/images/hammer_icon_sm.png" alt="Hammer Editor">
 			<h1 class="site-title">Hammer</h1>
 		</a>
-		<nav class="header-nav">
+
+		<!-- Mobile hamburger button -->
+		<button class="nav-toggle" aria-label="{{msg.header_nav_toggle}}" aria-expanded="false">
+			<i class="fa-solid fa-bars nav-toggle__icon nav-toggle__icon--open"></i>
+			<i class="fa-solid fa-xmark nav-toggle__icon nav-toggle__icon--close"></i>
+		</button>
+
+		<nav class="header-nav" id="header-nav">
+			{{#hasAboutPage}}
+				<a href="/about" class="header-nav__link" title="{{msg.header_nav_about}}">
+					<i class="fa-solid fa-info-circle"></i>
+					<span class="header-nav__label">{{msg.header_nav_about}}</span>
+				</a>
+			{{/hasAboutPage}}
+			{{#communityEnabled}}
+				<a href="/community/feed" class="header-nav__link" title="{{msg.header_nav_community}}">
+					<i class="fa-solid fa-users"></i>
+					<span class="header-nav__label">{{msg.header_nav_community}}</span>
+				</a>
+			{{/communityEnabled}}
 			{{#isLoggedIn}}
-				<a href="/dashboard" class="btn">{{msg.home_header_dashboardbutton}}</a>
+				<a href="/dashboard" class="header-nav__link header-nav__link--primary"
+				   title="{{msg.header_nav_dashboard}}">
+					<i class="fa-solid fa-gauge-high"></i>
+					<span class="header-nav__label">{{msg.header_nav_dashboard}}</span>
+				</a>
 			{{/isLoggedIn}}
 			{{^isLoggedIn}}
-				<a href="/login" class="btn">{{msg.home_header_loginbutton}}</a>
+				<a href="/login" class="header-nav__link header-nav__link--primary" title="{{msg.header_nav_login}}">
+					<i class="fa-solid fa-right-to-bracket"></i>
+					<span class="header-nav__label">{{msg.header_nav_login}}</span>
+				</a>
 			{{/isLoggedIn}}
 		</nav>
 	</div>
 </header>
+<div class="nav-overlay" id="nav-overlay"></div>
+<script>
+	(function () {
+		const toggle = document.querySelector('.nav-toggle');
+		const nav = document.getElementById('header-nav');
+		const overlay = document.getElementById('nav-overlay');
+
+		function closeMenu() {
+			toggle.setAttribute('aria-expanded', 'false');
+			nav.classList.remove('is-open');
+			overlay.classList.remove('is-visible');
+			document.body.style.overflow = '';
+		}
+
+		function openMenu() {
+			toggle.setAttribute('aria-expanded', 'true');
+			nav.classList.add('is-open');
+			overlay.classList.add('is-visible');
+			document.body.style.overflow = 'hidden';
+		}
+
+		toggle.addEventListener('click', function () {
+			const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+			if (isOpen) {
+				closeMenu();
+			} else {
+				openMenu();
+			}
+		});
+
+		overlay.addEventListener('click', closeMenu);
+
+		// Close menu when clicking a nav link
+		nav.querySelectorAll('.header-nav__link').forEach(function (link) {
+			link.addEventListener('click', closeMenu);
+		});
+
+		// Close on escape key
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape') closeMenu();
+		});
+	})();
+</script>
