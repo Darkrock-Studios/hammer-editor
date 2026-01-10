@@ -61,8 +61,8 @@ fun Route.frontend() {
 	staticResources("/assets", "/assets")
 
 	setupPage(serverConfig)
-	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository)
-	aboutPage(configRepository, serverConfig, accountsRepository)
+	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
+	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
@@ -173,6 +173,11 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {
 			model["patreonUrl"] = patreonConfig.patreonUrl
 		}
+	}
+
+	// Add community enabled flag for header nav
+	if (serverConfig.communityEnabled) {
+		model["communityEnabled"] = true
 	}
 
 	return model
