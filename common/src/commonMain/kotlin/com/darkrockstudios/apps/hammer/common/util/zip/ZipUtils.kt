@@ -105,10 +105,9 @@ fun unzipBytesToDirectory(
 	zipBytes: ByteArray,
 	destinationDirectory: OkioPath
 ) {
-	// Create a temporary file to hold the zip bytes
-	val tempZipPath = destinationDirectory.parent?.let { parent ->
-		parent / ".temp_extract_${kotlin.random.Random.nextLong()}.zip"
-	} ?: throw IllegalArgumentException("Destination directory must have a parent")
+	// Create a temporary file inside the destination directory to hold the zip bytes
+	// Use a non-hidden filename for compatibility with sandboxed environments (e.g., snap)
+	val tempZipPath = destinationDirectory / "temp_extract_${kotlin.random.Random.nextLong()}.zip"
 
 	try {
 		// Write bytes to temp file

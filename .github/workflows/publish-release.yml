@@ -67,8 +67,26 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+  publish-snap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Snap from Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ github.event.release.tag_name }} -p 'hammer.snap' -R ${{ github.repository }}
+
+      - name: Upload to Snap Store
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_TOKEN }}
+        with:
+          snap: hammer.snap
+          release: stable
+
   notify:
-    needs: [ publish-google-play ]
+    needs: [ publish-google-play, publish-snap ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification
