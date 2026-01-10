@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import io.ktor.http.*
@@ -10,7 +12,11 @@ import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
-fun Route.aboutPage(configRepository: ConfigRepository) {
+fun Route.aboutPage(
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig,
+	accountsRepository: AccountsRepository
+) {
 	val markdownFlavour = CommonMarkFlavourDescriptor()
 	val markdownParser = MarkdownParser(markdownFlavour)
 
@@ -28,6 +34,8 @@ fun Route.aboutPage(configRepository: ConfigRepository) {
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/about.css"
 			model["aboutHtml"] = aboutHtml
+
+			populateCommunityCalloutModel(serverConfig, model, accountsRepository)
 
 			call.respond(MustacheContent("about.mustache", model))
 		}

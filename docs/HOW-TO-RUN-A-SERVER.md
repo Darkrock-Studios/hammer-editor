@@ -16,6 +16,7 @@ host = "example.com"
 port = 80
 
 # Below this line is optional
+communityEnabled = true
 emailProvider = "SMTP"
 
 sslPort = 443

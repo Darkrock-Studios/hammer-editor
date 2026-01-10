@@ -11,6 +11,7 @@ data class ServerConfig(
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
 	val emailProvider: EmailProvider? = null,
+	val communityEnabled: Boolean = false,
 )
 
 @Serializable

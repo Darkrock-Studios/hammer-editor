@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PenNameService
@@ -26,7 +27,8 @@ fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
 	penNameService: PenNameService,
-	bioService: BioService
+	bioService: BioService,
+	serverConfig: ServerConfig
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -62,6 +64,8 @@ fun Route.dashboardPage(
 						"accountCreated" to formatSyncDate(account.created),
 						"isAdmin" to session.isAdmin,
 						"projects" to projects,
+						"communityEnabled" to serverConfig.communityEnabled,
+						"communityMember" to account.community_member,
 					)
 				)
 
@@ -243,6 +247,81 @@ fun Route.dashboardPage(
 					templatePath = "partials/bio-section.mustache",
 					model = model,
 					message = call.msg("bio_toast_cleared"),
+					toast = Toast.Success
+				)
+			}
+
+			hx.post("/community/join") {
+				if (!serverConfig.communityEnabled) {
+					respondHtmlWithToast(
+						content = "",
+						message = call.msg("community_error_disabled"),
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				val session = call.sessions.requireUser()
+				val account = accountsRepository.getAccount(session.userId)
+
+				// Require pen name to join community
+				if (account.pen_name == null) {
+					respondHtmlWithToast(
+						content = "",
+						message = call.msg("community_error_no_penname"),
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				accountsRepository.updateCommunityMember(session.userId, true)
+
+				val model = call.withDefaults(
+					mapOf(
+						"communityEnabled" to true,
+						"communityMember" to true,
+						"penName" to (account.pen_name ?: "")
+					)
+				)
+
+				respondTemplateWithToast(
+					templatePath = "partials/community-section.mustache",
+					model = model,
+					message = call.msg("community_toast_joined"),
+					toast = Toast.Success
+				)
+			}
+
+			hx.post("/community/leave") {
+				if (!serverConfig.communityEnabled) {
+					respondHtmlWithToast(
+						content = "",
+						message = call.msg("community_error_disabled"),
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				val session = call.sessions.requireUser()
+				val account = accountsRepository.getAccount(session.userId)
+
+				accountsRepository.updateCommunityMember(session.userId, false)
+
+				val model = call.withDefaults(
+					mapOf(
+						"communityEnabled" to true,
+						"communityMember" to false,
+						"penName" to (account.pen_name ?: "")
+					)
+				)
+
+				respondTemplateWithToast(
+					templatePath = "partials/community-section.mustache",
+					model = model,
+					message = call.msg("community_toast_left"),
 					toast = Toast.Success
 				)
 			}
