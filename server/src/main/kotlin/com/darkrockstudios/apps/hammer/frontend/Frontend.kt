@@ -60,6 +60,7 @@ fun Route.frontend() {
 
 	staticResources("/assets", "/assets")
 
+	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository)
 	aboutPage(configRepository)
 	localeRoutes()

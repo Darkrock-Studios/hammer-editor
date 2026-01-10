@@ -323,3 +323,185 @@
 	color: rgba(153, 27, 27, 0.2);
 	text-shadow: 2px 2px 0 rgba(239, 68, 68, 0.1);
 }
+
+/* Setup Mode Specific Styles - Welcoming green sticky note */
+.error-card.setup {
+	background: #bbf7d0;
+	background-image: repeating-linear-gradient(
+			0deg,
+			transparent,
+			transparent 2px,
+			rgba(0, 0, 0, 0.015) 2px,
+			rgba(0, 0, 0, 0.015) 4px
+	);
+	border-color: #22c55e;
+	transform: rotate(0.3deg);
+}
+
+.error-card.setup::before {
+	content: '';
+	animation: none;
+}
+
+.error-card.setup .error-icon {
+	animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+	0%, 100% {
+		transform: rotate(0deg);
+	}
+	25% {
+		transform: rotate(15deg);
+	}
+	75% {
+		transform: rotate(-10deg);
+	}
+}
+
+.error-card.setup .error-title {
+	color: #14532d;
+}
+
+.error-card.setup .error-message {
+	color: #166534;
+	margin-bottom: 1.5rem;
+}
+
+.error-card.setup .error-note {
+	border-top-color: rgba(20, 83, 45, 0.3);
+}
+
+.error-card.setup .error-note p {
+	color: #14532d;
+}
+
+/* Setup Steps */
+.setup-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+	margin-bottom: 1.5rem;
+	text-align: left;
+	max-width: 400px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.setup-step {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.75rem 1rem;
+	background: rgba(255, 255, 255, 0.5);
+	border-radius: 0.5rem;
+	border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.setup-step__number {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	background: #22c55e;
+	color: white;
+	border-radius: 50%;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	font-weight: bold;
+	flex-shrink: 0;
+}
+
+.setup-step__text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: #166534;
+	line-height: 1.4;
+}
+
+.setup-step--highlight {
+	background: rgba(34, 197, 94, 0.15);
+	border: 2px solid #22c55e;
+	padding: 1rem 1.25rem;
+}
+
+.setup-step--highlight .setup-step__number {
+	background: #14532d;
+	width: 2.25rem;
+	height: 2.25rem;
+	font-size: 1rem;
+}
+
+.setup-step__address {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.125rem;
+	font-weight: bold;
+	color: #14532d;
+	word-break: break-all;
+}
+
+/* Admin Note */
+.setup-admin-note {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	padding: 1rem 1.5rem;
+	background: rgba(20, 83, 45, 0.1);
+	border-radius: 0.5rem;
+	margin-bottom: 1.5rem;
+	border: 1px dashed rgba(20, 83, 45, 0.3);
+}
+
+.setup-admin-note i {
+	color: #14532d;
+	font-size: 1.25rem;
+}
+
+.setup-admin-note span {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: #166534;
+	font-weight: 500;
+}
+
+/* Responsive Design for Setup */
+@media only screen and (max-width: 600px) {
+	.setup-steps {
+		gap: 0.75rem;
+	}
+
+	.setup-step {
+		padding: 0.625rem 0.875rem;
+		gap: 0.75rem;
+	}
+
+	.setup-step__number {
+		width: 1.75rem;
+		height: 1.75rem;
+		font-size: 0.875rem;
+	}
+
+	.setup-step__text {
+		font-size: 0.9375rem;
+	}
+
+	.setup-step__address {
+		font-size: 1rem;
+	}
+
+	.setup-admin-note {
+		flex-direction: column;
+		text-align: center;
+		gap: 0.5rem;
+		padding: 0.875rem 1rem;
+	}
+}
+
+/* Reduced motion for setup */
+@media (prefers-reduced-motion: reduce) {
+	.error-card.setup .error-icon {
+		animation: none;
+	}
+}

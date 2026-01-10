@@ -154,6 +154,7 @@ fun Application.appMain(
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
+	install(SetupModePlugin)
 	configureRouting(config)
 	configureFrontEnd()
 	configurePatreonPolling(config)

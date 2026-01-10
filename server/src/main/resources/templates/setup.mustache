@@ -1,0 +1,44 @@
+{{> header}}
+
+<main class="page page--centered">
+	<div class="page__container page__container--error">
+		<div class="error-card setup">
+			<div class="error-icon">{{msg.setup_icon}}</div>
+			<h1 class="error-title">{{msg.setup_title}}</h1>
+
+			<p class="error-message">{{msg.setup_message}}</p>
+
+			<div class="setup-admin-note">
+				<i class="fa-solid fa-shield-halved"></i>
+				<span>{{msg.setup_admin_note}}</span>
+			</div>
+
+			<div class="setup-steps">
+				<div class="setup-step">
+					<span class="setup-step__number">1</span>
+					<span class="setup-step__text">{{msg.setup_step1}}</span>
+				</div>
+				<div class="setup-step">
+					<span class="setup-step__number">2</span>
+					<span class="setup-step__text">{{msg.setup_step2}}</span>
+				</div>
+				<div class="setup-step setup-step--highlight">
+					<span class="setup-step__number">
+						<i class="fa-solid fa-server"></i>
+					</span>
+					<span class="setup-step__text setup-step__address">{{serverAddress}}</span>
+				</div>
+				<div class="setup-step">
+					<span class="setup-step__number">3</span>
+					<span class="setup-step__text">{{msg.setup_step3}}</span>
+				</div>
+			</div>
+
+			<div class="error-note">
+				<p>{{msg.setup_return_note}}</p>
+			</div>
+		</div>
+	</div>
+</main>
+
+{{> footer}}
