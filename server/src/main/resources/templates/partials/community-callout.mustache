@@ -8,15 +8,16 @@
 			<div class="community-callout__content">
 				<h3 class="community-callout__title">{{msg.community_callout_title}}</h3>
 				<p class="community-callout__text">
-					{{#hasMultipleAuthors}}
-						{{msg.community_callout_text_plural_pre}}{{communityAuthorCount}}{{msg.community_callout_text_plural_post}}
-					{{/hasMultipleAuthors}}
-					{{#hasSingleAuthor}}
-						{{msg.community_callout_text_single}}
-					{{/hasSingleAuthor}}
-					{{^hasCommunityAuthors}}
-						{{msg.community_callout_text_empty}}
-					{{/hasCommunityAuthors}}
+					{{#hasCommunityContent}}
+						<strong>{{communityAuthorCount}}</strong> {{msg.community_callout_authors}} {{msg.community_callout_sharing}}
+						<strong>{{communityStoryCount}}</strong> {{msg.community_callout_stories}}
+					{{/hasCommunityContent}}
+					{{#hasCommunityAuthorsOnly}}
+						{{msg.community_callout_authors_only}}
+					{{/hasCommunityAuthorsOnly}}
+					{{#hasNoCommunityContent}}
+						{{msg.community_callout_empty}}
+					{{/hasNoCommunityContent}}
 				</p>
 			</div>
 			<span class="community-callout__arrow">

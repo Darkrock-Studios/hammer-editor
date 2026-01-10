@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -14,7 +15,8 @@ fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
-	accountsRepository: AccountsRepository
+	accountsRepository: AccountsRepository,
+	projectAccessRepository: ProjectAccessRepository
 ) {
 	route("/") {
 		get {
@@ -32,7 +34,7 @@ fun Route.homePage(
 				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}
 
-			populateCommunityCalloutModel(serverConfig, model, accountsRepository)
+			populateCommunityCalloutModel(serverConfig, model, accountsRepository, projectAccessRepository)
 
 			call.respond(MustacheContent("home.mustache", model))
 		}
