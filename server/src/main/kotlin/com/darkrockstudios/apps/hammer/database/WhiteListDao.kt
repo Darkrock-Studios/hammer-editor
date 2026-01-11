@@ -52,4 +52,8 @@ open class WhiteListDao(
 	open suspend fun countByReasonWithAccounts(reason: String): Long = withContext(ioDispatcher) {
 		return@withContext queries.countByReasonWithAccounts(reason).executeAsOne()
 	}
+
+	open suspend fun updateReason(email: String, reason: String): Unit = withContext(ioDispatcher) {
+		queries.updateReason(reason, email)
+	}
 }
