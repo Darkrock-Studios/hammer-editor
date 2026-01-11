@@ -3,10 +3,10 @@
     <string name="app_name">Hammer</string>
     <string name="title_activity_add_note">Adicionar Anotação</string>
     <string name="loading">Carregando…</string>
-    <string name="title_activity_configure_note_widget">Configure Widget</string>
-    <string name="overflow_menu_button">More Menu</string>
-    <string name="navdrawer_button">Navigation Drawer</string>
-    <string name="note_widget_dialog_title">Add Note to:</string>
+    <string name="title_activity_configure_note_widget">Configurar \'Widget\'</string>
+    <string name="overflow_menu_button">Mais</string>
+    <string name="navdrawer_button">Painel de navegação</string>
+    <string name="note_widget_dialog_title">Adicionar Anotação a:</string>
     <string name="note_widget_dialog_save_button">Salvar</string>
     <string name="note_widget_dialog_cancel_button">Cancelar</string>
     <string name="note_widget_dialog_projects_dropdown">Projetos</string>
@@ -15,13 +15,13 @@
     <string name="note_widget_confirm_cancel_positive">Descartar</string>
     <string name="note_widget_confirm_cancel_negative">Cancelar</string>
     <string name="note_widget_button_description">Adicionar Anotação</string>
-    <string name="note_widget_toast_no_projects">No projects</string>
-    <string name="note_widget_toast_success">Note Added</string>
-    <string name="action_add_note_short_label">Add Note</string>
-    <string name="action_add_note_long_label">Add Story Note</string>
-    <string name="action_add_note_disabled">Adding notes is disabled right now</string>
-    <string name="title_activity_add_note_widget_config">Configure Widget</string>
-    <string name="note_widget_config_title">Configure Note Widget:</string>
-    <string name="note_widget_config_project_checkbox">Add notes to specified project</string>
-    <string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
+    <string name="note_widget_toast_no_projects">Nenhum projeto</string>
+    <string name="note_widget_toast_success">Anotação adicionada</string>
+    <string name="action_add_note_short_label">Adicionar Anotação</string>
+    <string name="action_add_note_long_label">Adicionar anotação de \"Story\"</string>
+    <string name="action_add_note_disabled">Adicionar anotações está desabilitado </string>
+    <string name="title_activity_add_note_widget_config">Configurar \'Widget\'</string>
+    <string name="note_widget_config_title">Configurar \'widget\' de notas:</string>
+    <string name="note_widget_config_project_checkbox">Adicionar notas a um projeto específico</string>
+    <string name="note_widget_config_project_checkbox_explained">Se nenhum projeto for selecionado, você será solicitado a escolher um projeto a cada vez.</string>
 </resources>
