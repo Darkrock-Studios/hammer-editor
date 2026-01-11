@@ -20,14 +20,67 @@ finish-args:
 modules:
     -   name: hammer
         buildsystem: simple
+        build-options:
+            # Allow network access for Maven/Gradle dependencies
+            build-args:
+                - --share=network
         build-commands:
+            # Extract and setup JetBrains Runtime SDK (full JDK with jlink/jpackage)
+            # This is critical - createDistributable bundles whatever JVM is in JAVA_HOME
+            - echo "Setting up JetBrains Runtime SDK..."
+            - tar -xzf jbr.tar.gz
+            - export JAVA_HOME=$PWD/jbrsdk_jcef-21.0.9-linux-x64-b1163.86
+            - export PATH=$JAVA_HOME/bin:$PATH
+            - echo "Building with JBR SDK (JAVA_HOME=$JAVA_HOME)"
+            - java -version
+
+            # Setup Gradle and build
+            - unzip -q gradle.zip
+            - gradle-8.13/bin/gradle desktop:createReleaseDistributable --no-daemon --stacktrace
+
+            # Install the application
             - mkdir -p /app/lib/hammer
-            - cp -r hammer/* /app/lib/hammer/
+            - cp -r desktop/build/installers/main-release/app/hammer/* /app/lib/hammer/
+
+            # Create launcher script
             - mkdir -p /app/bin
-            - install -Dm755 hammer.sh /app/bin/hammer
-            - install -Dm644 com.darkrockstudios.hammer.desktop /app/share/applications/com.darkrockstudios.hammer.desktop
-            - install -Dm644 com.darkrockstudios.hammer.png /app/share/icons/hicolor/256x256/apps/com.darkrockstudios.hammer.png
-            - install -Dm644 com.darkrockstudios.hammer.metainfo.xml /app/share/metainfo/com.darkrockstudios.hammer.metainfo.xml
+            - |
+                cat > /app/bin/hammer << 'EOF'
+                #!/bin/bash
+                export JAVA_HOME=/app/lib/hammer/lib/runtime
+                export PATH=$JAVA_HOME/bin:$PATH
+                exec /app/lib/hammer/bin/hammer "$@"
+                EOF
+            - chmod +x /app/bin/hammer
+
+            # Install desktop file
+            - install -Dm644 flatpak/com.darkrockstudios.hammer.desktop
+                /app/share/applications/com.darkrockstudios.hammer.desktop
+
+            # Install icon
+            - install -Dm644 desktop/icons/linux.png
+                /app/share/icons/hicolor/256x256/apps/com.darkrockstudios.hammer.png
+
+            # Install metainfo
+            - install -Dm644 flatpak/com.darkrockstudios.hammer.metainfo.xml
+                /app/share/metainfo/com.darkrockstudios.hammer.metainfo.xml
+
         sources:
-            -   type: dir
-                path: dist
+            -   type: git
+                url: https://github.com/Wavesonics/hammer-editor.git
+                tag: v1.14.0
+                commit: ac9f06c234e228f6e8307055c3f4d2f9fead46d6
+                x-checker-data:
+                    type: git
+                    tag-pattern: ^flathub-v([\d.]+)$
+                    version-scheme: semantic
+
+            -   type: file
+                url: https://services.gradle.org/distributions/gradle-8.13-bin.zip
+                sha256: 20f1b1176237254a6fc204d8434196fa11a4cfb387567519c61556e8710aed78
+                dest-filename: gradle.zip
+
+            -   type: file
+                url: https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+                sha256: a20d6e76d643a77d9a3e56e4fd6bb91c36f085c3b87ad66d9f5d69c2f1f3e7d4
+                dest-filename: jbr.tar.gz

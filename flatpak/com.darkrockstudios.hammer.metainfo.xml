@@ -88,6 +88,10 @@
 	</keywords>
 
 	<screenshots>
-		<!-- Add screenshots here when available -->
+		<screenshot type="default">
+			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/release/readme/preview.png</image>
+			<caption>Hammer story editor interface showing the project browser, scene editor, and timeline features
+			</caption>
+		</screenshot>
 	</screenshots>
 </component>
