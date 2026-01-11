@@ -14,6 +14,14 @@
 				</div>
 			</div>
 			<div class="whitelist-entry__actions">
+				<button type="button" class="btn btn--ghost edit-reason-btn"
+						data-email="{{email}}"
+						data-reason="{{reason}}"
+						data-page="{{currentPage}}"
+						onclick="openEditReasonDialog(this)">
+					<i class="fa-solid fa-pen"></i>
+					{{msg.admin_whitelist_edit_button}}
+				</button>
 				<form action="/admin/whitelist/remove" method="post"
 					  hx-post="/admin/whitelist/remove"
 					  hx-target="#whitelist"

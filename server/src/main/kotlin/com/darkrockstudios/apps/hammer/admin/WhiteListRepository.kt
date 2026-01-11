@@ -57,6 +57,11 @@ class WhiteListRepository(
 		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
+	suspend fun updateReason(email: String, reason: String) {
+		val cleanedEmail = cleanEmail(email)
+		whiteListDao.updateReason(cleanedEmail, reason)
+	}
+
 	suspend fun getWhiteListByReason(reason: String): List<WhiteList> {
 		return whiteListDao.getByReason(reason)
 	}
@@ -76,7 +81,7 @@ class WhiteListRepository(
 
 	fun validateReason(reason: String): Boolean {
 		val trimmed = reason.trim()
-		return trimmed.length <= MAX_REASON_LENGTH
+		return trimmed.length <= MAX_REASON_LENGTH && trimmed.isNotBlank()
 	}
 
 	companion object {

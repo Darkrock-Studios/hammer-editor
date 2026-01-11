@@ -415,6 +415,17 @@
 .whitelist-entry__actions {
 	display: flex;
 	gap: 0.5rem;
+	align-items: center;
+}
+
+.whitelist-entry__actions .edit-reason-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.whitelist-entry__actions .edit-reason-btn i {
+	font-size: 0.75rem;
 }
 
 .remove-button {
@@ -603,10 +614,12 @@
 
 	.whitelist-entry__actions {
 		width: 100%;
+		flex-wrap: wrap;
 	}
 
-	.remove-button {
+	.whitelist-entry__actions .btn {
 		flex: 1;
+		min-width: 120px;
 	}
 
 	.user-item {
@@ -623,6 +636,22 @@
 		flex-direction: column;
 		gap: 0.5rem;
 	}
+}
+
+/* ========================================
+   Edit Reason Dialog
+   ======================================== */
+
+.dialog__email-display {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	background: var(--neutral-100);
+	padding: 0.75rem 1rem;
+	border-radius: 0.375rem;
+	border-left: 3px solid var(--accent);
+	margin-bottom: 1rem;
 }
 
 /* Accessibility */

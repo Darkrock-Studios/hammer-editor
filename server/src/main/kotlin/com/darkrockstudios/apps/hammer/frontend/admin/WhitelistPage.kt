@@ -22,6 +22,7 @@ internal fun Route.whiteListRoutes(whiteListRepository: WhiteListRepository) {
 		whitelistAdd(whiteListRepository)
 		whitelistRemove(whiteListRepository)
 		whitelistToggle(whiteListRepository)
+		whitelistEditReason(whiteListRepository)
 	}
 }
 
@@ -91,6 +92,38 @@ private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
 		if (email.isNotEmpty()) {
 			whiteListRepository.removeFromWhiteList(email)
 		}
+
+		val model = getWhitelistModel(call, whiteListRepository, page)
+		call.respond(MustacheContent("partials/whitelist.mustache", model))
+	}
+}
+
+private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) {
+	hx.post("/edit-reason") {
+		val params = call.receiveParameters()
+		val email = params["email"]?.trim().orEmpty()
+		val reason = params["reason"]?.trim().orEmpty()
+		val page = params["page"]?.toIntOrNull() ?: 0
+
+		if (email.isEmpty()) {
+			val model = getWhitelistModelWithError(
+				call, whiteListRepository, page,
+				call.msg("admin_whitelist_error_emailrequired")
+			)
+			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			return@post
+		}
+
+		if (!whiteListRepository.validateReason(reason)) {
+			val model = getWhitelistModelWithError(
+				call, whiteListRepository, page,
+				call.msg("admin_whitelist_error_reasontoolong")
+			)
+			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			return@post
+		}
+
+		whiteListRepository.updateReason(email, reason)
 
 		val model = getWhitelistModel(call, whiteListRepository, page)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
