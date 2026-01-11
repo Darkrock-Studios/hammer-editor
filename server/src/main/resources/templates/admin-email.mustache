@@ -29,6 +29,10 @@
 							<span class="status-badge status-badge--inactive">{{msg.admin_email_not_configured}}</span>
 						{{/emailConfigured}}
 					</div>
+					<div class="status-item">
+						<span class="status-label">{{msg.admin_email_provider_label}}:</span>
+						<span class="status-badge status-badge--info">{{activeProvider}}</span>
+					</div>
 				</div>
 
 				<!-- Success/Error Display -->
@@ -36,15 +40,16 @@
 				<div id="email-error"></div>
 			</section>
 
+			{{#isSmtpProvider}}
 			<!-- SMTP Settings Section -->
 			<section class="paper-section">
 				<div class="section-header">
-					<h2 class="section-header__title">{{msg.admin_email_settings_title}}</h2>
+					<h2 class="section-header__title">{{msg.admin_email_smtp_settings_title}}</h2>
 				</div>
-				<p class="section-description">{{msg.admin_email_settings_description}}</p>
+				<p class="section-description">{{msg.admin_email_smtp_settings_description}}</p>
 
-				<form action="/admin/email/settings" method="post" class="settings-form"
-					  hx-post="/admin/email/settings"
+				<form action="/admin/email/settings/smtp" method="post" class="settings-form"
+					  hx-post="/admin/email/settings/smtp"
 					  hx-swap="none">
 
 					<div class="form-group">
@@ -130,6 +135,174 @@
 					</div>
 				</form>
 			</section>
+			{{/isSmtpProvider}}
+
+			{{#isSendGridProvider}}
+				<!-- SendGrid Settings Section -->
+				<section class="paper-section">
+					<div class="section-header">
+						<h2 class="section-header__title">{{msg.admin_email_sendgrid_settings_title}}</h2>
+					</div>
+					<p class="section-description">{{msg.admin_email_sendgrid_settings_description}}</p>
+
+					<form action="/admin/email/settings/sendgrid" method="post" class="settings-form"
+						  hx-post="/admin/email/settings/sendgrid"
+						  hx-swap="none">
+
+						<div class="form-group">
+							<label for="apiKey" class="form-field__label">{{msg.admin_email_sendgrid_api_key}}</label>
+							<p class="form-field__help">{{msg.admin_email_sendgrid_api_key_help}}</p>
+							<div class="form-input-group">
+								<input id="apiKey" name="apiKey" type="password"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_sendgrid_api_key_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromAddress" class="form-field__label">{{msg.admin_email_from_address}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_address_help}}</p>
+							<div class="form-input-group">
+								<input id="fromAddress" name="fromAddress" type="email" value="{{sendGridFromAddress}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_from_address_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromName" class="form-field__label">{{msg.admin_email_from_name}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_name_help}}</p>
+							<div class="form-input-group">
+								<input id="fromName" name="fromName" type="text" value="{{sendGridFromName}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_default_from_name}}"/>
+							</div>
+						</div>
+
+						<div class="form-actions">
+							<button type="submit" class="btn btn--accent">{{msg.admin_email_save_button}}</button>
+						</div>
+					</form>
+				</section>
+			{{/isSendGridProvider}}
+
+			{{#isPostmarkProvider}}
+				<!-- Postmark Settings Section -->
+				<section class="paper-section">
+					<div class="section-header">
+						<h2 class="section-header__title">{{msg.admin_email_postmark_settings_title}}</h2>
+					</div>
+					<p class="section-description">{{msg.admin_email_postmark_settings_description}}</p>
+
+					<form action="/admin/email/settings/postmark" method="post" class="settings-form"
+						  hx-post="/admin/email/settings/postmark"
+						  hx-swap="none">
+
+						<div class="form-group">
+							<label for="serverToken"
+								   class="form-field__label">{{msg.admin_email_postmark_server_token}}</label>
+							<p class="form-field__help">{{msg.admin_email_postmark_server_token_help}}</p>
+							<div class="form-input-group">
+								<input id="serverToken" name="serverToken" type="password"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_postmark_server_token_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromAddress" class="form-field__label">{{msg.admin_email_from_address}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_address_help}}</p>
+							<div class="form-input-group">
+								<input id="fromAddress" name="fromAddress" type="email" value="{{postmarkFromAddress}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_from_address_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromName" class="form-field__label">{{msg.admin_email_from_name}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_name_help}}</p>
+							<div class="form-input-group">
+								<input id="fromName" name="fromName" type="text" value="{{postmarkFromName}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_default_from_name}}"/>
+							</div>
+						</div>
+
+						<div class="form-actions">
+							<button type="submit" class="btn btn--accent">{{msg.admin_email_save_button}}</button>
+						</div>
+					</form>
+				</section>
+			{{/isPostmarkProvider}}
+
+			{{#isMailgunProvider}}
+				<!-- Mailgun Settings Section -->
+				<section class="paper-section">
+					<div class="section-header">
+						<h2 class="section-header__title">{{msg.admin_email_mailgun_settings_title}}</h2>
+					</div>
+					<p class="section-description">{{msg.admin_email_mailgun_settings_description}}</p>
+
+					<form action="/admin/email/settings/mailgun" method="post" class="settings-form"
+						  hx-post="/admin/email/settings/mailgun"
+						  hx-swap="none">
+
+						<div class="form-group">
+							<label for="apiKey" class="form-field__label">{{msg.admin_email_mailgun_api_key}}</label>
+							<p class="form-field__help">{{msg.admin_email_mailgun_api_key_help}}</p>
+							<div class="form-input-group">
+								<input id="apiKey" name="apiKey" type="password"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_mailgun_api_key_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="domain" class="form-field__label">{{msg.admin_email_mailgun_domain}}</label>
+							<p class="form-field__help">{{msg.admin_email_mailgun_domain_help}}</p>
+							<div class="form-input-group">
+								<input id="domain" name="domain" type="text" value="{{mailgunDomain}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_mailgun_domain_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromAddress" class="form-field__label">{{msg.admin_email_from_address}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_address_help}}</p>
+							<div class="form-input-group">
+								<input id="fromAddress" name="fromAddress" type="email" value="{{mailgunFromAddress}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_from_address_placeholder}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label for="fromName" class="form-field__label">{{msg.admin_email_from_name}}</label>
+							<p class="form-field__help">{{msg.admin_email_from_name_help}}</p>
+							<div class="form-input-group">
+								<input id="fromName" name="fromName" type="text" value="{{mailgunFromName}}"
+									   class="form-input"
+									   placeholder="{{msg.admin_email_default_from_name}}"/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="form-field__label">
+								<input type="checkbox" name="useEuRegion" value="true"
+									   {{#mailgunUseEuRegion}}checked{{/mailgunUseEuRegion}} class="form-checkbox"/>
+								{{msg.admin_email_mailgun_use_eu_region}}
+							</label>
+							<p class="form-field__help">{{msg.admin_email_mailgun_use_eu_region_help}}</p>
+						</div>
+
+						<div class="form-actions">
+							<button type="submit" class="btn btn--accent">{{msg.admin_email_save_button}}</button>
+						</div>
+					</form>
+				</section>
+			{{/isMailgunProvider}}
 
 			<!-- Test Email Section -->
 			<section class="paper-section">
