@@ -69,6 +69,7 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
   publish-snap:
+    needs: publish-google-play
     runs-on: ubuntu-latest
     steps:
       - name: Download Snap from Release
