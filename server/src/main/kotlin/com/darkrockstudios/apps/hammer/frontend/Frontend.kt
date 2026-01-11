@@ -54,7 +54,7 @@ fun Route.frontend() {
 	}
 
 	// Only inject EmailService if email is enabled at server level
-	val emailService: EmailService? = if (serverConfig.emailProvider != null) {
+	val emailService: EmailService? = if (serverConfig.emailProviderType != null) {
 		inject<EmailService>().value
 	} else {
 		null

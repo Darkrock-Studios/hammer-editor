@@ -33,7 +33,7 @@ fun Route.adminPage(
 	emailService: EmailService?
 ) {
 	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
-	val emailFeatureEnabled = serverConfig.emailProvider != null
+	val emailFeatureEnabled = serverConfig.emailProviderType != null
 
 	adminOnly {
 		route("/admin") {
@@ -48,7 +48,7 @@ fun Route.adminPage(
 				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
 			}
 			if (emailFeatureEnabled && emailService != null) {
-				adminEmailPage(configRepository, emailService, patreonFeatureEnabled)
+				adminEmailPage(configRepository, emailService, patreonFeatureEnabled, serverConfig)
 				emailSettingsRoutes(configRepository, emailService)
 			}
 		}
