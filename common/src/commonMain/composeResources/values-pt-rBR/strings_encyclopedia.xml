@@ -12,10 +12,10 @@
 	<string name="encyclopedia_category_idea">Ideia</string>
 	<string name="encyclopedia_browse_list_empty">Não Há Verbetes</string>
 	<string name="encyclopedia_create_button">Criar Verbete</string>
-	<string name="encyclopedia_create_entry_header">Criar Novo Verbete</string>
+	<string name="encyclopedia_create_entry_header">Criar Verbete</string>
 	<string name="encyclopedia_create_entry_type_label">Tipo:</string>
 	<string name="encyclopedia_create_entry_name_label">Nome</string>
-	<string name="encyclopedia_create_entry_tags_label">Tags (space seperated)</string>
+	<string name="encyclopedia_create_entry_tags_label">Etiquetas (separadas por espaço)</string>
 	<string name="encyclopedia_create_entry_body_hint">Descreva seu verbete</string>
 	<string name="encyclopedia_create_entry_remove_image_button">Remover Imagem</string>
 	<string name="encyclopedia_create_entry_select_image_button">Selecionar Imagem</string>
@@ -24,8 +24,8 @@
 	<string name="encyclopedia_create_entry_toast_success">Verbete Criado</string>
 	<string name="encyclopedia_create_entry_toast_too_long">O Nome do Verbete é grande demais. Máx. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_invalid_name">O nome do verbete deve ser alfanumérico</string>
-	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag is too long. Max %1$d</string>
-	<string name="encyclopedia_create_entry_toast_tag_too_short">Tag is too short</string>
+	<string name="encyclopedia_create_entry_toast_tag_too_long">A etiqueta é muito longa. Máx. %1$d</string>
+	<string name="encyclopedia_create_entry_toast_tag_too_short">A etiqueta é muito curta</string>
 	<string name="encyclopedia_create_entry_discard_title">Descartar Novo Verbete?</string>
 	<string name="encyclopedia_entry_load_error">Erro: Falha ao carregar o verbete!</string>
 	<string name="encyclopedia_entry_body_empty_placeholder">Descreva seu verbete</string>
@@ -34,9 +34,9 @@
 	<string name="encyclopedia_entry_edit_save_button">Salvar</string>
 	<string name="encyclopedia_entry_edit_save_toast">Verbete Salvo</string>
 	<string name="encyclopedia_entry_discard_title">Descartar Alterações?</string>
-	<string name="encyclopedia_entry_discard_message">Você perderá todas as alterações que fez.</string>
+	<string name="encyclopedia_entry_discard_message">Você perderá todas as alterações que fez</string>
 	<string name="encyclopedia_entry_delete_title">Excluir Verbete?</string>
-	<string name="encyclopedia_entry_delete_message">This cannot be undone!</string>
+	<string name="encyclopedia_entry_delete_message">Essa ação não pode ser desfeita!</string>
 	<string name="encyclopedia_entry_delete_toast">Verbete Excluído</string>
 	<string name="encyclopedia_entry_delete_image_title">Excluir Imagem?</string>
 	<string name="encyclopedia_entry_delete_image_message">Essa ação não pode ser desfeita!</string>
@@ -46,7 +46,7 @@
 	<string name="encyclopedia_entry_menu_delete">Excluir Verbete</string>
 	<string name="encyclopedia_entry_menu_remove_image">Remover Imagem</string>
 	<string name="encyclopedia_entry_menu_add_image">Adicionar Imagem</string>
-	<string name="encyclopedia_entry_add_tags_dialog_title">Add Tags</string>
+	<string name="encyclopedia_entry_add_tags_dialog_title">Adicionar Etiquetas</string>
 	<string name="encyclopedia_entry_add_tag">Adicionar</string>
-	<string name="encyclopedia_entry_add_tags_button">Add Tags</string>
+	<string name="encyclopedia_entry_add_tags_button">Adicionar Etiquetas</string>
 </resources>
