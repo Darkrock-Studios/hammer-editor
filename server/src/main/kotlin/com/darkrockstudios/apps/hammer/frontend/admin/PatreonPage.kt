@@ -199,7 +199,7 @@ internal fun Route.adminPatreonPage(
 			"lastSync" to formatPatreonDate(patreonConfig.lastSync).ifEmpty { "Never" },
 			"patreonMemberCount" to patreonMemberCount,
 			"patreonMembersWithAccounts" to patreonMembersWithAccounts,
-			"webhookUrl" to "/api/patreon/webhook"
+			"webhookUrl" to "/patreon/webhook"
 		)
 		call.respond(MustacheContent("admin-patreon.mustache", call.withDefaults(model)))
 	}
