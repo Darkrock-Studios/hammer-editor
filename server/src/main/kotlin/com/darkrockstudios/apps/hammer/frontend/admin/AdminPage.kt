@@ -1,13 +1,19 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.frontend.admin.*
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.formatSqliteDateTime
+import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.htmx.*
 import io.ktor.server.application.*
 import io.ktor.server.htmx.*
@@ -15,31 +21,46 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.utils.io.*
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
 fun Route.adminPage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	accountsRepository: AccountsRepository,
-	projectsRepository: ProjectsRepository
+	projectsRepository: ProjectsRepository,
+	serverConfig: ServerConfig,
+	patreonSyncService: PatreonSyncService?,
+	emailService: EmailService?
 ) {
+	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+	val emailFeatureEnabled = serverConfig.emailProvider != null
+
 	adminOnly {
 		route("/admin") {
-			adminSettingsPage(configRepository)
-			adminWhitelistPage(whiteListRepository)
-			adminUsersPage()
+			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
+			adminWhitelistPage(whiteListRepository, patreonFeatureEnabled, emailFeatureEnabled)
+			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
 			whiteListRoutes(whiteListRepository)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository)
+			if (patreonFeatureEnabled && patreonSyncService != null) {
+				adminPatreonPage(configRepository, patreonSyncService, emailFeatureEnabled)
+				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
+			}
+			if (emailFeatureEnabled && emailService != null) {
+				adminEmailPage(configRepository, emailService, patreonFeatureEnabled)
+				emailSettingsRoutes(configRepository, emailService)
+			}
 		}
 	}
 }
 
 // GET /admin - Server Settings page (default)
-private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
+private fun Route.adminSettingsPage(
+	configRepository: ConfigRepository,
+	patreonFeatureEnabled: Boolean,
+	emailFeatureEnabled: Boolean
+) {
 	get {
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
 		val availableLocales = ResUtils.getTranslatedLocales().map { lc ->
@@ -55,8 +76,13 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 			"activeSettings" to true,
 			"activeWhitelist" to false,
 			"activeUsers" to false,
+			"activePatreon" to false,
+			"activeEmail" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
+			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
 			"defaultLocale" to configuredDefaultLocale,
 			"availableLocales" to availableLocales,
 		)
@@ -65,13 +91,21 @@ private fun Route.adminSettingsPage(configRepository: ConfigRepository) {
 }
 
 // GET /admin/whitelist - Whitelist Management page
-private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
+private fun Route.adminWhitelistPage(
+	whiteListRepository: WhiteListRepository,
+	patreonFeatureEnabled: Boolean,
+	emailFeatureEnabled: Boolean
+) {
 	get("/whitelist") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeWhitelist" to true,
 			"activeUsers" to false,
+			"activePatreon" to false,
+			"activeEmail" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 			"whitelist" to mapOf(
 				"enabled" to whiteListRepository.useWhiteList()
 			),
@@ -81,13 +115,17 @@ private fun Route.adminWhitelistPage(whiteListRepository: WhiteListRepository) {
 }
 
 // GET /admin/users - User Management page
-private fun Route.adminUsersPage() {
+private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean, emailFeatureEnabled: Boolean) {
 	get("/users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeWhitelist" to false,
 			"activeUsers" to true,
+			"activePatreon" to false,
+			"activeEmail" to false,
+			"patreonFeatureEnabled" to patreonFeatureEnabled,
+			"emailFeatureEnabled" to emailFeatureEnabled,
 		)
 		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
 	}
@@ -127,7 +165,7 @@ private suspend fun getUsersModel(
 		mutableMapOf<String, Any?>(
 			"email" to account.email,
 			"created" to formatDate(account.created),
-			"lastSync" to formatLastSync(mostRecentSync),
+			"lastSync" to (formatLastSync(mostRecentSync) ?: call.msg("admin_patreon_last_sync_never")),
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
 			"projectCount" to projectCount
@@ -151,26 +189,12 @@ private suspend fun getUsersModel(
 }
 
 private fun formatDate(sqliteDateTime: String): String {
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-		formatter.format(zoned)
-	} catch (e: Exception) {
-		sqliteDateTime
-	}
+	return formatSqliteDateTime(sqliteDateTime, "MMM dd, yyyy")
 }
 
-private fun formatLastSync(sqliteDateTime: String?): String {
-	if (sqliteDateTime == null) return "Never"
-	return try {
-		val instant = sqliteDateTimeStringToInstant(sqliteDateTime)
-		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' HH:mm")
-		val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-		formatter.format(zoned)
-	} catch (e: Exception) {
-		"Never"
-	}
+private fun formatLastSync(sqliteDateTime: String?): String? {
+	if (sqliteDateTime == null) return null
+	return formatSyncDate(sqliteDateTime).ifEmpty { null }
 }
 
 private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
@@ -178,10 +202,12 @@ private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
 		val params = call.receiveParameters()
 		val contact = params["contact"]?.trim().orEmpty()
 		val message = params["message"]?.trim().orEmpty()
+		val about = params["about"]?.trim().orEmpty().take(4096)
 		val defaultLocale = params["defaultLocale"]?.trim().orEmpty()
 
 		configRepository.set(AdminServerConfig.CONTACT_EMAIL, contact)
 		configRepository.set(AdminServerConfig.SERVER_MESSAGE, message)
+		configRepository.set(AdminServerConfig.ABOUT_SERVER, about)
 		if (defaultLocale.isNotEmpty()) {
 			configRepository.set(AdminServerConfig.DEFAULT_LOCALE, defaultLocale)
 		}
@@ -189,91 +215,4 @@ private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
 		call.response.header(HxResponseHeaders.Refresh, "true")
 		call.respond(io.ktor.http.HttpStatusCode.OK, "")
 	}
-}
-
-private fun Route.whiteListRoutes(whiteListRepository: WhiteListRepository) {
-	route("/whitelist") {
-		whitelistUserFragment(whiteListRepository)
-		whitelistAdd(whiteListRepository)
-		whitelistRemove(whiteListRepository)
-		whitelistToggle(whiteListRepository)
-	}
-}
-
-private fun Route.whitelistToggle(whiteListRepository: WhiteListRepository) {
-	hx.post("/toggle") {
-		val enabled = whiteListRepository.useWhiteList()
-		whiteListRepository.setWhiteListEnabled(!enabled)
-
-		call.response.header(HxResponseHeaders.Refresh, "true")
-		call.respond(io.ktor.http.HttpStatusCode.OK, "")
-	}
-}
-
-@OptIn(ExperimentalKtorApi::class)
-private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
-	hx.post("/add") {
-		val params = call.receiveParameters()
-		val email = params["email"]?.trim().orEmpty()
-		val page = params["page"]?.toIntOrNull() ?: 0
-
-		if (email.isNotEmpty()) {
-			whiteListRepository.addToWhiteList(email)
-		}
-
-		val model = getWhitelistModel(call, whiteListRepository, page)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
-	}
-}
-
-private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
-	hx.post("/remove") {
-		val params = call.receiveParameters()
-		val email = params["email"]?.trim().orEmpty()
-		val page = params["page"]?.toIntOrNull() ?: 0
-
-		if (email.isNotEmpty()) {
-			whiteListRepository.removeFromWhiteList(email)
-		}
-
-		val model = getWhitelistModel(call, whiteListRepository, page)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
-	}
-}
-
-private fun Route.whitelistUserFragment(whiteListRepository: WhiteListRepository) {
-	hx.get("/user-fragment") {
-		val model = getWhitelistModel(call, whiteListRepository)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
-	}
-}
-
-private suspend fun getWhitelistModel(
-	call: ApplicationCall,
-	whiteListRepository: WhiteListRepository,
-	page: Int? = null
-): MutableMap<String, Any> {
-	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
-	val actualPage = page ?: queryPage ?: 0
-
-	val pageSize = 10
-	val totalCount = whiteListRepository.getWhiteListCount()
-	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
-	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
-
-	val whitelist = mutableMapOf<String, Any>()
-	whitelist["items"] = whiteListRepository.getWhiteList(currentPage, pageSize)
-	whitelist["currentPage"] = currentPage
-	whitelist["currentPageDisplay"] = currentPage + 1
-	whitelist["totalPages"] = totalPages
-	whitelist["hasNextPage"] = currentPage < totalPages - 1
-	whitelist["hasPrevPage"] = currentPage > 0
-	whitelist["nextPage"] = currentPage + 1
-	whitelist["prevPage"] = currentPage - 1
-	whitelist["enabled"] = whiteListRepository.useWhiteList()
-
-	val model = call.withDefaults()
-	model["whitelist"] = whitelist
-
-	return model
 }

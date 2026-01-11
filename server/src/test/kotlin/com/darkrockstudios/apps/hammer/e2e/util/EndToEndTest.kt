@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
@@ -36,18 +38,22 @@ abstract class EndToEndTest {
 	private lateinit var testDatabase: SqliteTestDatabase
 	private lateinit var base64: Base64
 	private lateinit var contentEncryptor: AesGcmContentEncryptor
+	private lateinit var tokenHasher: TokenHasher
 
 	protected fun client() = client
 	protected fun database() = testDatabase
 	protected fun encryptor() = contentEncryptor
+	protected fun tokenHasher() = tokenHasher
 
 	@BeforeEach
 	open fun setup() {
 		fileSystem = FakeFileSystem()
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
+		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
+		tokenHasher = TokenHasher(serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(fileSystem, base64, secureRandom),
+			SimpleFileBasedAesGcmKeyProvider(serverSecretManager, base64),
 			secureRandom
 		)
 		testDatabase = SqliteTestDatabase()

@@ -4,16 +4,13 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.html.HtmlGenerator
-import org.intellij.markdown.parser.MarkdownParser
 
 class StoryExportService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
+	private val markdownService: MarkdownService,
 ) {
-	private val markdownFlavour = CommonMarkFlavourDescriptor()
-	private val markdownParser = MarkdownParser(markdownFlavour)
 
 	suspend fun exportStoryAsHtml(
 		userId: Long,
@@ -51,7 +48,7 @@ class StoryExportService(
 			}
 
 			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownToHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown)
 
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
@@ -126,11 +123,6 @@ class StoryExportService(
 		}
 	}
 
-	private fun markdownToHtml(markdown: String): String {
-		val parsedTree = markdownParser.buildMarkdownTreeFromString(markdown)
-		return HtmlGenerator(markdown, parsedTree, markdownFlavour).generateHtml()
-	}
-
 	suspend fun exportStoryAsHtmlPaginated(
 		userId: Long,
 		projectId: ProjectId,
@@ -201,7 +193,7 @@ class StoryExportService(
 
 			// Build markdown and HTML for current page only
 			val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-			val pageHtml = markdownToHtml(pageMarkdown)
+			val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown)
 
 			PaginatedExportResult.Success(
 				PaginatedStoryExportResult(
@@ -417,7 +409,7 @@ class StoryExportService(
 				buildGroupMarkdown(targetScene, scenesByParent)
 			}
 
-			val html = markdownToHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown)
 
 			SingleSceneExportResult.Success(
 				projectName = projectDef.name,

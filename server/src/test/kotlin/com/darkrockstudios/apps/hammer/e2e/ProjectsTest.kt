@@ -39,7 +39,7 @@ class ProjectsTest : EndToEndTest() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {
@@ -110,7 +110,7 @@ class ProjectsTest : EndToEndTest() {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
-		val authToken = createAuthToken(userId, "test-install-id", database = database)
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {

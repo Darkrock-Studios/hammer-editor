@@ -33,16 +33,32 @@
 			</form>
 
 			<div class="login-info">
+				<p class="login-info-text">
+					<a href="/forgot-password">{{msg.password_reset_forgot_link}}</a>
+				</p>
 				<p class="login-info-text">{{msg.login_info_create_account}}</p>
-				{{#whitelistEnabled}}
-					<div class="login-info-whitelist">
-						<p>{{msg.login_info_whitelist_notice}}</p>
-						{{#contactEmail}}
-							<p>{{msg.login_info_whitelist_contact}} <a
-								href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
-						{{/contactEmail}}
+				{{#patreonEnabled}}
+					<div class="login-info-patreon">
+						<h3 class="login-info-patreon__title">{{msg.login_patreon_notice_title}}</h3>
+						<p>This server requires an active Patreon subscription of ${{patreonMinimumAmount}}/month or
+							more to create an account or log in.</p>
+						<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer"
+						   class="login-info-patreon__link">
+							{{msg.login_patreon_notice_link}} →
+						</a>
 					</div>
-				{{/whitelistEnabled}}
+				{{/patreonEnabled}}
+				{{^patreonEnabled}}
+					{{#whitelistEnabled}}
+						<div class="login-info-whitelist">
+							<p>{{msg.login_info_whitelist_notice}}</p>
+							{{#contactEmail}}
+								<p>{{msg.login_info_whitelist_contact}} <a
+									href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
+							{{/contactEmail}}
+						</div>
+					{{/whitelistEnabled}}
+				{{/patreonEnabled}}
 			</div>
 		</div>
 	</div>

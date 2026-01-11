@@ -39,4 +39,20 @@ class DataMigratorTest : BaseTest() {
 		// If it doesn't crash, at least the migrator ran
 		assertTrue(true)
 	}
+
+	@Test
+	fun `runMigrations - runs migrations - Schema 4 to 5`() = runTest {
+		val fakeFileSystem = FakeFileSystem()
+		val testDatabase = SqliteTestDatabase(createSchema = false, enforceForeignKeys = false)
+		testDatabase.initialize()
+
+		// Populate DB with test data
+		FileResourcesUtils.setupDatabase("OldSchemas/4/".toPath(), testDatabase)
+
+		val migrator = DataMigrator(fakeFileSystem, testDatabase)
+		migrator.runMigrations()
+
+		// If it doesn't crash, at least the migrator ran
+		assertTrue(true)
+	}
 }

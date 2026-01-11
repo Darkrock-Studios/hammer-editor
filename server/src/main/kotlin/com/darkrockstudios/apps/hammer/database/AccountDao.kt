@@ -30,7 +30,6 @@ class AccountDao(
 
 	suspend fun createAccount(
 		email: String,
-		salt: String,
 		hashedPassword: String,
 		cipherSecret: String,
 		isAdmin: Boolean
@@ -39,7 +38,6 @@ class AccountDao(
 			val newId = queries.transactionWithResult {
 				queries.createAccount(
 					email = email,
-					salt = salt,
 					cipher_secret = cipherSecret,
 					password_hash = hashedPassword,
 					is_admin = isAdmin
@@ -80,4 +78,51 @@ class AccountDao(
 				offset = offset.toLong()
 			).executeAsList()
 		}
+
+	suspend fun updatePassword(userId: Long, hashedPassword: String) = withContext(ioDispatcher) {
+		queries.updatePassword(hashedPassword, userId)
+	}
+
+	suspend fun updateBio(userId: Long, bio: String?) = withContext(ioDispatcher) {
+		queries.updateBio(bio?.trim(), userId)
+	}
+
+	suspend fun getBio(userId: Long): String? = withContext(ioDispatcher) {
+		return@withContext queries.getBio(userId).executeAsOneOrNull()?.bio
+	}
+
+	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) = withContext(ioDispatcher) {
+		queries.updateCommunityMember(isCommunityMember, userId)
+	}
+
+	suspend fun getCommunityMember(userId: Long): Boolean = withContext(ioDispatcher) {
+		return@withContext queries.getCommunityMember(userId).executeAsOneOrNull() ?: false
+	}
+
+	suspend fun getCommunityAuthors(page: Int, pageSize: Int): List<CommunityAuthor> =
+		withContext(ioDispatcher) {
+			val offset = page * pageSize
+			return@withContext queries.getCommunityAuthors(
+				limit = pageSize.toLong(),
+				offset = offset.toLong()
+			).executeAsList().map { row ->
+				CommunityAuthor(
+					id = row.id,
+					penName = row.pen_name!!,
+					bio = row.bio,
+					created = row.created
+				)
+			}
+		}
+
+	suspend fun countCommunityAuthors(): Long = withContext(ioDispatcher) {
+		return@withContext queries.countCommunityAuthors().executeAsOne()
+	}
 }
+
+data class CommunityAuthor(
+	val id: Long,
+	val penName: String,
+	val bio: String?,
+	val created: String
+)

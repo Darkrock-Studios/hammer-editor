@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.datamigrator.migrations.getSerializerForType
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utilities.toISO8601
 import kotlinx.coroutines.runBlocking
@@ -17,10 +18,10 @@ import kotlin.uuid.Uuid
 class TestAccount(
 	val email: String,
 	val password: String,
-	val salt: String,
 	val isAdmin: Boolean = false,
 ) {
-	val passwordHash: String = AccountsRepository.hashPassword(password, salt)
+	// Salt parameter is legacy - Argon2 generates and embeds salt automatically
+	val passwordHash: String = AccountsRepository.hashPassword(password)
 }
 
 class TestProject(
@@ -37,7 +38,6 @@ object E2eTestData {
 	fun createAccount(account: TestAccount, database: SqliteTestDatabase) {
 		database.serverDatabase.accountQueries.createAccount(
 			email = account.email,
-			salt = account.salt,
 			password_hash = account.passwordHash,
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = account.isAdmin,
@@ -73,22 +73,27 @@ object E2eTestData {
 		installId: String,
 		expires: Instant = Clock.System.now() + 30.days,
 		database: SqliteTestDatabase,
+		tokenHasher: TokenHasher,
 	): Token {
-		val newToken = Token(
-			userId = userId,
-			auth = tokenGenerator.generateToken(),
-			refresh = tokenGenerator.generateToken(),
-		)
+		val plainAuthToken = tokenGenerator.generateToken()
+		val plainRefreshToken = tokenGenerator.generateToken()
+
+		val hashedAuthToken = runBlocking { tokenHasher.hashToken(plainAuthToken) }
+		val hashedRefreshToken = runBlocking { tokenHasher.hashToken(plainRefreshToken) }
 
 		database.serverDatabase.authTokenQueries.setToken(
 			userId = userId,
-			token = newToken.auth,
-			refresh = newToken.refresh,
+			token = hashedAuthToken,
+			refresh = hashedRefreshToken,
 			expires = expires.toISO8601(),
 			installId = installId,
 		)
 
-		return newToken
+		return Token(
+			userId = userId,
+			auth = plainAuthToken,
+			refresh = plainRefreshToken,
+		)
 	}
 
 	fun insertEntity(

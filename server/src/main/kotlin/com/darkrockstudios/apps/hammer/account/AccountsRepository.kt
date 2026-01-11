@@ -5,8 +5,9 @@ import com.darkrockstudios.apps.hammer.GetAccountsPaginated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
+import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
-import korlibs.crypto.sha256
+import de.mkammerer.argon2.Argon2Factory
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -16,6 +17,7 @@ class AccountsRepository(
 	private val accountDao: AccountDao,
 	private val authTokenDao: AuthTokenDao,
 	private val clock: Clock,
+	private val tokenHasher: TokenHasher,
 	secureRandom: SecureRandom,
 	base64: Base64,
 ) {
@@ -23,43 +25,34 @@ class AccountsRepository(
 
 	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
 	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
-	private val saltGenerator = RandomString(PASSWORD_SALT_LENGTH, secureRandom)
 
 	private suspend fun createToken(userId: Long, installId: String): Token {
 		val expires = clock.now() + tokenLifetime
-		val token = Token(
+
+		val plainAuthToken = authTokenGenerator.generateToken()
+		val plainRefreshToken = authTokenGenerator.generateToken()
+
+		val hashedAuthToken = tokenHasher.hashToken(plainAuthToken)
+		val hashedRefreshToken = tokenHasher.hashToken(plainRefreshToken)
+
+		val hashedToken = Token(
 			userId = userId,
-			auth = authTokenGenerator.generateToken(),
-			refresh = authTokenGenerator.generateToken()
+			auth = hashedAuthToken,
+			refresh = hashedRefreshToken
 		)
 
 		authTokenDao.setToken(
 			userId = userId,
 			installId = installId,
-			token = token,
+			token = hashedToken,
 			expires = expires
 		)
 
-		return token
-	}
-
-	private suspend fun getAuthToken(userId: Long, installId: String): Token {
-		val existingToken = authTokenDao.getTokenByInstallId(userId, installId)
-		return if (existingToken != null) {
-			if (existingToken.user_id != userId) {
-				error("Existing Token returned for installId `$installId` was for user: ${existingToken.user_id} instead of user: $userId")
-			} else if (existingToken.isExpired(clock)) {
-				createToken(userId = userId, installId = installId)
-			} else {
-				Token(
-					userId = existingToken.user_id,
-					auth = existingToken.token,
-					refresh = existingToken.refresh
-				)
-			}
-		} else {
-			createToken(userId = userId, installId = installId)
-		}
+		return Token(
+			userId = userId,
+			auth = plainAuthToken,
+			refresh = plainRefreshToken
+		)
 	}
 
 	suspend fun hasUsers(): Boolean = accountDao.numAccounts() > 0
@@ -87,8 +80,7 @@ class AccountsRepository(
 			)
 
 			else -> {
-				val salt = saltGenerator.nextString()
-				val hashedPassword = hashPassword(password = password, salt = salt)
+				val hashedPassword = hashPassword(password = password)
 				val cipherSalt = cipherSaltGenerator.generateToken()
 
 				// First account on the server is automatically Admin
@@ -97,7 +89,6 @@ class AccountsRepository(
 
 				val userId = accountDao.createAccount(
 					email = email,
-					salt = salt,
 					hashedPassword = hashedPassword,
 					cipherSecret = cipherSalt,
 					isAdmin = isAdmin
@@ -111,8 +102,17 @@ class AccountsRepository(
 	}
 
 	private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
-		val hashedPassword = hashPassword(password = plainTextPassword, salt = account.salt)
-		return hashedPassword == account.password_hash
+		val argon2 = Argon2Factory.create()
+		val passwordChars = plainTextPassword.toCharArray()
+
+		return try {
+			argon2.verify(account.password_hash, passwordChars)
+		} catch (e: Exception) {
+			// If verification fails (e.g., invalid format, old hash), return false
+			false
+		} finally {
+			argon2.wipeArray(passwordChars)
+		}
 	}
 
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
@@ -123,13 +123,14 @@ class AccountsRepository(
 		} else if (!checkPassword(account, password)) {
 			SResult.failure("Incorrect password", Msg.r("api_accounts_login_error_badpassword"))
 		} else {
-			val token = getAuthToken(account.id, installId)
+			val token = createToken(account.id, installId)
 			SResult.success(token)
 		}
 	}
 
 	suspend fun checkToken(userId: Long, token: String): SResult<Long> {
-		val authToken = authTokenDao.getTokenByAuthToken(token)
+		val hashedToken = tokenHasher.hashToken(token)
+		val authToken = authTokenDao.getTokenByAuthToken(hashedToken)
 
 		return if (authToken != null && authToken.user_id == userId && !authToken.isExpired(clock)) {
 			SResult.success(authToken.user_id)
@@ -139,27 +140,14 @@ class AccountsRepository(
 	}
 
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
+		val hashedRefreshToken = tokenHasher.hashToken(refreshToken)
 		val authToken = authTokenDao.getTokenByInstallId(userId, installId)
-		return if (authToken != null && authToken.refresh == refreshToken) {
+
+		return if (authToken != null && authToken.refresh == hashedRefreshToken) {
 			val newToken = createToken(userId, installId)
-			SResult.success(
-				Token(
-					userId = userId,
-					auth = newToken.auth,
-					refresh = newToken.refresh
-				)
-			)
+			SResult.success(newToken)
 		} else {
 			SResult.failure("No valid token not found", Msg.r("api_accounts_login_error_notoken"))
-		}
-	}
-
-	fun validatePassword(password: String): PasswordResult {
-		val trimmedInput = password.trim()
-		return when {
-			trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
-			trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
-			else -> PasswordResult.VALID
 		}
 	}
 
@@ -187,6 +175,14 @@ class AccountsRepository(
 		return accountDao.findAccountByPenName(penName)
 	}
 
+	suspend fun updateBio(userId: Long, bio: String?) {
+		accountDao.updateBio(userId, bio?.trim())
+	}
+
+	suspend fun getBio(userId: Long): String? {
+		return accountDao.getBio(userId)
+	}
+
 	suspend fun numAccounts(): Long {
 		return accountDao.numAccounts()
 	}
@@ -195,11 +191,31 @@ class AccountsRepository(
 		return accountDao.getAccountsPaginated(page, pageSize)
 	}
 
+	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) {
+		accountDao.updateCommunityMember(userId, isCommunityMember)
+	}
+
+	suspend fun getCommunityMember(userId: Long): Boolean {
+		return accountDao.getCommunityMember(userId)
+	}
+
+	suspend fun getCommunityAuthors(page: Int, pageSize: Int): List<CommunityAuthor> {
+		return accountDao.getCommunityAuthors(page, pageSize)
+	}
+
+	suspend fun countCommunityAuthors(): Long {
+		return accountDao.countCommunityAuthors()
+	}
+
 	companion object {
 		const val MIN_PASSWORD_LENGTH = 8
 		const val MAX_PASSWORD_LENGTH = 64
-		const val PASSWORD_SALT_LENGTH = 8
 		const val CIPHER_SALT_LENGTH = 16
+
+		// Argon2 parameters
+		const val ARGON2_MEMORY_COST_KIB = 65536  // 64 MiB
+		const val ARGON2_TIME_COST = 3  // iterations
+		const val ARGON2_PARALLELISM = 2  // threads
 
 		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
 		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
@@ -214,15 +230,34 @@ class AccountsRepository(
 			NO_SPECIAL
 		}
 
-		fun hashPassword(password: String, salt: String): String {
-			val saltedPassword = salt + password
-			val hashedPassword = saltedPassword.toByteArray().sha256().toString()
-			return hashedPassword
+		fun hashPassword(password: String): String {
+			val argon2 = Argon2Factory.create()
+			val passwordChars = password.toCharArray()
+
+			try {
+				return argon2.hash(
+					ARGON2_TIME_COST,
+					ARGON2_MEMORY_COST_KIB,
+					ARGON2_PARALLELISM,
+					passwordChars
+				)
+			} finally {
+				argon2.wipeArray(passwordChars)
+			}
 		}
 
 		fun validateEmail(email: String): Boolean {
 			val trimmedInput = email.trim()
 			return emailPattern.matches(trimmedInput)
+		}
+
+		fun validatePassword(password: String): PasswordResult {
+			val trimmedInput = password.trim()
+			return when {
+				trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
+				trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
+				else -> PasswordResult.VALID
+			}
 		}
 	}
 }

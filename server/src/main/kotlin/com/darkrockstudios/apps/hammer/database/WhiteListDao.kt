@@ -16,8 +16,8 @@ open class WhiteListDao(
 		return@withContext query.executeAsOne()
 	}
 
-	open suspend fun addToWhiteList(email: String): Unit = withContext(ioDispatcher) {
-		queries.addToWhiteList(email)
+	open suspend fun addToWhiteList(email: String, dateAdded: Long, reason: String): Unit = withContext(ioDispatcher) {
+		queries.addToWhiteList(email, dateAdded, reason)
 	}
 
 	open suspend fun removeFromWhiteList(email: String): Unit = withContext(ioDispatcher) {
@@ -26,7 +26,11 @@ open class WhiteListDao(
 
 	open suspend fun getAllWhiteListedEmails(): List<String> = withContext(ioDispatcher) {
 		val query = queries.getAll()
-		return@withContext query.executeAsList()
+		return@withContext query.executeAsList().map { it.email }
+	}
+
+	open suspend fun getAll(): List<WhiteList> = withContext(ioDispatcher) {
+		return@withContext queries.getAll().executeAsList()
 	}
 
 	open suspend fun getWhiteListCount(): Long = withContext(ioDispatcher) {
@@ -34,6 +38,18 @@ open class WhiteListDao(
 	}
 
 	open suspend fun getWhiteListPaginated(limit: Long, offset: Long): List<String> = withContext(ioDispatcher) {
+		return@withContext queries.getPaginated(limit, offset).executeAsList().map { it.email }
+	}
+
+	open suspend fun getPaginated(limit: Long, offset: Long): List<WhiteList> = withContext(ioDispatcher) {
 		return@withContext queries.getPaginated(limit, offset).executeAsList()
+	}
+
+	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {
+		return@withContext queries.getByReason(reason).executeAsList()
+	}
+
+	open suspend fun countByReasonWithAccounts(reason: String): Long = withContext(ioDispatcher) {
+		return@withContext queries.countByReasonWithAccounts(reason).executeAsOne()
 	}
 }

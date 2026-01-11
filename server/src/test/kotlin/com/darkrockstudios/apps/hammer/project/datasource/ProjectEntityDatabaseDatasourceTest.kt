@@ -12,10 +12,7 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
-import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
-import com.darkrockstudios.apps.hammer.utilities.isFailure
-import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
+import com.darkrockstudios.apps.hammer.utilities.*
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.every
@@ -54,11 +51,11 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		fileSystem = FakeFileSystem()
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
+		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
 		contentEncryptor = AesGcmContentEncryptor(
 			SimpleFileBasedAesGcmKeyProvider(
-				fileSystem,
-				base64,
-				secureRandom
+				serverSecretManager,
+				base64
 			), secureRandom
 		)
 		cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, base64)
@@ -359,7 +356,6 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private fun setupAccount(testDatabase: SqliteTestDatabase) {
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			email = "test@test.com",
-			salt = "salt",
 			password_hash = "hash",
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = false,

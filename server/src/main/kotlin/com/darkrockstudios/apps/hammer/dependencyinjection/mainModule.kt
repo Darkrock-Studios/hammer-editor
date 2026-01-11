@@ -1,18 +1,22 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
-import com.darkrockstudios.apps.hammer.account.AccountsComponent
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.*
+import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.email.SmtpEmailService
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
+import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.patreon.PatreonWebhookHandler
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
@@ -22,6 +26,9 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.util.logging.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
@@ -67,6 +74,7 @@ fun mainModule(
 	singleOf(::DeletedEntityDao)
 	singleOf(::ServerConfigDao)
 	singleOf(::ProjectAccessDao)
+	singleOf(::PasswordResetTokenDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
@@ -76,15 +84,27 @@ fun mainModule(
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
+	singleOf(::BioService)
+	singleOf(::PasswordResetRepository)
 
+	singleOf(::ServerSecretManager)
+	singleOf(::MarkdownService)
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+	singleOf(::TokenHasher)
+
+	singleOf(::SmtpEmailService) bind EmailService::class
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
 	factoryOf(::ProjectEntityDatabaseDatasource) bind ProjectEntityDatasource::class
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)
+
+	singleOf(::PatreonApiClient)
+	singleOf(::PatreonSyncService)
+	singleOf(::PatreonWebhookHandler)
+	singleOf(::PatreonPollingJob)
 
 	singleOf(::ServerSceneSynchronizer)
 	singleOf(::ServerNoteSynchronizer)

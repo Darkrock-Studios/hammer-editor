@@ -1,10 +1,13 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -15,22 +18,24 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.icons.AboutIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
 import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 	var showLibraries by remember { mutableStateOf(false) }
 	val screen = LocalScreenCharacteristic.current
+	val state by component.state.subscribeAsState()
 
 	Box(modifier = modifier.fillMaxSize()) {
 		ElevatedCard(
@@ -109,10 +114,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				Text(
-					text = getAppVersionString(),
-					style = MaterialTheme.typography.bodySmall,
-				)
+				VersionStatus(state)
 			}
 		}
 	}
@@ -149,5 +151,75 @@ private fun CommunityLink(
 			color = MaterialTheme.colorScheme.tertiary,
 			textDecoration = TextDecoration.Underline,
 		)
+	}
+}
+
+@Composable
+private fun VersionStatus(state: AboutApp.State) {
+	Row(verticalAlignment = Alignment.CenterVertically) {
+		Text(
+			text = state.currentVersion,
+			style = MaterialTheme.typography.bodySmall,
+		)
+
+		SpacerL()
+
+		// If we have latest version info, show status
+		state.latestVersion?.let { latestVersion ->
+			Spacer(modifier = Modifier.size(Ui.Padding.S))
+
+			if (state.newVersionAvailable) {
+				// Eye-catching callout for new version
+				ElevatedCard(
+					colors = CardDefaults.elevatedCardColors(
+						containerColor = MaterialTheme.colorScheme.primaryContainer,
+					),
+					modifier = Modifier.padding(vertical = Ui.Padding.S)
+				) {
+					Row(
+						modifier = Modifier.padding(Ui.Padding.M),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)
+					) {
+						Icon(
+							imageVector = Icons.Default.Info,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(24.dp)
+						)
+						Column {
+							Text(
+								text = Res.string.about_version_new_available_title.get(),
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onPrimaryContainer,
+							)
+							Text(
+								text = Res.string.about_version_new_available_message.get().format(latestVersion),
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onPrimaryContainer,
+							)
+						}
+					}
+				}
+			} else {
+				// Up to date message
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S)
+				) {
+					Icon(
+						imageVector = Icons.Default.CheckCircle,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.tertiary,
+						modifier = Modifier.size(16.dp)
+					)
+					Text(
+						text = Res.string.about_version_up_to_date.get(),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.tertiary,
+					)
+				}
+			}
+		}
 	}
 }

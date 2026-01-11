@@ -1,8 +1,8 @@
 INSERT INTO "account"
-VALUES (1, 'test@example.com', NULL, 'FAddx', '3b19ed5baf33f5c94857f5ee26cdd7aaf86e7383fdb0b5e69078e38447526829',
-		'', '2023-09-16 06:25:38', 1, '2023-09-16 06:25:38');
+VALUES (1, 'test@example.com', NULL, '3b19ed5baf33f5c94857f5ee26cdd7aaf86e7383fdb0b5e69078e38447526829',
+		'', '2023-09-16 06:25:38', 1, '2023-09-16 06:25:38', NULL, 0, 0);
 INSERT INTO "white_list"
-VALUES ('test3@example.com');
+VALUES ('test3@example.com', 0, 'Test data');
 
 INSERT INTO "project"
 VALUES (1, '77483f87-b0e1-409a-419f-11087dfbc868', 1, 'Test Proj 1', 7, '2024-09-25 04:24:36');

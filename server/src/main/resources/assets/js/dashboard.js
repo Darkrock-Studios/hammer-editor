@@ -93,7 +93,7 @@ function updateSubmitButton() {
 
 function checkAvailability(penName) {
 	PenNameState.isChecking = true;
-	showValidationFeedback('checking', 'Checking availability...');
+	showValidationFeedback('checking', window.Messages.penname.checkingAvailability);
 	updateSubmitButton();
 
 	htmx.ajax('GET', `/dashboard/penname/check?penName=${encodeURIComponent(penName)}`, {
@@ -107,7 +107,7 @@ function checkAvailability(penName) {
 				PenNameState.isAvailable = data.available;
 
 				if (data.valid && data.available) {
-					showValidationFeedback('success', 'Pen name available!');
+					showValidationFeedback('success', window.Messages.penname.available);
 				} else {
 					showValidationFeedback('error', data.message);
 				}
@@ -115,7 +115,7 @@ function checkAvailability(penName) {
 				PenNameState.isChecking = false;
 				PenNameState.isValid = false;
 				PenNameState.isAvailable = false;
-				showValidationFeedback('error', 'Could not check availability');
+				showValidationFeedback('error', window.Messages.penname.checkFailed);
 			}
 
 			updateSubmitButton();
@@ -154,7 +154,7 @@ function onPenNameInput(value) {
 	}
 
 	// Debounce server check
-	showValidationFeedback('checking', 'Checking availability...');
+	showValidationFeedback('checking', window.Messages.penname.checkingAvailability);
 	PenNameState.checkTimeout = setTimeout(() => {
 		checkAvailability(trimmed);
 	}, 300);
@@ -191,7 +191,7 @@ function onReleaseConfirmInput(value) {
 
 function confirmRelease() {
 	const currentPenName = document.getElementById('pen-name-value').textContent.trim();
-	return confirm(`Are you sure you want to release "${currentPenName}"? This action cannot be undone.`);
+	return confirm(window.Messages.penname.releaseConfirm.replace('{0}', currentPenName));
 }
 
 // Handle successful pen name update
@@ -219,6 +219,18 @@ document.body.addEventListener('penNameUpdated', function (evt) {
 
 	// Update release confirmation display
 	document.getElementById('release-current-penname').textContent = newPenName;
+
+	// Show the bio section (it's hidden by default when no pen name is set)
+	const bioSection = document.getElementById('bio-section');
+	if (bioSection) {
+		bioSection.style.display = '';
+	}
+
+	// Show the community section (it's hidden by default when no pen name is set)
+	const communitySection = document.getElementById('community-section');
+	if (communitySection) {
+		communitySection.style.display = '';
+	}
 
 	exitPenNameEditMode();
 });
@@ -262,9 +274,82 @@ document.addEventListener('DOMContentLoaded', function () {
 					penNameInput.value = '';
 				}
 
+				// Hide the bio section when pen name is released
+				const bioSection = document.getElementById('bio-section');
+				if (bioSection) {
+					bioSection.style.display = 'none';
+				}
+
+				// Hide the community section when pen name is released
+				const communitySection = document.getElementById('community-section');
+				if (communitySection) {
+					communitySection.style.display = 'none';
+				}
+
 				// Exit release mode and go back to display state
 				exitReleaseMode();
 			}
 		});
 	}
 });
+
+// ========================================
+// Bio Management Functions
+// ========================================
+
+function enterBioEditMode() {
+	document.getElementById('bio-display-state').classList.add('hidden');
+	document.getElementById('bio-edit-state').classList.remove('hidden');
+	const textarea = document.getElementById('bio-input');
+	textarea.focus();
+	updateBioCharCount(textarea.value);
+}
+
+function exitBioEditMode() {
+	document.getElementById('bio-edit-state').classList.add('hidden');
+	document.getElementById('bio-display-state').classList.remove('hidden');
+}
+
+function updateBioCharCount(value) {
+	const count = value.length;
+	const countEl = document.getElementById('bio-char-count');
+	countEl.textContent = `${count}/1024`;
+
+	// Apply warning styles
+	countEl.classList.toggle('at-limit', count >= 1024);
+	countEl.classList.toggle('near-limit', count >= 924 && count < 1024);
+}
+
+function onBioInput(value) {
+	updateBioCharCount(value);
+}
+
+function confirmClearBio() {
+	if (confirm(window.Messages.bio.clearConfirm)) {
+		htmx.ajax('DELETE', '/dashboard/bio', {
+			target: '#bio-section',
+			swap: 'innerHTML'
+		});
+	}
+}
+
+// Initialize bio char count on page load
+document.addEventListener('DOMContentLoaded', function () {
+	const bioInput = document.getElementById('bio-input');
+	if (bioInput && bioInput.value) {
+		updateBioCharCount(bioInput.value);
+	}
+});
+
+// ========================================
+// Community Membership Functions
+// ========================================
+
+function toggleCommunityMembership(isJoining) {
+	const endpoint = isJoining ? '/dashboard/community/join' : '/dashboard/community/leave';
+
+	htmx.ajax('POST', endpoint, {
+		target: '#community-section',
+		swap: 'innerHTML'
+	});
+}

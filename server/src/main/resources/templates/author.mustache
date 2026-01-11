@@ -15,6 +15,12 @@
 				</div>
 			</header>
 
+			{{#bio}}
+				<div class="author-bio about-content">
+					{{{bioHtml}}}
+				</div>
+			{{/bio}}
+
 			{{#hasStories}}
 				<div class="card-list">
 					{{#stories}}

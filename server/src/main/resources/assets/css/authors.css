@@ -1,0 +1,593 @@
+/* Authors Page Styles */
+/* A literary bulletin board showcasing community writers */
+
+/* Authors-specific container width */
+.page__container--authors {
+	max-width: 1100px;
+}
+
+/* ========================================
+   Community Navigation
+   ======================================== */
+
+.community-nav {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-bottom: 1.5rem;
+	animation: fadeIn 0.3s ease-out;
+}
+
+.community-nav__link {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1.25rem;
+	border-radius: 2rem;
+	background: var(--surface);
+	border: 2px solid var(--neutral-200);
+	transition: all 0.2s ease;
+}
+
+.community-nav__link:hover {
+	color: var(--accent);
+	border-color: var(--accent);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.community-nav__link--active {
+	color: var(--accent);
+	border-color: var(--accent);
+	background: rgba(217, 119, 6, 0.08);
+}
+
+.community-nav__link i {
+	font-size: 0.875rem;
+}
+
+.community-nav__link:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* ========================================
+   Author Count Badge (in header)
+   ======================================== */
+
+.author-count-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: rgba(255, 255, 255, 0.9);
+	background: rgba(255, 255, 255, 0.1);
+	padding: 0.5rem 1rem;
+	border-radius: 2rem;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.author-count-badge i {
+	color: var(--accent-light);
+}
+
+/* ========================================
+   Authors Section (main content area)
+   ======================================== */
+
+.authors-section {
+	background: var(--surface);
+	border-radius: 0.75rem;
+	padding: clamp(1.5rem, 4vw, 2.5rem);
+	box-shadow: var(--shadow-lg);
+	animation: fadeIn 0.5s ease-out;
+	position: relative;
+
+	/* Cork board texture effect */
+	background-image: linear-gradient(135deg, rgba(217, 119, 6, 0.03) 0%, transparent 50%),
+	linear-gradient(to bottom, var(--surface) 0%, var(--surface) 100%);
+}
+
+/* Decorative top border like a bulletin board frame */
+.authors-section::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg,
+	var(--accent-dark) 0%,
+	var(--accent) 50%,
+	var(--accent-dark) 100%
+	);
+	border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* ========================================
+   Authors Grid
+   ======================================== */
+
+.authors-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 1.75rem;
+	padding-top: 0.5rem;
+}
+
+/* ========================================
+   Author Card - Index Card Style
+   ======================================== */
+
+.author-card {
+	position: relative;
+	background: linear-gradient(180deg, #fffef9 0%, #faf8f3 100%);
+	border: none;
+	border-radius: 0.25rem;
+	padding: 1.75rem 1.5rem 1.25rem;
+	text-decoration: none;
+	display: flex;
+	flex-direction: column;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* Index card shadow and edges */
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08),
+	0 4px 12px rgba(0, 0, 0, 0.05),
+	inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+
+	/* Lined paper effect */
+	background-image: repeating-linear-gradient(
+		transparent,
+		transparent 27px,
+		rgba(180, 83, 9, 0.08) 27px,
+		rgba(180, 83, 9, 0.08) 28px
+	);
+	background-position: 0 1.75rem;
+}
+
+/* Pin decoration */
+.author-card__pin {
+	position: absolute;
+	top: -6px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 16px;
+	height: 16px;
+	background: radial-gradient(circle at 30% 30%, #ef4444 0%, #b91c1c 100%);
+	border-radius: 50%;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3),
+	inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+	inset 0 2px 2px rgba(255, 255, 255, 0.3);
+	z-index: 2;
+}
+
+.author-card__pin::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 4px;
+	height: 4px;
+	background: rgba(255, 255, 255, 0.6);
+	border-radius: 50%;
+}
+
+/* Card hover state */
+.author-card:hover {
+	transform: translateY(-6px) rotate(-0.5deg);
+	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12),
+	0 12px 28px rgba(0, 0, 0, 0.08),
+	inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.author-card:hover .author-card__avatar {
+	transform: scale(1.05);
+	box-shadow: 0 6px 16px rgba(217, 119, 6, 0.35);
+}
+
+.author-card:hover .author-card__link {
+	color: var(--accent);
+}
+
+.author-card:hover .author-card__link i {
+	transform: translateX(4px);
+}
+
+/* Avatar */
+.author-card__avatar {
+	width: 3.5rem;
+	height: 3.5rem;
+	background: linear-gradient(145deg, var(--accent) 0%, var(--accent-dark) 100%);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 1rem;
+	box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+	transition: all 0.3s ease;
+}
+
+.author-card__initial {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: white;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	text-transform: uppercase;
+}
+
+/* Author name */
+.author-card__name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.125rem;
+	color: var(--text-primary);
+	text-align: center;
+	margin: 0 0 0.75rem;
+	line-height: 1.3;
+
+	/* Truncate long names */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Bio preview */
+.author-card__bio {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	line-height: 1.6;
+	margin: 0;
+	flex: 1;
+
+	/* Clamp to 3 lines */
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.author-card__bio--empty {
+	font-style: italic;
+	color: var(--neutral-400);
+	text-align: center;
+}
+
+/* Card footer */
+.author-card__footer {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px dashed var(--neutral-200);
+	text-align: center;
+}
+
+.author-card__link {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	transition: color 0.2s ease;
+}
+
+.author-card__link i {
+	font-size: 0.75rem;
+	transition: transform 0.2s ease;
+}
+
+/* ========================================
+   Pagination
+   ======================================== */
+
+.pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 2.5rem;
+	padding-top: 2rem;
+	border-top: 2px dashed var(--neutral-200);
+}
+
+.pagination-button {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	background: var(--paper-white);
+	border: 2px solid var(--neutral-300);
+	padding: 0.625rem 1.25rem;
+	border-radius: 0.375rem;
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.pagination-button:hover:not(.pagination-button--disabled) {
+	border-color: var(--accent);
+	color: var(--accent);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.pagination-button--disabled {
+	color: var(--neutral-400);
+	border-color: var(--neutral-200);
+	background: var(--neutral-50);
+	cursor: not-allowed;
+}
+
+.pagination-info {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	padding: 0 0.5rem;
+}
+
+/* ========================================
+   Empty State
+   ======================================== */
+
+.authors-empty {
+	text-align: center;
+	padding: 4rem 2rem;
+}
+
+.authors-empty__illustration {
+	margin-bottom: 1.5rem;
+}
+
+.authors-empty__desk {
+	width: 5rem;
+	height: 5rem;
+	margin: 0 auto;
+	background: linear-gradient(135deg, var(--sticky-yellow) 0%, #fde047 100%);
+	border-radius: 0.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-3deg);
+	position: relative;
+}
+
+.authors-empty__desk::before {
+	content: '';
+	position: absolute;
+	top: -4px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 12px;
+	height: 12px;
+	background: radial-gradient(circle at 30% 30%, #dc2626 0%, #991b1b 100%);
+	border-radius: 50%;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.authors-empty__desk i {
+	font-size: 2rem;
+	color: var(--accent-dark);
+}
+
+.authors-empty__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	color: var(--text-primary);
+	margin: 0 0 0.75rem;
+}
+
+.authors-empty__text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	color: var(--text-secondary);
+	margin: 0;
+	max-width: 400px;
+	margin: 0 auto;
+	line-height: 1.6;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+.authors-footer {
+	margin-top: 2rem;
+	text-align: center;
+}
+
+.authors-footer .powered-by {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.authors-footer a {
+	color: var(--accent);
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.authors-footer a:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+/* ========================================
+   Staggered Animation for Cards
+   ======================================== */
+
+.author-card {
+	animation: cardSlideIn 0.4s ease-out backwards;
+}
+
+.author-card:nth-child(1) {
+	animation-delay: 0.05s;
+}
+
+.author-card:nth-child(2) {
+	animation-delay: 0.1s;
+}
+
+.author-card:nth-child(3) {
+	animation-delay: 0.15s;
+}
+
+.author-card:nth-child(4) {
+	animation-delay: 0.2s;
+}
+
+.author-card:nth-child(5) {
+	animation-delay: 0.25s;
+}
+
+.author-card:nth-child(6) {
+	animation-delay: 0.3s;
+}
+
+.author-card:nth-child(7) {
+	animation-delay: 0.35s;
+}
+
+.author-card:nth-child(8) {
+	animation-delay: 0.4s;
+}
+
+.author-card:nth-child(9) {
+	animation-delay: 0.45s;
+}
+
+.author-card:nth-child(10) {
+	animation-delay: 0.5s;
+}
+
+.author-card:nth-child(11) {
+	animation-delay: 0.55s;
+}
+
+.author-card:nth-child(12) {
+	animation-delay: 0.6s;
+}
+
+@keyframes cardSlideIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px) rotate(1deg);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) rotate(0deg);
+	}
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media only screen and (max-width: 768px) {
+	.authors-section {
+		padding: 1.25rem;
+		border-radius: 0.5rem;
+	}
+
+	.authors-grid {
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		gap: 1.25rem;
+	}
+
+	.author-card {
+		padding: 1.5rem 1.25rem 1rem;
+	}
+
+	.author-card__avatar {
+		width: 3rem;
+		height: 3rem;
+	}
+
+	.author-card__initial {
+		font-size: 1.25rem;
+	}
+
+	.pagination {
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	.pagination-button {
+		padding: 0.5rem 1rem;
+		font-size: 0.8125rem;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.page-header__actions {
+		display: none;
+	}
+
+	.authors-grid {
+		grid-template-columns: 1fr;
+		gap: 1rem;
+	}
+
+	.author-card:hover {
+		transform: none;
+	}
+
+	.authors-empty {
+		padding: 3rem 1.5rem;
+	}
+
+	.authors-empty__desk {
+		width: 4rem;
+		height: 4rem;
+	}
+
+	.authors-empty__desk i {
+		font-size: 1.5rem;
+	}
+
+	.authors-empty__title {
+		font-size: 1.25rem;
+	}
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	.authors-section,
+	.author-card {
+		animation: none;
+	}
+
+	.author-card:hover {
+		transform: none;
+	}
+
+	.author-card:hover .author-card__avatar {
+		transform: none;
+	}
+
+	.author-card:hover .author-card__link i {
+		transform: none;
+	}
+}
+
+/* Focus states for keyboard navigation */
+.author-card:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 4px;
+}
+
+.pagination-button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}

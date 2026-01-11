@@ -1,21 +1,30 @@
 {{#whitelist}}
+	{{#error}}
+		<div class="error-message">{{error}}</div>
+	{{/error}}
+
 	{{#items}}
-	{{#.}}
-		<div class="whitelist-user">
-			<span class="whitelist-user-email">{{.}}</span>
-			<div class="whitelist-user-actions">
+		<div class="whitelist-entry">
+			<div class="whitelist-entry__info">
+				<div class="whitelist-entry__email">{{email}}</div>
+				<div class="whitelist-entry__meta">
+					<span class="whitelist-entry__date">Added: {{dateAdded}}</span>
+					<span class="whitelist-entry__separator">•</span>
+					<span class="whitelist-entry__reason">{{reason}}</span>
+				</div>
+			</div>
+			<div class="whitelist-entry__actions">
 				<form action="/admin/whitelist/remove" method="post"
 					  hx-post="/admin/whitelist/remove"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
-					  hx-confirm="Remove {{.}} from the whitelist?">
-					<input type="hidden" name="email" value="{{.}}"/>
+					  hx-confirm="Remove {{email}} from the whitelist?">
+					<input type="hidden" name="email" value="{{email}}"/>
 					<input type="hidden" name="page" value="{{currentPage}}"/>
-					<button type="submit" class="remove-button">{{msg.admin_whitelist_remove_button}}</button>
+					<button type="submit" class="btn btn--danger">{{msg.admin_whitelist_remove_button}}</button>
 				</form>
 			</div>
 		</div>
-	{{/.}}
 	{{/items}}
 	{{^items}}
 		<div class="empty-state">

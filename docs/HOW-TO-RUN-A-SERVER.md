@@ -6,15 +6,18 @@ _Note: For now, the server is only available as a Java executable. Eventually we
 
 # Linux
 1. Download the latest server release:
-   2. [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
-   3. [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
-4. Extract the archive
-5. Create your config file: `serverConfig.toml`
+	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
+	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
+2. Extract the archive
+3. Create your config file: `serverConfig.toml`
+
 ```toml
 host = "example.com"
 port = 80
 
-# Below this line is optional, if you don't care about HTTPS, just leave it out
+# Below this line is optional
+communityEnabled = true
+emailProvider = "SMTP"
 
 sslPort = 443
 

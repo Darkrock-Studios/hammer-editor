@@ -1,0 +1,44 @@
+<p class="community-header"><strong>{{msg.community_label}}</strong></p>
+
+<!-- Promotion banner (shown when not a community member) -->
+{{^communityMember}}
+	<div class="community-promo">
+		<div class="community-promo__icon">
+			<i class="fa-solid fa-users"></i>
+		</div>
+		<div class="community-promo__content">
+			<h3 class="community-promo__title">{{msg.community_promo_title}}</h3>
+			<p class="community-promo__text">{{msg.community_promo_text}}</p>
+		</div>
+	</div>
+{{/communityMember}}
+
+<!-- Toggle switch and explanation -->
+<div class="community-toggle-container">
+	<label class="community-toggle">
+		<input type="checkbox"
+			   id="community-toggle-input"
+			   {{#communityMember}}checked{{/communityMember}}
+			   onchange="toggleCommunityMembership(this.checked)">
+		<span class="community-toggle__slider"></span>
+		<span class="community-toggle__label">{{msg.community_toggle_label}}</span>
+	</label>
+
+	{{#communityMember}}
+		<div class="community-status community-status--joined">
+			<i class="fa-solid fa-check-circle"></i>
+			<span>{{msg.community_status_joined}}</span>
+		</div>
+	{{/communityMember}}
+	{{^communityMember}}
+		<div class="community-status community-status--not-joined">
+			<i class="fa-regular fa-circle"></i>
+			<span>{{msg.community_status_not_joined}}</span>
+		</div>
+	{{/communityMember}}
+</div>
+
+<!-- Detailed explanation -->
+<div class="community-explanation">
+	<p>{{msg.community_explanation}}</p>
+</div>

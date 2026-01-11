@@ -1,16 +1,17 @@
 package com.darkrockstudios.apps.hammer.admin
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.database.WhiteList
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
-import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import io.ktor.util.*
 import org.koin.core.component.KoinComponent
+import kotlin.time.Clock
 
 class WhiteListRepository(
 	private val whiteListDao: WhiteListDao,
 	private val configRepository: ConfigRepository,
+	private val clock: Clock,
 ) : KoinComponent {
-
-	private val ioDispatcher by injectIoDispatcher()
 
 	suspend fun useWhiteList(): Boolean {
 		return configRepository.get(AdminServerConfig.WHITELIST_ENABLED)
@@ -30,6 +31,12 @@ class WhiteListRepository(
 		return whiteListDao.getWhiteListPaginated(limit, offset)
 	}
 
+	suspend fun getWhiteListWithDetails(page: Int, pageSize: Int): List<WhiteList> {
+		val limit = pageSize.toLong()
+		val offset = (page * pageSize).toLong()
+		return whiteListDao.getPaginated(limit, offset)
+	}
+
 	suspend fun getWhiteListCount(): Long {
 		return whiteListDao.getWhiteListCount()
 	}
@@ -39,9 +46,10 @@ class WhiteListRepository(
 		return whiteListDao.isWhiteListed(cleanedEmail)
 	}
 
-	suspend fun addToWhiteList(email: String) {
+	suspend fun addToWhiteList(email: String, reason: String = "Added by admin") {
 		val cleanedEmail = cleanEmail(email)
-		whiteListDao.addToWhiteList(cleanedEmail)
+		val dateAdded = clock.now().epochSeconds
+		whiteListDao.addToWhiteList(cleanedEmail, dateAdded, reason)
 	}
 
 	suspend fun removeFromWhiteList(email: String) {
@@ -49,8 +57,29 @@ class WhiteListRepository(
 		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
+	suspend fun getWhiteListByReason(reason: String): List<WhiteList> {
+		return whiteListDao.getByReason(reason)
+	}
+
+	suspend fun countByReasonWithAccounts(reason: String): Long {
+		return whiteListDao.countByReasonWithAccounts(reason)
+	}
+
 	private fun cleanEmail(email: String): String {
 		val cleanedEmail = email.trim().toLowerCasePreservingASCIIRules()
 		return cleanedEmail
+	}
+
+	fun validateEmail(email: String): Boolean {
+		return AccountsRepository.validateEmail(email)
+	}
+
+	fun validateReason(reason: String): Boolean {
+		val trimmed = reason.trim()
+		return trimmed.length <= MAX_REASON_LENGTH
+	}
+
+	companion object {
+		const val MAX_REASON_LENGTH = 32
 	}
 }

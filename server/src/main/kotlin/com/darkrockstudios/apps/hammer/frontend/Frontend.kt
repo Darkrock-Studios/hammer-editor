@@ -1,17 +1,24 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
+import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -22,6 +29,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.days
 
@@ -33,17 +41,47 @@ fun Route.frontend() {
 	val storyExportService: StoryExportService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
+	val bioService: BioService by inject()
+	val serverConfig: ServerConfig by inject()
+	val passwordResetRepository: PasswordResetRepository by inject()
+	val markdownService: MarkdownService by inject()
+
+	// Only inject PatreonSyncService if Patreon is enabled at server level
+	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
+		inject<PatreonSyncService>().value
+	} else {
+		null
+	}
+
+	// Only inject EmailService if email is enabled at server level
+	val emailService: EmailService? = if (serverConfig.emailProvider != null) {
+		inject<EmailService>().value
+	} else {
+		null
+	}
 
 	staticResources("/assets", "/assets")
 
-	homePage(whiteListRepository, configRepository)
+	setupPage(serverConfig)
+	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
+	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository)
-	dashboardPage(projectsRepository, accountsRepository, penNameService)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
+	passwordResetRoutes(passwordResetRepository)
+	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
-	authorPage(accountsRepository, projectAccessRepository)
+	authorPage(accountsRepository, projectAccessRepository, markdownService)
 	publicStoryPage(storyExportService, projectAccessRepository)
-	adminPage(whiteListRepository, configRepository, accountsRepository, projectsRepository)
+	adminPage(
+		whiteListRepository,
+		configRepository,
+		accountsRepository,
+		projectsRepository,
+		serverConfig,
+		patreonSyncService,
+		emailService
+	)
+	communityPage(projectAccessRepository, accountsRepository, serverConfig)
 }
 
 const val COOKIE_USER_SESSION = "user_session"
@@ -125,5 +163,24 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	} else {
 		model["isLoggedIn"] = false
 	}
+
+	val configRepository = get<ConfigRepository>()
+	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
+	model["hasAboutPage"] = aboutContent.isNotBlank()
+
+	// Add Patreon link for footer if configured
+	val serverConfig = get<ServerConfig>()
+	if (serverConfig.patreonEnabled == true) {
+		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {
+			model["patreonUrl"] = patreonConfig.patreonUrl
+		}
+	}
+
+	// Add community enabled flag for header nav
+	if (serverConfig.communityEnabled) {
+		model["communityEnabled"] = true
+	}
+
 	return model
 }

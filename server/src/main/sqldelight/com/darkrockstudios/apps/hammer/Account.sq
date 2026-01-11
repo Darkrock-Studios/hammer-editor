@@ -2,12 +2,14 @@ CREATE TABLE account(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     pen_name TEXT UNIQUE DEFAULT(NULL),
-    salt TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     cipher_secret TEXT NOT NULL,
     created TEXT DEFAULT (datetime('now')) NOT NULL,
     is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
-    last_sync TEXT DEFAULT (datetime('now')) NOT NULL
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+    bio TEXT DEFAULT(NULL),
+    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    community_member INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
 );
 
 getAllAccount:
@@ -43,10 +45,10 @@ count:
 SELECT COUNT(*) FROM account;
 
 createAccount:
-INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?);
 
 testInsertAccount:
-INSERT INTO account(email, salt, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
 
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
@@ -75,3 +77,30 @@ SELECT id, email, pen_name, created, last_sync
 FROM account
 ORDER BY created DESC
 LIMIT :limit OFFSET :offset;
+
+updatePassword:
+UPDATE account SET password_hash = ? WHERE id = ?;
+
+updateBio:
+UPDATE account SET bio = ? WHERE id = ?;
+
+getBio:
+SELECT bio FROM account WHERE id = ?;
+
+updateCommunityMember:
+UPDATE account SET community_member = ? WHERE id = ?;
+
+getCommunityMember:
+SELECT community_member FROM account WHERE id = ?;
+
+getCommunityAuthors:
+SELECT id, pen_name, bio, created
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL
+ORDER BY pen_name COLLATE NOCASE ASC
+LIMIT :limit OFFSET :offset;
+
+countCommunityAuthors:
+SELECT COUNT(*)
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL;

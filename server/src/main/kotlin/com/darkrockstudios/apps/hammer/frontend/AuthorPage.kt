@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
 import io.ktor.server.mustache.*
@@ -13,7 +14,8 @@ import java.time.format.DateTimeFormatter
 
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
-	projectAccessRepository: ProjectAccessRepository
+	projectAccessRepository: ProjectAccessRepository,
+	markdownService: MarkdownService
 ) {
 	route("/a/{penName}") {
 		get {
@@ -36,6 +38,9 @@ fun Route.authorPage(
 
 			// Get published stories for this author
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
+
+			// Render bio markdown to sanitized HTML
+			val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
 
 			// Format stories for the template
 			val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -61,6 +66,8 @@ fun Route.authorPage(
 					"page_stylesheet" to "/assets/css/author.css",
 					"penName" to penName,
 					"urlPenName" to penNameParam,
+					"bio" to (account.bio ?: ""),
+					"bioHtml" to (bioHtml ?: ""),
 					"stories" to formattedStories,
 					"hasStories" to stories.isNotEmpty(),
 					"storyCount" to stories.size

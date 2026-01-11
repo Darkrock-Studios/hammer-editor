@@ -1,0 +1,180 @@
+{{> header}}
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<!-- Admin Header -->
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_patreon_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_patreon_subtitle}}</p>
+				</div>
+			</div>
+
+			<!-- Patreon Status Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_patreon_status_title}}</h2>
+				</div>
+
+				<div class="status-info">
+					<div class="status-item">
+						<span class="status-label">{{msg.admin_patreon_enabled_label}}:</span>
+						{{#patreonEnabled}}
+							<span class="status-badge status-badge--active">{{msg.admin_patreon_enabled}}</span>
+						{{/patreonEnabled}}
+						{{^patreonEnabled}}
+							<span class="status-badge status-badge--inactive">{{msg.admin_patreon_disabled}}</span>
+						{{/patreonEnabled}}
+					</div>
+					<div class="status-item">
+						<span class="status-label">{{msg.admin_patreon_last_sync}}:</span>
+						<span>{{lastSync}}</span>
+					</div>
+					<div class="status-item">
+						<span class="status-label">{{msg.admin_patreon_members_count}}:</span>
+						<span>{{patreonMemberCount}}</span>
+					</div>
+					<div class="status-item">
+						<span class="status-label">{{msg.admin_patreon_members_with_accounts}}:</span>
+						<span>{{patreonMembersWithAccounts}}</span>
+					</div>
+				</div>
+
+				<div class="form-actions">
+					{{#patreonEnabled}}
+						<button type="button" class="btn btn--primary"
+								hx-post="/admin/patreon/sync"
+								hx-swap="none">
+							{{msg.admin_patreon_sync_now}}
+						</button>
+					{{/patreonEnabled}}
+					{{^patreonEnabled}}
+						<button type="button" class="btn btn--primary" disabled
+								title="{{msg.admin_patreon_sync_disabled_hint}}">
+							{{msg.admin_patreon_sync_now}}
+						</button>
+					{{/patreonEnabled}}
+				</div>
+			</section>
+
+			<!-- Patreon Settings Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_patreon_settings_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_patreon_settings_description}}</p>
+
+				<form action="/admin/patreon/settings" method="post" class="settings-form"
+					  hx-post="/admin/patreon/settings"
+					  hx-swap="none">
+
+					<div class="form-group">
+						<label class="form-field__label">
+							<input type="checkbox" name="enabled" value="true"
+								   {{#patreonEnabled}}checked{{/patreonEnabled}} class="form-checkbox"/>
+							{{msg.admin_patreon_enable_integration}}
+						</label>
+					</div>
+
+					<div class="form-group">
+						<label for="accessToken" class="form-field__label">{{msg.admin_patreon_access_token}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_access_token_help}}</p>
+						<div class="form-input-group">
+							<input id="accessToken" name="accessToken" type="password" value="{{accessToken}}"
+								   class="form-input"
+								   placeholder="{{msg.admin_patreon_access_token_placeholder}}"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="campaignId" class="form-field__label">{{msg.admin_patreon_campaign_id}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_campaign_id_help}}</p>
+						<div class="form-input-group">
+							<div id="campaignId-container">
+								<input id="campaignId" name="campaignId" type="text" value="{{campaignId}}"
+									   class="form-input"
+									   placeholder="123456"/>
+							</div>
+							<button type="button" class="btn btn--ghost"
+									hx-post="/admin/patreon/fetch-campaign"
+									hx-include="#accessToken"
+									hx-target="#campaignId-container"
+									hx-swap="innerHTML">
+								{{msg.admin_patreon_fetch_campaign}}
+							</button>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="webhookSecret"
+							   class="form-field__label">{{msg.admin_patreon_webhook_secret}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_webhook_secret_help}}</p>
+						<div class="form-input-group">
+							<input id="webhookSecret" name="webhookSecret" type="password" value="{{webhookSecret}}"
+								   class="form-input"
+								   placeholder="{{msg.admin_patreon_webhook_secret_placeholder}}"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="patreonUrl"
+							   class="form-field__label">{{msg.admin_patreon_url}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_url_help}}</p>
+						<div class="form-input-group">
+							<input id="patreonUrl" name="patreonUrl" type="url" value="{{patreonUrl}}"
+								   class="form-input"
+								   placeholder="{{msg.admin_patreon_url_placeholder}}"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="minimumAmount"
+							   class="form-field__label">{{msg.admin_patreon_minimum_amount}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_minimum_amount_help}}</p>
+						<div class="form-input-group">
+							<input id="minimumAmount" name="minimumAmount" type="number" step="0.01" min="0"
+								   value="{{minimumAmountDollars}}" class="form-input"/>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="pollInterval" class="form-field__label">{{msg.admin_patreon_poll_interval}}</label>
+						<p class="form-field__help">{{msg.admin_patreon_poll_interval_help}}</p>
+						<div class="form-input-group">
+							<input id="pollInterval" name="pollInterval" type="number" min="1"
+								   value="{{pollIntervalMinutes}}" class="form-input"/>
+						</div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="btn btn--accent">{{msg.admin_patreon_save_button}}</button>
+					</div>
+
+					<!-- Error Display -->
+					<div id="patreon-error"></div>
+				</form>
+			</section>
+
+			<!-- Webhook Info Section -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_patreon_webhook_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_patreon_webhook_description}}</p>
+
+				<div class="form-group">
+					<label class="form-field__label">{{msg.admin_patreon_webhook_url}}</label>
+					<div class="form-input-group">
+						<input type="text" readonly value="{{webhookUrl}}" class="form-input"/>
+					</div>
+				</div>
+			</section>
+		</div>
+	</div>
+</main>
+
+<div id="result"></div>
+{{> footer}}

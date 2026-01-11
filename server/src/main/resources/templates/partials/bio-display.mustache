@@ -1,0 +1,28 @@
+<!-- Display State: Shows current bio or add button -->
+<div class="bio-display" id="bio-display-state">
+	{{#bio}}
+		<div class="bio-current">
+			<div class="bio-preview">
+				<div class="about-content">
+					{{{bioHtml}}}
+				</div>
+			</div>
+			<div class="bio-actions">
+				<button type="button" class="edit-bio-btn" onclick="enterBioEditMode()">
+					<i class="fa-solid fa-pencil"></i>
+					{{msg.bio_edit_button}}
+				</button>
+				<button type="button" class="clear-bio-btn" onclick="confirmClearBio()">
+					<i class="fa-solid fa-trash"></i>
+					{{msg.bio_clear_button}}
+				</button>
+			</div>
+		</div>
+	{{/bio}}
+	{{^bio}}
+		<button type="button" class="add-bio-btn" onclick="enterBioEditMode()">
+			<i class="fa-solid fa-user-pen"></i>
+			{{msg.bio_add_button}}
+		</button>
+	{{/bio}}
+</div>

@@ -36,7 +36,7 @@ sqldelight {
 		create("ServerDatabase") {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			//dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
-			version = 4
+			version = 5
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 	}
@@ -68,6 +68,8 @@ dependencies {
 
 	implementation(libs.bundles.ktor.server)
 	implementation(libs.ktor.network.tlscertificates)
+	implementation(libs.bouncycastle.bcpkix)
+	implementation(libs.jakarta.mail)
 
 	implementation(libs.slf4j.simple)
 	//implementation(libs.logback.classic)
@@ -89,13 +91,21 @@ dependencies {
 	implementation(libs.ktor.htmx.html)
 	implementation(libs.ktor.server.htmx)
 
+	// Ktor HTTP client for Patreon API calls
+	implementation(libs.ktor.client.core)
+	implementation(libs.ktor.client.java)
+	implementation(libs.ktor.client.content.negotiation)
+	implementation(libs.ktor.client.logging)
+
 	implementation(libs.tomlkt)
 	implementation(libs.resources)
 	implementation(libs.markdown)
+	implementation(libs.owasp.html.sanitizer)
 
 //	implementation(libs.cryptography.core)
 //	implementation(libs.cryptography.provider.jdk)
 	implementation(libs.kache)
+	implementation(libs.argon2.jvm)
 
 	testImplementation(libs.bundles.ktor.client)
 	testImplementation(libs.ktor.serialization.kotlinx.json)

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -21,6 +22,7 @@ import kotlin.test.assertTrue
 class StoryExportServiceTest {
 
 	private lateinit var datasource: ProjectEntityDatasource
+	private lateinit var markdownService: MarkdownService
 	private lateinit var service: StoryExportService
 
 	private val userId = 1L
@@ -30,7 +32,8 @@ class StoryExportServiceTest {
 	@BeforeEach
 	fun setup() {
 		datasource = mockk()
-		service = StoryExportService(datasource)
+		markdownService = MarkdownService()
+		service = StoryExportService(datasource, markdownService)
 	}
 
 	@Test

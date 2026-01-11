@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.encryption
 
+import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import io.mockk.every
 import io.mockk.mockk
@@ -23,6 +24,7 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var secureRandom: SecureRandom
 	private lateinit var base64: Base64
+	private lateinit var serverSecretManager: ServerSecretManager
 	private lateinit var keyProvider: SimpleFileBasedAesGcmKeyProvider
 
 	// Test client secrets (base64-encoded random bytes)
@@ -40,10 +42,10 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 
 		setupKoin()
 
+		serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
 		keyProvider = SimpleFileBasedAesGcmKeyProvider(
-			fileSystem = fileSystem,
-			base64 = base64,
-			secureRandom = secureRandom
+			serverSecretManager = serverSecretManager,
+			base64 = base64
 		)
 	}
 
@@ -107,9 +109,8 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 
 		// Create a new provider instance with same filesystem (so it loads same server secret)
 		val newKeyProvider = SimpleFileBasedAesGcmKeyProvider(
-			fileSystem = fileSystem,
-			base64 = base64,
-			secureRandom = secureRandom
+			serverSecretManager = ServerSecretManager(fileSystem, secureRandom),
+			base64 = base64
 		)
 
 		// Act - Get key with same client secret from new provider
@@ -140,9 +141,8 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 
 		// Act - Create new provider (should load existing server secret)
 		val newProvider = SimpleFileBasedAesGcmKeyProvider(
-			fileSystem = fileSystem,
-			base64 = base64,
-			secureRandom = secureRandom
+			serverSecretManager = ServerSecretManager(fileSystem, secureRandom),
+			base64 = base64
 		)
 		val secondKey = newProvider.getEncryptionKey(clientSecret1)
 
@@ -158,9 +158,8 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 		// Create new filesystem with different server secret
 		val newFileSystem = FakeFileSystem()
 		val newProvider = SimpleFileBasedAesGcmKeyProvider(
-			fileSystem = newFileSystem,
-			base64 = base64,
-			secureRandom = secureRandom
+			serverSecretManager = ServerSecretManager(newFileSystem, secureRandom),
+			base64 = base64
 		)
 
 		// Act - Get key with different server secret
@@ -186,9 +185,8 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 		}
 
 		val testProvider = SimpleFileBasedAesGcmKeyProvider(
-			fileSystem = fileSystem,
-			base64 = base64,
-			secureRandom = mockRandom
+			serverSecretManager = ServerSecretManager(fileSystem, mockRandom),
+			base64 = base64
 		)
 
 		// Act - Call twice with same client secret

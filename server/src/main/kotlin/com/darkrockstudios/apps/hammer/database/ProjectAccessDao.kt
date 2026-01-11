@@ -20,6 +20,13 @@ data class PublishedStoryInfo(
 	val publishedAt: String
 )
 
+data class CommunityFeedStory(
+	val projectUuid: String,
+	val projectName: String,
+	val penName: String,
+	val publishedAt: String
+)
+
 class ProjectAccessDao(
 	database: Database,
 ) : KoinComponent {
@@ -136,5 +143,25 @@ class ProjectAccessDao(
 				publishedAt = it.published_at
 			)
 		}
+	}
+
+	suspend fun getCommunityFeedStories(page: Int, pageSize: Int): List<CommunityFeedStory> =
+		withContext(ioDispatcher) {
+			val offset = page * pageSize
+			queries.getCommunityFeedStories(
+				limit = pageSize.toLong(),
+				offset = offset.toLong()
+			).executeAsList().map {
+				CommunityFeedStory(
+					projectUuid = it.project_uuid,
+					projectName = it.project_name,
+					penName = it.pen_name ?: "",
+					publishedAt = it.published_at
+				)
+			}
+		}
+
+	suspend fun countCommunityFeedStories(): Long = withContext(ioDispatcher) {
+		queries.countCommunityFeedStories().executeAsOne()
 	}
 }

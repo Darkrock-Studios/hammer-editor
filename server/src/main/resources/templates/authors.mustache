@@ -1,0 +1,108 @@
+{{> header}}
+
+<main class="page">
+	<div class="page__container page__container--authors">
+		<!-- Page Header -->
+		<div class="page-header">
+			<div class="page-header__content">
+				<h1 class="page-header__title">{{msg.authors_page_title}}</h1>
+				<p class="page-header__subtitle">{{msg.authors_page_subtitle}}</p>
+			</div>
+			{{#hasAuthors}}
+				<div class="page-header__actions">
+				<span class="author-count-badge">
+					<i class="fa-solid fa-feather-pointed"></i>
+					{{authorCount}} {{msg.authors_count_label}}
+				</span>
+				</div>
+			{{/hasAuthors}}
+		</div>
+
+		{{> partials/community-nav}}
+
+		<!-- Authors Section -->
+		<section class="authors-section">
+			{{#hasAuthors}}
+				<!-- Authors Grid -->
+				<div class="authors-grid">
+					{{#authors}}
+						<a href="/a/{{penNameUrl}}" class="author-card">
+							<div class="author-card__pin"></div>
+							<div class="author-card__avatar">
+								<span class="author-card__initial">{{penName.0}}</span>
+							</div>
+							<h2 class="author-card__name">{{penName}}</h2>
+							{{#hasBio}}
+								<p class="author-card__bio">{{bioPreview}}</p>
+							{{/hasBio}}
+							{{^hasBio}}
+								<p class="author-card__bio author-card__bio--empty">{{msg.authors_no_bio}}</p>
+							{{/hasBio}}
+							<div class="author-card__footer">
+						<span class="author-card__link">
+							{{msg.authors_view_profile}}
+							<i class="fa-solid fa-arrow-right"></i>
+						</span>
+							</div>
+						</a>
+					{{/authors}}
+				</div>
+
+				<!-- Pagination -->
+				{{#isPaged}}
+					<div class="pagination">
+						{{#hasPrevPage}}
+							<a href="/authors?page={{prevPage}}" class="pagination-button">
+							<i class="fa-solid fa-chevron-left"></i>
+							{{msg.admin_pagination_prev}}
+							</a>
+						{{/hasPrevPage}}
+						{{^hasPrevPage}}
+							<span class="pagination-button pagination-button--disabled">
+					<i class="fa-solid fa-chevron-left"></i>
+								{{msg.admin_pagination_prev}}
+				</span>
+						{{/hasPrevPage}}
+
+						<span class="pagination-info">
+					{{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}
+				</span>
+
+						{{#hasNextPage}}
+							<a href="/authors?page={{nextPage}}" class="pagination-button">
+							{{msg.admin_pagination_next}}
+							<i class="fa-solid fa-chevron-right"></i>
+							</a>
+						{{/hasNextPage}}
+						{{^hasNextPage}}
+							<span class="pagination-button pagination-button--disabled">
+					{{msg.admin_pagination_next}}
+								<i class="fa-solid fa-chevron-right"></i>
+				</span>
+						{{/hasNextPage}}
+					</div>
+				{{/isPaged}}
+			{{/hasAuthors}}
+
+			{{^hasAuthors}}
+				<!-- Empty State -->
+				<div class="authors-empty">
+					<div class="authors-empty__illustration">
+						<div class="authors-empty__desk">
+							<i class="fa-solid fa-book-open"></i>
+						</div>
+					</div>
+					<h2 class="authors-empty__title">{{msg.authors_empty_title}}</h2>
+					<p class="authors-empty__text">{{msg.authors_empty_text}}</p>
+				</div>
+			{{/hasAuthors}}
+		</section>
+
+		<!-- Footer -->
+		<div class="authors-footer">
+			<p class="powered-by">{{msg.public_story_powered_by}} <a href="/">Hammer</a></p>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

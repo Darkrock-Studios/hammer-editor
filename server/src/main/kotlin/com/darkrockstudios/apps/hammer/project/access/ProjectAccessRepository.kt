@@ -2,12 +2,13 @@ package com.darkrockstudios.apps.hammer.project.access
 
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.database.CommunityFeedStory
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
-import java.time.format.DateTimeFormatter
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
 
 sealed class PublicProjectResult {
@@ -220,5 +221,13 @@ class ProjectAccessRepository(
 
 	suspend fun getPublishedStoriesByPenName(penName: String): List<PublishedStoryInfo> {
 		return projectAccessDao.getPublishedStoriesByPenName(penName)
+	}
+
+	suspend fun getCommunityFeedStories(page: Int, pageSize: Int): List<CommunityFeedStory> {
+		return projectAccessDao.getCommunityFeedStories(page, pageSize)
+	}
+
+	suspend fun countCommunityFeedStories(): Long {
+		return projectAccessDao.countCommunityFeedStories()
 	}
 }

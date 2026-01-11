@@ -18,5 +18,21 @@
 				<span>{{msg.admin_nav_users}}</span>
 			</a>
 		</li>
+		{{#patreonFeatureEnabled}}
+			<li class="admin-nav-item">
+				<a href="/admin/patreon" class="admin-nav-link {{#activePatreon}}active{{/activePatreon}}">
+					<i class="fa-brands fa-patreon"></i>
+					<span>{{msg.admin_nav_patreon}}</span>
+				</a>
+			</li>
+		{{/patreonFeatureEnabled}}
+		{{#emailFeatureEnabled}}
+			<li class="admin-nav-item">
+				<a href="/admin/email" class="admin-nav-link {{#activeEmail}}active{{/activeEmail}}">
+					<i class="fa-solid fa-envelope"></i>
+					<span>{{msg.admin_nav_email}}</span>
+				</a>
+			</li>
+		{{/emailFeatureEnabled}}
 	</ul>
 </nav>

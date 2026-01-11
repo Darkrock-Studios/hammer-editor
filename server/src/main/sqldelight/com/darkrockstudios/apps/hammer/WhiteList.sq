@@ -1,5 +1,7 @@
 CREATE TABLE white_list(
-    email TEXT NOT NULL PRIMARY KEY
+    email TEXT NOT NULL PRIMARY KEY,
+    date_added INTEGER NOT NULL DEFAULT 0,
+    reason TEXT DEFAULT ''
 );
 
 isWhiteListed:
@@ -10,7 +12,7 @@ SELECT EXISTS
 
 addToWhiteList:
 INSERT OR IGNORE
-INTO white_list(email) VALUES (?);
+INTO white_list(email, date_added, reason) VALUES (?, ?, ?);
 
 removeFromWhiteList:
 DELETE FROM white_list
@@ -27,3 +29,12 @@ LIMIT ? OFFSET ?;
 
 getCount:
 SELECT count(*) FROM white_list;
+
+getByReason:
+SELECT * FROM white_list WHERE reason = ?;
+
+countByReasonWithAccounts:
+SELECT COUNT(*)
+FROM white_list w
+INNER JOIN account a ON w.email = a.email
+WHERE w.reason = ?;

@@ -8,6 +8,26 @@
 	</div>
 </section>
 
+<!-- About Server Callout (if configured) -->
+{{#hasAboutPage}}
+	<div class="about-server-callout">
+		<a href="/about" class="about-server-callout__inner">
+			<div class="about-server-callout__icon">
+				<i class="fa-solid fa-info-circle"></i>
+			</div>
+			<div class="about-server-callout__content">
+				<h3 class="about-server-callout__title">{{msg.home_about_callout_title}}</h3>
+				<p class="about-server-callout__text">{{msg.home_about_callout_text}}</p>
+			</div>
+			<span class="about-server-callout__link">
+				<i class="fa-solid fa-arrow-right"></i>
+			</span>
+		</a>
+	</div>
+{{/hasAboutPage}}
+
+{{> partials/community-callout}}
+
 <!-- Main Content -->
 <main class="main-content">
 

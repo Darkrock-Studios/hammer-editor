@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.utils
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_MAIN
@@ -114,6 +115,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 						name = "Main dispatcher"
 					)
 				}
+				single { ServerConfig() }
 			},
 			*modules
 		)

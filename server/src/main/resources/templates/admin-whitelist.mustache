@@ -47,11 +47,17 @@
 					  hx-on::after-request="this.reset()">
 					<div class="form-group">
 						<label for="email" class="form-field__label">{{msg.admin_whitelist_email_label}}</label>
-						<div class="form-input-group">
-							<input id="email" name="email" type="email" class="form-input"
-								   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
-							<button type="submit" class="add-button">{{msg.admin_whitelist_add_button}}</button>
-						</div>
+						<input id="email" name="email" type="email" class="form-input"
+							   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
+					</div>
+					<div class="form-group">
+						<label for="reason" class="form-field__label">Reason (optional)</label>
+						<input id="reason" name="reason" type="text" class="form-input"
+							   placeholder="e.g., Beta tester, Friend of the project" maxlength="32"/>
+					</div>
+					<div class="form-group">
+						<button type="submit"
+								class="btn btn--accent btn--block">{{msg.admin_whitelist_add_button}}</button>
 					</div>
 				</form>
 

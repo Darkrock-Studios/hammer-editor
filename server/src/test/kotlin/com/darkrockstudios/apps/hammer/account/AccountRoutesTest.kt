@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -66,6 +67,15 @@ class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var penNameService: PenNameService
 
+	@MockK
+	private lateinit var passwordResetRepository: PasswordResetRepository
+
+	@MockK
+	private lateinit var bioService: BioService
+
+	@MockK
+	private lateinit var markdownService: MarkdownService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	private lateinit var json: Json
@@ -94,6 +104,9 @@ class AccountRoutesTest : BaseTest() {
 			single { storyExportService }
 			single { penNameService }
 			single { json }
+			single { passwordResetRepository }
+			single { bioService }
+			single { markdownService }
 		}
 	}
 

@@ -3,7 +3,9 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.*
+import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
@@ -72,6 +74,8 @@ private fun loadConfig(path: String): ServerConfig {
 }
 
 private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
+	System.setProperty("io.ktor.development", devMode.toString())
+
 	// This is overkill most of the time
 	//	if(devMode) {
 	//		// Sets the log mode for SLFJ, if we ever move to Logback, we'll need to set this a different way
@@ -101,13 +105,22 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 	}
 
 	config.sslCert?.apply {
+		require(validate()) { "SSL config must have either keystore (path + storePassword) or PEM files (certChainPath + privateKeyPath)" }
+
+		val keyStore = getKeyStore(this)
+		val alias = if (usePem()) "server" else (keyAlias ?: "")
+		val storePass = if (usePem()) "" else (storePassword ?: "")
+		val keyPass = if (usePem()) "" else (keyPassword ?: "")
+
 		sslConnector(
-			keyStore = getKeyStore(this),
-			keyAlias = keyAlias ?: "",
-			keyStorePassword = { storePassword.toCharArray() },
-			privateKeyPassword = { (keyPassword ?: "").toCharArray() }
+			keyStore = keyStore,
+			keyAlias = alias,
+			keyStorePassword = { storePass.toCharArray() },
+			privateKeyPassword = { keyPass.toCharArray() }
 		) {
-			this.keyStorePath = File(path)
+			if (!usePem() && path != null) {
+				this.keyStorePath = File(path)
+			}
 			host = bindHost
 			port = config.sslPort
 		}
@@ -115,9 +128,19 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 }
 
 private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
-	val certFile = File(sslConfig.path)
-	if (certFile.exists().not()) throw IllegalArgumentException("SSL Cert not found")
-	return KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
+	return if (sslConfig.usePem()) {
+		loadPemAsKeyStore(
+			certChainPath = sslConfig.certChainPath ?: error("PEM cert chain path not set"),
+			privateKeyPath = sslConfig.privateKeyPath ?: error("PEM private key path not set"),
+			keyAlias = "server",
+			keyPassword = ""
+		)
+	} else {
+		val certFile = File(sslConfig.path ?: error("Keystore path not set"))
+		if (certFile.exists().not()) throw IllegalArgumentException("SSL Cert not found: ${sslConfig.path}")
+		sslConfig.storePassword ?: error("Keystore password not set")
+		KeyStore.getInstance(certFile, sslConfig.storePassword.toCharArray())
+	}
 }
 
 fun Application.appMain(
@@ -125,12 +148,14 @@ fun Application.appMain(
 	addInModule: Module? = null,
 	logLevel: Level? = null
 ) {
-	configureDependencyInjection(addInModule)
+	configureDependencyInjection(config, addInModule)
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
-	configureRouting()
+	install(SetupModePlugin)
+	configureRouting(config)
 	configureFrontEnd()
+	configurePatreonPolling(config)
 }

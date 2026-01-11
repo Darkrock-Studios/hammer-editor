@@ -1,6 +1,6 @@
 name: hammer-editor
 base: core22
-version: '1.14.0'
+version: '2.0.0'
 summary: A simple tool for building stories
 description: |
     Hammer is a multi-platform story editor application. It's designed for
@@ -30,25 +30,42 @@ apps:
 
 parts:
     hammer:
-        plugin: gradle
+        plugin: nil
         source: .
-        gradle-task: ':desktop:createDistributable'
-        gradle-parameters: [ '-x', 'test' ]
         build-packages:
-            - openjdk-21-jdk
-        stage-packages:
-            - openjdk-21-jre
+            - wget
         override-build: |
-            craftctl default
+            # Download and setup JetBrains Runtime SDK (full JDK with jlink/jpackage)
+            # This is critical - createDistributable bundles whatever JVM is in JAVA_HOME
+            echo "Downloading JetBrains Runtime SDK..."
+            wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+            tar -xzf jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+            export JAVA_HOME=$PWD/jbrsdk_jcef-21.0.9-linux-x64-b1163.86
+            export PATH=$JAVA_HOME/bin:$PATH
+
+            echo "Building with JBR SDK (JAVA_HOME=$JAVA_HOME)"
+            java -version
+            # Verify jlink and jpackage are available
+            which jlink jpackage
+
+            # Run gradle build with createDistributable
+            # This will now bundle JBR (not OpenJDK) in lib/runtime/
+            chmod +x ./gradlew
+            # First build all necessary JARs, then create the distributable
+            ./gradlew :desktop:jvmJar --no-daemon
+            ./gradlew :desktop:createDistributable -x desktopTest --no-daemon
             # Copy the gradle output to the install directory
             # Note: outputBaseDir is set to 'installers' in build.gradle.kts
+            # This includes the bundled JBR at lib/runtime/
             mkdir -p $CRAFT_PART_INSTALL/lib
             cp -r desktop/build/installers/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
             # Create the bin directory and launcher script
+            # Use the bundled JBR runtime instead of system OpenJDK
             mkdir -p $CRAFT_PART_INSTALL/bin
             cat > $CRAFT_PART_INSTALL/bin/hammer << 'EOF'
             #!/bin/bash
-            export JAVA_HOME=$SNAP/usr/lib/jvm/java-21-openjdk-amd64
+            # Use the bundled JetBrains Runtime (JBR) that comes with the distributable
+            export JAVA_HOME=$SNAP/lib/hammer/lib/runtime
             export PATH=$JAVA_HOME/bin:$PATH
             exec $SNAP/lib/hammer/bin/hammer "$@"
             EOF
