@@ -3,8 +3,8 @@
 	<string name="app_name">Hammer</string>
 	<string name="unsaved_scenes_dialog_title">Cenas não salvas</string>
 	<string name="unsaved_scenes_dialog_message">O que deve ser feito com as cenas não salvas?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
-	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
+	<string name="unsaved_encyclopedia_dialog_title">Verbete da Enciclopédia Não Salvo</string>
+	<string name="unsaved_encyclopedia_dialog_message">Descartar verbete?</string>
 	<string name="unsaved_notes_dialog_title">Anotação não salva</string>
 	<string name="unsaved_notes_dialog_message">Descartar anotação?</string>
 	<string name="unsaved_dialog_negative_button">Cancelar</string>
@@ -20,5 +20,5 @@
 	<string name="confirm_dialog_negative">Não</string>
 	<string name="image_failed_to_load">Image Error</string>
 	<string name="expand">Expandir</string>
-	<string name="collapse">Collapse</string>
+	<string name="collapse">Encolher</string>
 </resources>
