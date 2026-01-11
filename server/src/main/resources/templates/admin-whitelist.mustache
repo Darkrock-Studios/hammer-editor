@@ -22,10 +22,24 @@
 					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
 						  hx-post="/admin/whitelist/toggle"
 						  hx-swap="none">
-						<button type="submit" class="toggle-button {{#whitelist.enabled}}active{{/whitelist.enabled}}">
-							{{#whitelist.enabled}}Disable Whitelist{{/whitelist.enabled}}
-							{{^whitelist.enabled}}Enable Whitelist{{/whitelist.enabled}}
-						</button>
+						{{#whitelist.enabled}}
+							{{#whitelist.canDisable}}
+								<button type="submit" class="toggle-button active">
+									Disable Whitelist
+								</button>
+							{{/whitelist.canDisable}}
+							{{^whitelist.canDisable}}
+								<button type="button" class="toggle-button active" disabled
+										title="{{msg.admin_whitelist_cannot_disable_patreon}}">
+									Disable Whitelist
+								</button>
+							{{/whitelist.canDisable}}
+						{{/whitelist.enabled}}
+						{{^whitelist.enabled}}
+							<button type="submit" class="toggle-button">
+								Enable Whitelist
+							</button>
+						{{/whitelist.enabled}}
 					</form>
 					{{#whitelist.enabled}}
 						<span class="section-badge accent">{{msg.admin_badge_active}}</span>

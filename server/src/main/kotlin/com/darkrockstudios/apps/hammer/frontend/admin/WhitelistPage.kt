@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.frontend.admin
 
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.withDefaults
@@ -16,19 +19,41 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
-internal fun Route.whiteListRoutes(whiteListRepository: WhiteListRepository) {
+internal fun Route.whiteListRoutes(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig
+) {
 	route("/whitelist") {
 		whitelistUserFragment(whiteListRepository)
 		whitelistAdd(whiteListRepository)
 		whitelistRemove(whiteListRepository)
-		whitelistToggle(whiteListRepository)
+		whitelistToggle(whiteListRepository, configRepository, serverConfig)
 		whitelistEditReason(whiteListRepository)
 	}
 }
 
-private fun Route.whitelistToggle(whiteListRepository: WhiteListRepository) {
+private suspend fun isPatreonActive(configRepository: ConfigRepository, serverConfig: ServerConfig): Boolean {
+	val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+	return patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
+}
+
+private fun Route.whitelistToggle(
+	whiteListRepository: WhiteListRepository,
+	configRepository: ConfigRepository,
+	serverConfig: ServerConfig
+) {
 	hx.post("/toggle") {
 		val enabled = whiteListRepository.useWhiteList()
+		val patreonActive = isPatreonActive(configRepository, serverConfig)
+
+		// Prevent disabling whitelist when Patreon is active
+		if (enabled && patreonActive) {
+			call.respond(HttpStatusCode.Forbidden, "")
+			return@post
+		}
+
 		whiteListRepository.setWhiteListEnabled(!enabled)
 
 		call.response.header(HxResponseHeaders.Refresh, "true")
