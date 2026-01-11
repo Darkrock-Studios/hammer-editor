@@ -45,11 +45,11 @@ fun Project.registerBuildDistSnapTask(appVersion: String) {
 			}
 
 			val snapFile = rootDir.resolve("hammer-editor_${appVersion}_amd64.snap")
-			val outputDir = rootDir.resolve("desktop/build/installers/main/snap")
+			val outputDir = rootDir.resolve("desktop/build/installers/main-release/snap")
 			outputDir.mkdirs()
 			if (snapFile.exists()) {
 				snapFile.copyTo(outputDir.resolve("hammer.snap"), overwrite = true)
-				println("Snap package created: ${outputDir.resolve("hammer.snap")}")
+				println("Snap package copied to: ${outputDir.resolve("hammer.snap")}")
 			}
 		}
 	}
@@ -168,15 +168,54 @@ fun Project.registerBuildDistFlatpakTask() {
 		description =
 			"Builds a Flatpak package for Linux distribution. Requires flatpak and flatpak-builder to be installed."
 
+		dependsOn(":desktop:createReleaseDistributable")
+
 		doFirst {
 			requireLinux("buildDistFlatpak")
 		}
 
 		doLast {
+			val flatpakDir = rootDir.resolve("flatpak")
+			val distDir = flatpakDir.resolve("dist")
+			distDir.deleteRecursively()
+			distDir.mkdirs()
+
+			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
+			val hammerDistDir = distDir.resolve("hammer")
+			hammerDistDir.mkdirs()
+
+			// Copy the application
+			copy {
+				from(appSourceDir)
+				into(hammerDistDir)
+			}
+
+			// Copy metadata
+			copy {
+				from(flatpakDir.resolve("com.darkrockstudios.hammer.desktop"))
+				from(flatpakDir.resolve("com.darkrockstudios.hammer.metainfo.xml"))
+				from(rootDir.resolve("desktop/icons/linux.png")) {
+					rename { "com.darkrockstudios.hammer.png" }
+				}
+				into(distDir)
+			}
+
+			// Create launcher script
+			val launcherScript = distDir.resolve("hammer.sh")
+			launcherScript.writeText(
+				"""
+				#!/bin/bash
+				export JAVA_HOME=/app/lib/hammer/runtime
+				export PATH=${'$'}JAVA_HOME/bin:${'$'}PATH
+				exec /app/lib/hammer/bin/hammer "${'$'}@"
+				""".trimIndent()
+			)
+			launcherScript.setExecutable(true)
+
 			val buildDir = rootDir.resolve("flatpak-build")
 			val repoDir = rootDir.resolve("flatpak-repo")
-			val outputDir = rootDir.resolve("desktop/build/installers/main/flatpak")
-			val manifestFile = rootDir.resolve("flatpak/com.darkrockstudios.hammer.yaml")
+			val outputDir = rootDir.resolve("desktop/build/installers/main-release/flatpak")
+			val manifestFile = flatpakDir.resolve("com.darkrockstudios.hammer.yaml")
 
 			// Clean previous build artifacts
 			buildDir.deleteRecursively()
@@ -189,20 +228,8 @@ fun Project.registerBuildDistFlatpakTask() {
 				commandLine(
 					"flatpak-builder",
 					"--user",
-					"--install-deps-from=flathub",
-					"--force-clean",
-					buildDir.absolutePath,
-					manifestFile.absolutePath
-				)
-			}
-
-			// Build again to create the repo
-			exec {
-				workingDir = rootDir
-				commandLine(
-					"flatpak-builder",
-					"--user",
 					"--repo=${repoDir.absolutePath}",
+					"--install-deps-from=flathub",
 					"--force-clean",
 					buildDir.absolutePath,
 					manifestFile.absolutePath
@@ -221,11 +248,12 @@ fun Project.registerBuildDistFlatpakTask() {
 				)
 			}
 
-			println("Flatpak created: ${outputDir.resolve("hammer.flatpak")}")
+			println("Flatpak package created at: ${outputDir.resolve("hammer.flatpak")}")
 
-			// Clean up build directories
+			// Clean up build directories and dist
 			buildDir.deleteRecursively()
 			repoDir.deleteRecursively()
+			distDir.deleteRecursively()
 		}
 	}
 }
