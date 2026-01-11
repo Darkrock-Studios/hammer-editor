@@ -19,12 +19,12 @@ fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 	val logger = log
 	routing {
 		frontend()
+		patreonRoutes(serverConfig)
 		route(API_ROUTE_PREFIX) {
 			accountRoutes()
 			projectsRoutes()
 			projectRoutes(logger)
 			adminRoutes()
-			patreonRoutes(serverConfig)
 			teapot()
 		}
 	}
