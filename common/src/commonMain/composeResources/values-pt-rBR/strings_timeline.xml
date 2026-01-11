@@ -18,10 +18,10 @@
 	<string name="timeline_view_content_placeholder">Descreva seu evento</string>
 	<string name="timeline_view_toast_save_success">Salvo</string>
 	<string name="timeline_view_toast_save_failure">Failed to save</string>
-	<string name="timeline_view_discard_title">Discard Changes?</string>
-	<string name="timeline_view_discard_message">You will lose any changes you have made.</string>
+	<string name="timeline_view_discard_title">Descartar Alterações?</string>
+	<string name="timeline_view_discard_message">Você perderá todas as alterações que fez.</string>
 	<string name="timeline_view_menu_group">Evento</string>
-	<string name="timeline_view_menu_delete">Delete</string>
+	<string name="timeline_view_menu_delete">Excluir</string>
 	<string name="timeline_view_confirm_delete_title">Excluir Evento da Linha do Tempo?</string>
 	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
 </resources>
