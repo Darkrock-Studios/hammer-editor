@@ -72,11 +72,20 @@ If you don't know how, or just don't want to setup your own server, we're also r
 syncing server.
 
 ### Official Server: [hammer.ink](https://hammer.ink/)
-while we're still early in development here, the official server is invite only. but I'll approve anyone for now, just ask.
 
-We're also running a test environment here: [test.hammer.ink](https://test.hammer.ink/) which is always running the latest commit.
+This is also the best way to support the project! Subscribe to our [Patreon](https://www.patreon.com/darkrockstudios) in
+order to get instant access to this official Sync server.
 
-_Do not use the test environment for real data! It will get cleared from time-to-time without notice!_
+This official server endeavors to be a reliable, and secure way to sync your projects. We perform regular backups, and
+of course encrypt all of our data both in transit, and at rest in our database. Let us manage the server, and you worry
+about writing!
+
+#### Test Environment
+
+~~We're also running a test environment here: [test.hammer.ink](https://test.hammer.ink/) which is always running the
+latest commit.~~
+
+~~_Do not use the test environment for real data! It will get cleared from time-to-time without notice!_~~
 
 # Development
 
