@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.htmx.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -18,9 +19,6 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.html.HtmlGenerator
-import org.intellij.markdown.parser.MarkdownParser
 import kotlin.math.ceil
 
 fun Route.dashboardPage(
@@ -28,7 +26,8 @@ fun Route.dashboardPage(
 	accountsRepository: AccountsRepository,
 	penNameService: PenNameService,
 	bioService: BioService,
-	serverConfig: ServerConfig
+	serverConfig: ServerConfig,
+	markdownService: MarkdownService
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -40,16 +39,8 @@ fun Route.dashboardPage(
 
 				val penNameUrl = account.pen_name?.let { ProjectName.formatForUrl(it) }
 
-				// Parse bio markdown to HTML
-				val bio = account.bio
-				val bioHtml = if (!bio.isNullOrBlank()) {
-					val markdownFlavour = CommonMarkFlavourDescriptor()
-					val markdownParser = MarkdownParser(markdownFlavour)
-					val parsedTree = markdownParser.buildMarkdownTreeFromString(bio)
-					HtmlGenerator(bio, parsedTree, markdownFlavour).generateHtml()
-				} else {
-					null
-				}
+				// Parse bio markdown to sanitized HTML
+				val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
 
 				val model = call.withDefaults(
 					mapOf(
@@ -186,14 +177,7 @@ fun Route.dashboardPage(
 					BioService.BioResult.VALID -> {
 						// Re-render the bio section with updated data
 						val updatedAccount = accountsRepository.getAccount(session.userId)
-						val bioHtml = if (!updatedAccount.bio.isNullOrBlank()) {
-							val markdownFlavour = CommonMarkFlavourDescriptor()
-							val markdownParser = MarkdownParser(markdownFlavour)
-							val parsedTree = markdownParser.buildMarkdownTreeFromString(updatedAccount.bio)
-							HtmlGenerator(updatedAccount.bio, parsedTree, markdownFlavour).generateHtml()
-						} else {
-							null
-						}
+						val bioHtml = updatedAccount.bio?.let { markdownService.markdownToSafeHtml(it) }
 
 						val model = call.withDefaults(
 							mapOf(

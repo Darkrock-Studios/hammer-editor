@@ -221,7 +221,7 @@
 	opacity: 0.7;
 }
 
-.char-count {
+.input-container .char-count {
 	position: absolute;
 	right: 0.75rem;
 	top: 50%;
@@ -233,11 +233,11 @@
 	transition: color 0.2s ease;
 }
 
-.char-count.near-limit {
+.input-container .char-count.near-limit {
 	color: #d97706;
 }
 
-.char-count.at-limit {
+.input-container .char-count.at-limit {
 	color: #dc2626;
 	font-weight: bold;
 }
@@ -898,7 +898,7 @@
 }
 
 /* Character Counter */
-.char-count {
+.bio-input-container .char-count {
 	position: absolute;
 	right: 1rem;
 	bottom: 0.625rem;
@@ -909,12 +909,12 @@
 	transition: color var(--transition-fast);
 }
 
-.char-count.near-limit {
+.bio-input-container .char-count.near-limit {
 	color: var(--warning);
 	font-weight: bold;
 }
 
-.char-count.at-limit {
+.bio-input-container .char-count.at-limit {
 	color: var(--error);
 	font-weight: bold;
 }

@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -43,6 +44,7 @@ fun Route.frontend() {
 	val bioService: BioService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
+	val markdownService: MarkdownService by inject()
 
 	// Only inject PatreonSyncService if Patreon is enabled at server level
 	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
@@ -62,13 +64,13 @@ fun Route.frontend() {
 
 	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
-	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository)
+	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
-	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig)
+	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
 	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository)
-	authorPage(accountsRepository, projectAccessRepository)
+	authorPage(accountsRepository, projectAccessRepository, markdownService)
 	publicStoryPage(storyExportService, projectAccessRepository)
 	adminPage(
 		whiteListRepository,

@@ -74,6 +74,7 @@ tomlkt = "0.5.0"
 
 krypto = "4.0.10"
 argon2_jvm = "2.12"
+owasp_html_sanitizer = "20240325.1"
 
 jna = "5.18.1" # This is a transitive dependency, remove it when we can
 
@@ -237,6 +238,7 @@ korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
 
 argon2_jvm = { group = "de.mkammerer", name = "argon2-jvm", version.ref = "argon2_jvm" }
+owasp-html-sanitizer = { group = "com.googlecode.owasp-java-html-sanitizer", name = "owasp-java-html-sanitizer", version.ref = "owasp_html_sanitizer" }
 
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapters", version.ref = "sqldelight" }
