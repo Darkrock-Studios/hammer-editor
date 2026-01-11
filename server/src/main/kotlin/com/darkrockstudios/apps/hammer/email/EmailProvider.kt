@@ -5,5 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class EmailProvider {
 	SMTP,
-	// Future providers: SENDGRID, POSTMARK
+	SENDGRID,
+	POSTMARK,
+	MAILGUN,
 }
