@@ -1,6 +1,6 @@
 name: hammer-editor
 base: core22
-version: '2.0.0'
+version: '2.0.1'
 summary: A simple tool for building stories
 description: |
     Hammer is a multi-platform story editor application. It's designed for
