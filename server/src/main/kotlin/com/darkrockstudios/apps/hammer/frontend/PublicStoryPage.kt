@@ -12,6 +12,8 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 fun Route.publicStoryPage(
 	storyExportService: StoryExportService,
@@ -63,7 +65,12 @@ fun Route.publicStoryPage(
 					when (exportResult) {
 						is PaginatedExportResult.Success -> {
 							val data = exportResult.data
-							val passwordParam = if (!password.isNullOrBlank()) "&p=$password" else ""
+							val passwordParam = if (!password.isNullOrBlank()) "&p=${
+								URLEncoder.encode(
+									password,
+									StandardCharsets.UTF_8
+								)
+							}" else ""
 
 							val model = call.withDefaults(
 								mapOf(
@@ -122,9 +129,16 @@ fun Route.publicStoryPage(
 			val formParams = call.receiveParameters()
 			val password = formParams["password"]
 
-			// Redirect to GET with password in query param
+			// Redirect to GET with password in query param (URL encoded for safety)
 			if (!password.isNullOrBlank()) {
-				call.respondRedirect("/a/$penNameParam/$projectNameParam?p=$password")
+				call.respondRedirect(
+					"/a/$penNameParam/$projectNameParam?p=${
+						URLEncoder.encode(
+							password,
+							StandardCharsets.UTF_8
+						)
+					}"
+				)
 			} else {
 				call.respondRedirect("/a/$penNameParam/$projectNameParam")
 			}

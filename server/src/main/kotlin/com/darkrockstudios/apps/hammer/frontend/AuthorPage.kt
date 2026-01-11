@@ -3,20 +3,19 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.html.HtmlGenerator
-import org.intellij.markdown.parser.MarkdownParser
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
-	projectAccessRepository: ProjectAccessRepository
+	projectAccessRepository: ProjectAccessRepository,
+	markdownService: MarkdownService
 ) {
 	route("/a/{penName}") {
 		get {
@@ -40,15 +39,8 @@ fun Route.authorPage(
 			// Get published stories for this author
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
 
-			// Render bio markdown to HTML
-			val bioHtml = if (!account.bio.isNullOrBlank()) {
-				val markdownFlavour = CommonMarkFlavourDescriptor()
-				val markdownParser = MarkdownParser(markdownFlavour)
-				val parsedTree = markdownParser.buildMarkdownTreeFromString(account.bio)
-				HtmlGenerator(account.bio, parsedTree, markdownFlavour).generateHtml()
-			} else {
-				null
-			}
+			// Render bio markdown to sanitized HTML
+			val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
 
 			// Format stories for the template
 			val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")

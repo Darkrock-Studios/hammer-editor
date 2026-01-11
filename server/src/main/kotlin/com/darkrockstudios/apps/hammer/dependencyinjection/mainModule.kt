@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.util.logging.*
@@ -87,6 +88,7 @@ fun mainModule(
 	singleOf(::PasswordResetRepository)
 
 	singleOf(::ServerSecretManager)
+	singleOf(::MarkdownService)
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
 	singleOf(::TokenHasher)

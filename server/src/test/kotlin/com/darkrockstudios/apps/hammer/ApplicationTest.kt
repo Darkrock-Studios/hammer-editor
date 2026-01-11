@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.*
@@ -57,6 +58,9 @@ class ApplicationTest : BaseTest() {
 	@MockK
 	private lateinit var bioService: BioService
 
+	@MockK
+	private lateinit var markdownService: MarkdownService
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	@BeforeEach
@@ -79,6 +83,7 @@ class ApplicationTest : BaseTest() {
 			single { penNameService }
 			single { passwordResetRepository }
 			single { bioService }
+			single { markdownService }
 			single { mockk<Json>() }
 		}
 	}

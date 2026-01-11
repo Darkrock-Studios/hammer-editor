@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.server.application.*
@@ -62,6 +63,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	@MockK(relaxed = true)
 	protected lateinit var json: Json
 
+	@MockK(relaxed = true)
+	protected lateinit var markdownService: MarkdownService
+
 	protected lateinit var testModule: org.koin.core.module.Module
 
 	protected val BEARER_TOKEN = "token-test"
@@ -86,6 +90,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { bioService }
 			single { json }
 			single { passwordResetRepository }
+			single { markdownService }
 		}
 	}
 
