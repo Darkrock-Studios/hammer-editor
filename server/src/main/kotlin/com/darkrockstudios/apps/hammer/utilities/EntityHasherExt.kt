@@ -14,6 +14,7 @@ fun EntityHasher.hashEntity(entity: ApiProjectEntity): String {
 			content = entity.content,
 			outline = entity.outline,
 			notes = entity.notes,
+			archived = entity.archived,
 		)
 
 		is ApiProjectEntity.SceneDraftEntity -> hashSceneDraft(
