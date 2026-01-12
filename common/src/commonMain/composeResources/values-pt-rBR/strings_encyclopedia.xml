@@ -39,7 +39,7 @@
 	<string name="encyclopedia_entry_delete_message">Essa ação não pode ser desfeita!</string>
 	<string name="encyclopedia_entry_delete_toast">Verbete Excluído</string>
 	<string name="encyclopedia_entry_delete_image_title">Excluir Imagem?</string>
-	<string name="encyclopedia_entry_delete_image_message">Essa ação não pode ser desfeita!</string>
+	<string name="encyclopedia_entry_delete_image_message">Esta ação não pode ser desfeita!</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Fechar Verbete</string>
 	<string name="encyclopedia_entry_menu_group">Verbete</string>
