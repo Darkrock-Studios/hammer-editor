@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="save_draft_dialog_title">Iniciar Novo Rascunho:</string>
+	<string name="save_draft_dialog_title">Iniciar novo rascunho:</string>
 	<string name="save_draft_dialog_name_hint">Nome do rascunho</string>
 	<string name="save_draft_dialog_save_button">Salvar</string>
 	<string name="save_draft_dialog_cancel_button">Cancelar</string>
@@ -22,19 +22,19 @@
 	<string name="scene_editor_menu_item_rename">Renomear</string>
 	<string name="scene_editor_menu_item_discard">Descartar</string>
 	<string name="scene_editor_menu_item_delete">Excluir</string>
-	<string name="scene_editor_menu_item_archive">Archive</string>
+	<string name="scene_editor_menu_item_archive">Arquivar</string>
 	<string name="scene_editor_menu_item_save">Salvar</string>
 	<string name="scene_editor_menu_item_close">Fechar</string>
-	<string name="archive_scene_dialog_title">Archive Scene</string>
-	<string name="archive_scene_dialog_message">Are you sure you want to archive \'%1$s\'? The scene will be hidden from the scene list but can be restored later.</string>
-	<string name="archive_scene_dialog_confirm">Archive</string>
-	<string name="archive_scene_dialog_cancel">Cancel</string>
-	<string name="archived_scenes_dialog_title">Archived Scenes</string>
-	<string name="archived_scenes_empty">No archived scenes</string>
-	<string name="archived_scenes_restore_button">Restore</string>
-	<string name="archived_scenes_restored_snackbar">\"%1$s\" has been restored</string>
-	<string name="scene_archived_snackbar">\"%1$s\" has been archived</string>
-	<string name="view_archived_scenes_button">View Archived</string>
+	<string name="archive_scene_dialog_title">Arquivar Cena</string>
+	<string name="archive_scene_dialog_message">Tem certeza que deseja arquivar \'%1$s\'? A cena será ocultada da lista de cenas, mas pode ser restaurada mais tarde.</string>
+	<string name="archive_scene_dialog_confirm">Arquivar</string>
+	<string name="archive_scene_dialog_cancel">Cancelar</string>
+	<string name="archived_scenes_dialog_title">Cenas arquivadas</string>
+	<string name="archived_scenes_empty">Nenhuma cena arquivada</string>
+	<string name="archived_scenes_restore_button">Restaurar</string>
+	<string name="archived_scenes_restored_snackbar">\"%1$s\" foi restaurado</string>
+	<string name="scene_archived_snackbar">\"%1$s\" foi arquivado</string>
+	<string name="view_archived_scenes_button">Ver Arquivados</string>
 	<string name="scene_editor_focus_mode_button">Ativar Modo de Foco</string>
 	<string name="scene_editor_metadata_title">Metadados</string>
 	<string name="scene_editor_metadata_hide_button">Ocultar Informações</string>
