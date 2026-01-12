@@ -14,9 +14,9 @@
 	<string name="project_home_actions_header">Ações:</string>
 	<string name="project_home_action_export">Exportar História</string>
 	<string name="project_home_action_sync">Sincronizar História</string>
-	<string name="project_home_action_backup">Backup</string>
-	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
-	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
+	<string name="project_home_action_backup">Criar \'Backup\'</string>
+	<string name="project_home_action_backup_toast_success">\'Backup\' Criado: %1$s</string>
+	<string name="project_home_action_backup_toast_failure">Falha ao criar \'Backup\'</string>
 	<string name="project_home_action_export_toast_success">História Exportada</string>
 	<string name="project_home_destinations_header">Projeto:</string>
 	<string name="project_home_action_stats_button">Estatísticas</string>
