@@ -65,6 +65,7 @@ private fun SceneItemPreview() {
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
 			onSceneRenameRequest = {},
+			onSceneArchiveRequest = {},
 		)
 		SceneItem(
 			scene = fakeScene(1, 1),
@@ -76,6 +77,7 @@ private fun SceneItemPreview() {
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
 			onSceneRenameRequest = {},
+			onSceneArchiveRequest = {},
 		)
 		SceneItem(
 			scene = fakeScene(2, 2),
@@ -87,6 +89,7 @@ private fun SceneItemPreview() {
 			onSceneSelected = {},
 			onSceneDeleteRequest = {},
 			onSceneRenameRequest = {},
+			onSceneArchiveRequest = {},
 		)
 	}
 }

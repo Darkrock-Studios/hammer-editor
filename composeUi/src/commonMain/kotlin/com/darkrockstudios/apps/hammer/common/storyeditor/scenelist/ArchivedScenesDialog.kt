@@ -130,7 +130,13 @@ private fun ArchivedSceneItem(
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
-			FilledTonalIconButton(onClick = onUnarchive) {
+			FilledTonalIconButton(
+				onClick = onUnarchive,
+				colors = IconButtonDefaults.filledTonalIconButtonColors(
+					containerColor = MaterialTheme.colorScheme.primaryContainer,
+					contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+				)
+			) {
 				Icon(
 					Icons.Default.Unarchive,
 					contentDescription = Res.string.archived_scenes_restore_button.get()

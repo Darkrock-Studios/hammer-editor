@@ -49,11 +49,12 @@ fun SceneListUi(
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val state by component.state.subscribeAsState()
-	var sceneDefDeleteTarget by remember { mutableStateOf<SceneItem?>(null) }
-	var sceneDefRenameTarget by remember { mutableStateOf<SceneItem?>(null) }
+	var sceneDefDeleteTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
+	var sceneDefRenameTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
+	var sceneDefArchiveTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
 
-	var showCreateGroupDialog by remember { mutableStateOf<SceneItem?>(null) }
-	var showCreateSceneDialog by remember { mutableStateOf<SceneItem?>(null) }
+	var showCreateGroupDialog by rememberSaveable { mutableStateOf<SceneItem?>(null) }
+	var showCreateSceneDialog by rememberSaveable { mutableStateOf<SceneItem?>(null) }
 
 	val treeState = rememberReorderableLazyListState(
 		summary = state.sceneSummary ?: emptySceneSummary(state.projectDef),
@@ -109,6 +110,9 @@ fun SceneListUi(
 						},
 						sceneDefRenameTarget = { renameTarget ->
 							sceneDefRenameTarget = renameTarget
+						},
+						sceneDefArchiveTarget = { archiveTarget ->
+							sceneDefArchiveTarget = archiveTarget
 						},
 						createScene = { parent -> showCreateSceneDialog = parent },
 						createGroup = { parent -> showCreateGroupDialog = parent },
@@ -177,6 +181,12 @@ fun SceneListUi(
 		}
 	}
 
+	sceneDefArchiveTarget?.let { scene ->
+		ArchiveSceneDialog(scene, scope, component, mainDispatcher) {
+			sceneDefArchiveTarget = null
+		}
+	}
+
 	if (state.showArchivedDialog) {
 		ArchivedScenesDialog(
 			archivedScenes = state.archivedScenes,
@@ -231,6 +241,27 @@ private fun RenameSceneDialog(
 		scope.launch {
 			if (newName != null) {
 				component.renameScene(scene, newName)
+			}
+			withContext(mainDispatcher) {
+				onDismiss()
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
+@Composable
+private fun ArchiveSceneDialog(
+	scene: SceneItem,
+	scope: CoroutineScope,
+	component: SceneList,
+	mainDispatcher: CoroutineContext,
+	onDismiss: () -> Unit
+) {
+	SceneArchiveDialog(scene) { doArchive ->
+		scope.launch {
+			if (doArchive) {
+				component.archiveScene(scene)
 			}
 			withContext(mainDispatcher) {
 				onDismiss()
@@ -312,6 +343,7 @@ private fun SceneNode(
 	shouldNux: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
 	sceneDefRenameTarget: (SceneItem) -> Unit,
+	sceneDefArchiveTarget: (SceneItem) -> Unit,
 	createScene: (SceneItem) -> Unit,
 	createGroup: (SceneItem) -> Unit,
 ) {
@@ -330,6 +362,7 @@ private fun SceneNode(
 			onSceneSelected = component::onSceneSelected,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
+			onSceneArchiveRequest = sceneDefArchiveTarget,
 		)
 	} else {
 		SceneGroupItem(
