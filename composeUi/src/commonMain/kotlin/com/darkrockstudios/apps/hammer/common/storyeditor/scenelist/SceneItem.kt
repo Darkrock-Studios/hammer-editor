@@ -28,6 +28,7 @@ internal fun SceneItem(
 	onSceneSelected: (SceneItem) -> Unit,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
+	onSceneArchiveRequest: (SceneItem) -> Unit,
 ) {
 	var modifier = draggable
 		.fillMaxWidth()
@@ -42,7 +43,7 @@ internal fun SceneItem(
 		modifier = modifier.leftBorder(1.dp, MaterialTheme.colorScheme.outline)
 	}
 
-	SceneItemActionContainer(scene, onSceneDeleteRequest, onSceneRenameRequest, shouldNux) {
+	SceneItemActionContainer(scene, onSceneDeleteRequest, onSceneRenameRequest, onSceneArchiveRequest, shouldNux) {
 		Surface(
 			modifier = modifier,
 			color = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,

@@ -27,6 +27,11 @@
 	<string name="scene_list_item_action_menu_description">Options</string>
 	<string name="scene_list_item_action_delete">Delete</string>
 	<string name="scene_list_item_action_rename">Rename</string>
+	<string name="scene_list_item_action_archive">Archive</string>
+	<string name="scene_archive_dialog_title">Archive Scene</string>
+	<string name="scene_archive_dialog_message">Are you sure you want to archive this scene: "%1$s"</string>
+	<string name="scene_archive_dialog_archive_button">Archive</string>
+	<string name="scene_archive_dialog_dismiss_button">Cancel</string>
 	<string name="scene_rename_dialog_title">Rename Scene</string>
 	<string name="scene_rename_dialog_label">Scene Name</string>
 	<string name="scene_rename_dialog_rename_button">Rename</string>
