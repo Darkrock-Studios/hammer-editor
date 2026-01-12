@@ -295,6 +295,23 @@ class SceneEditorRepository(
 		return lastOrder.numDigits() < (lastOrder + 1).numDigits()
 	}
 
+	/**
+	 * Resolves the actual path to a parent scene/group from the filesystem.
+	 * This is necessary because the calculated path (based on order padding) may differ
+	 * from the actual filename on disk if the number of siblings has changed since creation.
+	 *
+	 * Falls back to calculated path if the item is not yet on the filesystem (new items).
+	 */
+	private fun resolveParentPathFromFilesystem(parentId: Int): HPath {
+		val parent = getSceneItemFromId(parentId)
+		return if (parent?.isRootScene == true) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parentId)
+				?: getSceneFilePath(parentId) // Fallback for items not yet on filesystem
+		}
+	}
+
 	private fun getSceneFileName(
 		sceneDef: SceneItem,
 		isNewScene: Boolean = false
@@ -305,7 +322,8 @@ class SceneEditorRepository(
 		} else {
 			parent.id
 		}
-		val parentPath = getSceneFilePath(parentId)
+		// Resolve from filesystem to handle cases where padding doesn't match calculated value
+		val parentPath = resolveParentPathFromFilesystem(parentId)
 
 		val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude(parentId)) {
 			sceneDatasource.getLastOrderNumber(parentPath).numDigits() + 1
@@ -474,7 +492,14 @@ class SceneEditorRepository(
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
-		val parentPath = getSceneFilePath(parent.value.id)
+		// Resolve the actual path from the filesystem rather than calculating it.
+		// The calculated path may have different zero-padding than the actual filename on disk.
+		val parentPath = if (parent.value.isRootScene) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parent.value.id)
+				?: throw IllegalStateException("Could not find parent on filesystem: ${parent.value.id}")
+		}
 		val existingSceneFiles = sceneDatasource.getGroupChildPathsById(parentPath)
 
 		parent.children().forEach { childNode ->
@@ -531,7 +556,14 @@ class SceneEditorRepository(
 			// Move the file to its new parent
 			val toPath = getSceneFilePath(moveRequest.id)
 
-			val fromParentPath = getSceneFilePath(fromParentNode.value.id)
+			// Resolve the actual path from the filesystem rather than calculating it.
+			// The calculated path may have different zero-padding than the actual filename on disk.
+			val fromParentPath = if (fromParentNode.value.isRootScene) {
+				sceneDatasource.getSceneDirectory()
+			} else {
+				sceneDatasource.resolveScenePathFromFilesystem(fromParentNode.value.id)
+					?: throw IllegalStateException("Could not find from-parent on filesystem: ${fromParentNode.value.id}")
+			}
 			val originalFromParentScenePaths =
 				sceneDatasource.getGroupChildPathsById(fromParentPath)
 			val originalFromNodePath = originalFromParentScenePaths[fromNode.value.id]
@@ -617,7 +649,14 @@ class SceneEditorRepository(
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
-		val parentPath = getSceneFilePath(parent.value.id)
+		// Resolve the actual path from the filesystem rather than calculating it from the tree.
+		// The calculated path may have different zero-padding than the actual filename on disk.
+		val parentPath = if (parent.value.isRootScene) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parent.value.id)
+				?: throw IllegalStateException("Could not find parent on filesystem: ${parent.value.id}")
+		}
 		val existingSceneFiles = sceneDatasource.getGroupChildPathsById(parentPath)
 
 		// Must grab a copy of the children before they are modified
