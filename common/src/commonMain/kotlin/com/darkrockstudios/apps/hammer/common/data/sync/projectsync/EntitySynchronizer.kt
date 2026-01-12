@@ -29,7 +29,8 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		syncId: String,
 		originalHash: String?,
 		onConflict: EntityConflictHandler<T>,
-		onLog: OnSyncLog
+		onLog: OnSyncLog,
+		force: Boolean = false
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
@@ -41,7 +42,8 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 			serverProjectId,
 			entity,
 			originalHash,
-			syncId
+			syncId,
+			force
 		)
 		return if (result.isSuccess) {
 			onLog(syncLogI("Uploaded Scene $id", projectDef))

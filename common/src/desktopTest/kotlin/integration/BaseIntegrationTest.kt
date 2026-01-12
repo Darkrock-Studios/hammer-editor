@@ -15,9 +15,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import createProject
 import getProjectsDirectory
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
+import io.mockk.*
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -60,6 +58,9 @@ abstract class BaseIntegrationTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
+		mockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
+		coEvery { org.jetbrains.compose.resources.getString(any<org.jetbrains.compose.resources.StringResource>()) } returns "Test String"
+
 		ffs = FakeFileSystem()
 		ffs.emulateWindows()
 
@@ -78,6 +79,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 			sceneEditorRepository.onScopeClose(mockk())
 		}
 		ffs.checkNoOpenFiles()
+		unmockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
 		super.tearDown()
 	}
 

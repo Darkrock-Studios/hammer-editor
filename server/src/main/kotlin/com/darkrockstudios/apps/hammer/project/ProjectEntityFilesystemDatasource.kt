@@ -164,6 +164,15 @@ class ProjectEntityFilesystemDatasource(
 		return false
 	}
 
+	override suspend fun getCachedHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): String? {
+		TODO("Not yet implemented")
+		return null
+	}
+
 	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
 		TODO("Not yet implemented")
 		return null
