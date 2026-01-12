@@ -21,8 +21,8 @@
 	<string name="notes_menu_group">Anotação</string>
 	<string name="notes_menu_delete">Excluir</string>
 	<string name="notes_view_header">Anotação</string>
-	<string name="notes_search_button">Search notes</string>
-	<string name="notes_search_placeholder">Search notes...</string>
+	<string name="notes_search_button">Pesquisar anotações</string>
+	<string name="notes_search_placeholder">Pesquisar anotações...</string>
 	<string name="notes_search_close">Fechar busca</string>
 	<string name="notes_sort_ascending">Ordenar mais antigos primeiro</string>
 	<string name="notes_sort_descending">Ordenar mais recentes primeiro</string>
