@@ -403,7 +403,11 @@ class SceneDatasource(
 	}
 
 	companion object {
+		// Active scene format: order-name-id.md
 		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\d\p{L}+ _']+)-(\d+)(\.md)?(?:\.temp)?""")
+
+		// Archived scene format: name-id.md (no order prefix)
+		val ARCHIVED_SCENE_FILENAME_PATTERN = Regex("""([\d\p{L}+ _']+)-(\d+)(\.md)(?:\.temp)?""")
 		val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
 		const val SCENE_FILENAME_EXTENSION = ".md"
 		const val SCENE_DIRECTORY = "scenes"
@@ -411,20 +415,35 @@ class SceneDatasource(
 		const val ARCHIVED_DIRECTORY = ".archived"
 
 		fun getSceneIdFromFilename(fileName: String): Int {
-			val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
-				?: error("Scene filename was bad: $fileName")
-			try {
-				val sceneId = captures.groupValues[3].toInt()
-				return sceneId
-			} catch (e: NumberFormatException) {
-				throw InvalidSceneFilename("Number format exception", fileName)
-			} catch (e: IllegalStateException) {
+			val activeCaptures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+			val archivedCaptures = ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
+
+			val idString = if (activeCaptures != null) {
+				activeCaptures.groupValues[3]
+			} else if (archivedCaptures != null) {
+				archivedCaptures.groupValues[2]
+			} else {
+				null
+			}
+
+			val sceneId = idString?.toIntOrNull()
+			if (sceneId == null) {
 				throw InvalidSceneFilename("Invalid filename", fileName)
 			}
+
+			return sceneId
 		}
 
 		fun validateSceneFilename(fileName: String): Boolean {
 			return SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
+		}
+
+		fun validateArchivedSceneFilename(fileName: String): Boolean {
+			return ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
+		}
+
+		fun buildArchivedSceneFileName(name: String, id: Int): String {
+			return "$name-$id$SCENE_FILENAME_EXTENSION"
 		}
 
 		fun getSceneDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
@@ -453,7 +472,7 @@ class SceneDatasource(
 			?: error("Scene ${scene.id} not found on filesystem")
 
 		val archiveDir = getArchivedDirectory().toOkioPath()
-		val fileName = currentPath.toOkioPath().name
+		val fileName = buildArchivedSceneFileName(scene.name, scene.id)
 		val targetPath = (archiveDir / fileName).toHPath()
 
 		moveScene(currentPath, targetPath)
@@ -478,7 +497,7 @@ class SceneDatasource(
 	 */
 	fun createArchivedSceneFile(sceneItem: SceneItem, content: String): HPath {
 		val archiveDir = getArchivedDirectory().toOkioPath()
-		val fileName = buildSceneFileName(sceneItem.order, sceneItem.name, sceneItem.id)
+		val fileName = buildArchivedSceneFileName(sceneItem.name, sceneItem.id)
 		val targetPath = archiveDir / fileName
 
 		fileSystem.write(targetPath) {
@@ -497,14 +516,35 @@ class SceneDatasource(
 		if (!fileSystem.exists(archivedDir)) return emptyList()
 
 		return fileSystem.list(archivedDir)
-			.filter { validateSceneFilename(it.name) }
+			.filter { validateArchivedSceneFilename(it.name) }
 			.sortedBy { it.name }
 			.map { it.toHPath() }
 	}
 
+	/**
+	 * Parse a scene from the archived filename format (name-id.md).
+	 */
+	private fun getSceneFromArchivedFilename(path: HPath): SceneItem {
+		val fileName = getSceneFilename(path)
+		val captures = ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
+			?: error("Archived scene filename was invalid: $fileName")
+
+		val sceneName = captures.groupValues[1]
+		val sceneId = captures.groupValues[2].toInt()
+
+		return SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene, // Archived scenes are always scenes, not groups
+			id = sceneId,
+			name = sceneName,
+			order = 0, // Order is meaningless for archived scenes
+			archived = true
+		)
+	}
+
 	fun getArchivedScenes(): List<SceneItem> {
 		return getAllArchivedScenePaths().map { path ->
-			getSceneFromFilename(path).copy(archived = true)
+			getSceneFromArchivedFilename(path)
 		}
 	}
 
