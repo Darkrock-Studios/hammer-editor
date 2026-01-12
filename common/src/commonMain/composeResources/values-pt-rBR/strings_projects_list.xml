@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="project_select_list_header">Projetos</string>
-	<string name="project_select_project_list_empty">No Projects Found</string>
+	<string name="project_select_project_list_empty">Não Há Projetos</string>
 	<string name="project_select_card_delete_button">Excluir</string>
 	<string name="project_select_card_rename_button">Renomear</string>
 	<string name="projects_list_sync_button">Sincronizar Projetos</string>
@@ -10,9 +10,9 @@
 	<string name="projects_list_toast_sync_failed">Falha ao sincronizar projetos</string>
 	<string name="projects_list_item_more_button">Mais</string>
 	<string name="account_sync_dialog_title">Sincronização</string>
-	<string name="account_sync_dialog_header">Account Sync</string>
+	<string name="account_sync_dialog_header">Sincronização de Conta</string>
 	<string name="account_sync_dialog_cancel_button">Cancelar</string>
-	<string name="account_sync_log_title">Sync Log</string>
+	<string name="account_sync_log_title">Registro de Sincronização</string>
 	<string name="account_sync_dialog_status_pending">Pendente</string>
 	<string name="account_sync_dialog_status_error">Erro</string>
 	<string name="account_sync_dialog_status_complete">Sincronização Concluída</string>
@@ -31,7 +31,7 @@
 	<string name="create_project_button">Criar Projeto</string>
 	<string name="create_project_cancel_button">Cancelar</string>
 	<string name="create_project_error_already_exists">O projeto já existe</string>
-	<string name="create_project_error_null_filename">Missing Project Name</string>
+	<string name="create_project_error_null_filename">Faltando Nome do Projeto</string>
 	<string name="create_project_error_too_long">O nome do projeto é longo demais</string>
 	<string name="create_project_error_invalid_characters">O nome do projeto possui caracteres inválidos</string>
 	<string name="create_project_error_blank">O nome do projeto foi deixado em branco</string>
