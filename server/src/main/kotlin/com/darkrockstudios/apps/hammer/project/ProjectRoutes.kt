@@ -373,13 +373,27 @@ private fun Route.downloadEntity(log: Logger) {
 		} else {
 			val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
 
+			val cachedHash = projectEntityRepository.getCachedHash(principal.id, projectDef, entityId)
+
 			val result =
 				projectEntityRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 			if (isSuccess(result)) {
 				val serverEntity = result.data
 				val serverEntityHash = serverEntityHash(serverEntity)
 
-				if (entityHash != null && entityHash == serverEntityHash) {
+				// Check if cached hash is stale (doesn't match computed hash)
+				if (cachedHash != null && cachedHash != serverEntityHash) {
+					log.warn("Stale hash detected for entity $entityId. Cached: $cachedHash, Computed: $serverEntityHash")
+					call.respond(
+						status = HttpStatusCode.PreconditionFailed,
+						StaleHashResponse(
+							entityId = entityId,
+							message = "Server cached hash is stale",
+							cachedHash = cachedHash,
+							computedHash = serverEntityHash
+						)
+					)
+				} else if (entityHash != null && entityHash == serverEntityHash) {
 					call.respond(HttpStatusCode.NotModified)
 				} else {
 					log.info("Entity Download for ID $entityId because hash mismatched:\nClient: $entityHash\nServer: $serverEntityHash")

@@ -68,4 +68,10 @@ interface ProjectEntityDatasource {
 	): List<EntityDefinition>
 
 	suspend fun renameProject(userId: Long, projectId: ProjectId, newProjectName: String): Boolean
+
+	suspend fun getCachedHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): String?
 }

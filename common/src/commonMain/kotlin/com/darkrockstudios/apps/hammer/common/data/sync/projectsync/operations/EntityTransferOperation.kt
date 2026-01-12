@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjec
 import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.server.StaleServerHashException
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
@@ -277,7 +278,7 @@ class EntityTransferOperation(
 
 			CResult.success()
 		} else {
-			when (entityResponse.exceptionOrNull()) {
+			when (val exception = entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
 					onLog(
 						syncLogI(
@@ -300,12 +301,48 @@ class EntityTransferOperation(
 					CResult.failure(EntityNotFoundException(id))
 				}
 
+				is StaleServerHashException -> {
+					onLog(
+						syncLogW(
+							strRes.get(Res.string.sync_log_stale_hash_detected, id),
+							projectDef
+						)
+					)
+					Napier.w("Stale server hash detected for entity $id. Cached: ${exception.cachedHash}, Computed: ${exception.computedHash}")
+
+					// Heal the server by force uploading our local copy
+					suspend fun onConflict(entity: ApiProjectEntity) {
+						val message = strRes.get(Res.string.sync_log_entity_conflict, entity.id, entity.type)
+						onLog(syncLogE(message, projectDef))
+						throw IllegalStateException(message)
+					}
+
+					val uploadSuccess = uploadEntity(id, syncId, null, ::onConflict, onLog, force = true)
+					if (uploadSuccess) {
+						onLog(
+							syncLogI(
+								strRes.get(Res.string.sync_log_stale_hash_healed, id),
+								projectDef
+							)
+						)
+						CResult.success()
+					} else {
+						onLog(
+							syncLogE(
+								strRes.get(Res.string.sync_log_stale_hash_heal_failed, id),
+								projectDef
+							)
+						)
+						CResult.failure(IllegalStateException("Failed to heal stale server hash"))
+					}
+				}
+
 				else -> {
 					val message = strRes.get(Res.string.sync_log_entity_download_failed_general, id)
-					Napier.e(message, entityResponse.exceptionOrNull())
+					Napier.e(message, exception)
 					onLog(syncLogE(message, projectDef))
 					CResult.failure(
-						entityResponse.exceptionOrNull() ?: IllegalStateException("Unknown error")
+						exception ?: IllegalStateException("Unknown error")
 					)
 				}
 			}
@@ -317,11 +354,12 @@ class EntityTransferOperation(
 		syncId: String,
 		originalHash: String?,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onLog: OnSyncLog
+		onLog: OnSyncLog,
+		force: Boolean = false
 	): Boolean {
 		val type: EntityType? = entitySynchronizers.findEntityType(id)
 		return if (type != null) {
-			entitySynchronizers[type].uploadEntity(id, syncId, originalHash, onConflict, onLog)
+			entitySynchronizers[type].uploadEntity(id, syncId, originalHash, onConflict, onLog, force)
 		} else {
 			onLog(
 				syncLogW(
