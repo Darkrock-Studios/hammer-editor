@@ -18,10 +18,10 @@
     <string name="note_widget_toast_no_projects">Nenhum projeto</string>
     <string name="note_widget_toast_success">Anotação adicionada</string>
     <string name="action_add_note_short_label">Adicionar Anotação</string>
-    <string name="action_add_note_long_label">Adicionar anotação de \"Story\"</string>
+    <string name="action_add_note_long_label">Adicionar Anotação de História</string>
     <string name="action_add_note_disabled">Adicionar anotações está desabilitado </string>
     <string name="title_activity_add_note_widget_config">Configurar \'Widget\'</string>
-    <string name="note_widget_config_title">Configurar \'widget\' de notas:</string>
+    <string name="note_widget_config_title">Configurar \'Widget\' de Anotações:</string>
     <string name="note_widget_config_project_checkbox">Adicionar notas a um projeto específico</string>
     <string name="note_widget_config_project_checkbox_explained">Se nenhum projeto for selecionado, você será solicitado a escolher um projeto a cada vez.</string>
 </resources>
