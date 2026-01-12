@@ -24,6 +24,11 @@
 	<string name="scene_list_item_action_menu_description">Opções</string>
 	<string name="scene_list_item_action_delete">Excluir</string>
 	<string name="scene_list_item_action_rename">Renomear</string>
+	<string name="scene_list_item_action_archive">Archive</string>
+	<string name="scene_archive_dialog_title">Archive Scene</string>
+	<string name="scene_archive_dialog_message">Are you sure you want to archive this scene: \"%1$s\"</string>
+	<string name="scene_archive_dialog_archive_button">Archive</string>
+	<string name="scene_archive_dialog_dismiss_button">Cancel</string>
 	<string name="scene_rename_dialog_title">Renomear Cena</string>
 	<string name="scene_rename_dialog_label">Nome da Cena</string>
 	<string name="scene_rename_dialog_rename_button">Renomear</string>
