@@ -411,7 +411,11 @@ class SceneEditorRepository(
 		}
 
 		val newScene = oldScene.copy(id = newId)
-		val newFileName = getSceneFileName(newScene)
+		val newFileName = if (oldScene.archived) {
+			SceneDatasource.buildArchivedSceneFileName(newScene.name, newScene.id)
+		} else {
+			getSceneFileName(newScene)
+		}
 		val parent = oldPath.toOkioPath().parent ?: error("Scene ID $oldId path had no parent")
 		val newPath = (parent / newFileName).toHPath()
 

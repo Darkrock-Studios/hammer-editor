@@ -18,11 +18,11 @@ class SceneIdDatasource(
 				SceneDatasource.getSceneIdFromFilename(path.name)
 			} ?: -1
 
-		// Also check archived scenes
+		// Also check archived scenes (supports both old and new filename formats)
 		val archivedDir = SceneDatasource.getArchivedDirectory(projectDef, fileSystem).toOkioPath()
 		val archivedMaxId: Int = if (fileSystem.exists(archivedDir)) {
 			fileSystem.list(archivedDir)
-				.filter { SceneDatasource.validateSceneFilename(it.name) }
+				.filter { SceneDatasource.validateArchivedSceneFilename(it.name) }
 				.maxOfOrNull { SceneDatasource.getSceneIdFromFilename(it.name) } ?: -1
 		} else {
 			-1

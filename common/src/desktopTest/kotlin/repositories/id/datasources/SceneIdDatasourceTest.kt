@@ -57,9 +57,9 @@ class SceneIdDatasourceTest : BaseTest() {
 		val archivedDir = scenesDir / SceneDatasource.ARCHIVED_DIRECTORY
 
 		// Create archived directory and add a scene with higher ID than existing scenes
-		// Filename format: {order}-{name}-{id}.md
+		// Filename format: {name}-{id}.md (archived scenes have no order)
 		ffs.createDirectories(archivedDir)
-		val archivedSceneFile = archivedDir / "0-Archived Scene-99.md"
+		val archivedSceneFile = archivedDir / "Archived Scene-99.md"
 		ffs.write(archivedSceneFile) {
 			writeUtf8("# Archived Scene Content")
 		}
@@ -79,9 +79,9 @@ class SceneIdDatasourceTest : BaseTest() {
 		val archivedDir = scenesDir / SceneDatasource.ARCHIVED_DIRECTORY
 
 		// Create archived directory with a scene
-		// Filename format: {order}-{name}-{id}.md
+		// Filename format: {name}-{id}.md (archived scenes have no order)
 		ffs.createDirectories(archivedDir)
-		val archivedSceneFile = archivedDir / "0-Archived Scene-5.md"
+		val archivedSceneFile = archivedDir / "Archived Scene-5.md"
 		ffs.write(archivedSceneFile) {
 			writeUtf8("# Archived Scene Content")
 		}
