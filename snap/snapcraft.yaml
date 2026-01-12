@@ -7,6 +7,8 @@ description: |
     novelists and storytellers who want an offline-first writing experience
     with optional self-hosted synchronization.
 
+icon: snap/gui/hammer-editor.png
+
 grade: stable
 confinement: strict
 
