@@ -211,6 +211,15 @@ class SceneEditorComponent(
 			beginDelete()
 		}
 
+		val archiveItem = MenuItemDescriptor(
+			"scene-editor-archive",
+			Res.string.scene_editor_menu_item_archive,
+			""
+		) {
+			Napier.i("Scene archive selected")
+			beginArchive()
+		}
+
 		val draftsItem = MenuItemDescriptor(
 			"scene-editor-view-drafts",
 			Res.string.scene_editor_menu_item_view_drafts,
@@ -252,6 +261,7 @@ class SceneEditorComponent(
 			saveItem,
 			discardItem,
 			deleteItem,
+			archiveItem,
 			draftsItem,
 			saveDraftItem,
 			metadataItem,
@@ -326,6 +336,24 @@ class SceneEditorComponent(
 			sceneEditor.deleteScene(state.value.sceneItem)
 			withContext(dispatcherMain) {
 				endDelete()
+				closeSceneEditor()
+			}
+		}
+	}
+
+	override fun beginArchive() {
+		_state.getAndUpdate { it.copy(confirmArchive = true) }
+	}
+
+	override fun endArchive() {
+		_state.getAndUpdate { it.copy(confirmArchive = false) }
+	}
+
+	override fun doArchive() {
+		scope.launch {
+			sceneEditor.archiveScene(state.value.sceneItem)
+			withContext(dispatcherMain) {
+				endArchive()
 				closeSceneEditor()
 			}
 		}

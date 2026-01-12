@@ -21,6 +21,7 @@ sealed interface ApiProjectEntity {
 		val content: String = "",
 		val outline: String = "",
 		val notes: String = "",
+		val archived: Boolean = false,
 	) : ApiProjectEntity
 
 	@Serializable

@@ -12,11 +12,22 @@ class SceneIdDatasource(
 	override fun findHighestId(projectDef: ProjectDef): Int {
 		val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 
-		val maxId: Int = fileSystem.listRecursively(sceneDir)
+		// Get max from regular scenes (filterScenePathsOkio excludes archived)
+		val regularMaxId: Int = fileSystem.listRecursively(sceneDir)
 			.filterScenePathsOkio().maxOfOrNull { path ->
 				SceneDatasource.getSceneIdFromFilename(path.name)
 			} ?: -1
 
-		return maxId
+		// Also check archived scenes
+		val archivedDir = SceneDatasource.getArchivedDirectory(projectDef, fileSystem).toOkioPath()
+		val archivedMaxId: Int = if (fileSystem.exists(archivedDir)) {
+			fileSystem.list(archivedDir)
+				.filter { SceneDatasource.validateSceneFilename(it.name) }
+				.maxOfOrNull { SceneDatasource.getSceneIdFromFilename(it.name) } ?: -1
+		} else {
+			-1
+		}
+
+		return maxOf(regularMaxId, archivedMaxId)
 	}
 }

@@ -115,4 +115,8 @@ private fun fakeComponent(state: SceneList.State) = object : SceneList {
 	override fun onSceneListUpdate(scenes: SceneSummary) {}
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {}
 	override fun showOutlineOverview() {}
+	override suspend fun archiveScene(scene: SceneItem) {}
+	override suspend fun unarchiveScene(scene: SceneItem) {}
+	override fun showArchivedScenes() {}
+	override fun dismissArchivedDialog() {}
 }

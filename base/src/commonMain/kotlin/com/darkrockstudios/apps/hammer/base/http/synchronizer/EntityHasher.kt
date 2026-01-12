@@ -19,7 +19,8 @@ object EntityHasher {
 		type: ApiSceneType,
 		content: String,
 		outline: String,
-		notes: String
+		notes: String,
+		archived: Boolean = false
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -33,6 +34,7 @@ object EntityHasher {
 		}
 		d.update(outline, buf)
 		d.update(notes, buf)
+		d.update(if (archived) 1 else 0, buf)
 		return d.digest().base64Url
 	}
 

@@ -230,7 +230,7 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onNoteConflict(serverEntity: ApiProjectEntity.NoteEntity) {
 		val local = notesRepository.getNoteById(serverEntity.id)?.note
-			?: throw IllegalStateException("Failed to get local note")
+			?: error("Failed to get local note")
 
 		val localEntity = ApiProjectEntity.NoteEntity(
 			id = local.id,
@@ -253,7 +253,7 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onTimelineEventConflict(serverEntity: ApiProjectEntity.TimelineEventEntity) {
 		val local = timeLineRepository.getTimelineEvent(serverEntity.id)
-			?: throw IllegalStateException("Failed to get local note")
+			?: error("Failed to get local note")
 
 		val localEntity = ApiProjectEntity.TimelineEventEntity(
 			id = local.id,
@@ -310,9 +310,9 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onSceneDraftConflict(serverEntity: ApiProjectEntity.SceneDraftEntity) {
 		val local = sceneDraftRepository.getDraftDef(serverEntity.id)
-			?: throw IllegalStateException("Failed to get local note")
+			?: error("Failed to get local note")
 		val localContent = sceneDraftRepository.loadDraftContent(local)
-			?: throw IllegalStateException("Failed to load local draft content")
+			?: error("Failed to load local draft content")
 
 		val localEntity = ApiProjectEntity.SceneDraftEntity(
 			id = local.id,
@@ -341,13 +341,21 @@ class ProjectSynchronizationComponent(
 	}
 
 	private suspend fun onSceneConflict(serverEntity: ApiProjectEntity.SceneEntity) {
-		val local = sceneEditorRepository.getSceneItemFromId(serverEntity.id)
-			?: throw IllegalStateException("Failed to get local scene")
+		val local = sceneEditorRepository.getSceneItemFromIdIncludingArchived(serverEntity.id)
+			?: error("Failed to get local scene")
 
 		val metadata = sceneEditorRepository.loadSceneMetadata(serverEntity.id)
 
 		val path = sceneEditorRepository.getPathSegments(local)
-		val content = sceneEditorRepository.loadSceneMarkdownRaw(local)
+
+		// For archived scenes, we need to resolve path from filesystem
+		val content = if (local.archived) {
+			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(local.id)
+				?: error("Failed to resolve path for archived scene")
+			sceneEditorRepository.loadSceneMarkdownRaw(local, scenePath)
+		} else {
+			sceneEditorRepository.loadSceneMarkdownRaw(local)
+		}
 
 		val localEntity = ApiProjectEntity.SceneEntity(
 			id = local.id,
@@ -358,6 +366,7 @@ class ProjectSynchronizationComponent(
 			path = path,
 			outline = metadata.outline,
 			notes = metadata.notes,
+			archived = local.archived,
 		)
 
 		withContext(mainDispatcher) {
