@@ -27,8 +27,8 @@
 	<string name="settings_server_sync_auto_close">Synchronisationsdialoge bei Erfolg schließen</string>
 	<string name="settings_server_max_backups">Maximale Backups pro Projekt</string>
 	<string name="settings_server_max_backups_error">Muss zwischen 1 und %1$d sein</string>
-	<string name="settings_server_test_auth_button">Authentifizierung testen</string>
-	<string name="settings_server_reauth_button">Erneut authentifizieren</string>
+	<string name="settings_server_test_auth_button">Test Login</string>
+	<string name="settings_server_reauth_button">Refresh Login</string>
 	<string name="settings_server_remove_server_button">Server entfernen</string>
 	<string name="settings_server_authtest_toast_success">Anmeldung war erfolgreich</string>
 	<string name="settings_server_authtest_toast_failure">Anmeldung war nicht erfolgreich</string>
