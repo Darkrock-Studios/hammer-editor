@@ -157,6 +157,16 @@ fun SceneEditorUi(
 			}
 		}
 	}
+
+	if (state.confirmArchive) {
+		ArchiveSceneDialog(state.sceneItem) { doArchive ->
+			if (doArchive) {
+				component.doArchive()
+			} else {
+				component.endArchive()
+			}
+		}
+	}
 }
 
 @Composable

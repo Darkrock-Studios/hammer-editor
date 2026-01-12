@@ -176,6 +176,18 @@ fun SceneListUi(
 			sceneDefRenameTarget = null
 		}
 	}
+
+	if (state.showArchivedDialog) {
+		ArchivedScenesDialog(
+			archivedScenes = state.archivedScenes,
+			onUnarchive = { scene ->
+				scope.launch {
+					component.unarchiveScene(scene)
+				}
+			},
+			onDismiss = { component.dismissArchivedDialog() }
+		)
+	}
 }
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
@@ -272,6 +284,15 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 				onClick = {
 					menuOpen = false
 					component.showOutlineOverview()
+				}
+			)
+
+			DropdownMenuItem(
+				text = { Text(Res.string.view_archived_scenes_button.get()) },
+				leadingIcon = { Icon(Icons.Default.Archive, Res.string.view_archived_scenes_button.get()) },
+				onClick = {
+					menuOpen = false
+					component.showArchivedScenes()
 				}
 			)
 		}
