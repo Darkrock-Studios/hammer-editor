@@ -15,10 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
-import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -27,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -48,13 +46,14 @@ fun SceneListUi(
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
+	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
-	var sceneDefDeleteTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
-	var sceneDefRenameTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
-	var sceneDefArchiveTarget by rememberSaveable { mutableStateOf<SceneItem?>(null) }
+	var sceneDefDeleteTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
+	var sceneDefRenameTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
+	var sceneDefArchiveTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 
-	var showCreateGroupDialog by rememberSaveable { mutableStateOf<SceneItem?>(null) }
-	var showCreateSceneDialog by rememberSaveable { mutableStateOf<SceneItem?>(null) }
+	var showCreateGroupDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
+	var showCreateSceneDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 
 	val treeState = rememberReorderableLazyListState(
 		summary = state.sceneSummary ?: emptySceneSummary(state.projectDef),
@@ -182,7 +181,7 @@ fun SceneListUi(
 	}
 
 	sceneDefArchiveTarget?.let { scene ->
-		ArchiveSceneDialog(scene, scope, component, mainDispatcher) {
+		ArchiveSceneDialog(scene, scope, component, mainDispatcher, snackbarHostState, strRes) {
 			sceneDefArchiveTarget = null
 		}
 	}
@@ -193,6 +192,8 @@ fun SceneListUi(
 			onUnarchive = { scene ->
 				scope.launch {
 					component.unarchiveScene(scene)
+					val message = strRes.get(Res.string.archived_scenes_restored_snackbar, scene.name)
+					snackbarHostState.showSnackbar(message)
 				}
 			},
 			onDismiss = { component.dismissArchivedDialog() }
@@ -256,12 +257,16 @@ private fun ArchiveSceneDialog(
 	scope: CoroutineScope,
 	component: SceneList,
 	mainDispatcher: CoroutineContext,
+	snackbarHostState: RootSnackbarHostState,
+	strRes: StrRes,
 	onDismiss: () -> Unit
 ) {
 	SceneArchiveDialog(scene) { doArchive ->
 		scope.launch {
 			if (doArchive) {
 				component.archiveScene(scene)
+				val message = strRes.get(Res.string.scene_archived_snackbar, scene.name)
+				snackbarHostState.showSnackbar(message)
 			}
 			withContext(mainDispatcher) {
 				onDismiss()
