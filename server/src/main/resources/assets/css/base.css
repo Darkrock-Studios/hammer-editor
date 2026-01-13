@@ -141,6 +141,7 @@ a:focus-visible {
 	backdrop-filter: blur(8px);
 	background: rgba(255, 255, 255, 0.95);
 	box-shadow: var(--shadow-sm);
+	overflow: hidden;
 }
 
 .header-container {
@@ -178,6 +179,47 @@ a:focus-visible {
 	font-size: 1.75rem;
 	color: var(--text-primary);
 	margin: 0;
+}
+
+/* Development mode banner */
+.dev-banner {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	overflow: hidden;
+	pointer-events: none;
+	display: flex;
+	align-items: center;
+}
+
+.dev-banner__track {
+	display: flex;
+	align-items: center;
+	white-space: nowrap;
+	flex-shrink: 0;
+	animation: dev-banner-scroll 200s linear infinite;
+}
+
+.dev-banner__track span {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	font-weight: bold;
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	color: rgba(220, 38, 38, 0.15);
+	padding: 0 1.5rem;
+	flex-shrink: 0;
+}
+
+@keyframes dev-banner-scroll {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-100%);
+	}
 }
 
 /* Mobile nav toggle button */
