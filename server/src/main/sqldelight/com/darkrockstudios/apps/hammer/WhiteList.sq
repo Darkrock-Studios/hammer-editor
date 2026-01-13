@@ -32,6 +32,20 @@ SELECT * FROM white_list
 ORDER BY date_added ASC
 LIMIT ? OFFSET ?;
 
+getPaginatedWithAccountStatus:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+ORDER BY w.date_added DESC
+LIMIT ? OFFSET ?;
+
+getPaginatedWithAccountStatusOldestFirst:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+ORDER BY w.date_added ASC
+LIMIT ? OFFSET ?;
+
 getCount:
 SELECT count(*) FROM white_list;
 
