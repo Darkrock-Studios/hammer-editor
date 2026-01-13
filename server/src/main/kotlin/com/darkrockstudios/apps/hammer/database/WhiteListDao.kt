@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.GetPaginatedWithAccountStatus
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -49,6 +50,26 @@ open class WhiteListDao(
 				queries.getPaginated(limit, offset).executeAsList()
 			}
 	}
+
+	open suspend fun getPaginatedWithAccountStatus(
+		limit: Long,
+		offset: Long,
+		sortOldestFirst: Boolean = false
+	): List<GetPaginatedWithAccountStatus> =
+		withContext(ioDispatcher) {
+			return@withContext if (sortOldestFirst) {
+				queries.getPaginatedWithAccountStatusOldestFirst(limit, offset).executeAsList().map {
+					GetPaginatedWithAccountStatus(
+						email = it.email,
+						date_added = it.date_added,
+						reason = it.reason,
+						has_account = it.has_account
+					)
+				}
+			} else {
+				queries.getPaginatedWithAccountStatus(limit, offset).executeAsList()
+			}
+		}
 
 	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {
 		return@withContext queries.getByReason(reason).executeAsList()

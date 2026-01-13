@@ -10,7 +10,7 @@
 			hx-swap="innerHTML"
 			class="btn btn--ghost">
 			<i class="fa-solid fa-arrow-down-short-wide"></i>
-			Sort: Newest First
+			{{msg.admin_whitelist_sort_newest_first}}
 			</button>
 		{{/sortNewestFirst}}
 		{{#sortOldestFirst}}
@@ -19,7 +19,7 @@
 			hx-swap="innerHTML"
 			class="btn btn--ghost">
 			<i class="fa-solid fa-arrow-up-short-wide"></i>
-			Sort: Oldest First
+			{{msg.admin_whitelist_sort_oldest_first}}
 			</button>
 		{{/sortOldestFirst}}
 	</div>
@@ -27,7 +27,21 @@
 	{{#items}}
 		<div class="whitelist-entry">
 			<div class="whitelist-entry__info">
-				<div class="whitelist-entry__email">{{email}}</div>
+				<div class="whitelist-entry__email">
+					{{email}}
+					{{#hasAccount}}
+						<span class="account-status account-status--active">
+							<i class="fa-solid fa-circle-check"></i>
+							{{msg.admin_whitelist_account_created}}
+						</span>
+					{{/hasAccount}}
+					{{^hasAccount}}
+						<span class="account-status account-status--pending">
+							<i class="fa-solid fa-circle"></i>
+							{{msg.admin_whitelist_no_account}}
+						</span>
+					{{/hasAccount}}
+				</div>
 				<div class="whitelist-entry__meta">
 					<span class="whitelist-entry__date">Added: {{dateAdded}}</span>
 					<span class="whitelist-entry__separator">•</span>

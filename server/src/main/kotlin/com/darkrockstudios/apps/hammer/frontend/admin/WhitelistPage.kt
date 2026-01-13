@@ -187,13 +187,15 @@ internal suspend fun getWhitelistModel(
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
 
-	val whitelistEntries = whiteListRepository.getWhiteListWithDetails(currentPage, pageSize, actualSortOldestFirst)
+	val whitelistEntries =
+		whiteListRepository.getWhiteListWithAccountStatus(currentPage, pageSize, actualSortOldestFirst)
 	val whitelistItems = whitelistEntries.map { entry ->
 		mapOf(
 			"email" to entry.email,
 			"dateAdded" to (formatDateFromTimestamp(entry.date_added)
 				?: call.msg("admin_whitelist_date_added_unknown")),
-			"reason" to entry.reason
+			"reason" to entry.reason,
+			"hasAccount" to entry.has_account
 		)
 	}
 

@@ -37,6 +37,13 @@ class WhiteListRepository(
 		return whiteListDao.getPaginated(limit, offset, sortOldestFirst)
 	}
 
+	suspend fun getWhiteListWithAccountStatus(page: Int, pageSize: Int, sortOldestFirst: Boolean = false) =
+		whiteListDao.getPaginatedWithAccountStatus(
+			limit = pageSize.toLong(),
+			offset = (page * pageSize).toLong(),
+			sortOldestFirst = sortOldestFirst
+		)
+
 	suspend fun getWhiteListCount(): Long {
 		return whiteListDao.getWhiteListCount()
 	}
