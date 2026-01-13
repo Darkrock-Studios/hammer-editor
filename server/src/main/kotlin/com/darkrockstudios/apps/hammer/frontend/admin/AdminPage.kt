@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.SortDirection
+import com.darkrockstudios.apps.hammer.account.UserSortField
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -162,27 +164,33 @@ private suspend fun getUsersModel(
 	call: ApplicationCall,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
-	page: Int? = null
+	page: Int? = null,
+	sortBy: UserSortField? = null,
+	sortDirection: SortDirection? = null
 ): MutableMap<String, Any> {
 	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
 	val actualPage = page ?: queryPage ?: 0
+
+	val querySortBy = call.request.queryParameters["sortBy"]?.let { UserSortField.fromString(it) }
+	val actualSortBy = sortBy ?: querySortBy ?: UserSortField.CREATED
+
+	val querySortDirection = call.request.queryParameters["sortDirection"]?.let { SortDirection.fromString(it) }
+	val actualSortDirection = sortDirection ?: querySortDirection ?: SortDirection.DESCENDING
 
 	val pageSize = 10
 	val totalCount = accountsRepository.numAccounts()
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
 
-	val accounts = accountsRepository.getAccountsPaginated(currentPage, pageSize)
+	val accounts = accountsRepository.getAccountsPaginated(currentPage, pageSize, actualSortBy, actualSortDirection)
 	val usersList = accounts.map { account ->
-		val projectCount = projectsRepository.getProjectsCount(account.id)
-		val mostRecentSync = projectsRepository.getMostRecentSyncForUser(account.id)
 		mutableMapOf<String, Any?>(
 			"email" to account.email,
 			"created" to formatDate(account.created),
-			"lastSync" to (formatLastSync(mostRecentSync) ?: call.msg("admin_patreon_last_sync_never")),
+			"lastSync" to (formatLastSync(account.most_recent_sync) ?: call.msg("admin_patreon_last_sync_never")),
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
-			"projectCount" to projectCount
+			"projectCount" to account.project_count
 		)
 	}
 
@@ -195,6 +203,13 @@ private suspend fun getUsersModel(
 	users["hasPrevPage"] = currentPage > 0
 	users["nextPage"] = currentPage + 1
 	users["prevPage"] = currentPage - 1
+	users["sortBy"] = actualSortBy.value
+	users["sortDirection"] = actualSortDirection.value
+	users["sortByCreated"] = (actualSortBy == UserSortField.CREATED)
+	users["sortByLastSync"] = (actualSortBy == UserSortField.LAST_SYNC)
+	users["sortByProjectCount"] = (actualSortBy == UserSortField.PROJECT_COUNT)
+	users["sortAscending"] = (actualSortDirection == SortDirection.ASCENDING)
+	users["sortDescending"] = (actualSortDirection == SortDirection.DESCENDING)
 
 	val model = call.withDefaults()
 	model["users"] = users
