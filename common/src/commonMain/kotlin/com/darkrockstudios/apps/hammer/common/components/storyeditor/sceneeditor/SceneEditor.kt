@@ -36,6 +36,9 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun beginArchive()
 	fun endArchive()
 	fun doArchive()
+	fun beginDiscard()
+	fun endDiscard()
+	fun doDiscard()
 	fun toggleMetadataVisibility()
 	fun decreaseTextSize()
 	fun increaseTextSize()
@@ -50,6 +53,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val isSavingDraft: Boolean = false,
 		val confirmDelete: Boolean = false,
 		val confirmArchive: Boolean = false,
+		val confirmDiscard: Boolean = false,
 		val showMetadata: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
