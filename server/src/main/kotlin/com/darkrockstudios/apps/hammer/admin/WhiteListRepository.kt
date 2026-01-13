@@ -31,10 +31,10 @@ class WhiteListRepository(
 		return whiteListDao.getWhiteListPaginated(limit, offset)
 	}
 
-	suspend fun getWhiteListWithDetails(page: Int, pageSize: Int): List<WhiteList> {
+	suspend fun getWhiteListWithDetails(page: Int, pageSize: Int, sortOldestFirst: Boolean = false): List<WhiteList> {
 		val limit = pageSize.toLong()
 		val offset = (page * pageSize).toLong()
-		return whiteListDao.getPaginated(limit, offset)
+		return whiteListDao.getPaginated(limit, offset, sortOldestFirst)
 	}
 
 	suspend fun getWhiteListCount(): Long {

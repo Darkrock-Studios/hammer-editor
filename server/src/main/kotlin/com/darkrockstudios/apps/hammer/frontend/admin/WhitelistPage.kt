@@ -68,12 +68,14 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 		val email = params["email"]?.trim().orEmpty()
 		val reason = params["reason"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
+		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
 
 		// Validate email format
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailrequired")
+				call.msg("admin_whitelist_error_emailrequired"),
+				sortOldestFirst
 			)
 			call.respond(MustacheContent("partials/whitelist.mustache", model))
 			return@post
@@ -82,7 +84,8 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 		if (!whiteListRepository.validateEmail(email)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailinvalid")
+				call.msg("admin_whitelist_error_emailinvalid"),
+				sortOldestFirst
 			)
 			call.respond(MustacheContent("partials/whitelist.mustache", model))
 			return@post
@@ -94,7 +97,8 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 		if (!whiteListRepository.validateReason(actualReason)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_reasontoolong")
+				call.msg("admin_whitelist_error_reasontoolong"),
+				sortOldestFirst
 			)
 			call.respond(MustacheContent("partials/whitelist.mustache", model))
 			return@post
@@ -103,7 +107,7 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository) {
 		// All validation passed
 		whiteListRepository.addToWhiteList(email, actualReason)
 
-		val model = getWhitelistModel(call, whiteListRepository, page)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
 	}
 }
@@ -113,12 +117,13 @@ private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
 		val params = call.receiveParameters()
 		val email = params["email"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
+		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
 
 		if (email.isNotEmpty()) {
 			whiteListRepository.removeFromWhiteList(email)
 		}
 
-		val model = getWhitelistModel(call, whiteListRepository, page)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
 	}
 }
@@ -129,11 +134,13 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 		val email = params["email"]?.trim().orEmpty()
 		val reason = params["reason"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
+		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailrequired")
+				call.msg("admin_whitelist_error_emailrequired"),
+				sortOldestFirst
 			)
 			call.respond(MustacheContent("partials/whitelist.mustache", model))
 			return@post
@@ -142,7 +149,8 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 		if (!whiteListRepository.validateReason(reason)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_reasontoolong")
+				call.msg("admin_whitelist_error_reasontoolong"),
+				sortOldestFirst
 			)
 			call.respond(MustacheContent("partials/whitelist.mustache", model))
 			return@post
@@ -150,7 +158,7 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 
 		whiteListRepository.updateReason(email, reason)
 
-		val model = getWhitelistModel(call, whiteListRepository, page)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
 		call.respond(MustacheContent("partials/whitelist.mustache", model))
 	}
 }
@@ -165,17 +173,21 @@ internal fun Route.whitelistUserFragment(whiteListRepository: WhiteListRepositor
 internal suspend fun getWhitelistModel(
 	call: ApplicationCall,
 	whiteListRepository: WhiteListRepository,
-	page: Int? = null
+	page: Int? = null,
+	sortOldestFirst: Boolean? = null
 ): MutableMap<String, Any> {
 	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
 	val actualPage = page ?: queryPage ?: 0
+
+	val querySortOldestFirst = call.request.queryParameters["sortOldestFirst"]?.toBoolean()
+	val actualSortOldestFirst = sortOldestFirst ?: querySortOldestFirst ?: false
 
 	val pageSize = 10
 	val totalCount = whiteListRepository.getWhiteListCount()
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
 
-	val whitelistEntries = whiteListRepository.getWhiteListWithDetails(currentPage, pageSize)
+	val whitelistEntries = whiteListRepository.getWhiteListWithDetails(currentPage, pageSize, actualSortOldestFirst)
 	val whitelistItems = whitelistEntries.map { entry ->
 		mapOf(
 			"email" to entry.email,
@@ -195,6 +207,8 @@ internal suspend fun getWhitelistModel(
 	whitelist["nextPage"] = currentPage + 1
 	whitelist["prevPage"] = currentPage - 1
 	whitelist["enabled"] = whiteListRepository.useWhiteList()
+	whitelist["sortOldestFirst"] = actualSortOldestFirst
+	whitelist["sortNewestFirst"] = !actualSortOldestFirst
 
 	val model = call.withDefaults()
 	model["whitelist"] = whitelist
@@ -206,9 +220,10 @@ private suspend fun getWhitelistModelWithError(
 	call: ApplicationCall,
 	whiteListRepository: WhiteListRepository,
 	page: Int,
-	errorMessage: String
+	errorMessage: String,
+	sortOldestFirst: Boolean? = null
 ): MutableMap<String, Any> {
-	val model = getWhitelistModel(call, whiteListRepository, page)
+	val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
 	model["error"] = errorMessage
 	return model
 }

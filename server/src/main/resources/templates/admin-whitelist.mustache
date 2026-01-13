@@ -54,11 +54,13 @@
 				</div>
 				<p class="section-description">{{msg.admin_whitelist_description}}</p>
 
-				<form action="/admin/whitelist/add" method="post" class="whitelist-form"
+				<form action="/admin/whitelist/add" method="post" class="whitelist-form" id="add-whitelist-form"
 					  hx-post="/admin/whitelist/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
 					  hx-on::after-request="this.reset()">
+					<input type="hidden" name="page" id="add-form-page" value="0"/>
+					<input type="hidden" name="sortOldestFirst" id="add-form-sort" value="false"/>
 					<div class="form-group">
 						<label for="email" class="form-field__label">{{msg.admin_whitelist_email_label}}</label>
 						<input id="email" name="email" type="email" class="form-input"
@@ -106,6 +108,7 @@
 				<p class="dialog__email-display" id="edit-dialog-email-display"></p>
 				<input type="hidden" name="email" id="edit-reason-email"/>
 				<input type="hidden" name="page" id="edit-reason-page"/>
+				<input type="hidden" name="sortOldestFirst" id="edit-reason-sort"/>
 				<div class="form-field">
 					<label for="edit-reason-input"
 						   class="form-field__label">{{msg.admin_whitelist_reason_label}}</label>
@@ -128,11 +131,13 @@
 		const email = btn.dataset.email;
 		const reason = btn.dataset.reason;
 		const page = btn.dataset.page;
+		const sortOldestFirst = btn.dataset.sortOldestFirst;
 
 		document.getElementById('edit-dialog-email-display').textContent = email;
 		document.getElementById('edit-reason-email').value = email;
 		document.getElementById('edit-reason-input').value = reason;
 		document.getElementById('edit-reason-page').value = page;
+		document.getElementById('edit-reason-sort').value = sortOldestFirst;
 
 		const dialog = document.getElementById('edit-reason-dialog');
 		dialog.classList.remove('hidden', 'closing');
@@ -152,6 +157,20 @@
 			dialog.classList.remove('closing');
 		}, 200);
 	}
+
+	// Update form hidden fields when whitelist is loaded/updated
+	document.body.addEventListener('htmx:afterSwap', function (event) {
+		if (event.detail.target.id === 'whitelist') {
+			// Extract current page and sort from the loaded content
+			const urlParams = new URLSearchParams(window.location.search);
+			const currentPage = urlParams.get('page') || '0';
+			const sortOldestFirst = urlParams.get('sortOldestFirst') || 'false';
+
+			// Update add form hidden inputs
+			document.getElementById('add-form-page').value = currentPage;
+			document.getElementById('add-form-sort').value = sortOldestFirst;
+		}
+	});
 
 	// Close dialog on escape key
 	document.addEventListener('keydown', function (e) {
