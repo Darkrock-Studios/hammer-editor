@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.datamigrator.migrations.DataMigration
 import com.darkrockstudios.apps.hammer.datamigrator.migrations.DatabaseSchemaMigration
-import com.darkrockstudios.apps.hammer.datamigrator.migrations.FilesystemToDatabaseMigration
 import okio.FileSystem
 
 class DataMigrator(
@@ -15,7 +14,6 @@ class DataMigrator(
 
 	init {
 		database.initialize()
-		addMigration(FilesystemToDatabaseMigration(fileSystem, database))
 		addMigration(DatabaseSchemaMigration(database.driver))
 	}
 
