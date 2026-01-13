@@ -279,6 +279,33 @@
 	gap: 0.75rem;
 }
 
+.whitelist-controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	margin-bottom: 1rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 2px solid var(--neutral-200);
+}
+
+.whitelist-controls .btn {
+	font-size: 0.875rem;
+	padding: 0.5rem 1rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: all var(--transition-base);
+}
+
+.whitelist-controls .btn i {
+	font-size: 1rem;
+	transition: transform var(--transition-base);
+}
+
+.whitelist-controls .btn:hover i {
+	transform: scale(1.1);
+}
+
 .error-message {
 	padding: 0.75rem 1rem;
 	margin-bottom: 1rem;

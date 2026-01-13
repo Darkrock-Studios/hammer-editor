@@ -24,7 +24,12 @@ ORDER BY email ASC;
 
 getPaginated:
 SELECT * FROM white_list
-ORDER BY email ASC
+ORDER BY date_added DESC
+LIMIT ? OFFSET ?;
+
+getPaginatedOldestFirst:
+SELECT * FROM white_list
+ORDER BY date_added ASC
 LIMIT ? OFFSET ?;
 
 getCount:

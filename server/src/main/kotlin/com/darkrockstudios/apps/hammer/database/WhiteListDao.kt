@@ -41,8 +41,13 @@ open class WhiteListDao(
 		return@withContext queries.getPaginated(limit, offset).executeAsList().map { it.email }
 	}
 
-	open suspend fun getPaginated(limit: Long, offset: Long): List<WhiteList> = withContext(ioDispatcher) {
-		return@withContext queries.getPaginated(limit, offset).executeAsList()
+	open suspend fun getPaginated(limit: Long, offset: Long, sortOldestFirst: Boolean = false): List<WhiteList> =
+		withContext(ioDispatcher) {
+			return@withContext if (sortOldestFirst) {
+				queries.getPaginatedOldestFirst(limit, offset).executeAsList()
+			} else {
+				queries.getPaginated(limit, offset).executeAsList()
+			}
 	}
 
 	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {

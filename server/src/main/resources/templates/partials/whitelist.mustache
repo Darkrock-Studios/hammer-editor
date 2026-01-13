@@ -3,6 +3,27 @@
 		<div class="error-message">{{error}}</div>
 	{{/error}}
 
+	<div class="whitelist-controls">
+		{{#sortNewestFirst}}
+			<button hx-get="/admin/whitelist/user-fragment?page={{currentPage}}&sortOldestFirst=true"
+			hx-target="#whitelist"
+			hx-swap="innerHTML"
+			class="btn btn--ghost">
+			<i class="fa-solid fa-arrow-down-short-wide"></i>
+			Sort: Newest First
+			</button>
+		{{/sortNewestFirst}}
+		{{#sortOldestFirst}}
+			<button hx-get="/admin/whitelist/user-fragment?page={{currentPage}}&sortOldestFirst=false"
+			hx-target="#whitelist"
+			hx-swap="innerHTML"
+			class="btn btn--ghost">
+			<i class="fa-solid fa-arrow-up-short-wide"></i>
+			Sort: Oldest First
+			</button>
+		{{/sortOldestFirst}}
+	</div>
+
 	{{#items}}
 		<div class="whitelist-entry">
 			<div class="whitelist-entry__info">
@@ -18,6 +39,7 @@
 						data-email="{{email}}"
 						data-reason="{{reason}}"
 						data-page="{{currentPage}}"
+						data-sort-oldest-first="{{sortOldestFirst}}"
 						onclick="openEditReasonDialog(this)">
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_whitelist_edit_button}}
@@ -29,6 +51,7 @@
 					  hx-confirm="Remove {{email}} from the whitelist?">
 					<input type="hidden" name="email" value="{{email}}"/>
 					<input type="hidden" name="page" value="{{currentPage}}"/>
+					<input type="hidden" name="sortOldestFirst" value="{{sortOldestFirst}}"/>
 					<button type="submit" class="btn btn--danger">{{msg.admin_whitelist_remove_button}}</button>
 				</form>
 			</div>
@@ -43,7 +66,7 @@
 	{{#totalPages}}
 		<div class="pagination">
 			{{#hasPrevPage}}
-				<button hx-get="/admin/whitelist/user-fragment?page={{prevPage}}"
+				<button hx-get="/admin/whitelist/user-fragment?page={{prevPage}}&sortOldestFirst={{sortOldestFirst}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">
@@ -56,7 +79,7 @@
     </span>
 
 			{{#hasNextPage}}
-				<button hx-get="/admin/whitelist/user-fragment?page={{nextPage}}"
+				<button hx-get="/admin/whitelist/user-fragment?page={{nextPage}}&sortOldestFirst={{sortOldestFirst}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">
