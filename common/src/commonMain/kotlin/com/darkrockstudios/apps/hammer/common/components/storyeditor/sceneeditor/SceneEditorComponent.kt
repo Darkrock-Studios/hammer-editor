@@ -189,8 +189,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.d("Scene buffer discard selected")
-			sceneEditor.discardSceneBuffer(sceneDef)
-			forceUpdate()
+			beginDiscard()
 		}
 
 		val renameItem = MenuItemDescriptor(
@@ -357,6 +356,20 @@ class SceneEditorComponent(
 				closeSceneEditor()
 			}
 		}
+	}
+
+	override fun beginDiscard() {
+		_state.getAndUpdate { it.copy(confirmDiscard = true) }
+	}
+
+	override fun endDiscard() {
+		_state.getAndUpdate { it.copy(confirmDiscard = false) }
+	}
+
+	override fun doDiscard() {
+		sceneEditor.discardSceneBuffer(sceneDef)
+		endDiscard()
+		forceUpdate()
 	}
 
 	override fun beginSaveDraft() {

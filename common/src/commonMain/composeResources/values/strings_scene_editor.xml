@@ -31,6 +31,11 @@
 	<string name="archive_scene_dialog_confirm">Archive</string>
 	<string name="archive_scene_dialog_cancel">Cancel</string>
 
+	<string name="discard_buffer_dialog_title">Discard Changes</string>
+	<string name="discard_buffer_dialog_message">Are you sure you want to discard all unsaved changes to '%1$s'? This will reload the last saved version from disk.</string>
+	<string name="discard_buffer_dialog_confirm">Discard</string>
+	<string name="discard_buffer_dialog_cancel">Cancel</string>
+
 	<string name="archived_scenes_dialog_title">Archived Scenes</string>
 	<string name="archived_scenes_empty">No archived scenes</string>
 	<string name="archived_scenes_restore_button">Restore</string>
