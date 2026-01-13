@@ -123,8 +123,6 @@ Once you've set it up, Lets Encrypt will give you a bunch of PEM files in a dire
 
 The two files we really care about are `fullchain.pem` and `privkey.pem`.
 
-The two files we really care about are `fullchain.pem` and `privkey.pem`.
-
 We can use these two to produce a JKS file, here is a script that will help you do it:
 
 `convert.sh`
