@@ -1,24 +1,45 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.GetAccountsPaginated
+import com.darkrockstudios.apps.hammer.GetAccountsPaginatedSortByCreated
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
 import de.mkammerer.argon2.Argon2Factory
-import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+
+enum class UserSortField(val value: String) {
+	CREATED("created"),
+	LAST_SYNC("lastsync"),
+	PROJECT_COUNT("projectcount");
+
+	companion object {
+		fun fromString(value: String): UserSortField {
+			return entries.find { it.value.equals(value, ignoreCase = true) } ?: CREATED
+		}
+	}
+}
+
+enum class SortDirection(val value: String) {
+	ASCENDING("asc"),
+	DESCENDING("desc");
+
+	companion object {
+		fun fromString(value: String): SortDirection {
+			return entries.find { it.value.equals(value, ignoreCase = true) } ?: DESCENDING
+		}
+	}
+}
 
 class AccountsRepository(
 	private val accountDao: AccountDao,
 	private val authTokenDao: AuthTokenDao,
 	private val clock: Clock,
 	private val tokenHasher: TokenHasher,
-	secureRandom: SecureRandom,
 	base64: Base64,
 ) {
 	private val tokenLifetime = 30.days
@@ -187,8 +208,13 @@ class AccountsRepository(
 		return accountDao.numAccounts()
 	}
 
-	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> {
-		return accountDao.getAccountsPaginated(page, pageSize)
+	suspend fun getAccountsPaginated(
+		page: Int,
+		pageSize: Int,
+		sortBy: UserSortField = UserSortField.CREATED,
+		sortDirection: SortDirection = SortDirection.DESCENDING
+	): List<GetAccountsPaginatedSortByCreated> {
+		return accountDao.getAccountsPaginated(page, pageSize, sortBy, sortDirection)
 	}
 
 	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) {

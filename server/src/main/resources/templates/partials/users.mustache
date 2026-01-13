@@ -1,4 +1,78 @@
 {{#users}}
+	<!-- Sorting Controls -->
+	<div class="sort-controls sort-controls--collapsed" id="sortControls">
+		<button class="sort-controls__toggle" onclick="toggleSortControls()" type="button">
+			<span class="sort-controls__toggle-label">
+				<i class="fa-solid fa-sliders"></i>
+				{{msg.admin_users_sort_controls}}
+			</span>
+			<i class="fa-solid fa-chevron-down sort-controls__toggle-icon" id="sortControlsIcon"></i>
+		</button>
+
+		<div class="sort-controls__content" id="sortControlsContent">
+			<div class="sort-controls__group">
+				<label class="sort-controls__label">
+					<i class="fa-solid fa-sort"></i>
+					{{msg.admin_users_sort_by}}:
+				</label>
+				<div class="sort-controls__buttons">
+					<button
+						hx-get="/admin/users/user-fragment?page=0&sortBy=created&sortDirection={{sortDirection}}"
+					hx-target="#users"
+					hx-swap="innerHTML"
+					class="sort-btn {{#sortByCreated}}sort-btn--active{{/sortByCreated}}">
+					<i class="fa-solid fa-calendar-plus"></i>
+					{{msg.admin_users_sort_created}}
+					</button>
+					<button
+						hx-get="/admin/users/user-fragment?page=0&sortBy=lastsync&sortDirection={{sortDirection}}"
+					hx-target="#users"
+					hx-swap="innerHTML"
+					class="sort-btn {{#sortByLastSync}}sort-btn--active{{/sortByLastSync}}">
+					<i class="fa-solid fa-sync"></i>
+					{{msg.admin_users_sort_lastsync}}
+					</button>
+					<button
+						hx-get="/admin/users/user-fragment?page=0&sortBy=projectcount&sortDirection={{sortDirection}}"
+					hx-target="#users"
+					hx-swap="innerHTML"
+					class="sort-btn {{#sortByProjectCount}}sort-btn--active{{/sortByProjectCount}}">
+					<i class="fa-solid fa-book"></i>
+					{{msg.admin_users_sort_projectcount}}
+					</button>
+				</div>
+			</div>
+
+			<div class="sort-controls__divider"></div>
+
+			<div class="sort-controls__group">
+				<label class="sort-controls__label">
+					<i class="fa-solid fa-arrow-down-up"></i>
+					{{msg.admin_users_sort_direction}}:
+				</label>
+				<div class="sort-controls__buttons">
+					<button
+						hx-get="/admin/users/user-fragment?page={{currentPage}}&sortBy={{sortBy}}&sortDirection=desc"
+					hx-target="#users"
+					hx-swap="innerHTML"
+					class="sort-btn {{#sortDescending}}sort-btn--active{{/sortDescending}}">
+					<i class="fa-solid fa-arrow-down-wide-short"></i>
+					{{msg.admin_users_sort_desc}}
+					</button>
+					<button
+						hx-get="/admin/users/user-fragment?page={{currentPage}}&sortBy={{sortBy}}&sortDirection=asc"
+					hx-target="#users"
+					hx-swap="innerHTML"
+					class="sort-btn {{#sortAscending}}sort-btn--active{{/sortAscending}}">
+					<i class="fa-solid fa-arrow-up-wide-short"></i>
+					{{msg.admin_users_sort_asc}}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- User List -->
 	{{#items}}
 		{{#.}}
 			<div class="user-item">
@@ -34,7 +108,8 @@
 	{{#totalPages}}
 		<div class="pagination">
 			{{#hasPrevPage}}
-				<button hx-get="/admin/users/user-fragment?page={{prevPage}}"
+				<button hx-get="/admin/users/user-fragment?page={{prevPage}}&sortBy={{sortBy}}
+				&sortDirection={{sortDirection}}"
 				hx-target="#users"
 				hx-swap="innerHTML"
 				class="pagination-button">
@@ -47,7 +122,8 @@
     </span>
 
 			{{#hasNextPage}}
-				<button hx-get="/admin/users/user-fragment?page={{nextPage}}"
+				<button hx-get="/admin/users/user-fragment?page={{nextPage}}&sortBy={{sortBy}}
+				&sortDirection={{sortDirection}}"
 				hx-target="#users"
 				hx-swap="innerHTML"
 				class="pagination-button">
