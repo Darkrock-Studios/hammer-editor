@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.admin
 
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 
@@ -12,7 +12,7 @@ class AdminComponent(
 	}
 
 	suspend fun addToWhiteList(email: String): ServerResult<Unit> {
-		return if (AccountsRepository.validateEmail(email)) {
+		return if (EmailValidator.validate(email)) {
 			whiteListRepository.addToWhiteList(email)
 			ServerResult.success(Unit)
 		} else {

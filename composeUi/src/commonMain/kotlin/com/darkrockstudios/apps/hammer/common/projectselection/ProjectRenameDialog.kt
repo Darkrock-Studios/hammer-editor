@@ -3,13 +3,16 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -19,10 +22,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
-import com.darkrockstudios.apps.hammer.rename_project_button
-import com.darkrockstudios.apps.hammer.rename_project_cancel_button
-import com.darkrockstudios.apps.hammer.rename_project_heading
-import com.darkrockstudios.apps.hammer.rename_project_title
 
 @Composable
 fun ProjectRenameDialog(
@@ -49,7 +48,7 @@ fun ProjectRenameDialog(
 			value = if (isFailure(validationResult)) {
 				when (val exception = validationResult.exception) {
 					is ValidationFailedException -> strRes.get(exception.errorMessage)
-					else -> validationResult.displayMessage?.let { strRes.get(it.r, it.args) }
+					else -> validationResult.displayMessage?.text(strRes)
 				}
 			} else null
 		}

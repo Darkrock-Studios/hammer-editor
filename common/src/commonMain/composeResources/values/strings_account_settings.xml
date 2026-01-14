@@ -50,9 +50,6 @@
 	<string name="settings_server_setup_login_button">Log In</string>
 	<string name="settings_server_setup_create_button">Create</string>
 	<string name="settings_server_setup_cancel_button">Cancel</string>
-	<string name="settings_server_setup_toast_failure">Server setup Failed: %1$s</string>
-	<string name="settings_server_setup_toast_failure_unknown">Unknown Error</string>
-	<string name="settings_server_setup_toast_success">Server setup complete!</string>
 	<string name="remove_local_dialog_title">Remove Local Content?</string>
 	<string
 		name="remove_local_dialog_message">Should we remove your current local content before syncing? If not, we will attempt to merge your local content with the server content. If the content is unrelated, it could cause problems.
@@ -103,4 +100,38 @@
 	<string name="account_sync_confirm_cancel_title">Cancel Sync?</string>
 	<string name="account_sync_confirm_cancel_message">Are you sure you want to cancel the sync?</string>
 	<string name="account_sync_toast_canceled">Sync canceled</string>
+
+	<!-- Server Setup Validation Errors -->
+	<string name="server_setup_error_unknown">An unexpected error occurred. Please try again.</string>
+	<string
+		name="server_setup_error_invalid_url">Invalid server address. Enter a URL like "hammer.ink" or an IP address.
+	</string>
+	<string name="server_setup_error_invalid_email">Please enter a valid email address.</string>
+	<string name="server_setup_error_password_too_short">Password must be at least 8 characters.</string>
+	<string name="server_setup_error_password_too_long">Password must be 64 characters or less.</string>
+	<string name="server_setup_error_password_no_uppercase">Password must contain at least one uppercase letter.
+	</string>
+	<string name="server_setup_error_password_no_lowercase">Password must contain at least one lowercase letter.
+	</string>
+	<string name="server_setup_error_password_no_number">Password must contain at least one number.</string>
+	<string name="server_setup_error_password_no_special">Password must contain at least one special character.</string>
+
+	<!-- Server Setup Toast Messages -->
+	<string name="settings_server_setup_toast_success">Server setup successful!</string>
+	<string name="settings_server_setup_toast_failure">Server setup failed: %1$s</string>
+	<string
+		name="settings_server_setup_toast_failure_unknown">Server setup failed. Please check your connection and try again.
+	</string>
+
+	<!-- Network Errors -->
+	<string
+		name="server_error_connection_timeout">Could not connect to server. Make sure the server is running and the address is correct.
+	</string>
+	<string name="server_error_timeout">The server is not responding. Check your internet connection and try again.
+	</string>
+	<string name="server_error_dns">Server not found. Check the server address and your internet connection.</string>
+	<string
+		name="server_error_connection_generic">Network error connecting to %1$s. Check your connection and try again.
+	</string>
+
 </resources>

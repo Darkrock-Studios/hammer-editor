@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.admin
 
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
 import com.darkrockstudios.apps.hammer.database.WhiteList
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import io.ktor.util.*
@@ -83,7 +83,7 @@ class WhiteListRepository(
 	}
 
 	fun validateEmail(email: String): Boolean {
-		return AccountsRepository.validateEmail(email)
+		return EmailValidator.validate(email)
 	}
 
 	fun validateReason(reason: String): Boolean {

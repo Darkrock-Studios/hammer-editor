@@ -48,6 +48,7 @@ interface AccountSettings : ComponentToaster {
 	data class State(
 		val location: ProjectSelection.Locations = ProjectSelection.Locations.Projects,
 		val uiTheme: UiTheme,
+		val currentUserId: Long? = null,
 		val currentSsl: Boolean? = null,
 		val currentUrl: String? = null,
 		val currentEmail: String? = null,
