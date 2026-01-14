@@ -95,6 +95,9 @@
 	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
 	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s</string>
 	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
+	<string name="sync_log_stale_hash_detected">Server cached hash is stale for entity %1$d. Healing by force uploading.</string>
+	<string name="sync_log_stale_hash_healed">Successfully healed server cache for entity %1$d by force uploading</string>
+	<string name="sync_log_stale_hash_heal_failed">Failed to heal server cache for entity %1$d - force upload failed</string>
 	<string name="sync_log_entities_transferred">Entities transferred</string>
 	<string name="sync_log_finalized">Sync finalized</string>
 	<string name="sync_log_data_saved">Sync data saved</string>

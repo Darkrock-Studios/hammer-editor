@@ -2,9 +2,9 @@
 <resources>
 	<string name="app_name">Hammer</string>
 	<string name="unsaved_scenes_dialog_title">Cenas não salvas</string>
-	<string name="unsaved_scenes_dialog_message">O que deve ser feito com as cenas não salvas?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Unsaved Encyclopedia Entry</string>
-	<string name="unsaved_encyclopedia_dialog_message">Discard entry?</string>
+	<string name="unsaved_scenes_dialog_message">O que deve ser feito com cenas não salvas?</string>
+	<string name="unsaved_encyclopedia_dialog_title">Verbete da Enciclopédia Não Salvo</string>
+	<string name="unsaved_encyclopedia_dialog_message">Descartar verbete?</string>
 	<string name="unsaved_notes_dialog_title">Anotação não salva</string>
 	<string name="unsaved_notes_dialog_message">Descartar anotação?</string>
 	<string name="unsaved_dialog_negative_button">Cancelar</string>
@@ -14,11 +14,11 @@
 	<string name="unsaved_entity_dialog_positive_button">Salvar</string>
 	<string name="close_dialog_button">Fechar</string>
 	<string name="more_menu_button">Mais</string>
-	<string name="network_request_failure_connection">Network request failed: %1$s</string>
-	<string name="network_request_failure_parse_body">Failed to parse response body: %1$s</string>
+	<string name="network_request_failure_connection">Solicitação de rede falhou: %1$s</string>
+	<string name="network_request_failure_parse_body">Falha ao analisar o corpo da resposta: %1$s</string>
 	<string name="confirm_dialog_positive">Sim</string>
 	<string name="confirm_dialog_negative">Não</string>
-	<string name="image_failed_to_load">Image Error</string>
+	<string name="image_failed_to_load">Erro de Imagem</string>
 	<string name="expand">Expandir</string>
-	<string name="collapse">Collapse</string>
+	<string name="collapse">Encolher</string>
 </resources>

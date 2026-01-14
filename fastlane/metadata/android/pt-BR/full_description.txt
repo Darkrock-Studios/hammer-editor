@@ -1,5 +1,3 @@
-Este aplicativo ainda está em desenvolvimento e deve ser considerado como em versão beta.
-
 Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
 
 Multi-plataforma
