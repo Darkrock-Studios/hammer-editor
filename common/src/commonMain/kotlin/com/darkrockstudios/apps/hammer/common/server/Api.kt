@@ -10,9 +10,12 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.network.sockets.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.util.network.*
 import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.KoinComponent
@@ -68,14 +71,63 @@ abstract class Api(
 					)
 				)
 			)
+		} catch (e: ConnectTimeoutException) {
+			// Connection timeout - server not responding when connecting
+			Napier.e("Connection timeout", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = HttpStatusCode.RequestTimeout,
+					error = HttpResponseError(
+						error = e.message ?: "Connection Timeout",
+						displayMessage = strRes.get(Res.string.server_error_connection_timeout),
+					)
+				)
+			)
+		} catch (e: SocketTimeoutException) {
+			// Socket timeout - server stopped responding during data transfer
+			Napier.e("Socket timeout", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = HttpStatusCode.RequestTimeout,
+					error = HttpResponseError(
+						error = e.message ?: "Socket Timeout",
+						displayMessage = strRes.get(Res.string.server_error_timeout),
+					)
+				)
+			)
+		} catch (e: HttpRequestTimeoutException) {
+			// Overall request timeout
+			Napier.e("Request timeout", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = HttpStatusCode.RequestTimeout,
+					error = HttpResponseError(
+						error = e.message ?: "Request Timeout",
+						displayMessage = strRes.get(Res.string.server_error_timeout),
+					)
+				)
+			)
+		} catch (e: UnresolvedAddressException) {
+			// DNS resolution failure
+			Napier.e("Unresolved address", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = HttpStatusCode.BadGateway,
+					error = HttpResponseError(
+						error = e.message ?: "Unresolved Address",
+						displayMessage = strRes.get(Res.string.server_error_dns),
+					)
+				)
+			)
 		} catch (e: IOException) {
+			// Generic network error (connection refused, SSL errors, etc.)
 			Napier.e("Network Error", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
 					error = HttpResponseError(
 						error = e.message ?: "Network Error",
-						displayMessage = strRes.get(Res.string.network_request_failure_connection, path),
+						displayMessage = strRes.get(Res.string.server_error_connection_generic, path),
 					)
 				)
 			)

@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -26,6 +28,11 @@ class AccountsComponentCreateAccountTest {
 
 	@MockK
 	private lateinit var projectsRepository: ProjectsRepository
+
+	@MockK
+	private lateinit var configRepository: ConfigRepository
+
+	private val serverConfig = ServerConfig()
 
 	private val validEmail = "test@test.com"
 	private val validPassword = "qweasdZXC123"
@@ -54,7 +61,13 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			serverConfig
+		)
 		val result = comp.createAccount(
 			email = validEmail,
 			installId = installId,
@@ -83,7 +96,13 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			serverConfig
+		)
 		val result = comp.createAccount(
 			email = validEmail,
 			installId = installId,
@@ -110,7 +129,13 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			serverConfig
+		)
 		val result = comp.createAccount(
 			email = validEmail,
 			installId = installId,
@@ -134,7 +159,13 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(accountsRepository, whiteListRepository, projectsRepository)
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			serverConfig
+		)
 		val result = comp.createAccount(
 			email = validEmail,
 			installId = installId,

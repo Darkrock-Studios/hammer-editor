@@ -64,6 +64,10 @@ class SceneSynchronizerTest : BaseTest() {
 		tree = Tree()
 		rootNode = TreeNode(rootSceneNode(def))
 		tree.setRoot(rootNode)
+
+		// Default mocks for archived scenes - returns empty/null unless overridden
+		every { sceneEditorRepository.getArchivedScenes() } returns emptyList()
+		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
@@ -337,5 +341,51 @@ class SceneSynchronizerTest : BaseTest() {
 		assertNotNull(newGroupNode)
 
 		coVerify(exactly = 1) { sceneEditorRepository.createGroup(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `ownsEntity - includes archived scenes`() = runTest {
+		////////////////////
+		// Setup
+		val sceneId = 1
+		val archivedScene = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Archived Scene",
+			order = 0,
+			archived = true,
+		)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null // Not in active tree
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns archivedScene
+
+		////////////////////
+		// Test
+		val sync = defaultSceneSynchronizer()
+		val owns = sync.ownsEntity(sceneId)
+
+		////////////////////
+		// Verify
+		kotlin.test.assertTrue(owns, "Should own archived scene")
+	}
+
+	@Test
+	fun `ownsEntity - returns false for unknown scene`() = runTest {
+		////////////////////
+		// Setup
+		val sceneId = 999
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+		every { sceneEditorRepository.getArchivedScenes() } returns emptyList()
+
+		////////////////////
+		// Test
+		val sync = defaultSceneSynchronizer()
+		val owns = sync.ownsEntity(sceneId)
+
+		////////////////////
+		// Verify
+		kotlin.test.assertFalse(owns, "Should not own unknown scene")
 	}
 }

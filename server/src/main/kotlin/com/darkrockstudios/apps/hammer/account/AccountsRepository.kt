@@ -1,24 +1,48 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.GetAccountsPaginated
+import com.darkrockstudios.apps.hammer.GetAccountsPaginatedSortByCreated
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
 import de.mkammerer.argon2.Argon2Factory
-import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+
+enum class UserSortField(val value: String) {
+	CREATED("created"),
+	LAST_SYNC("lastsync"),
+	PROJECT_COUNT("projectcount");
+
+	companion object {
+		fun fromString(value: String): UserSortField {
+			return entries.find { it.value.equals(value, ignoreCase = true) } ?: CREATED
+		}
+	}
+}
+
+enum class SortDirection(val value: String) {
+	ASCENDING("asc"),
+	DESCENDING("desc");
+
+	companion object {
+		fun fromString(value: String): SortDirection {
+			return entries.find { it.value.equals(value, ignoreCase = true) } ?: DESCENDING
+		}
+	}
+}
 
 class AccountsRepository(
 	private val accountDao: AccountDao,
 	private val authTokenDao: AuthTokenDao,
 	private val clock: Clock,
 	private val tokenHasher: TokenHasher,
-	secureRandom: SecureRandom,
 	base64: Base64,
 ) {
 	private val tokenLifetime = 30.days
@@ -59,7 +83,7 @@ class AccountsRepository(
 
 	suspend fun createAccount(email: String, installId: String, password: String): ServerResult<Token> {
 		val existingAccount = accountDao.findAccount(email)
-		val passwordResult = validatePassword(password)
+		val passwordResult = PasswordValidator.validate(password)
 		return when {
 			existingAccount != null -> SResult.failure(
 				"account already exists",
@@ -67,13 +91,13 @@ class AccountsRepository(
 				CreateFailed("Account already exists")
 			)
 
-			!validateEmail(email) -> SResult.failure(
+			!EmailValidator.validate(email) -> SResult.failure(
 				"invalid email",
 				Msg.r("api_accounts_create_error_invalidemail"),
 				CreateFailed("Invalid email")
 			)
 
-			passwordResult != PasswordResult.VALID -> SResult.failure(
+			passwordResult != PasswordValidationResult.VALID -> SResult.failure(
 				"password failure",
 				InvalidPassword.getMessage(passwordResult),
 				InvalidPassword(passwordResult)
@@ -187,8 +211,13 @@ class AccountsRepository(
 		return accountDao.numAccounts()
 	}
 
-	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> {
-		return accountDao.getAccountsPaginated(page, pageSize)
+	suspend fun getAccountsPaginated(
+		page: Int,
+		pageSize: Int,
+		sortBy: UserSortField = UserSortField.CREATED,
+		sortDirection: SortDirection = SortDirection.DESCENDING
+	): List<GetAccountsPaginatedSortByCreated> {
+		return accountDao.getAccountsPaginated(page, pageSize, sortBy, sortDirection)
 	}
 
 	suspend fun updateCommunityMember(userId: Long, isCommunityMember: Boolean) {
@@ -208,27 +237,12 @@ class AccountsRepository(
 	}
 
 	companion object {
-		const val MIN_PASSWORD_LENGTH = 8
-		const val MAX_PASSWORD_LENGTH = 64
 		const val CIPHER_SALT_LENGTH = 16
 
 		// Argon2 parameters
 		const val ARGON2_MEMORY_COST_KIB = 65536  // 64 MiB
 		const val ARGON2_TIME_COST = 3  // iterations
 		const val ARGON2_PARALLELISM = 2  // threads
-
-		// TODO: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
-		private val emailPattern = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
-
-		enum class PasswordResult {
-			VALID,
-			TOO_SHORT,
-			TOO_LONG,
-			NO_UPPERCASE,
-			NO_LOWERCASE,
-			NO_NUMBER,
-			NO_SPECIAL
-		}
 
 		fun hashPassword(password: String): String {
 			val argon2 = Argon2Factory.create()
@@ -243,20 +257,6 @@ class AccountsRepository(
 				)
 			} finally {
 				argon2.wipeArray(passwordChars)
-			}
-		}
-
-		fun validateEmail(email: String): Boolean {
-			val trimmedInput = email.trim()
-			return emailPattern.matches(trimmedInput)
-		}
-
-		fun validatePassword(password: String): PasswordResult {
-			val trimmedInput = password.trim()
-			return when {
-				trimmedInput.length < MIN_PASSWORD_LENGTH -> PasswordResult.TOO_SHORT
-				trimmedInput.length > MAX_PASSWORD_LENGTH -> PasswordResult.TOO_LONG
-				else -> PasswordResult.VALID
 			}
 		}
 	}

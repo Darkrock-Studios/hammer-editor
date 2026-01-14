@@ -54,7 +54,7 @@ fun Route.frontend() {
 	}
 
 	// Only inject EmailService if email is enabled at server level
-	val emailService: EmailService? = if (serverConfig.emailProvider != null) {
+	val emailService: EmailService? = if (serverConfig.emailProviderType != null) {
 		inject<EmailService>().value
 	} else {
 		null
@@ -180,6 +180,11 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// Add community enabled flag for header nav
 	if (serverConfig.communityEnabled) {
 		model["communityEnabled"] = true
+	}
+
+	// Add development mode flag for header banner
+	if (application.developmentMode) {
+		model["isDev"] = true
 	}
 
 	return model

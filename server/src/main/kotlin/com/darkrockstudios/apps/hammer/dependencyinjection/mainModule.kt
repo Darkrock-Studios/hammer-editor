@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -7,8 +8,7 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.*
-import com.darkrockstudios.apps.hammer.email.EmailService
-import com.darkrockstudios.apps.hammer.email.SmtpEmailService
+import com.darkrockstudios.apps.hammer.email.*
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
@@ -93,7 +93,16 @@ fun mainModule(
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
 	singleOf(::TokenHasher)
 
-	singleOf(::SmtpEmailService) bind EmailService::class
+	single<EmailService> {
+		val serverConfig = get<ServerConfig>()
+		when (serverConfig.emailProviderType) {
+			EmailProvider.SENDGRID -> SendGridEmailService(get())
+			EmailProvider.POSTMARK -> PostmarkEmailService(get())
+			EmailProvider.MAILGUN -> MailgunEmailService(get())
+			EmailProvider.SMTP -> SmtpEmailService(get())
+			null -> SmtpEmailService(get())
+		}
+	}
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
 	factoryOf(::ProjectEntityDatabaseDatasource) bind ProjectEntityDatasource::class

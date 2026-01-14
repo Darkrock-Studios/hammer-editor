@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.frontend.admin
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.email.EmailProvider
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
@@ -20,11 +22,16 @@ import kotlinx.html.div
 internal fun Route.adminEmailPage(
 	configRepository: ConfigRepository,
 	emailService: EmailService,
-	patreonFeatureEnabled: Boolean
+	patreonFeatureEnabled: Boolean,
+	serverConfig: ServerConfig
 ) {
 	get("/email") {
 		val smtpConfig = configRepository.get(AdminServerConfig.SMTP_CONFIG)
+		val sendGridConfig = configRepository.get(AdminServerConfig.SENDGRID_CONFIG)
+		val postmarkConfig = configRepository.get(AdminServerConfig.POSTMARK_CONFIG)
+		val mailgunConfig = configRepository.get(AdminServerConfig.MAILGUN_CONFIG)
 		val isConfigured = emailService.isConfigured()
+		val activeProvider = serverConfig.emailProviderType ?: EmailProvider.SMTP
 
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
@@ -36,6 +43,12 @@ internal fun Route.adminEmailPage(
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
 			"emailFeatureEnabled" to true,
 			"emailConfigured" to isConfigured,
+			"activeProvider" to activeProvider.name,
+			"isSmtpProvider" to (activeProvider == EmailProvider.SMTP),
+			"isSendGridProvider" to (activeProvider == EmailProvider.SENDGRID),
+			"isPostmarkProvider" to (activeProvider == EmailProvider.POSTMARK),
+			"isMailgunProvider" to (activeProvider == EmailProvider.MAILGUN),
+			// SMTP config
 			"smtpHost" to smtpConfig.host,
 			"smtpPort" to smtpConfig.port,
 			"smtpUsername" to smtpConfig.username,
@@ -44,6 +57,20 @@ internal fun Route.adminEmailPage(
 			"smtpFromName" to smtpConfig.fromName,
 			"smtpUseTls" to smtpConfig.useTls,
 			"smtpUseStartTls" to smtpConfig.useStartTls,
+			// SendGrid config
+			"sendGridApiKey" to sendGridConfig.apiKey,
+			"sendGridFromAddress" to sendGridConfig.fromAddress,
+			"sendGridFromName" to sendGridConfig.fromName,
+			// Postmark config
+			"postmarkServerToken" to postmarkConfig.serverToken,
+			"postmarkFromAddress" to postmarkConfig.fromAddress,
+			"postmarkFromName" to postmarkConfig.fromName,
+			// Mailgun config
+			"mailgunApiKey" to mailgunConfig.apiKey,
+			"mailgunDomain" to mailgunConfig.domain,
+			"mailgunFromAddress" to mailgunConfig.fromAddress,
+			"mailgunFromName" to mailgunConfig.fromName,
+			"mailgunUseEuRegion" to mailgunConfig.useEuRegion,
 		)
 		call.respond(MustacheContent("admin-email.mustache", call.withDefaults(model)))
 	}
@@ -51,8 +78,8 @@ internal fun Route.adminEmailPage(
 
 internal fun Route.emailSettingsRoutes(configRepository: ConfigRepository, emailService: EmailService) {
 	route("/email") {
-		// POST /admin/email/settings - Save email settings
-		hx.post("/settings") {
+		// POST /admin/email/settings/smtp - Save SMTP settings
+		hx.post("/settings/smtp") {
 			val params = call.receiveParameters()
 			val host = params["host"]?.trim().orEmpty()
 			val portStr = params["port"]?.trim().orEmpty()
@@ -78,6 +105,73 @@ internal fun Route.emailSettingsRoutes(configRepository: ConfigRepository, email
 			)
 
 			configRepository.set(AdminServerConfig.SMTP_CONFIG, newConfig)
+
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(HttpStatusCode.OK, "")
+		}
+
+		// POST /admin/email/settings/sendgrid - Save SendGrid settings
+		hx.post("/settings/sendgrid") {
+			val params = call.receiveParameters()
+			val apiKey = params["apiKey"]?.trim().orEmpty()
+			val fromAddress = params["fromAddress"]?.trim().orEmpty()
+			val fromName = params["fromName"]?.trim().orEmpty()
+
+			val currentConfig = configRepository.get(AdminServerConfig.SENDGRID_CONFIG)
+
+			val newConfig = currentConfig.copy(
+				apiKey = apiKey.ifEmpty { currentConfig.apiKey },
+				fromAddress = fromAddress,
+				fromName = fromName.ifEmpty { call.msg("admin_email_default_from_name") },
+			)
+
+			configRepository.set(AdminServerConfig.SENDGRID_CONFIG, newConfig)
+
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(HttpStatusCode.OK, "")
+		}
+
+		// POST /admin/email/settings/postmark - Save Postmark settings
+		hx.post("/settings/postmark") {
+			val params = call.receiveParameters()
+			val serverToken = params["serverToken"]?.trim().orEmpty()
+			val fromAddress = params["fromAddress"]?.trim().orEmpty()
+			val fromName = params["fromName"]?.trim().orEmpty()
+
+			val currentConfig = configRepository.get(AdminServerConfig.POSTMARK_CONFIG)
+
+			val newConfig = currentConfig.copy(
+				serverToken = serverToken.ifEmpty { currentConfig.serverToken },
+				fromAddress = fromAddress,
+				fromName = fromName.ifEmpty { call.msg("admin_email_default_from_name") },
+			)
+
+			configRepository.set(AdminServerConfig.POSTMARK_CONFIG, newConfig)
+
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(HttpStatusCode.OK, "")
+		}
+
+		// POST /admin/email/settings/mailgun - Save Mailgun settings
+		hx.post("/settings/mailgun") {
+			val params = call.receiveParameters()
+			val apiKey = params["apiKey"]?.trim().orEmpty()
+			val domain = params["domain"]?.trim().orEmpty()
+			val fromAddress = params["fromAddress"]?.trim().orEmpty()
+			val fromName = params["fromName"]?.trim().orEmpty()
+			val useEuRegion = params["useEuRegion"] == "true"
+
+			val currentConfig = configRepository.get(AdminServerConfig.MAILGUN_CONFIG)
+
+			val newConfig = currentConfig.copy(
+				apiKey = apiKey.ifEmpty { currentConfig.apiKey },
+				domain = domain,
+				fromAddress = fromAddress,
+				fromName = fromName.ifEmpty { call.msg("admin_email_default_from_name") },
+				useEuRegion = useEuRegion,
+			)
+
+			configRepository.set(AdminServerConfig.MAILGUN_CONFIG, newConfig)
 
 			call.response.header(HxResponseHeaders.Refresh, "true")
 			call.respond(HttpStatusCode.OK, "")

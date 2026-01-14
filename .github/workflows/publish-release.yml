@@ -69,6 +69,7 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
   publish-snap:
+    needs: publish-google-play
     runs-on: ubuntu-latest
     steps:
       - name: Download Snap from Release
@@ -85,8 +86,29 @@ jobs:
           snap: hammer.snap
           release: stable
 
-  notify:
+  publish-flathub-tag:
     needs: [ publish-google-play, publish-snap ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
+      - name: Publish Flathub tag
+        run: |
+          ./gradlew publishFlathub
+
+  notify:
+    needs: [ publish-google-play, publish-snap, publish-flathub-tag ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification
@@ -94,4 +116,4 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@master
         with:
-          args: '**New release:** {{ EVENT_PAYLOAD.release.name }} **Download Here:** {{ EVENT_PAYLOAD.release.html_url }}'
+          args: "**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"

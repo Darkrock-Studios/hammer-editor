@@ -88,7 +88,7 @@ val mainModule = module {
 	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
-	factory { AccountUseCase(get(), get(), get()) }
+	factory { AccountUseCase(get(), get(), get(), get()) }
 	factoryOf(::AccountReauthUseCase)
 
 	singleOf(::getPlatformFilesystem) bind FileSystem::class

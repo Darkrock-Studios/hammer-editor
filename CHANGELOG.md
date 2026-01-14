@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.0.1] - 2026-1-11
+
+Hammer is out of beta!
+
+- Server improvements:
+  + Added Community features
+  + Added About Page
+  + Added Password reset system
+  + Security hardening
+  + Improved SSL cert handling
+- Client: Added sync server info dialog
+- Build improvements
+
+
+## [2.0.0] - 2026-1-10
+
+Hammer is out of beta!
+
+- Server improvements:
+  + Added Community features
+  + Added About Page
+  + Added Password reset system
+  + Security hardening
+  + Improved SSL cert handling
+- Client: Added sync server info dialog
+- Build improvements
+
+
 ## [1.14.0] - 2026-1-6
 
 New Features

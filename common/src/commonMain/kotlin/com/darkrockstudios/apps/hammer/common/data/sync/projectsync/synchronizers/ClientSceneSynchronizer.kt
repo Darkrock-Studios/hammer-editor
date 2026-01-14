@@ -32,13 +32,23 @@ class ClientSceneSynchronizer(
 	projectDef, serverProjectApi, projectMetadataDatasource
 ) {
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.SceneEntity {
-		val scene =
-			sceneEditorRepository.getSceneItemFromId(id)
-				?: throw IllegalStateException("Scene missing for ID $id")
-		val path = sceneEditorRepository.getPathSegments(scene)
+		val scene = sceneEditorRepository.getSceneItemFromId(id)
+			?: sceneEditorRepository.getArchivedSceneFromId(id)
+			?: error("Scene missing for ID $id")
+
+		// Archived scenes have empty path (no hierarchy)
+		val path = if (scene.archived) {
+			emptyList()
+		} else {
+			sceneEditorRepository.getPathSegments(scene)
+		}
 
 		val contents = if (scene.type == SceneItem.Type.Scene) {
-			sceneEditorRepository.loadSceneMarkdownRaw(scene)
+			// For archived scenes, we need to resolve the path from filesystem
+			// since they're not in the tree
+			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(id)
+				?: error("Scene file not found for ID $id")
+			sceneEditorRepository.loadSceneMarkdownRaw(scene, scenePath)
 		} else {
 			""
 		}
@@ -54,6 +64,7 @@ class ClientSceneSynchronizer(
 			path = path,
 			outline = metadata.outline,
 			notes = metadata.notes,
+			archived = scene.archived,
 		)
 	}
 
@@ -63,14 +74,24 @@ class ClientSceneSynchronizer(
 
 	override suspend fun ownsEntity(id: Int): Boolean {
 		return sceneEditorRepository.getSceneItemFromId(id) != null
+			|| sceneEditorRepository.getArchivedSceneFromId(id) != null
 	}
 
 	override suspend fun getEntityHash(id: Int): String? {
+		// Check active tree first, then archived scenes
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
+			?: sceneEditorRepository.getArchivedSceneFromId(id)
+
 		return if (sceneItem != null) {
-			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystem(sceneItem.id)
-				?: throw IllegalStateException("Scene $id not found on filesystem")
-			val pathSegments = sceneEditorRepository.getScenePathSegments(scenePath).pathSegments
+			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id)
+				?: error("Scene $id not found on filesystem")
+
+			// Archived scenes have empty path
+			val pathSegments = if (sceneItem.archived) {
+				emptyList()
+			} else {
+				sceneEditorRepository.getScenePathSegments(scenePath).pathSegments
+			}
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
 			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
@@ -84,6 +105,7 @@ class ClientSceneSynchronizer(
 				content = sceneContent,
 				outline = metadata.outline,
 				notes = metadata.notes,
+				archived = sceneItem.archived,
 			)
 		} else {
 			null
@@ -98,6 +120,19 @@ class ClientSceneSynchronizer(
 		Napier.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = sceneEditorRepository.rawTree
+
+		// Handle archived scenes from server
+		if (serverEntity.archived) {
+			return handleArchivedSceneFromServer(serverEntity, onLog)
+		}
+
+		// Check if this scene is currently archived locally but server says it's not
+		val existingArchived = sceneEditorRepository.getArchivedSceneFromId(id)
+		if (existingArchived != null) {
+			// Unarchive it first since server says it's active
+			sceneEditorRepository.unarchiveScene(existingArchived)
+			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
+		}
 
 		val parentId = serverEntity.path.lastOrNull()
 		val parent = if (parentId != null) {
@@ -120,7 +155,7 @@ class ClientSceneSynchronizer(
 					forceId = serverEntity.id,
 					forceOrder = serverEntity.order
 				)
-					?: throw IllegalStateException("Failed to create scene")
+					?: error("Failed to create scene")
 			}
 
 			val treeNode = tree.find { it.id == id }
@@ -130,7 +165,7 @@ class ClientSceneSynchronizer(
 			)
 
 			val scenePath = sceneEditorRepository.resolveScenePathFromFilesystem(sceneItem.id)
-				?: throw IllegalStateException("Scene $id has no path")
+				?: error("Scene $id has no path")
 
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
@@ -190,7 +225,7 @@ class ClientSceneSynchronizer(
 					forceId = serverEntity.id,
 					forceOrder = serverEntity.order
 				)
-					?: throw IllegalStateException("Failed to create scene")
+					?: error("Failed to create scene")
 			}
 
 			val treeNode = tree.findById(id)
@@ -222,6 +257,58 @@ class ClientSceneSynchronizer(
 			onLog(syncLogI(strRes.get(Res.string.sync_scene_group_downloading, id), projectDef))
 			true
 		}
+	}
+
+	private suspend fun handleArchivedSceneFromServer(
+		serverEntity: ApiProjectEntity.SceneEntity,
+		onLog: OnSyncLog
+	): Boolean {
+		val id = serverEntity.id
+		Napier.d("Server says scene $id is archived")
+
+		// Check if scene exists in active tree
+		val existingActive = sceneEditorRepository.getSceneItemFromId(id)
+		if (existingActive != null) {
+			// Archive it to match server state
+			sceneEditorRepository.archiveScene(existingActive)
+			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
+		}
+
+		// Check if scene exists in archive
+		val scenePath = sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(id)
+		if (scenePath != null) {
+			// Scene exists in archive, update its content
+			val archivedScene = sceneEditorRepository.getArchivedSceneFromId(id)
+			if (archivedScene != null) {
+				val content = SceneContent(archivedScene, serverEntity.content)
+				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
+
+				val updatedMetadata = SceneMetadata(
+					notes = serverEntity.notes,
+					outline = serverEntity.outline
+				)
+				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
+			}
+		} else {
+			// Scene doesn't exist locally at all - create it directly in archive
+			onLog(syncLogI(strRes.get(Res.string.sync_scene_creating, id), projectDef))
+
+			val metadata = SceneMetadata(
+				notes = serverEntity.notes,
+				outline = serverEntity.outline
+			)
+
+			sceneEditorRepository.createArchivedScene(
+				id = serverEntity.id,
+				name = serverEntity.name,
+				order = serverEntity.order,
+				type = serverEntity.sceneType.toSceneType(),
+				content = serverEntity.content,
+				metadata = metadata
+			)
+		}
+
+		return true
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {
@@ -256,18 +343,29 @@ class ClientSceneSynchronizer(
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
 			}
-		} else {
-			onLog(
-				syncLogE(
-					strRes.get(Res.string.sync_scene_delete_failed_not_found, id),
-					projectDef
-				)
-			)
+			return
 		}
+
+		val archivedScene = sceneEditorRepository.getArchivedSceneFromId(id)
+		if (archivedScene != null) {
+			if (sceneEditorRepository.deleteScene(archivedScene)) {
+				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
+			} else {
+				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
+			}
+			return
+		}
+
+		onLog(
+			syncLogE(
+				strRes.get(Res.string.sync_scene_delete_failed_not_found, id),
+				projectDef
+			)
+		)
 	}
 
 	override suspend fun hashEntities(newIds: List<Int>): Set<EntityHash> {
-		return sceneEditorRepository.rawTree.root()
+		val activeHashes = sceneEditorRepository.rawTree.root()
 			.filter { newIds.contains(it.value.id).not() }
 			.mapNotNull { node ->
 				if (!node.value.isRootScene) {
@@ -277,6 +375,16 @@ class ClientSceneSynchronizer(
 				} else {
 					null
 				}
-			}.toSet()
+			}
+
+		val archivedHashes = sceneEditorRepository.getArchivedScenes()
+			.filter { newIds.contains(it.id).not() }
+			.mapNotNull { scene ->
+				getEntityHash(scene.id)?.let { hash ->
+					EntityHash(scene.id, hash)
+				}
+			}
+
+		return (activeHashes + archivedHashes).toSet()
 	}
 }

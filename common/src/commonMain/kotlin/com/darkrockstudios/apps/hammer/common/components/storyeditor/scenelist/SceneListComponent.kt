@@ -152,4 +152,39 @@ class SceneListComponent(
 	override fun showOutlineOverview() {
 		showOutlineOverviewDialog()
 	}
+
+	override suspend fun archiveScene(scene: SceneItem) {
+		if (projectEditor.archiveScene(scene)) {
+			Napier.i("Scene archived: ${scene.name}")
+		} else {
+			Napier.w("Failed to archive scene: ${scene.name}")
+		}
+	}
+
+	override suspend fun unarchiveScene(scene: SceneItem) {
+		val unarchived = projectEditor.unarchiveScene(scene)
+		if (unarchived != null) {
+			Napier.i("Scene unarchived: ${unarchived.name}")
+			sceneSelected(unarchived)
+			dismissArchivedDialog()
+		} else {
+			Napier.w("Failed to unarchive scene: ${scene.name}")
+		}
+	}
+
+	override fun showArchivedScenes() {
+		val archived = projectEditor.getArchivedScenes()
+		_state.getAndUpdate {
+			it.copy(
+				showArchivedDialog = true,
+				archivedScenes = archived
+			)
+		}
+	}
+
+	override fun dismissArchivedDialog() {
+		_state.getAndUpdate {
+			it.copy(showArchivedDialog = false)
+		}
+	}
 }

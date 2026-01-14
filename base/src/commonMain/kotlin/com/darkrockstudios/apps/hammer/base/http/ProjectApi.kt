@@ -34,6 +34,14 @@ data class DeleteIdsResponse(
 	val deleted: Boolean
 )
 
+@Serializable
+data class StaleHashResponse(
+	val entityId: Int,
+	val message: String,
+	val cachedHash: String,
+	val computedHash: String
+)
+
 enum class ApiSceneType {
 	Scene, Group
 }

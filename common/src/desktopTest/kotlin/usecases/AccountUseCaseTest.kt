@@ -2,13 +2,13 @@ package usecases
 
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
-import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupFailed
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
 import io.mockk.*
@@ -33,11 +33,15 @@ class AccountUseCaseTest : BaseTest() {
 	@MockK
 	private lateinit var httpClient: HttpClient
 
+	@MockK
+	private lateinit var strRes: StrRes
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)
 		mockkStatic("com.darkrockstudios.apps.hammer.common.dependencyinjection.HttpKt")
+		coEvery { strRes.get(any()) } returns "Mocked error message"
 	}
 
 	@AfterEach
@@ -47,7 +51,7 @@ class AccountUseCaseTest : BaseTest() {
 	}
 
 	private fun createSut(uuid: String = "test-uuid"): AccountUseCase {
-		return AccountUseCase(globalSettingsRepository, accountApi, httpClient) { uuid }
+		return AccountUseCase(globalSettingsRepository, accountApi, httpClient, strRes) { uuid }
 	}
 
 	@Test
@@ -134,7 +138,8 @@ class AccountUseCaseTest : BaseTest() {
 			create = true
 		)
 		assertTrue(isFailure(result))
-		assertTrue(result.exception is ServerSetupFailed)
+		// Result should have a displayMessage from strRes fallback
+		kotlin.test.assertNotNull(result.displayMessage)
 
 		coVerify { accountApi.createAccount(any(), any(), any()) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }

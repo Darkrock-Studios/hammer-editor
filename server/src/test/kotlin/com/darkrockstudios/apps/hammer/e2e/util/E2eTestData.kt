@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.e2e.util
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.datamigrator.migrations.getSerializerForType
+import com.darkrockstudios.apps.hammer.datamigrator.getSerializerForType
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher

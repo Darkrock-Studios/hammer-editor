@@ -11,15 +11,19 @@
 			<option name="taskNames">
 				<list>
 					<option value="run"/>
-					<option value="--args=&quot;--dev&quot;"/>
+					<option
+						value="--args=&quot;--dev --config \&quot;C:\Users\adamw\hammer_data\config.toml\&quot;&quot;"/>
 				</list>
 			</option>
 			<option name="vmOptions" value=""/>
 		</ExternalSystemSettings>
 		<ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
 		<ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+		<ExternalSystemDebugDisabled>false</ExternalSystemDebugDisabled>
 		<DebugAllEnabled>false</DebugAllEnabled>
 		<RunAsTest>false</RunAsTest>
+		<GradleProfilingDisabled>false</GradleProfilingDisabled>
+		<GradleCoverageDisabled>false</GradleCoverageDisabled>
 		<method v="2"/>
 	</configuration>
 </component>

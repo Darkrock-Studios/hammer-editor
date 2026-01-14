@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.email.EmailProvider
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class ServerConfig(
@@ -10,9 +11,14 @@ data class ServerConfig(
 	val sslPort: Int = 443,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
-	val emailProvider: EmailProvider? = null,
+	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
-)
+) {
+	@Transient
+	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
+		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
+	}
+}
 
 @Serializable
 data class SslCertConfig(
