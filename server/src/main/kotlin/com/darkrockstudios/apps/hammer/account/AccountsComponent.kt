@@ -1,8 +1,12 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
+import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -13,6 +17,8 @@ class AccountsComponent(
 	private val accountsRepository: AccountsRepository,
 	private val whiteListRepository: WhiteListRepository,
 	private val projectsRepository: ProjectsRepository,
+	private val configRepository: ConfigRepository,
+	private val serverConfig: ServerConfig,
 ) {
 	suspend fun createAccount(
 		email: String,
@@ -20,11 +26,9 @@ class AccountsComponent(
 		password: String
 	): ServerResult<Token> {
 		// If we dont have users, skip whitelist check
-		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email))
-			return ServerResult.failure(
-				"not on whitelist",
-				Msg.r("api_accounts_create_error_notonwhitelist")
-			)
+		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email)) {
+			return whiteListRejectedFailure()
+		}
 
 		val result = accountsRepository.createAccount(email, installId, password)
 		if (isSuccess(result)) {
@@ -36,7 +40,9 @@ class AccountsComponent(
 	}
 
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
-		if (checkIfWhiteListRejected(email)) return WhiteListRejected()
+		if (checkIfWhiteListRejected(email)) {
+			return whiteListRejectedFailure()
+		}
 
 		return accountsRepository.login(email, password, installId)
 	}
@@ -46,7 +52,9 @@ class AccountsComponent(
 		installId: String,
 		refreshToken: String
 	): SResult<Token> {
-		if (checkIfWhiteListRejected(userId)) return WhiteListRejected()
+		if (checkIfWhiteListRejected(userId)) {
+			return whiteListRejectedFailure()
+		}
 
 		return accountsRepository.refreshToken(userId, installId, refreshToken)
 	}
@@ -70,9 +78,26 @@ class AccountsComponent(
 			whiteListRepository.useWhiteList() &&
 			whiteListRepository.isOnWhiteList(account.email).not()
 	}
-}
 
-fun <T> WhiteListRejected() = SResult.failure<T>(
-	error = "User not on whitelist",
-	displayMessage = Msg.r("api_whitelist_rejected")
-)
+	private suspend fun getActivePatreonConfig(): PatreonConfig? {
+		if (serverConfig.patreonEnabled != true) return null
+		val config = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+		return if (config.enabled && config.patreonUrl.isNotBlank()) config else null
+	}
+
+	private suspend fun whiteListRejectedFailure(): SResult<Token> {
+		val patreonConfig = getActivePatreonConfig()
+		return if (patreonConfig != null) {
+			val amount = "%.2f".format(patreonConfig.minimumAmountCents / 100.0)
+			SResult.failure(
+				error = "User not on whitelist - Patreon subscription required",
+				displayMessage = Msg.r("login_failure_patreon_notice_message", amount, patreonConfig.patreonUrl)
+			)
+		} else {
+			SResult.failure(
+				error = "User not on whitelist",
+				displayMessage = Msg.r("api_whitelist_rejected")
+			)
+		}
+	}
+}
