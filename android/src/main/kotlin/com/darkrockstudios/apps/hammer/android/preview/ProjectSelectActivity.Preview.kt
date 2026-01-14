@@ -55,8 +55,10 @@ val projectListComponent = object : ProjectsList {
 
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: String) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: String) {}
 	override suspend fun showToast(message: Msg) {}
 }
 

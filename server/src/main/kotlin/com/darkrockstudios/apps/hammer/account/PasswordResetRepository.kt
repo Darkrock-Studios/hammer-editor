@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.hashPassword
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
@@ -117,8 +119,8 @@ class PasswordResetRepository(
 		val userId = validationResult.userId
 
 		// Validate password
-		val passwordResult = AccountsRepository.validatePassword(newPassword)
-		if (passwordResult != AccountsRepository.Companion.PasswordResult.VALID) {
+		val passwordResult = PasswordValidator.validate(newPassword)
+		if (passwordResult != PasswordValidationResult.VALID) {
 			return SResult.failure(
 				"password failure",
 				InvalidPassword.getMessage(passwordResult),

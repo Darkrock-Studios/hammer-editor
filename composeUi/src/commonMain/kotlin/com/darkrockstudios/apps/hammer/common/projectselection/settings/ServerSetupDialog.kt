@@ -52,7 +52,12 @@ fun ServerSetupDialog(
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
 	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
-	val existingServer = rememberSaveable(state.serverSetup) { state.serverWorking.not() && state.currentUrl != null }
+	val existingServer = rememberSaveable(state.serverSetup) {
+		state.serverWorking.not()
+			&& state.currentUrl != null
+			&& state.currentUserId != null
+			&& state.currentUserId != -1L
+	}
 
 	if (state.serverSetup) {
 		BasicAlertDialog(

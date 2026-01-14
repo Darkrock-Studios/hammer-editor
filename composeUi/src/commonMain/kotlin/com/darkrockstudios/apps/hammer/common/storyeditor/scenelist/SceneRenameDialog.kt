@@ -47,7 +47,7 @@ internal fun SceneRenameDialog(
 			value = if (isFailure(validationResult)) {
 				when (val exception = validationResult.exception) {
 					is ValidationFailedException -> strRes.get(exception.errorMessage)
-					else -> validationResult.displayMessage?.let { strRes.get(it.r, it.args) }
+					else -> validationResult.displayMessage?.text(strRes)
 				}
 			} else null
 		}

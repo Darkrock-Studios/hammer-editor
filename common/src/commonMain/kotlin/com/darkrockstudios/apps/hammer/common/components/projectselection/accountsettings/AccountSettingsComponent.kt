@@ -4,7 +4,10 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -20,9 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
-import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
-import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,6 +103,7 @@ class AccountSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
+							currentUserId = settings?.userId,
 							currentSsl = settings?.ssl,
 							currentUrl = settings?.url,
 							currentEmail = settings?.email,
@@ -268,48 +270,83 @@ class AccountSettingsComponent(
 				}
 			}
 
+			// Client-side URL validation
 			val cleanUrl = cleanUpUrl(url)
 			if (validateUrl(cleanUrl).not()) {
-				val message = "Invalid URL"
-				withContext(mainDispatcher) {
+				val message = strRes.get(Res.string.server_setup_error_invalid_url)
+				showValidationError(message)
+				return@launch
+			}
+
+			// Client-side email validation
+			if (!EmailValidator.validate(email)) {
+				val message = strRes.get(Res.string.server_setup_error_invalid_email)
+				showValidationError(message)
+				return@launch
+			}
+
+			// Client-side password validation
+			val passwordResult = PasswordValidator.validate(password)
+			if (passwordResult != PasswordValidationResult.VALID) {
+				val message = getPasswordValidationErrorMessage(passwordResult)
+				showValidationError(message)
+				return@launch
+			}
+
+			// All validation passed, proceed with server setup
+			if (removeLocalContent) {
+				removeLocalContent()
+			}
+
+			val result = accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
+			withContext(mainDispatcher) {
+				if (isSuccess(result)) {
+					cleanUpServerSetup()
+					_state.getAndUpdate {
+						it.copy(
+							serverSetup = false,
+							serverWorking = false,
+						)
+					}
+					showToast(Res.string.settings_server_setup_toast_success)
+				} else {
+					val message = result.displayMessage?.text(strRes)
+						?: strRes.get(Res.string.settings_server_setup_toast_failure_unknown)
 					_state.getAndUpdate {
 						it.copy(
 							serverError = message,
 							serverWorking = false,
 						)
 					}
-				}
-
-				showToast(Res.string.settings_server_setup_toast_failure, message)
-			} else {
-				if (removeLocalContent) {
-					removeLocalContent()
-				}
-
-				val result = accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
-				withContext(mainDispatcher) {
-					if (isSuccess(result)) {
-						cleanUpServerSetup()
-						_state.getAndUpdate {
-							it.copy(
-								serverSetup = false,
-								serverWorking = false,
-							)
-						}
-						showToast(Res.string.settings_server_setup_toast_success)
-					} else {
-						val message = result.displayMessage?.text(strRes)
-							?: strRes.get(Res.string.settings_server_setup_toast_failure_unknown)
-						_state.getAndUpdate {
-							it.copy(
-								serverError = message,
-								serverWorking = false,
-							)
-						}
-						showToast(scope, Res.string.settings_server_setup_toast_failure, message)
-					}
+					Napier.d { "ABROWN: 1: $message" }
+					showToast(scope, Res.string.settings_server_setup_toast_failure, message)
 				}
 			}
+		}
+	}
+
+	private suspend fun showValidationError(message: String) {
+		withContext(mainDispatcher) {
+			_state.getAndUpdate {
+				it.copy(
+					serverError = message,
+					serverWorking = false,
+				)
+			}
+		}
+		Napier.d { "ABROWN: 2: $message" }
+		showToast(Res.string.settings_server_setup_toast_failure, message)
+	}
+
+	private suspend fun getPasswordValidationErrorMessage(result: PasswordValidationResult): String {
+		return when (result) {
+			PasswordValidationResult.TOO_SHORT -> strRes.get(Res.string.server_setup_error_password_too_short)
+			PasswordValidationResult.TOO_LONG -> strRes.get(Res.string.server_setup_error_password_too_long)
+			PasswordValidationResult.NO_UPPERCASE -> strRes.get(Res.string.server_setup_error_password_no_uppercase)
+			PasswordValidationResult.NO_LOWERCASE -> strRes.get(Res.string.server_setup_error_password_no_lowercase)
+			PasswordValidationResult.NO_NUMBER -> strRes.get(Res.string.server_setup_error_password_no_number)
+			PasswordValidationResult.NO_SPECIAL -> strRes.get(Res.string.server_setup_error_password_no_special)
+			PasswordValidationResult.VALID -> error("Should not pass a successful result")
 		}
 	}
 

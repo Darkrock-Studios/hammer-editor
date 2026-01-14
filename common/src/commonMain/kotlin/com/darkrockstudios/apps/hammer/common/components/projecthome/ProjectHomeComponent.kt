@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.Msg
+import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -102,12 +102,12 @@ class ProjectHomeComponent(
 				callback(backup)
 
 				val msg = if (backup != null) {
-					Msg(
+					ClientMessage.Resource(
 						Res.string.project_home_action_backup_toast_success,
 						backup.path.name
 					)
 				} else {
-					Msg(Res.string.project_home_action_backup_toast_failure)
+					ClientMessage.Resource(Res.string.project_home_action_backup_toast_failure)
 				}
 				showToast(scope, msg)
 			}

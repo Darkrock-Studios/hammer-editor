@@ -1,12 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.data.account
 
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
 import kotlin.uuid.Uuid
@@ -15,6 +19,7 @@ class AccountUseCase(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val accountApi: ServerAccountApi,
 	private val httpClient: HttpClient,
+	private val strRes: StrRes,
 	private val generateUuid: () -> String = { Uuid.random().toString() },
 ) {
 	suspend fun setupServer(
@@ -67,8 +72,15 @@ class AccountUseCase(
 		} else {
 			globalSettingsRepository.deleteServerSettings()
 
-			val message = (result.exceptionOrNull() as? HttpFailureException)?.error?.displayMessage ?: "Unknown error"
-			CResult.failure(ServerSetupFailed(message))
+			val exception = result.exceptionOrNull() as? HttpFailureException
+			val displayMessage = exception?.error?.displayMessage
+				?: strRes.get(Res.string.server_setup_error_unknown)
+
+			CResult.failure(
+				error = exception?.error?.error ?: "Unknown error",
+				displayMessage = displayMessage.toMsg(),
+				exception = exception
+			)
 		}
 	}
 
@@ -76,5 +88,3 @@ class AccountUseCase(
 		return accountApi.testAuth().isSuccess
 	}
 }
-
-class ServerSetupFailed(message: String) : Exception(message)

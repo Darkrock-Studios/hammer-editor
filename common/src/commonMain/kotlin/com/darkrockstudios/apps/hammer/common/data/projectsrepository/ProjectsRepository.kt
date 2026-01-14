@@ -4,13 +4,10 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -34,8 +31,8 @@ class ProjectsRepository(
 	private val projectsMetadataDatasource: ProjectMetadataDatasource
 ) : KoinComponent {
 
-	protected val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	protected val projectsScope = CoroutineScope(dispatcherDefault)
+	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	private val projectsScope = CoroutineScope(dispatcherDefault)
 
 	private var globalSettings = globalSettingsRepository.globalSettings
 
@@ -152,7 +149,9 @@ class ProjectsRepository(
 			CResult.failure(
 				error = result.error,
 				displayMessage = result.displayMessage,
-				exception = ProjectCreationFailedException(result.displayMessage?.r)
+				exception = ProjectCreationFailedException(
+					(result.displayMessage as? ClientMessage.Resource)?.getStringResource()
+				)
 			)
 		}
 	}

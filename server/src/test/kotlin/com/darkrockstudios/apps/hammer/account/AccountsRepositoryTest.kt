@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MAX_PASSWORD_LENGTH
-import com.darkrockstudios.apps.hammer.account.AccountsRepository.Companion.MIN_PASSWORD_LENGTH
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthToken
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
@@ -179,11 +179,11 @@ class AccountsRepositoryTest : BaseTest() {
 		val result = accountsRepository.createAccount(
 			email = email,
 			installId = installId,
-			password = "x".repeat(MIN_PASSWORD_LENGTH - 1)
+			password = "x".repeat(PasswordValidator.MIN_LENGTH - 1)
 		)
 		assertTrue(isFailure(result))
 		assertEquals(
-			AccountsRepository.Companion.PasswordResult.TOO_SHORT,
+			PasswordValidationResult.TOO_SHORT,
 			(result.exception as InvalidPassword).result
 		)
 	}
@@ -197,12 +197,12 @@ class AccountsRepositoryTest : BaseTest() {
 		val result = accountsRepository.createAccount(
 			email = email,
 			installId = installId,
-			password = "x".repeat(MAX_PASSWORD_LENGTH + 1)
+			password = "x".repeat(PasswordValidator.MAX_LENGTH + 1)
 		)
 		assertTrue(isFailure(result))
 		assertTrue(result.exception is InvalidPassword)
 		assertEquals(
-			AccountsRepository.Companion.PasswordResult.TOO_LONG,
+			PasswordValidationResult.TOO_LONG,
 			(result.exception as InvalidPassword).result
 		)
 	}
