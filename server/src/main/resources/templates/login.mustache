@@ -40,8 +40,7 @@
 				{{#patreonEnabled}}
 					<div class="login-info-patreon">
 						<h3 class="login-info-patreon__title">{{msg.login_patreon_notice_title}}</h3>
-						<p>This server requires an active Patreon subscription of ${{patreonMinimumAmount}}/month or
-							more to create an account or log in.</p>
+						<p>{{patreonMessage}}</p>
 						<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer"
 						   class="login-info-patreon__link">
 							{{msg.login_patreon_notice_link}} →

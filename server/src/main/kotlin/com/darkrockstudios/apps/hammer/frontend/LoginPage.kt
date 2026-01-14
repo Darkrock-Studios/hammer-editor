@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.github.aymanizz.ktori18n.R
+import com.github.aymanizz.ktori18n.t
 import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -36,7 +38,7 @@ private fun Route.loginPage(
 			if (session != null) {
 				call.respondRedirect("/dashboard")
 			} else {
-				val model = buildLoginModel(whiteListRepository, configRepository, serverConfig)
+				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
@@ -64,7 +66,7 @@ private fun Route.loginPage(
 				call.respondRedirect("/dashboard")
 			} else {
 				val message = result.displayMessageText(call) ?: "Login failed"
-				val model = buildLoginModel(whiteListRepository, configRepository, serverConfig).toMutableMap()
+				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig).toMutableMap()
 				model["message"] = message
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
@@ -73,6 +75,7 @@ private fun Route.loginPage(
 }
 
 private suspend fun buildLoginModel(
+	call: RoutingCall,
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig
@@ -90,9 +93,10 @@ private suspend fun buildLoginModel(
 			put("contactEmail", contactEmail)
 		}
 		if (patreonActive) {
+			val amount = "%.2f".format(patreonConfig.minimumAmountCents / 100.0)
 			put("patreonEnabled", true)
 			put("patreonUrl", patreonConfig.patreonUrl)
-			put("patreonMinimumAmount", "%.2f".format(patreonConfig.minimumAmountCents / 100.0))
+			put("patreonMessage", call.t(R("login_patreon_notice_message"), amount))
 		}
 	}
 }
