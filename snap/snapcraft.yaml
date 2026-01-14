@@ -1,11 +1,13 @@
 name: hammer-editor
 base: core22
-version: '2.0.1'
+version: '2.1.0'
 summary: A simple tool for building stories
 description: |
     Hammer is a multi-platform story editor application. It's designed for
     novelists and storytellers who want an offline-first writing experience
     with optional self-hosted synchronization.
+
+icon: snap/gui/hammer-editor.png
 
 grade: stable
 confinement: strict

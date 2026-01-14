@@ -9,6 +9,7 @@ data class SceneItem(
 	val id: Int,
 	val name: String,
 	val order: Int,
+	val archived: Boolean = false,
 ) {
 	enum class Type(val isCollection: Boolean) {
 		Scene(false), Group(true), Root(true)

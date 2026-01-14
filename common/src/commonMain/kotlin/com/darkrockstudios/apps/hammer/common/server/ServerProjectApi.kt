@@ -184,6 +184,14 @@ class ServerProjectApi(
 				when (response.status) {
 					HttpStatusCode.NotModified -> EntityNotModifiedException(entityId)
 					HttpStatusCode.NotFound -> EntityNotFoundException(entityId)
+					HttpStatusCode.PreconditionFailed -> {
+						val staleHashResponse = response.body<StaleHashResponse>()
+						StaleServerHashException(
+							staleHashResponse.entityId,
+							staleHashResponse.cachedHash,
+							staleHashResponse.computedHash
+						)
+					}
 					else -> defaultFailureHandler(response, strRes)
 				}
 			},
@@ -224,3 +232,5 @@ class ServerProjectApi(
 
 class EntityNotModifiedException(val entityId: Int) : Exception()
 class EntityNotFoundException(val entityId: Int) : Exception()
+class StaleServerHashException(val entityId: Int, val cachedHash: String, val computedHash: String) :
+	Exception("Server cached hash is stale for entity $entityId")

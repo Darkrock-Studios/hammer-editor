@@ -33,6 +33,8 @@ fun createHttpClient(
 			level = LogLevel.INFO
 		}
 
+		install(HttpTimeout)
+
 		defaultRequest {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
@@ -45,7 +47,7 @@ fun createHttpClient(
 		installCompression()
 
 		install(HttpRequestRetry) {
-			retryOnException(2)
+			retryOnException(1)  // 1 retry = 2 total attempts
 		}
 
 		install(Auth) {

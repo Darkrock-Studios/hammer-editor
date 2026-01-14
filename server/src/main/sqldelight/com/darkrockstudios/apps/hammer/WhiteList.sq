@@ -24,7 +24,26 @@ ORDER BY email ASC;
 
 getPaginated:
 SELECT * FROM white_list
-ORDER BY email ASC
+ORDER BY date_added DESC
+LIMIT ? OFFSET ?;
+
+getPaginatedOldestFirst:
+SELECT * FROM white_list
+ORDER BY date_added ASC
+LIMIT ? OFFSET ?;
+
+getPaginatedWithAccountStatus:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+ORDER BY w.date_added DESC
+LIMIT ? OFFSET ?;
+
+getPaginatedWithAccountStatusOldestFirst:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+ORDER BY w.date_added ASC
 LIMIT ? OFFSET ?;
 
 getCount:
@@ -38,3 +57,8 @@ SELECT COUNT(*)
 FROM white_list w
 INNER JOIN account a ON w.email = a.email
 WHERE w.reason = ?;
+
+updateReason:
+UPDATE white_list
+SET reason = ?
+WHERE email = ?;

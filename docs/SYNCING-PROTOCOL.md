@@ -197,6 +197,44 @@ sequenceDiagram
 	Note left of Server: LoadEntityResponse
 ```
 
+#### Stale Hash Detection and Self-Healing
+
+During a download, the server compares its cached entity hash with a freshly computed hash. If they don't match (which
+can occur due to schema evolution, such as adding new fields to entities), the server returns a 412 Precondition Failed
+response with details about the mismatch.
+
+The client handles this by force uploading its local copy to "heal" the server's stale cache. This self-healing protocol
+ensures that schema changes don't cause persistent sync issues.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: GET /project/$userId/$projectName/download_entity/$entityId
+	activate Server
+	Note over Server: Cached hash != Computed hash
+
+	Server -->> Client: 412 Precondition Failed
+	deactivate Server
+	activate Client
+	Note left of Server: StaleHashResponse<br/>{cachedHash, computedHash}
+
+	Note right of Client: Client detects stale cache<br/>and initiates healing
+	Client->>Server: POST /project/$userId/$projectName/upload_entity/$entityId?force=true
+	deactivate Client
+	activate Server
+	Note right of Client: Force upload to heal server cache
+
+	Server -->> Client: 200 OK
+	deactivate Server
+	activate Client
+	Note left of Server: SaveEntityResponse<br/>Server cache now healed
+```
+
+This mechanism is transparent to the user and ensures data consistency across schema migrations without requiring manual
+intervention or database migrations.
+
 ### Upload
 The client has determined that it needs to upload the local Client copy of an Entity. This is either because the server is missing the entity, or the client has a dirty copy that needs to be synchronized.
 

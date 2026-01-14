@@ -27,6 +27,7 @@ class ServerSceneSynchronizer(
 			content = entity.content,
 			outline = entity.outline,
 			notes = entity.notes,
+			archived = entity.archived,
 		)
 	}
 

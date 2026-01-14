@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "2.0.1"
+app = "2.1.0"
 data_version = "1.0"
 
 # Kotlin
@@ -74,7 +74,7 @@ tomlkt = "0.5.0"
 
 krypto = "4.0.10"
 argon2_jvm = "2.12"
-owasp_html_sanitizer = "20240325.1"
+owasp_html_sanitizer = "20260102.1"
 
 jna = "5.18.1" # This is a transitive dependency, remove it when we can
 
@@ -90,7 +90,7 @@ kzip = "1.1.1"
 bouncycastle = "1.83"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.5.2"
+compose-texteditor = "1.6.0"
 platform-spellcheckerkt = "1.0.0"
 
 [libraries]

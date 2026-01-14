@@ -107,7 +107,16 @@ class SceneEditorRepository(
 		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(scene.id)) {
 			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
-			val content = loadSceneMarkdownRaw(scene)
+
+			// For archived scenes, resolve path from filesystem since they're not in tree
+			val content = if (scene.archived) {
+				val scenePath = resolveScenePathFromFilesystemIncludingArchived(scene.id)
+					?: error("Archived scene file not found for ID ${scene.id}")
+				loadSceneMarkdownRaw(scene, scenePath)
+			} else {
+				loadSceneMarkdownRaw(scene)
+			}
+
 			val hash = EntityHasher.hashScene(
 				id = scene.id,
 				order = scene.order,
@@ -117,6 +126,7 @@ class SceneEditorRepository(
 				content = content,
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
+				archived = scene.archived,
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -295,6 +305,23 @@ class SceneEditorRepository(
 		return lastOrder.numDigits() < (lastOrder + 1).numDigits()
 	}
 
+	/**
+	 * Resolves the actual path to a parent scene/group from the filesystem.
+	 * This is necessary because the calculated path (based on order padding) may differ
+	 * from the actual filename on disk if the number of siblings has changed since creation.
+	 *
+	 * Falls back to calculated path if the item is not yet on the filesystem (new items).
+	 */
+	private fun resolveParentPathFromFilesystem(parentId: Int): HPath {
+		val parent = getSceneItemFromId(parentId)
+		return if (parent?.isRootScene == true) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parentId)
+				?: getSceneFilePath(parentId) // Fallback for items not yet on filesystem
+		}
+	}
+
 	private fun getSceneFileName(
 		sceneDef: SceneItem,
 		isNewScene: Boolean = false
@@ -305,7 +332,8 @@ class SceneEditorRepository(
 		} else {
 			parent.id
 		}
-		val parentPath = getSceneFilePath(parentId)
+		// Resolve from filesystem to handle cases where padding doesn't match calculated value
+		val parentPath = resolveParentPathFromFilesystem(parentId)
 
 		val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude(parentId)) {
 			sceneDatasource.getLastOrderNumber(parentPath).numDigits() + 1
@@ -326,6 +354,15 @@ class SceneEditorRepository(
 
 	fun getSceneItemFromId(id: Int): SceneItem? {
 		return sceneTree.findValueOrNull { it.id == id }
+	}
+
+	/**
+	 * Get a scene by ID, checking both the active tree and archived scenes.
+	 * Use this when you need to find a scene that might be archived (e.g., conflict resolution).
+	 */
+	fun getSceneItemFromIdIncludingArchived(id: Int): SceneItem? {
+		return getSceneItemFromId(id)
+			?: getArchivedScenes().find { it.id == id }
 	}
 
 	private fun getSceneNodeFromId(id: Int): TreeNode<SceneItem>? {
@@ -353,28 +390,46 @@ class SceneEditorRepository(
 	}
 
 	fun getPathSegments(sceneItem: SceneItem): List<Int> {
+		// Archived scenes have no hierarchy - they're flattened in .archived/
+		if (sceneItem.archived) {
+			return emptyList()
+		}
 		val hpath = getSceneFilePath(sceneItem.id)
 		return getScenePathSegments(hpath).pathSegments
 	}
 
 	fun reIdScene(oldId: Int, newId: Int) {
-		val oldPath = getSceneFilePath(oldId)
+		val oldScene = getSceneItemFromIdIncludingArchived(oldId)
+			?: throw IOException("Scene $oldId does not exist")
 
-		val oldScene = getSceneItemFromId(oldId) ?: throw IOException("Scene $oldId does not exist")
+		// For archived scenes, resolve path from filesystem since they're not in the tree
+		val oldPath = if (oldScene.archived) {
+			resolveScenePathFromFilesystemIncludingArchived(oldId)
+				?: throw IOException("Could not resolve path for archived scene $oldId")
+		} else {
+			getSceneFilePath(oldId)
+		}
+
 		val newScene = oldScene.copy(id = newId)
-		val newFileName = getSceneFileName(newScene)
-		val parent = oldPath.toOkioPath().parent ?: error("Scene ID $oldId path had not parent")
+		val newFileName = if (oldScene.archived) {
+			SceneDatasource.buildArchivedSceneFileName(newScene.name, newScene.id)
+		} else {
+			getSceneFileName(newScene)
+		}
+		val parent = oldPath.toOkioPath().parent ?: error("Scene ID $oldId path had no parent")
 		val newPath = (parent / newFileName).toHPath()
 
 		sceneDatasource.moveScene(oldPath, newPath)
 
 		sceneMetadataDatasource.reIdSceneMetadata(oldId = oldId, newId = newId)
 
-		// Update the in-tree representation
-		val node = getSceneNodeFromId(oldId) ?: error("reIdScene: Failed to get node for ID $oldId")
-		node.value = node.value.copy(
-			id = newId
-		)
+		// Only update tree if the scene is not archived (archived scenes aren't in the tree)
+		if (!oldScene.archived) {
+			val node = getSceneNodeFromId(oldId) ?: error("reIdScene: Failed to get node for ID $oldId")
+			node.value = node.value.copy(
+				id = newId
+			)
+		}
 	}
 
 	fun getScenePathSegments(path: HPath): ScenePathSegments {
@@ -402,7 +457,7 @@ class SceneEditorRepository(
 	}
 
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
-		val scene = getSceneItemFromId(sceneId)
+		val scene = getSceneItemFromIdIncludingArchived(sceneId)
 			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
 
 		markForSynchronization(scene)
@@ -461,7 +516,7 @@ class SceneEditorRepository(
 		sceneDatasource.moveScene(oldPath, newPath)
 
 		val node = getSceneNodeFromId(sceneItem.id)
-			?: throw IllegalStateException("Failed to get scene for renaming: ${sceneItem.id}")
+			?: error("Failed to get scene for renaming: ${sceneItem.id}")
 		node.value = newDef
 
 		reloadScenes()
@@ -474,12 +529,19 @@ class SceneEditorRepository(
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
-		val parentPath = getSceneFilePath(parent.value.id)
+		// Resolve the actual path from the filesystem rather than calculating it.
+		// The calculated path may have different zero-padding than the actual filename on disk.
+		val parentPath = if (parent.value.isRootScene) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parent.value.id)
+				?: error("Could not find parent on filesystem: ${parent.value.id}")
+		}
 		val existingSceneFiles = sceneDatasource.getGroupChildPathsById(parentPath)
 
 		parent.children().forEach { childNode ->
 			val existingPath = existingSceneFiles[childNode.value.id]
-				?: throw IllegalStateException("Scene wasn't present in directory")
+				?: error("Scene wasn't present in directory")
 			val newPath = getSceneFilePath(childNode.value.id)
 
 			if (existingPath != newPath) {
@@ -515,7 +577,7 @@ class SceneEditorRepository(
 	suspend fun moveScene(moveRequest: MoveRequest) {
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val fromParentNode = fromNode.parent
-			?: throw IllegalStateException("Item had no parent")
+			?: error("Item had no parent")
 
 		val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 
@@ -531,11 +593,18 @@ class SceneEditorRepository(
 			// Move the file to its new parent
 			val toPath = getSceneFilePath(moveRequest.id)
 
-			val fromParentPath = getSceneFilePath(fromParentNode.value.id)
+			// Resolve the actual path from the filesystem rather than calculating it.
+			// The calculated path may have different zero-padding than the actual filename on disk.
+			val fromParentPath = if (fromParentNode.value.isRootScene) {
+				sceneDatasource.getSceneDirectory()
+			} else {
+				sceneDatasource.resolveScenePathFromFilesystem(fromParentNode.value.id)
+					?: error("Could not find from-parent on filesystem: ${fromParentNode.value.id}")
+			}
 			val originalFromParentScenePaths =
 				sceneDatasource.getGroupChildPathsById(fromParentPath)
 			val originalFromNodePath = originalFromParentScenePaths[fromNode.value.id]
-				?: throw IllegalStateException("From node wasn't where it's supposed to be")
+				?: error("From node wasn't where it's supposed to be")
 
 			sceneDatasource.moveScene(originalFromNodePath, toPath)
 
@@ -617,7 +686,14 @@ class SceneEditorRepository(
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
 
-		val parentPath = getSceneFilePath(parent.value.id)
+		// Resolve the actual path from the filesystem rather than calculating it from the tree.
+		// The calculated path may have different zero-padding than the actual filename on disk.
+		val parentPath = if (parent.value.isRootScene) {
+			sceneDatasource.getSceneDirectory()
+		} else {
+			sceneDatasource.resolveScenePathFromFilesystem(parent.value.id)
+				?: error("Could not find parent on filesystem: ${parent.value.id}")
+		}
 		val existingSceneFiles = sceneDatasource.getGroupChildPathsById(parentPath)
 
 		// Must grab a copy of the children before they are modified
@@ -633,14 +709,14 @@ class SceneEditorRepository(
 			childNode.value = childNode.value.copy(order = index)
 
 			val existingPath = existingSceneFiles[childNode.value.id]
-				?: throw IllegalStateException("Scene wasn't present in directory")
+				?: error("Scene wasn't present in directory")
 			val newPath = getSceneFilePath(childNode.value.id)
 
 			if (existingPath != newPath) {
 				try {
 					originalChildren?.find { it.id == childNode.value.id }?.let { originalChild ->
 						val realPath = sceneDatasource.getPathFromFilesystem(childNode.value)
-							?: throw IllegalStateException("Could not find Scene on filesystem: ${childNode.value.id}")
+							?: error("Could not find Scene on filesystem: ${childNode.value.id}")
 
 						val content = loadSceneMarkdownRaw(childNode.value, realPath)
 						markForSynchronization(originalChild, content)
@@ -948,7 +1024,7 @@ class SceneEditorRepository(
 	private fun getLastOrderNumber(parentId: Int?): Int {
 		val parentPath: HPath = if (parentId != null && parentId != 0) {
 			val parentItem =
-				getSceneItemFromId(parentId) ?: throw IllegalStateException("Parent not found")
+				getSceneItemFromId(parentId) ?: error("Parent not found")
 
 			getSceneFilePath(parentItem)
 		} else {
@@ -967,6 +1043,115 @@ class SceneEditorRepository(
 	 * It goes right to the source of truth, the disk.
 	 */
 	fun resolveScenePathFromFilesystem(id: Int) = sceneDatasource.resolveScenePathFromFilesystem(id)
+
+	/**
+	 * Resolves the scene path from filesystem, including archived scenes.
+	 */
+	fun resolveScenePathFromFilesystemIncludingArchived(id: Int) =
+		sceneDatasource.resolveScenePathFromFilesystemIncludingArchived(id)
+
+	/**
+	 * Archive a scene, moving it to the .archived directory.
+	 * Only individual scenes can be archived, not groups.
+	 * The scene will be removed from the scene tree and marked for sync.
+	 */
+	suspend fun archiveScene(scene: SceneItem): Boolean {
+		if (scene.type != SceneItem.Type.Scene) {
+			Napier.w("Cannot archive non-scene: ${scene.id}")
+			return false
+		}
+
+		// Mark dirty before modification (with current state for proper hash)
+		markForSynchronization(scene)
+
+		// Remove from tree
+		val node = getSceneNodeFromId(scene.id) ?: return false
+		val parent = node.parent ?: return false
+		val parentId = parent.value.id
+		parent.removeChild(node)
+
+		sceneDatasource.archiveScene(scene)
+
+		// Update sibling orders
+		updateSceneOrder(parentId)
+
+		reloadScenes()
+		statisticsRepository.markDirty()
+
+		Napier.i("Scene ${scene.id} archived")
+		return true
+	}
+
+	/**
+	 * Unarchive a scene, moving it from the .archived directory back to the scenes root.
+	 * The scene will be added at the end of the root level.
+	 */
+	suspend fun unarchiveScene(scene: SceneItem): SceneItem? {
+		if (!scene.archived) {
+			Napier.w("Scene ${scene.id} is not archived")
+			return null
+		}
+
+		// Calculate new order (append at end of root)
+		val newOrder = getLastOrderNumber(null) + 1
+
+		sceneDatasource.unarchiveScene(scene, newOrder)
+
+		val unarchivedScene = scene.copy(
+			order = newOrder,
+			archived = false
+		)
+
+		// Add to tree at root level
+		val newNode = TreeNode(unarchivedScene)
+		sceneTree.root().addChild(newNode)
+
+		markForSynchronization(unarchivedScene)
+
+		reloadScenes()
+		statisticsRepository.markDirty()
+
+		Napier.i("Scene ${scene.id} unarchived")
+		return unarchivedScene
+	}
+
+	/**
+	 * Get all archived scenes from the .archived directory.
+	 */
+	fun getArchivedScenes(): List<SceneItem> {
+		return sceneDatasource.getArchivedScenes()
+	}
+
+	fun getArchivedSceneFromId(id: Int): SceneItem? {
+		return getArchivedScenes().find { it.id == id }
+	}
+
+	/**
+	 * Create a scene directly in the archive directory.
+	 * Used when syncing an archived scene from the server that doesn't exist locally.
+	 */
+	suspend fun createArchivedScene(
+		id: Int,
+		name: String,
+		order: Int,
+		type: SceneItem.Type,
+		content: String,
+		metadata: SceneMetadata
+	): SceneItem {
+		val sceneItem = SceneItem(
+			projectDef = projectDef,
+			type = type,
+			id = id,
+			name = name,
+			order = order,
+			archived = true
+		)
+
+		sceneDatasource.createArchivedSceneFile(sceneItem, content)
+		sceneMetadataDatasource.storeMetadata(metadata, id)
+
+		return sceneItem
+	}
 
 	companion object {
 		val BUFFER_COOL_DOWN = 500.milliseconds

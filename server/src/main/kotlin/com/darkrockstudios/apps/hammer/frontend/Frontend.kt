@@ -182,5 +182,10 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		model["communityEnabled"] = true
 	}
 
+	// Add development mode flag for header banner
+	if (application.developmentMode) {
+		model["isDev"] = true
+	}
+
 	return model
 }

@@ -17,9 +17,16 @@ interface SceneList {
 	fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)
 	fun showOutlineOverview()
 
+	suspend fun archiveScene(scene: SceneItem)
+	suspend fun unarchiveScene(scene: SceneItem)
+	fun showArchivedScenes()
+	fun dismissArchivedDialog()
+
 	data class State(
 		val projectDef: ProjectDef,
 		val selectedSceneItem: SceneItem? = null,
-		val sceneSummary: SceneSummary? = null
+		val sceneSummary: SceneSummary? = null,
+		val showArchivedDialog: Boolean = false,
+		val archivedScenes: List<SceneItem> = emptyList()
 	)
 }

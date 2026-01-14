@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MenuOpen
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.rememberSwipeableState
@@ -21,12 +22,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
-import com.darkrockstudios.apps.hammer.scene_list_item_action_menu_description
-import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 import kotlin.math.roundToInt
 
 @Composable
@@ -34,6 +32,7 @@ actual fun SceneItemActionContainer(
 	scene: SceneItem,
 	onSceneDeleteClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
+	onSceneArchiveClick: (scene: SceneItem) -> Unit,
 	shouldNux: Boolean,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 ) {
@@ -90,15 +89,15 @@ actual fun SceneItemActionContainer(
 		onDismissRequest = { showMenu = false }
 	) {
 		DropdownMenuItem(
-			text = { Text(Res.string.scene_list_item_action_delete.get()) },
+			text = { Text(Res.string.scene_list_item_action_archive.get()) },
 			onClick = {
-				onSceneDeleteClick(scene)
+				onSceneArchiveClick(scene)
 				showMenu = false
 			},
 			leadingIcon = {
 				Icon(
-					Icons.Outlined.Delete,
-					contentDescription = Res.string.scene_list_item_action_delete.get()
+					Icons.Outlined.Archive,
+					contentDescription = Res.string.scene_list_item_action_archive.get()
 				)
 			},
 		)
@@ -113,6 +112,20 @@ actual fun SceneItemActionContainer(
 				Icon(
 					Icons.Outlined.Edit,
 					contentDescription = Res.string.scene_list_item_action_rename.get()
+				)
+			},
+		)
+
+		DropdownMenuItem(
+			text = { Text(Res.string.scene_list_item_action_delete.get()) },
+			onClick = {
+				onSceneDeleteClick(scene)
+				showMenu = false
+			},
+			leadingIcon = {
+				Icon(
+					Icons.Outlined.Delete,
+					contentDescription = Res.string.scene_list_item_action_delete.get()
 				)
 			},
 		)

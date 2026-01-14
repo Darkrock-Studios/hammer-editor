@@ -297,4 +297,13 @@ class ProjectEntityDatabaseDatasource(
 			null
 		}
 	}
+
+	override suspend fun getCachedHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int
+	): String? {
+		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		return storyEntityDao.getEntityHash(userId, projectId, entityId.toLong())
+	}
 }

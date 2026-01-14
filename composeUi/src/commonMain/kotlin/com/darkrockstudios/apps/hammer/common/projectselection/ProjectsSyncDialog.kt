@@ -150,16 +150,20 @@ fun SyncLogContents(component: ProjectsList) {
 
 	val logListState: LazyListState = rememberLazyListState()
 	Box(modifier = Modifier.padding(Ui.Padding.L).fillMaxSize()) {
-		LazyColumn(
-			state = logListState,
-			contentPadding = PaddingValues(4.dp),
-			modifier = Modifier.fillMaxWidth()
-		) {
-			val log = state.syncState.syncLog
-			items(count = log.size, key = { it }) { index ->
-				val logMsg = log[index]
-				SyncLogMessageUi(logMsg)
+		Row {
+			LazyColumn(
+				state = logListState,
+				contentPadding = PaddingValues(4.dp),
+				modifier = Modifier.weight(1f)
+			) {
+				val log = state.syncState.syncLog
+				items(count = log.size, key = { it }) { index ->
+					val logMsg = log[index]
+					SyncLogMessageUi(logMsg)
+				}
 			}
+
+			MpScrollBarList(state = logListState)
 		}
 	}
 

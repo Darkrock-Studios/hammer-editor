@@ -22,10 +22,24 @@
 					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
 						  hx-post="/admin/whitelist/toggle"
 						  hx-swap="none">
-						<button type="submit" class="toggle-button {{#whitelist.enabled}}active{{/whitelist.enabled}}">
-							{{#whitelist.enabled}}Disable Whitelist{{/whitelist.enabled}}
-							{{^whitelist.enabled}}Enable Whitelist{{/whitelist.enabled}}
-						</button>
+						{{#whitelist.enabled}}
+							{{#whitelist.canDisable}}
+								<button type="submit" class="toggle-button active">
+									Disable Whitelist
+								</button>
+							{{/whitelist.canDisable}}
+							{{^whitelist.canDisable}}
+								<button type="button" class="toggle-button active" disabled
+										title="{{msg.admin_whitelist_cannot_disable_patreon}}">
+									Disable Whitelist
+								</button>
+							{{/whitelist.canDisable}}
+						{{/whitelist.enabled}}
+						{{^whitelist.enabled}}
+							<button type="submit" class="toggle-button">
+								Enable Whitelist
+							</button>
+						{{/whitelist.enabled}}
 					</form>
 					{{#whitelist.enabled}}
 						<span class="section-badge accent">{{msg.admin_badge_active}}</span>
@@ -40,11 +54,13 @@
 				</div>
 				<p class="section-description">{{msg.admin_whitelist_description}}</p>
 
-				<form action="/admin/whitelist/add" method="post" class="whitelist-form"
+				<form action="/admin/whitelist/add" method="post" class="whitelist-form" id="add-whitelist-form"
 					  hx-post="/admin/whitelist/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
 					  hx-on::after-request="this.reset()">
+					<input type="hidden" name="page" id="add-form-page" value="0"/>
+					<input type="hidden" name="sortOldestFirst" id="add-form-sort" value="false"/>
 					<div class="form-group">
 						<label for="email" class="form-field__label">{{msg.admin_whitelist_email_label}}</label>
 						<input id="email" name="email" type="email" class="form-input"
@@ -73,6 +89,106 @@
 		</div>
 	</div>
 </main>
+
+<!-- Edit Reason Dialog -->
+<div class="dialog-overlay hidden" id="edit-reason-dialog">
+	<div class="dialog">
+		<div class="dialog__header">
+			<h3>{{msg.admin_whitelist_edit_reason_title}}</h3>
+			<button class="dialog__close" onclick="closeEditReasonDialog()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<form action="/admin/whitelist/edit-reason" method="post"
+			  hx-post="/admin/whitelist/edit-reason"
+			  hx-target="#whitelist"
+			  hx-swap="innerHTML"
+			  hx-on::after-request="closeEditReasonDialog()">
+			<div class="dialog__body">
+				<p class="dialog__email-display" id="edit-dialog-email-display"></p>
+				<input type="hidden" name="email" id="edit-reason-email"/>
+				<input type="hidden" name="page" id="edit-reason-page"/>
+				<input type="hidden" name="sortOldestFirst" id="edit-reason-sort"/>
+				<div class="form-field">
+					<label for="edit-reason-input"
+						   class="form-field__label">{{msg.admin_whitelist_reason_label}}</label>
+					<input type="text" id="edit-reason-input" name="reason" class="form-input"
+						   placeholder="{{msg.admin_whitelist_reason_placeholder}}" maxlength="32"/>
+					<p class="form-field__help">{{msg.admin_whitelist_reason_help}}</p>
+				</div>
+			</div>
+			<div class="dialog__actions">
+				<button type="button" class="btn btn--ghost"
+						onclick="closeEditReasonDialog()">{{msg.admin_dialog_cancel}}</button>
+				<button type="submit" class="btn btn--accent">{{msg.admin_whitelist_save_reason}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<script>
+	function openEditReasonDialog(btn) {
+		const email = btn.dataset.email;
+		const reason = btn.dataset.reason;
+		const page = btn.dataset.page;
+		const sortOldestFirst = btn.dataset.sortOldestFirst;
+
+		document.getElementById('edit-dialog-email-display').textContent = email;
+		document.getElementById('edit-reason-email').value = email;
+		document.getElementById('edit-reason-input').value = reason;
+		document.getElementById('edit-reason-page').value = page;
+		document.getElementById('edit-reason-sort').value = sortOldestFirst;
+
+		const dialog = document.getElementById('edit-reason-dialog');
+		dialog.classList.remove('hidden', 'closing');
+
+		// Focus the input after a brief delay to allow for animation
+		setTimeout(() => {
+			document.getElementById('edit-reason-input').focus();
+			document.getElementById('edit-reason-input').select();
+		}, 100);
+	}
+
+	function closeEditReasonDialog() {
+		const dialog = document.getElementById('edit-reason-dialog');
+		dialog.classList.add('closing');
+		setTimeout(() => {
+			dialog.classList.add('hidden');
+			dialog.classList.remove('closing');
+		}, 200);
+	}
+
+	// Update form hidden fields when whitelist is loaded/updated
+	document.body.addEventListener('htmx:afterSwap', function (event) {
+		if (event.detail.target.id === 'whitelist') {
+			// Extract current page and sort from the loaded content
+			const urlParams = new URLSearchParams(window.location.search);
+			const currentPage = urlParams.get('page') || '0';
+			const sortOldestFirst = urlParams.get('sortOldestFirst') || 'false';
+
+			// Update add form hidden inputs
+			document.getElementById('add-form-page').value = currentPage;
+			document.getElementById('add-form-sort').value = sortOldestFirst;
+		}
+	});
+
+	// Close dialog on escape key
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') {
+			const dialog = document.getElementById('edit-reason-dialog');
+			if (!dialog.classList.contains('hidden')) {
+				closeEditReasonDialog();
+			}
+		}
+	});
+
+	// Close dialog when clicking outside
+	document.getElementById('edit-reason-dialog').addEventListener('click', function (e) {
+		if (e.target === this) {
+			closeEditReasonDialog();
+		}
+	});
+</script>
 
 <div id="result"></div>
 {{> footer}}

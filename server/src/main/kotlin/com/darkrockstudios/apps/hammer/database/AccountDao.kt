@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.GetAccountsPaginated
+import com.darkrockstudios.apps.hammer.GetAccountsPaginatedSortByCreated
+import com.darkrockstudios.apps.hammer.account.SortDirection
+import com.darkrockstudios.apps.hammer.account.UserSortField
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -70,13 +72,51 @@ class AccountDao(
 		return@withContext query.executeAsOneOrNull()
 	}
 
-	suspend fun getAccountsPaginated(page: Int, pageSize: Int): List<GetAccountsPaginated> =
+	suspend fun getAccountsPaginated(
+		page: Int,
+		pageSize: Int,
+		sortBy: UserSortField = UserSortField.CREATED,
+		sortDirection: SortDirection = SortDirection.DESCENDING
+	): List<GetAccountsPaginatedSortByCreated> =
 		withContext(ioDispatcher) {
 			val offset = page * pageSize
-			return@withContext queries.getAccountsPaginated(
-				limit = pageSize.toLong(),
-				offset = offset.toLong()
-			).executeAsList()
+			val limit = pageSize.toLong()
+			val offsetLong = offset.toLong()
+			val ascending = if (sortDirection == SortDirection.ASCENDING) 1L else 0L
+
+			return@withContext when (sortBy) {
+				UserSortField.CREATED -> queries.getAccountsPaginatedSortByCreated(ascending, limit, offsetLong)
+					.executeAsList()
+
+				UserSortField.LAST_SYNC -> queries.getAccountsPaginatedSortByLastSync(ascending, limit, offsetLong)
+					.executeAsList().map {
+						GetAccountsPaginatedSortByCreated(
+							id = it.id,
+							email = it.email,
+							pen_name = it.pen_name,
+							created = it.created,
+							last_sync = it.last_sync,
+							most_recent_sync = it.most_recent_sync,
+							project_count = it.project_count
+						)
+					}
+
+				UserSortField.PROJECT_COUNT -> queries.getAccountsPaginatedSortByProjectCount(
+					ascending,
+					limit,
+					offsetLong
+				).executeAsList().map {
+					GetAccountsPaginatedSortByCreated(
+						id = it.id,
+						email = it.email,
+						pen_name = it.pen_name,
+						created = it.created,
+						last_sync = it.last_sync,
+						most_recent_sync = it.most_recent_sync,
+						project_count = it.project_count
+					)
+				}
+			}
 		}
 
 	suspend fun updatePassword(userId: Long, hashedPassword: String) = withContext(ioDispatcher) {

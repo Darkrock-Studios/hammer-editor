@@ -189,8 +189,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.d("Scene buffer discard selected")
-			sceneEditor.discardSceneBuffer(sceneDef)
-			forceUpdate()
+			beginDiscard()
 		}
 
 		val renameItem = MenuItemDescriptor(
@@ -209,6 +208,15 @@ class SceneEditorComponent(
 		) {
 			Napier.i("Scene delete selected")
 			beginDelete()
+		}
+
+		val archiveItem = MenuItemDescriptor(
+			"scene-editor-archive",
+			Res.string.scene_editor_menu_item_archive,
+			""
+		) {
+			Napier.i("Scene archive selected")
+			beginArchive()
 		}
 
 		val draftsItem = MenuItemDescriptor(
@@ -252,6 +260,7 @@ class SceneEditorComponent(
 			saveItem,
 			discardItem,
 			deleteItem,
+			archiveItem,
 			draftsItem,
 			saveDraftItem,
 			metadataItem,
@@ -329,6 +338,38 @@ class SceneEditorComponent(
 				closeSceneEditor()
 			}
 		}
+	}
+
+	override fun beginArchive() {
+		_state.getAndUpdate { it.copy(confirmArchive = true) }
+	}
+
+	override fun endArchive() {
+		_state.getAndUpdate { it.copy(confirmArchive = false) }
+	}
+
+	override fun doArchive() {
+		scope.launch {
+			sceneEditor.archiveScene(state.value.sceneItem)
+			withContext(dispatcherMain) {
+				endArchive()
+				closeSceneEditor()
+			}
+		}
+	}
+
+	override fun beginDiscard() {
+		_state.getAndUpdate { it.copy(confirmDiscard = true) }
+	}
+
+	override fun endDiscard() {
+		_state.getAndUpdate { it.copy(confirmDiscard = false) }
+	}
+
+	override fun doDiscard() {
+		sceneEditor.discardSceneBuffer(sceneDef)
+		endDiscard()
+		forceUpdate()
 	}
 
 	override fun beginSaveDraft() {

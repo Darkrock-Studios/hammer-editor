@@ -52,17 +52,44 @@ sealed class ClientResult<out T> {
 
 typealias Msg = ClientMessage
 
-class ClientMessage(
-	res: StringResource,
-	vararg inArgs: Any
-) {
-	val r: StringResource = res
-	val args: Array<out Any> = inArgs
+/**
+ * A message that can be either a StringResource (for client-side localization)
+ * or a raw string (for pre-localized server messages).
+ */
+sealed class ClientMessage {
+	abstract suspend fun text(strRes: StrRes): String
 
-	suspend fun text(strRes: StrRes): String = strRes.get(r, *args)
+	/**
+	 * A message backed by a StringResource for client-side localization.
+	 */
+	class Resource private constructor(
+		private val res: StringResource,
+		private val args: Array<out Any>
+	) : ClientMessage() {
+		override suspend fun text(strRes: StrRes): String = strRes.get(res, *args)
+
+		fun getStringResource(): StringResource = res
+		fun getArgs(): Array<out Any> = args
+
+		companion object {
+			operator fun invoke(res: StringResource, vararg args: Any): Resource = Resource(res, args)
+		}
+	}
+
+	/**
+	 * A message with a literal string (typically pre-localized from the server).
+	 */
+	class Literal(private val message: String) : ClientMessage() {
+		override suspend fun text(strRes: StrRes): String = message
+
+		/** Get the literal message directly without StrRes (since no localization needed) */
+		fun text(): String = message
+	}
 }
 
-fun StringResource.toMsg(): Msg = Msg(this)
+fun StringResource.toMsg(): Msg = ClientMessage.Resource(this)
+
+fun String.toMsg(): Msg = ClientMessage.Literal(this)
 
 /**
  * Convince method that smart casts the SResult to either Success

@@ -247,10 +247,15 @@ internal fun ProjectSynchronizationContent(
 internal fun SyncLog(state: ProjectSynchronization.State, scope: CoroutineScope) {
 
 	val listState: LazyListState = rememberLazyListState()
-	LazyColumn(modifier = Modifier.fillMaxWidth().wrapContentHeight(), state = listState) {
-		items(count = state.syncLog.size, key = { it }) { index ->
-			SyncLogMessageUi(state.syncLog[index], false)
+
+	Row {
+		LazyColumn(modifier = Modifier.weight(1f).wrapContentHeight(), state = listState) {
+			items(count = state.syncLog.size, key = { it }) { index ->
+				SyncLogMessageUi(state.syncLog[index], false)
+			}
 		}
+
+		MpScrollBarList(state = listState)
 	}
 
 	LaunchedEffect(state.syncLog) {

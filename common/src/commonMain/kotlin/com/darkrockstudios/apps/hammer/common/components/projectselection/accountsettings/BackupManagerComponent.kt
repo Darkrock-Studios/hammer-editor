@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.backup_manager_error_delete_backup
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_backups
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_project_backups
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
-import com.darkrockstudios.apps.hammer.common.data.Msg
+import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -75,7 +75,7 @@ class BackupManagerComponent(
 					}
 				}
 			} catch (e: Exception) {
-				val errorMsg = Msg(Res.string.backup_manager_error_load_backups, e.message ?: "")
+				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_load_backups, e.message ?: "")
 				val errorText = errorMsg.text(strRes)
 				withContext(dispatcherMain) {
 					_state.update {
@@ -103,7 +103,8 @@ class BackupManagerComponent(
 					}
 				}
 			} catch (e: Exception) {
-				val errorMsg = Msg(Res.string.backup_manager_error_load_project_backups, e.message ?: "")
+				val errorMsg =
+					ClientMessage.Resource(Res.string.backup_manager_error_load_project_backups, e.message ?: "")
 				val errorText = errorMsg.text(strRes)
 				withContext(dispatcherMain) {
 					_state.update {
@@ -148,7 +149,7 @@ class BackupManagerComponent(
 					loadBackupsForProject(projectDef)
 				}
 			} catch (e: Exception) {
-				val errorMsg = Msg(Res.string.backup_manager_error_delete_backup, e.message ?: "")
+				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_delete_backup, e.message ?: "")
 				val errorText = errorMsg.text(strRes)
 				withContext(dispatcherMain) {
 					_state.update {

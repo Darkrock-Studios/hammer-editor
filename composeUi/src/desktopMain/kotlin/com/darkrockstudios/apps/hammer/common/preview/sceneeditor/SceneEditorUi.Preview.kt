@@ -66,13 +66,21 @@ private fun fakeComponent() = object : SceneEditor {
 	override suspend fun saveDraft(draftName: String, newDraftName: String) = true
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: String) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: String) {}
 	override suspend fun showToast(message: Msg) {}
 	override fun closeEditor() {}
 	override fun beginDelete() {}
 	override fun endDelete() {}
 	override fun doDelete() {}
+	override fun beginArchive() {}
+	override fun endArchive() {}
+	override fun doArchive() {}
+	override fun beginDiscard() {}
+	override fun endDiscard() {}
+	override fun doDiscard() {}
 	override fun toggleMetadataVisibility() {}
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}

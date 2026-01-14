@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.admin
 
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
 import com.darkrockstudios.apps.hammer.database.WhiteList
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import io.ktor.util.*
@@ -31,11 +31,18 @@ class WhiteListRepository(
 		return whiteListDao.getWhiteListPaginated(limit, offset)
 	}
 
-	suspend fun getWhiteListWithDetails(page: Int, pageSize: Int): List<WhiteList> {
+	suspend fun getWhiteListWithDetails(page: Int, pageSize: Int, sortOldestFirst: Boolean = false): List<WhiteList> {
 		val limit = pageSize.toLong()
 		val offset = (page * pageSize).toLong()
-		return whiteListDao.getPaginated(limit, offset)
+		return whiteListDao.getPaginated(limit, offset, sortOldestFirst)
 	}
+
+	suspend fun getWhiteListWithAccountStatus(page: Int, pageSize: Int, sortOldestFirst: Boolean = false) =
+		whiteListDao.getPaginatedWithAccountStatus(
+			limit = pageSize.toLong(),
+			offset = (page * pageSize).toLong(),
+			sortOldestFirst = sortOldestFirst
+		)
 
 	suspend fun getWhiteListCount(): Long {
 		return whiteListDao.getWhiteListCount()
@@ -57,6 +64,11 @@ class WhiteListRepository(
 		whiteListDao.removeFromWhiteList(cleanedEmail)
 	}
 
+	suspend fun updateReason(email: String, reason: String) {
+		val cleanedEmail = cleanEmail(email)
+		whiteListDao.updateReason(cleanedEmail, reason)
+	}
+
 	suspend fun getWhiteListByReason(reason: String): List<WhiteList> {
 		return whiteListDao.getByReason(reason)
 	}
@@ -71,12 +83,12 @@ class WhiteListRepository(
 	}
 
 	fun validateEmail(email: String): Boolean {
-		return AccountsRepository.validateEmail(email)
+		return EmailValidator.validate(email)
 	}
 
 	fun validateReason(reason: String): Boolean {
 		val trimmed = reason.trim()
-		return trimmed.length <= MAX_REASON_LENGTH
+		return trimmed.length <= MAX_REASON_LENGTH && trimmed.isNotBlank()
 	}
 
 	companion object {

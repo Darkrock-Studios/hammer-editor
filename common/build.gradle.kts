@@ -147,6 +147,7 @@ kotlin {
 				implementation(libs.mockk)
 				implementation(libs.koin.test)
 				implementation(libs.koin.test.junit5)
+				implementation(compose.desktop.currentOs)
 			}
 		}
 	}

@@ -83,8 +83,10 @@ private val fakeProjectsList = object : ProjectsList {
 		get() = TODO("Not yet implemented")
 	override val toast: Flow<ToastMessage> = MutableSharedFlow()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
+	override fun showToast(scope: CoroutineScope, message: String) {}
 	override fun showToast(scope: CoroutineScope, message: Msg) {}
 	override suspend fun showToast(message: StringResource, vararg params: Any) {}
+	override suspend fun showToast(message: String) {}
 	override suspend fun showToast(message: Msg) {}
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}

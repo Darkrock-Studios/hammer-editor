@@ -25,11 +25,14 @@ fun Route.homePage(
 			val useWhiteList = whiteListRepository.useWhiteList()
 			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
+			val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
+			val patreonFeatureEnabled = serverConfig.patreonEnabled == true
+			val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
 
 			model["serverMessage"] = serverMessage
 			model["page_script"] = "/assets/js/home.js"
 
-			if (useWhiteList && contactEmail.isNotBlank()) {
+			if (useWhiteList && contactEmail.isNotBlank() && !patreonActive) {
 				model["whitelistEnabled"] = useWhiteList
 				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}

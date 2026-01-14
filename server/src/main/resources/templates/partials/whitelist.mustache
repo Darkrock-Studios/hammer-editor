@@ -3,10 +3,45 @@
 		<div class="error-message">{{error}}</div>
 	{{/error}}
 
+	<div class="whitelist-controls">
+		{{#sortNewestFirst}}
+			<button hx-get="/admin/whitelist/user-fragment?page={{currentPage}}&sortOldestFirst=true"
+			hx-target="#whitelist"
+			hx-swap="innerHTML"
+			class="btn btn--ghost">
+			<i class="fa-solid fa-arrow-down-short-wide"></i>
+			{{msg.admin_whitelist_sort_newest_first}}
+			</button>
+		{{/sortNewestFirst}}
+		{{#sortOldestFirst}}
+			<button hx-get="/admin/whitelist/user-fragment?page={{currentPage}}&sortOldestFirst=false"
+			hx-target="#whitelist"
+			hx-swap="innerHTML"
+			class="btn btn--ghost">
+			<i class="fa-solid fa-arrow-up-short-wide"></i>
+			{{msg.admin_whitelist_sort_oldest_first}}
+			</button>
+		{{/sortOldestFirst}}
+	</div>
+
 	{{#items}}
 		<div class="whitelist-entry">
 			<div class="whitelist-entry__info">
-				<div class="whitelist-entry__email">{{email}}</div>
+				<div class="whitelist-entry__email">
+					{{email}}
+					{{#hasAccount}}
+						<span class="account-status account-status--active">
+							<i class="fa-solid fa-circle-check"></i>
+							{{msg.admin_whitelist_account_created}}
+						</span>
+					{{/hasAccount}}
+					{{^hasAccount}}
+						<span class="account-status account-status--pending">
+							<i class="fa-solid fa-circle"></i>
+							{{msg.admin_whitelist_no_account}}
+						</span>
+					{{/hasAccount}}
+				</div>
 				<div class="whitelist-entry__meta">
 					<span class="whitelist-entry__date">Added: {{dateAdded}}</span>
 					<span class="whitelist-entry__separator">•</span>
@@ -14,6 +49,15 @@
 				</div>
 			</div>
 			<div class="whitelist-entry__actions">
+				<button type="button" class="btn btn--ghost edit-reason-btn"
+						data-email="{{email}}"
+						data-reason="{{reason}}"
+						data-page="{{currentPage}}"
+						data-sort-oldest-first="{{sortOldestFirst}}"
+						onclick="openEditReasonDialog(this)">
+					<i class="fa-solid fa-pen"></i>
+					{{msg.admin_whitelist_edit_button}}
+				</button>
 				<form action="/admin/whitelist/remove" method="post"
 					  hx-post="/admin/whitelist/remove"
 					  hx-target="#whitelist"
@@ -21,6 +65,7 @@
 					  hx-confirm="Remove {{email}} from the whitelist?">
 					<input type="hidden" name="email" value="{{email}}"/>
 					<input type="hidden" name="page" value="{{currentPage}}"/>
+					<input type="hidden" name="sortOldestFirst" value="{{sortOldestFirst}}"/>
 					<button type="submit" class="btn btn--danger">{{msg.admin_whitelist_remove_button}}</button>
 				</form>
 			</div>
@@ -35,7 +80,7 @@
 	{{#totalPages}}
 		<div class="pagination">
 			{{#hasPrevPage}}
-				<button hx-get="/admin/whitelist/user-fragment?page={{prevPage}}"
+				<button hx-get="/admin/whitelist/user-fragment?page={{prevPage}}&sortOldestFirst={{sortOldestFirst}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">
@@ -48,7 +93,7 @@
     </span>
 
 			{{#hasNextPage}}
-				<button hx-get="/admin/whitelist/user-fragment?page={{nextPage}}"
+				<button hx-get="/admin/whitelist/user-fragment?page={{nextPage}}&sortOldestFirst={{sortOldestFirst}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">
