@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0] - 2026-1-13
+
+- Implemented Scene Archiving, never delete a scene again if you don't want!
+- Improved mobile touch text selection
+- Fixed several crashes
+- Improved Client side error messages from networking
+- Improved Server Setup error handling
+- Sever Admin UI improvements
+- Added confirmation dialog when discarding scene buffer
+- Syncing protocol improvments: Self Healing on scheme changes
+
+
 ## [2.0.1] - 2026-1-11
 
 Hammer is out of beta!

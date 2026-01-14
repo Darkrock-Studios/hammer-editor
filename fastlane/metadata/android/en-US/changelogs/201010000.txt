@@ -1,0 +1,8 @@
+- Implemented Scene Archiving, never delete a scene again if you don't want!
+- Improved mobile touch text selection
+- Fixed several crashes
+- Improved Client side error messages from networking
+- Improved Server Setup error handling
+- Sever Admin UI improvements
+- Added confirmation dialog when discarding scene buffer
+- Syncing protocol improvments: Self Healing on scheme changes
