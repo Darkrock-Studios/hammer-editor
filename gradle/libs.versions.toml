@@ -207,6 +207,7 @@ ktor_server_callloggingjvm = { group = "io.ktor", name = "ktor-server-call-loggi
 ktor_server_defaultheadersjvm = { group = "io.ktor", name = "ktor-server-default-headers-jvm", version.ref = "ktor" }
 ktor_server_compressionjvm = { group = "io.ktor", name = "ktor-server-compression-jvm", version.ref = "ktor" }
 ktor_server_cachingheadersjvm = { group = "io.ktor", name = "ktor-server-caching-headers-jvm", version.ref = "ktor" }
+ktor_server_conditionalheadersjvm = { group = "io.ktor", name = "ktor-server-conditional-headers-jvm", version.ref = "ktor" }
 ktor_server_authjvm = { group = "io.ktor", name = "ktor-server-auth-jvm", version.ref = "ktor" }
 ktor_server_nettyjvm = { group = "io.ktor", name = "ktor-server-netty-jvm", version.ref = "ktor" }
 ktor_server_httpredirect = { group = "io.ktor", name = "ktor-server-http-redirect", version.ref = "ktor" }
@@ -306,6 +307,7 @@ ktor_server = [
 	"ktor_server_defaultheadersjvm",
 	"ktor_server_compressionjvm",
 	"ktor_server_cachingheadersjvm",
+	"ktor_server_conditionalheadersjvm",
 	"ktor_server_authjvm",
 	"ktor_server_jetty_jakarta",
 	"ktor_server_httpredirect",

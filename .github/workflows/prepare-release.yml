@@ -160,6 +160,9 @@ jobs:
       - name: Build Linux ".appimage" distribution
         run: ./gradlew buildDistAppImage
 
+      - name: Create Flathub tarball
+        run: ./gradlew createFlathubTarball
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         env:
@@ -169,7 +172,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/tarball/*.tar.gz"
 
   macos:
     runs-on: macos-latest

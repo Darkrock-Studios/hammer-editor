@@ -60,7 +60,9 @@ fun Route.frontend() {
 		null
 	}
 
-	staticResources("/assets", "/assets")
+	staticResources("/assets", "/assets") {
+		etag(ETagProvider.StrongSha256)
+	}
 
 	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
