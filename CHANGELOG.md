@@ -1,10 +1,5 @@
 # Changelog
 
-## [2.1.1] - 2026-1-15
-
-- Flathub release
-
-
 ## [2.1.0] - 2026-1-13
 
 - Implemented Scene Archiving, never delete a scene again if you don't want!
