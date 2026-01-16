@@ -259,10 +259,75 @@ fun Project.registerBuildDistFlatpakTask() {
 }
 
 /**
- * Registers all Linux distribution tasks (Snap, AppImage, Flatpak).
+ * Registers the createFlathubTarball task for creating a tar.gz suitable for Flathub.
+ * This creates a self-contained distribution with the application, desktop file, and icon.
+ */
+fun Project.registerCreateFlathubTarballTask(appVersion: String) {
+	tasks.register("createFlathubTarball") {
+		group = "distribution"
+		description = "Creates a tar.gz distribution suitable for Flathub submission."
+
+		dependsOn(":desktop:createReleaseDistributable")
+
+		doLast {
+			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
+			val outputDir = rootDir.resolve("desktop/build/installers/main-release/tarball")
+			val stagingDir = outputDir.resolve("staging/hammer-$appVersion")
+			val iconFile = rootDir.resolve("desktop/icons/linux.png")
+			val desktopFile = rootDir.resolve("flatpak/com.darkrockstudios.hammer.desktop")
+
+			// Clean and create directories
+			outputDir.deleteRecursively()
+			outputDir.mkdirs()
+			stagingDir.mkdirs()
+
+			// Copy the application
+			copy {
+				from(appSourceDir)
+				into(stagingDir)
+			}
+
+			// Copy desktop file to root of staging directory
+			copy {
+				from(desktopFile)
+				into(stagingDir)
+				rename { "hammer-editor.desktop" }
+			}
+
+			// Copy icon to root of staging directory
+			copy {
+				from(iconFile)
+				into(stagingDir)
+				rename { "icon.png" }
+			}
+
+			// Create tar.gz
+			val tarballName = "hammer-$appVersion-linux-x64.tar.gz"
+			exec {
+				workingDir = outputDir.resolve("staging")
+				commandLine(
+					"tar",
+					"-czf",
+					"../$tarballName",
+					"hammer-$appVersion"
+				)
+			}
+
+			println("Tarball created: ${outputDir.resolve(tarballName)}")
+			println("Size: ${outputDir.resolve(tarballName).length() / 1024 / 1024} MB")
+
+			// Clean up staging directory
+			stagingDir.parentFile.deleteRecursively()
+		}
+	}
+}
+
+/**
+ * Registers all Linux distribution tasks (Snap, AppImage, Flatpak, Tarball).
  */
 fun Project.registerLinuxDistributionTasks(appVersion: String) {
 	registerBuildDistSnapTask(appVersion)
 	registerBuildDistAppImageTask()
 	registerBuildDistFlatpakTask()
+	registerCreateFlathubTarballTask(appVersion)
 }
