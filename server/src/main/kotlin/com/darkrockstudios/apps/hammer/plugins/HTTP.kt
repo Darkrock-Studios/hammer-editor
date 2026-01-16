@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SERVER_VERSION
 import io.ktor.server.application.*
 import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.routing.*
@@ -42,6 +43,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 			header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 	}
+	install(ConditionalHeaders)
 	install(IgnoreTrailingSlash)
 	install(Compression) {
 		gzip {
