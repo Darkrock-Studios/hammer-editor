@@ -2,7 +2,7 @@
 Name=Hammer
 Comment=A simple tool for building stories
 Exec=hammer
-Icon=com.darkrockstudios.hammer
+Icon=studio.darkrock.hammer
 Terminal=false
 Type=Application
 Categories=Office;TextEditor;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
-	<id>com.darkrockstudios.hammer</id>
+	<id>studio.darkrock.hammer</id>
 	<name>Hammer</name>
 	<summary>A simple tool for building stories</summary>
 	<metadata_license>MIT</metadata_license>
@@ -22,7 +22,7 @@
 		</ul>
 	</description>
 
-	<launchable type="desktop-id">com.darkrockstudios.hammer.desktop</launchable>
+	<launchable type="desktop-id">studio.darkrock.hammer.desktop</launchable>
 
 	<url type="homepage">https://github.com/Wavesonics/hammer-editor</url>
 	<url type="bugtracker">https://github.com/Wavesonics/hammer-editor/issues</url>
