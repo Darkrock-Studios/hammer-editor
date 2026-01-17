@@ -134,32 +134,32 @@ tasks.register("prepareForRelease") {
 		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile)
 
 		// Commit the changes to the repo
-		exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }
-		exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }
-		exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }
-		exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }
-		exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }
-		exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }
-		exec {
+		providers.exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }.result.get()
+		providers.exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }.result.get()
+		providers.exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }.result.get()
+		providers.exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }.result.get()
+		providers.exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }.result.get()
+		providers.exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }.result.get()
+		providers.exec {
 			commandLine =
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
-		}
+		}.result.get()
 
 		// Merge develop into release
-		exec { commandLine = listOf("git", "checkout", "release") }
-		exec { commandLine = listOf("git", "merge", "develop") }
+		providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
+		providers.exec { commandLine = listOf("git", "merge", "develop") }.result.get()
 
 		// Create the release tag
-		exec {
+		providers.exec {
 			commandLine =
 				listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
-		}
+		}.result.get()
 
 		// Push and begin the release process
-		exec { commandLine = listOf("git", "push", "origin", "--all") }
-		exec { commandLine = listOf("git", "push", "origin", "--tags") }
+		providers.exec { commandLine = listOf("git", "push", "origin", "--all") }.result.get()
+		providers.exec { commandLine = listOf("git", "push", "origin", "--tags") }.result.get()
 
 		// Leave the repo back on develop
-		exec { commandLine = listOf("git", "checkout", "develop") }
+		providers.exec { commandLine = listOf("git", "checkout", "develop") }.result.get()
 	}
 }
