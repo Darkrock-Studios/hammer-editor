@@ -39,10 +39,10 @@ fun Project.registerBuildDistSnapTask(appVersion: String) {
 		}
 
 		doLast {
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine("snapcraft")
-			}
+			}.result.get()
 
 			val snapFile = rootDir.resolve("hammer-editor_${appVersion}_amd64.snap")
 			val outputDir = rootDir.resolve("desktop/build/installers/main-release/snap")
@@ -83,16 +83,16 @@ fun Project.registerBuildDistAppImageTask() {
 
 			// Download appimagetool if not present
 			if (!appimagetool.exists()) {
-				exec {
+				providers.exec {
 					workingDir = rootDir
 					commandLine(
 						"wget", "-q",
 						"https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 					)
-				}
-				exec {
+				}.result.get()
+				providers.exec {
 					commandLine("chmod", "+x", appimagetool.absolutePath)
-				}
+				}.result.get()
 			}
 
 			// Create AppDir structure
@@ -103,9 +103,9 @@ fun Project.registerBuildDistAppImageTask() {
 			iconsDir.mkdirs()
 
 			// Copy the application
-			exec {
+			providers.exec {
 				commandLine("cp", "-r", "${appSourceDir.absolutePath}/.", usrDir.absolutePath)
-			}
+			}.result.get()
 
 			// Create desktop file
 			val desktopFile = applicationsDir.resolve("hammer.desktop")
@@ -125,21 +125,21 @@ fun Project.registerBuildDistAppImageTask() {
 			iconFile.copyTo(iconsDir.resolve("hammer.png"), overwrite = true)
 
 			// Create symlinks at AppDir root (required by AppImage)
-			exec {
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/share/applications/hammer.desktop", "hammer.desktop")
-			}
-			exec {
+			}.result.get()
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/share/icons/hicolor/256x256/apps/hammer.png", "hammer.png")
-			}
-			exec {
+			}.result.get()
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/bin/hammer", "AppRun")
-			}
+			}.result.get()
 
 			// Create the AppImage
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				environment("ARCH", "x86_64")
 				commandLine(
@@ -148,7 +148,7 @@ fun Project.registerBuildDistAppImageTask() {
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath
 				)
-			}
+			}.result.get()
 
 			println("AppImage created: ${outputDir.resolve("hammer.AppImage")}")
 
@@ -223,7 +223,7 @@ fun Project.registerBuildDistFlatpakTask() {
 			outputDir.mkdirs()
 
 			// Build the flatpak (install dependencies from flathub)
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine(
 					"flatpak-builder",
@@ -234,10 +234,10 @@ fun Project.registerBuildDistFlatpakTask() {
 					buildDir.absolutePath,
 					manifestFile.absolutePath
 				)
-			}
+			}.result.get()
 
 			// Create the bundle
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine(
 					"flatpak",
@@ -246,7 +246,7 @@ fun Project.registerBuildDistFlatpakTask() {
 					outputDir.resolve("hammer.flatpak").absolutePath,
 					"com.darkrockstudios.hammer"
 				)
-			}
+			}.result.get()
 
 			println("Flatpak package created at: ${outputDir.resolve("hammer.flatpak")}")
 
@@ -259,17 +259,31 @@ fun Project.registerBuildDistFlatpakTask() {
 }
 
 /**
+ * Detects the current system architecture (x64 or aarch64).
+ */
+fun detectArchitecture(): String {
+	val osArch = System.getProperty("os.arch").lowercase()
+	return when {
+		osArch.contains("aarch64") || osArch.contains("arm64") -> "aarch64"
+		osArch.contains("amd64") || osArch.contains("x86_64") -> "x64"
+		else -> osArch
+	}
+}
+
+/**
  * Registers the createFlathubTarball task for creating a tar.gz suitable for Flathub.
  * This creates a self-contained distribution with the application, desktop file, and icon.
+ * The architecture is automatically detected from the system.
  */
 fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 	tasks.register("createFlathubTarball") {
 		group = "distribution"
-		description = "Creates a tar.gz distribution suitable for Flathub submission."
+		description = "Creates a tar.gz distribution suitable for Flathub submission (auto-detects architecture)."
 
 		dependsOn(":desktop:createReleaseDistributable")
 
 		doLast {
+			val arch = detectArchitecture()
 			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
 			val outputDir = rootDir.resolve("desktop/build/installers/main-release/tarball")
 			val stagingDir = outputDir.resolve("staging/hammer-$appVersion")
@@ -301,8 +315,8 @@ fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 				rename { "icon.png" }
 			}
 
-			// Create tar.gz
-			val tarballName = "hammer-$appVersion-linux-x64.tar.gz"
+			// Create tar.gz with architecture in filename
+			val tarballName = "hammer-$appVersion-linux-$arch.tar.gz"
 			exec {
 				workingDir = outputDir.resolve("staging")
 				commandLine(
@@ -314,6 +328,7 @@ fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 			}
 
 			println("Tarball created: ${outputDir.resolve(tarballName)}")
+			println("Architecture: $arch")
 			println("Size: ${outputDir.resolve(tarballName).length() / 1024 / 1024} MB")
 
 			// Clean up staging directory

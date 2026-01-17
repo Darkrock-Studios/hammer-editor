@@ -118,3 +118,98 @@ aboutLibraries {
 }
 
 registerLinuxDistributionTasks(libs.versions.app.get())
+
+// MSIX packaging task for Windows Store
+tasks.register("packageMsix") {
+	group = "distribution"
+	description = "Creates an MSIX package for Microsoft Store submission"
+
+	// Only run on Windows
+	onlyIf {
+		org.gradle.internal.os.OperatingSystem.current().isWindows
+	}
+
+	// Depend on the distributable being created first
+	dependsOn("createDistributable")
+
+	doLast {
+		val appVersion = libs.versions.app.get()
+		val msixVersion = "$appVersion.0" // MSIX requires 4-part version
+
+		val distributableDir = project.buildDir.resolve("installers/main/app/hammer")
+		val msixDir = project.rootDir.resolve("msix")
+		val outputMsix = project.buildDir.resolve("installers/Hammer-${appVersion}.msix")
+
+		// Copy manifest
+		println("Copying AppxManifest.xml...")
+		val manifestSrc = msixDir.resolve("AppxManifest.xml")
+		val manifestDst = distributableDir.resolve("AppxManifest.xml")
+		manifestSrc.copyTo(manifestDst, overwrite = true)
+
+		// Update version in manifest (only in Identity element)
+		println("Updating version to $msixVersion...")
+		val manifestContent = manifestDst.readText()
+		val updatedManifest = manifestContent.replace(
+			Regex("""(<Identity[^>]*Version=")[\d\.]+""""),
+			"$1$msixVersion\""
+		)
+		manifestDst.writeText(updatedManifest)
+
+		// Copy assets
+		println("Copying Assets...")
+		val assetsSrc = msixDir.resolve("Assets")
+		val assetsDst = distributableDir.resolve("Assets")
+		assetsSrc.copyRecursively(assetsDst, overwrite = true)
+
+		// Find makeappx.exe
+		val makeappxPath = findMakeAppx()
+		if (makeappxPath == null) {
+			throw GradleException(
+				"makeappx.exe not found. Please install Windows SDK.\n" +
+				"Download from: https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/"
+			)
+		}
+
+		println("Packaging MSIX with makeappx...")
+		val result = exec {
+			commandLine(
+				makeappxPath,
+				"pack",
+				"/d", distributableDir.absolutePath,
+				"/p", outputMsix.absolutePath,
+				"/o"
+			)
+		}
+
+		if (result.exitValue == 0) {
+			println("✓ MSIX package created successfully!")
+			println("  Location: ${outputMsix.absolutePath}")
+			println("  Size: ${String.format("%.2f MB", outputMsix.length() / 1024.0 / 1024.0)}")
+			println("\nReady for Microsoft Store submission!")
+		} else {
+			throw GradleException("Failed to create MSIX package")
+		}
+	}
+}
+
+fun findMakeAppx(): String? {
+	// Common Windows SDK locations
+	val searchPaths = listOf(
+		"C:\\Program Files (x86)\\Windows Kits\\10\\bin",
+		"C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
+	)
+
+	for (basePath in searchPaths) {
+		val baseDir = file(basePath)
+		if (baseDir.exists()) {
+			// Search in bin subdirectories (e.g., 10.0.22621.0/x64/)
+			baseDir.walk().forEach { file ->
+				if (file.name == "makeappx.exe") {
+					return file.absolutePath
+				}
+			}
+		}
+	}
+
+	return null
+}

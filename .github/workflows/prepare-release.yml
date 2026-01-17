@@ -174,6 +174,56 @@ jobs:
           allowUpdates: true
           artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/tarball/*.tar.gz"
 
+  linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU for ARM64 emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build ARM64 tarball in Docker
+        run: |
+          docker run --rm --platform linux/arm64 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            eclipse-temurin:21-jdk \
+            bash -c "
+              # Install required tools
+              apt-get update && apt-get install -y wget tar gzip
+
+              # Make gradlew executable
+              chmod +x ./gradlew
+
+              # Build the tarball
+              ./gradlew createFlathubTarball --no-daemon --info
+
+              # List the generated files
+              ls -lah /workspace/desktop/build/installers/main-release/tarball/
+            "
+
+      - name: Verify ARM64 tarball
+        run: |
+          ls -lah ${{ github.workspace }}/desktop/build/installers/main-release/tarball/
+          echo "Verifying ARM64 architecture in bundled JRE..."
+          mkdir -p /tmp/verify
+          tar -xzf ${{ github.workspace }}/desktop/build/installers/main-release/tarball/*.tar.gz -C /tmp/verify
+          file /tmp/verify/*/bin/hammer || echo "Hammer binary extracted"
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: true
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/tarball/*.tar.gz"
+
   macos:
     runs-on: macos-latest
     steps:
@@ -453,7 +503,7 @@ jobs:
 
   set-release-body:
     runs-on: ubuntu-latest
-    needs: [ windows, linux, macos, android, server, snap, flatpak ]
+    needs: [ windows, linux, linux-arm64, macos, android, server, snap, flatpak ]
     if: success()
 
     steps:

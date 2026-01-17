@@ -9,7 +9,7 @@ fun publishFdroid(project: Project) {
 	val versionCode = curSemVar.createVersionCode(true, 0)
 	val tag = "fdroid-${versionCode}"
 
-	project.exec {
+	project.providers.exec {
 		commandLine = listOf(
 			"git",
 			"config",
@@ -17,14 +17,14 @@ fun publishFdroid(project: Project) {
 			"user.email",
 			"github-actions[bot]@users.noreply.github.com"
 		)
-	}
-	project.exec {
+	}.result.get()
+	project.providers.exec {
 		commandLine = listOf("git", "config", "--global", "user.name", "github-actions[bot]")
-	}
+	}.result.get()
 
-	project.exec { commandLine = listOf("git", "fetch", "origin", "release") }
-	project.exec { commandLine = listOf("git", "checkout", "release") }
-	project.exec {
+	project.providers.exec { commandLine = listOf("git", "fetch", "origin", "release") }.result.get()
+	project.providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
+	project.providers.exec {
 		commandLine = listOf(
 			"git",
 			"tag",
@@ -33,8 +33,8 @@ fun publishFdroid(project: Project) {
 			"-m",
 			"FDroid release tag for $semvarStr"
 		)
-	}
-	project.exec { commandLine = listOf("git", "push", "origin", "tag", tag) }
+	}.result.get()
+	project.providers.exec { commandLine = listOf("git", "push", "origin", "tag", tag) }.result.get()
 }
 
 fun publishFlathub(project: Project) {
@@ -42,7 +42,7 @@ fun publishFlathub(project: Project) {
 	val semvarStr = libs.findVersion("app").get().toString()
 	val tag = "flathub-v${semvarStr}"
 
-	project.exec {
+	project.providers.exec {
 		commandLine = listOf(
 			"git",
 			"config",
@@ -50,14 +50,14 @@ fun publishFlathub(project: Project) {
 			"user.email",
 			"github-actions[bot]@users.noreply.github.com"
 		)
-	}
-	project.exec {
+	}.result.get()
+	project.providers.exec {
 		commandLine = listOf("git", "config", "--global", "user.name", "github-actions[bot]")
-	}
+	}.result.get()
 
-	project.exec { commandLine = listOf("git", "fetch", "origin", "release") }
-	project.exec { commandLine = listOf("git", "checkout", "release") }
-	project.exec {
+	project.providers.exec { commandLine = listOf("git", "fetch", "origin", "release") }.result.get()
+	project.providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
+	project.providers.exec {
 		commandLine = listOf(
 			"git",
 			"tag",
@@ -66,8 +66,8 @@ fun publishFlathub(project: Project) {
 			"-m",
 			"Flathub release tag for $semvarStr"
 		)
-	}
-	project.exec { commandLine = listOf("git", "push", "origin", "tag", tag) }
+	}.result.get()
+	project.providers.exec { commandLine = listOf("git", "push", "origin", "tag", tag) }.result.get()
 }
 
 /**
