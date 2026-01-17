@@ -1,4 +1,4 @@
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Por favor, junte-se ao nosso servidor de Discord para relatar problemas! https://discord.gg/GTmgjZcupk
 
 Multi-plataforma
 
@@ -16,6 +16,6 @@ Sincronização inteligente entre aparelhos
 
 Seus dados podem ser sincronizados entre aparelhos, permitindo que você trabalhe na sua história em qualquer lugar, e sem temer que uma alteração em um aparelho sobrescreva a feita em outro.
 
-Optional and Self hosted Syncing
+Sincronização Opcional e Auto-hospedada
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+Sincronizar é completamente opcional. Você pode instalar o cliente e usá-lo em um dispositivo, ou instalar o servidor e sincronizar seus dados com outros dispositivos.
