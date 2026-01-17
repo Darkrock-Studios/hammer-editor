@@ -259,17 +259,31 @@ fun Project.registerBuildDistFlatpakTask() {
 }
 
 /**
+ * Detects the current system architecture (x64 or aarch64).
+ */
+fun detectArchitecture(): String {
+	val osArch = System.getProperty("os.arch").lowercase()
+	return when {
+		osArch.contains("aarch64") || osArch.contains("arm64") -> "aarch64"
+		osArch.contains("amd64") || osArch.contains("x86_64") -> "x64"
+		else -> osArch
+	}
+}
+
+/**
  * Registers the createFlathubTarball task for creating a tar.gz suitable for Flathub.
  * This creates a self-contained distribution with the application, desktop file, and icon.
+ * The architecture is automatically detected from the system.
  */
 fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 	tasks.register("createFlathubTarball") {
 		group = "distribution"
-		description = "Creates a tar.gz distribution suitable for Flathub submission."
+		description = "Creates a tar.gz distribution suitable for Flathub submission (auto-detects architecture)."
 
 		dependsOn(":desktop:createReleaseDistributable")
 
 		doLast {
+			val arch = detectArchitecture()
 			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
 			val outputDir = rootDir.resolve("desktop/build/installers/main-release/tarball")
 			val stagingDir = outputDir.resolve("staging/hammer-$appVersion")
@@ -301,8 +315,8 @@ fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 				rename { "icon.png" }
 			}
 
-			// Create tar.gz
-			val tarballName = "hammer-$appVersion-linux-x64.tar.gz"
+			// Create tar.gz with architecture in filename
+			val tarballName = "hammer-$appVersion-linux-$arch.tar.gz"
 			exec {
 				workingDir = outputDir.resolve("staging")
 				commandLine(
@@ -314,6 +328,7 @@ fun Project.registerCreateFlathubTarballTask(appVersion: String) {
 			}
 
 			println("Tarball created: ${outputDir.resolve(tarballName)}")
+			println("Architecture: $arch")
 			println("Size: ${outputDir.resolve(tarballName).length() / 1024 / 1024} MB")
 
 			// Clean up staging directory
