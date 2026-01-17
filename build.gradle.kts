@@ -127,11 +127,11 @@ tasks.register("prepareForRelease") {
 		updateSnapcraftYaml(releaseInfo.semVar, jvmVersion, snapcraftFile)
 
 		// Update Flatpak manifest and metainfo with new version and JVM version
-		val flatpakManifestPath = "flatpak/com.darkrockstudios.hammer.yaml".replace("/", File.separator)
+		val flatpakManifestPath = "flatpak/studio.darkrock.hammer.yaml".replace("/", File.separator)
 		val flatpakManifestFile = project.rootDir.resolve(flatpakManifestPath)
-		val flatpakMetainfoPath = "flatpak/com.darkrockstudios.hammer.metainfo.xml".replace("/", File.separator)
+		val flatpakMetainfoPath = "flatpak/studio.darkrock.hammer.metainfo.xml".replace("/", File.separator)
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
-		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile)
+		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
 
 		// Commit the changes to the repo
 		providers.exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }.result.get()

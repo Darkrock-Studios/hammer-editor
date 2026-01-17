@@ -11,10 +11,11 @@ import java.time.format.DateTimeFormatter
  * @param jvmVersion The JVM version to use (e.g., "21")
  * @param manifestFile The Flatpak manifest YAML file to update
  * @param metainfoFile The AppStream metainfo XML file to update
+ * @param changelog The changelog text to include in the release description
  */
-fun updateFlatpakFiles(newVersion: SemVar, jvmVersion: String, manifestFile: File, metainfoFile: File) {
+fun updateFlatpakFiles(newVersion: SemVar, jvmVersion: String, manifestFile: File, metainfoFile: File, changelog: String) {
 	updateFlatpakManifest(jvmVersion, manifestFile)
-	updateFlatpakMetainfo(newVersion, metainfoFile)
+	updateFlatpakMetainfo(newVersion, metainfoFile, changelog)
 }
 
 private fun updateFlatpakManifest(jvmVersion: String, manifestFile: File) {
@@ -41,7 +42,7 @@ private fun updateFlatpakManifest(jvmVersion: String, manifestFile: File) {
 	println("Flatpak manifest updated with JVM $jvmVersion")
 }
 
-private fun updateFlatpakMetainfo(newVersion: SemVar, metainfoFile: File) {
+private fun updateFlatpakMetainfo(newVersion: SemVar, metainfoFile: File, changelog: String) {
 	if (!metainfoFile.exists()) {
 		println("Warning: Flatpak metainfo not found at ${metainfoFile.absolutePath}, skipping update")
 		return
@@ -59,10 +60,13 @@ private fun updateFlatpakMetainfo(newVersion: SemVar, metainfoFile: File) {
 		return
 	}
 
+	// Format the changelog for XML
+	val changelogXml = formatChangelogForXml(changelog)
+
 	// Add new release entry after <releases> tag
 	val newRelease = """        <release version="$versionStr" date="$releaseDate">
             <description>
-                <p>Latest release</p>
+$changelogXml
             </description>
         </release>"""
 
@@ -73,4 +77,29 @@ private fun updateFlatpakMetainfo(newVersion: SemVar, metainfoFile: File) {
 
 	metainfoFile.writeText(content)
 	println("Flatpak metainfo updated to version $versionStr")
+}
+
+/**
+ * Formats a changelog text for inclusion in XML.
+ * Splits the text by lines and wraps each non-empty line in <p> tags,
+ * properly escaping XML special characters.
+ */
+private fun formatChangelogForXml(changelog: String): String {
+	val lines = changelog.trim().lines()
+		.map { it.trim() }
+		.filter { it.isNotEmpty() }
+
+	return if (lines.isEmpty()) {
+		"                <p>Latest release</p>"
+	} else {
+		lines.joinToString("\n") { line ->
+			val escapedLine = line
+				.replace("&", "&amp;")
+				.replace("<", "&lt;")
+				.replace(">", "&gt;")
+				.replace("\"", "&quot;")
+				.replace("'", "&apos;")
+			"                <p>$escapedLine</p>"
+		}
+	}
 }
