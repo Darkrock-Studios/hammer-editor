@@ -39,10 +39,10 @@ fun Project.registerBuildDistSnapTask(appVersion: String) {
 		}
 
 		doLast {
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine("snapcraft")
-			}
+			}.result.get()
 
 			val snapFile = rootDir.resolve("hammer-editor_${appVersion}_amd64.snap")
 			val outputDir = rootDir.resolve("desktop/build/installers/main-release/snap")
@@ -83,16 +83,16 @@ fun Project.registerBuildDistAppImageTask() {
 
 			// Download appimagetool if not present
 			if (!appimagetool.exists()) {
-				exec {
+				providers.exec {
 					workingDir = rootDir
 					commandLine(
 						"wget", "-q",
 						"https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 					)
-				}
-				exec {
+				}.result.get()
+				providers.exec {
 					commandLine("chmod", "+x", appimagetool.absolutePath)
-				}
+				}.result.get()
 			}
 
 			// Create AppDir structure
@@ -103,9 +103,9 @@ fun Project.registerBuildDistAppImageTask() {
 			iconsDir.mkdirs()
 
 			// Copy the application
-			exec {
+			providers.exec {
 				commandLine("cp", "-r", "${appSourceDir.absolutePath}/.", usrDir.absolutePath)
-			}
+			}.result.get()
 
 			// Create desktop file
 			val desktopFile = applicationsDir.resolve("hammer.desktop")
@@ -125,21 +125,21 @@ fun Project.registerBuildDistAppImageTask() {
 			iconFile.copyTo(iconsDir.resolve("hammer.png"), overwrite = true)
 
 			// Create symlinks at AppDir root (required by AppImage)
-			exec {
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/share/applications/hammer.desktop", "hammer.desktop")
-			}
-			exec {
+			}.result.get()
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/share/icons/hicolor/256x256/apps/hammer.png", "hammer.png")
-			}
-			exec {
+			}.result.get()
+			providers.exec {
 				workingDir = appDir
 				commandLine("ln", "-sf", "usr/bin/hammer", "AppRun")
-			}
+			}.result.get()
 
 			// Create the AppImage
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				environment("ARCH", "x86_64")
 				commandLine(
@@ -148,7 +148,7 @@ fun Project.registerBuildDistAppImageTask() {
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath
 				)
-			}
+			}.result.get()
 
 			println("AppImage created: ${outputDir.resolve("hammer.AppImage")}")
 
@@ -223,7 +223,7 @@ fun Project.registerBuildDistFlatpakTask() {
 			outputDir.mkdirs()
 
 			// Build the flatpak (install dependencies from flathub)
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine(
 					"flatpak-builder",
@@ -234,10 +234,10 @@ fun Project.registerBuildDistFlatpakTask() {
 					buildDir.absolutePath,
 					manifestFile.absolutePath
 				)
-			}
+			}.result.get()
 
 			// Create the bundle
-			exec {
+			providers.exec {
 				workingDir = rootDir
 				commandLine(
 					"flatpak",
@@ -246,7 +246,7 @@ fun Project.registerBuildDistFlatpakTask() {
 					outputDir.resolve("hammer.flatpak").absolutePath,
 					"com.darkrockstudios.hammer"
 				)
-			}
+			}.result.get()
 
 			println("Flatpak package created at: ${outputDir.resolve("hammer.flatpak")}")
 
