@@ -6,7 +6,7 @@ Este aplicativo está sempre ao seu lado. Your phone, tablet, desktop, laptop, t
 
 Offline first
 
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. O Hammer é projetado do zero para ser completamente local, sem necessidade de conexão com a internet.
 
 Dados Transparentes
 
