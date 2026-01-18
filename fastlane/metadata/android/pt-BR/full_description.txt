@@ -10,7 +10,7 @@ I was frustrated with most of the story writing software I was finding as they w
 
 Dados Transparentes
 
-Os seus dados são seus. Eles não são armazenados na nuvem ou algum banco de dados obscuro. It is stored in simple, human readable files, just using files and folders to define the project structure. Você pode abrir o explorador de arquivos do seu sistema operacional e verificar por si mesmo. Se esse programa sumisse hoje, você ainda poderia facilmente interagir com seus dados.
+Os seus dados são seus. Eles não são armazenados na nuvem ou algum banco de dados obscuro. Eles são armazenados em arquivos simples e legíveis por humanos, usando apenas arquivos e pastas para definir a estrutura do projeto. Você pode abrir o explorador de arquivos do seu sistema operacional e verificar por si mesmo. Se esse programa sumisse hoje, você ainda poderia facilmente interagir com seus dados.
 
 Sincronização inteligente entre aparelhos
 
