@@ -96,7 +96,7 @@
 	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s</string>
 	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
 	<string name="sync_log_stale_hash_detected">Server cached hash is stale for entity %1$d. Healing by force uploading.</string>
-	<string name="sync_log_stale_hash_healed">Successfully healed server cache for entity %1$d by force uploading</string>
+	<string name="sync_log_stale_hash_healed">Cache do servidor para a entidade %1$d corrigido com sucesso através do envio forçado</string>
 	<string name="sync_log_stale_hash_heal_failed">Failed to heal server cache for entity %1$d - force upload failed</string>
 	<string name="sync_log_entities_transferred">Entities transferred</string>
 	<string name="sync_log_finalized">Sync finalized</string>
@@ -104,7 +104,7 @@
 	<string name="sync_log_data_save_failed">Sync data not saved due to errors</string>
 	<string name="sync_log_failed">Failed to end sync</string>
 	<string name="sync_encyclopedia_deleted">Deleted Encyclopedia ID %1$d from client</string>
-	<string name="sync_note_deleted">Deleted note ID %1$d from client</string>
+	<string name="sync_note_deleted">Nota ID %1$d excluído do cliente</string>
 	<string name="sync_draft_deleted">Deleted draft %1$d from client</string>
 	<string name="sync_scene_deleted">Deleted scene %1$d from client</string>
 	<string name="sync_scene_delete_failed">Failed to delete scene %1$d from client</string>
