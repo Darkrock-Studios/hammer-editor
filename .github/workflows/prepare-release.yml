@@ -459,6 +459,7 @@ jobs:
           artifacts: hammer.snap
 
   flatpak:
+    if: false # Disable local flatpak build for now
     runs-on: ubuntu-latest
     permissions:
       contents: write
