@@ -30,9 +30,9 @@
 	<string name="archive_scene_dialog_confirm">Arquivar</string>
 	<string name="archive_scene_dialog_cancel">Cancelar</string>
 	<string name="discard_buffer_dialog_title">Descartar Alterações</string>
-	<string name="discard_buffer_dialog_message">Are you sure you want to discard all unsaved changes to \'%1$s\'? This will reload the last saved version from disk.</string>
-	<string name="discard_buffer_dialog_confirm">Discard</string>
-	<string name="discard_buffer_dialog_cancel">Cancel</string>
+	<string name="discard_buffer_dialog_message">Tem certeza que deseja descartar todas as alterações não salvas em \'%1$s\'? Isso irá recarregar a última versão salva do disco.</string>
+	<string name="discard_buffer_dialog_confirm">Descartar</string>
+	<string name="discard_buffer_dialog_cancel">Cancelar</string>
 	<string name="archived_scenes_dialog_title">Cenas arquivadas</string>
 	<string name="archived_scenes_empty">Nenhuma cena arquivada</string>
 	<string name="archived_scenes_restore_button">Restaurar</string>
