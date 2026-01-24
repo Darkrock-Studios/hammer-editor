@@ -86,27 +86,6 @@ jobs:
           snap: hammer.snap
           release: stable
 
-  publish-flathub-tag:
-    needs: [ publish-google-play, publish-snap ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant Permission to Execute
-        run: chmod +x gradlew
-
-      - name: Publish Flathub tag
-        run: |
-          ./gradlew publishFlathub
-
   publish-microsoft-store:
     needs: publish-google-play
     runs-on: windows-latest
@@ -178,7 +157,7 @@ jobs:
           Write-Host "✓ Submission committed successfully!"
 
   notify:
-    needs: [ publish-google-play, publish-snap, publish-flathub-tag ]
+    needs: [ publish-google-play, publish-snap ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification
