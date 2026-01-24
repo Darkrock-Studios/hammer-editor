@@ -259,90 +259,10 @@ fun Project.registerBuildDistFlatpakTask() {
 }
 
 /**
- * Detects the current system architecture (x64 or aarch64).
- */
-fun detectArchitecture(): String {
-	val osArch = System.getProperty("os.arch").lowercase()
-	return when {
-		osArch.contains("aarch64") || osArch.contains("arm64") -> "aarch64"
-		osArch.contains("amd64") || osArch.contains("x86_64") -> "x64"
-		else -> osArch
-	}
-}
-
-/**
- * Registers the createFlathubTarball task for creating a tar.gz suitable for Flathub.
- * This creates a self-contained distribution with the application, desktop file, and icon.
- * The architecture is automatically detected from the system.
- */
-fun Project.registerCreateFlathubTarballTask(appVersion: String) {
-	tasks.register("createFlathubTarball") {
-		group = "distribution"
-		description = "Creates a tar.gz distribution suitable for Flathub submission (auto-detects architecture)."
-
-		dependsOn(":desktop:createReleaseDistributable")
-
-		doLast {
-			val arch = detectArchitecture()
-			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
-			val outputDir = rootDir.resolve("desktop/build/installers/main-release/tarball")
-			val stagingDir = outputDir.resolve("staging/hammer-$appVersion")
-			val iconFile = rootDir.resolve("desktop/icons/linux.png")
-			val desktopFile = rootDir.resolve("flatpak/com.darkrockstudios.hammer.desktop")
-
-			// Clean and create directories
-			outputDir.deleteRecursively()
-			outputDir.mkdirs()
-			stagingDir.mkdirs()
-
-			// Copy the application
-			copy {
-				from(appSourceDir)
-				into(stagingDir)
-			}
-
-			// Copy desktop file to root of staging directory
-			copy {
-				from(desktopFile)
-				into(stagingDir)
-				rename { "hammer-editor.desktop" }
-			}
-
-			// Copy icon to root of staging directory
-			copy {
-				from(iconFile)
-				into(stagingDir)
-				rename { "icon.png" }
-			}
-
-			// Create tar.gz with architecture in filename
-			val tarballName = "hammer-$appVersion-linux-$arch.tar.gz"
-			exec {
-				workingDir = outputDir.resolve("staging")
-				commandLine(
-					"tar",
-					"-czf",
-					"../$tarballName",
-					"hammer-$appVersion"
-				)
-			}
-
-			println("Tarball created: ${outputDir.resolve(tarballName)}")
-			println("Architecture: $arch")
-			println("Size: ${outputDir.resolve(tarballName).length() / 1024 / 1024} MB")
-
-			// Clean up staging directory
-			stagingDir.parentFile.deleteRecursively()
-		}
-	}
-}
-
-/**
- * Registers all Linux distribution tasks (Snap, AppImage, Flatpak, Tarball).
+ * Registers all Linux distribution tasks (Snap, AppImage, Flatpak).
  */
 fun Project.registerLinuxDistributionTasks(appVersion: String) {
 	registerBuildDistSnapTask(appVersion)
 	registerBuildDistAppImageTask()
 	registerBuildDistFlatpakTask()
-	registerCreateFlathubTarballTask(appVersion)
 }
