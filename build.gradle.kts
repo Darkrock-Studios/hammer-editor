@@ -68,6 +68,7 @@ plugins {
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
+	alias(libs.plugins.flatpak.gradle.generator) apply false
 }
 
 dependencies {

@@ -171,6 +171,10 @@
 				<h3>{{msg.home_download_windows}}</h3>
 				<div class="download-buttons download-selector">
 					<select id="windows-format-select" class="format-dropdown">
+						<option value="store" data-icon="fa-brands fa-windows"
+								data-url="https://apps.microsoft.com/detail/9p84lm8qv5x6">
+							Microsoft Store
+						</option>
 						<option value="msi" data-icon="fa-solid fa-box"
 								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi">
 							Installer (.msi)
@@ -181,9 +185,9 @@
 						</option>
 					</select>
 					<a id="windows-download-btn"
-					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.msi"
+					   href="https://apps.microsoft.com/detail/9p84lm8qv5x6"
 					   class="download-link download-btn">
-						<i id="windows-download-icon" class="fa-solid fa-box"></i>
+						<i id="windows-download-icon" class="fa-brands fa-windows"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
 				</div>

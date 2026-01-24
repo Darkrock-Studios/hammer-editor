@@ -10,6 +10,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.aboutlibraries.plugin)
+	alias(libs.plugins.flatpak.gradle.generator)
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
@@ -212,4 +213,21 @@ fun findMakeAppx(): String? {
 	}
 
 	return null
+}
+
+// Flatpak Gradle Generator configuration
+tasks.named("flatpakGradleGenerator") {
+	// Output file for Flatpak sources
+	setProperty("outputFile", rootProject.file("flatpak/flatpak-sources.json"))
+
+	// Exclude test configurations to reduce the dependency list
+	setProperty("excludeConfigurations", listOf(
+		"testCompileClasspath",
+		"testRuntimeClasspath",
+		"jvmTestCompileClasspath",
+		"jvmTestRuntimeClasspath"
+	))
+
+	// Set architecture (x86_64 is the default, but can specify for clarity)
+	// setProperty("onlyArches", "x86_64")
 }
