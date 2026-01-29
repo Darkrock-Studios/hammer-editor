@@ -218,6 +218,8 @@ fun findMakeAppx(): String? {
 tasks.named("flatpakGradleGenerator") {
 	setProperty("outputFile", rootProject.file("flatpak/flatpak-sources.json"))
 
+	setProperty("localRepoPath", "offline-repository")
+
 	// Exclude test configurations to reduce the dependency list
 	setProperty("excludeConfigurations", listOf(
 		"testCompileClasspath",
