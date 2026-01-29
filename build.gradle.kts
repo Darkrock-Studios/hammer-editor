@@ -89,6 +89,7 @@ registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
 
 tasks.register("prepareForRelease") {
+	dependsOn(":desktop:flatpakGradleGenerator")
 	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
@@ -141,6 +142,9 @@ tasks.register("prepareForRelease") {
 		providers.exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }.result.get()
 		providers.exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }.result.get()
 		providers.exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }.result.get()
+		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
+		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
+		providers.exec { commandLine = listOf("git", "add", flatpakSourcesFile.absolutePath) }.result.get()
 		providers.exec {
 			commandLine =
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
