@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.4] - 2026-1-28
+
+- More flathub work
+
+
 ## [2.1.3] - 2026-1-24
 
 - Working on Flathub release
