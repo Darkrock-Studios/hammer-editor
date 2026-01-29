@@ -152,6 +152,8 @@ tasks.register("prepareForRelease") {
 
 		// Merge develop into release
 		providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
+		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
+		providers.exec { commandLine = listOf("git", "reset", "--hard", "origin/release") }.result.get()
 		providers.exec { commandLine = listOf("git", "merge", "develop") }.result.get()
 
 		// Create the release tag
