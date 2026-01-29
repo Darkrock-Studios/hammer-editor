@@ -215,12 +215,8 @@ fun findMakeAppx(): String? {
 	return null
 }
 
-// Flatpak Gradle Generator configuration
 tasks.named("flatpakGradleGenerator") {
-	// Output file for Flatpak sources
 	setProperty("outputFile", rootProject.file("flatpak/flatpak-sources.json"))
-
-	setProperty("localRepoPath", "offline-repository")
 
 	// Exclude test configurations to reduce the dependency list
 	setProperty("excludeConfigurations", listOf(
