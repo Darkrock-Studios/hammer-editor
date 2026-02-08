@@ -88,7 +88,42 @@ kover {
 registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
 
+val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
+	doLast {
+		println("Fetching origin...")
+		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
+
+		// Check for unstaged/uncommitted changes
+		val statusText = providers.exec {
+			commandLine = listOf("git", "status", "--porcelain")
+		}.standardOutput.asText.get().trim()
+		if (statusText.isNotEmpty()) {
+			error(
+				"Working tree has uncommitted changes. Please commit or stash them before preparing a release.\n$statusText"
+			)
+		}
+
+		// Check if develop is behind origin/develop
+		val developBehind = providers.exec {
+			commandLine = listOf("git", "rev-list", "--count", "develop..origin/develop")
+		}.standardOutput.asText.get().trim().toIntOrNull() ?: 0
+		if (developBehind > 0) {
+			error("Local 'develop' is behind 'origin/develop' by $developBehind commit(s). Please pull before preparing a release.")
+		}
+
+		println("Pre-flight checks passed.")
+	}
+}
+
+// Ensure flatpak generator runs after pre-flight checks
+project(":desktop").tasks.configureEach {
+	if (name == "flatpakGradleGenerator") {
+		mustRunAfter(releasePreFlightChecks)
+	}
+}
+
 tasks.register("prepareForRelease") {
+	dependsOn(releasePreFlightChecks, ":desktop:flatpakGradleGenerator")
 	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
@@ -141,13 +176,17 @@ tasks.register("prepareForRelease") {
 		providers.exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }.result.get()
 		providers.exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }.result.get()
 		providers.exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }.result.get()
+		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
+		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
+		providers.exec { commandLine = listOf("git", "add", flatpakSourcesFile.absolutePath) }.result.get()
 		providers.exec {
 			commandLine =
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 		}.result.get()
 
-		// Merge develop into release
+		// Switch to release and reset to origin/release HEAD
 		providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
+		providers.exec { commandLine = listOf("git", "reset", "--hard", "origin/release") }.result.get()
 		providers.exec { commandLine = listOf("git", "merge", "develop") }.result.get()
 
 		// Create the release tag

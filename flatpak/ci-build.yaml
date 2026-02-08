@@ -1,0 +1,36 @@
+app-id: studio.darkrock.hammer
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+
+command: hammer
+
+finish-args:
+    # Display access
+    - --socket=x11
+    - --socket=wayland
+    - --share=ipc
+    - --device=dri
+    # File access
+    - --filesystem=home
+    - --filesystem=xdg-documents
+    # Network for sync
+    - --share=network
+
+modules:
+    -   name: hammer
+        buildsystem: simple
+        build-commands:
+            # Install the pre-built app
+            - mkdir -p /app/lib/hammer
+            - cp -r dist/hammer/* /app/lib/hammer/
+            # Install launcher script
+            - mkdir -p /app/bin
+            - install -Dm755 dist/hammer.sh /app/bin/hammer
+            # Install desktop file, icon, and metainfo
+            - install -Dm644 dist/studio.darkrock.hammer.desktop /app/share/applications/studio.darkrock.hammer.desktop
+            - install -Dm644 dist/studio.darkrock.hammer.png /app/share/icons/hicolor/256x256/apps/studio.darkrock.hammer.png
+            - install -Dm644 dist/studio.darkrock.hammer.metainfo.xml /app/share/metainfo/studio.darkrock.hammer.metainfo.xml
+        sources:
+            -   type: dir
+                path: .

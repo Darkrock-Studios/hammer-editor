@@ -192,10 +192,10 @@ fun Project.registerBuildDistFlatpakTask() {
 
 			// Copy metadata
 			copy {
-				from(flatpakDir.resolve("com.darkrockstudios.hammer.desktop"))
-				from(flatpakDir.resolve("com.darkrockstudios.hammer.metainfo.xml"))
+				from(flatpakDir.resolve("studio.darkrock.hammer.desktop"))
+				from(flatpakDir.resolve("studio.darkrock.hammer.metainfo.xml"))
 				from(rootDir.resolve("desktop/icons/linux.png")) {
-					rename { "com.darkrockstudios.hammer.png" }
+					rename { "studio.darkrock.hammer.png" }
 				}
 				into(distDir)
 			}
@@ -215,21 +215,20 @@ fun Project.registerBuildDistFlatpakTask() {
 			val buildDir = rootDir.resolve("flatpak-build")
 			val repoDir = rootDir.resolve("flatpak-repo")
 			val outputDir = rootDir.resolve("desktop/build/installers/main-release/flatpak")
-			val manifestFile = flatpakDir.resolve("com.darkrockstudios.hammer.yaml")
+			val manifestFile = flatpakDir.resolve("ci-build.yaml")
 
 			// Clean previous build artifacts
 			buildDir.deleteRecursively()
 			repoDir.deleteRecursively()
 			outputDir.mkdirs()
 
-			// Build the flatpak (install dependencies from flathub)
+			// Build the flatpak
 			providers.exec {
 				workingDir = rootDir
 				commandLine(
 					"flatpak-builder",
 					"--user",
 					"--repo=${repoDir.absolutePath}",
-					"--install-deps-from=flathub",
 					"--force-clean",
 					buildDir.absolutePath,
 					manifestFile.absolutePath
@@ -244,7 +243,7 @@ fun Project.registerBuildDistFlatpakTask() {
 					"build-bundle",
 					repoDir.absolutePath,
 					outputDir.resolve("hammer.flatpak").absolutePath,
-					"com.darkrockstudios.hammer"
+					"studio.darkrock.hammer"
 				)
 			}.result.get()
 
