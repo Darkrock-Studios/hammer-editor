@@ -91,6 +91,30 @@ registerLinuxDistributionTasks(libs.versions.app.get())
 tasks.register("prepareForRelease") {
 	dependsOn(":desktop:flatpakGradleGenerator")
 	doLast {
+		// Pre-flight checks
+		println("Fetching origin...")
+		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
+
+		// Check for unstaged/uncommitted changes
+		val statusText = providers.exec {
+			commandLine = listOf("git", "status", "--porcelain")
+		}.standardOutput.asText.get().trim()
+		if (statusText.isNotEmpty()) {
+			error(
+				"Working tree has uncommitted changes. Please commit or stash them before preparing a release.\n$statusText"
+			)
+		}
+
+		// Check if develop is behind origin/develop
+		val developBehind = providers.exec {
+			commandLine = listOf("git", "rev-list", "--count", "develop..origin/develop")
+		}.standardOutput.asText.get().trim().toIntOrNull() ?: 0
+		if (developBehind > 0) {
+			error("Local 'develop' is behind 'origin/develop' by $developBehind commit(s). Please pull before preparing a release.")
+		}
+
+		println("Pre-flight checks passed.")
+
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
 
@@ -150,9 +174,8 @@ tasks.register("prepareForRelease") {
 				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 		}.result.get()
 
-		// Merge develop into release
+		// Switch to release and reset to origin/release HEAD
 		providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
-		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
 		providers.exec { commandLine = listOf("git", "reset", "--hard", "origin/release") }.result.get()
 		providers.exec { commandLine = listOf("git", "merge", "develop") }.result.get()
 
