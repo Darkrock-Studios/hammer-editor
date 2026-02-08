@@ -406,7 +406,6 @@ jobs:
           artifacts: hammer.snap
 
   flatpak:
-    if: false # Disable local flatpak build for now
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -426,6 +425,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Cache Flatpak SDK and runtime
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-sdk-runtime-24.08
 
       - name: Install Flatpak SDK and runtime
         run: |
