@@ -169,37 +169,109 @@ tasks.register("prepareForRelease") {
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
 		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
 
+		fun git(vararg args: String) {
+			val cmd = listOf("git") + args.toList()
+			println("> ${cmd.joinToString(" ")}")
+			val stderr = java.io.ByteArrayOutputStream()
+			val result = project.exec {
+				commandLine = cmd
+				errorOutput = stderr
+				isIgnoreExitValue = true
+			}
+			if (result.exitValue != 0) {
+				error("Git command failed: ${cmd.joinToString(" ")}\n${stderr.toString().trim()}")
+			}
+		}
+
 		// Commit the changes to the repo
-		providers.exec { commandLine = listOf("git", "add", changeLogFile.absolutePath) }.result.get()
-		providers.exec { commandLine = listOf("git", "add", versionsFile.absolutePath) }.result.get()
-		providers.exec { commandLine = listOf("git", "add", globalChangelogFile.absolutePath) }.result.get()
-		providers.exec { commandLine = listOf("git", "add", snapcraftFile.absolutePath) }.result.get()
-		providers.exec { commandLine = listOf("git", "add", flatpakManifestFile.absolutePath) }.result.get()
-		providers.exec { commandLine = listOf("git", "add", flatpakMetainfoFile.absolutePath) }.result.get()
+		git("add", changeLogFile.absolutePath)
+		git("add", versionsFile.absolutePath)
+		git("add", globalChangelogFile.absolutePath)
+		git("add", snapcraftFile.absolutePath)
+		git("add", flatpakManifestFile.absolutePath)
+		git("add", flatpakMetainfoFile.absolutePath)
 		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
 		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
-		providers.exec { commandLine = listOf("git", "add", flatpakSourcesFile.absolutePath) }.result.get()
-		providers.exec {
-			commandLine =
-				listOf("git", "commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
-		}.result.get()
+		git("add", flatpakSourcesFile.absolutePath)
+		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
 		// Switch to release and reset to origin/release HEAD
-		providers.exec { commandLine = listOf("git", "checkout", "release") }.result.get()
-		providers.exec { commandLine = listOf("git", "reset", "--hard", "origin/release") }.result.get()
-		providers.exec { commandLine = listOf("git", "merge", "develop") }.result.get()
+		git("checkout", "release")
+		git("reset", "--hard", "origin/release")
+		git("merge", "develop")
 
 		// Create the release tag
-		providers.exec {
-			commandLine =
-				listOf("git", "tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
-		}.result.get()
+		git("tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
 
 		// Push and begin the release process
-		providers.exec { commandLine = listOf("git", "push", "origin", "--all") }.result.get()
-		providers.exec { commandLine = listOf("git", "push", "origin", "--tags") }.result.get()
+		git("push", "origin", "--all")
+		git("push", "origin", "--tags")
 
 		// Leave the repo back on develop
-		providers.exec { commandLine = listOf("git", "checkout", "develop") }.result.get()
+		git("checkout", "develop")
+	}
+}
+
+tasks.register("backoutLastRelease") {
+	doLast {
+		val version = libs.versions.app.get()
+		val tagName = "v$version"
+
+		println("Attempting to back out release $tagName...")
+
+		fun gitSafe(vararg args: String): Boolean {
+			val cmd = listOf("git") + args.toList()
+			println("> ${cmd.joinToString(" ")}")
+			val stderr = java.io.ByteArrayOutputStream()
+			val result = project.exec {
+				commandLine = cmd
+				errorOutput = stderr
+				isIgnoreExitValue = true
+			}
+			if (result.exitValue != 0) {
+				println("  (failed: ${stderr.toString().trim()})")
+			}
+			return result.exitValue == 0
+		}
+
+		// Make sure we're on develop
+		gitSafe("checkout", "develop")
+
+		// Check if HEAD commit is the release commit
+		val headMessage = providers.exec {
+			commandLine = listOf("git", "log", "-1", "--format=%s")
+		}.standardOutput.asText.get().trim()
+
+		if (headMessage == "Prepared for release: $tagName") {
+			println("Resetting develop to before release commit...")
+			gitSafe("reset", "--hard", "HEAD~1")
+		} else {
+			println("HEAD commit is not the release commit, discarding any uncommitted changes...")
+			println("  HEAD: $headMessage")
+			gitSafe("checkout", "--", ".")
+		}
+
+		// Delete tag locally if it exists
+		val tagExists = providers.exec {
+			commandLine = listOf("git", "rev-parse", tagName)
+			isIgnoreExitValue = true
+		}.result.get().exitValue == 0
+
+		if (tagExists) {
+			println("Deleting local tag $tagName...")
+			gitSafe("tag", "-d", tagName)
+		} else {
+			println("Tag $tagName does not exist locally, skipping.")
+		}
+
+		// Reset release branch to origin/release
+		println("Resetting release branch to origin/release...")
+		gitSafe("checkout", "release")
+		gitSafe("reset", "--hard", "origin/release")
+
+		// Return to develop
+		gitSafe("checkout", "develop")
+
+		println("Backout complete. Remote was NOT modified — if the push already went through, you'll need to force-push manually.")
 	}
 }
