@@ -7,7 +7,7 @@ data_version = "1.0"
 jvm = "21"
 kache = "2.1.1"
 kompressCore = "1.3.1"
-kotlin = "2.3.0"
+kotlin = "2.3.10"
 
 # Android
 android_gradle_plugin = "8.12.3"
@@ -16,7 +16,7 @@ android_sdk_target = "36"
 android_sdk_min = "28"
 
 # Other libraries
-activity-compose = "1.12.2"
+activity-compose = "1.12.3"
 androidx-runner = "1.7.0"
 androidx-datastore = "1.2.0"
 androidx-window = "1.5.1"
@@ -32,20 +32,20 @@ jSystemThemeDetector = "3.9.1"
 androix-junit = "1.3.0"
 junit = "6.0.2"
 kotlinx_cli = "0.3.6"
-kotlinx_atomicfu = "0.29.0"
+kotlinx_atomicfu = "0.31.0"
 markdown = "0.7.3"
 material = "1.13.0"
 orchestrator = "1.6.1"
 cryptography = "0.5.0"
 
-serialization = "1.9.0"
+serialization = "1.10.0"
 
 coroutines = "1.10.2"
 datetime = "0.7.1"
 napier = "2.7.1"
-jetbrains_compose = "1.9.3"
+jetbrains_compose = "1.10.0"
 compose_compiler_report_generator = "1.5.0"
-jetbrains_kover = "0.9.4"
+jetbrains_kover = "0.9.6"
 
 moko_permissions = "0.20.1"
 
@@ -53,22 +53,22 @@ decompose = "3.4.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
 filekit = "0.12.0"
-koalaplot-core = "0.10.4"
+koalaplot-core = "0.11.0"
 coil = "3.3.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.1.1"
 
-ktor = "3.3.3"
+ktor = "3.4.0"
 ktor_i18n = "2.0.0"
 
 okio = "3.16.4"
 slf4jSimple = "2.0.17"
 turbine = "1.2.1"
-work-runtime-ktx = "2.11.0"
+work-runtime-ktx = "2.11.1"
 
 multiplatform_window_size = "0.5.0"
-mockk = "1.14.7"
+mockk = "1.14.9"
 
 tomlkt = "0.5.0"
 
@@ -90,7 +90,7 @@ kzip = "1.1.1"
 bouncycastle = "1.83"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.6.0"
+compose-texteditor = "1.6.2"
 platform-spellcheckerkt = "1.0.0"
 flatpak-gradle-generator = "1.6.0"
 
