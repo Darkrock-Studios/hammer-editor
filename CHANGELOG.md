@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.4] - 2026-2-7
+
+- Fix more Android input issues
+
+
 ## [2.1.3] - 2026-1-24
 
 - Working on Flathub release
