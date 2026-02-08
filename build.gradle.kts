@@ -88,10 +88,8 @@ kover {
 registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
 
-tasks.register("prepareForRelease") {
-	dependsOn(":desktop:flatpakGradleGenerator")
+val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
-		// Pre-flight checks
 		println("Fetching origin...")
 		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
 
@@ -114,7 +112,19 @@ tasks.register("prepareForRelease") {
 		}
 
 		println("Pre-flight checks passed.")
+	}
+}
 
+// Ensure flatpak generator runs after pre-flight checks
+project(":desktop").tasks.configureEach {
+	if (name == "flatpakGradleGenerator") {
+		mustRunAfter(releasePreFlightChecks)
+	}
+}
+
+tasks.register("prepareForRelease") {
+	dependsOn(releasePreFlightChecks, ":desktop:flatpakGradleGenerator")
+	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
 
