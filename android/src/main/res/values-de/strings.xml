@@ -6,7 +6,7 @@
     <string name="title_activity_configure_note_widget">Widget konfigurieren</string>
     <string name="overflow_menu_button">Weitere Menüs</string>
     <string name="navdrawer_button">Navigationsmenü</string>
-    <string name="note_widget_dialog_title">Notiz hinzufügen:</string>
+    <string name="note_widget_dialog_title">Notiz hinzufügen zu:</string>
     <string name="note_widget_dialog_save_button">Speichern</string>
     <string name="note_widget_dialog_cancel_button">Abbrechen</string>
     <string name="note_widget_dialog_projects_dropdown">Projekte</string>
