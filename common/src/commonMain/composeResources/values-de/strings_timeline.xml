@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="timeline_title">Zeitachse</string>
+	<string name="timeline_title">Zeitstrahl</string>
 	<string name="timeline_no_events">Kein Ereignis</string>
 	<string name="timeline_create_event_button">Ereignis erstellen</string>
 	<string name="timeline_create_close_button">Schließen</string>
-	<string name="timeline_create_title">Meilenstein</string>
-	<string name="timeline_create_date_label">Datum (wahlweise)</string>
+	<string name="timeline_create_title">Ereignis</string>
+	<string name="timeline_create_date_label">Datum (optional)</string>
 	<string name="timeline_create_content_label">Inhalt</string>
 	<string name="timeline_create_create_event_button">Erstellen</string>
 	<string name="timeline_create_toast_success">Ereignis erstellt</string>
 	<string name="timeline_create_toast_failure">Ereignis konnte nicht erstellt werden</string>
 	<string name="timeline_view_title">Ereignis</string>
 	<string name="timeline_view_save_button">Speichern</string>
-	<string name="timeline_view_cancel_button">Cancel</string>
+	<string name="timeline_view_cancel_button">Abbruch</string>
 	<string name="timeline_view_close_button">Eintrag schließen</string>
 	<string name="timeline_view_date_label">Datum</string>
 	<string name="timeline_view_content_placeholder">Beschreiben Sie das Ereignis</string>
 	<string name="timeline_view_toast_save_success">Erfolgreich gespeichert</string>
 	<string name="timeline_view_toast_save_failure">Konnte nicht gespeichert werden</string>
 	<string name="timeline_view_discard_title">Änderungen verwerfen?</string>
-	<string name="timeline_view_discard_message">Alle Änderungen, die Sie vorgenommen haben, gehen verloren.</string>
+	<string name="timeline_view_discard_message">Alle vorgenommenen Änderungen gehen verloren.</string>
 	<string name="timeline_view_menu_group">Ereignis</string>
-	<string name="timeline_view_menu_delete">Delete</string>
-	<string name="timeline_view_confirm_delete_title">Timeline Ereignis löschen?</string>
+	<string name="timeline_view_menu_delete">Löschen</string>
+	<string name="timeline_view_confirm_delete_title">Ereignis löschen?</string>
 	<string name="timeline_view_confirm_delete_message">Dies kann nicht rückgängig gemacht werden!</string>
 </resources>
