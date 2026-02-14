@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Ein einfaches Werkzeug zum Erstellen von Geschichten.</string>
-	<string name="about_description_line_two">Ein freies und Open-Source-Projekt.</string>
-	<string name="about_community_header">Gemeinschaft</string>
+	<string name="about_description_line_two">Ein freies und quelloffenes Projekt.</string>
+	<string name="about_community_header">Community</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Quellen</string>
 	<string name="about_attribution_libraries_button">Bibliotheken</string>
-	<string name="about_version_new_available_title">New Version Available!</string>
-	<string name="about_version_new_available_message">Version %s is now available</string>
-	<string name="about_version_up_to_date">Up to date!</string>
+	<string name="about_version_new_available_title">Neue Version verfügbar!</string>
+	<string name="about_version_new_available_message">Version %s ist jetzt verfügbar</string>
+	<string name="about_version_up_to_date">Aktualisiert!</string>
 </resources>
