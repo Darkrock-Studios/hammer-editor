@@ -11,6 +11,7 @@ interface AboutApp {
 	fun openDiscord()
 	fun openReddit()
 	fun openGithub()
+	fun openLogDirectory()
 
 	@Serializable
 	data class State(

@@ -42,6 +42,8 @@ actual fun getImageCacheDirectory(): String {
 actual fun getDefaultRootDocumentDirectory(): String = rootDocumentDirectory.absolutePath
 actual fun getConfigDirectory(): String = File(configDirectory, "config").absolutePath
 
+actual fun getLogDirectory(): String? = null
+
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 
 actual val platformDefaultDispatcher: CoroutineContext = Dispatchers.Default

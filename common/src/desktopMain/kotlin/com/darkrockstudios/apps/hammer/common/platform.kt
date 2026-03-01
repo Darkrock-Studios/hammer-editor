@@ -37,6 +37,8 @@ private fun configDir(): String {
 actual fun getConfigDirectory(): String =
 	File(appDirs.getUserConfigDir(configDir(), CONFIG_DATA_VERSION.toString(), AUTHOR)).absolutePath
 
+actual fun getLogDirectory(): String? = File(getConfigDirectory(), "logs").absolutePath
+
 actual fun getPlatformFilesystem() = FileSystem.SYSTEM
 
 actual val platformDefaultDispatcher: CoroutineContext = Dispatchers.Default
