@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
+import java.awt.Desktop
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
@@ -60,5 +62,18 @@ class AboutAppComponent(
 
 	override fun openGithub() {
 		urlLauncher.openInBrowser(GITHUB_URL)
+	}
+
+	override fun openLogDirectory() {
+		com.darkrockstudios.apps.hammer.common.getLogDirectory()?.let { logDir ->
+			try {
+				val dir = File(logDir)
+				if (dir.exists() && Desktop.isDesktopSupported()) {
+					Desktop.getDesktop().open(dir)
+				}
+			} catch (e: Exception) {
+				Napier.e("Failed to open log directory", e)
+			}
+		}
 	}
 }

@@ -41,6 +41,8 @@ actual fun getConfigDirectory(): String {
 	return (urls[0] as NSURL).path!!
 }
 
+actual fun getLogDirectory(): String? = null
+
 fun initializeKoin() {
 	startKoin {
 		logger(NapierLogger())

@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
 import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import korlibs.io.lang.format
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -114,6 +115,10 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 
 				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
+				PlatformAboutSection(component)
+
+				Spacer(modifier = Modifier.size(Ui.Padding.XXL))
+
 				VersionStatus(state)
 			}
 		}
@@ -169,7 +174,6 @@ private fun VersionStatus(state: AboutApp.State) {
 			Spacer(modifier = Modifier.size(Ui.Padding.S))
 
 			if (state.newVersionAvailable) {
-				// Eye-catching callout for new version
 				ElevatedCard(
 					colors = CardDefaults.elevatedCardColors(
 						containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -223,3 +227,6 @@ private fun VersionStatus(state: AboutApp.State) {
 		}
 	}
 }
+
+@Composable
+expect fun PlatformAboutSection(component: AboutApp)

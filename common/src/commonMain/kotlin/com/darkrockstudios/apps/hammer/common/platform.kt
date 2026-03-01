@@ -9,6 +9,7 @@ expect fun getImageCacheDirectory(): String
 expect fun getPlatformName(): String
 expect fun getDefaultRootDocumentDirectory(): String
 expect fun getConfigDirectory(): String
+expect fun getLogDirectory(): String?
 expect fun getPlatformFilesystem(): FileSystem
 
 /**
