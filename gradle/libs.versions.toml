@@ -10,7 +10,7 @@ kompressCore = "1.3.1"
 kotlin = "2.3.10"
 
 # Android
-android_gradle_plugin = "8.12.3"
+android_gradle_plugin = "8.13.2"
 android_sdk_compile = "36"
 android_sdk_target = "36"
 android_sdk_min = "28"
