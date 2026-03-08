@@ -6,13 +6,13 @@
 	<string name="draft_compare_current_accept_button">Zusammengeführte Fassung übernehmen</string>
 	<string name="draft_compare_current_body_placeholder">Schreiben Sie hier Ihre Szene</string>
 	<string name="draft_compare_draft_header">Entwurf: %1$s</string>
-	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
+	<string name="draft_compare_draft_subheader">Die gewünschten Teile einfügen oder alles übernehmen.</string>
 	<string name="draft_compare_draft_accept_button">Diesen gesamten Entwurf übernehmen</string>
 	<string name="draft_compare_draft_body_placeholder">Entwurf</string>
 	<string name="draft_compare_tab_title_draft">Entwurf</string>
 	<string name="draft_compare_tab_title_current">Aktuelle Version</string>
 	<string name="draft_list_close_button">Schließen</string>
-	<string name="draft_list_header">%1$s Drafts:</string>
+	<string name="draft_list_header">%1$s Entwurf:</string>
 	<string name="draft_list_empty">Keine Entwürfe gefunden</string>
 	<string name="draft_list_item_created">Erstellt: %1$s</string>
 	<string name="scene_draft_invalid_name">Ungültiger Name</string>
