@@ -43,7 +43,7 @@ serialization = "1.10.0"
 coroutines = "1.10.2"
 datetime = "0.7.1"
 napier = "2.7.1"
-jetbrains_compose = "1.10.0"
+jetbrains_compose = "1.10.3"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.6"
 
