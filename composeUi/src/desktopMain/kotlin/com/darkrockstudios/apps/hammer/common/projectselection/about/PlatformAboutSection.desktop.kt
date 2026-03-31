@@ -1,10 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +26,9 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.abouta
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
+import io.github.aakira.napier.Napier
+import java.awt.Desktop
+import java.io.File
 
 @Composable
 actual fun PlatformAboutSection(component: AboutApp) {
@@ -39,7 +50,7 @@ actual fun PlatformAboutSection(component: AboutApp) {
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			IconButton(
-				onClick = { component.openLogDirectory() },
+				onClick = { openLogDirectory(logDir) },
 				modifier = Modifier.size(36.dp)
 			) {
 				Icon(
@@ -71,5 +82,16 @@ actual fun PlatformAboutSection(component: AboutApp) {
 
 			Spacer(modifier = Modifier.size(Ui.Padding.M))
 		}
+	}
+}
+
+private fun openLogDirectory(logDir: String) {
+	try {
+		val dir = File(logDir)
+		if (dir.exists() && Desktop.isDesktopSupported()) {
+			Desktop.getDesktop().open(dir)
+		}
+	} catch (e: Exception) {
+		Napier.e("Failed to open log directory", e)
 	}
 }

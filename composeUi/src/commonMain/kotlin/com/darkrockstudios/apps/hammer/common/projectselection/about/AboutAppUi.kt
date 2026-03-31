@@ -2,15 +2,31 @@ package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -19,7 +35,19 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.about_attribution_header
+import com.darkrockstudios.apps.hammer.about_attribution_libraries_button
+import com.darkrockstudios.apps.hammer.about_community_discord_link
+import com.darkrockstudios.apps.hammer.about_community_github_link
+import com.darkrockstudios.apps.hammer.about_community_header
+import com.darkrockstudios.apps.hammer.about_community_reddit_link
+import com.darkrockstudios.apps.hammer.about_description
+import com.darkrockstudios.apps.hammer.about_description_line_two
+import com.darkrockstudios.apps.hammer.about_version_new_available_message
+import com.darkrockstudios.apps.hammer.about_version_new_available_title
+import com.darkrockstudios.apps.hammer.about_version_up_to_date
+import com.darkrockstudios.apps.hammer.app_name
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
@@ -29,6 +57,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
 import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.hammer_icon
 import korlibs.io.lang.format
 import org.jetbrains.compose.resources.painterResource
 
@@ -117,7 +146,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 
 				PlatformAboutSection(component)
 
-				Spacer(modifier = Modifier.size(Ui.Padding.XXL))
+				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
 				VersionStatus(state)
 			}

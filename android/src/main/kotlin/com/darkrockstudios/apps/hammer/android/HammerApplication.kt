@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
-import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +30,8 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 	override fun onCreate() {
 		super.onCreate()
 
-		Napier.base(DebugAntilog())
 		initializeDirectories()
+		Napier.base(FileLogger(scope = applicationScope))
 
 		startKoin {
 			logger(NapierLogger())

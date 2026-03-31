@@ -9,18 +9,18 @@ import com.darkrockstudios.apps.hammer.base.GITHUB_URL
 import com.darkrockstudios.apps.hammer.base.REDDIT_URL
 import com.darkrockstudios.apps.hammer.base.VERSION_CHECK_URL
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import com.darkrockstudios.apps.hammer.common.util.isNewVersionAvailable
 import io.github.aakira.napier.Napier
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
-import java.awt.Desktop
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
@@ -29,7 +29,7 @@ class AboutAppComponent(
 	private val http: HttpClient,
 ) : AboutApp, ComponentBase(componentContext) {
 
-	private val _state = MutableValue(AboutApp.State())
+	private val _state = MutableValue(AboutApp.State(logDirectoryPath = getLogDirectoryPath()))
 	override val state: Value<AboutApp.State> = _state
 
 	init {
@@ -64,16 +64,7 @@ class AboutAppComponent(
 		urlLauncher.openInBrowser(GITHUB_URL)
 	}
 
-	override fun openLogDirectory() {
-		com.darkrockstudios.apps.hammer.common.getLogDirectory()?.let { logDir ->
-			try {
-				val dir = File(logDir)
-				if (dir.exists() && Desktop.isDesktopSupported()) {
-					Desktop.getDesktop().open(dir)
-				}
-			} catch (e: Exception) {
-				Napier.e("Failed to open log directory", e)
-			}
-		}
+	private fun getLogDirectoryPath(): String {
+		return getLogDirectory() ?: (getConfigDirectory() + "/logs")
 	}
 }
