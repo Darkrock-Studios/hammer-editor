@@ -1,4 +1,10 @@
-import com.darkrockstudios.build.*
+import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.registerLinuxDistributionTasks
+import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.updateFlatpakFiles
+import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.writeChangelogMarkdown
+import com.darkrockstudios.build.writeSemvar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -62,7 +68,7 @@ plugins {
 	alias(libs.plugins.android.application) apply false
 	alias(libs.plugins.android.library) apply false
 	alias(libs.plugins.compose.compiler) apply false
-	alias(libs.plugins.compose.report.generator) apply false
+	//alias(libs.plugins.compose.report.generator) apply false
 	alias(libs.plugins.buildconfig) apply false
 	alias(libs.plugins.aboutlibraries.plugin) apply false
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
