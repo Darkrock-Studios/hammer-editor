@@ -49,7 +49,7 @@ jetbrains_kover = "0.9.8"
 
 moko_permissions = "0.20.1"
 
-decompose = "3.4.0"
+decompose = "3.5.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
 filekit = "0.13.0"
