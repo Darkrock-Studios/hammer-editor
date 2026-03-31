@@ -11,13 +11,13 @@ interface AboutApp {
 	fun openDiscord()
 	fun openReddit()
 	fun openGithub()
-	fun openLogDirectory()
 
 	@Serializable
 	data class State(
 		val latestVersion: String? = null,
 		val currentVersion: String = getAppVersionString(),
 		val newVersionAvailable: Boolean = false,
+		val logDirectoryPath: String = "",
 	)
 
 }
