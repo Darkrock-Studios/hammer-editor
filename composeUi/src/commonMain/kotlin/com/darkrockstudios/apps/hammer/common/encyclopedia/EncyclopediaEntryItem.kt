@@ -281,7 +281,8 @@ internal fun EncyclopediaEntryItem(
 							Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 							FlowRow(
-								modifier = Modifier.heightIn(max = 40.dp),
+								maxLines = 1,
+								overflow = FlowRowOverflow.Clip,
 								horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
 								verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
 							) {
