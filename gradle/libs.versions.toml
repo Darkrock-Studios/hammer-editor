@@ -36,9 +36,9 @@ kotlinx_atomicfu = "0.32.1"
 markdown = "0.7.3"
 material = "1.13.0"
 orchestrator = "1.6.1"
-cryptography = "0.5.0"
+cryptography = "0.6.0"
 
-serialization = "1.10.0"
+serialization = "1.11.0"
 
 coroutines = "1.10.2"
 datetime = "0.7.1"
@@ -49,7 +49,7 @@ jetbrains_kover = "0.9.8"
 
 moko_permissions = "0.20.1"
 
-decompose = "3.4.0"
+decompose = "3.5.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
 filekit = "0.13.0"
@@ -57,7 +57,7 @@ koalaplot-core = "0.11.0"
 coil = "3.4.0"
 kmpalette = "3.1.0"
 
-koin_bom = "4.2.0"
+koin_bom = "4.2.1"
 
 ktor = "3.4.2"
 ktor_i18n = "2.0.0"
@@ -87,10 +87,10 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 kzip = "1.1.1"
-bouncycastle = "1.83"
+bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.6.3"
+compose-texteditor = "1.7.0"
 platform-spellcheckerkt = "1.0.0"
 flatpak-gradle-generator = "1.7.0"
 
