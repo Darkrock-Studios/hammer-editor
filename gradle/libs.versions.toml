@@ -59,7 +59,7 @@ kmpalette = "3.1.0"
 
 koin_bom = "4.2.1"
 
-ktor = "3.4.2"
+ktor = "3.4.3"
 ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
