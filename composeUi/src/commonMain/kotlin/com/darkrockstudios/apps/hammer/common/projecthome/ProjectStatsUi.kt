@@ -66,6 +66,7 @@ fun ProjectStatsUi(
 					HeaderUi(
 						state.projectDef.name,
 						"\uD83C\uDFE1",
+						modifier = Modifier.weight(1f),
 					)
 					ProjectHomeMenu(
 						component = component,
