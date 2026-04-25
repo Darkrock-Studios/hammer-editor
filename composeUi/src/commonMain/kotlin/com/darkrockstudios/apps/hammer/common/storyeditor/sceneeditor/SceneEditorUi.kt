@@ -134,7 +134,8 @@ fun SceneEditorUi(
 						style = rememberTextEditorStyle(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)
-							)
+							),
+							focusedBorderColor = MaterialTheme.colorScheme.primary,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
