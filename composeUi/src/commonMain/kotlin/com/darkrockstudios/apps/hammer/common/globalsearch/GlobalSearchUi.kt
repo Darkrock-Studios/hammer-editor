@@ -1,12 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.globalsearch
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.LazyRow
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
@@ -55,33 +57,55 @@ fun GlobalSearchUi(component: GlobalSearch) {
 		val focusRequester = remember { FocusRequester() }
 		LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-		OutlinedTextField(
-			value = state.query,
-			onValueChange = component::onQueryChanged,
-			modifier = Modifier
-				.fillMaxWidth()
-				.focusRequester(focusRequester),
-			placeholder = { Text(Res.string.global_search_placeholder.get()) },
-			singleLine = true,
-			leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-			trailingIcon = {
-				if (state.query.isNotEmpty()) {
-					IconButton(onClick = { component.onQueryChanged("") }) {
-						Icon(
-							imageVector = Icons.Filled.Clear,
-							contentDescription = Res.string.global_search_clear.get(),
-						)
+		val filterActive = state.filter != GlobalSearchFilter.All
+		var filtersExpanded by remember { mutableStateOf(filterActive) }
+
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			OutlinedTextField(
+				value = state.query,
+				onValueChange = component::onQueryChanged,
+				modifier = Modifier
+					.weight(1f)
+					.focusRequester(focusRequester),
+				placeholder = { Text(Res.string.global_search_placeholder.get()) },
+				singleLine = true,
+				leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+				trailingIcon = {
+					if (state.query.isNotEmpty()) {
+						IconButton(onClick = { component.onQueryChanged("") }) {
+							Icon(
+								imageVector = Icons.Filled.Cancel,
+								contentDescription = Res.string.global_search_clear.get(),
+							)
+						}
 					}
-				}
-			},
-		)
+				},
+			)
 
-		Spacer(modifier = Modifier.size(Ui.Padding.M))
+			Spacer(Modifier.width(Ui.Padding.S))
 
-		FilterChipsRow(
-			selected = state.filter,
-			onSelected = component::onFilterChanged,
-		)
+			IconButton(onClick = { filtersExpanded = !filtersExpanded }) {
+				Icon(
+					imageVector = Icons.Filled.FilterList,
+					contentDescription = Res.string.global_search_filter_toggle.get(),
+					tint = if (filterActive) MaterialTheme.colorScheme.primary
+					else LocalContentColor.current,
+				)
+			}
+		}
+
+		AnimatedVisibility(visible = filtersExpanded) {
+			Column {
+				Spacer(modifier = Modifier.size(Ui.Padding.M))
+				FilterChipsRow(
+					selected = state.filter,
+					onSelected = component::onFilterChanged,
+				)
+			}
+		}
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
