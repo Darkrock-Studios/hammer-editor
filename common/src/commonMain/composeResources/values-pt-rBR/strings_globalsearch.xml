@@ -2,7 +2,7 @@
 <resources>
 	<string name="global_search_button">Search project</string>
 	<string name="global_search_title">Search project</string>
-	<string name="global_search_placeholder">Search scenes, notes, encyclopedia, timeline...</string>
+	<string name="global_search_placeholder">Type to search...</string>
 	<string name="global_search_clear">Clear search</string>
 	<string name="global_search_close">Close search</string>
 	<string name="global_search_no_results">No results</string>
@@ -11,4 +11,10 @@
 	<string name="global_search_source_note">Note</string>
 	<string name="global_search_source_encyclopedia">Encyclopedia</string>
 	<string name="global_search_source_timeline">Timeline</string>
+	<string name="global_search_filter_all">All</string>
+	<string name="global_search_filter_scenes">Scenes</string>
+	<string name="global_search_filter_notes">Notes</string>
+	<string name="global_search_filter_encyclopedia">Encyclopedia</string>
+	<string name="global_search_filter_timeline">Timeline</string>
+	<string name="global_search_filter_toggle">Filter results</string>
 </resources>
