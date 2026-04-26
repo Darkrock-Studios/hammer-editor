@@ -136,6 +136,13 @@ class ProjectHomeComponent(
 							wordsByChapter = stats.wordsByChapter,
 							encyclopediaEntriesByType = stats.encyclopediaEntriesByType
 								.mapKeys { (key, _) -> EntryType.valueOf(key) },
+							longestSceneName = stats.longestSceneName,
+							longestSceneWords = stats.longestSceneWords,
+							shortestSceneWords = stats.shortestSceneWords,
+							medianSceneWords = stats.medianSceneWords,
+							sceneWordsStdDev = stats.sceneWordsStdDev,
+							numberOfNotes = stats.numberOfNotes,
+							numberOfTimelineEvents = stats.numberOfTimelineEvents,
 							hasServer = globalSettingsRepository.serverSettings != null,
 							isLoadingStats = false
 						)

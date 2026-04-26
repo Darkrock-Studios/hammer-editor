@@ -39,11 +39,21 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val totalWords: Int = 0,
 		val wordsByChapter: Map<String, Int> = emptyMap(),
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
+		val longestSceneName: String? = null,
+		val longestSceneWords: Int = 0,
+		val shortestSceneWords: Int = 0,
+		val medianSceneWords: Int = 0,
+		val sceneWordsStdDev: Int = 0,
+		val numberOfNotes: Int = 0,
+		val numberOfTimelineEvents: Int = 0,
 		val showExportDialog: Boolean = false,
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,
-	)
+	) {
+		val averageWordsPerScene: Int
+			get() = if (numberOfScenes > 0) totalWords / numberOfScenes else 0
+	}
 
 	sealed class ContentDestination {
 		data object Stats : ContentDestination()
