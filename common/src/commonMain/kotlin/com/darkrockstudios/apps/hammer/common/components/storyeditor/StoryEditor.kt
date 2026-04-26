@@ -40,6 +40,7 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 	fun closeDetails(): Boolean
 	fun enterFocusMode(sceneItem: SceneItem)
 	fun exitFocusMode()
+	fun showScene(sceneItem: SceneItem)
 
 	sealed class ChildDestination {
 		sealed class List : ChildDestination() {

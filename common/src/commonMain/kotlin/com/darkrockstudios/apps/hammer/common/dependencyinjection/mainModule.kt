@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
+import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
@@ -135,6 +136,8 @@ val mainModule = module {
 
 		scopedOf(::TimeLineDatasource)
 		scopedOf(::TimeLineRepository)
+
+		scopedOf(::GlobalSearchRepository)
 
 		scopedOf(::StatisticsDatasource)
 		scopedOf(::StatisticsRepository)

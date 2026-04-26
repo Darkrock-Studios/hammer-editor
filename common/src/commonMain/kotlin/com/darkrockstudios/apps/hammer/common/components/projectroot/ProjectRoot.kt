@@ -7,6 +7,7 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
@@ -35,6 +36,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 
 	fun showProjectSync()
 	fun dismissProjectSync()
+
+	fun showGlobalSearch()
+	fun dismissGlobalSearch()
 
 	sealed class Destination<T : Router> : Router {
 		abstract val component: T
@@ -72,6 +76,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class ProjectSync(val component: ProjectSynchronization) : ModalDestination()
 
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
+
+		data class GlobalSearchModal(val component: GlobalSearch) : ModalDestination()
 	}
 
 	enum class DestinationTypes(val text: StringResource) {

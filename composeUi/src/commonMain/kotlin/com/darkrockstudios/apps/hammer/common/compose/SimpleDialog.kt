@@ -27,6 +27,7 @@ fun SimpleDialog(
 	modifier: Modifier = Modifier,
 	dialogContainerModifier: Modifier = Modifier,
 	overridePlatformWidth: Boolean = false,
+	contentAlignment: Alignment = Alignment.Center,
 	content: @Composable ColumnScope.() -> Unit
 ) {
 	if (visible) {
@@ -38,7 +39,7 @@ fun SimpleDialog(
 			content = {
 				Box(
 					modifier = dialogContainerModifier,
-					contentAlignment = Alignment.Center
+					contentAlignment = contentAlignment
 				) {
 					Card(modifier = modifier.animateContentSize()) {
 						Column(modifier = Modifier.padding(Ui.Padding.XL)) {
