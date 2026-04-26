@@ -113,6 +113,7 @@ cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-pr
 
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
 
 coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
