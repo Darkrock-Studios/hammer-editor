@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.android
 
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -71,6 +72,8 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val viewModel: ProjectRootViewModel by viewModels()
 
+	private var projectRoot: ProjectRoot? = null
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
@@ -89,6 +92,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					removeMenu = { /* Not needed on Android */ }
 				)
 			}
+			projectRoot = component
 
 			setContent {
 				val settingsState by globalSettings.subscribeAsState()
@@ -146,6 +150,20 @@ class ProjectRootActivity : AppCompatActivity() {
 		super.onStop()
 		settingsUpdateJob?.cancel()
 		settingsUpdateJob = null
+	}
+
+	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+		if (event.action == KeyEvent.ACTION_DOWN &&
+			event.keyCode == KeyEvent.KEYCODE_F &&
+			event.isShiftPressed &&
+			event.isCtrlPressed
+		) {
+			projectRoot?.let {
+				it.showGlobalSearch()
+				return true
+			}
+		}
+		return super.dispatchKeyEvent(event)
 	}
 
 	@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
