@@ -200,7 +200,13 @@ fun ProjectStatsUi(
 		}
 	}
 
-	ExportDirectoryPicker(state.showExportDialog, component, scope)
+	ExportOptionsDialog(
+		visible = state.showExportDialog,
+		initialOptions = state.exportOptions,
+		onCancel = component::cancelExportDialog,
+		onConfirm = component::confirmExportDialog,
+	)
+	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
 }
 
 @Composable

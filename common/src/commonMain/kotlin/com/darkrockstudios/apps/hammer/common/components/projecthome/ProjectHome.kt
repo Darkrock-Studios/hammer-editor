@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -16,8 +17,10 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	val state: Value<State>
 	val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ContentDestination>>
 
-	suspend fun exportProject(path: String): HPath
+	suspend fun exportProject(path: String, options: ExportOptions): HPath
 	fun beginProjectExport()
+	fun cancelExportDialog()
+	fun confirmExportDialog(options: ExportOptions)
 	fun endProjectExport()
 	fun startProjectSync()
 	fun showGlobalSearch()
@@ -47,6 +50,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val numberOfNotes: Int = 0,
 		val numberOfTimelineEvents: Int = 0,
 		val showExportDialog: Boolean = false,
+		val showExportFilePicker: Boolean = false,
+		val exportOptions: ExportOptions = ExportOptions(),
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,

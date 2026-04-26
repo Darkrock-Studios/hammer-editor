@@ -408,7 +408,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		repo.initializeSceneEditor()
 
 		val exportPath = ffs.workingDirectory
-		val path = repo.exportStory(exportPath.toHPath())
+		val path = repo.exportStory(exportPath.toHPath(), ExportOptions())
 
 		ffs.read(path.toOkioPath()) {
 			val exported = readUtf8()

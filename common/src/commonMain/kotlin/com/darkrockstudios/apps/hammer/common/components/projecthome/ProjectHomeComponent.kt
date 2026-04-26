@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -68,7 +69,7 @@ class ProjectHomeComponent(
 		}
 	}
 
-	override fun endProjectExport() {
+	override fun cancelExportDialog() {
 		_state.getAndUpdate {
 			it.copy(
 				showExportDialog = false
@@ -76,13 +77,31 @@ class ProjectHomeComponent(
 		}
 	}
 
-	override suspend fun exportProject(path: String): HPath {
+	override fun confirmExportDialog(options: ExportOptions) {
+		_state.getAndUpdate {
+			it.copy(
+				showExportDialog = false,
+				exportOptions = options,
+				showExportFilePicker = true,
+			)
+		}
+	}
+
+	override fun endProjectExport() {
+		_state.getAndUpdate {
+			it.copy(
+				showExportFilePicker = false
+			)
+		}
+	}
+
+	override suspend fun exportProject(path: String, options: ExportOptions): HPath {
 		val hpath = HPath(
 			path = path,
 			name = "",
 			isAbsolute = true
 		)
-		val filePath = sceneEditorRepository.exportStory(hpath)
+		val filePath = sceneEditorRepository.exportStory(hpath, options)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
