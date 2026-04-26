@@ -62,6 +62,7 @@ kotlin {
 				api(libs.multiplatform.window.size)
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
+				api(libs.jetbrains.compose.ui.backhandler)
 				api(libs.decompose.compose)
 				api(libs.decompose.compose.experimental)
 				api(libs.filekit.dialogs.compose)
