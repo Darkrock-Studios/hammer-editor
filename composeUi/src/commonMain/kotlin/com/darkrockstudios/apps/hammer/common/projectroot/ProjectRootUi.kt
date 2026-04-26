@@ -25,7 +25,6 @@ import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
-import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchFab
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
@@ -151,8 +150,6 @@ fun ProjectRootFab(
 		horizontalAlignment = Alignment.End,
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		GlobalSearchFab(onClick = { component.showGlobalSearch() })
-
 		when (instance) {
 			is ProjectRoot.Destination.EditorDestination -> {}
 			is ProjectRoot.Destination.NotesDestination -> NotesFab(instance.component, Modifier)

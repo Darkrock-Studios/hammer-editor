@@ -45,6 +45,7 @@ class ProjectRootComponent(
 		removeMenu,
 		::updateCloseConfirmRequirement,
 		::showProjectSync,
+		::showGlobalSearch,
 		::showFocusMode,
 		scope,
 		dispatcherMain
