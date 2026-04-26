@@ -1,10 +1,4 @@
-import com.darkrockstudios.build.configureRelease
-import com.darkrockstudios.build.registerLinuxDistributionTasks
-import com.darkrockstudios.build.registerPublishTasks
-import com.darkrockstudios.build.updateFlatpakFiles
-import com.darkrockstudios.build.updateSnapcraftYaml
-import com.darkrockstudios.build.writeChangelogMarkdown
-import com.darkrockstudios.build.writeSemvar
+import com.darkrockstudios.build.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -179,11 +173,11 @@ tasks.register("prepareForRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val stderr = java.io.ByteArrayOutputStream()
-			val result = project.exec {
+			val result = providers.exec {
 				commandLine = cmd
 				errorOutput = stderr
 				isIgnoreExitValue = true
-			}
+			}.result.get()
 			if (result.exitValue != 0) {
 				error("Git command failed: ${cmd.joinToString(" ")}\n${stderr.toString().trim()}")
 			}
@@ -229,11 +223,11 @@ tasks.register("backoutLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val stderr = java.io.ByteArrayOutputStream()
-			val result = project.exec {
+			val result = providers.exec {
 				commandLine = cmd
 				errorOutput = stderr
 				isIgnoreExitValue = true
-			}
+			}.result.get()
 			if (result.exitValue != 0) {
 				println("  (failed: ${stderr.toString().trim()})")
 			}

@@ -39,7 +39,7 @@ kotlin {
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
-				implementation(compose.preview)
+				implementation(compose.components.uiToolingPreview)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
@@ -74,7 +74,7 @@ compose.desktop {
 			description = "A simple tool for building stories."
 			copyright = "© 2025 Adam W. Brown, All rights reserved."
 			licenseFile.set(project.file("../LICENSE"))
-			outputBaseDir.set(project.buildDir.resolve("installers"))
+			outputBaseDir.set(project.layout.buildDirectory.dir("installers"))
 
 			windows {
 				menuGroup = "Hammer"
@@ -137,9 +137,10 @@ tasks.register("packageMsix") {
 		val appVersion = libs.versions.app.get()
 		val msixVersion = "$appVersion.0" // MSIX requires 4-part version
 
-		val distributableDir = project.buildDir.resolve("installers/main/app/hammer")
+		val buildDir = project.layout.buildDirectory.get().asFile
+		val distributableDir = buildDir.resolve("installers/main/app/hammer")
 		val msixDir = project.rootDir.resolve("msix")
-		val outputMsix = project.buildDir.resolve("installers/Hammer-${appVersion}.msix")
+		val outputMsix = buildDir.resolve("installers/Hammer-${appVersion}.msix")
 
 		// Copy manifest
 		println("Copying AppxManifest.xml...")
@@ -172,7 +173,7 @@ tasks.register("packageMsix") {
 		}
 
 		println("Packaging MSIX with makeappx...")
-		val result = exec {
+		val result = project.providers.exec {
 			commandLine(
 				makeappxPath,
 				"pack",
@@ -180,7 +181,8 @@ tasks.register("packageMsix") {
 				"/p", outputMsix.absolutePath,
 				"/o"
 			)
-		}
+			isIgnoreExitValue = true
+		}.result.get()
 
 		if (result.exitValue == 0) {
 			println("✓ MSIX package created successfully!")
