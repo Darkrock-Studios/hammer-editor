@@ -11,13 +11,16 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResu
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.serialization.Serializable
 
 class ProjectRootModalRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
 	private val navigateGlobalSearchResult: (SearchResult) -> Unit,
+	private val onFocusModeDismissed: (SceneItem) -> Unit,
 ) : Router {
 	private val navigation = SlotNavigation<Config>()
 
@@ -67,6 +70,18 @@ class ProjectRootModalRouter(
 					navigateGlobalSearchResult,
 				)
 			)
+
+			is Config.FocusMode -> FocusModeModal(
+				FocusModeComponent(
+					componentContext,
+					projectDef,
+					config.sceneItem,
+					closeFocusMode = {
+						navigation.activate(Config.None)
+						onFocusModeDismissed(config.sceneItem)
+					},
+				)
+			)
 		}
 
 	fun showProjectSync() {
@@ -93,6 +108,18 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showFocusMode(sceneItem: SceneItem) {
+		navigation.activate(Config.FocusMode(sceneItem))
+	}
+
+	fun dismissFocusMode() {
+		val active = state.value.child?.configuration as? Config.FocusMode
+		navigation.activate(Config.None)
+		if (active != null) {
+			onFocusModeDismissed(active.sceneItem)
+		}
+	}
+
 	@Serializable
 	sealed class Config {
 		@Serializable
@@ -106,5 +133,8 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data object GlobalSearch : Config()
+
+		@Serializable
+		data class FocusMode(val sceneItem: SceneItem) : Config()
 	}
 }
