@@ -14,11 +14,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -33,6 +30,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
@@ -40,7 +38,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerSetupDialog(
 	component: AccountSettings,
@@ -59,118 +56,105 @@ fun ServerSetupDialog(
 			&& state.currentUserId != -1L
 	}
 
-	if (state.serverSetup) {
-		BasicAlertDialog(
+	var renderInternal by remember { mutableStateOf(state.serverSetup) }
+	LaunchedEffect(state.serverSetup) { if (state.serverSetup) renderInternal = true }
+
+	if (renderInternal) {
+		AnimatedDialogContainer(
+			isOpen = state.serverSetup,
 			onDismissRequest = { component.cancelServerSetup() },
-			modifier = Modifier.widthIn(max = 480.dp).padding(Ui.Padding.M),
+			onClosed = { renderInternal = false },
 			properties = DialogProperties(usePlatformDefaultWidth = false),
-			content = {
-				Surface(
-					shape = RoundedCornerShape(16.dp),
-					color = MaterialTheme.colorScheme.surface,
-					tonalElevation = Ui.ToneElevation.MEDIUM
+		) {
+			Surface(
+				modifier = Modifier
+					.widthIn(max = 480.dp)
+					.padding(Ui.Padding.M)
+					.predictiveBackTransform(),
+				shape = RoundedCornerShape(16.dp),
+				color = MaterialTheme.colorScheme.surface,
+				tonalElevation = Ui.ToneElevation.MEDIUM
+			) {
+				Column(
+					modifier = Modifier
+						.padding(Ui.Padding.XL)
+						.verticalScroll(rememberScrollState())
 				) {
-					Column(
-						modifier = Modifier
-							.padding(Ui.Padding.XL)
-							.verticalScroll(rememberScrollState())
+					Row(
+						verticalAlignment = Alignment.CenterVertically
 					) {
-						Row(
-							verticalAlignment = Alignment.CenterVertically
-						) {
-							Text(
-								Res.string.settings_server_setup_title.get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onSurface
+						Text(
+							Res.string.settings_server_setup_title.get(),
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+						Spacer(modifier = Modifier.weight(1f))
+						IconButton(onClick = { showHelpDialog = true }) {
+							Icon(
+								imageVector = Icons.Outlined.Info,
+								contentDescription = Res.string.server_setup_help_icon_description.get(),
+								tint = MaterialTheme.colorScheme.onSurfaceVariant
 							)
-							Spacer(modifier = Modifier.weight(1f))
-							IconButton(onClick = { showHelpDialog = true }) {
-								Icon(
-									imageVector = Icons.Outlined.Info,
-									contentDescription = Res.string.server_setup_help_icon_description.get(),
-									tint = MaterialTheme.colorScheme.onSurfaceVariant
+						}
+					}
+					Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+					Surface(
+						modifier = Modifier.fillMaxWidth(),
+						shape = RoundedCornerShape(12.dp),
+						color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+						border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+					) {
+						Column(modifier = Modifier.padding(Ui.Padding.L)) {
+							// Loading Indicator
+							if (state.serverWorking) {
+								LinearProgressIndicator(
+									modifier = Modifier.fillMaxWidth().padding(bottom = Ui.Padding.M)
 								)
 							}
-						}
-						Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-						Surface(
-							modifier = Modifier.fillMaxWidth(),
-							shape = RoundedCornerShape(12.dp),
-							color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-							border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-						) {
-							Column(modifier = Modifier.padding(Ui.Padding.L)) {
-								// Loading Indicator
-								if (state.serverWorking) {
-									LinearProgressIndicator(
-										modifier = Modifier.fillMaxWidth().padding(bottom = Ui.Padding.M)
+							// Protocol Dropdown & URL Row
+							Row(
+								verticalAlignment = Alignment.CenterVertically,
+								modifier = Modifier
+									.fillMaxWidth()
+									.height(intrinsicSize = IntrinsicSize.Min)
+							) {
+								FilterChip(
+									modifier = Modifier.fillMaxHeight().padding(top = Ui.Padding.M),
+									selected = state.serverSsl,
+									onClick = { component.updateServerSsl(!state.serverSsl) },
+									label = { Text("HTTPS") },
+									leadingIcon = {
+										if (state.serverSsl) {
+											Icon(
+												imageVector = Icons.Filled.Check,
+												contentDescription = "Secure"
+											)
+										} else {
+											Icon(
+												imageVector = Icons.Filled.Close,
+												contentDescription = "Insecure"
+											)
+										}
+									},
+									colors = FilterChipDefaults.filterChipColors(
+										selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+										selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+										selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
 									)
-								}
+								)
 
-								// Protocol Dropdown & URL Row
-								Row(
-									verticalAlignment = Alignment.CenterVertically,
-									modifier = Modifier
-										.fillMaxWidth()
-										.height(intrinsicSize = IntrinsicSize.Min)
-								) {
-									FilterChip(
-										modifier = Modifier.fillMaxHeight().padding(top = Ui.Padding.M),
-										selected = state.serverSsl,
-										onClick = { component.updateServerSsl(!state.serverSsl) },
-										label = { Text("HTTPS") },
-										leadingIcon = {
-											if (state.serverSsl) {
-												Icon(
-													imageVector = Icons.Filled.Check,
-													contentDescription = "Secure"
-												)
-											} else {
-												Icon(
-													imageVector = Icons.Filled.Close,
-													contentDescription = "Insecure"
-												)
-											}
-										},
-										colors = FilterChipDefaults.filterChipColors(
-											selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-											selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-											selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-										)
-									)
-
-									// URL Input
-									OutlinedTextField(
-										value = state.serverUrl ?: "",
-										onValueChange = { component.updateServerUrl(it) },
-										label = { Text(Res.string.settings_server_setup_url_hint.get()) },
-										modifier = Modifier.weight(1f).moveFocusOnTab(),
-										keyboardOptions = KeyboardOptions(
-											autoCorrect = false,
-											imeAction = ImeAction.Next,
-											keyboardType = KeyboardType.Uri
-										),
-										keyboardActions = KeyboardActions(
-											onNext = { focusManager.moveFocus(FocusDirection.Down) }
-										),
-										enabled = state.serverWorking.not() && existingServer.not(),
-										singleLine = true
-									)
-								}
-
-								Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-								// Email Input
+								// URL Input
 								OutlinedTextField(
-									value = state.serverEmail ?: "",
-									onValueChange = { component.updateServerEmail(it) },
-									label = { Text(Res.string.settings_server_setup_email_hint.get()) },
-									modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
+									value = state.serverUrl ?: "",
+									onValueChange = { component.updateServerUrl(it) },
+									label = { Text(Res.string.settings_server_setup_url_hint.get()) },
+									modifier = Modifier.weight(1f).moveFocusOnTab(),
 									keyboardOptions = KeyboardOptions(
 										autoCorrect = false,
 										imeAction = ImeAction.Next,
-										keyboardType = KeyboardType.Email
+										keyboardType = KeyboardType.Uri
 									),
 									keyboardActions = KeyboardActions(
 										onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -178,108 +162,129 @@ fun ServerSetupDialog(
 									enabled = state.serverWorking.not() && existingServer.not(),
 									singleLine = true
 								)
-								Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-								// Password Input
-								OutlinedTextField(
-									value = state.serverPassword ?: "",
-									onValueChange = { component.updateServerPassword(it) },
-									label = { Text(Res.string.settings_server_setup_password_hint.get()) },
-									singleLine = true,
-									visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-									modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
-									keyboardOptions = KeyboardOptions(
-										autoCorrect = false,
-										imeAction = ImeAction.Done,
-										keyboardType = KeyboardType.Password
-									),
-									keyboardActions = KeyboardActions(
-										onDone = { focusManager.clearFocus() },
-									),
-									trailingIcon = {
-										val image = if (passwordVisible)
-											Icons.Filled.Visibility
-										else Icons.Filled.VisibilityOff
-
-										val description = if (passwordVisible)
-											Res.string.settings_server_setup_password_hide.get()
-										else
-											Res.string.settings_server_setup_password_show.get()
-
-										IconButton(onClick = { passwordVisible = !passwordVisible }) {
-											Icon(imageVector = image, description)
-										}
-									},
-									enabled = state.serverWorking.not()
-								)
 							}
-						}
 
-						// Error Message
-						state.serverError?.let { error ->
 							Spacer(modifier = Modifier.size(Ui.Padding.M))
-							Text(
-								error,
-								color = MaterialTheme.colorScheme.error,
-								style = MaterialTheme.typography.bodySmall,
-								fontStyle = FontStyle.Italic,
-								modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.S)
+
+							// Email Input
+							OutlinedTextField(
+								value = state.serverEmail ?: "",
+								onValueChange = { component.updateServerEmail(it) },
+								label = { Text(Res.string.settings_server_setup_email_hint.get()) },
+								modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
+								keyboardOptions = KeyboardOptions(
+									autoCorrect = false,
+									imeAction = ImeAction.Next,
+									keyboardType = KeyboardType.Email
+								),
+								keyboardActions = KeyboardActions(
+									onNext = { focusManager.moveFocus(FocusDirection.Down) }
+								),
+								enabled = state.serverWorking.not() && existingServer.not(),
+								singleLine = true
 							)
-						}
+							Spacer(modifier = Modifier.size(Ui.Padding.M))
 
-						Spacer(modifier = Modifier.size(Ui.Padding.XL))
+							// Password Input
+							OutlinedTextField(
+								value = state.serverPassword ?: "",
+								onValueChange = { component.updateServerPassword(it) },
+								label = { Text(Res.string.settings_server_setup_password_hint.get()) },
+								singleLine = true,
+								visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+								modifier = Modifier.fillMaxWidth().moveFocusOnTab(),
+								keyboardOptions = KeyboardOptions(
+									autoCorrect = false,
+									imeAction = ImeAction.Done,
+									keyboardType = KeyboardType.Password
+								),
+								keyboardActions = KeyboardActions(
+									onDone = { focusManager.clearFocus() },
+								),
+								trailingIcon = {
+									val image = if (passwordVisible)
+										Icons.Filled.Visibility
+									else Icons.Filled.VisibilityOff
 
-						// Action Buttons
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							horizontalArrangement = Arrangement.End
-						) {
-							// Cancel Button (Secondary)
-							TextButton(
-								onClick = { scope.launch { component.cancelServerSetup() } },
-								enabled = state.serverWorking.not()
-							) {
-								Text(Res.string.settings_server_setup_cancel_button.get())
-							}
+									val description = if (passwordVisible)
+										Res.string.settings_server_setup_password_hide.get()
+									else
+										Res.string.settings_server_setup_password_show.get()
 
-							Spacer(modifier = Modifier.weight(1f))
-
-							// Create Button (if applicable)
-							if (state.serverIsLoggedIn.not()) {
-								Button(
-									onClick = { confirmDeleteLocal = true },
-									enabled = state.serverWorking.not() && state.currentUrl == null,
-									colors = ButtonDefaults.filledTonalButtonColors()
-								) {
-									Text(Res.string.settings_server_setup_create_button.get())
-								}
-								Spacer(modifier = Modifier.size(Ui.Padding.M))
-							}
-
-							// Log In Button (Primary)
-							Button(
-								onClick = {
-									if (state.serverIsLoggedIn.not()) {
-										confirmDeleteLocal = false
-									} else {
-										component.setupServer(
-											ssl = state.serverSsl,
-											url = state.serverUrl ?: "",
-											email = state.serverEmail ?: "",
-											password = state.serverPassword ?: "",
-											create = false,
-											removeLocalContent = false
-										)
+									IconButton(onClick = { passwordVisible = !passwordVisible }) {
+										Icon(imageVector = image, description)
 									}
 								},
 								enabled = state.serverWorking.not()
+							)
+						}
+					}
+
+					// Error Message
+					state.serverError?.let { error ->
+						Spacer(modifier = Modifier.size(Ui.Padding.M))
+						Text(
+							error,
+							color = MaterialTheme.colorScheme.error,
+							style = MaterialTheme.typography.bodySmall,
+							fontStyle = FontStyle.Italic,
+							modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.S)
+						)
+					}
+
+					Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+					// Action Buttons
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.End
+					) {
+						// Cancel Button (Secondary)
+						TextButton(
+							onClick = { scope.launch { component.cancelServerSetup() } },
+							enabled = state.serverWorking.not()
+						) {
+							Text(Res.string.settings_server_setup_cancel_button.get())
+						}
+
+						Spacer(modifier = Modifier.weight(1f))
+
+						// Create Button (if applicable)
+						if (state.serverIsLoggedIn.not()) {
+							Button(
+								onClick = { confirmDeleteLocal = true },
+								enabled = state.serverWorking.not() && state.currentUrl == null,
+								colors = ButtonDefaults.filledTonalButtonColors()
 							) {
-								Text(Res.string.settings_server_setup_login_button.get())
+								Text(Res.string.settings_server_setup_create_button.get())
 							}
+							Spacer(modifier = Modifier.size(Ui.Padding.M))
+						}
+
+						// Log In Button (Primary)
+						Button(
+							onClick = {
+								if (state.serverIsLoggedIn.not()) {
+									confirmDeleteLocal = false
+								} else {
+									component.setupServer(
+										ssl = state.serverSsl,
+										url = state.serverUrl ?: "",
+										email = state.serverEmail ?: "",
+										password = state.serverPassword ?: "",
+										create = false,
+										removeLocalContent = false
+									)
+								}
+							},
+							enabled = state.serverWorking.not()
+						) {
+							Text(Res.string.settings_server_setup_login_button.get())
 						}
 					}
 				}
-			})
+				}
+		}
 	}
 
 	// Confirmation Dialog

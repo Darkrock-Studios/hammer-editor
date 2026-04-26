@@ -14,11 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.BackupManager
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -32,20 +32,24 @@ fun BackupManagerDialog(
 ) {
 	val state by component.state.subscribeAsState()
 	val showRestoreConfirm = remember { mutableStateOf<ProjectBackupDef?>(null) }
+	var isOpen by remember { mutableStateOf(true) }
 
-	Dialog(
-		onDismissRequest = onDismissRequest,
+	AnimatedDialogContainer(
+		isOpen = isOpen,
+		onDismissRequest = { isOpen = false },
+		onClosed = onDismissRequest,
 		properties = DialogProperties(
 			dismissOnBackPress = true,
 			dismissOnClickOutside = false,
 			usePlatformDefaultWidth = false
-		)
+		),
 	) {
 		Surface(
 			modifier = Modifier
 				.widthIn(max = 480.dp)
 				.fillMaxWidth()
-				.fillMaxHeight(0.8f),
+				.fillMaxHeight(0.8f)
+				.predictiveBackTransform(),
 			shape = RoundedCornerShape(8.dp),
 			color = MaterialTheme.colorScheme.background
 		) {
@@ -66,7 +70,7 @@ fun BackupManagerDialog(
 						color = MaterialTheme.colorScheme.onBackground
 					)
 
-					IconButton(onClick = onDismissRequest) {
+					IconButton(onClick = ::requestDismiss) {
 						Icon(
 							imageVector = Icons.Default.Close,
 							contentDescription = Res.string.backup_manager_close_content_description.get(),
