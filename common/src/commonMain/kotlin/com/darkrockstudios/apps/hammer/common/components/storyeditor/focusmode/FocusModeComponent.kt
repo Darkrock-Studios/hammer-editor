@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
-import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.decreaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
@@ -35,8 +34,6 @@ class FocusModeComponent(
 	private var bufferUpdateSubscription: Job? = null
 	override var lastForceUpdate = MutableValue<Long>(0)
 
-	private val backButtonHandler = BackCallback { dismiss() }
-
 	private val _state = MutableValue(
 		FocusMode.State(
 			projectDef = projectDef,
@@ -48,8 +45,6 @@ class FocusModeComponent(
 
 	override fun onCreate() {
 		super.onCreate()
-
-		backHandler.register(backButtonHandler)
 
 		loadSceneContent()
 		subscribeToBufferUpdates()

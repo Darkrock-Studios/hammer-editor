@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -9,15 +10,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.PredictiveBackHandler
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -44,6 +46,8 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.vectorResource
 
 private val WIDE_SCREEN_THRESHOLD = 650.dp
@@ -135,10 +139,16 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 }
 
 private const val FOCUS_MODE_ANIM_MS = 220
+private const val FOCUS_MODE_BACK_MIN_SCALE = 0.92f
+private const val FOCUS_MODE_BACK_MIN_ALPHA = 0.6f
+private val FOCUS_MODE_BACK_TRANSLATION = 24.dp
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FocusModeModalContent(component: FocusMode) {
 	val transitionState = remember { MutableTransitionState(false).apply { targetState = true } }
+	val backProgress = remember { Animatable(0f) }
+	val coroutineScope = rememberCoroutineScope()
 
 	val animatedComponent = remember(component) {
 		object : FocusMode by component {
@@ -158,6 +168,15 @@ private fun FocusModeModalContent(component: FocusMode) {
 		onDismissRequest = { transitionState.targetState = false },
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
+		PredictiveBackHandler(enabled = transitionState.targetState) { events ->
+			try {
+				events.collect { event -> backProgress.snapTo(event.progress) }
+				transitionState.targetState = false
+			} catch (_: CancellationException) {
+				coroutineScope.launch { backProgress.animateTo(0f) }
+			}
+		}
+
 		AnimatedVisibility(
 			visibleState = transitionState,
 			enter = fadeIn(tween(FOCUS_MODE_ANIM_MS)) +
@@ -168,6 +187,14 @@ private fun FocusModeModalContent(component: FocusMode) {
 			Box(
 				modifier = Modifier
 					.fillMaxSize()
+					.graphicsLayer {
+						val p = backProgress.value
+						val scale = lerp(1f, FOCUS_MODE_BACK_MIN_SCALE, p)
+						scaleX = scale
+						scaleY = scale
+						translationY = FOCUS_MODE_BACK_TRANSLATION.toPx() * p
+						alpha = lerp(1f, FOCUS_MODE_BACK_MIN_ALPHA, p)
+					}
 					.background(MaterialTheme.colorScheme.background)
 			) {
 				FocusModeUi(animatedComponent)
