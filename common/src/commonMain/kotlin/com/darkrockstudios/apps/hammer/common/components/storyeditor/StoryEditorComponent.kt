@@ -170,6 +170,10 @@ class StoryEditorComponent(
 		}
 	}
 
+	override fun showScene(sceneItem: SceneItem) {
+		onSceneSelected(sceneItem)
+	}
+
 	override fun setMultiPane(isMultiPane: Boolean) {
 		_state.getAndUpdate { it.copy(isMultiPane = isMultiPane) }
 

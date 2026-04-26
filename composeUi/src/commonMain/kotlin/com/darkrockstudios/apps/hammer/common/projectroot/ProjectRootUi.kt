@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -16,8 +19,11 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
+import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchFab
+import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
@@ -105,6 +111,10 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 		is ProjectRoot.ModalDestination.ServerReauth -> {
 			ReauthenticationUi(overlay.component)
 		}
+
+		is ProjectRoot.ModalDestination.GlobalSearchModal -> {
+			GlobalSearchUi(overlay.component)
+		}
 	}
 }
 
@@ -114,36 +124,21 @@ fun ProjectRootFab(
 	modifier: Modifier = Modifier,
 ) {
 	val routerState by component.routerState.subscribeAsState()
-
-	/*
-	AnimatedContent(
-		targetState = routerState.active.instance,
-		transitionSpec = {
-			scaleIn(animationSpec = tween(500)) with
-				scaleOut(animationSpec = tween(500))
-		}
-	) { instance ->
-		*/
 	val instance = routerState.active.instance
-	when (instance) {
-		is ProjectRoot.Destination.EditorDestination -> {
 
-		}
+	Column(
+		modifier = modifier,
+		horizontalAlignment = Alignment.End,
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		GlobalSearchFab(onClick = { component.showGlobalSearch() })
 
-		is ProjectRoot.Destination.NotesDestination -> {
-			NotesFab(instance.component, modifier)
-		}
-
-		is ProjectRoot.Destination.EncyclopediaDestination -> {
-			BrowseEntriesFab(instance.component, modifier)
-		}
-
-		is ProjectRoot.Destination.TimeLineDestination -> {
-			TimelineFab(instance.component, modifier)
-		}
-
-		is ProjectRoot.Destination.HomeDestination -> {
-
+		when (instance) {
+			is ProjectRoot.Destination.EditorDestination -> {}
+			is ProjectRoot.Destination.NotesDestination -> NotesFab(instance.component, Modifier)
+			is ProjectRoot.Destination.EncyclopediaDestination -> BrowseEntriesFab(instance.component, Modifier)
+			is ProjectRoot.Destination.TimeLineDestination -> TimelineFab(instance.component, Modifier)
+			is ProjectRoot.Destination.HomeDestination -> {}
 		}
 	}
 }
