@@ -45,6 +45,7 @@ class ProjectRootComponent(
 		removeMenu,
 		::updateCloseConfirmRequirement,
 		::showProjectSync,
+		::showFocusMode,
 		scope,
 		dispatcherMain
 	)
@@ -53,6 +54,7 @@ class ProjectRootComponent(
 		componentContext,
 		projectDef,
 		::navigateGlobalSearchResult,
+		::reopenSceneAfterFocusMode,
 	)
 
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
@@ -131,6 +133,19 @@ class ProjectRootComponent(
 	override fun showGlobalSearch() = modalRouter.showGlobalSearch()
 
 	override fun dismissGlobalSearch() = modalRouter.dismissGlobalSearch()
+
+	override fun showFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.closeDetails()
+		modalRouter.showFocusMode(sceneItem)
+	}
+
+	override fun dismissFocusMode() = modalRouter.dismissFocusMode()
+
+	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.showScene(sceneItem)
+	}
 
 	private fun navigateGlobalSearchResult(result: SearchResult) {
 		when (result) {

@@ -30,7 +30,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
-import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 import com.darkrockstudios.apps.hammer.scene_editor_no_scene_selected
@@ -48,7 +47,6 @@ fun StoryEditorUi(
 		val state by component.state.subscribeAsState()
 		val detailsState by component.detailsRouterState.subscribeAsState()
 		val isMultiPane = state.isMultiPane
-		val fullScreen by component.fullscreenState.subscribeAsState()
 
 		val editorDivider = rememberEditorDivider()
 		val dividerX =
@@ -58,7 +56,7 @@ fun StoryEditorUi(
 				LIST_PANE_WIDTH
 			}
 
-		val listModifier = if (isMultiPane && fullScreen.active.configuration is StoryEditor.FullScreenConfig.None) {
+		val listModifier = if (isMultiPane) {
 			Modifier.requiredWidthIn(0.dp, dividerX).fillMaxHeight()
 				.rightBorder(1.dp, MaterialTheme.colorScheme.outline)
 		} else {
@@ -92,8 +90,6 @@ fun StoryEditorUi(
 
 	DialogUi(component)
 
-	FullscreenUi(component)
-
 	SetMultiPane(component)
 }
 
@@ -108,29 +104,6 @@ private fun DialogUi(component: StoryEditor) {
 
 		is StoryEditor.ChildDestination.DialogDestination.None -> {}
 		null -> {}
-	}
-}
-
-@Composable
-private fun FullscreenUi(component: StoryEditor) {
-	val state by component.fullscreenState.subscribeAsState()
-
-	Children(
-		stack = state,
-		modifier = Modifier.fillMaxSize(),
-		animation = predictiveBackAnimation(
-			backHandler = component.backHandler,
-			fallbackAnimation = stackAnimation { _ -> fade() },
-			onBack = component::exitFocusMode,
-		),
-	) {
-		when (val child = it.instance) {
-			is StoryEditor.ChildDestination.FullScreen.FocusModeDestination -> {
-				FocusModeUi(child.component)
-			}
-
-			is StoryEditor.ChildDestination.FullScreen.None -> {}
-		}
 	}
 }
 
