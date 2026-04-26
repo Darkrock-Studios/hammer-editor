@@ -809,8 +809,8 @@ class SceneEditorRepository(
 		}
 	}
 
-	fun exportStory(path: HPath): HPath {
-		return sceneDatasource.exportStory(path, getSceneTree().root.children)
+	fun exportStory(path: HPath, options: ExportOptions): HPath {
+		return sceneDatasource.exportStory(path, getSceneTree().root.children, options)
 	}
 
 	suspend fun createScene(
