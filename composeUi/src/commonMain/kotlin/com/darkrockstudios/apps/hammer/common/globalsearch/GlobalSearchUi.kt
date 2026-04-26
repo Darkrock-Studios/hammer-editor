@@ -53,6 +53,7 @@ fun GlobalSearchUi(component: GlobalSearch) {
 			.wrapContentSize(Alignment.TopCenter),
 		overridePlatformWidth = true,
 		contentAlignment = Alignment.TopCenter,
+		dismissOnTapOutside = true,
 	) {
 		val focusRequester = remember { FocusRequester() }
 		LaunchedEffect(Unit) { focusRequester.requestFocus() }

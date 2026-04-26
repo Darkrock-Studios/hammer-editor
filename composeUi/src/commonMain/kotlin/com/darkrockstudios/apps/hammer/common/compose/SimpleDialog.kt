@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -40,6 +41,7 @@ fun SimpleDialog(
 	dialogContainerModifier: Modifier = Modifier,
 	overridePlatformWidth: Boolean = false,
 	contentAlignment: Alignment = Alignment.Center,
+	dismissOnTapOutside: Boolean = false,
 	onDismissed: () -> Unit = {},
 	content: @Composable ColumnScope.() -> Unit
 ) {
@@ -57,11 +59,16 @@ fun SimpleDialog(
 		},
 		properties = DialogProperties(usePlatformDefaultWidth = !overridePlatformWidth),
 	) {
-		Box(
-			modifier = dialogContainerModifier.predictiveBackTransform(),
-			contentAlignment = contentAlignment
-		) {
-			Card(modifier = modifier.animateContentSize()) {
+		val cardModifier = modifier.animateContentSize().let { base ->
+			if (dismissOnTapOutside) base.clickable(
+				interactionSource = remember { MutableInteractionSource() },
+				indication = null,
+				onClick = {},
+			) else base
+		}
+
+		val cardContent = @Composable {
+			Card(modifier = cardModifier) {
 				Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 					Row(
 						modifier = Modifier.fillMaxWidth(),
@@ -88,6 +95,33 @@ fun SimpleDialog(
 					Spacer(modifier = Modifier.size(Ui.Padding.L))
 					content()
 				}
+			}
+		}
+
+		if (dismissOnTapOutside) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.clickable(
+						interactionSource = remember { MutableInteractionSource() },
+						indication = null,
+						onClick = { requestDismiss() },
+					),
+				contentAlignment = contentAlignment,
+			) {
+				Box(
+					modifier = dialogContainerModifier.predictiveBackTransform(),
+					contentAlignment = contentAlignment,
+				) {
+					cardContent()
+				}
+			}
+		} else {
+			Box(
+				modifier = dialogContainerModifier.predictiveBackTransform(),
+				contentAlignment = contentAlignment,
+			) {
+				cardContent()
 			}
 		}
 	}
