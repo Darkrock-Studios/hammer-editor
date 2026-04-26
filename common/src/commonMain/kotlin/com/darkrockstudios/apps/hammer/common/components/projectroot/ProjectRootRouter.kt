@@ -30,6 +30,7 @@ internal class ProjectRootRouter(
 	private val removeMenu: (id: String) -> Unit,
 	private val updateShouldClose: () -> Unit,
 	private val showProjectSync: () -> Unit,
+	private val showGlobalSearch: () -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
@@ -127,7 +128,8 @@ internal class ProjectRootRouter(
 		return ProjectHomeComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
-			showProjectSync = showProjectSync
+			showProjectSync = showProjectSync,
+			onShowGlobalSearch = showGlobalSearch,
 		)
 	}
 

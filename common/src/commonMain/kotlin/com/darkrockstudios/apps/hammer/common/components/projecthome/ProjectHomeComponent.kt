@@ -34,6 +34,7 @@ class ProjectHomeComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val showProjectSync: () -> Unit,
+	private val onShowGlobalSearch: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectHome,
 	ComponentToaster by ComponentToasterImpl() {
 
@@ -91,6 +92,8 @@ class ProjectHomeComponent(
 	}
 
 	override fun startProjectSync() = showProjectSync()
+
+	override fun showGlobalSearch() = onShowGlobalSearch()
 
 	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
 

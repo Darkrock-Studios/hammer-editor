@@ -20,6 +20,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun beginProjectExport()
 	fun endProjectExport()
 	fun startProjectSync()
+	fun showGlobalSearch()
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 	fun getExportStoryFileName(): String
