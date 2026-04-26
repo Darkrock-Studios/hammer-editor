@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -51,7 +52,16 @@ class GlobalSearchRepository(
 
 	fun setQuery(query: String) {
 		_state.getAndUpdate { it.copy(query = query) }
+		startSearch(query, _state.value.filter, debounce = true)
+	}
 
+	fun setFilter(filter: GlobalSearchFilter) {
+		if (_state.value.filter == filter) return
+		_state.getAndUpdate { it.copy(filter = filter) }
+		startSearch(_state.value.query, filter, debounce = false)
+	}
+
+	private fun startSearch(query: String, filter: GlobalSearchFilter, debounce: Boolean) {
 		searchJob?.cancel()
 
 		if (query.length < MIN_QUERY_LENGTH) {
@@ -61,9 +71,9 @@ class GlobalSearchRepository(
 
 		searchJob = scope.launch {
 			try {
-				delay(DEBOUNCE_MS)
+				if (debounce) delay(DEBOUNCE_MS)
 				_state.getAndUpdate { it.copy(isSearching = true) }
-				val results = runSearch(query)
+				val results = runSearch(query, filter)
 				_state.getAndUpdate { it.copy(isSearching = false, results = results) }
 			} catch (e: CancellationException) {
 				throw e
@@ -74,15 +84,32 @@ class GlobalSearchRepository(
 		}
 	}
 
-	private suspend fun runSearch(query: String): List<SearchResult> = coroutineScope {
-		val notesDeferred = async { searchNotes(query) }
-		val timelineDeferred = async { searchTimeline(query) }
-		val encyclopediaDeferred = async { searchEncyclopedia(query) }
-		val scenesDeferred = async { searchScenes(query) }
+	private suspend fun runSearch(query: String, filter: GlobalSearchFilter): List<SearchResult> = coroutineScope {
+		val notesDeferred = async {
+			if (filter.includesNotes) searchNotes(query) else emptyList()
+		}
+		val timelineDeferred = async {
+			if (filter.includesTimeline) searchTimeline(query) else emptyList()
+		}
+		val encyclopediaDeferred = async {
+			if (filter.includesEncyclopedia) searchEncyclopedia(query) else emptyList()
+		}
+		val scenesDeferred = async {
+			if (filter.includesScenes) searchScenes(query) else emptyList()
+		}
 
 		awaitAll(notesDeferred, timelineDeferred, encyclopediaDeferred, scenesDeferred)
 			.flatten()
 	}
+
+	private val GlobalSearchFilter.includesScenes: Boolean
+		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Scenes
+	private val GlobalSearchFilter.includesNotes: Boolean
+		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Notes
+	private val GlobalSearchFilter.includesEncyclopedia: Boolean
+		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Encyclopedia
+	private val GlobalSearchFilter.includesTimeline: Boolean
+		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Timeline
 
 	private fun searchNotes(query: String): List<SearchResult> {
 		return notes.getNotes()

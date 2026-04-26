@@ -23,6 +23,10 @@ class GlobalSearchComponent(
 		searchRepository.setQuery(query)
 	}
 
+	override fun onFilterChanged(filter: GlobalSearchFilter) {
+		searchRepository.setFilter(filter)
+	}
+
 	override fun onResultClicked(result: SearchResult) {
 		navigateToResult(result)
 	}

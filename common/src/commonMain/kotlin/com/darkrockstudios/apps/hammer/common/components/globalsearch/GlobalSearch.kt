@@ -8,14 +8,24 @@ interface GlobalSearch {
 	val state: Value<State>
 
 	fun onQueryChanged(query: String)
+	fun onFilterChanged(filter: GlobalSearchFilter)
 	fun onResultClicked(result: SearchResult)
 	fun dismiss()
 
 	data class State(
 		val query: String = "",
+		val filter: GlobalSearchFilter = GlobalSearchFilter.All,
 		val isSearching: Boolean = false,
 		val results: List<SearchResult> = emptyList(),
 	)
+}
+
+enum class GlobalSearchFilter {
+	All,
+	Scenes,
+	Notes,
+	Encyclopedia,
+	Timeline,
 }
 
 data class AnnotatedSnippet(
