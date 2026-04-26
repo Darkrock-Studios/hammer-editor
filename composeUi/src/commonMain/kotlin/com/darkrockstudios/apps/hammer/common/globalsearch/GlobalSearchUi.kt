@@ -22,10 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyRow
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -76,6 +78,13 @@ fun GlobalSearchUi(component: GlobalSearch) {
 
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
 
+		FilterChipsRow(
+			selected = state.filter,
+			onSelected = component::onFilterChanged,
+		)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.M))
+
 		when {
 			state.isSearching && state.results.isEmpty() -> {
 				Box(
@@ -111,6 +120,33 @@ fun GlobalSearchUi(component: GlobalSearch) {
 			}
 		}
 	}
+}
+
+@Composable
+private fun FilterChipsRow(
+	selected: GlobalSearchFilter,
+	onSelected: (GlobalSearchFilter) -> Unit,
+) {
+	LazyRow(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		items(GlobalSearchFilter.entries.toList(), key = { it.name }) { filter ->
+			FilterChip(
+				selected = filter == selected,
+				onClick = { onSelected(filter) },
+				label = { Text(filterLabel(filter).get()) },
+			)
+		}
+	}
+}
+
+private fun filterLabel(filter: GlobalSearchFilter): StringResource = when (filter) {
+	GlobalSearchFilter.All -> Res.string.global_search_filter_all
+	GlobalSearchFilter.Scenes -> Res.string.global_search_filter_scenes
+	GlobalSearchFilter.Notes -> Res.string.global_search_filter_notes
+	GlobalSearchFilter.Encyclopedia -> Res.string.global_search_filter_encyclopedia
+	GlobalSearchFilter.Timeline -> Res.string.global_search_filter_timeline
 }
 
 @Composable

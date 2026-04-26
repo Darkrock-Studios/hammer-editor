@@ -11,4 +11,9 @@
 	<string name="global_search_source_note">Note</string>
 	<string name="global_search_source_encyclopedia">Encyclopedia</string>
 	<string name="global_search_source_timeline">Timeline</string>
+	<string name="global_search_filter_all">All</string>
+	<string name="global_search_filter_scenes">Scenes</string>
+	<string name="global_search_filter_notes">Notes</string>
+	<string name="global_search_filter_encyclopedia">Encyclopedia</string>
+	<string name="global_search_filter_timeline">Timeline</string>
 </resources>
