@@ -9,16 +9,28 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.close_dialog_button
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
+/**
+ * Card-style modal dialog with title bar, close button, fade+scale animation, and predictive-back
+ * gesture support.
+ *
+ * @param onCloseRequest fires when the user requests dismissal (X button, ESC, scrim tap, or
+ *   committed predictive-back gesture). Typical handling: flip your `visible` state to false. The
+ *   dialog stays mounted while the exit animation plays.
+ * @param visible drives the enter/exit transition. When this flips to false the dialog animates
+ *   out before unmounting.
+ * @param onDismissed fires after the exit animation completes — use this to dismiss a Decompose
+ *   modal slot once the animation has played out, so the slot transition doesn't yank the dialog
+ *   mid-animation. No-op by default.
+ */
 @Composable
 fun SimpleDialog(
 	onCloseRequest: () -> Unit,
@@ -28,51 +40,55 @@ fun SimpleDialog(
 	dialogContainerModifier: Modifier = Modifier,
 	overridePlatformWidth: Boolean = false,
 	contentAlignment: Alignment = Alignment.Center,
+	onDismissed: () -> Unit = {},
 	content: @Composable ColumnScope.() -> Unit
 ) {
-	if (visible) {
-		Dialog(
-			onDismissRequest = onCloseRequest,
-			properties = DialogProperties(
-				usePlatformDefaultWidth = !overridePlatformWidth
-			),
-			content = {
-				Box(
-					modifier = dialogContainerModifier,
-					contentAlignment = contentAlignment
-				) {
-					Card(modifier = modifier.animateContentSize()) {
-						Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-							Row(
-								modifier = Modifier.fillMaxWidth(),
-								horizontalArrangement = Arrangement.SpaceBetween,
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Text(
-									text = title,
-									style = MaterialTheme.typography.titleLarge,
-									fontWeight = FontWeight.Bold,
-									modifier = Modifier
-										.weight(1f)
-										.padding(Ui.Padding.XL)
-								)
+	var renderInternal by remember { mutableStateOf(visible) }
+	LaunchedEffect(visible) { if (visible) renderInternal = true }
 
-								Icon(
-									Icons.Default.Close,
-									contentDescription = Res.string.close_dialog_button.get(),
-									modifier = Modifier
-										.padding(Ui.Padding.L)
-										.clickable {
-											onCloseRequest()
-										}
-								)
-							}
-							Spacer(modifier = Modifier.size(Ui.Padding.L))
-							content()
-						}
+	if (!renderInternal) return
+
+	AnimatedDialogContainer(
+		isOpen = visible,
+		onDismissRequest = onCloseRequest,
+		onClosed = {
+			renderInternal = false
+			onDismissed()
+		},
+		properties = DialogProperties(usePlatformDefaultWidth = !overridePlatformWidth),
+	) {
+		Box(
+			modifier = dialogContainerModifier.predictiveBackTransform(),
+			contentAlignment = contentAlignment
+		) {
+			Card(modifier = modifier.animateContentSize()) {
+				Column(modifier = Modifier.padding(Ui.Padding.XL)) {
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.SpaceBetween,
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge,
+							fontWeight = FontWeight.Bold,
+							modifier = Modifier
+								.weight(1f)
+								.padding(Ui.Padding.XL)
+						)
+
+						Icon(
+							Icons.Default.Close,
+							contentDescription = Res.string.close_dialog_button.get(),
+							modifier = Modifier
+								.padding(Ui.Padding.L)
+								.clickable { requestDismiss() }
+						)
 					}
+					Spacer(modifier = Modifier.size(Ui.Padding.L))
+					content()
 				}
 			}
-		)
+		}
 	}
 }

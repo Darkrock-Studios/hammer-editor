@@ -9,10 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -39,11 +36,13 @@ import org.jetbrains.compose.resources.vectorResource
 @Composable
 fun GlobalSearchUi(component: GlobalSearch) {
 	val state by component.state.subscribeAsState()
+	var isOpen by remember { mutableStateOf(true) }
 
 	SimpleDialog(
 		title = Res.string.global_search_title.get(),
-		onCloseRequest = component::dismiss,
-		visible = true,
+		onCloseRequest = { isOpen = false },
+		onDismissed = component::dismiss,
+		visible = isOpen,
 		modifier = Modifier.wrapContentSize(),
 		dialogContainerModifier = Modifier
 			.fillMaxSize(0.9f)
