@@ -413,6 +413,14 @@ private fun ProjectHomeMenu(
 			onDismissRequest = { expanded = false }
 		) {
 			DropdownMenuItem(
+				text = { Text(Res.string.global_search_button.get()) },
+				onClick = {
+					component.showGlobalSearch()
+					expanded = false
+				}
+			)
+
+			DropdownMenuItem(
 				text = { Text(Res.string.project_home_action_settings_button.get()) },
 				onClick = {
 					component.showProjectSettings()
