@@ -90,13 +90,20 @@ registerLinuxDistributionTasks(libs.versions.app.get())
 
 val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
+		fun runGit(vararg args: String): String {
+			val process = ProcessBuilder(*args)
+				.directory(project.rootDir)
+				.start()
+			val stdout = process.inputStream.bufferedReader().readText().trim()
+			process.waitFor()
+			return stdout
+		}
+
 		println("Fetching origin...")
-		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
+		ProcessBuilder("git", "fetch", "origin").directory(project.rootDir).inheritIO().start().waitFor()
 
 		// Check for unstaged/uncommitted changes
-		val statusText = providers.exec {
-			commandLine = listOf("git", "status", "--porcelain")
-		}.standardOutput.asText.get().trim()
+		val statusText = runGit("git", "status", "--porcelain")
 		if (statusText.isNotEmpty()) {
 			error(
 				"Working tree has uncommitted changes. Please commit or stash them before preparing a release.\n$statusText"
@@ -104,9 +111,7 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 		}
 
 		// Check if develop is behind origin/develop
-		val developBehind = providers.exec {
-			commandLine = listOf("git", "rev-list", "--count", "develop..origin/develop")
-		}.standardOutput.asText.get().trim().toIntOrNull() ?: 0
+		val developBehind = runGit("git", "rev-list", "--count", "develop..origin/develop").toIntOrNull() ?: 0
 		if (developBehind > 0) {
 			error("Local 'develop' is behind 'origin/develop' by $developBehind commit(s). Please pull before preparing a release.")
 		}
@@ -172,14 +177,14 @@ tasks.register("prepareForRelease") {
 		fun git(vararg args: String) {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
-			val stderr = java.io.ByteArrayOutputStream()
-			val result = providers.exec {
-				commandLine = cmd
-				errorOutput = stderr
-				isIgnoreExitValue = true
-			}.result.get()
-			if (result.exitValue != 0) {
-				error("Git command failed: ${cmd.joinToString(" ")}\n${stderr.toString().trim()}")
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) {
+				error("Git command failed: ${cmd.joinToString(" ")}\n${output.trim()}")
 			}
 		}
 
@@ -222,25 +227,26 @@ tasks.register("backoutLastRelease") {
 		fun gitSafe(vararg args: String): Boolean {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
-			val stderr = java.io.ByteArrayOutputStream()
-			val result = providers.exec {
-				commandLine = cmd
-				errorOutput = stderr
-				isIgnoreExitValue = true
-			}.result.get()
-			if (result.exitValue != 0) {
-				println("  (failed: ${stderr.toString().trim()})")
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) {
+				println("  (failed: ${output.trim()})")
 			}
-			return result.exitValue == 0
+			return exitCode == 0
 		}
 
 		// Make sure we're on develop
 		gitSafe("checkout", "develop")
 
 		// Check if HEAD commit is the release commit
-		val headMessage = providers.exec {
-			commandLine = listOf("git", "log", "-1", "--format=%s")
-		}.standardOutput.asText.get().trim()
+		val headProcess = ProcessBuilder("git", "log", "-1", "--format=%s")
+			.directory(project.rootDir).start()
+		val headMessage = headProcess.inputStream.bufferedReader().readText().trim()
+		headProcess.waitFor()
 
 		if (headMessage == "Prepared for release: $tagName") {
 			println("Resetting develop to before release commit...")
@@ -252,10 +258,10 @@ tasks.register("backoutLastRelease") {
 		}
 
 		// Delete tag locally if it exists
-		val tagExists = providers.exec {
-			commandLine = listOf("git", "rev-parse", tagName)
-			isIgnoreExitValue = true
-		}.result.get().exitValue == 0
+		val tagExists = ProcessBuilder("git", "rev-parse", tagName)
+			.directory(project.rootDir)
+			.start()
+			.waitFor() == 0
 
 		if (tagExists) {
 			println("Deleting local tag $tagName...")
