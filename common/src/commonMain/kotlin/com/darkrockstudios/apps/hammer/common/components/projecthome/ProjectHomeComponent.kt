@@ -12,9 +12,12 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -26,6 +29,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
+import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
+import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +51,8 @@ class ProjectHomeComponent(
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
+	private val importStoryUseCase: ImportStoryUseCase by projectInject()
+	private val markdownImporter: StoryImporter by inject()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -92,6 +99,78 @@ class ProjectHomeComponent(
 			it.copy(
 				showExportFilePicker = false
 			)
+		}
+	}
+
+	override fun beginProjectImport() {
+		_state.getAndUpdate { it.copy(showImportFilePicker = true) }
+	}
+
+	override fun cancelImportFilePicker() {
+		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
+	}
+
+	override fun selectImportFile(name: String, content: String) {
+		val sourceName = name.substringBeforeLast('.')
+		val initialOptions = ImportOptions()
+		val preview = markdownImporter.preview(sourceName, content, initialOptions)
+		_state.getAndUpdate {
+			it.copy(
+				showImportFilePicker = false,
+				showImportDialog = true,
+				importOptions = initialOptions,
+				importSourceName = sourceName,
+				importFileContent = content,
+				importPreview = preview,
+			)
+		}
+	}
+
+	override fun updateImportOptions(options: ImportOptions) {
+		val current = _state.value
+		val preview = markdownImporter.preview(
+			sourceName = current.importSourceName,
+			content = current.importFileContent,
+			options = options,
+		)
+		_state.getAndUpdate {
+			it.copy(importOptions = options, importPreview = preview)
+		}
+	}
+
+	override fun cancelImportDialog() {
+		_state.getAndUpdate {
+			it.copy(
+				showImportDialog = false,
+				importFileContent = "",
+				importSourceName = "",
+				importPreview = ImportPreview(emptyList()),
+			)
+		}
+	}
+
+	override suspend fun confirmImportDialog() {
+		val previewToImport = _state.value.importPreview
+		_state.getAndUpdate {
+			it.copy(
+				showImportDialog = false,
+				importFileContent = "",
+				importSourceName = "",
+				importPreview = ImportPreview(emptyList()),
+			)
+		}
+		try {
+			withContext(dispatcherDefault) {
+				importStoryUseCase.execute(previewToImport)
+			}
+			withContext(mainDispatcher) {
+				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_success))
+			}
+		} catch (e: Exception) {
+			io.github.aakira.napier.Napier.e("Import failed", e)
+			withContext(mainDispatcher) {
+				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_failure))
+			}
 		}
 	}
 
