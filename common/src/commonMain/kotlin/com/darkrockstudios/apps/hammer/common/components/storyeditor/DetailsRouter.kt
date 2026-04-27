@@ -96,6 +96,9 @@ internal class DetailsRouter(
 		)
 
 	fun showScene(sceneDef: SceneItem) {
+		val top = stack.value.active.configuration
+		if (top is Config.SceneEditor && top.sceneDef.id == sceneDef.id) return
+
 		navigation.navigate(
 			transformer = { stack ->
 				stack.dropLastWhile { it !is Config.None }
