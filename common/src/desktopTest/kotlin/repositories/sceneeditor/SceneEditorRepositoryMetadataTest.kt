@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -51,6 +54,9 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 	@MockK
 	private lateinit var statisticsRepository: StatisticsRepository
 
+	private lateinit var referenceIndexDatasource: ReferenceIndexDatasource
+	private lateinit var referenceIndexRepository: ReferenceIndexRepository
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -63,6 +69,12 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			getString(any<StringResource>(), any<String>())
 		} returns "Mocked"
 		every { getSystemResourceEnvironment() } returns mockk(relaxed = true)
+		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns ProjectMetadata(
+			info = Info(
+				created = Instant.parse("2022-01-01T00:00:00.000Z"),
+				dataVersion = 1,
+			)
+		)
 
 		setupKoin()
 	}
@@ -85,6 +97,8 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
 		sceneMetadataDatasource = createDatasource(projectDef)
 		sceneDatasource = createSceneDatasource(projectDef)
+		referenceIndexDatasource = ReferenceIndexDatasource(ffs, toml, projectDef)
+		referenceIndexRepository = ReferenceIndexRepository(projectDef, referenceIndexDatasource)
 		return SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
@@ -93,6 +107,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = referenceIndexRepository,
 		)
 	}
 
@@ -151,4 +166,103 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 		assertEquals(newMetadata, loaded)
 		coVerify { syncDataRepository.markEntityAsDirty(sceneId, any()) }
 	}
+
+	@Test
+	fun `Adding confirmed references applies a delta to the index`() = runTest(mainTestDispatcher) {
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val sceneId = 1
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+		referenceIndexDatasource.saveIndex(ReferenceIndex(isDirty = false))
+		referenceIndexRepository.loadIndex()
+
+		val initial = repo.loadSceneMetadata(sceneId)
+		repo.storeMetadata(
+			initial.copy(confirmedReferences = setOf(7, 9)),
+			sceneId,
+		)
+
+		val saved = referenceIndexDatasource.loadIndex()
+		assertEquals(setOf(sceneId), saved?.entryToScenes?.get(7))
+		assertEquals(setOf(sceneId), saved?.entryToScenes?.get(9))
+	}
+
+	@Test
+	fun `Removing confirmed references applies a delta to the index`() = runTest(mainTestDispatcher) {
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val sceneId = 1
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+		referenceIndexDatasource.saveIndex(ReferenceIndex(isDirty = false))
+		referenceIndexRepository.loadIndex()
+
+		val initial = repo.loadSceneMetadata(sceneId)
+		// Seed: scene currently confirmed for entries 7 and 9
+		repo.storeMetadata(initial.copy(confirmedReferences = setOf(7, 9)), sceneId)
+
+		repo.storeMetadata(initial.copy(confirmedReferences = setOf(7)), sceneId)
+
+		val saved = referenceIndexDatasource.loadIndex()
+		assertEquals(setOf(sceneId), saved?.entryToScenes?.get(7))
+		assertEquals(null, saved?.entryToScenes?.get(9))
+	}
+
+	@Test
+	fun `Deleting a scene removes it from the reference index`() = runTest(mainTestDispatcher) {
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val sceneId = 1
+
+		val repo = createRepository(projDef)
+		repo.initializeSceneEditor()
+		referenceIndexDatasource.saveIndex(ReferenceIndex(isDirty = false))
+		referenceIndexRepository.loadIndex()
+
+		val initial = repo.loadSceneMetadata(sceneId)
+		repo.storeMetadata(initial.copy(confirmedReferences = setOf(7, 9)), sceneId)
+
+		val sceneItem = repo.getSceneItemFromId(sceneId)!!
+		repo.deleteScene(sceneItem)
+
+		val saved = referenceIndexDatasource.loadIndex()
+		assertEquals(null, saved?.entryToScenes?.get(7))
+		assertEquals(null, saved?.entryToScenes?.get(9))
+	}
+
+	@Test
+	fun `Storing metadata without changing confirmed references does not touch the index`() =
+		runTest(mainTestDispatcher) {
+			coEvery { syncDataRepository.isServerSynchronized() } returns false
+			val projDef = getProject1Def()
+			createProject(ffs, PROJECT_1_NAME)
+			val sceneId = 1
+
+			val repo = createRepository(projDef)
+			repo.initializeSceneEditor()
+			referenceIndexDatasource.saveIndex(ReferenceIndex(isDirty = false))
+			referenceIndexRepository.loadIndex()
+
+			val initial = repo.loadSceneMetadata(sceneId)
+			repo.storeMetadata(initial.copy(confirmedReferences = setOf(7)), sceneId)
+
+			// Same confirmed set; only outline/notes change → no delta should fire
+			repo.storeMetadata(
+				initial.copy(
+					confirmedReferences = setOf(7),
+					outline = "different outline",
+				),
+				sceneId,
+			)
+
+			val saved = referenceIndexDatasource.loadIndex()
+			assertEquals(setOf(sceneId), saved?.entryToScenes?.get(7))
+			assertEquals(false, referenceIndexRepository.isDirty.value)
+		}
 }

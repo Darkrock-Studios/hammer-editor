@@ -118,6 +118,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = mockk(relaxed = true),
 		)
 	}
 
