@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -35,6 +36,7 @@ class EncyclopediaRepository(
 	private val datasource: EncyclopediaDatasource,
 	private val syncDataRepository: SyncDataRepository,
 	private val statisticsRepository: StatisticsRepository,
+	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -203,6 +205,7 @@ class EncyclopediaRepository(
 		datasource.deleteEntry(entryDef)
 		syncDataRepository.recordIdDeletion(entryDef.id)
 		statisticsRepository.markDirty()
+		referenceIndexRepository.markEntryDeleted(entryDef.id)
 		return true
 	}
 

@@ -127,6 +127,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = mockk(relaxed = true),
 		)
 	}
 

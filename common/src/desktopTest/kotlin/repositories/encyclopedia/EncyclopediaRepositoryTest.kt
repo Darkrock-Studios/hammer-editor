@@ -47,6 +47,9 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var statisticsRepository: StatisticsRepository
 
+	private lateinit var referenceIndexDatasource: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
+	private lateinit var referenceIndexRepository: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+
 	lateinit var datasource: EncyclopediaDatasource
 
 	private lateinit var fileSystem: FakeFileSystem
@@ -73,12 +76,17 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			fileSystem = fileSystem,
 			externalFileIo = externalFileIo,
 		)
+		referenceIndexDatasource = com.darkrockstudios.apps.hammer.common.data.references
+			.ReferenceIndexDatasource(fileSystem, toml, projDef)
+		referenceIndexRepository = com.darkrockstudios.apps.hammer.common.data.references
+			.ReferenceIndexRepository(projDef, referenceIndexDatasource)
 		return EncyclopediaRepository(
 			projectDef = projDef,
 			idRepository = idRepository,
 			datasource = datasource,
 			syncDataRepository = syncDataRepository,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = referenceIndexRepository,
 		)
 	}
 
@@ -281,6 +289,29 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
 		coVerify { syncDataRepository.recordIdDeletion(any()) }
+	}
+
+	@Test
+	fun `Delete Entry purges that entry id from the reference index`() = runTest {
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+
+		val repo = createRepository()
+		referenceIndexDatasource.saveIndex(
+			com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex(
+				isDirty = false,
+				entryToScenes = mapOf(
+					entry1().id to setOf(100, 200),
+					99 to setOf(100),
+				),
+			)
+		)
+		referenceIndexRepository.loadIndex()
+
+		repo.deleteEntry(entry1().toDef(projDef))
+
+		val saved = referenceIndexDatasource.loadIndex()
+		assertEquals(null, saved?.entryToScenes?.get(entry1().id))
+		assertEquals(setOf(100), saved?.entryToScenes?.get(99))
 	}
 
 	@Test

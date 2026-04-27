@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -49,6 +50,7 @@ class SceneEditorRepository(
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
 	private val statisticsRepository: StatisticsRepository,
+	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -480,8 +482,20 @@ class SceneEditorRepository(
 		val scene = getSceneItemFromIdIncludingArchived(sceneId)
 			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
 
+		val previous = sceneMetadataDatasource.loadMetadata(sceneId)
+
 		markForSynchronization(scene)
 		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
+
+		val previousConfirmed = previous?.confirmedReferences.orEmpty()
+		val newConfirmed = metadata.confirmedReferences
+		if (previousConfirmed != newConfirmed) {
+			referenceIndexRepository.applySceneDelta(
+				sceneId = sceneId,
+				added = newConfirmed - previousConfirmed,
+				removed = previousConfirmed - newConfirmed,
+			)
+		}
 	}
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
@@ -912,6 +926,7 @@ class SceneEditorRepository(
 
 				reloadScenes()
 				statisticsRepository.markDirty()
+				referenceIndexRepository.markSceneDeleted(scene.id)
 
 				true
 			} else {
