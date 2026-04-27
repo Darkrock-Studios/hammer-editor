@@ -207,6 +207,16 @@ fun ProjectStatsUi(
 		onConfirm = component::confirmExportDialog,
 	)
 	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
+
+	ImportStoryDialog(
+		visible = state.showImportDialog,
+		options = state.importOptions,
+		preview = state.importPreview,
+		onCancel = component::cancelImportDialog,
+		onOptionsChange = component::updateImportOptions,
+		onConfirm = { scope.launch { component.confirmImportDialog() } },
+	)
+	ImportFilePicker(state.showImportFilePicker, component, scope)
 }
 
 @Composable
@@ -607,6 +617,14 @@ private fun ProjectHomeMenu(
 				text = { Text(Res.string.project_home_action_export.get()) },
 				onClick = {
 					component.beginProjectExport()
+					expanded = false
+				}
+			)
+
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_action_import.get()) },
+				onClick = {
+					component.beginProjectImport()
 					expanded = false
 				}
 			)

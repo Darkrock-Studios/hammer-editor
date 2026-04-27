@@ -6,8 +6,10 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -22,6 +24,14 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun cancelExportDialog()
 	fun confirmExportDialog(options: ExportOptions)
 	fun endProjectExport()
+
+	fun beginProjectImport()
+	fun cancelImportFilePicker()
+	fun selectImportFile(name: String, content: String)
+	fun updateImportOptions(options: ImportOptions)
+	fun cancelImportDialog()
+	suspend fun confirmImportDialog()
+
 	fun startProjectSync()
 	fun showGlobalSearch()
 	fun supportsBackup(): Boolean
@@ -52,6 +62,12 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val showExportDialog: Boolean = false,
 		val showExportFilePicker: Boolean = false,
 		val exportOptions: ExportOptions = ExportOptions(),
+		val showImportFilePicker: Boolean = false,
+		val showImportDialog: Boolean = false,
+		val importOptions: ImportOptions = ImportOptions(),
+		val importSourceName: String = "",
+		val importFileContent: String = "",
+		val importPreview: ImportPreview = ImportPreview(emptyList()),
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,
