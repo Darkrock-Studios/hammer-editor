@@ -182,14 +182,19 @@ private fun ReferencesSection(
 			) {
 				for (ref in state.confirmedRefs) {
 					InputChip(
-						onClick = { component.unconfirmReference(ref.id) },
+						onClick = { component.navigateToEntry(ref) },
 						label = { Text(ref.name) },
 						trailingIcon = {
-							Icon(
-								Icons.Filled.Close,
-								contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
-								tint = MaterialTheme.colorScheme.onSurface,
-							)
+							IconButton(
+								onClick = { component.unconfirmReference(ref.id) },
+								modifier = Modifier.size(24.dp),
+							) {
+								Icon(
+									Icons.Filled.Close,
+									contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
+									tint = MaterialTheme.colorScheme.onSurface,
+								)
+							}
 						},
 						selected = true,
 					)
@@ -211,18 +216,23 @@ private fun ReferencesSection(
 			) {
 				for (ref in state.suggestedRefs) {
 					AssistChip(
-						onClick = { component.confirmReference(ref.entryId) },
-						label = { Text(ref.name) },
+						onClick = { component.navigateToEntry(ref.entryDef) },
+						label = { Text(ref.entryDef.name) },
 						leadingIcon = {
-							Icon(
-								Icons.Filled.Check,
-								contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
-								tint = MaterialTheme.colorScheme.primary,
-							)
+							IconButton(
+								onClick = { component.confirmReference(ref.entryDef.id) },
+								modifier = Modifier.size(24.dp),
+							) {
+								Icon(
+									Icons.Filled.Check,
+									contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
+									tint = MaterialTheme.colorScheme.primary,
+								)
+							}
 						},
 						trailingIcon = {
 							IconButton(
-								onClick = { component.dismissReference(ref.entryId) },
+								onClick = { component.dismissReference(ref.entryDef.id) },
 								modifier = Modifier.size(24.dp),
 							) {
 								Icon(
@@ -254,14 +264,19 @@ private fun ReferencesSection(
 					) {
 						for (ref in state.dismissedRefs) {
 							AssistChip(
-								onClick = { component.restoreDismissedReference(ref.id) },
+								onClick = { component.navigateToEntry(ref) },
 								label = { Text(ref.name) },
-								leadingIcon = {
-									Icon(
-										Icons.Filled.Add,
-										contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
-										tint = MaterialTheme.colorScheme.onSurfaceVariant,
-									)
+								trailingIcon = {
+									IconButton(
+										onClick = { component.restoreDismissedReference(ref.id) },
+										modifier = Modifier.size(24.dp),
+									) {
+										Icon(
+											Icons.Filled.Add,
+											contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
+											tint = MaterialTheme.colorScheme.onSurfaceVariant,
+										)
+									}
 								},
 							)
 						}

@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -35,6 +36,7 @@ class SceneEditorComponent(
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
+	showEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
@@ -58,7 +60,8 @@ class SceneEditorComponent(
 
 	override val sceneMetadataComponent: SceneMetadataPanel = SceneMetadataPanelComponent(
 		componentContext = childContext("scene-${originalSceneItem.id}-metadata"),
-		originalSceneItem = originalSceneItem
+		originalSceneItem = originalSceneItem,
+		showEntry = showEntry,
 	)
 
 	private val sceneDef: SceneItem = state.value.sceneItem

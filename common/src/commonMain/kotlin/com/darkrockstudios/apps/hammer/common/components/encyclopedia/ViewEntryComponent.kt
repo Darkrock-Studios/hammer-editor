@@ -27,7 +27,8 @@ class ViewEntryComponent(
 	entryDef: EntryDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
-	private val closeEntry: () -> Unit
+	private val closeEntry: () -> Unit,
+	private val showScene: (com.darkrockstudios.apps.hammer.common.data.SceneItem) -> Unit,
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(
@@ -64,12 +65,16 @@ class ViewEntryComponent(
 				val resolved = sceneIds
 					.mapNotNull { id ->
 						sceneEditorRepository.getSceneItemFromIdIncludingArchived(id)?.let { item ->
-							ViewEntry.AppearsInScene(sceneId = id, name = item.name)
+							ViewEntry.Appearance(
+								source = ViewEntry.AppearanceSource.Scene,
+								name = item.name,
+								sceneItem = item,
+							)
 						}
 					}
 					.sortedBy { it.name.lowercase() }
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(appearsInScenes = resolved) }
+					_state.getAndUpdate { it.copy(appearsIn = resolved) }
 				}
 			}
 		}
@@ -324,6 +329,13 @@ class ViewEntryComponent(
 
 				reload()
 			}
+		}
+	}
+
+	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {
+		when (appearance.source) {
+			ViewEntry.AppearanceSource.Scene ->
+				appearance.sceneItem?.let { showScene(it) }
 		}
 	}
 

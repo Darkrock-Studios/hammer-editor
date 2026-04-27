@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.sync_menu_group
@@ -47,6 +48,8 @@ class ProjectRootComponent(
 		::showProjectSync,
 		::showGlobalSearch,
 		::showFocusMode,
+		::showEncyclopediaEntry,
+		::showEditorScene,
 		scope,
 		dispatcherMain
 	)
@@ -97,6 +100,18 @@ class ProjectRootComponent(
 
 	override fun showEncyclopedia() {
 		router.showEncyclopedia()
+	}
+
+	private fun showEncyclopediaEntry(entryDef: EntryDef) {
+		showEncyclopedia()
+		(routerState.value.active.instance as? ProjectRoot.Destination.EncyclopediaDestination)
+			?.component?.showViewEntry(entryDef)
+	}
+
+	private fun showEditorScene(sceneItem: SceneItem) {
+		showEditor()
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.showScene(sceneItem)
 	}
 
 	override fun showHome() {
@@ -163,9 +178,7 @@ class ProjectRootComponent(
 			}
 
 			is SearchResult.EncyclopediaEntry -> {
-				showEncyclopedia()
-				(routerState.value.active.instance as? ProjectRoot.Destination.EncyclopediaDestination)
-					?.component?.showViewEntry(result.entryDef)
+				showEncyclopediaEntry(result.entryDef)
 			}
 
 			is SearchResult.TimelineEvent -> {

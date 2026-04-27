@@ -84,7 +84,8 @@ class ViewEntryComponentTest : BaseTest() {
 			entryDef = origDef,
 			addMenu = {},
 			removeMenu = {},
-			closeEntry = {}
+			closeEntry = {},
+			showScene = {},
 		)
 
 		val result = comp.updateEntry(
@@ -122,7 +123,8 @@ class ViewEntryComponentTest : BaseTest() {
 			entryDef = origDef,
 			addMenu = {},
 			removeMenu = {},
-			closeEntry = {}
+			closeEntry = {},
+			showScene = {},
 		)
 
 		val result = comp.updateEntry(

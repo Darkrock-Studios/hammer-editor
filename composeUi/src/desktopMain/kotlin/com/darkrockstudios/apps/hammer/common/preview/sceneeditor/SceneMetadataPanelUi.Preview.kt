@@ -32,6 +32,7 @@ private fun SceneMetadataPanelUiPreview() {
 			override fun unconfirmReference(entryId: Int) {}
 			override fun dismissReference(entryId: Int) {}
 			override fun restoreDismissedReference(entryId: Int) {}
+			override fun navigateToEntry(entryDef: com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef) {}
 		},
 		closeMetadata = {}
 	)

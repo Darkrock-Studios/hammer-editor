@@ -120,6 +120,12 @@ class ReferenceIndexService(
 		val confirmed = metadata?.confirmedReferences.orEmpty()
 		val dismissed = metadata?.dismissedReferences.orEmpty()
 
+		// The encyclopedia is loaded lazily — if no one has opened the encyclopedia
+		// browser yet, the entry list flow has no value and `.first()` would block
+		// forever. Trigger an imperative load if the cache is empty.
+		if (encyclopediaRepository.entryListFlow.replayCache.isEmpty()) {
+			encyclopediaRepository.loadEntriesImperative()
+		}
 		val entries = encyclopediaRepository.entryListFlow.first()
 			.filter { it.type in config.enabledEntryTypes }
 

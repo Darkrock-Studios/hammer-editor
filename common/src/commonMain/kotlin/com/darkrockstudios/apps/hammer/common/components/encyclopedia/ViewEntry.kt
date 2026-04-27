@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -24,10 +25,16 @@ interface ViewEntry {
 		val showTagAdd: Boolean = false,
 		val showAliasAdd: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
-		val appearsInScenes: List<AppearsInScene> = emptyList(),
+		val appearsIn: List<Appearance> = emptyList(),
 	)
 
-	data class AppearsInScene(val sceneId: Int, val name: String)
+	enum class AppearanceSource { Scene }
+
+	data class Appearance(
+		val source: AppearanceSource,
+		val name: String,
+		val sceneItem: SceneItem? = null,
+	)
 
 	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
@@ -57,4 +64,5 @@ interface ViewEntry {
 	fun endAliasAdd()
 	suspend fun addAlias(alias: String): EntryResult
 	fun removeAlias(alias: String)
+	fun navigateToAppearance(appearance: Appearance)
 }
