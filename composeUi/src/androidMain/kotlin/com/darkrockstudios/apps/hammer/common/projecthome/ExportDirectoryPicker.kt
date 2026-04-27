@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
@@ -23,12 +25,14 @@ actual fun ExportDirectoryPicker(
 ) {
 	val ioDispatcher = rememberIoDispatcher()
 	val externalFileIo: ExternalFileIo = rememberKoinInject()
+	val state by component.state.subscribeAsState()
 	val launcher =
 		rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
 			if (uri != null) {
+				val options = state.exportOptions
 				scope.launch(ioDispatcher) {
 					val exportTempFile = getCacheDirectory()
-					val tempFilePath = component.exportProject(exportTempFile)
+					val tempFilePath = component.exportProject(exportTempFile, options)
 					val tempFile = File(tempFilePath.path)
 					val content = tempFile.readText()
 					tempFile.delete()

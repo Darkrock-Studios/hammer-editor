@@ -7,7 +7,7 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.compose.report.generator)
+	//alias(libs.plugins.compose.report.generator)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -62,6 +62,7 @@ kotlin {
 				api(libs.multiplatform.window.size)
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
+				api(libs.jetbrains.compose.ui.backhandler)
 				api(libs.decompose.compose)
 				api(libs.decompose.compose.experimental)
 				api(libs.filekit.dialogs.compose)

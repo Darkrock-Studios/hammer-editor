@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.globalsearch.globalSearchShortcutModifier
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
@@ -195,7 +196,7 @@ private fun AppContent(component: ProjectRoot) {
 	val router by component.routerState.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	Box {
+	Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
 		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
 				destinations.forEach { item ->

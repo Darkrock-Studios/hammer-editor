@@ -40,17 +40,19 @@ internal fun ProjectSynchronization(
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	var confirmCancel by rememberSaveable { mutableStateOf(false) }
+	var isOpen by remember { mutableStateOf(true) }
 
 	SimpleDialog(
 		title = Res.string.sync_project_dialog_title.get(),
 		onCloseRequest = {
 			if (state.isSyncing.not()) {
-				component.endSync()
+				isOpen = false
 			} else {
 				confirmCancel = true
 			}
 		},
-		visible = true,
+		onDismissed = component::endSync,
+		visible = isOpen,
 		modifier = Modifier.wrapContentSize(),
 		dialogContainerModifier = Modifier.fillMaxSize(0.9f).wrapContentSize(Alignment.Center),
 		overridePlatformWidth = true
@@ -69,7 +71,7 @@ internal fun ProjectSynchronization(
 					scope.launch {
 						withContext(mainDispatcher) {
 							confirmCancel = false
-							component.endSync()
+							isOpen = false
 						}
 					}
 					showSnackbar(syncCanceledText)

@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -44,13 +45,17 @@ class ProjectRootComponent(
 		removeMenu,
 		::updateCloseConfirmRequirement,
 		::showProjectSync,
+		::showGlobalSearch,
+		::showFocusMode,
 		scope,
 		dispatcherMain
 	)
 
 	private val modalRouter = ProjectRootModalRouter(
 		componentContext,
-		projectDef
+		projectDef,
+		::navigateGlobalSearchResult,
+		::reopenSceneAfterFocusMode,
 	)
 
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
@@ -125,6 +130,52 @@ class ProjectRootComponent(
 	override fun showProjectSync() = modalRouter.showProjectSync()
 
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
+
+	override fun showGlobalSearch() = modalRouter.showGlobalSearch()
+
+	override fun dismissGlobalSearch() = modalRouter.dismissGlobalSearch()
+
+	override fun showFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.closeDetails()
+		modalRouter.showFocusMode(sceneItem)
+	}
+
+	override fun dismissFocusMode() = modalRouter.dismissFocusMode()
+
+	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.showScene(sceneItem)
+	}
+
+	private fun navigateGlobalSearchResult(result: SearchResult) {
+		when (result) {
+			is SearchResult.Scene -> {
+				showEditor()
+				(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+					?.component?.showScene(result.sceneItem)
+			}
+
+			is SearchResult.Note -> {
+				showNotes()
+				(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
+					?.component?.showViewNote(result.noteId)
+			}
+
+			is SearchResult.EncyclopediaEntry -> {
+				showEncyclopedia()
+				(routerState.value.active.instance as? ProjectRoot.Destination.EncyclopediaDestination)
+					?.component?.showViewEntry(result.entryDef)
+			}
+
+			is SearchResult.TimelineEvent -> {
+				showTimeLine()
+				(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
+					?.component?.showViewEvent(result.eventId)
+			}
+		}
+		dismissGlobalSearch()
+	}
 
 	private fun updateCloseConfirmRequirement() {
 		_backEnabled.value = router.isAtRoot()

@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -17,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import io.github.koalaplot.core.bar.BarScope
 import io.github.koalaplot.core.bar.DefaultBar
 import io.github.koalaplot.core.bar.VerticalBarPlot
 import io.github.koalaplot.core.gestures.GestureConfig
@@ -38,6 +42,7 @@ import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import io.github.koalaplot.core.xygraph.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 
@@ -66,6 +71,7 @@ fun ProjectStatsUi(
 					HeaderUi(
 						state.projectDef.name,
 						"\uD83C\uDFE1",
+						modifier = Modifier.weight(1f),
 					)
 					ProjectHomeMenu(
 						component = component,
@@ -151,9 +157,39 @@ fun ProjectStatsUi(
 			NumericStatsBlock(Res.string.project_home_stat_total_words.get(), state.totalWords)
 		}
 
+		item(key = "avgWordsPerScene") {
+			NumericStatsBlock(
+				Res.string.project_home_stat_avg_words_per_scene.get(),
+				state.averageWordsPerScene
+			)
+		}
+
+		item(key = "longestScene") {
+			GenericStatsBlock(Res.string.project_home_stat_longest_scene.get()) {
+				LongestSceneContent(state = state)
+			}
+		}
+
+		item(key = "numNotes") {
+			NumericStatsBlock(Res.string.project_home_stat_num_notes.get(), state.numberOfNotes)
+		}
+
+		item(key = "numTimelineEvents") {
+			NumericStatsBlock(
+				Res.string.project_home_stat_num_timeline_events.get(),
+				state.numberOfTimelineEvents
+			)
+		}
+
 		item(key = "chapterWords") {
 			GenericStatsBlock(Res.string.project_home_stat_chapter_words.get()) {
 				WordsInChaptersChart(state = state)
+			}
+		}
+
+		item(key = "sceneLengths") {
+			GenericStatsBlock(Res.string.project_home_stat_scene_lengths.get()) {
+				SceneLengthsContent(state = state)
 			}
 		}
 
@@ -164,7 +200,23 @@ fun ProjectStatsUi(
 		}
 	}
 
-	ExportDirectoryPicker(state.showExportDialog, component, scope)
+	ExportOptionsDialog(
+		visible = state.showExportDialog,
+		initialOptions = state.exportOptions,
+		onCancel = component::cancelExportDialog,
+		onConfirm = component::confirmExportDialog,
+	)
+	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
+
+	ImportStoryDialog(
+		visible = state.showImportDialog,
+		options = state.importOptions,
+		preview = state.importPreview,
+		onCancel = component::cancelImportDialog,
+		onOptionsChange = component::updateImportOptions,
+		onConfirm = { scope.launch { component.confirmImportDialog() } },
+	)
+	ImportFilePicker(state.showImportFilePicker, component, scope)
 }
 
 @Composable
@@ -373,11 +425,22 @@ private fun WordsInChaptersChart(
 				yAxisStyle = rememberAxisStyle(color = MaterialTheme.colorScheme.onSurface),
 				gestureConfig = disabledInput,
 				content = {
+					val chapterEntries = remember(state.wordsByChapter) {
+						state.wordsByChapter.entries.toList()
+					}
 					VerticalBarPlot(
 						xData = xAxis,
 						yData = yData,
-						bar = { _, _, _ ->
-							DefaultBar(colors.first())
+						bar = { chapterIndex, _, _ ->
+							val entry = chapterEntries.getOrNull(chapterIndex)
+							if (entry != null) {
+								ChapterBar(
+									chapterName = entry.key,
+									wordCount = entry.value,
+								)
+							} else {
+								DefaultBar(colors.first())
+							}
 						}
 					)
 				}
@@ -387,6 +450,129 @@ private fun WordsInChaptersChart(
 		LaunchedEffect(Unit) {
 			hasAnimated = true
 		}
+	}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BarScope.ChapterBar(
+	chapterName: String,
+	wordCount: Int,
+) {
+	val tooltipState = rememberTooltipState(isPersistent = false)
+	val coroutineScope = rememberCoroutineScope()
+	val tooltipText = stringResource(
+		Res.string.project_home_stat_chapter_words_tooltip,
+		chapterName,
+		wordCount.formatDecimalSeparator(),
+	)
+
+	TooltipBox(
+		positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+		tooltip = {
+			PlainTooltip { Text(tooltipText) }
+		},
+		state = tooltipState,
+	) {
+		DefaultBar(
+			brush = SolidColor(colors.first()),
+			modifier = Modifier.clickable(
+				interactionSource = remember { MutableInteractionSource() },
+				indication = null,
+			) {
+				coroutineScope.launch { tooltipState.show() }
+			},
+		)
+	}
+}
+
+@Composable
+private fun LongestSceneContent(state: ProjectHome.State) {
+	val name = state.longestSceneName
+	if (name.isNullOrBlank() || state.longestSceneWords <= 0) {
+		Text(
+			Res.string.project_home_stat_longest_scene_empty.get(),
+			modifier = Modifier.fillMaxWidth().padding(vertical = Ui.Padding.L),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			textAlign = TextAlign.Center
+		)
+	} else {
+		Column(
+			modifier = Modifier.fillMaxWidth().padding(vertical = Ui.Padding.L),
+			horizontalAlignment = Alignment.CenterHorizontally
+		) {
+			Text(
+				name,
+				modifier = Modifier.fillMaxWidth(),
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				textAlign = TextAlign.Center
+			)
+			Spacer(modifier = Modifier.size(Ui.Padding.S))
+			Text(
+				stringResource(
+					Res.string.project_home_stat_longest_scene_words,
+					state.longestSceneWords.formatDecimalSeparator()
+				),
+				modifier = Modifier.fillMaxWidth(),
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				textAlign = TextAlign.Center
+			)
+		}
+	}
+}
+
+@Composable
+private fun SceneLengthsContent(state: ProjectHome.State) {
+	if (state.numberOfScenes <= 0) {
+		Text(
+			Res.string.project_home_stat_longest_scene_empty.get(),
+			modifier = Modifier.fillMaxWidth().padding(vertical = Ui.Padding.L),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			textAlign = TextAlign.Center
+		)
+		return
+	}
+
+	Column(
+		modifier = Modifier.fillMaxWidth().padding(vertical = Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)
+	) {
+		SceneLengthRow(
+			label = Res.string.project_home_stat_scene_median.get(),
+			value = state.medianSceneWords
+		)
+		SceneLengthRow(
+			label = Res.string.project_home_stat_scene_shortest.get(),
+			value = state.shortestSceneWords
+		)
+		SceneLengthRow(
+			label = Res.string.project_home_stat_scene_std_dev.get(),
+			value = state.sceneWordsStdDev
+		)
+	}
+}
+
+@Composable
+private fun SceneLengthRow(label: String, value: Int) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.SpaceBetween,
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		Text(
+			label,
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Text(
+			value.formatDecimalSeparator(),
+			style = MaterialTheme.typography.titleMedium,
+			color = MaterialTheme.colorScheme.onSurface
+		)
 	}
 }
 
@@ -412,6 +598,14 @@ private fun ProjectHomeMenu(
 			onDismissRequest = { expanded = false }
 		) {
 			DropdownMenuItem(
+				text = { Text(Res.string.global_search_button.get()) },
+				onClick = {
+					component.showGlobalSearch()
+					expanded = false
+				}
+			)
+
+			DropdownMenuItem(
 				text = { Text(Res.string.project_home_action_settings_button.get()) },
 				onClick = {
 					component.showProjectSettings()
@@ -423,6 +617,14 @@ private fun ProjectHomeMenu(
 				text = { Text(Res.string.project_home_action_export.get()) },
 				onClick = {
 					component.beginProjectExport()
+					expanded = false
+				}
+			)
+
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_action_import.get()) },
+				onClick = {
+					component.beginProjectImport()
 					expanded = false
 				}
 			)

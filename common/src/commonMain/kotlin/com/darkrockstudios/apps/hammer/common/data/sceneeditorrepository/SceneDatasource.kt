@@ -1,9 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource.Companion.validateSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
@@ -113,7 +110,11 @@ class SceneDatasource(
 			}
 	}
 
-	fun exportStory(path: HPath, allNodes: List<TreeValue<SceneItem>>): HPath {
+	fun exportStory(
+		path: HPath,
+		allNodes: List<TreeValue<SceneItem>>,
+		options: ExportOptions,
+	): HPath {
 		val exportPath = path.toOkioPath() / getExportStoryFileName()
 		val allPaths = getAllScenePaths()
 
@@ -123,9 +124,12 @@ class SceneDatasource(
 			allNodes.forEachIndexed { index, chapterNode ->
 				val scene = chapterNode.value
 
-				val chapterNumber = index + 1
-
-				writeUtf8("\n## $chapterNumber. ${scene.name}\n\n")
+				if (options.treatTopLevelAsChapters) {
+					val chapterNumber = index + 1
+					writeUtf8("\n## $chapterNumber. ${scene.name}\n\n")
+				} else if (index > 0) {
+					writeUtf8("\n\n")
+				}
 
 				val scenePath = resolveScenePathFromFilesystem(chapterNode.value.id, allPaths)
 					?: error("Could not find Scene for ID ${chapterNode.value.id}")

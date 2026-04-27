@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.sceneeditor
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import kotlinx.coroutines.CoroutineScope
@@ -21,9 +22,11 @@ import org.jetbrains.compose.resources.StringResource
 @Preview
 @Composable
 fun SceneEditorUiPreview() {
-	val component = fakeComponent()
-	val rootSnackbar = rememberRootSnackbarHostState()
-	SceneEditorUi(component, rootSnackbar)
+	KoinApplicationPreview {
+		val component = fakeComponent()
+		val rootSnackbar = rememberRootSnackbarHostState()
+		SceneEditorUi(component, rootSnackbar)
+	}
 }
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(

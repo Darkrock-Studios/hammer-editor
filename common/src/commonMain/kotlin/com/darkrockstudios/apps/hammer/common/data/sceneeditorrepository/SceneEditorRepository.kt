@@ -26,6 +26,8 @@ import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import com.darkrockstudios.apps.hammer.default_draft_name
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -176,6 +178,7 @@ class SceneEditorRepository(
 		return job
 	}
 
+	private val sceneBuffersLock = reentrantLock()
 	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
 
 	private val storeTempJobs = mutableMapOf<Int, Job>()
@@ -188,10 +191,12 @@ class SceneEditorRepository(
 		}
 	}
 
-	private fun getDirtyBufferIds(): Set<Int> = sceneBuffers
-		.filter { it.value.dirty }
-		.map { it.key }
-		.toSet()
+	private fun getDirtyBufferIds(): Set<Int> = sceneBuffersLock.withLock {
+		sceneBuffers
+			.filter { it.value.dirty }
+			.map { it.key }
+			.toSet()
+	}
 
 	/**
 	 * This needs to be called after instantiation
@@ -255,7 +260,7 @@ class SceneEditorRepository(
 	}
 
 	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
-		val oldBuffer = sceneBuffers[content.scene.id]
+		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
 		// Skip update if nothing is different
 		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
@@ -267,34 +272,47 @@ class SceneEditorRepository(
 	}
 
 	private fun updateSceneBuffer(newBuffer: SceneBuffer) {
-		sceneBuffers[newBuffer.content.scene.id] = newBuffer
+		sceneBuffersLock.withLock {
+			sceneBuffers[newBuffer.content.scene.id] = newBuffer
+		}
 		_bufferUpdateFlow.tryEmit(newBuffer)
 	}
 
 	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
-	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffers[sceneId]
+	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffersLock.withLock { sceneBuffers[sceneId] }
 
 	private fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
 		hasSceneBuffer(sceneDef.id)
 
 	private fun hasSceneBuffer(sceneId: Int): Boolean =
-		sceneBuffers.containsKey(sceneId)
+		sceneBuffersLock.withLock { sceneBuffers.containsKey(sceneId) }
 
 	fun hasDirtyBuffer(sceneId: Int): Boolean =
 		getSceneBuffer(sceneId)?.dirty == true
 
-	fun hasDirtyBuffers(): Boolean = sceneBuffers.any { it.value.dirty }
+	fun hasDirtyBuffers(): Boolean = sceneBuffersLock.withLock {
+		sceneBuffers.any { it.value.dirty }
+	}
 
 	suspend fun storeAllBuffers() {
-		val dirtyScenes = sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
+		val dirtyScenes = sceneBuffersLock.withLock {
+			sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
+		}
 		dirtyScenes.forEach { scene ->
 			storeSceneBuffer(scene)
 		}
 	}
 
 	fun discardSceneBuffer(sceneDef: SceneItem) {
-		if (hasSceneBuffer(sceneDef)) {
-			sceneBuffers.remove(sceneDef.id)
+		val wasPresent = sceneBuffersLock.withLock {
+			if (sceneBuffers.containsKey(sceneDef.id)) {
+				sceneBuffers.remove(sceneDef.id)
+				true
+			} else {
+				false
+			}
+		}
+		if (wasPresent) {
 			clearTempScene(sceneDef)
 			loadSceneBuffer(sceneDef)
 		}
@@ -791,8 +809,8 @@ class SceneEditorRepository(
 		}
 	}
 
-	fun exportStory(path: HPath): HPath {
-		return sceneDatasource.exportStory(path, getSceneTree().root.children)
+	fun exportStory(path: HPath, options: ExportOptions): HPath {
+		return sceneDatasource.exportStory(path, getSceneTree().root.children, options)
 	}
 
 	suspend fun createScene(

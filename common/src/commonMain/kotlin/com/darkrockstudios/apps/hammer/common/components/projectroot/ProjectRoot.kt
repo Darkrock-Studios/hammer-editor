@@ -7,13 +7,16 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import org.jetbrains.compose.resources.StringResource
 
@@ -35,6 +38,12 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 
 	fun showProjectSync()
 	fun dismissProjectSync()
+
+	fun showGlobalSearch()
+	fun dismissGlobalSearch()
+
+	fun showFocusMode(sceneItem: SceneItem)
+	fun dismissFocusMode()
 
 	sealed class Destination<T : Router> : Router {
 		abstract val component: T
@@ -72,6 +81,10 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class ProjectSync(val component: ProjectSynchronization) : ModalDestination()
 
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
+
+		data class GlobalSearchModal(val component: GlobalSearch) : ModalDestination()
+
+		data class FocusModeModal(val component: FocusMode) : ModalDestination()
 	}
 
 	enum class DestinationTypes(val text: StringResource) {

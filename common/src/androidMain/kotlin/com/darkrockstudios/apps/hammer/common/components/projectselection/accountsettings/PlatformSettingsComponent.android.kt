@@ -24,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
-import com.russhwolf.settings.boolean
 import com.russhwolf.settings.set
 import dev.icerock.moko.permissions.*
 import dev.icerock.moko.permissions.storage.STORAGE
@@ -112,7 +111,7 @@ class AndroidPlatformSettingsComponent(
 	}
 
 	fun updateKeepScreenOn(keepOn: Boolean) {
-		settings.boolean(AndroidSettingsKeys.KEY_SCREEN_ON, keepOn)
+		settings[AndroidSettingsKeys.KEY_SCREEN_ON] = keepOn
 
 		_state.getAndUpdate {
 			it.copy(

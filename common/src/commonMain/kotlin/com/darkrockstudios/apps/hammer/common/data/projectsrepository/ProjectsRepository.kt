@@ -198,6 +198,26 @@ class ProjectsRepository(
 	companion object {
 		const val MAX_FILENAME_LENGTH = 128
 
+		private val fileNameAllowedRegex = Regex("""[\d\p{L}+ _']""")
+		private val whitespaceCollapseRegex = Regex("""\s+""")
+
+		/**
+		 * Replaces any character not allowed by [validateFileName] with a space, collapses runs of
+		 * whitespace, trims, and truncates to [MAX_FILENAME_LENGTH]. Returns an empty string if no
+		 * legal characters remain — callers should fall back to a default name in that case.
+		 */
+		fun sanitizeFileName(name: String): String {
+			val mapped = buildString(name.length) {
+				for (ch in name) {
+					if (fileNameAllowedRegex.matches(ch.toString())) append(ch) else append(' ')
+				}
+			}
+			return mapped
+				.replace(whitespaceCollapseRegex, " ")
+				.trim()
+				.take(MAX_FILENAME_LENGTH)
+		}
+
 		private val fileNameValidations = listOf(
 			Validator(
 				"Was Blank",

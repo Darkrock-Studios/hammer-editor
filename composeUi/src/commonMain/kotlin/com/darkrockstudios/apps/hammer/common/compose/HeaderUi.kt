@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +24,7 @@ fun HeaderUi(
 	emoji: String,
 	modifier: Modifier = Modifier,
 ) {
-	Row(modifier = modifier.wrapContentWidth(), verticalAlignment = Alignment.Top) {
+	Row(modifier = modifier, verticalAlignment = Alignment.Top) {
 		Text(
 			emoji,
 			style = MaterialTheme.typography.headlineMedium,

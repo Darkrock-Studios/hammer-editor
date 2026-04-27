@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
+import androidx.compose.runtime.Immutable
 import io.fluidsonic.locale.Locale
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -11,6 +12,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.peanuuutz.tomlkt.TomlLiteralString
 
+@Immutable
 @Serializable
 data class GlobalSettings(
 	@TomlLiteralString
@@ -38,11 +40,13 @@ data class GlobalSettings(
 	}
 }
 
+@Immutable
 @Serializable
 data class NewUserExperience(
 	val exampleProjectCreated: Boolean = false
 )
 
+@Immutable
 @Serializable
 data class SpellCheckerSettings(
 	val enabled: Boolean = true,

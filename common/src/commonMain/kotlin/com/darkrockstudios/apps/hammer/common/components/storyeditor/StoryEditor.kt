@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
@@ -23,7 +22,6 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 	val listRouterState: Value<ChildStack<*, ChildDestination.List>>
 	val detailsRouterState: Value<ChildStack<*, ChildDestination.Detail>>
 	val dialogState: Value<ChildSlot<*, ChildDestination.DialogDestination>>
-	val fullscreenState: Value<ChildStack<*, ChildDestination.FullScreen>>
 
 	data class State(
 		val projectDef: ProjectDef,
@@ -38,8 +36,7 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 
 	fun setMultiPane(isMultiPane: Boolean)
 	fun closeDetails(): Boolean
-	fun enterFocusMode(sceneItem: SceneItem)
-	fun exitFocusMode()
+	fun showScene(sceneItem: SceneItem)
 
 	sealed class ChildDestination {
 		sealed class List : ChildDestination() {
@@ -58,11 +55,6 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 			data class OutlineDestination(val component: OutlineOverview) : DialogDestination()
 			data object None : DialogDestination()
 		}
-
-		sealed class FullScreen : ChildDestination() {
-			data class FocusModeDestination(val component: FocusMode) : FullScreen()
-			data object None : FullScreen()
-		}
 	}
 
 	@Serializable
@@ -72,15 +64,6 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 
 		@Serializable
 		data object OutlineOverview : DialogConfig()
-	}
-
-	@Serializable
-	sealed class FullScreenConfig {
-		@Serializable
-		data object None : FullScreenConfig()
-
-		@Serializable
-		data class FocusMode(val sceneItem: SceneItem) : FullScreenConfig()
 	}
 
 	fun showOutlineOverview()
