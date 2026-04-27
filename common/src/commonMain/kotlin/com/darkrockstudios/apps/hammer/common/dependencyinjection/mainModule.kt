@@ -28,6 +28,12 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.references.NameMatcher
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConfig
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -79,6 +85,9 @@ val mainModule = module {
 	single(named(DISPATCHER_IO)) { platformIoDispatcher }
 
 	single { Clock.System } bind Clock::class
+
+	single<NameMatcher> { WholeWordCaseSensitiveMatcher() }
+	single { ReferenceIndexConfig.default() }
 
 	includes(platformModule)
 
@@ -148,6 +157,10 @@ val mainModule = module {
 		scopedOf(::StatisticsDatasource)
 		scopedOf(::StatisticsRepository)
 		scopedOf(::StatisticsService)
+
+		scopedOf(::ReferenceIndexDatasource)
+		scopedOf(::ReferenceIndexRepository)
+		scopedOf(::ReferenceIndexService)
 
 		scopedOf(::SyncDataDatasource)
 
