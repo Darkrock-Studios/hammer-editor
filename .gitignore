@@ -58,10 +58,9 @@ fastlane/README.md
 
 # Release artifacts
 /android/release/
-/.claude/settings.local.json
+/.claude/
 /CLAUDE.md
 /.output.txt
-.claude/skills
 
 # Snap/Flatpak/AppImage build artifacts
 /flatpak-build/
