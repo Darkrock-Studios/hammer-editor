@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0] - 2026-4-26
+
+- Global Search across your entire story, with filters by entity type
+- Text Editor improvements
+- Import Story from file
+- Export Options dialog with configurable export settings
+- Focus Mode is now a fullscreen overlay, giving more writing space
+- More project statistics
+- Android: logs are now saved to disk and shareable as a zip
+- Fixed encyclopedia entries not showing tags
+- Fixed long project names hiding the menu
+- Smoother dialog animations
+
+
 ## [2.1.4] - 2026-2-7
 
 - Fix more Android input issues

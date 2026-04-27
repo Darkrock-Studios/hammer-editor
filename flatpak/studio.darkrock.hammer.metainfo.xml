@@ -32,6 +32,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="2.2.0" date="2026-04-26">
+            <description>
+                <p>- Global Search across your entire story, with filters by entity type</p>
+                <p>- Text Editor improvements</p>
+                <p>- Import Story from file</p>
+                <p>- Export Options dialog with configurable export settings</p>
+                <p>- Focus Mode is now a fullscreen overlay, giving more writing space</p>
+                <p>- More project statistics</p>
+                <p>- Android: logs are now saved to disk and shareable as a zip</p>
+                <p>- Fixed encyclopedia entries not showing tags</p>
+                <p>- Fixed long project names hiding the menu</p>
+                <p>- Smoother dialog animations</p>
+            </description>
+        </release>
         <release version="2.1.4" date="2026-02-07">
             <description>
                 <p>- Fix more Android input issues</p>
