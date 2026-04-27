@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.importer
 import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 
 class MarkdownStoryImporter : StoryImporter {
 	override val format: ImportFormat = ImportFormat.Markdown
@@ -12,7 +13,7 @@ class MarkdownStoryImporter : StoryImporter {
 		content: String,
 		options: ImportOptions,
 	): ImportPreview {
-		val cleanSourceName = sourceName.ifBlank { UNTITLED }
+		val cleanSourceName = sanitizeName(sourceName)
 		val lines = content.replace("\r\n", "\n").replace("\r", "\n").split("\n")
 
 		val headingLevel = when (options.chapterHeadingLevel) {
@@ -29,7 +30,7 @@ class MarkdownStoryImporter : StoryImporter {
 			val headingTitle = matchHeading(line, headingLevel)
 			if (headingTitle != null) {
 				current?.let { segments.add(it) }
-				current = Segment(name = headingTitle.ifBlank { UNTITLED })
+				current = Segment(name = sanitizeName(headingTitle))
 				sawHeading = true
 			} else if (current != null) {
 				current.body.appendLine(line)
@@ -54,7 +55,7 @@ class MarkdownStoryImporter : StoryImporter {
 
 		segments.forEach { segment ->
 			val body = segment.body.toString().trimEnd()
-			val name = segment.name.ifBlank { UNTITLED }
+			val name = segment.name
 			val item = if (options.createChapterGroups) {
 				PreviewItem.Group(
 					name = name,
@@ -74,6 +75,11 @@ class MarkdownStoryImporter : StoryImporter {
 		while (i < line.length && line[i] == '#') i++
 		if (i != level) return null
 		return line.substring(i).trim()
+	}
+
+	private fun sanitizeName(raw: String): String {
+		val cleaned = ProjectsRepository.sanitizeFileName(raw)
+		return cleaned.ifEmpty { UNTITLED }
 	}
 
 	private class Segment(
