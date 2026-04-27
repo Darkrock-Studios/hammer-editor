@@ -16,6 +16,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -35,6 +38,8 @@ class ViewEntryComponent(
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val referenceIndexService: ReferenceIndexService by projectInject()
+	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -48,6 +53,25 @@ class ViewEntryComponent(
 		// Enable back handler only when editing
 		state.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = it.editName || it.editText
+		}
+
+		// Trigger an initial recompute so the index reflects current data
+		scope.launch { referenceIndexService.loadIndex() }
+
+		// Subscribe to "appears in" updates from the reference index
+		scope.launch {
+			referenceIndexService.flowForEntry(state.value.entryDef.id).collect { sceneIds ->
+				val resolved = sceneIds
+					.mapNotNull { id ->
+						sceneEditorRepository.getSceneItemFromIdIncludingArchived(id)?.let { item ->
+							ViewEntry.AppearsInScene(sceneId = id, name = item.name)
+						}
+					}
+					.sortedBy { it.name.lowercase() }
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(appearsInScenes = resolved) }
+				}
+			}
 		}
 
 		reload()
@@ -166,7 +190,14 @@ class ViewEntryComponent(
 		text: String,
 		tags: Set<String>
 	): EntryResult {
-		val result = encyclopediaRepository.updateEntry(state.value.entryDef, name, text, tags)
+		val currentAliases = state.value.content?.aliases.orEmpty()
+		val result = encyclopediaRepository.updateEntry(
+			oldEntryDef = state.value.entryDef,
+			name = name,
+			text = text,
+			tags = tags,
+			aliases = currentAliases,
+		)
 		if (result.instance != null && result.error == EntryError.NONE) {
 			_state.getAndUpdate {
 				it.copy(
@@ -203,10 +234,11 @@ class ViewEntryComponent(
 				newTags.remove(tag)
 
 				encyclopediaRepository.updateEntry(
-					state.value.entryDef,
-					name,
-					text,
-					newTags
+					oldEntryDef = state.value.entryDef,
+					name = name,
+					text = text,
+					tags = newTags,
+					aliases = aliases,
 				)
 
 				reload()
@@ -241,11 +273,58 @@ class ViewEntryComponent(
 				name = name,
 				text = text,
 				tags = tags + newTags,
+				aliases = aliases,
 			)
 		}
 
 		endTagAdd()
 		reload()
+	}
+
+	override fun startAliasAdd() {
+		_state.getAndUpdate { it.copy(showAliasAdd = true) }
+	}
+
+	override fun endAliasAdd() {
+		_state.getAndUpdate { it.copy(showAliasAdd = false) }
+	}
+
+	override suspend fun addAlias(alias: String): EntryResult {
+		val current = state.value.content
+			?: return EntryResult(EntryError.NONE)
+		val trimmed = alias.trim()
+		if (trimmed.isEmpty()) {
+			endAliasAdd()
+			return EntryResult(EntryError.NONE)
+		}
+		val result = encyclopediaRepository.updateEntry(
+			oldEntryDef = state.value.entryDef,
+			name = current.name,
+			text = current.text,
+			tags = current.tags,
+			aliases = current.aliases + trimmed,
+		)
+		if (result.error == EntryError.NONE) {
+			endAliasAdd()
+			reload()
+		}
+		return result
+	}
+
+	override fun removeAlias(alias: String) {
+		scope.launch {
+			state.value.content?.apply {
+				encyclopediaRepository.updateEntry(
+					oldEntryDef = state.value.entryDef,
+					name = name,
+					text = text,
+					tags = tags,
+					aliases = aliases.filterNot { it == alias },
+				)
+
+				reload()
+			}
+		}
 	}
 
 	private fun getMenuId(): String {

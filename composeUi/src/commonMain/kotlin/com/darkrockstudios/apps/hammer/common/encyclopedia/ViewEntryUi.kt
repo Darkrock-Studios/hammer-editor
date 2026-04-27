@@ -235,6 +235,8 @@ internal fun ViewEntryUi(
 							setEntryText = { entryText = it },
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
+							rootSnackbar = rootSnackbar,
+							strRes = strRes,
 						) { component.startTextEdit() }
 					}
 				} else {
@@ -257,6 +259,8 @@ internal fun ViewEntryUi(
 							setEntryText = { entryText = it },
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
+							rootSnackbar = rootSnackbar,
+							strRes = strRes,
 						) { component.startTextEdit() }
 					}
 				}
@@ -374,6 +378,8 @@ private fun Contents(
 	setEntryText: (String) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	rootSnackbar: RootSnackbarHostState,
+	strRes: StrRes,
 	beginEdit: () -> Unit,
 ) {
 	val scope = rememberCoroutineScope()
@@ -477,6 +483,79 @@ private fun Contents(
 					selected = false
 				)
 			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			Text(
+				text = Res.string.encyclopedia_entry_aliases_label.get(),
+				style = MaterialTheme.typography.titleSmall,
+				color = MaterialTheme.colorScheme.onBackground,
+			)
+			Spacer(modifier = Modifier.size(Ui.Padding.M))
+			FlowRow(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+			) {
+				for (alias in content.aliases) {
+					InputChip(
+						onClick = { component.removeAlias(alias) },
+						label = { Text(alias) },
+						trailingIcon = {
+							Icon(
+								Icons.Filled.Delete,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.onSurface,
+							)
+						},
+						enabled = true,
+						selected = false,
+					)
+				}
+
+				InputChip(
+					onClick = { component.startAliasAdd() },
+					label = { Text(Res.string.encyclopedia_entry_add_alias.get()) },
+					leadingIcon = {
+						Icon(
+							Icons.Filled.Add,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurface,
+						)
+					},
+					enabled = true,
+					selected = false,
+				)
+			}
+
+			Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
+			Text(
+				text = Res.string.encyclopedia_entry_appears_in_label.get(),
+				style = MaterialTheme.typography.titleSmall,
+				color = MaterialTheme.colorScheme.onBackground,
+			)
+			Spacer(modifier = Modifier.size(Ui.Padding.M))
+			if (state.appearsInScenes.isEmpty()) {
+				Text(
+					text = Res.string.encyclopedia_entry_appears_in_empty.get(),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			} else {
+				FlowRow(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+					verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+				) {
+					for (scene in state.appearsInScenes) {
+						AssistChip(
+							onClick = {},
+							label = { Text(scene.name) },
+						)
+					}
+				}
+			}
 		} else {
 			CircularProgressIndicator()
 		}
@@ -504,6 +583,32 @@ private fun Contents(
 			}
 		}) {
 			Text(Res.string.encyclopedia_entry_add_tags_button.get())
+		}
+	}
+
+	SimpleDialog(
+		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
+		visible = state.showAliasAdd,
+		onCloseRequest = component::endAliasAdd,
+	) {
+		var newAliasText by rememberSaveable { mutableStateOf("") }
+		TextField(
+			modifier = Modifier.fillMaxWidth()
+				.padding(PaddingValues(bottom = Ui.Padding.L)),
+			value = newAliasText,
+			onValueChange = { newAliasText = it },
+			placeholder = { Text(Res.string.encyclopedia_entry_alias_hint.get()) },
+		)
+		Button(onClick = {
+			scope.launch {
+				val result = component.addAlias(newAliasText)
+				withContext(mainDispatcher) {
+					if (result.error == EntryError.NONE) newAliasText = ""
+				}
+				reportSaveResult(result, rootSnackbar, scope, strRes)
+			}
+		}) {
+			Text(Res.string.encyclopedia_entry_add_alias_button.get())
 		}
 	}
 }
