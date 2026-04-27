@@ -5,7 +5,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -131,11 +134,139 @@ fun SceneMetadataPanelUi(
 			CollapsableSection(
 				header = {
 					Text(
+						Res.string.scene_editor_metadata_references_header.get(),
+						style = MaterialTheme.typography.titleMedium,
+					)
+				},
+				body = { ReferencesSection(state, component) }
+			)
+
+			SpacerXL()
+
+			CollapsableSection(
+				header = {
+					Text(
 						Res.string.scene_editor_metadata_advanced_header.get(),
 						style = MaterialTheme.typography.titleMedium,
 					)
 				},
 				body = { AdvancedSection(state) }
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReferencesSection(
+	state: SceneMetadataPanel.State,
+	component: SceneMetadataPanel,
+) {
+	Column(modifier = Modifier.padding(Ui.Padding.L)) {
+		Text(
+			Res.string.scene_editor_metadata_references_confirmed_label.get(),
+			style = MaterialTheme.typography.titleSmall,
+		)
+		SpacerL()
+		if (state.confirmedRefs.isEmpty() && state.suggestedRefs.isEmpty() && state.dismissedRefs.isEmpty()) {
+			Text(
+				Res.string.scene_editor_metadata_references_empty.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		} else {
+			FlowRow(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+			) {
+				for (ref in state.confirmedRefs) {
+					InputChip(
+						onClick = { component.unconfirmReference(ref.id) },
+						label = { Text(ref.name) },
+						trailingIcon = {
+							Icon(
+								Icons.Filled.Close,
+								contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
+								tint = MaterialTheme.colorScheme.onSurface,
+							)
+						},
+						selected = true,
+					)
+				}
+			}
+		}
+
+		if (state.suggestedRefs.isNotEmpty()) {
+			SpacerXL()
+			Text(
+				Res.string.scene_editor_metadata_references_suggested_label.get(),
+				style = MaterialTheme.typography.titleSmall,
+			)
+			SpacerL()
+			FlowRow(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+			) {
+				for (ref in state.suggestedRefs) {
+					AssistChip(
+						onClick = { component.confirmReference(ref.entryId) },
+						label = { Text(ref.name) },
+						leadingIcon = {
+							Icon(
+								Icons.Filled.Check,
+								contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
+								tint = MaterialTheme.colorScheme.primary,
+							)
+						},
+						trailingIcon = {
+							IconButton(
+								onClick = { component.dismissReference(ref.entryId) },
+								modifier = Modifier.size(24.dp),
+							) {
+								Icon(
+									Icons.Filled.Close,
+									contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
+									tint = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
+						},
+					)
+				}
+			}
+		}
+
+		if (state.dismissedRefs.isNotEmpty()) {
+			SpacerXL()
+			CollapsableSection(
+				header = {
+					Text(
+						Res.string.scene_editor_metadata_references_dismissed_label.get(),
+						style = MaterialTheme.typography.titleSmall,
+					)
+				},
+				body = {
+					FlowRow(
+						modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.M),
+						horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+						verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+					) {
+						for (ref in state.dismissedRefs) {
+							AssistChip(
+								onClick = { component.restoreDismissedReference(ref.id) },
+								label = { Text(ref.name) },
+								leadingIcon = {
+									Icon(
+										Icons.Filled.Add,
+										contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
+										tint = MaterialTheme.colorScheme.onSurfaceVariant,
+									)
+								},
+							)
+						}
+					}
+				}
 			)
 		}
 	}
