@@ -114,8 +114,31 @@ class MarkdownStoryImporterTest {
 		val result = preview(md, sourceName = "my-story")
 		assertEquals(1, result.items.size)
 		val scene = result.items.first() as PreviewItem.Scene
-		assertEquals("my-story", scene.name)
+		// "-" is not a legal file-name character, so it gets replaced with a space
+		assertEquals("my story", scene.name)
 		assertTrue(scene.markdown.contains("Just some text."))
+	}
+
+	@Test
+	fun `Heading with characters illegal in file names is sanitized`() {
+		val md = """
+			# 1. Title
+			body
+			# 2. Chapter I
+			more body
+		""".trimIndent()
+		val result = preview(md)
+		assertEquals(2, result.items.size)
+		assertEquals("1 Title", result.items[0].name)
+		assertEquals("2 Chapter I", result.items[1].name)
+	}
+
+	@Test
+	fun `Heading with only illegal characters falls back to Untitled`() {
+		val md = "# !!!\nbody"
+		val result = preview(md)
+		assertEquals(1, result.items.size)
+		assertEquals("Untitled", result.items[0].name)
 	}
 
 	@Test
