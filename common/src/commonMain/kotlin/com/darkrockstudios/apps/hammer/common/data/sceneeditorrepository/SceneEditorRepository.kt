@@ -129,6 +129,8 @@ class SceneEditorRepository(
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
 				archived = scene.archived,
+				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
+				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}

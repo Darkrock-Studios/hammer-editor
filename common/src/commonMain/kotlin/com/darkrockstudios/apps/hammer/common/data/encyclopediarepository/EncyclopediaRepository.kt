@@ -76,18 +76,21 @@ class EncyclopediaRepository(
 		name: String,
 		text: String,
 		tags: Set<String>,
+		aliases: List<String> = emptyList(),
 	): EntryResult {
-		val result = validateEntry(name, oldEntryDef.type, text, tags)
+		val result = validateEntry(name, oldEntryDef.type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
 
 		markForSynchronization(oldEntryDef)
 
 		val cleanedTags = cleanTags(tags)
+		val cleanedAliases = cleanAliases(aliases, name)
 		val container = datasource.updateEntry(
 			oldEntryDef = oldEntryDef,
 			name = name,
 			text = text,
 			tags = cleanedTags,
+			aliases = cleanedAliases,
 		)
 
 		statisticsRepository.markDirty()
@@ -114,13 +117,15 @@ class EncyclopediaRepository(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: Set<String>
+		tags: Set<String>,
+		aliases: List<String> = emptyList(),
 	): EntryError {
 		return when {
 			name.trim().isEmpty() -> EntryError.NAME_TOO_SHORT
 			name.trim().length > MAX_NAME_SIZE -> EntryError.NAME_TOO_LONG
 			!ENTRY_NAME_PATTERN.matches(name.trim()) -> EntryError.NAME_INVALID_CHARACTERS
 			tags.any { it.length > MAX_TAG_SIZE } -> EntryError.TAG_TOO_LONG
+			aliases.any { it.trim().length > MAX_NAME_SIZE } -> EntryError.ALIAS_TOO_LONG
 			else -> EntryError.NONE
 		}
 	}
@@ -149,7 +154,8 @@ class EncyclopediaRepository(
 				entryType = entryDef.type.text,
 				text = entry.text,
 				tags = entry.tags,
-				image = image
+				image = image,
+				aliases = entry.aliases,
 			)
 			syncDataRepository.markEntityAsDirty(entryDef.id, hash)
 		}
@@ -161,12 +167,14 @@ class EncyclopediaRepository(
 		text: String,
 		tags: Set<String>,
 		imagePath: String?,
-		forceId: Int? = null
+		forceId: Int? = null,
+		aliases: List<String> = emptyList(),
 	): EntryResult {
-		val result = validateEntry(name, type, text, tags)
+		val result = validateEntry(name, type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
 
 		val cleanedTags = cleanTags(tags)
+		val cleanedAliases = cleanAliases(aliases, name)
 
 		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(
@@ -174,7 +182,8 @@ class EncyclopediaRepository(
 			name = name.trim(),
 			type = type,
 			text = text.trim(),
-			tags = cleanedTags
+			tags = cleanedTags,
+			aliases = cleanedAliases,
 		)
 		val container = EntryContainer(entry)
 
@@ -219,6 +228,17 @@ class EncyclopediaRepository(
 
 	fun getEntryDef(id: Int): EntryDef = datasource.getEntryDef(id)
 	fun findEntryDef(id: Int): EntryDef? = datasource.findEntryDef(id)
+
+	private fun cleanAliases(aliases: List<String>, entryName: String): List<String> {
+		val trimmedName = entryName.trim()
+		val seen = mutableSetOf<String>()
+		return aliases.asSequence()
+			.map { it.trim() }
+			.filter { it.isNotEmpty() }
+			.filter { it != trimmedName }
+			.filter { seen.add(it) }
+			.toList()
+	}
 
 	private fun cleanTags(tags: Set<String>): Set<String> {
 		val regex = Regex("""[\w-]+""")

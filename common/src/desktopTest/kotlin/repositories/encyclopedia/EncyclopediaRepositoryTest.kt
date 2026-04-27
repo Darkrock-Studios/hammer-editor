@@ -199,6 +199,76 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Create Entry round-trips aliases`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 4
+
+		val repo = createRepository()
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = setOf("tag1"),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf("Bob", "Bobby"),
+		)
+
+		assertEquals(EntryError.NONE, result.error)
+		val container = result.instance ?: error("Expected entry container")
+		assertEquals(listOf("Bob", "Bobby"), container.entry.aliases)
+
+		val path = datasource.getEntryPath(container.entry).toOkioPath()
+		val loaded: EntryContainer = fileSystem.readToml(path, toml)
+		assertEquals(listOf("Bob", "Bobby"), loaded.entry.aliases)
+	}
+
+	@Test
+	fun `Create Entry cleans aliases - trims, dedupes, drops blanks and entry name`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 5
+
+		val repo = createRepository()
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = emptySet(),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf("  Bob  ", "Bob", "", "  ", "Robert"),
+		)
+
+		assertEquals(EntryError.NONE, result.error)
+		val container = result.instance ?: error("Expected entry container")
+		assertEquals(listOf("Bob"), container.entry.aliases)
+	}
+
+	@Test
+	fun `Create Entry rejects alias exceeding max length`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 6
+
+		val repo = createRepository()
+		val tooLong = "x".repeat(MAX_NAME_SIZE + 1)
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = emptySet(),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf(tooLong),
+		)
+
+		assertEquals(EntryError.ALIAS_TOO_LONG, result.error)
+	}
+
+	@Test
+	fun `Existing entry without aliases field loads with empty list`() = runTest {
+		val repo = createRepository()
+		val container = repo.loadEntry(entry1().toDef(projDef))
+		assertEquals(emptyList<String>(), container.entry.aliases)
+	}
+
+	@Test
 	fun `Delete Entry`() = runTest {
 		val deletionIdSlot = slot<Int>()
 		coEvery { syncDataRepository.recordIdDeletion(capture(deletionIdSlot)) } just Runs

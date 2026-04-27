@@ -129,6 +129,38 @@ class SceneMetadataDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Store and load Metadata round-trips reference sets`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val sceneId = 2
+
+		val metadata = SceneMetadata(
+			outline = "Outline",
+			notes = "Notes",
+			confirmedReferences = setOf(7, 9, 13),
+			dismissedReferences = setOf(2),
+		)
+
+		val datasource = createDatasource(projDef)
+		datasource.storeMetadata(metadata, sceneId)
+
+		val loaded = datasource.loadMetadata(sceneId)
+		assertEquals(metadata, loaded)
+	}
+
+	@Test
+	fun `Existing Metadata files without reference fields load with empty defaults`() =
+		runTest(mainTestDispatcher) {
+			val projDef = getProject1Def()
+			createProject(ffs, PROJECT_1_NAME)
+
+			val datasource = createDatasource(projDef)
+			val metadata = datasource.loadMetadata(1)
+			assertEquals(emptySet<Int>(), metadata?.confirmedReferences)
+			assertEquals(emptySet<Int>(), metadata?.dismissedReferences)
+		}
+
+	@Test
 	fun `ReId Scene Metadata`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

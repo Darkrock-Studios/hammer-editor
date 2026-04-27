@@ -10,4 +10,6 @@ data class SceneMetadata(
 	@TomlMultilineString
 	val notes: String = "",
 	val currentDraftName: String = "",
+	val confirmedReferences: Set<Int> = emptySet(),
+	val dismissedReferences: Set<Int> = emptySet(),
 )

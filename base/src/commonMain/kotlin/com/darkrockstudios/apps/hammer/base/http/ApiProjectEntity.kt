@@ -22,6 +22,8 @@ sealed interface ApiProjectEntity {
 		val outline: String = "",
 		val notes: String = "",
 		val archived: Boolean = false,
+		val confirmedReferences: Set<Int> = emptySet(),
+		val dismissedReferences: Set<Int> = emptySet(),
 	) : ApiProjectEntity
 
 	@Serializable
@@ -50,6 +52,7 @@ sealed interface ApiProjectEntity {
 		val text: String,
 		val tags: Set<String>,
 		val image: Image?,
+		val aliases: List<String> = emptyList(),
 	) : ApiProjectEntity {
 		@Serializable
 		data class Image(
