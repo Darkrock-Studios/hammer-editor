@@ -15,6 +15,7 @@ class ServerEncyclopediaSynchronizer(
 			text = entity.text,
 			tags = entity.tags,
 			image = entity.image,
+			aliases = entity.aliases,
 		)
 	}
 

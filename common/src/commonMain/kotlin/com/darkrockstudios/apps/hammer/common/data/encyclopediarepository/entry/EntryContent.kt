@@ -11,7 +11,8 @@ data class EntryContent(
 	val type: EntryType,
 	@TomlMultilineString
 	val text: String,
-	val tags: Set<String>
+	val tags: Set<String>,
+	val aliases: List<String> = emptyList(),
 ) {
 	fun toDef(projectDef: ProjectDef): EntryDef = EntryDef(
 		projectDef = projectDef,

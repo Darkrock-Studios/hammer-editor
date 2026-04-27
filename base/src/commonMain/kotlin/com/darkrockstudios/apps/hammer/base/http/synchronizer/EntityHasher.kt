@@ -20,7 +20,9 @@ object EntityHasher {
 		content: String,
 		outline: String,
 		notes: String,
-		archived: Boolean = false
+		archived: Boolean = false,
+		confirmedReferences: Set<Int> = emptySet(),
+		dismissedReferences: Set<Int> = emptySet(),
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -35,6 +37,12 @@ object EntityHasher {
 		d.update(outline, buf)
 		d.update(notes, buf)
 		d.update(if (archived) 1 else 0, buf)
+		for (ref in confirmedReferences.sorted()) {
+			d.update(ref, buf)
+		}
+		for (ref in dismissedReferences.sorted()) {
+			d.update(ref, buf)
+		}
 		return d.digest().base64Url
 	}
 
@@ -63,7 +71,8 @@ object EntityHasher {
 		entryType: String,
 		text: String,
 		tags: Set<String>,
-		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?
+		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?,
+		aliases: List<String> = emptyList(),
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -75,6 +84,10 @@ object EntityHasher {
 		val sortedTags = tags.sorted()
 		sortedTags.forEach { tag ->
 			d.update(tag, buf)
+		}
+
+		aliases.forEach { alias ->
+			d.update(alias, buf)
 		}
 
 		if (image != null) {

@@ -548,6 +548,15 @@ private fun reportSaveResult(
 				)
 			}
 
+			EntryError.ALIAS_TOO_LONG -> scope.launch {
+				rootSnackbar.showSnackbar(
+					strRes.get(
+						Res.string.encyclopedia_create_entry_toast_alias_too_long,
+						EncyclopediaRepository.MAX_NAME_SIZE
+					)
+				)
+			}
+
 			EntryError.NONE -> {
 				scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_create_entry_toast_success)) }
 				rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_entry_edit_save_toast))

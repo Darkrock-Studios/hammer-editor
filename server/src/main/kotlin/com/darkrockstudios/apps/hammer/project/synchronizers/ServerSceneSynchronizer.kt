@@ -28,6 +28,8 @@ class ServerSceneSynchronizer(
 			outline = entity.outline,
 			notes = entity.notes,
 			archived = entity.archived,
+			confirmedReferences = entity.confirmedReferences,
+			dismissedReferences = entity.dismissedReferences,
 		)
 	}
 

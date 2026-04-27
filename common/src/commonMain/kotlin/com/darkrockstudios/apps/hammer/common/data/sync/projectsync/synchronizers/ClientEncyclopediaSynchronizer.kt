@@ -61,7 +61,8 @@ class ClientEncyclopediaSynchronizer(
 			entryType = entity.entryType,
 			text = entity.text,
 			tags = entity.tags,
-			image = entity.image
+			image = entity.image,
+			aliases = entity.aliases,
 		)
 	}
 
@@ -89,6 +90,7 @@ class ClientEncyclopediaSynchronizer(
 			text = entry.text,
 			tags = entry.tags,
 			image = image,
+			aliases = entry.aliases,
 		)
 	}
 
@@ -140,6 +142,7 @@ class ClientEncyclopediaSynchronizer(
 				name = serverEntity.name,
 				text = serverEntity.text,
 				tags = serverEntity.tags,
+				aliases = serverEntity.aliases,
 			)
 		} else {
 			encyclopediaRepository.createEntry(
@@ -148,7 +151,8 @@ class ClientEncyclopediaSynchronizer(
 				tags = serverEntity.tags,
 				type = EntryType.fromString(serverEntity.entryType),
 				imagePath = null, // Always pass null here, we wrote the image our selves
-				forceId = serverEntity.id
+				forceId = serverEntity.id,
+				aliases = serverEntity.aliases,
 			)
 		}
 
