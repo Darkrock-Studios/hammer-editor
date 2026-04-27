@@ -22,8 +22,12 @@ interface ViewEntry {
 		val editName: Boolean = false,
 		val confirmClose: Boolean = false,
 		val showTagAdd: Boolean = false,
+		val showAliasAdd: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
+		val appearsInScenes: List<AppearsInScene> = emptyList(),
 	)
+
+	data class AppearsInScene(val sceneId: Int, val name: String)
 
 	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
@@ -49,4 +53,8 @@ interface ViewEntry {
 	fun startTagAdd()
 	suspend fun addTags(tagInput: String)
 	fun endTagAdd()
+	fun startAliasAdd()
+	fun endAliasAdd()
+	suspend fun addAlias(alias: String): EntryResult
+	fun removeAlias(alias: String)
 }

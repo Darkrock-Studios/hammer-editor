@@ -244,6 +244,11 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override fun startTagAdd() {}
 	override suspend fun addTags(tagInput: String) {}
 	override fun endTagAdd() {}
+	override fun startAliasAdd() {}
+	override fun endAliasAdd() {}
+	override suspend fun addAlias(alias: String) =
+		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
+	override fun removeAlias(alias: String) {}
 }
 
 private fun fakeEntryDef(): EntryDef = EntryDef(
