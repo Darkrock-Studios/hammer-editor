@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -38,6 +39,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val referenceRemapper: ReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
 		val entries = encyclopediaRepository.entryListFlow.first()
@@ -96,6 +98,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {
 		encyclopediaRepository.reIdEntry(oldId, newId)
+		referenceRemapper.remapEntryReferences(oldId, newId)
 	}
 
 	override suspend fun finalizeSync() {

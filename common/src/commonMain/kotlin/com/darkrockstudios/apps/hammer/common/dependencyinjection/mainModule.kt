@@ -33,6 +33,8 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConf
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
@@ -161,6 +163,7 @@ val mainModule = module {
 		scopedOf(::ReferenceIndexDatasource)
 		scopedOf(::ReferenceIndexRepository)
 		scopedOf(::ReferenceIndexService)
+		scopedOf(::SceneMetadataReferenceRemapper) bind ReferenceRemapper::class
 
 		scopedOf(::SyncDataDatasource)
 
