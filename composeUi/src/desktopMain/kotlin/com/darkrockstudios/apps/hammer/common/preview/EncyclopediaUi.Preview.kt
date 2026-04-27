@@ -249,6 +249,7 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override suspend fun addAlias(alias: String) =
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun removeAlias(alias: String) {}
+	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {}
 }
 
 private fun fakeEntryDef(): EntryDef = EntryDef(

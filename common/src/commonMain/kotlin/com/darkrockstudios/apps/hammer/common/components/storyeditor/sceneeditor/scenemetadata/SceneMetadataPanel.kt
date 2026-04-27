@@ -17,6 +17,7 @@ interface SceneMetadataPanel : HammerComponent {
 	fun unconfirmReference(entryId: Int)
 	fun dismissReference(entryId: Int)
 	fun restoreDismissedReference(entryId: Int)
+	fun navigateToEntry(entryDef: EntryDef)
 
 	data class State(
 		val sceneItem: SceneItem,
@@ -29,5 +30,5 @@ interface SceneMetadataPanel : HammerComponent {
 		val suggestedRefs: List<SuggestedRef> = emptyList(),
 	)
 
-	data class SuggestedRef(val entryId: Int, val name: String, val matchedAlias: String)
+	data class SuggestedRef(val entryDef: EntryDef, val matchedAlias: String)
 }

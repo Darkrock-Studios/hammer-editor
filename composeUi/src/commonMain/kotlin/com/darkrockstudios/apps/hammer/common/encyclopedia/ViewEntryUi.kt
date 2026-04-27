@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -536,7 +538,7 @@ private fun Contents(
 				color = MaterialTheme.colorScheme.onBackground,
 			)
 			Spacer(modifier = Modifier.size(Ui.Padding.M))
-			if (state.appearsInScenes.isEmpty()) {
+			if (state.appearsIn.isEmpty()) {
 				Text(
 					text = Res.string.encyclopedia_entry_appears_in_empty.get(),
 					style = MaterialTheme.typography.bodySmall,
@@ -548,10 +550,17 @@ private fun Contents(
 					horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
 					verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
 				) {
-					for (scene in state.appearsInScenes) {
+					for (appearance in state.appearsIn) {
 						AssistChip(
-							onClick = {},
-							label = { Text(scene.name) },
+							onClick = { component.navigateToAppearance(appearance) },
+							label = { Text(appearance.name) },
+							leadingIcon = {
+								Icon(
+									imageVector = appearanceIcon(appearance.source),
+									contentDescription = null,
+									tint = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							},
 						)
 					}
 				}
@@ -612,6 +621,11 @@ private fun Contents(
 		}
 	}
 }
+
+private fun appearanceIcon(source: ViewEntry.AppearanceSource): ImageVector =
+	when (source) {
+		ViewEntry.AppearanceSource.Scene -> Icons.AutoMirrored.Filled.Article
+	}
 
 private fun reportSaveResult(
 	result: EntryResult,

@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.Serializable
 
@@ -21,6 +22,7 @@ internal class DetailsRouter(
 	private val removeMenu: (id: String) -> Unit,
 	private val closeDetails: () -> Unit,
 	private val openFocusMode: (SceneItem) -> Unit,
+	private val openEntry: (EntryDef) -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
@@ -69,6 +71,7 @@ internal class DetailsRouter(
 			closeSceneEditor = closeDetails,
 			showDraftsList = ::showDraftsList,
 			showFocusMode = openFocusMode,
+			showEntry = openEntry,
 		)
 
 	private fun draftsList(componentContext: ComponentContext, sceneDef: SceneItem): DraftsList =

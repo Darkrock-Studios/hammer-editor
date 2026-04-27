@@ -32,6 +32,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class SceneMetadataPanelComponent(
 	componentContext: ComponentContext,
 	private val originalSceneItem: SceneItem,
+	private val showEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	SceneMetadataPanel {
 
@@ -101,20 +102,16 @@ class SceneMetadataPanelComponent(
 
 		val sceneText = sceneEditor.getSceneBuffer(originalSceneItem)?.content?.coerceMarkdown()
 			?: sceneEditor.loadSceneMarkdownRaw(originalSceneItem)
-		val nameById = HashMap<Int, String>()
+		val defById = HashMap<Int, EntryDef>()
 		val suggestions = referenceIndexService
 			.computeSuggestionsForScene(originalSceneItem.id, sceneText, metadata)
 			.mapNotNull { suggestion ->
-				val name = nameById.getOrPut(suggestion.entryId) {
-					encyclopediaRepository.findEntryDef(suggestion.entryId)?.name ?: return@mapNotNull null
+				val def = defById.getOrPut(suggestion.entryId) {
+					encyclopediaRepository.findEntryDef(suggestion.entryId) ?: return@mapNotNull null
 				}
-				SceneMetadataPanel.SuggestedRef(
-					entryId = suggestion.entryId,
-					name = name,
-					matchedAlias = suggestion.matchedAlias,
-				)
+				SceneMetadataPanel.SuggestedRef(entryDef = def, matchedAlias = suggestion.matchedAlias)
 			}
-			.sortedBy { it.name.lowercase() }
+			.sortedBy { it.entryDef.name.lowercase() }
 
 		withContext(dispatcherMain) {
 			_state.getAndUpdate {
@@ -240,6 +237,10 @@ class SceneMetadataPanelComponent(
 
 	override fun restoreDismissedReference(entryId: Int) {
 		mutateMetadata { it.copy(dismissedReferences = it.dismissedReferences - entryId) }
+	}
+
+	override fun navigateToEntry(entryDef: EntryDef) {
+		showEntry(entryDef)
 	}
 
 	private fun mutateMetadata(transform: (SceneMetadata) -> SceneMetadata) {

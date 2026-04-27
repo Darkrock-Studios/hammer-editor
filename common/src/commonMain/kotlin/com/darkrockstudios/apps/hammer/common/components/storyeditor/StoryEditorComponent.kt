@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.BufferOverflow
@@ -25,6 +26,7 @@ class StoryEditorComponent(
 	addMenu: (menu: MenuDescriptor) -> Unit,
 	removeMenu: (id: String) -> Unit,
 	showFocusMode: (SceneItem) -> Unit,
+	showEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), StoryEditor {
 
 	private val sceneEditor: SceneEditorRepository by projectInject()
@@ -47,7 +49,8 @@ class StoryEditorComponent(
 			addMenu = addMenu,
 			closeDetails = ::closeDetails,
 			removeMenu = removeMenu,
-			openFocusMode = showFocusMode
+			openFocusMode = showFocusMode,
+			openEntry = showEntry,
 		)
 
 	private val listRouter =

@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,8 @@ internal class ProjectRootRouter(
 	private val showProjectSync: () -> Unit,
 	private val showGlobalSearch: () -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
+	private val showEntry: (EntryDef) -> Unit,
+	private val showScene: (SceneItem) -> Unit,
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
 ) : Router {
@@ -80,6 +83,7 @@ internal class ProjectRootRouter(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			showFocusMode = showFocusMode,
+			showEntry = showEntry,
 		)
 
 		scope.launch {
@@ -110,7 +114,8 @@ internal class ProjectRootRouter(
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			showScene = showScene,
 		)
 	}
 
