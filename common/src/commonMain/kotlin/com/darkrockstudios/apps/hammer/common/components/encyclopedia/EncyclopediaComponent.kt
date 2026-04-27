@@ -46,7 +46,7 @@ class EncyclopediaComponent(
 	}
 
 	override fun showViewEntry(entryDef: EntryDef) {
-		navigation.push(Encyclopedia.Config.ViewEntryConfig(entryDef))
+		navigation.bringToFront(Encyclopedia.Config.ViewEntryConfig(entryDef))
 	}
 
 	override fun showCreateEntry() {
