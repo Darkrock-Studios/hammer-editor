@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -34,6 +37,8 @@ class SceneMetadataPanelComponent(
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val referenceIndexService: ReferenceIndexService by projectInject()
 
 	private val _state = MutableValue(
 		SceneMetadataPanel.State(
@@ -84,6 +89,42 @@ class SceneMetadataPanelComponent(
 				metadata = metadata,
 			)
 		}
+		refreshReferences()
+	}
+
+	private suspend fun refreshReferences() {
+		val metadata = state.value.metadata
+		val confirmed = metadata.confirmedReferences.mapNotNull { encyclopediaRepository.findEntryDef(it) }
+			.sortedBy { it.name.lowercase() }
+		val dismissed = metadata.dismissedReferences.mapNotNull { encyclopediaRepository.findEntryDef(it) }
+			.sortedBy { it.name.lowercase() }
+
+		val sceneText = sceneEditor.getSceneBuffer(originalSceneItem)?.content?.coerceMarkdown()
+			?: sceneEditor.loadSceneMarkdownRaw(originalSceneItem)
+		val nameById = HashMap<Int, String>()
+		val suggestions = referenceIndexService
+			.computeSuggestionsForScene(originalSceneItem.id, sceneText, metadata)
+			.mapNotNull { suggestion ->
+				val name = nameById.getOrPut(suggestion.entryId) {
+					encyclopediaRepository.findEntryDef(suggestion.entryId)?.name ?: return@mapNotNull null
+				}
+				SceneMetadataPanel.SuggestedRef(
+					entryId = suggestion.entryId,
+					name = name,
+					matchedAlias = suggestion.matchedAlias,
+				)
+			}
+			.sortedBy { it.name.lowercase() }
+
+		withContext(dispatcherMain) {
+			_state.getAndUpdate {
+				it.copy(
+					confirmedRefs = confirmed,
+					dismissedRefs = dismissed,
+					suggestedRefs = suggestions,
+				)
+			}
+		}
 	}
 
 	private suspend fun loadSceneData() {
@@ -122,6 +163,7 @@ class SceneMetadataPanelComponent(
 				it.copy(wordCount = wordCount)
 			}
 		}
+		refreshReferences()
 	}
 
 	private val wordsRegex = "\\s+".toRegex()
@@ -176,6 +218,39 @@ class SceneMetadataPanelComponent(
 
 	override fun validateDraftName(text: String): Boolean {
 		return SceneDraftsDatasource.validDraftName(text)
+	}
+
+	override fun confirmReference(entryId: Int) {
+		mutateMetadata { it.copy(
+			confirmedReferences = it.confirmedReferences + entryId,
+			dismissedReferences = it.dismissedReferences - entryId,
+		) }
+	}
+
+	override fun unconfirmReference(entryId: Int) {
+		mutateMetadata { it.copy(confirmedReferences = it.confirmedReferences - entryId) }
+	}
+
+	override fun dismissReference(entryId: Int) {
+		mutateMetadata { it.copy(
+			confirmedReferences = it.confirmedReferences - entryId,
+			dismissedReferences = it.dismissedReferences + entryId,
+		) }
+	}
+
+	override fun restoreDismissedReference(entryId: Int) {
+		mutateMetadata { it.copy(dismissedReferences = it.dismissedReferences - entryId) }
+	}
+
+	private fun mutateMetadata(transform: (SceneMetadata) -> SceneMetadata) {
+		_state.getAndUpdate {
+			val updated = transform(it.metadata)
+			if (_metadataUpdateFlow.tryEmit(updated).not()) {
+				Napier.w { "Failed to emit metadataUpdate for reference change" }
+			}
+			it.copy(metadata = updated)
+		}
+		scope.launch { refreshReferences() }
 	}
 
 	override fun onDestroy() {

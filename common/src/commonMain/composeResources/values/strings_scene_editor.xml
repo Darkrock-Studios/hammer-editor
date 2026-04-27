@@ -60,6 +60,16 @@
 	<string name="scene_editor_metadata_notes_placeholder">Notes to yourself.</string>
 	<string name="scene_editor_metadata_draft_name_label">Draft Name</string>
 
+	<string name="scene_editor_metadata_references_header">References</string>
+	<string name="scene_editor_metadata_references_confirmed_label">Appears in this scene</string>
+	<string name="scene_editor_metadata_references_suggested_label">Suggested</string>
+	<string name="scene_editor_metadata_references_dismissed_label">Dismissed</string>
+	<string name="scene_editor_metadata_references_empty">No references yet</string>
+	<string name="scene_editor_metadata_references_confirm">Confirm</string>
+	<string name="scene_editor_metadata_references_dismiss">Dismiss</string>
+	<string name="scene_editor_metadata_references_unconfirm">Remove</string>
+	<string name="scene_editor_metadata_references_restore">Restore</string>
+
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 
 	<string name="default_draft_name">New Draft</string>
