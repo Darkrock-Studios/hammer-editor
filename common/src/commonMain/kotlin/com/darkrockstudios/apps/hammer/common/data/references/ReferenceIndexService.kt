@@ -115,6 +115,21 @@ class ReferenceIndexService(
 		indexFlow.map { it.entryToScenes[entryId].orEmpty() }
 
 	/**
+	 * Snapshot of scene IDs the inverted index currently reports as confirming
+	 * this entry. Ensures the index is loaded (recalculating if dirty/missing)
+	 * before reading. Used by [CleanupReferencesOnEntryDeleteUseCase] to walk
+	 * exactly the scenes that need rewriting on entry delete.
+	 *
+	 * Returns the cached *confirmed-only* set. Scenes that have the entry in
+	 * `dismissedReferences` only (never confirmed) are not in the cache and
+	 * must heal lazily via the write-time scrub.
+	 */
+	suspend fun getScenesReferencing(entryId: Int): Set<Int> {
+		val index = loadIndex()
+		return index.entryToScenes[entryId].orEmpty()
+	}
+
+	/**
 	 * Returns the entry references that the matcher would auto-add for this scene
 	 * if the user saved it now: text matches that aren't already confirmed and
 	 * aren't dismissed. Result is deduped per-entry, attributing each to the first
