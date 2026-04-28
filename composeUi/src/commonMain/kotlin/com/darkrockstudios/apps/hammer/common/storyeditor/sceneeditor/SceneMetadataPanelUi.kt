@@ -24,6 +24,8 @@ import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.encyclopedia.getEntryTypeIcon
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
@@ -185,7 +187,7 @@ private fun ReferencesSection(
 				for (ref in state.confirmedRefs) {
 					InputChip(
 						onClick = { component.navigateToEntry(ref) },
-						label = { Text(ref.name) },
+						label = { ChipLabel(type = ref.type, name = ref.name) },
 						trailingIcon = {
 							ChipAction(
 								onClick = { component.unconfirmReference(ref.id) },
@@ -215,7 +217,7 @@ private fun ReferencesSection(
 				for (ref in state.suggestedRefs) {
 					AssistChip(
 						onClick = { component.navigateToEntry(ref.entryDef) },
-						label = { Text(ref.entryDef.name) },
+						label = { ChipLabel(type = ref.entryDef.type, name = ref.entryDef.name) },
 						leadingIcon = {
 							ChipAction(
 								onClick = { component.confirmReference(ref.entryDef.id) },
@@ -255,7 +257,7 @@ private fun ReferencesSection(
 						for (ref in state.dismissedRefs) {
 							AssistChip(
 								onClick = { component.navigateToEntry(ref) },
-								label = { Text(ref.name) },
+								label = { ChipLabel(type = ref.type, name = ref.name) },
 								trailingIcon = {
 									ChipAction(
 										onClick = { component.restoreDismissedReference(ref.id) },
@@ -282,6 +284,20 @@ private fun ChipAction(
 ) {
 	IconButton(onClick = onClick, modifier = Modifier.size(24.dp)) {
 		Icon(icon, contentDescription = contentDescription, tint = tint)
+	}
+}
+
+@Composable
+private fun ChipLabel(type: EntryType, name: String) {
+	Row(verticalAlignment = Alignment.CenterVertically) {
+		Icon(
+			imageVector = getEntryTypeIcon(type),
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(16.dp),
+		)
+		Spacer(modifier = Modifier.size(4.dp))
+		Text(name)
 	}
 }
 
