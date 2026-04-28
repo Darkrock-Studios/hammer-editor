@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,6 +41,8 @@ class SceneMetadataPanelComponent(
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
+
+	private val searchableEntries = MutableStateFlow<List<SearchableEntry>>(emptyList())
 
 	private val _state = MutableValue(
 		SceneMetadataPanel.State(
@@ -77,9 +80,25 @@ class SceneMetadataPanelComponent(
 		}
 
 		scope.launch {
-			encyclopediaRepository.entryListFlow.collect {
+			encyclopediaRepository.entryListFlow.collect { defs ->
+				rebuildSearchableEntries(defs)
 				refreshReferences()
 			}
+		}
+
+		// Force the encyclopedia to publish its entry list so the search cache and
+		// chip resolver have data even if no other part of the UI has triggered a
+		// load yet.
+		scope.launch { encyclopediaRepository.ensureEntriesLoaded() }
+	}
+
+	private suspend fun rebuildSearchableEntries(defs: List<EntryDef>) {
+		searchableEntries.value = defs.map { def ->
+			val container = encyclopediaRepository.loadEntry(def)
+			val terms = (listOf(def.name) + container.entry.aliases)
+				.filter { it.isNotBlank() }
+				.map { it.lowercase() }
+			SearchableEntry(entryDef = def, lowerCaseSearchTerms = terms)
 		}
 	}
 
@@ -212,6 +231,28 @@ class SceneMetadataPanelComponent(
 
 	override fun validateDraftName(text: String): Boolean {
 		return SceneDraftsDatasource.validDraftName(text)
+	}
+
+	override fun addConfirmedReference(entryId: Int) {
+		// Add to confirmed and remove from dismissed in one write so picking a
+		// previously-dismissed entry from search un-dismisses it cleanly.
+		mutateMetadata {
+			it.copy(
+				confirmedReferences = it.confirmedReferences + entryId,
+				dismissedReferences = it.dismissedReferences - entryId,
+			)
+		}
+	}
+
+	override fun searchEntriesForAdd(query: String, maxResults: Int): List<SceneMetadataPanel.AddSuggestion> {
+		val metadata = state.value.metadata
+		return filterEntriesForAdd(
+			query = query,
+			entries = searchableEntries.value,
+			confirmedIds = metadata.confirmedReferences,
+			dismissedIds = metadata.dismissedReferences,
+			maxResults = maxResults,
+		)
 	}
 
 	override fun dismissReference(entryId: Int) {
