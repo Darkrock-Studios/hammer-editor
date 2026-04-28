@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -24,7 +23,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -41,7 +39,6 @@ class SceneMetadataPanelComponent(
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
-	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 
 	private val _state = MutableValue(
@@ -109,31 +106,14 @@ class SceneMetadataPanelComponent(
 		val dismissed = metadata.dismissedReferences.mapNotNull { encyclopediaRepository.findEntryDef(it) }
 			.sortedBy { it.name.lowercase() }
 
-		val sceneText = sceneEditor.getSceneBuffer(originalSceneItem)?.content?.coerceMarkdown()
-			?: sceneEditor.loadSceneMarkdownRaw(originalSceneItem)
-		val defById = HashMap<Int, EntryDef>()
-		val suggestions = referenceIndexService
-			.computeSuggestionsForScene(originalSceneItem.id, sceneText, metadata)
-			.mapNotNull { suggestion ->
-				val def = defById.getOrPut(suggestion.entryId) {
-					encyclopediaRepository.findEntryDef(suggestion.entryId) ?: return@mapNotNull null
-				}
-				SceneMetadataPanel.SuggestedRef(entryDef = def, matchedAlias = suggestion.matchedAlias)
-			}
-			.sortedBy { it.entryDef.name.lowercase() }
-
 		withContext(dispatcherMain) {
 			_state.getAndUpdate {
-				if (it.confirmedRefs == confirmed &&
-					it.dismissedRefs == dismissed &&
-					it.suggestedRefs == suggestions
-				) {
+				if (it.confirmedRefs == confirmed && it.dismissedRefs == dismissed) {
 					it
 				} else {
 					it.copy(
 						confirmedRefs = confirmed,
 						dismissedRefs = dismissed,
-						suggestedRefs = suggestions,
 					)
 				}
 			}
@@ -232,17 +212,6 @@ class SceneMetadataPanelComponent(
 
 	override fun validateDraftName(text: String): Boolean {
 		return SceneDraftsDatasource.validDraftName(text)
-	}
-
-	override fun confirmReference(entryId: Int) {
-		mutateMetadata { it.copy(
-			confirmedReferences = it.confirmedReferences + entryId,
-			dismissedReferences = it.dismissedReferences - entryId,
-		) }
-	}
-
-	override fun unconfirmReference(entryId: Int) {
-		mutateMetadata { it.copy(confirmedReferences = it.confirmedReferences - entryId) }
 	}
 
 	override fun dismissReference(entryId: Int) {

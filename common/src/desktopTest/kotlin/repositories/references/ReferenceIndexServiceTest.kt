@@ -1,6 +1,5 @@
 package repositories.references
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -8,12 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConfig
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceSourceType
-import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
+import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -33,8 +27,8 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class ReferenceIndexServiceTest : BaseTest() {
@@ -187,12 +181,12 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene returns plain matches when not confirmed or dismissed`() =
+	fun `computeAutoReferencesForScene returns plain matches when not confirmed or dismissed`() =
 		runTest(mainTestDispatcher) {
 			stubEntries(listOf(person(1, "Bob")))
 			val service = makeService()
 
-			val suggestions = service.computeSuggestionsForScene(
+			val suggestions = service.computeAutoReferencesForScene(
 				sceneId = 10,
 				sceneText = "Bob walked away.",
 				metadata = SceneMetadata(),
@@ -204,11 +198,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 		}
 
 	@Test
-	fun `computeSuggestionsForScene excludes confirmed entries`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene excludes confirmed entries`() = runTest(mainTestDispatcher) {
 		stubEntries(listOf(person(1, "Bob")))
 		val service = makeService()
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "Bob walked away.",
 			metadata = SceneMetadata(confirmedReferences = setOf(1)),
@@ -218,11 +212,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene excludes dismissed entries`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene excludes dismissed entries`() = runTest(mainTestDispatcher) {
 		stubEntries(listOf(person(1, "Bob")))
 		val service = makeService()
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "Bob walked away.",
 			metadata = SceneMetadata(dismissedReferences = setOf(1)),
@@ -232,11 +226,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene attributes alias hits to the right entry`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene attributes alias hits to the right entry`() = runTest(mainTestDispatcher) {
 		stubEntries(listOf(person(1, "Robert", aliases = listOf("Bobby"))))
 		val service = makeService()
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "Bobby was tired.",
 			metadata = SceneMetadata(),
@@ -248,7 +242,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene filters out non-enabled entry types`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene filters out non-enabled entry types`() = runTest(mainTestDispatcher) {
 		stubEntries(
 			listOf(
 				person(1, "Bob"),
@@ -262,7 +256,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 			)
 		)
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "Bob entered Mordor.",
 			metadata = SceneMetadata(),
@@ -273,11 +267,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene dedupes per entry on multiple hits`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene dedupes per entry on multiple hits`() = runTest(mainTestDispatcher) {
 		stubEntries(listOf(person(1, "Bob")))
 		val service = makeService()
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "Bob and Bob and Bob.",
 			metadata = SceneMetadata(),
@@ -288,11 +282,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene returns empty list for empty text`() = runTest(mainTestDispatcher) {
+	fun `computeAutoReferencesForScene returns empty list for empty text`() = runTest(mainTestDispatcher) {
 		stubEntries(listOf(person(1, "Bob")))
 		val service = makeService()
 
-		val suggestions = service.computeSuggestionsForScene(
+		val suggestions = service.computeAutoReferencesForScene(
 			sceneId = 10,
 			sceneText = "",
 			metadata = SceneMetadata(),
@@ -302,17 +296,107 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `computeSuggestionsForScene returns empty list when no entries enabled`() =
+	fun `computeAutoReferencesForScene returns empty list when no entries enabled`() =
 		runTest(mainTestDispatcher) {
 			stubEntries(emptyList())
 			val service = makeService()
 
-			val suggestions = service.computeSuggestionsForScene(
+			val suggestions = service.computeAutoReferencesForScene(
 				sceneId = 10,
 				sceneText = "Bob walked away.",
 				metadata = SceneMetadata(),
 			)
 
 			assertTrue(suggestions.isEmpty())
+		}
+
+	// findScenesMatchingEntry - the backfill scan
+
+	@Test
+	fun `findScenesMatchingEntry returns scenes whose text contains the entry name`() =
+		runTest(mainTestDispatcher) {
+			stubSceneTree(
+				listOf(
+					sceneItem(10) to SceneMetadata(),
+					sceneItem(11) to SceneMetadata(),
+				)
+			)
+			every { sceneEditor.getSceneFilePath(any<SceneItem>()) } returns HPath("", "", false)
+			every { sceneEditor.loadSceneMarkdownRaw(any(), any()) } returns ""
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 10 }, any()) } returns "Bob walked away."
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 11 }, any()) } returns "Alice waved."
+			stubEntries(emptyList())
+
+			val matches = makeService().findScenesMatchingEntry(1, listOf("Bob"))
+
+			assertEquals(listOf(10), matches)
+		}
+
+	@Test
+	fun `findScenesMatchingEntry skips scenes that already confirm the entry`() =
+		runTest(mainTestDispatcher) {
+			// Sticky semantics: once confirmed, no need to re-add. Idempotent backfill.
+			stubSceneTree(
+				listOf(sceneItem(10) to SceneMetadata(confirmedReferences = setOf(1)))
+			)
+			every { sceneEditor.getSceneFilePath(any<SceneItem>()) } returns HPath("", "", false)
+			every { sceneEditor.loadSceneMarkdownRaw(any(), any()) } returns ""
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 10 }, any()) } returns "Bob walked away."
+			stubEntries(emptyList())
+
+			val matches = makeService().findScenesMatchingEntry(1, listOf("Bob"))
+
+			assertTrue(matches.isEmpty())
+		}
+
+	@Test
+	fun `findScenesMatchingEntry skips scenes that have dismissed the entry`() =
+		runTest(mainTestDispatcher) {
+			// Sticky-dismissed wins: backfill must never resurrect a user's dismissal.
+			stubSceneTree(
+				listOf(sceneItem(10) to SceneMetadata(dismissedReferences = setOf(1)))
+			)
+			every { sceneEditor.getSceneFilePath(any<SceneItem>()) } returns HPath("", "", false)
+			every { sceneEditor.loadSceneMarkdownRaw(any(), any()) } returns ""
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 10 }, any()) } returns "Bob walked away."
+			stubEntries(emptyList())
+
+			val matches = makeService().findScenesMatchingEntry(1, listOf("Bob"))
+
+			assertTrue(matches.isEmpty())
+		}
+
+	@Test
+	fun `findScenesMatchingEntry matches against any of the entry's aliases`() =
+		runTest(mainTestDispatcher) {
+			stubSceneTree(
+				listOf(
+					sceneItem(10) to SceneMetadata(),
+					sceneItem(11) to SceneMetadata(),
+				)
+			)
+			every { sceneEditor.getSceneFilePath(any<SceneItem>()) } returns HPath("", "", false)
+			every { sceneEditor.loadSceneMarkdownRaw(any(), any()) } returns ""
+			every {
+				sceneEditor.loadSceneMarkdownRaw(
+					match { it.id == 10 },
+					any()
+				)
+			} returns "The man known as Bobby left."
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 11 }, any()) } returns "Robert was unmoved."
+			stubEntries(emptyList())
+
+			val matches = makeService().findScenesMatchingEntry(1, listOf("Robert", "Bobby"))
+
+			assertEquals(setOf(10, 11), matches.toSet())
+		}
+
+	@Test
+	fun `findScenesMatchingEntry returns empty when names are blank`() =
+		runTest(mainTestDispatcher) {
+			// Defensive: an entry with no usable names produces no work, no scene reads.
+			stubEntries(emptyList())
+			val matches = makeService().findScenesMatchingEntry(1, listOf("", "  "))
+			assertTrue(matches.isEmpty())
 		}
 }

@@ -11,20 +11,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
@@ -126,7 +114,13 @@ class ReferenceIndexService(
 	fun flowForEntry(entryId: Int): Flow<Set<Int>> =
 		indexFlow.map { it.entryToScenes[entryId].orEmpty() }
 
-	suspend fun computeSuggestionsForScene(
+	/**
+	 * Returns the entry references that the matcher would auto-add for this scene
+	 * if the user saved it now: text matches that aren't already confirmed and
+	 * aren't dismissed. Result is deduped per-entry, attributing each to the first
+	 * matched name/alias.
+	 */
+	suspend fun computeAutoReferencesForScene(
 		sceneId: Int,
 		sceneText: String,
 		metadata: SceneMetadata?,
@@ -149,6 +143,45 @@ class ReferenceIndexService(
 			}
 		}
 		return firstHitByEntry.values.toList()
+	}
+
+	/**
+	 * Walks all live + archived scenes and returns the IDs of those whose text
+	 * matches the given entry's name or any of its aliases AND where the entry
+	 * is not yet in the scene's confirmed or dismissed sets.
+	 */
+	suspend fun findScenesMatchingEntry(entryId: Int, names: List<String>): List<Int> {
+		if (names.none { it.isNotBlank() }) return emptyList()
+		val matchable = listOf(MatchableEntry(entryId, names))
+		val results = mutableListOf<Int>()
+
+		suspend fun consider(sceneItem: SceneItem) {
+			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
+			if (entryId in metadata.confirmedReferences) return
+			if (entryId in metadata.dismissedReferences) return
+			val text = if (sceneItem.archived) {
+				val scenePath = sceneEditorRepository
+					.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id) ?: return
+				sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
+			} else {
+				sceneEditorRepository.loadSceneMarkdownRaw(sceneItem)
+			}
+			val hits = matcher.findMatches(text, matchable)
+			if (hits.isNotEmpty()) results.add(sceneItem.id)
+		}
+
+		val sceneSummary = sceneEditorRepository.sceneListChannel.first()
+		sceneSummary.sceneTree.root.forEach { node ->
+			if (node.value.type == SceneItem.Type.Scene) {
+				consider(node.value)
+				yield()
+			}
+		}
+		sceneEditorRepository.getArchivedScenes().forEach { archived ->
+			consider(archived)
+			yield()
+		}
+		return results
 	}
 
 	private suspend fun matchableEntries(): List<MatchableEntry> {

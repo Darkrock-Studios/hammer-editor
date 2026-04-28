@@ -10,15 +10,16 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -28,7 +29,7 @@ class ViewEntryComponent(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	private val closeEntry: () -> Unit,
-	private val showScene: (com.darkrockstudios.apps.hammer.common.data.SceneItem) -> Unit,
+	private val showScene: (SceneItem) -> Unit,
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(
@@ -41,6 +42,7 @@ class ViewEntryComponent(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -196,6 +198,7 @@ class ViewEntryComponent(
 		tags: Set<String>
 	): EntryResult {
 		val currentAliases = state.value.content?.aliases.orEmpty()
+		val previousName = state.value.entryDef.name
 		val result = encyclopediaRepository.updateEntry(
 			oldEntryDef = state.value.entryDef,
 			name = name,
@@ -211,6 +214,10 @@ class ViewEntryComponent(
 			}
 
 			reload()
+
+			if (previousName != result.instance.entry.name) {
+				backfillEntryReferences(result.instance.entry)
+			}
 		}
 
 		return result
@@ -312,6 +319,7 @@ class ViewEntryComponent(
 		if (result.error == EntryError.NONE) {
 			endAliasAdd()
 			reload()
+			result.instance?.entry?.let { backfillEntryReferences(it) }
 		}
 		return result
 	}

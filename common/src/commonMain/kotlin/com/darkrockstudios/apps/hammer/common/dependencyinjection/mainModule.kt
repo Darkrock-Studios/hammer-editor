@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -20,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
+import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -28,15 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
-import com.darkrockstudios.apps.hammer.common.data.references.NameMatcher
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConfig
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
-import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
-import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
-import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
+import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -165,6 +157,8 @@ val mainModule = module {
 		scopedOf(::ReferenceIndexRepository)
 		scopedOf(::ReferenceIndexService)
 		scopedOf(::ScrubInvalidReferencesUseCase)
+		scopedOf(::AutoConfirmReferencesUseCase)
+		scopedOf(::BackfillEntryReferencesUseCase)
 		scopedOf(::SceneMetadataReferenceRemapper) bind ReferenceRemapper::class
 
 		scopedOf(::SyncDataDatasource)
