@@ -34,6 +34,11 @@
 	<string name="sync_conflict_title_scene_field_notes">Notas</string>
 	<string name="sync_conflict_scene_tab_content">Conteúdo</string>
 	<string name="sync_conflict_scene_tab_metadata">Metadados</string>
+	<string name="sync_conflict_scene_tab_references">References</string>
+	<string name="sync_conflict_references_confirmed_label">Confirmed</string>
+	<string name="sync_conflict_references_dismissed_label">Dismissed</string>
+	<string name="sync_conflict_references_empty">None</string>
+	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
 	<string name="sync_conflict_title_scene_draft_remote">Rascunho remoto:</string>
 	<string name="sync_conflict_title_scene_draft_local">Rascunho Local:</string>
 	<string name="sync_conflict_title_scene_draft_field_name">Nome</string>
