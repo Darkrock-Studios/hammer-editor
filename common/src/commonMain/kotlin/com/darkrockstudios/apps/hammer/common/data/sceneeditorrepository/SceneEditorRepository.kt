@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -51,6 +52,7 @@ class SceneEditorRepository(
 	private val sceneDatasource: SceneDatasource,
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
+	private val writingSessionTracker: WritingSessionTracker,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -927,6 +929,7 @@ class SceneEditorRepository(
 				reloadScenes()
 				statisticsRepository.markDirty()
 				referenceIndexRepository.markSceneDeleted(scene.id)
+				writingSessionTracker.forgetBaseline(scene.id)
 
 				true
 			} else {
@@ -1007,6 +1010,7 @@ class SceneEditorRepository(
 		} else {
 			val scenePath = getSceneFilePath(sceneItem)
 			val content = sceneDatasource.loadSceneBuffer(scenePath)
+			writingSessionTracker.rememberBaseline(sceneItem.id, content)
 			val newBuffer = SceneBuffer(
 				SceneContent(sceneItem, content),
 				source = UpdateSource.Repository
@@ -1040,6 +1044,11 @@ class SceneEditorRepository(
 
 			clearTempScene(sceneItem)
 			statisticsRepository.markDirty()
+			writingSessionTracker.onSceneSaved(
+				sceneId = sceneItem.id,
+				newContent = buffer.content.coerceMarkdown(),
+				source = buffer.source,
+			)
 		}
 
 		return success

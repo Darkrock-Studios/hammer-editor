@@ -45,6 +45,7 @@ class ClientProjectSynchronizer(
 		projectScope.get<IdConflictResolutionOperation>(),
 		projectScope.get<EntityDeleteOperation>(),
 		projectScope.get<EntityTransferOperation>(),
+		projectScope.get<WritingActivitySyncOperation>(),
 		projectScope.get<FinalizeSyncOperation>(),
 	)
 
