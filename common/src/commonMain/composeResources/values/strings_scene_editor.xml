@@ -66,6 +66,9 @@
 	<string name="scene_editor_metadata_references_empty">No references yet</string>
 	<string name="scene_editor_metadata_references_dismiss">Dismiss</string>
 	<string name="scene_editor_metadata_references_restore">Restore</string>
+	<string name="scene_editor_metadata_references_add_placeholder">Add reference…</string>
+	<string name="scene_editor_metadata_references_add_dismissed_hint">(dismissed)</string>
+	<string name="scene_editor_metadata_references_add_no_matches">No matches</string>
 
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 

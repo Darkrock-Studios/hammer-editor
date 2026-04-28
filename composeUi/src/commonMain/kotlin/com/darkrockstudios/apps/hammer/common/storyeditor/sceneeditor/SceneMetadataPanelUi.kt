@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -9,11 +11,20 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
@@ -65,6 +76,7 @@ fun SceneMetadataPanelUi(
 			Row(modifier = Modifier.align(Alignment.End)) {
 				Text(
 					Res.string.scene_editor_metadata_word_count_label.get(),
+					modifier = Modifier.padding(end = Ui.Padding.M),
 					style = MaterialTheme.typography.headlineSmall,
 				)
 
@@ -199,6 +211,9 @@ private fun ReferencesSection(
 			}
 		}
 
+		SpacerL()
+		AddReferenceField(component = component)
+
 		if (state.dismissedRefs.isNotEmpty()) {
 			SpacerXL()
 			CollapsableSection(
@@ -244,6 +259,99 @@ private fun ChipAction(
 ) {
 	IconButton(onClick = onClick, modifier = Modifier.size(24.dp)) {
 		Icon(icon, contentDescription = contentDescription, tint = tint)
+	}
+}
+
+@Composable
+private fun AddReferenceField(component: SceneMetadataPanel) {
+	var query by rememberSaveable { mutableStateOf("") }
+	var hasFocus by remember { mutableStateOf(false) }
+	var fieldSize by remember { mutableStateOf(IntSize.Zero) }
+	val density = LocalDensity.current
+	val suggestions by remember(query) {
+		derivedStateOf { component.searchEntriesForAdd(query) }
+	}
+	val dropdownOpen = hasFocus && query.isNotBlank()
+
+	fun pick(suggestion: SceneMetadataPanel.AddSuggestion) {
+		component.addConfirmedReference(suggestion.entryDef.id)
+		query = ""
+	}
+
+	// Non-focusable Popup (not ExposedDropdownMenuBox) so the field keeps
+	// focus and continues receiving keystrokes while suggestions update.
+	Box(modifier = Modifier.fillMaxWidth()) {
+		OutlinedTextField(
+			value = query,
+			onValueChange = { query = it },
+			modifier = Modifier
+				.fillMaxWidth()
+				.onSizeChanged { fieldSize = it }
+				.onFocusChanged { hasFocus = it.isFocused },
+			singleLine = true,
+			placeholder = { Text(Res.string.scene_editor_metadata_references_add_placeholder.get()) },
+			leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
+			trailingIcon = if (query.isNotEmpty()) {
+				{
+					IconButton(onClick = { query = "" }) {
+						Icon(Icons.Filled.Close, contentDescription = null)
+					}
+				}
+			} else null,
+			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+			keyboardActions = KeyboardActions(onDone = {
+				suggestions.firstOrNull()?.let(::pick)
+			}),
+		)
+		if (dropdownOpen) {
+			val fieldWidthDp = with(density) { fieldSize.width.toDp() }
+			Popup(
+				alignment = Alignment.TopStart,
+				offset = IntOffset(0, fieldSize.height),
+				properties = PopupProperties(focusable = false),
+				onDismissRequest = {},
+			) {
+				Surface(
+					modifier = Modifier.width(fieldWidthDp),
+					shadowElevation = 8.dp,
+					tonalElevation = Ui.ToneElevation.MEDIUM,
+					shape = MaterialTheme.shapes.medium,
+				) {
+					Column {
+						if (suggestions.isEmpty()) {
+							Text(
+								text = Res.string.scene_editor_metadata_references_add_no_matches.get(),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+								modifier = Modifier.padding(Ui.Padding.L),
+							)
+						} else {
+							suggestions.forEach { suggestion ->
+								DropdownMenuItem(
+									text = {
+										Row(verticalAlignment = Alignment.CenterVertically) {
+											EntryRefChipLabel(
+												type = suggestion.entryDef.type,
+												name = suggestion.entryDef.name,
+											)
+											if (suggestion.isDismissed) {
+												Spacer(Modifier.size(8.dp))
+												Text(
+													Res.string.scene_editor_metadata_references_add_dismissed_hint.get(),
+													style = MaterialTheme.typography.labelSmall,
+													color = MaterialTheme.colorScheme.onSurfaceVariant,
+												)
+											}
+										}
+									},
+									onClick = { pick(suggestion) },
+								)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
