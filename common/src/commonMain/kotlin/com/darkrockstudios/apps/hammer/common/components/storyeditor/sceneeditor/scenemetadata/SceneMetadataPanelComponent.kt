@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -23,6 +24,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -40,6 +42,7 @@ class SceneMetadataPanelComponent(
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
+	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 
 	private val _state = MutableValue(
 		SceneMetadataPanel.State(
@@ -74,6 +77,12 @@ class SceneMetadataPanelComponent(
 			loadMetadataData()
 
 			sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+		}
+
+		scope.launch {
+			encyclopediaRepository.entryListFlow.collect {
+				refreshReferences()
+			}
 		}
 	}
 
@@ -154,7 +163,8 @@ class SceneMetadataPanelComponent(
 	private fun startMetadataStore() {
 		metadataStoreJob = scope.launch {
 			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
-				sceneEditor.storeMetadata(metadata, originalSceneItem.id)
+				// Self-healing fail-safe: drop reference IDs whose entry no longer exists
+				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
 			}
 		}
 	}
@@ -267,7 +277,10 @@ class SceneMetadataPanelComponent(
 		bufferUpdateSubscription = null
 
 		appScope.launch {
-			sceneEditor.storeMetadata(state.value.metadata, originalSceneItem.id)
+			sceneEditor.storeMetadata(
+				scrubInvalidReferences(state.value.metadata),
+				originalSceneItem.id,
+			)
 		}
 	}
 
