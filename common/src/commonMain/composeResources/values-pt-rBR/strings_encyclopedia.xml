@@ -25,6 +25,14 @@
 	<string name="encyclopedia_create_entry_toast_too_long">O Nome do Verbete é grande demais. Máx. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_invalid_name">O nome do verbete deve ser alfanumérico</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">A etiqueta é muito longa. Máx. %1$d</string>
+	<string name="encyclopedia_create_entry_toast_alias_too_long">Alias is too long. Max %1$d</string>
+	<string name="encyclopedia_entry_aliases_label">Aliases</string>
+	<string name="encyclopedia_entry_add_alias">Add alias</string>
+	<string name="encyclopedia_entry_add_alias_dialog_title">Add Alias</string>
+	<string name="encyclopedia_entry_add_alias_button">Add</string>
+	<string name="encyclopedia_entry_alias_hint">Nickname or other name</string>
+	<string name="encyclopedia_entry_appears_in_label">Appears in scenes</string>
+	<string name="encyclopedia_entry_appears_in_empty">Not yet referenced in any scene</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_short">A etiqueta é muito curta</string>
 	<string name="encyclopedia_create_entry_discard_title">Descartar Novo Verbete?</string>
 	<string name="encyclopedia_entry_load_error">Erro: Falha ao carregar o verbete!</string>
