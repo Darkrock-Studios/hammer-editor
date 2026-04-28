@@ -146,11 +146,44 @@ object E2eTestData {
 		)
 	}
 
+	fun createTestSceneWithReferences(
+		id: Int,
+		confirmedReferences: Set<Int>,
+		dismissedReferences: Set<Int> = emptySet(),
+	): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
+			id = id,
+			name = "test scene $id",
+			content = "test content $id",
+			order = id - 1,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			confirmedReferences = confirmedReferences,
+			dismissedReferences = dismissedReferences,
+		)
+	}
+
 	fun createTestNote(id: Int): ApiProjectEntity.NoteEntity {
 		return ApiProjectEntity.NoteEntity(
 			id = id,
 			content = "test content $id",
 			created = Instant.fromEpochSeconds(id * 1000000L),
+		)
+	}
+
+	fun createTestEncyclopediaEntry(
+		id: Int,
+		name: String = "test entry $id",
+		aliases: List<String> = emptyList(),
+	): ApiProjectEntity.EncyclopediaEntryEntity {
+		return ApiProjectEntity.EncyclopediaEntryEntity(
+			id = id,
+			name = name,
+			entryType = "person",
+			text = "test text $id",
+			tags = emptySet(),
+			image = null,
+			aliases = aliases,
 		)
 	}
 }
