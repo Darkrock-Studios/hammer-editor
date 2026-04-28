@@ -4,11 +4,9 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
@@ -137,12 +135,12 @@ class ServerSceneSynchronizerTest :
 				capture(entityHashIdSlot),
 			)
 		} answers {
-			return@answers SResult.success(EntityHasher.hashEntity(entities1[entityHashIdSlot.captured - 1]))
+			return@answers SResult.success(entities1[entityHashIdSlot.captured - 1].hash())
 		}
 
 		val clientState = ClientEntityState(
 			entities = List(entities1.size) {
-				EntityHash(it + 1, EntityHasher.hashEntity(entities1[it]))
+				EntityHash(it + 1, entities1[it].hash())
 			}.toSet()
 		)
 
@@ -223,7 +221,7 @@ class ServerSceneSynchronizerTest :
 			entities = List(entities1.size) {
 				val e = entities1[it]
 				val different = e.copy(name = e.name + " Different")
-				EntityHash(it, EntityHasher.hashEntity(different))
+				EntityHash(it, different.hash())
 			}.toSet()
 		)
 

@@ -3,11 +3,9 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
@@ -263,7 +261,7 @@ private fun Route.uploadEntity() {
 					when (e) {
 						is EntityConflictException -> {
 							if (call.application.developmentMode) {
-								val serverHash = EntityHasher.hashEntity(e.entity)
+								val serverHash = e.entity.hash()
 								log.info("Conflict for ID $entityId client provided original hash: $originalHash server hash: $serverHash")
 							}
 
@@ -380,7 +378,7 @@ private fun Route.downloadEntity(log: Logger) {
 				projectEntityRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 			if (isSuccess(result)) {
 				val serverEntity = result.data
-				val serverEntityHash = EntityHasher.hashEntity(serverEntity)
+				val serverEntityHash = serverEntity.hash()
 
 				// Check if cached hash is stale (doesn't match computed hash)
 				if (cachedHash != null && cachedHash != serverEntityHash) {

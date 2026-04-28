@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -16,22 +15,6 @@ class ServerSceneSynchronizer(
 	override val entityType = ApiProjectEntity.Type.SCENE
 	override val entityClazz = ApiProjectEntity.SceneEntity::class
 	override val pathStub = ApiProjectEntity.Type.SCENE.name.lowercase()
-
-	override fun hashEntity(entity: ApiProjectEntity.SceneEntity): String {
-		return EntityHasher.hashScene(
-			id = entity.id,
-			order = entity.order,
-			path = entity.path,
-			name = entity.name,
-			type = entity.sceneType,
-			content = entity.content,
-			outline = entity.outline,
-			notes = entity.notes,
-			archived = entity.archived,
-			confirmedReferences = entity.confirmedReferences,
-			dismissedReferences = entity.dismissedReferences,
-		)
-	}
 
 	override suspend fun getUpdateSequence(
 		userId: Long,

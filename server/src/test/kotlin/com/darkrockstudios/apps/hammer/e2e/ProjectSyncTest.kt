@@ -3,10 +3,8 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.http.*
@@ -30,7 +28,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 			entities = TestDataSet1.user1Project1Entities.map { entity ->
 				EntityHash(
 					id = entity.id,
-					hash = EntityHasher.hashEntity(entity)
+					hash = entity.hash()
 				)
 			}.toSet()
 		)
@@ -73,7 +71,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 					} else {
 						EntityHash(
 							id = entity.id,
-							hash = EntityHasher.hashEntity(entity)
+							hash = entity.hash()
 						)
 					}
 				}.toSet()
@@ -116,7 +114,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 							authToken,
 							synchronizationBegan.syncId,
 							modifiedEntity,
-							EntityHasher.hashEntity(entity),
+							entity.hash(),
 						)
 						assertTrue(uploadResponse.saved)
 					}
@@ -238,7 +236,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 					} else {
 						EntityHash(
 							id = entity.id,
-							hash = EntityHasher.hashEntity(entity)
+							hash = entity.hash()
 						)
 					}
 				}.toSet()
@@ -275,7 +273,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 				authToken,
 				synchronizationBegan.syncId,
 				modifiedEntity,
-				EntityHasher.hashEntity(entity),
+				entity.hash(),
 				true,
 			)
 			assertTrue(uploadResponse.saved)

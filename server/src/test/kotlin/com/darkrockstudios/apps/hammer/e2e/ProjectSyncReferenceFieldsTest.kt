@@ -3,10 +3,8 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSetWithReferences
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import kotlinx.coroutines.runBlocking
@@ -48,7 +46,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 				entities = TestDataSetWithReferences.entities.map { entity ->
 					EntityHash(
 						id = entity.id,
-						hash = EntityHasher.hashEntity(entity),
+						hash = entity.hash(),
 					)
 				}.toSet()
 			)
@@ -151,7 +149,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 			entities = TestDataSetWithReferences.entities.map { entity ->
 				EntityHash(
 					id = entity.id,
-					hash = EntityHasher.hashEntity(entity),
+					hash = entity.hash(),
 				)
 			}.toSet()
 		)
@@ -168,7 +166,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 				authToken,
 				synchronizationBegan.syncId,
 				mutatedScene,
-				EntityHasher.hashEntity(originalScene),
+				originalScene.hash(),
 			)
 			assertTrue(sceneUpload.saved, "Server rejected scene upload with mutated reference fields")
 
@@ -180,7 +178,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 				authToken,
 				synchronizationBegan.syncId,
 				mutatedEntry,
-				EntityHasher.hashEntity(originalEntry),
+				originalEntry.hash(),
 			)
 			assertTrue(entryUpload.saved, "Server rejected encyclopedia entry upload with mutated aliases")
 

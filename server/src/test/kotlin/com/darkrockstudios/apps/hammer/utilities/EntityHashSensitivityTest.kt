@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.utilities
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.descriptors.elementNames
 import kotlinx.serialization.serializer
@@ -157,9 +156,9 @@ class EntityHashSensitivityTest {
 				"EXEMPT_FIELDS if it cannot meaningfully be mutated."
 		)
 
-		val baseHash = EntityHasher.hashEntity(base)
+		val baseHash = base.hash()
 		mutations.forEach { (fieldName, mutated) ->
-			val mutatedHash = EntityHasher.hashEntity(mutated)
+			val mutatedHash = mutated.hash()
 			assertNotEquals(
 				baseHash, mutatedHash,
 				"Hash of ${entityClass.simpleName} did not change when '$fieldName' changed - " +
