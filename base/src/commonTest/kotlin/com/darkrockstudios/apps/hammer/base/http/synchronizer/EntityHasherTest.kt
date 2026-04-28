@@ -97,7 +97,7 @@ class EntityHasherTest {
 			content = "Some great content",
 		)
 
-		assertEquals("eYbSEcvBVcI4OVRxogNVGg", hash)
+		assertEquals("lGUFzy0jQtYbLHWa998BfA", hash)
 	}
 
 	@Test

@@ -78,6 +78,7 @@ class SceneDraftRepository(
 		) {
 			val hash = EntityHasher.hashSceneDraft(
 				id = originalDef.id,
+				sceneId = originalDef.sceneId,
 				created = originalDef.draftTimestamp,
 				name = originalDef.draftName,
 				content = originalContent,

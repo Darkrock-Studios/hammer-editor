@@ -15,10 +15,13 @@ fun EntityHasher.hashEntity(entity: ApiProjectEntity): String {
 			outline = entity.outline,
 			notes = entity.notes,
 			archived = entity.archived,
+			confirmedReferences = entity.confirmedReferences,
+			dismissedReferences = entity.dismissedReferences,
 		)
 
 		is ApiProjectEntity.SceneDraftEntity -> hashSceneDraft(
 			id = entity.id,
+			sceneId = entity.sceneId,
 			created = entity.created,
 			name = entity.name,
 			content = entity.content,
@@ -44,6 +47,7 @@ fun EntityHasher.hashEntity(entity: ApiProjectEntity): String {
 			text = entity.text,
 			tags = entity.tags,
 			image = entity.image,
+			aliases = entity.aliases,
 		)
 	}
 }

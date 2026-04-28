@@ -51,6 +51,7 @@ class ClientSceneDraftSynchronizer(
 
 			EntityHasher.hashSceneDraft(
 				id = draftDef.id,
+				sceneId = draftDef.sceneId,
 				created = draftDef.draftTimestamp,
 				name = draftDef.draftName,
 				content = content ?: "",
