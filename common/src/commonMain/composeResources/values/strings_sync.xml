@@ -48,6 +48,11 @@
 	<string name="sync_conflict_title_scene_field_notes">Notes</string>
 	<string name="sync_conflict_scene_tab_content">Content</string>
 	<string name="sync_conflict_scene_tab_metadata">Metadata</string>
+	<string name="sync_conflict_scene_tab_references">References</string>
+	<string name="sync_conflict_references_confirmed_label">Confirmed</string>
+	<string name="sync_conflict_references_dismissed_label">Dismissed</string>
+	<string name="sync_conflict_references_empty">None</string>
+	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
 
 	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
 	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>

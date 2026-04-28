@@ -211,6 +211,8 @@ class ProjectSynchronizationComponent(
 		}
 	}
 
+	override fun resolveEntryRef(id: Int) = encyclopediaRepository.findEntryDef(id)
+
 	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
 		Napier.d("Sync progress: $progress")
 		updateSync(true, progress, log)
