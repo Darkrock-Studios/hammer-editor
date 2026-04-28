@@ -159,6 +159,7 @@ val mainModule = module {
 		scopedOf(::ScrubInvalidReferencesUseCase)
 		scopedOf(::AutoConfirmReferencesUseCase)
 		scopedOf(::BackfillEntryReferencesUseCase)
+		scopedOf(::CleanupReferencesOnEntryDeleteUseCase)
 		scopedOf(::SceneMetadataReferenceRemapper) bind ReferenceRemapper::class
 
 		scopedOf(::SyncDataDatasource)

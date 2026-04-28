@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import kotlinx.coroutines.launch
@@ -43,6 +44,7 @@ class ViewEntryComponent(
 	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
+	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -116,6 +118,7 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
+		cleanupReferencesOnDelete(entryDef.id)
 		encyclopediaRepository.deleteEntry(entryDef)
 		return true
 	}
