@@ -50,6 +50,10 @@ class ServerSceneSynchronizerTest :
 			content = "Test Content",
 			outline = "Test Outline",
 			notes = "Test Notes",
+			// Non-empty so the inherited Hash Entity / Save Entity / Load Entity tests
+			// exercise the reference fields end-to-end through the server hash path.
+			confirmedReferences = setOf(7, 8),
+			dismissedReferences = setOf(9),
 		)
 	}
 
@@ -63,6 +67,9 @@ class ServerSceneSynchronizerTest :
 			content = "Test Content Different",
 			outline = "Test Outline Different",
 			notes = "Test Notes Different",
+			// Different sets so Hash Entity tests prove the fields actually differentiate.
+			confirmedReferences = setOf(7),
+			dismissedReferences = setOf(9, 10),
 		)
 	}
 

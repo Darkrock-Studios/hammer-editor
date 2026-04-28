@@ -10,6 +10,7 @@ class ServerSceneDraftSynchronizer(
 	override fun hashEntity(entity: ApiProjectEntity.SceneDraftEntity): String {
 		return EntityHasher.hashSceneDraft(
 			id = entity.id,
+			sceneId = entity.sceneId,
 			created = entity.created,
 			name = entity.name,
 			content = entity.content,

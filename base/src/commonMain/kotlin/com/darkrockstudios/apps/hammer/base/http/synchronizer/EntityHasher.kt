@@ -103,10 +103,17 @@ object EntityHasher {
 		return d.digest().base64Url
 	}
 
-	fun hashSceneDraft(id: Int, created: Instant, name: String, content: String): String {
+	fun hashSceneDraft(
+		id: Int,
+		created: Instant,
+		name: String,
+		content: String,
+		sceneId: Int = 0,
+	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
 		d.update(id, buf)
+		d.update(sceneId, buf)
 		d.update(created.epochSeconds, buf)
 		d.update(name, buf)
 		d.update(content, buf)
