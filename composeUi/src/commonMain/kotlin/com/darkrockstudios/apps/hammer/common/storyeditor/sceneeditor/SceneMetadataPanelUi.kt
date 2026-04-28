@@ -6,9 +6,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -172,7 +170,7 @@ private fun ReferencesSection(
 			style = MaterialTheme.typography.titleSmall,
 		)
 		SpacerL()
-		if (state.confirmedRefs.isEmpty() && state.suggestedRefs.isEmpty() && state.dismissedRefs.isEmpty()) {
+		if (state.confirmedRefs.isEmpty() && state.dismissedRefs.isEmpty()) {
 			Text(
 				Res.string.scene_editor_metadata_references_empty.get(),
 				style = MaterialTheme.typography.bodySmall,
@@ -190,50 +188,13 @@ private fun ReferencesSection(
 						label = { ChipLabel(type = ref.type, name = ref.name) },
 						trailingIcon = {
 							ChipAction(
-								onClick = { component.unconfirmReference(ref.id) },
+								onClick = { component.dismissReference(ref.id) },
 								icon = Icons.Filled.Close,
-								contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
+								contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
 								tint = MaterialTheme.colorScheme.onSurface,
 							)
 						},
 						selected = true,
-					)
-				}
-			}
-		}
-
-		if (state.suggestedRefs.isNotEmpty()) {
-			SpacerXL()
-			Text(
-				Res.string.scene_editor_metadata_references_suggested_label.get(),
-				style = MaterialTheme.typography.titleSmall,
-			)
-			SpacerL()
-			FlowRow(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-			) {
-				for (ref in state.suggestedRefs) {
-					AssistChip(
-						onClick = { component.navigateToEntry(ref.entryDef) },
-						label = { ChipLabel(type = ref.entryDef.type, name = ref.entryDef.name) },
-						leadingIcon = {
-							ChipAction(
-								onClick = { component.confirmReference(ref.entryDef.id) },
-								icon = Icons.Filled.Check,
-								contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
-								tint = MaterialTheme.colorScheme.primary,
-							)
-						},
-						trailingIcon = {
-							ChipAction(
-								onClick = { component.dismissReference(ref.entryDef.id) },
-								icon = Icons.Filled.Close,
-								contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
-								tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						},
 					)
 				}
 			}

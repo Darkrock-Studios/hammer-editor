@@ -28,8 +28,6 @@ private fun SceneMetadataPanelUiPreview() {
 			override fun updateNotes(text: String) {}
 			override fun updateDraftName(text: String) {}
 			override fun validateDraftName(text: String) = true
-			override fun confirmReference(entryId: Int) {}
-			override fun unconfirmReference(entryId: Int) {}
 			override fun dismissReference(entryId: Int) {}
 			override fun restoreDismissedReference(entryId: Int) {}
 			override fun navigateToEntry(entryDef: com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef) {}

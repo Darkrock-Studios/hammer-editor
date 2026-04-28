@@ -14,11 +14,12 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
@@ -44,6 +45,7 @@ class SceneEditorComponent(
 	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
+	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()
 
 	private val spellCheckRepository: SpellCheckRepository by inject()
 
@@ -153,8 +155,13 @@ class SceneEditorComponent(
 		}
 	}
 
-	override suspend fun storeSceneContent() =
-		sceneEditor.storeSceneBuffer(sceneDef)
+	override suspend fun storeSceneContent(): Boolean {
+		// Auto-confirm reference matches before flushing the buffer. Running this
+		// first lets the resulting metadata write piggyback on the same dirty-mark
+		// that the buffer save will trigger, instead of fighting it for the hash.
+		autoConfirmReferences(sceneDef)
+		return sceneEditor.storeSceneBuffer(sceneDef)
+	}
 
 	override fun onContentChanged(content: PlatformRichText) {
 		sceneEditor.onContentChanged(
