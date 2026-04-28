@@ -202,6 +202,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			extraBufferCapacity = 1,
 			onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		).apply { tryEmit(listOf(def)) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 
 		val repo = createRepository()
 		repo.setQuery("aragorn")
@@ -220,6 +221,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			extraBufferCapacity = 1,
 			onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		).apply { tryEmit(listOf(def)) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 		every { encyclopedia.loadEntry(def) } returns EntryContainer(
 			EntryContent(
 				id = 12,

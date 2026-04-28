@@ -28,13 +28,15 @@ interface ViewEntry {
 		val appearsIn: List<Appearance> = emptyList(),
 	)
 
-	enum class AppearanceSource { Scene }
-
 	data class Appearance(
-		val source: AppearanceSource,
 		val name: String,
-		val sceneItem: SceneItem? = null,
+		val sceneItem: SceneItem,
+		val source: AppearanceSource = AppearanceSource.Scene,
 	)
+
+	enum class AppearanceSource {
+		Scene,
+	}
 
 	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent

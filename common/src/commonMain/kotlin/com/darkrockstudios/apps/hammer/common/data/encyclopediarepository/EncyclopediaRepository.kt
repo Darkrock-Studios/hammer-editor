@@ -105,6 +105,12 @@ class EncyclopediaRepository(
 		updateEntries(entryDefs)
 	}
 
+	suspend fun ensureEntriesLoaded(): List<EntryDef> {
+		entryListFlow.replayCache.firstOrNull()?.let { return it }
+		loadEntriesImperative()
+		return entryListFlow.replayCache.firstOrNull().orEmpty()
+	}
+
 	fun loadEntry(entryDef: EntryDef): EntryContainer {
 		val path = datasource.getEntryPath(entryDef)
 		return datasource.loadEntry(path)

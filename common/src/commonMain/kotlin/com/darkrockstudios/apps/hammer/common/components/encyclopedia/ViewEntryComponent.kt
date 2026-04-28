@@ -66,9 +66,9 @@ class ViewEntryComponent(
 					.mapNotNull { id ->
 						sceneEditorRepository.getSceneItemFromIdIncludingArchived(id)?.let { item ->
 							ViewEntry.Appearance(
-								source = ViewEntry.AppearanceSource.Scene,
 								name = item.name,
 								sceneItem = item,
+								source = ViewEntry.AppearanceSource.Scene,
 							)
 						}
 					}
@@ -333,10 +333,7 @@ class ViewEntryComponent(
 	}
 
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {
-		when (appearance.source) {
-			ViewEntry.AppearanceSource.Scene ->
-				appearance.sceneItem?.let { showScene(it) }
-		}
+		showScene(appearance.sceneItem)
 	}
 
 	private fun getMenuId(): String {
