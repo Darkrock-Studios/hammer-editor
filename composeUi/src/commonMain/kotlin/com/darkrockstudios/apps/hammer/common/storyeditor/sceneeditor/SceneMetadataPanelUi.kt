@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -185,16 +187,12 @@ private fun ReferencesSection(
 						onClick = { component.navigateToEntry(ref) },
 						label = { Text(ref.name) },
 						trailingIcon = {
-							IconButton(
+							ChipAction(
 								onClick = { component.unconfirmReference(ref.id) },
-								modifier = Modifier.size(24.dp),
-							) {
-								Icon(
-									Icons.Filled.Close,
-									contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
-									tint = MaterialTheme.colorScheme.onSurface,
-								)
-							}
+								icon = Icons.Filled.Close,
+								contentDescription = Res.string.scene_editor_metadata_references_unconfirm.get(),
+								tint = MaterialTheme.colorScheme.onSurface,
+							)
 						},
 						selected = true,
 					)
@@ -219,28 +217,20 @@ private fun ReferencesSection(
 						onClick = { component.navigateToEntry(ref.entryDef) },
 						label = { Text(ref.entryDef.name) },
 						leadingIcon = {
-							IconButton(
+							ChipAction(
 								onClick = { component.confirmReference(ref.entryDef.id) },
-								modifier = Modifier.size(24.dp),
-							) {
-								Icon(
-									Icons.Filled.Check,
-									contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
-									tint = MaterialTheme.colorScheme.primary,
-								)
-							}
+								icon = Icons.Filled.Check,
+								contentDescription = Res.string.scene_editor_metadata_references_confirm.get(),
+								tint = MaterialTheme.colorScheme.primary,
+							)
 						},
 						trailingIcon = {
-							IconButton(
+							ChipAction(
 								onClick = { component.dismissReference(ref.entryDef.id) },
-								modifier = Modifier.size(24.dp),
-							) {
-								Icon(
-									Icons.Filled.Close,
-									contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
-									tint = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
+								icon = Icons.Filled.Close,
+								contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
+								tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
 						},
 					)
 				}
@@ -267,16 +257,12 @@ private fun ReferencesSection(
 								onClick = { component.navigateToEntry(ref) },
 								label = { Text(ref.name) },
 								trailingIcon = {
-									IconButton(
+									ChipAction(
 										onClick = { component.restoreDismissedReference(ref.id) },
-										modifier = Modifier.size(24.dp),
-									) {
-										Icon(
-											Icons.Filled.Add,
-											contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
-											tint = MaterialTheme.colorScheme.onSurfaceVariant,
-										)
-									}
+										icon = Icons.Filled.Add,
+										contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
+										tint = MaterialTheme.colorScheme.onSurfaceVariant,
+									)
 								},
 							)
 						}
@@ -284,6 +270,18 @@ private fun ReferencesSection(
 				}
 			)
 		}
+	}
+}
+
+@Composable
+private fun ChipAction(
+	onClick: () -> Unit,
+	icon: ImageVector,
+	contentDescription: String,
+	tint: Color,
+) {
+	IconButton(onClick = onClick, modifier = Modifier.size(24.dp)) {
+		Icon(icon, contentDescription = contentDescription, tint = tint)
 	}
 }
 

@@ -123,10 +123,12 @@ class ReferenceIndexServiceTest : BaseTest() {
 	}
 
 	private fun stubEntries(entries: List<EntryContent>) {
+		val defs = entries.map { it.toDef(projectDef) }
 		val flow = MutableSharedFlow<List<EntryDef>>(
 			replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-		).apply { tryEmit(entries.map { it.toDef(projectDef) }) }
+		).apply { tryEmit(defs) }
 		every { encyclopedia.entryListFlow } returns flow
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns defs
 		for (entry in entries) {
 			every { encyclopedia.loadEntry(entry.toDef(projectDef)) } returns EntryContainer(entry)
 		}

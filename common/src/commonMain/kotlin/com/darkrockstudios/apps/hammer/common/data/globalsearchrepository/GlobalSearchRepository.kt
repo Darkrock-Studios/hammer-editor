@@ -145,7 +145,7 @@ class GlobalSearchRepository(
 	}
 
 	private suspend fun searchEncyclopedia(query: String): List<SearchResult> {
-		val entries = collectEntryDefs() ?: return emptyList()
+		val entries = collectEntryDefs()
 		return entries
 			.mapNotNull { def -> matchEncyclopediaEntry(def, query) }
 			.take(PER_SOURCE_CAP)
@@ -186,12 +186,7 @@ class GlobalSearchRepository(
 		)
 	}
 
-	private suspend fun collectEntryDefs(): List<EntryDef>? {
-		val replay = encyclopedia.entryListFlow.replayCache.firstOrNull()
-		if (replay != null) return replay
-		encyclopedia.loadEntriesImperative()
-		return encyclopedia.entryListFlow.replayCache.firstOrNull()
-	}
+	private suspend fun collectEntryDefs(): List<EntryDef> = encyclopedia.ensureEntriesLoaded()
 
 	private suspend fun searchScenes(query: String): List<SearchResult> {
 		val scenes = sceneEditor.getScenes().filter { it.type == SceneItem.Type.Scene }

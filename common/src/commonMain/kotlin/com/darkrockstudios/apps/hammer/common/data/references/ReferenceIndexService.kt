@@ -9,8 +9,13 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -47,8 +53,16 @@ class ReferenceIndexService(
 	private val _isCalculating = MutableStateFlow(false)
 	val isCalculating: StateFlow<Boolean> = _isCalculating.asStateFlow()
 
+	private val matchableCacheLock = reentrantLock()
+	private var matchableCache: List<MatchableEntry>? = null
+
 	init {
 		projectScope.scope.registerCallback(this)
+		serviceScope.launch {
+			encyclopediaRepository.entryListFlow.collect {
+				matchableCacheLock.withLock { matchableCache = null }
+			}
+		}
 	}
 
 	suspend fun loadIndex(): ReferenceIndex {
@@ -120,24 +134,8 @@ class ReferenceIndexService(
 		val confirmed = metadata?.confirmedReferences.orEmpty()
 		val dismissed = metadata?.dismissedReferences.orEmpty()
 
-		// The encyclopedia is loaded lazily — if no one has opened the encyclopedia
-		// browser yet, the entry list flow has no value and `.first()` would block
-		// forever. Trigger an imperative load if the cache is empty.
-		if (encyclopediaRepository.entryListFlow.replayCache.isEmpty()) {
-			encyclopediaRepository.loadEntriesImperative()
-		}
-		val entries = encyclopediaRepository.entryListFlow.first()
-			.filter { it.type in config.enabledEntryTypes }
-
-		if (entries.isEmpty()) return emptyList()
-
-		val matchable = entries.map { entryDef ->
-			val container = encyclopediaRepository.loadEntry(entryDef)
-			MatchableEntry(
-				entryId = entryDef.id,
-				names = listOf(entryDef.name) + container.entry.aliases,
-			)
-		}
+		val matchable = matchableEntries()
+		if (matchable.isEmpty()) return emptyList()
 
 		val hits = matcher.findMatches(sceneText, matchable)
 		if (hits.isEmpty()) return emptyList()
@@ -151,6 +149,31 @@ class ReferenceIndexService(
 			}
 		}
 		return firstHitByEntry.values.toList()
+	}
+
+	private suspend fun matchableEntries(): List<MatchableEntry> {
+		matchableCacheLock.withLock { matchableCache }?.let { return it }
+
+		val entries = encyclopediaRepository.ensureEntriesLoaded()
+			.filter { it.type in config.enabledEntryTypes }
+		if (entries.isEmpty()) {
+			matchableCacheLock.withLock { matchableCache = emptyList() }
+			return emptyList()
+		}
+
+		val rebuilt = coroutineScope {
+			entries.map { entryDef ->
+				async {
+					val container = encyclopediaRepository.loadEntry(entryDef)
+					MatchableEntry(
+						entryId = entryDef.id,
+						names = listOf(entryDef.name) + container.entry.aliases,
+					)
+				}
+			}.awaitAll()
+		}
+		matchableCacheLock.withLock { matchableCache = rebuilt }
+		return rebuilt
 	}
 
 	private fun accumulate(map: MutableMap<Int, MutableSet<Int>>, sceneId: Int, entryIds: Set<Int>) {

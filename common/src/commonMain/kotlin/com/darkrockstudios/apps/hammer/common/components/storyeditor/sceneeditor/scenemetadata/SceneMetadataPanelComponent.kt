@@ -115,11 +115,18 @@ class SceneMetadataPanelComponent(
 
 		withContext(dispatcherMain) {
 			_state.getAndUpdate {
-				it.copy(
-					confirmedRefs = confirmed,
-					dismissedRefs = dismissed,
-					suggestedRefs = suggestions,
-				)
+				if (it.confirmedRefs == confirmed &&
+					it.dismissedRefs == dismissed &&
+					it.suggestedRefs == suggestions
+				) {
+					it
+				} else {
+					it.copy(
+						confirmedRefs = confirmed,
+						dismissedRefs = dismissed,
+						suggestedRefs = suggestions,
+					)
+				}
 			}
 		}
 	}
