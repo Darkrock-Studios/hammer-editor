@@ -149,6 +149,9 @@ private fun LocalEntry(
 				)
 			}
 		}
+
+		Spacer(Modifier.size(Ui.Padding.M))
+		AliasesSection(entityConflict.clientEntity.aliases)
 	}
 }
 
@@ -249,6 +252,33 @@ fun RemoteEntry(
 					selected = false
 				)
 			}
+		}
+
+		Spacer(Modifier.size(Ui.Padding.M))
+		AliasesSection(entityConflict.serverEntity.aliases)
+	}
+}
+
+/**
+ * Read-only chip list of aliases. Aliases ride along with whichever side the
+ * user picks (consistent with how `tags` already work).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AliasesSection(aliases: List<String>) {
+	Text(
+		Res.string.sync_conflict_encyclopedia_label_aliases.get(),
+		style = MaterialTheme.typography.bodyLarge,
+		fontWeight = FontWeight.Bold,
+	)
+	FlowRow {
+		aliases.forEach { alias ->
+			InputChip(
+				onClick = {},
+				label = { Text(alias) },
+				enabled = true,
+				selected = false,
+			)
 		}
 	}
 }

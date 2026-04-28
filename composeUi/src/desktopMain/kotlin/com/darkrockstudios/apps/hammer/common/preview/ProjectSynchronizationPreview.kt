@@ -120,6 +120,7 @@ private fun previewProjectSyncComponent(conflict: ProjectSynchronization.EntityC
 		override fun cancelSync() {}
 		override fun showLog(show: Boolean) {}
 		override fun onUnauthorized() {}
+		override fun resolveEntryRef(id: Int) = null
 	}
 
 	compoent.state.update {
@@ -187,6 +188,7 @@ private fun RemotePreview() {
 			override fun cancelSync() {}
 			override fun showLog(show: Boolean) {}
 			override fun onUnauthorized() {}
+			override fun resolveEntryRef(id: Int) = null
 		}
 	)
 }

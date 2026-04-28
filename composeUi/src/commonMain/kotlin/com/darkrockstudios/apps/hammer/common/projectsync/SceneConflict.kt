@@ -12,17 +12,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
+import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
+import com.darkrockstudios.apps.hammer.common.encyclopedia.UnknownEntryRefChipLabel
 import kotlinx.coroutines.launch
 
 private enum class SceneConflictTab {
 	CONTENT,
-	METADATA
+	METADATA,
+	REFERENCES
 }
 
 @Composable
@@ -134,22 +139,17 @@ private fun LocalScene(
 						modifier = Modifier.fillMaxWidth().weight(1f)
 					)
 				}
+				SceneConflictTab.REFERENCES -> {
+					ReferencesTabBody(
+						confirmedIds = entityConflict.clientEntity.confirmedReferences,
+						dismissedIds = entityConflict.clientEntity.dismissedReferences,
+						component = component,
+					)
+				}
 			}
 		}
 
-		// Bottom tabs
-		TabRow(selectedTabIndex = selectedTab.ordinal) {
-			Tab(
-				text = { Text(Res.string.sync_conflict_scene_tab_content.get()) },
-				selected = selectedTab == SceneConflictTab.CONTENT,
-				onClick = { selectedTab = SceneConflictTab.CONTENT }
-			)
-			Tab(
-				text = { Text(Res.string.sync_conflict_scene_tab_metadata.get()) },
-				selected = selectedTab == SceneConflictTab.METADATA,
-				onClick = { selectedTab = SceneConflictTab.METADATA }
-			)
-		}
+		SceneConflictTabRow(selectedTab) { selectedTab = it }
 	}
 }
 
@@ -230,20 +230,111 @@ private fun RemoteScene(
 						)
 					}
 				}
+				SceneConflictTab.REFERENCES -> {
+					ReferencesTabBody(
+						confirmedIds = entityConflict.serverEntity.confirmedReferences,
+						dismissedIds = entityConflict.serverEntity.dismissedReferences,
+						component = component,
+					)
+				}
 			}
 		}
 
-		// Bottom tabs
-		TabRow(selectedTabIndex = selectedTab.ordinal) {
-			Tab(
-				text = { Text(Res.string.sync_conflict_scene_tab_content.get()) },
-				selected = selectedTab == SceneConflictTab.CONTENT,
-				onClick = { selectedTab = SceneConflictTab.CONTENT }
-			)
-			Tab(
-				text = { Text(Res.string.sync_conflict_scene_tab_metadata.get()) },
-				selected = selectedTab == SceneConflictTab.METADATA,
-				onClick = { selectedTab = SceneConflictTab.METADATA }
+		SceneConflictTabRow(selectedTab) { selectedTab = it }
+	}
+}
+
+@Composable
+private fun SceneConflictTabRow(
+	selected: SceneConflictTab,
+	onSelect: (SceneConflictTab) -> Unit,
+) {
+	TabRow(selectedTabIndex = selected.ordinal) {
+		Tab(
+			text = { Text(Res.string.sync_conflict_scene_tab_content.get()) },
+			selected = selected == SceneConflictTab.CONTENT,
+			onClick = { onSelect(SceneConflictTab.CONTENT) }
+		)
+		Tab(
+			text = { Text(Res.string.sync_conflict_scene_tab_metadata.get()) },
+			selected = selected == SceneConflictTab.METADATA,
+			onClick = { onSelect(SceneConflictTab.METADATA) }
+		)
+		Tab(
+			text = { Text(Res.string.sync_conflict_scene_tab_references.get()) },
+			selected = selected == SceneConflictTab.REFERENCES,
+			onClick = { onSelect(SceneConflictTab.REFERENCES) }
+		)
+	}
+}
+
+/**
+ * Read-only chip lists of confirmed and dismissed reference IDs. Renders the
+ * same way on both Local and Remote panels - reference sets ride along with
+ * whichever side the user picks (consistent with how `tags` already work).
+ *
+ * Unresolvable IDs (entry not yet delivered to this client, or deleted
+ * locally) render as `Unknown #id` with a broken-link icon so the user can
+ * still see something exists, and won't crash the UI by trying to look up
+ * a name that isn't there.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReferencesTabBody(
+	confirmedIds: Set<Int>,
+	dismissedIds: Set<Int>,
+	component: ProjectSynchronization,
+) {
+	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
+		Text(
+			Res.string.sync_conflict_references_confirmed_label.get(),
+			style = MaterialTheme.typography.titleSmall,
+		)
+		SpacerL()
+		ReferenceChipFlow(ids = confirmedIds, component = component)
+
+		Spacer(Modifier.size(Ui.Padding.L))
+
+		Text(
+			Res.string.sync_conflict_references_dismissed_label.get(),
+			style = MaterialTheme.typography.titleSmall,
+		)
+		SpacerL()
+		ReferenceChipFlow(ids = dismissedIds, component = component)
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReferenceChipFlow(
+	ids: Set<Int>,
+	component: ProjectSynchronization,
+) {
+	if (ids.isEmpty()) {
+		Text(
+			Res.string.sync_conflict_references_empty.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		return
+	}
+	FlowRow(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+		verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+	) {
+		for (id in ids) {
+			val def = component.resolveEntryRef(id)
+			AssistChip(
+				onClick = {},
+				enabled = false,
+				label = {
+					if (def != null) {
+						EntryRefChipLabel(type = def.type, name = def.name)
+					} else {
+						UnknownEntryRefChipLabel(id = id)
+					}
+				},
 			)
 		}
 	}

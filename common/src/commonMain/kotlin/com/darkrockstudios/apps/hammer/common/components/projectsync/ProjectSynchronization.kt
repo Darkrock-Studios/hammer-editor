@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.Msg
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import org.jetbrains.compose.resources.StringResource
 
@@ -15,6 +16,15 @@ interface ProjectSynchronization {
 	fun cancelSync()
 	fun showLog(show: Boolean)
 	fun onUnauthorized()
+
+	/**
+	 * Resolves an encyclopedia entry id to its local [EntryDef], or null if this
+	 * client doesn't have the entry yet (sync ordering can deliver scene metadata
+	 * referencing an entry before the entry itself arrives, or after it was
+	 * deleted locally). The conflict UI uses this to render reference chips
+	 * with names when possible and an "Unknown #id" fallback otherwise.
+	 */
+	fun resolveEntryRef(id: Int): EntryDef?
 
 	data class State(
 		val syncProgress: Float = 0f,
