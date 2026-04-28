@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.base.http
 
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -9,6 +10,14 @@ import kotlin.time.Instant
 sealed interface ApiProjectEntity {
 	val type: Type
 	val id: Int
+
+	/**
+	 * Canonical hash for this entity. Implementations live in the same file as the
+	 * field declarations so that adding a field forces the author to update the
+	 * hash impl right below it. Defended structurally by [EntityHashSensitivityTest]
+	 * which fails if any serialized field is silently absent from the digest.
+	 */
+	fun hash(): String
 
 	@Serializable
 	data class SceneEntity(
@@ -24,7 +33,21 @@ sealed interface ApiProjectEntity {
 		val archived: Boolean = false,
 		val confirmedReferences: Set<Int> = emptySet(),
 		val dismissedReferences: Set<Int> = emptySet(),
-	) : ApiProjectEntity
+	) : ApiProjectEntity {
+		override fun hash(): String = EntityHasher.hashScene(
+			id = id,
+			order = order,
+			path = path,
+			name = name,
+			type = sceneType,
+			content = content,
+			outline = outline,
+			notes = notes,
+			archived = archived,
+			confirmedReferences = confirmedReferences,
+			dismissedReferences = dismissedReferences,
+		)
+	}
 
 	@Serializable
 	data class NoteEntity(
@@ -32,7 +55,13 @@ sealed interface ApiProjectEntity {
 		override val id: Int,
 		val content: String,
 		val created: Instant
-	) : ApiProjectEntity
+	) : ApiProjectEntity {
+		override fun hash(): String = EntityHasher.hashNote(
+			id = id,
+			created = created,
+			content = content,
+		)
+	}
 
 	@Serializable
 	data class TimelineEventEntity(
@@ -41,7 +70,14 @@ sealed interface ApiProjectEntity {
 		val order: Int,
 		val date: String?,
 		val content: String
-	) : ApiProjectEntity
+	) : ApiProjectEntity {
+		override fun hash(): String = EntityHasher.hashTimelineEvent(
+			id = id,
+			order = order,
+			content = content,
+			date = date,
+		)
+	}
 
 	@Serializable
 	data class EncyclopediaEntryEntity(
@@ -59,6 +95,16 @@ sealed interface ApiProjectEntity {
 			val base64: String,
 			val fileExtension: String,
 		)
+
+		override fun hash(): String = EntityHasher.hashEncyclopediaEntry(
+			id = id,
+			name = name,
+			entryType = entryType,
+			text = text,
+			tags = tags,
+			image = image,
+			aliases = aliases,
+		)
 	}
 
 	@Serializable
@@ -69,7 +115,15 @@ sealed interface ApiProjectEntity {
 		val created: Instant,
 		val name: String,
 		val content: String
-	) : ApiProjectEntity
+	) : ApiProjectEntity {
+		override fun hash(): String = EntityHasher.hashSceneDraft(
+			id = id,
+			sceneId = sceneId,
+			created = created,
+			name = name,
+			content = content,
+		)
+	}
 
 	enum class Type(val id: Int) {
 		SCENE(0),

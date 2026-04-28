@@ -107,7 +107,7 @@ class EntityHasherExtTest {
 
 		testScenes.forEach { scene ->
 			// Hash using extension
-			val hashFromExtension = EntityHasher.hashEntity(scene)
+			val hashFromExtension = scene.hash()
 
 			// Hash using direct call with ALL parameters explicitly passed
 			val hashDirect = EntityHasher.hashScene(
@@ -164,7 +164,7 @@ class EntityHasherExtTest {
 		)
 
 		testDrafts.forEach { draft ->
-			val hashFromExtension = EntityHasher.hashEntity(draft)
+			val hashFromExtension = draft.hash()
 
 			val hashDirect = EntityHasher.hashSceneDraft(
 				id = draft.id,
@@ -212,7 +212,7 @@ class EntityHasherExtTest {
 		)
 
 		testNotes.forEach { note ->
-			val hashFromExtension = EntityHasher.hashEntity(note)
+			val hashFromExtension = note.hash()
 
 			val hashDirect = EntityHasher.hashNote(
 				id = note.id,
@@ -262,7 +262,7 @@ class EntityHasherExtTest {
 		)
 
 		testEvents.forEach { event ->
-			val hashFromExtension = EntityHasher.hashEntity(event)
+			val hashFromExtension = event.hash()
 
 			val hashDirect = EntityHasher.hashTimelineEvent(
 				id = event.id,
@@ -359,7 +359,7 @@ class EntityHasherExtTest {
 		)
 
 		testEntries.forEach { entry ->
-			val hashFromExtension = EntityHasher.hashEntity(entry)
+			val hashFromExtension = entry.hash()
 
 			val hashDirect = EntityHasher.hashEncyclopediaEntry(
 				id = entry.id,

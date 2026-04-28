@@ -2,11 +2,9 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -155,7 +153,7 @@ class ProjectEntityDatabaseDatasource(
 		serializer: KSerializer<T>
 	): SResult<Unit> {
 		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		val hash = EntityHasher.hashEntity(entity)
+		val hash = entity.hash()
 		val jsonString: String = json.encodeToString(serializer, entity)
 
 		val account = accountDao.getAccount(userId) ?: error("User not found $userId")

@@ -16,7 +16,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	protected val datasource: ProjectEntityDatasource
 ) {
 	abstract val entityType: ApiProjectEntity.Type
-	abstract fun hashEntity(entity: T): String
+	open fun hashEntity(entity: T): String = entity.hash()
 	abstract val entityClazz: KClass<T>
 	abstract val pathStub: String
 

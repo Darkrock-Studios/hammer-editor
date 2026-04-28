@@ -3,10 +3,8 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
@@ -83,14 +81,14 @@ class ServerNoteSynchronizerTest :
 				capture(entityHashIdSlot),
 			)
 		} answers {
-			return@answers SResult.success(EntityHasher.hashEntity(entities[entityHashIdSlot.captured - 1]))
+			return@answers SResult.success(entities[entityHashIdSlot.captured - 1].hash())
 		}
 
 		val clientState = ClientEntityState(
 			entities = setOf(
-				EntityHash(1, EntityHasher.hashEntity(entities[0])),
-				EntityHash(2, EntityHasher.hashEntity(entities[1])),
-				EntityHash(3, EntityHasher.hashEntity(entities[2])),
+				EntityHash(1, entities[0].hash()),
+				EntityHash(2, entities[1].hash()),
+				EntityHash(3, entities[2].hash()),
 			)
 		)
 
