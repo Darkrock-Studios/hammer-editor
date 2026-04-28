@@ -37,9 +37,14 @@ object EntityHasher {
 		d.update(outline, buf)
 		d.update(notes, buf)
 		d.update(if (archived) 1 else 0, buf)
+		// Size prefix delimits the two sections - without it, {confirmed=[7], dismissed=[]}
+		// would hash identically to {confirmed=[], dismissed=[7]} and confirm/dismiss
+		// transitions would never propagate through sync.
+		d.update(confirmedReferences.size, buf)
 		for (ref in confirmedReferences.sorted()) {
 			d.update(ref, buf)
 		}
+		d.update(dismissedReferences.size, buf)
 		for (ref in dismissedReferences.sorted()) {
 			d.update(ref, buf)
 		}

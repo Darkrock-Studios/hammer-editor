@@ -143,6 +143,118 @@ class EntityHasherTest {
 	}
 
 	@Test
+	fun `hashScene differs when confirmedReferences differ`() {
+		val base = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = setOf(1, 2),
+		)
+		val different = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = setOf(1, 3),
+		)
+		assertNotEquals(
+			base, different,
+			"hashScene must include confirmedReferences in the digest"
+		)
+	}
+
+	@Test
+	fun `hashScene confirmedReferences is order-independent`() {
+		// Defends against a Set-iteration-order regression - the impl must sort before hashing
+		val a = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = linkedSetOf(1, 2, 3),
+		)
+		val b = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = linkedSetOf(3, 1, 2),
+		)
+		assertEquals(a, b, "confirmedReferences must be sorted before hashing for stability")
+	}
+
+	@Test
+	fun `hashScene differs when dismissedReferences differ`() {
+		val base = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			dismissedReferences = setOf(5),
+		)
+		val different = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			dismissedReferences = setOf(5, 6),
+		)
+		assertNotEquals(
+			base, different,
+			"hashScene must include dismissedReferences in the digest"
+		)
+	}
+
+	@Test
+	fun `hashScene confirmed and dismissed contribute distinctly`() {
+		// Defends against a swapped-arg regression where confirmed and dismissed get
+		// folded in identically - the same id sets in opposite slots must hash differently.
+		val confirmedOne = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = setOf(7),
+			dismissedReferences = emptySet(),
+		)
+		val dismissedOne = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			confirmedReferences = emptySet(),
+			dismissedReferences = setOf(7),
+		)
+		assertNotEquals(
+			confirmedOne, dismissedOne,
+			"confirmedReferences and dismissedReferences must contribute distinctly to the hash"
+		)
+	}
+
+	@Test
+	fun `hashEncyclopediaEntry differs when aliases differ`() {
+		val base = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = listOf("Bob"),
+		)
+		val different = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = listOf("Bob", "Bobby"),
+		)
+		assertNotEquals(
+			base, different,
+			"hashEncyclopediaEntry must include aliases in the digest"
+		)
+	}
+
+	@Test
+	fun `hashEncyclopediaEntry alias order is significant`() {
+		// aliases is a List, not a Set - reordering is a meaningful change that should
+		// propagate through sync so two clients with reordered aliases don't silently diverge.
+		val a = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = listOf("Bob", "Bobby"),
+		)
+		val b = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = listOf("Bobby", "Bob"),
+		)
+		assertNotEquals(
+			a, b,
+			"aliases is ordered (List) - reordering must change the hash so reorderings sync"
+		)
+	}
+
+	@Test
 	fun hashSceneDefaultArchivedMatchesExplicitFalse() {
 		// Hash with default archived (should be false)
 		val hashDefault = EntityHasher.hashScene(
