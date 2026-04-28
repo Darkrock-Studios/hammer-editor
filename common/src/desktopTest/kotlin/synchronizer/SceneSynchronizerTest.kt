@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.fromApiEntity
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 class SceneSynchronizerTest : BaseTest() {
@@ -368,6 +371,45 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		kotlin.test.assertTrue(owns, "Should own archived scene")
+	}
+
+	@Test
+	fun `getEntityHash - confirmedReferences in scene metadata change the hash`() = runTest {
+		// Defends against a regression where SceneMetadata.confirmedReferences stops being
+		// fed into the sync hash. If that breaks, two clients silently never converge on
+		// reference state because the change-detection layer thinks nothing changed.
+		val sceneId = 42
+		val sceneItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Scene With Refs",
+			order = 0,
+		)
+		val filePath = HPath("/scene.md", "scene.md", false)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns sceneItem
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns null
+		every { sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId) } returns filePath
+		every { sceneEditorRepository.getScenePathSegments(filePath) } returns ScenePathSegments(listOf(0))
+		coEvery { sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, filePath) } returns "scene text"
+
+		val sync = defaultSceneSynchronizer()
+
+		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+			SceneMetadata(confirmedReferences = setOf(1, 2))
+		val hashWithRefs = sync.getEntityHash(sceneId)
+
+		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+			SceneMetadata(confirmedReferences = emptySet())
+		val hashWithoutRefs = sync.getEntityHash(sceneId)
+
+		assertNotNull(hashWithRefs)
+		assertNotNull(hashWithoutRefs)
+		assertNotEquals(
+			hashWithRefs, hashWithoutRefs,
+			"Scene sync hash must change when confirmedReferences changes, or sync will silently drop the field"
+		)
 	}
 
 	@Test
