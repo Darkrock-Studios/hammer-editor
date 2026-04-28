@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.getPlatformName
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguage
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguageOrNull
 import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
@@ -99,6 +101,23 @@ class GlobalSettingsRepository(
 		return serverSettingsUpdates.first()?.userId
 			?: throw IllegalStateException("Server settings missing")
 	}
+
+	/**
+	 * Returns the stable per-install device id, generating and persisting one
+	 * on first call. This identifier is purely local — no server registration
+	 * is required, so it works fine for users without sync configured.
+	 */
+	suspend fun ensureDeviceId(): String {
+		globalSettings.deviceId?.let { return it }
+		updateSettings { current ->
+			if (current.deviceId == null) current.copy(deviceId = Uuid.random().toString())
+			else current
+		}
+		return checkNotNull(globalSettings.deviceId) { "deviceId should be set after ensureDeviceId" }
+	}
+
+	/** Friendly label for this device. Falls back to the platform name when unset. */
+	fun deviceLabelOrDefault(): String = globalSettings.deviceLabel ?: getPlatformName()
 
 	companion object {
 		const val DEFAULT_PROJECTS_DIR = "HammerProjects"

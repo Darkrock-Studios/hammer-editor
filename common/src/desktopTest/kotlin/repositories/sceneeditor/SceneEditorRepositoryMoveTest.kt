@@ -146,6 +146,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
 		)
 
 		runBlocking {
@@ -347,6 +348,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
 		)
 		repo.initializeSceneEditor()
 

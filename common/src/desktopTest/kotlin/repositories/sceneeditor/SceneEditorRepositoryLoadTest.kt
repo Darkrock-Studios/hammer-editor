@@ -112,6 +112,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
 		)
 	}
 

@@ -28,6 +28,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
@@ -50,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -90,6 +94,7 @@ val mainModule = module {
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)
 	singleOf(::ServerProjectsApi)
+	singleOf(::WritingActivityApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -153,6 +158,10 @@ val mainModule = module {
 		scopedOf(::StatisticsRepository)
 		scopedOf(::StatisticsService)
 
+		scopedOf(::WritingActivityDatasource)
+		scopedOf(::WritingActivityRepository)
+		scopedOf(::WritingSessionTracker)
+
 		scopedOf(::ReferenceIndexDatasource)
 		scopedOf(::ReferenceIndexRepository)
 		scopedOf(::ReferenceIndexService)
@@ -179,6 +188,7 @@ val mainModule = module {
 		factoryOf(::IdConflictResolutionOperation)
 		factoryOf(::EntityDeleteOperation)
 		factoryOf(::EntityTransferOperation)
+		factoryOf(::WritingActivitySyncOperation)
 		factoryOf(::FinalizeSyncOperation)
 
 		scopedOf(::SyncDataRepository)

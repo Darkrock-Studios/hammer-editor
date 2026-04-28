@@ -108,6 +108,7 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
+			writingSessionTracker = mockk(relaxed = true),
 		)
 	}
 

@@ -79,6 +79,9 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var entityTransferOperation: EntityTransferOperation
 
 	@MockK
+	private lateinit var writingActivitySyncOperation: WritingActivitySyncOperation
+
+	@MockK
 	private lateinit var finalizeSyncOperation: FinalizeSyncOperation
 
 	@BeforeEach
@@ -106,6 +109,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				factory { idConflictResolutionOperation }
 				factory { entityDeleteOperation }
 				factory { entityTransferOperation }
+				factory { writingActivitySyncOperation }
 				factory { finalizeSyncOperation }
 			}
 		})
@@ -190,6 +194,9 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any(),
 				any()
 			)
+		} returns result
+		coEvery {
+			writingActivitySyncOperation.execute(any(), any(), any(), any(), any())
 		} returns result
 		coEvery { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) } returns result
 
@@ -299,6 +306,9 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any(),
 				any()
 			)
+		} returns result
+		coEvery {
+			writingActivitySyncOperation.execute(any(), any(), any(), any(), any())
 		} returns result
 		coEvery { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) } returns result
 
@@ -417,6 +427,9 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any(),
 				any()
 			)
+		} returns result
+		coEvery {
+			writingActivitySyncOperation.execute(any(), any(), any(), any(), any())
 		} returns result
 		coEvery { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) } returns result
 
