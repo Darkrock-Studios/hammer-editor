@@ -50,8 +50,9 @@ class AccountUseCaseTest : BaseTest() {
 		unmockkStatic("com.darkrockstudios.apps.hammer.common.dependencyinjection.HttpKt")
 	}
 
-	private fun createSut(uuid: String = "test-uuid"): AccountUseCase {
-		return AccountUseCase(globalSettingsRepository, accountApi, httpClient, strRes) { uuid }
+	private fun createSut(installId: String = "test-uuid"): AccountUseCase {
+		coEvery { globalSettingsRepository.ensureInstallId() } returns installId
+		return AccountUseCase(globalSettingsRepository, accountApi, httpClient, strRes)
 	}
 
 	@Test
@@ -62,7 +63,6 @@ class AccountUseCaseTest : BaseTest() {
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
-			installId = "test-uuid",
 			bearerToken = token.auth,
 			refreshToken = token.refresh
 		)
@@ -114,7 +114,6 @@ class AccountUseCaseTest : BaseTest() {
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
-			installId = "test-uuid",
 			bearerToken = token.auth,
 			refreshToken = token.refresh
 		)
@@ -155,7 +154,6 @@ class AccountUseCaseTest : BaseTest() {
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
-			installId = "test-uuid",
 			bearerToken = token.auth,
 			refreshToken = token.refresh
 		)

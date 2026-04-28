@@ -42,7 +42,6 @@ class ServerSettingsDatasourceTest : BaseTest() {
 		url = "hammer.ink",
 		email = "test@example.com",
 		userId = 1,
-		installId = "abc123",
 		bearerToken = "zxc456",
 		refreshToken = "bnm789",
 	)

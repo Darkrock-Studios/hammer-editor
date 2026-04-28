@@ -103,17 +103,19 @@ class GlobalSettingsRepository(
 	}
 
 	/**
-	 * Returns the stable per-install device id, generating and persisting one
-	 * on first call. This identifier is purely local — no server registration
-	 * is required, so it works fine for users without sync configured.
+	 * Returns the stable per-install id, generating and persisting one on first
+	 * call. Used both as the server-side install identity (sent during login /
+	 * createAccount) and as the local writing-activity device id, so a single
+	 * install always presents the same identity in both contexts. Works without
+	 * a sync server — generation is purely local.
 	 */
-	suspend fun ensureDeviceId(): String {
-		globalSettings.deviceId?.let { return it }
+	suspend fun ensureInstallId(): String {
+		globalSettings.installId?.let { return it }
 		updateSettings { current ->
-			if (current.deviceId == null) current.copy(deviceId = Uuid.random().toString())
+			if (current.installId == null) current.copy(installId = Uuid.random().toString())
 			else current
 		}
-		return checkNotNull(globalSettings.deviceId) { "deviceId should be set after ensureDeviceId" }
+		return checkNotNull(globalSettings.installId) { "installId should be set after ensureInstallId" }
 	}
 
 	/** Friendly label for this device. Falls back to the platform name when unset. */

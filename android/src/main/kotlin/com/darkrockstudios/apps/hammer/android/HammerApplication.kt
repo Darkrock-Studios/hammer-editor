@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
@@ -44,7 +45,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 			)
 		}
 
-		getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+		runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 	}
 
 	override fun newImageLoader(context: coil3.PlatformContext): ImageLoader {
