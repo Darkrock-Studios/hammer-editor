@@ -51,7 +51,7 @@ class WritingSessionTrackerTest : BaseTest() {
 		datasource = WritingActivityDatasource(fileSystem, toml, projectDef)
 
 		globalSettingsRepository = mockk(relaxed = true)
-		coEvery { globalSettingsRepository.ensureDeviceId() } returns "device-test"
+		coEvery { globalSettingsRepository.ensureInstallId() } returns "device-test"
 		every { globalSettingsRepository.deviceLabelOrDefault() } returns "Test Device"
 
 		repository = WritingActivityRepository(datasource, globalSettingsRepository, projectDef)

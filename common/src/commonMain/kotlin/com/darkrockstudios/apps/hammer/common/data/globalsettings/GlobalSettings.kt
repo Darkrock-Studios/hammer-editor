@@ -31,7 +31,7 @@ data class GlobalSettings(
 			region = "US"
 		)
 	),
-	val deviceId: String? = null,
+	val installId: String? = null,
 	val deviceLabel: String? = null,
 ) {
 	companion object {

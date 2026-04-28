@@ -21,7 +21,7 @@ class WritingActivityRepository(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	/** Returns this device's id, generating and persisting it on first call. */
-	suspend fun ownDeviceId(): String = globalSettingsRepository.ensureDeviceId()
+	suspend fun ownDeviceId(): String = globalSettingsRepository.ensureInstallId()
 
 	/**
 	 * Loads this device's slot, returning an empty log labeled with the current

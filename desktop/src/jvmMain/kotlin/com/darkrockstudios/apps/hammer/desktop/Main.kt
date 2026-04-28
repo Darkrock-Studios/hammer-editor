@@ -79,7 +79,7 @@ fun main(args: Array<String>) {
 		modules(mainModule, imageLoadingModule, aboutLibrariesModule, appModule(appScope))
 	}
 
-	getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()

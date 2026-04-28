@@ -103,10 +103,12 @@ private suspend fun refreshToken(
 	val refreshToken = globalSettingsRepository.serverSettings?.refreshToken
 	val serverSettings =
 		globalSettingsRepository.serverSettings ?: throw IllegalStateException("No server URL")
+	val installId = globalSettingsRepository.ensureInstallId()
 	return if (refreshToken != null) {
 		val result = refreshTokenRequest(
 			httpClient = client,
 			serverSettings = serverSettings,
+			installId = installId,
 			refreshToken = refreshToken,
 		)
 
@@ -157,6 +159,7 @@ fun HttpRequestBuilder.url(serverSettings: ServerSettings, path: String) {
 private suspend fun refreshTokenRequest(
 	httpClient: HttpClient,
 	serverSettings: ServerSettings,
+	installId: String,
 	refreshToken: String,
 ): Result<Token> {
 	return try {
@@ -168,7 +171,7 @@ private suspend fun refreshTokenRequest(
 				FormDataContent(
 					Parameters.build {
 						append("refreshToken", refreshToken)
-						append("installId", serverSettings.installId)
+						append("installId", installId)
 					}
 				)
 			)
