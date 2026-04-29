@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
@@ -32,6 +33,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	protected lateinit var projectEntityRepository: ProjectEntityRepository
+
+	@MockK(relaxed = true)
+	protected lateinit var serverWritingActivityRepository: ServerWritingActivityRepository
 
 	@MockK(relaxed = true)
 	protected lateinit var projectAccessRepository: ProjectAccessRepository
@@ -80,6 +84,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { accountsRepository }
 			single { whiteListRepository }
 			single { projectEntityRepository }
+			single { serverWritingActivityRepository }
 			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }

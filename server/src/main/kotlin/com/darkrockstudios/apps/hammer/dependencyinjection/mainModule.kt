@@ -75,11 +75,13 @@ fun mainModule(
 	singleOf(::ServerConfigDao)
 	singleOf(::ProjectAccessDao)
 	singleOf(::PasswordResetTokenDao)
+	singleOf(::WritingActivityDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
 	singleOf(::ProjectAccessRepository)
+	singleOf(::ServerWritingActivityRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
 	singleOf(::StoryExportService)

@@ -110,6 +110,14 @@ class ProjectDao(
 			.executeAsOne()
 	}
 
+	suspend fun getProjectIdOrNull(
+		userId: Long,
+		projectUuid: ProjectId,
+	): Long? = withContext(ioDispatcher) {
+		queries.getProjectId(userId, projectUuid.id)
+			.executeAsOneOrNull()
+	}
+
 	suspend fun deleteProject(userId: Long, projectId: ProjectId) = withContext(ioDispatcher) {
 		queries.deleteProject(userId, projectId.id)
 	}
