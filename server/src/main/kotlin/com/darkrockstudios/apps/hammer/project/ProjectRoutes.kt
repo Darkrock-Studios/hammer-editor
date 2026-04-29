@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
@@ -33,6 +34,8 @@ fun Route.projectRoutes(logger: Logger) {
 			uploadEntity()
 			downloadEntity(logger)
 			deleteEntity()
+			getWritingActivity()
+			uploadWritingActivity()
 		}
 	}
 }
@@ -442,6 +445,108 @@ private fun Route.downloadEntity(log: Logger) {
 					}
 				}
 			}
+		}
+	}
+}
+
+private fun Route.getWritingActivity() {
+	val repository: ServerWritingActivityRepository = get()
+
+	get("/writing_activity") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectName = call.parameters["projectName"]
+		val projectIdRaw = call.request.queryParameters["projectId"]
+
+		if (projectName == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
+				)
+			)
+			return@get
+		}
+		if (projectIdRaw == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
+				)
+			)
+			return@get
+		}
+
+		val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
+		val result = repository.loadAll(principal.id, projectDef)
+		if (isSuccess(result)) {
+			call.respond(result.data)
+		} else {
+			call.respond(
+				status = HttpStatusCode.NotFound,
+				HttpResponseError(
+					error = "Failed to load writing activity",
+					displayMessage = result.displayMessageText(call, R("api_error_unknown")),
+				)
+			)
+		}
+	}
+}
+
+private fun Route.uploadWritingActivity() {
+	val repository: ServerWritingActivityRepository = get()
+
+	post("/writing_activity/{deviceId}") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectName = call.parameters["projectName"]
+		val projectIdRaw = call.request.queryParameters["projectId"]
+		val deviceId = call.parameters["deviceId"]
+
+		if (projectName == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
+				)
+			)
+			return@post
+		}
+		if (projectIdRaw == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
+				)
+			)
+			return@post
+		}
+		if (deviceId.isNullOrBlank()) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = "deviceId path parameter is required",
+				)
+			)
+			return@post
+		}
+
+		val log = call.receive<DeviceLog>()
+		val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
+		val result = repository.saveDeviceLog(principal.id, projectDef, deviceId, log)
+		if (isSuccess(result)) {
+			call.respond(HttpStatusCode.OK)
+		} else {
+			call.respond(
+				status = HttpStatusCode.NotFound,
+				HttpResponseError(
+					error = "Failed to save writing activity",
+					displayMessage = result.displayMessageText(call, R("api_error_unknown")),
+				)
+			)
 		}
 	}
 }
