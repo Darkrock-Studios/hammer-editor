@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -27,6 +28,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
+	val projectTheme: Value<ProjectThemeState>
+
+	data class ProjectThemeState(val theme: ProjectTheme?)
 
 	fun showEditor()
 	fun showNotes()

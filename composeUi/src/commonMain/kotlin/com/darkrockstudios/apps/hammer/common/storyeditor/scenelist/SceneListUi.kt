@@ -124,13 +124,17 @@ fun SceneListUi(
 		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
 			FloatingActionButton(
 				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
-				modifier = Modifier.padding(end = Ui.Padding.M)
+				modifier = Modifier.padding(end = Ui.Padding.M),
+				containerColor = MaterialTheme.colorScheme.secondaryContainer,
+				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
 			) {
 				Icon(Icons.Filled.CreateNewFolder, Res.string.scene_list_create_group_button.get())
 			}
-			FloatingActionButton(onClick = {
-				showCreateSceneDialog = treeState.summary.sceneTree.root.value
-			}) {
+			FloatingActionButton(
+				onClick = { showCreateSceneDialog = treeState.summary.sceneTree.root.value },
+				containerColor = MaterialTheme.colorScheme.secondaryContainer,
+				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+			) {
 				Icon(Icons.Filled.PostAdd, Res.string.scene_list_create_group_button.get())
 			}
 		}

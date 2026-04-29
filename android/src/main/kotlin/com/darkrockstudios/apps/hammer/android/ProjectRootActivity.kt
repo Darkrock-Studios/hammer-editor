@@ -48,6 +48,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
@@ -173,6 +174,7 @@ class ProjectRootActivity : AppCompatActivity() {
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
+		val themeState by component.projectTheme.subscribeAsState()
 		val rootSnackbar = rememberRootSnackbarHostState()
 
 		val imageLoader: ImageLoader = getKoin().get()
@@ -184,43 +186,45 @@ class ProjectRootActivity : AppCompatActivity() {
 			component.requestClose()
 		}
 
-		val windowSizeClass = calculateWindowSizeClass()
-		when (windowSizeClass.widthSizeClass) {
-			WindowWidthSizeClass.Compact -> {
-				CompactNavigation(component, rootSnackbar)
+		ProjectThemeOverride(themeState.theme) {
+			val windowSizeClass = calculateWindowSizeClass()
+			when (windowSizeClass.widthSizeClass) {
+				WindowWidthSizeClass.Compact -> {
+					CompactNavigation(component, rootSnackbar)
+				}
+
+				WindowWidthSizeClass.Medium -> {
+					MediumNavigation(component, rootSnackbar)
+				}
+
+				WindowWidthSizeClass.Expanded -> {
+					//ExpandedNavigation(component, rootSnackbar)
+					// TODO revisit this, I think tablets should still have the Expanded Nav
+					MediumNavigation(component, rootSnackbar)
+				}
 			}
 
-			WindowWidthSizeClass.Medium -> {
-				MediumNavigation(component, rootSnackbar)
-			}
+			if (shouldConfirmClose.isNotEmpty()) {
+				when (shouldConfirmClose.first()) {
+					CloseConfirm.Scenes -> {
+						ConfirmUnsavedScenesDialog(component, lifecycleScope)
+					}
 
-			WindowWidthSizeClass.Expanded -> {
-				//ExpandedNavigation(component, rootSnackbar)
-				// TODO revisit this, I think tablets should still have the Expanded Nav
-				MediumNavigation(component, rootSnackbar)
-			}
-		}
+					CloseConfirm.Notes -> {
+						ConfirmCloseUnsavedNotesDialog(component)
+					}
 
-		if (shouldConfirmClose.isNotEmpty()) {
-			when (shouldConfirmClose.first()) {
-				CloseConfirm.Scenes -> {
-					ConfirmUnsavedScenesDialog(component, lifecycleScope)
-				}
+					CloseConfirm.Encyclopedia -> {
+						ConfirmCloseUnsavedEncyclopediaDialog(component)
+					}
 
-				CloseConfirm.Notes -> {
-					ConfirmCloseUnsavedNotesDialog(component)
-				}
+					CloseConfirm.Sync -> {
+						component.showProjectSync()
+					}
 
-				CloseConfirm.Encyclopedia -> {
-					ConfirmCloseUnsavedEncyclopediaDialog(component)
-				}
-
-				CloseConfirm.Sync -> {
-					component.showProjectSync()
-				}
-
-				CloseConfirm.Complete -> {
-					finish()
+					CloseConfirm.Complete -> {
+						finish()
+					}
 				}
 			}
 		}

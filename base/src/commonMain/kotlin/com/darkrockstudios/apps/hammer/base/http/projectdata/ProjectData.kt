@@ -9,11 +9,11 @@ data class ProjectData(
 	val wordCountGoal: WordCountGoal? = null,
 )
 
-/** Picked as a unit during conflict resolution — one device's color1 paired with another's color2 is undesigned. */
+/** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */
 @Serializable
 data class ProjectTheme(
-	val color1: String,
-	val color2: String,
+	val primary: String,
+	val secondary: String,
 )
 
 /** Picked as a unit during conflict resolution — a count from one cadence with the other's cadence silently 7x's the goal. */
