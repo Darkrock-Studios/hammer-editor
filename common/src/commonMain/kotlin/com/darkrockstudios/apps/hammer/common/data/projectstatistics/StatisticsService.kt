@@ -5,8 +5,11 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -14,6 +17,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.yield
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
@@ -33,6 +38,9 @@ class StatisticsService(
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
+	private val writingActivityRepository: WritingActivityRepository,
+	private val referenceIndexService: ReferenceIndexService,
+	private val projectDataRepository: ProjectDataRepository,
 	private val clock: Clock,
 ) : ScopeCallback, ProjectScoped {
 
@@ -129,8 +137,9 @@ class StatisticsService(
 			yield()
 
 			encyclopediaRepository.loadEntries()
+			val entries = encyclopediaRepository.entryListFlow.first()
 			val entriesByType = mutableMapOf<String, Int>()
-			encyclopediaRepository.entryListFlow.first().forEach { entry ->
+			entries.forEach { entry ->
 				val typeKey = entry.type.name
 				entriesByType[typeKey] = (entriesByType[typeKey] ?: 0) + 1
 			}
@@ -139,6 +148,48 @@ class StatisticsService(
 
 			val notesCount = notesRepository.notesListFlow.first().size
 			val timelineCount = timeLineRepository.loadTimeline().events.size
+
+			yield()
+
+			val timeZone = TimeZone.currentSystemDefault()
+			val dailyWordTotals = mutableMapOf<String, Int>()
+			val wordsPerDevice = mutableMapOf<String, Int>()
+			writingActivityRepository.loadAllLogs().values.forEach { deviceLog ->
+				var deviceTotal = 0
+				deviceLog.sessions.forEach { session ->
+					if (!session.sealed || session.wordsWritten <= 0) return@forEach
+					val date = session.startedAt.toLocalDateTime(timeZone).date.toString()
+					dailyWordTotals[date] = (dailyWordTotals[date] ?: 0) + session.wordsWritten
+					deviceTotal += session.wordsWritten
+				}
+				if (deviceTotal > 0) {
+					wordsPerDevice[deviceLog.deviceLabel] =
+						(wordsPerDevice[deviceLog.deviceLabel] ?: 0) + deviceTotal
+				}
+			}
+
+			yield()
+
+			val referenceIndex = referenceIndexService.loadIndex()
+			var totalEntryConnections = 0
+			val appearances = entries.map { entry ->
+				val sceneCount = referenceIndex.entryToScenes[entry.id]?.size ?: 0
+				totalEntryConnections += sceneCount
+				EntryAppearance(
+					entryId = entry.id,
+					name = entry.name,
+					type = entry.type,
+					sceneCount = sceneCount,
+				)
+			}
+			val topAppearances = appearances
+				.filter { it.sceneCount > 0 }
+				.sortedByDescending { it.sceneCount }
+				.take(TOP_APPEARANCES_LIMIT)
+
+			yield()
+
+			val wordCountGoal = projectDataRepository.load().data.wordCountGoal
 
 			val stats = ProjectStatistics(
 				numberOfScenes = numScenes,
@@ -152,6 +203,11 @@ class StatisticsService(
 				sceneWordsStdDev = sceneWordsStdDev,
 				numberOfNotes = notesCount,
 				numberOfTimelineEvents = timelineCount,
+				dailyWordTotals = dailyWordTotals,
+				wordsPerDevice = wordsPerDevice,
+				topAppearances = topAppearances,
+				totalEntryConnections = totalEntryConnections,
+				wordCountGoal = wordCountGoal,
 				isDirty = false,
 				lastCalculated = clock.now(),
 				schemaVersion = ProjectStatistics.CURRENT_SCHEMA_VERSION,
@@ -172,6 +228,8 @@ class StatisticsService(
 	}
 
 	companion object {
+		const val TOP_APPEARANCES_LIMIT = 10
+
 		private fun median(counts: List<Int>): Int {
 			if (counts.isEmpty()) return 0
 			val sorted = counts.sorted()
