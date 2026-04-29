@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -12,6 +13,7 @@ interface ProjectSynchronization {
 
 	fun syncProject(onComplete: (Boolean) -> Unit)
 	fun resolveConflict(resolvedEntity: ApiProjectEntity): EntityMergeError?
+	fun resolveProjectDataConflict(resolved: ProjectData)
 	fun endSync()
 	fun cancelSync()
 	fun showLog(show: Boolean)
@@ -29,11 +31,18 @@ interface ProjectSynchronization {
 	data class State(
 		val syncProgress: Float = 0f,
 		val entityConflict: EntityConflict<*>? = null,
+		val projectDataConflict: ProjectDataConflictState? = null,
 		val conflictTitle: StringResource? = null,
 		val showLog: Boolean = false,
 		val failed: Boolean = false,
 		val syncLog: List<SyncLogMessage> = emptyList(),
 		val isSyncing: Boolean = false
+	)
+
+	data class ProjectDataConflictState(
+		val local: ProjectData,
+		val server: ProjectData,
+		val serverHash: String,
 	)
 
 	sealed class EntityConflict<T : ApiProjectEntity>(

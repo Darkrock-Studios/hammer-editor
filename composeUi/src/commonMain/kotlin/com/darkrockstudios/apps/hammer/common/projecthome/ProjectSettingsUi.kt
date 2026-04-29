@@ -75,6 +75,10 @@ fun ProjectSettingsUi(
 
 		Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
+		ProjectInfoSettingsUi(component)
+
+		Spacer(modifier = Modifier.size(Ui.Padding.XL))
+
 		SpellCheckSettingsUi(component.spellCheckSettings)
 	}
 }

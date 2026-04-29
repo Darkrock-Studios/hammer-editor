@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -45,13 +47,34 @@ class ProjectSynchronizationComponent(
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val sceneDraftRepository: SceneDraftRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val projectDataConflictBroker: ProjectDataConflictBroker by projectInject()
 
 	private var syncJob: Job? = null
+	private var conflictListenerJob: Job? = null
 
 	private val _state = MutableValue(
 		ProjectSynchronization.State()
 	)
 	override val state: Value<ProjectSynchronization.State> = _state
+
+	init {
+		conflictListenerJob = scope.launch {
+			for (conflict in projectDataConflictBroker.conflicts) {
+				withContext(mainDispatcher) {
+					_state.getAndUpdate {
+						it.copy(
+							projectDataConflict = ProjectSynchronization.ProjectDataConflictState(
+								local = conflict.local,
+								server = conflict.server,
+								serverHash = conflict.serverHash,
+							),
+							conflictTitle = Res.string.sync_conflict_project_data_title,
+						)
+					}
+				}
+			}
+		}
+	}
 
 	private suspend fun updateSyncLog(log: SyncLogMessage?) {
 		if (log != null) {
@@ -148,6 +171,16 @@ class ProjectSynchronizationComponent(
 		return error
 	}
 
+	override fun resolveProjectDataConflict(resolved: ProjectData) {
+		projectDataConflictBroker.resolve(resolved)
+		_state.getAndUpdate {
+			it.copy(
+				projectDataConflict = null,
+				conflictTitle = null,
+			)
+		}
+	}
+
 	override fun endSync() {
 		scope.launch {
 			syncJob = null
@@ -155,6 +188,7 @@ class ProjectSynchronizationComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						projectDataConflict = null,
 						conflictTitle = null,
 						isSyncing = false,
 						syncProgress = 0f,
@@ -178,6 +212,7 @@ class ProjectSynchronizationComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						projectDataConflict = null,
 						conflictTitle = null,
 						isSyncing = false,
 					)

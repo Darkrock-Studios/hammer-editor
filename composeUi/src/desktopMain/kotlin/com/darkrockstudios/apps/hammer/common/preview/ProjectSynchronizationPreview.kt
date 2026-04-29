@@ -116,6 +116,7 @@ private fun previewProjectSyncComponent(conflict: ProjectSynchronization.EntityC
 		override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSynchronization.EntityMergeError? {
 			return null
 		}
+		override fun resolveProjectDataConflict(resolved: com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData) {}
 		override fun endSync() {}
 		override fun cancelSync() {}
 		override fun showLog(show: Boolean) {}
@@ -184,6 +185,7 @@ private fun RemotePreview() {
 			override fun resolveConflict(resolvedEntity: ApiProjectEntity): ProjectSynchronization.EntityMergeError? {
 				return null
 			}
+			override fun resolveProjectDataConflict(resolved: com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData) {}
 			override fun endSync() {}
 			override fun cancelSync() {}
 			override fun showLog(show: Boolean) {}

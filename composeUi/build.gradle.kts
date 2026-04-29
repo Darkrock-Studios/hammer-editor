@@ -70,6 +70,7 @@ kotlin {
 				api(libs.coil.svg)
 				api(libs.kmpalette.core)
 				api(libs.kmpalette.extensions.file)
+				implementation(libs.colorpicker.compose)
 				implementation(libs.koalaplot.core)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)

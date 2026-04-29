@@ -23,6 +23,9 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
@@ -53,6 +56,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
@@ -95,6 +99,7 @@ val mainModule = module {
 	singleOf(::ServerProjectApi)
 	singleOf(::ServerProjectsApi)
 	singleOf(::WritingActivityApi)
+	singleOf(::ProjectDataApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -162,6 +167,10 @@ val mainModule = module {
 		scopedOf(::WritingActivityRepository)
 		scopedOf(::WritingSessionTracker)
 
+		scopedOf(::ProjectDataDatasource)
+		scopedOf(::ProjectDataRepository)
+		scopedOf(::ProjectDataConflictBroker)
+
 		scopedOf(::ReferenceIndexDatasource)
 		scopedOf(::ReferenceIndexRepository)
 		scopedOf(::ReferenceIndexService)
@@ -189,6 +198,7 @@ val mainModule = module {
 		factoryOf(::EntityDeleteOperation)
 		factoryOf(::EntityTransferOperation)
 		factoryOf(::WritingActivitySyncOperation)
+		factoryOf(::ProjectDataSyncOperation)
 		factoryOf(::FinalizeSyncOperation)
 
 		scopedOf(::SyncDataRepository)
