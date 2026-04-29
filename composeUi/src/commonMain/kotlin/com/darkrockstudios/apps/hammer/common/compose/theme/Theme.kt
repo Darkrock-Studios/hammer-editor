@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
@@ -95,19 +96,24 @@ fun AppTheme(
 	}
 
 	val shapes = Shapes(
-		extraSmall = RoundedCornerShape(16.dp),
-		small = RoundedCornerShape(16.dp),
-		medium = RoundedCornerShape(8.dp),
-		large = RoundedCornerShape(4.dp),
-		extraLarge = RoundedCornerShape(4.dp),
+		extraSmall = RoundedCornerShape(2.dp),
+		small = RoundedCornerShape(4.dp),
+		medium = RoundedCornerShape(6.dp),
+		large = RoundedCornerShape(8.dp),
+		extraLarge = RoundedCornerShape(12.dp),
 	)
 
-	MaterialTheme(
-		colorScheme = colors,
-		//shapes = shapes,
-	) {
-		ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
-			content()
+	val extendedColors = if (useDarkTheme) DarkHammerColors else LightHammerColors
+
+	CompositionLocalProvider(LocalHammerColors provides extendedColors) {
+		MaterialTheme(
+			colorScheme = colors,
+			shapes = shapes,
+			typography = HammerTypography,
+		) {
+			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+				content()
+			}
 		}
 	}
 }
