@@ -8,10 +8,12 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.sync_menu_group
@@ -28,6 +30,10 @@ class ProjectRootComponent(
 
 	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
+
+	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
+	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
@@ -75,6 +81,15 @@ class ProjectRootComponent(
 		}
 
 		handleSyncDialogCompletion()
+
+		scope.launch {
+			projectDataRepository.load()
+			projectDataRepository.state.collect { stored ->
+				withContext(dispatcherMain) {
+					_projectTheme.value = ProjectRoot.ProjectThemeState(theme = stored?.data?.theme)
+				}
+			}
+		}
 	}
 
 	private fun handleSyncDialogCompletion() {

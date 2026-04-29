@@ -196,6 +196,8 @@ fun BrowseNotesFab(
 	FloatingActionButton(
 		modifier = modifier,
 		onClick = { component.showCreate() },
+		containerColor = MaterialTheme.colorScheme.secondaryContainer,
+		contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
 	) {
 		Icon(Icons.Filled.Create, Res.string.notes_create_note_button.get())
 	}

@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.globalsearch.globalSearchShortcutModifier
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
@@ -194,35 +195,38 @@ private fun FrameWindowScope.EditorMenuBar(
 private fun AppContent(component: ProjectRoot) {
 	val destinations = remember { ProjectRoot.DestinationTypes.entries }
 	val router by component.routerState.subscribeAsState()
+	val themeState by component.projectTheme.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
-		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-				destinations.forEach { item ->
-					NavigationRailItem(
-						icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
-						label = { Text(item.text.get()) },
-						selected = router.active.instance.getLocationType() == item,
-						onClick = { component.showDestination(item) }
-					)
+	ProjectThemeOverride(themeState.theme) {
+		Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
+			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+					destinations.forEach { item ->
+						NavigationRailItem(
+							icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
+							label = { Text(item.text.get()) },
+							selected = router.active.instance.getLocationType() == item,
+							onClick = { component.showDestination(item) }
+						)
+					}
 				}
+
+				ProjectRootUi(component, rootSnackbar)
 			}
 
-			ProjectRootUi(component, rootSnackbar)
-		}
-
-		SnackbarHost(
-			rootSnackbar.snackbarHostState,
-			modifier = Modifier
-				.align(Alignment.BottomCenter)
-				.padding(bottom = Ui.Padding.XL)
-		)
-
-		Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
-			ProjectRootFab(
-				component
+			SnackbarHost(
+				rootSnackbar.snackbarHostState,
+				modifier = Modifier
+					.align(Alignment.BottomCenter)
+					.padding(bottom = Ui.Padding.XL)
 			)
+
+			Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
+				ProjectRootFab(
+					component
+				)
+			}
 		}
 	}
 }

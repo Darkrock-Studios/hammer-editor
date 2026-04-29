@@ -171,7 +171,7 @@ private fun displayString(value: String?): String =
 @Composable
 private fun displayString(theme: ProjectTheme?): String =
 	if (theme == null) Res.string.sync_conflict_project_data_value_unset.get()
-	else "${theme.color1} • ${theme.color2}"
+	else "${theme.primary} • ${theme.secondary}"
 
 @Composable
 private fun displayWordGoal(goal: WordCountGoal?): String {

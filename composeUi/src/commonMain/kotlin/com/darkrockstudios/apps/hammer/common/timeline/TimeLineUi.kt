@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,7 +99,9 @@ fun TimelineFab(
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
 			FloatingActionButton(
 				onClick = component::showCreateEvent,
-				modifier = modifier.testTag(TIME_LINE_CREATE_TAG)
+				modifier = modifier.testTag(TIME_LINE_CREATE_TAG),
+				containerColor = MaterialTheme.colorScheme.secondaryContainer,
+				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
 			) {
 				Icon(Icons.Default.Create, Res.string.timeline_create_event_button.get())
 			}

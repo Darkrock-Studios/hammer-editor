@@ -23,8 +23,8 @@ object ProjectDataHasher {
 
 		if (data.theme != null) {
 			d.update(1, buf)
-			d.update(data.theme.color1, buf)
-			d.update(data.theme.color2, buf)
+			d.update(data.theme.primary, buf)
+			d.update(data.theme.secondary, buf)
 		} else {
 			d.update(0, buf)
 		}

@@ -13,7 +13,7 @@ class ProjectDataHasherTest {
 	fun `same input produces same hash`() {
 		val data = ProjectData(
 			authorName = "Pat",
-			theme = ProjectTheme(color1 = "#FF112233", color2 = "#FFAABBCC"),
+			theme = ProjectTheme(primary = "#FF112233", secondary = "#FFAABBCC"),
 			wordCountGoal = WordCountGoal(WordCountGoal.Cadence.DAY, 500),
 		)
 		assertEquals(ProjectDataHasher.hash(data), ProjectDataHasher.hash(data))

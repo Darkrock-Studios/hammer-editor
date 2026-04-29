@@ -267,6 +267,8 @@ fun BrowseEntriesFab(
 			FloatingActionButton(
 				modifier = modifier,
 				onClick = component::showCreateEntry,
+				containerColor = MaterialTheme.colorScheme.secondaryContainer,
+				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
 			) {
 				Icon(Icons.Default.Create, Res.string.timeline_create_event_button.get())
 			}
