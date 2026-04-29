@@ -93,6 +93,7 @@ kotlinx-io-okio = "0.9.0"
 compose-texteditor = "1.8.0"
 platform-spellcheckerkt = "1.0.0"
 flatpak-gradle-generator = "1.7.0"
+colorpicker-compose = "1.1.2"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -121,6 +122,7 @@ coil_svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil"
 
 kmpalette_core = { group = "com.kmpalette", name = "kmpalette-core", version.ref = "kmpalette" }
 kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file", version.ref = "kmpalette" }
+colorpicker_compose = { group = "com.github.skydoves", name = "colorpicker-compose", version.ref = "colorpicker-compose" }
 
 jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 jna-platform = { group = "net.java.dev.jna", name = "jna-platform", version.ref = "jna" }

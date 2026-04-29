@@ -1,0 +1,19 @@
+CREATE TABLE project_data (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	content TEXT NOT NULL,
+	hash TEXT NOT NULL,
+	updated_at INTEGER NOT NULL,
+	PRIMARY KEY(user_id, project_id),
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);
+
+getForProject:
+SELECT content, hash, updated_at
+FROM project_data
+WHERE user_id = :userId AND project_id = :projectId;
+
+upsert:
+INSERT OR REPLACE INTO project_data(user_id, project_id, content, hash, updated_at)
+VALUES (:userId, :projectId, :content, :hash, :updatedAt);

@@ -160,45 +160,27 @@ internal fun ProjectSynchronizationContent(
 			Column(modifier = Modifier.wrapContentSize()) {
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
+				val projectDataConflict = state.projectDataConflict
 				val conflict = state.entityConflict
-				if (conflict != null) {
+				if (projectDataConflict != null) {
 					Column(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline)) {
-						Box(
-							modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-							contentAlignment = Alignment.Center
-						) {
-							Row(verticalAlignment = Alignment.CenterVertically) {
-								Icon(
-									Icons.Default.Warning,
-									contentDescription = Res.string.sync_conflict_icon_description.get(),
-									modifier = Modifier.size(32.dp),
-									tint = MaterialTheme.colorScheme.error
-								)
+						ConflictHeader(
+							title = state.conflictTitle?.get() ?: "error",
+						)
 
-								Text(
-									text = state.conflictTitle?.get() ?: "error",
-									style = MaterialTheme.typography.headlineSmall,
-									modifier = Modifier.padding(start = Ui.Padding.L)
-								)
-
-								val infoMessage = Res.string.sync_conflict_merge_explained.get()
-								Icon(
-									Icons.Default.Info,
-									contentDescription = infoMessage,
-									modifier = Modifier
-										.padding(start = Ui.Padding.M)
-										.clickable {
-											scope.launch {
-												snackbarHostState.showSnackbar(
-													infoMessage,
-													duration = SnackbarDuration.Long
-												)
-											}
-										},
-									tint = MaterialTheme.colorScheme.onSurfaceVariant
-								)
-							}
-						}
+						ProjectDataConflict(projectDataConflict, component)
+					}
+				} else if (conflict != null) {
+					Column(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline)) {
+						ConflictHeader(
+							title = state.conflictTitle?.get() ?: "error",
+							infoMessage = Res.string.sync_conflict_merge_explained.get(),
+							onInfoClick = { msg ->
+								scope.launch {
+									snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long)
+								}
+							},
+						)
 
 						when (conflict) {
 							is ProjectSynchronization.EntityConflict.SceneConflict -> {
@@ -242,6 +224,44 @@ internal fun ProjectSynchronizationContent(
 			hostState = snackbarHostState,
 			modifier = Modifier.align(Alignment.BottomCenter)
 		)
+	}
+}
+
+@Composable
+private fun ConflictHeader(
+	title: String,
+	infoMessage: String? = null,
+	onInfoClick: ((String) -> Unit)? = null,
+) {
+	Box(
+		modifier = Modifier.wrapContentHeight().fillMaxWidth(),
+		contentAlignment = Alignment.Center
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Icon(
+				Icons.Default.Warning,
+				contentDescription = Res.string.sync_conflict_icon_description.get(),
+				modifier = Modifier.size(32.dp),
+				tint = MaterialTheme.colorScheme.error
+			)
+
+			Text(
+				text = title,
+				style = MaterialTheme.typography.headlineSmall,
+				modifier = Modifier.padding(start = Ui.Padding.L)
+			)
+
+			if (infoMessage != null && onInfoClick != null) {
+				Icon(
+					Icons.Default.Info,
+					contentDescription = infoMessage,
+					modifier = Modifier
+						.padding(start = Ui.Padding.M)
+						.clickable { onInfoClick(infoMessage) },
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+		}
 	}
 }
 

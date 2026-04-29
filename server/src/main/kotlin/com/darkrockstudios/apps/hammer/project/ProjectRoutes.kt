@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
@@ -36,6 +37,8 @@ fun Route.projectRoutes(logger: Logger) {
 			deleteEntity()
 			getWritingActivity()
 			uploadWritingActivity()
+			getProjectData()
+			uploadProjectData()
 		}
 	}
 }
@@ -544,6 +547,110 @@ private fun Route.uploadWritingActivity() {
 				status = HttpStatusCode.NotFound,
 				HttpResponseError(
 					error = "Failed to save writing activity",
+					displayMessage = result.displayMessageText(call, R("api_error_unknown")),
+				)
+			)
+		}
+	}
+}
+
+private fun Route.getProjectData() {
+	val repository: ServerProjectDataRepository = get()
+
+	get("/project_data") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectName = call.parameters["projectName"]
+		val projectIdRaw = call.request.queryParameters["projectId"]
+
+		if (projectName == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
+				)
+			)
+			return@get
+		}
+		if (projectIdRaw == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
+				)
+			)
+			return@get
+		}
+
+		val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
+		val result = repository.load(principal.id, projectDef)
+		if (isSuccess(result)) {
+			val dto = result.data
+			if (dto == null) {
+				call.respond(HttpStatusCode.NoContent)
+			} else {
+				call.respond(dto)
+			}
+		} else {
+			call.respond(
+				status = HttpStatusCode.NotFound,
+				HttpResponseError(
+					error = "Failed to load project data",
+					displayMessage = result.displayMessageText(call, R("api_error_unknown")),
+				)
+			)
+		}
+	}
+}
+
+private fun Route.uploadProjectData() {
+	val repository: ServerProjectDataRepository = get()
+
+	post("/project_data") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val projectName = call.parameters["projectName"]
+		val projectIdRaw = call.request.queryParameters["projectId"]
+
+		if (projectName == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectnamemissing"))
+				)
+			)
+			return@post
+		}
+		if (projectIdRaw == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing Parameter",
+					displayMessage = call.t(R("api_project_sync_error_projectidmissing"))
+				)
+			)
+			return@post
+		}
+
+		val request = call.receive<ProjectDataUploadRequest>()
+		val projectDef = ProjectDefinition(projectName, ProjectId(projectIdRaw))
+		val result = repository.save(
+			userId = principal.id,
+			projectDef = projectDef,
+			data = request.data,
+			originalHash = request.originalHash,
+		)
+		if (isSuccess(result)) {
+			when (val outcome = result.data) {
+				is ProjectDataSaveResult.Saved -> call.respond(HttpStatusCode.OK, outcome.dto)
+				is ProjectDataSaveResult.Conflict -> call.respond(HttpStatusCode.Conflict, outcome.conflict)
+			}
+		} else {
+			call.respond(
+				status = HttpStatusCode.NotFound,
+				HttpResponseError(
+					error = "Failed to save project data",
 					displayMessage = result.displayMessageText(call, R("api_error_unknown")),
 				)
 			)
