@@ -84,6 +84,14 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 	}
 }
 
+private val HammerShapes = Shapes(
+	extraSmall = RoundedCornerShape(2.dp),
+	small = RoundedCornerShape(4.dp),
+	medium = RoundedCornerShape(6.dp),
+	large = RoundedCornerShape(8.dp),
+	extraLarge = RoundedCornerShape(12.dp),
+)
+
 @Composable
 fun AppTheme(
 	settings: GlobalSettings,
@@ -95,20 +103,12 @@ fun AppTheme(
 		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
 	}
 
-	val shapes = Shapes(
-		extraSmall = RoundedCornerShape(2.dp),
-		small = RoundedCornerShape(4.dp),
-		medium = RoundedCornerShape(6.dp),
-		large = RoundedCornerShape(8.dp),
-		extraLarge = RoundedCornerShape(12.dp),
-	)
-
 	val extendedColors = if (useDarkTheme) DarkHammerColors else LightHammerColors
 
 	CompositionLocalProvider(LocalHammerColors provides extendedColors) {
 		MaterialTheme(
 			colorScheme = colors,
-			shapes = shapes,
+			shapes = HammerShapes,
 			typography = HammerTypography,
 		) {
 			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {

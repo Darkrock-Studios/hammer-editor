@@ -16,20 +16,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
 /**
- * Headline stat block — the foundational dashboard tile:
+ * Headline stat block — the dashboard's foundational tile.
  *
  *     TOTAL WORDS
  *     23,214
  *     ≈ 93 min reading · 77 pages
  *
- * - [label] renders as mono small-caps (auto-uppercased).
- * - [value] is the big numeric display — defaults to `displayLarge`
- *   (light weight, 64sp) but caller can override.
- * - [subtitle] is optional bodySmall metadata under the value.
- * - [valueColor] lets callers tint the numeric (e.g. primary for `+4,128`,
- *   onSurface for neutral counts).
- * - [content] slot lets callers append progress bars, secondary readouts,
- *   delta badges, etc. — anything that hangs below the stat itself.
+ * The [content] slot hangs below for progress bars, delta badges, or
+ * inline secondary stats.
  */
 @Composable
 fun HdStatBlock(
@@ -66,15 +60,16 @@ fun HdStatBlock(
 }
 
 /**
- * Two-column inline stat — used inside larger blocks where space is tight
- * (e.g. the `Today  ·  847` lines under This Week). Numeric uses
- * `titleMedium` rather than `displayLarge`.
+ * Two-column inline stat: label left, value right (`Today · 847`).
+ * Used inside larger blocks where space is tight; pass [valueStyle] to
+ * tighten further (e.g. titleSmall for nested metadata rows).
  */
 @Composable
 fun HdInlineStat(
 	label: String,
 	value: String,
 	modifier: Modifier = Modifier,
+	valueStyle: TextStyle = MaterialTheme.typography.titleMedium,
 ) {
 	Row(
 		modifier = modifier
@@ -90,7 +85,7 @@ fun HdInlineStat(
 		)
 		Text(
 			text = value,
-			style = MaterialTheme.typography.titleMedium,
+			style = valueStyle,
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 	}

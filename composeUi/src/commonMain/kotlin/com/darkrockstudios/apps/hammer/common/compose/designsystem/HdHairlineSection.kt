@@ -14,15 +14,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Standard dashboard "section" wrapper: an [HdSectionHeader] on top, the
- * caller's content below, and a hairline divider beneath the whole thing.
- *
- * The section header takes a roman section number and title; pass right-
- * aligned metadata (counts, etc.) via [headerTrailing], typically as
- * [HdMonoLabel]s.
- *
- * Use [HdPlainSection] for the top-of-dashboard stats strip that has no
- * § marker.
+ * Dashboard section: [HdSectionHeader] + content + trailing hairline
+ * divider. Use [HdPlainSection] when the section has no § marker.
  */
 @Composable
 fun HdHairlineSection(

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+private val BarShape = RoundedCornerShape(2.dp)
+
 data class HdBarChartItem(
 	val label: String,
 	val value: Int,
@@ -60,7 +62,7 @@ fun HdBarChart(
 					modifier = Modifier
 						.weight(1f)
 						.fillMaxHeight(fraction.coerceAtLeast(0.02f))
-						.clip(RoundedCornerShape(2.dp))
+						.clip(BarShape)
 						.background(color),
 				)
 			}

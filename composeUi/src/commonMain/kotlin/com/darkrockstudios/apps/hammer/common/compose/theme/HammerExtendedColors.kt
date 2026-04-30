@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.theme
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -82,10 +80,3 @@ val DarkHammerColors = HammerExtendedColors(
 )
 
 val LocalHammerColors = staticCompositionLocalOf { DarkHammerColors }
-
-object HammerTheme {
-	val extendedColors: HammerExtendedColors
-		@Composable
-		@ReadOnlyComposable
-		get() = LocalHammerColors.current
-}

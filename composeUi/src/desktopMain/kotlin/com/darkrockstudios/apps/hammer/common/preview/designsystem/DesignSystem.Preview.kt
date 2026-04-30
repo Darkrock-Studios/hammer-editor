@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,9 +26,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPl
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChart
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
@@ -132,8 +138,8 @@ private fun MetadataItemPreview() {
 				HdMetadataItem(label = "Where", value = "Rabbit-hole")
 			}
 			Column(modifier = Modifier.fillMaxWidth(0.5f)) {
-				HdMetadataRow("Today", "847")
-				HdMetadataRow("Daily avg", "590")
+				HdInlineStat("Today", "847", valueStyle = MaterialTheme.typography.titleSmall)
+				HdInlineStat("Daily avg", "590", valueStyle = MaterialTheme.typography.titleSmall)
 			}
 		}
 	}
@@ -207,6 +213,41 @@ private fun HairlineSectionPreview() {
 					HdStatBlock("Scenes", "15", subtitle = "across 13 chapters")
 					HdStatBlock("Avg / Scene", "1,547", subtitle = "median 1,695")
 				}
+			}
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun NavRailPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+			HdNavRail {
+				HdNavRailItem(
+					selected = true,
+					onClick = {},
+					icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+					label = "Home",
+				)
+				HdNavRailItem(
+					selected = false,
+					onClick = {},
+					icon = { Icon(Icons.Default.MoreVert, contentDescription = null) },
+					label = "Editor",
+				)
+				HdNavRailItem(
+					selected = false,
+					onClick = {},
+					icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+					label = "Notes",
+				)
+			}
+			Column(modifier = Modifier.padding(24.dp)) {
+				HdMonoLabel(
+					text = "Selected item adopts project secondaryContainer",
+					style = MaterialTheme.typography.labelMedium,
+				)
 			}
 		}
 	}

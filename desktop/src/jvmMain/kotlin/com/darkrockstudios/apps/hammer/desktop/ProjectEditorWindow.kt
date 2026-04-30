@@ -26,6 +26,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfir
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailItem
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -201,13 +203,18 @@ private fun AppContent(component: ProjectRoot) {
 	ProjectThemeOverride(themeState.theme) {
 		Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
 			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
+				HdNavRail {
 					destinations.forEach { item ->
-						NavigationRailItem(
-							icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
-							label = { Text(item.text.get()) },
+						HdNavRailItem(
 							selected = router.active.instance.getLocationType() == item,
-							onClick = { component.showDestination(item) }
+							onClick = { component.showDestination(item) },
+							icon = {
+								Icon(
+									imageVector = getDestinationIcon(item),
+									contentDescription = item.text.get(),
+								)
+							},
+							label = item.text.get(),
 						)
 					}
 				}
