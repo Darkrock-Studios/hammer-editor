@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -193,14 +194,12 @@ fun BrowseNotesFab(
 	component: BrowseNotes,
 	modifier: Modifier,
 ) {
-	FloatingActionButton(
-		modifier = modifier,
+	HdFab(
 		onClick = { component.showCreate() },
-		containerColor = MaterialTheme.colorScheme.secondaryContainer,
-		contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-	) {
-		Icon(Icons.Filled.Create, Res.string.notes_create_note_button.get())
-	}
+		icon = Icons.Filled.Create,
+		contentDescription = Res.string.notes_create_note_button.get(),
+		modifier = modifier,
+	)
 }
 
 @Composable

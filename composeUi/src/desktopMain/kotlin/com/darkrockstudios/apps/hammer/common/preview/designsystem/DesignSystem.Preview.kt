@@ -32,8 +32,14 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -290,6 +296,108 @@ private fun LightThemePreview() {
 				}
 			}
 			HdDeltaBadge(percent = 22f, suffix = "vs last week")
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun TypeStampPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+				EntryType.entries.forEach { type ->
+					HdTypeStamp(
+						type = type,
+						label = type.name,
+						onClick = {},
+					)
+				}
+			}
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun TypographicHeroPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdTypographicHero(
+				name = "The White Rabbit",
+				type = EntryType.PERSON,
+				modifier = Modifier.fillMaxWidth(),
+			)
+			HdTypographicHero(
+				name = "Pool of Tears",
+				type = EntryType.PLACE,
+				modifier = Modifier.fillMaxWidth(),
+			)
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun TagChipPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+				HdTagChip(label = "animal", onClick = {})
+				HdTagChip(label = "magical", onClick = {}, active = true)
+				HdTagChip(label = "guide", onClick = {})
+			}
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun EntryFilterBarPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdEntryFilterBar(
+				options = listOf(
+					HdEntryFilterOption(type = null, label = "ALL", count = 37),
+					HdEntryFilterOption(type = EntryType.PERSON, label = "PEOPLE", count = 12),
+					HdEntryFilterOption(type = EntryType.PLACE, label = "PLACES", count = 18),
+					HdEntryFilterOption(type = EntryType.THING, label = "THINGS", count = 7),
+				),
+				selected = EntryType.PLACE,
+				onSelect = {},
+			)
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun EntryCardPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdEntryCard(
+				onClick = {},
+				hero = {
+					HdTypographicHero(
+						name = "The White Rabbit",
+						type = EntryType.PERSON,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				},
+				stamp = {
+					HdTypeStamp(
+						type = EntryType.PERSON,
+						label = "PERSON",
+						onClick = {},
+					)
+				},
+				description = "A nervous, well-dressed rabbit consulting a pocket watch. " +
+					"The first transgression of natural law in the book; functions as a " +
+					"guide and a panic.",
+				meta = "322 W · 3 TAGS",
+				tags = listOf("animal", "guide", "panic"),
+				modifier = Modifier.fillMaxWidth(),
+			)
 		}
 	}
 }
