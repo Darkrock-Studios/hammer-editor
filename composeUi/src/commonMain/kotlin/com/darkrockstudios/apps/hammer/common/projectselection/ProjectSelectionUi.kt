@@ -8,7 +8,6 @@ import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.about.AboutAppUi
@@ -97,15 +97,12 @@ fun ProjectSelectionFab(
 		}
 
 		is ProjectSelection.Destination.ProjectsListDestination -> {
-			FloatingActionButton(
+			HdFab(
+				onClick = { destination.component.showCreate() },
+				icon = Icons.Filled.Create,
+				contentDescription = Res.string.projects_list_create_button.get(),
 				modifier = modifier,
-				onClick = { destination.component.showCreate() }
-			) {
-				Icon(
-					imageVector = Icons.Filled.Create,
-					Res.string.projects_list_create_button.get()
-				)
-			}
+			)
 		}
 
 		is ProjectSelection.Destination.AboutAppDestination -> {

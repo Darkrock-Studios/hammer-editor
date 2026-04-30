@@ -16,6 +16,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -122,21 +123,17 @@ fun SceneListUi(
 		}
 
 		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
-			FloatingActionButton(
+			HdFab(
 				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
+				icon = Icons.Filled.CreateNewFolder,
+				contentDescription = Res.string.scene_list_create_group_button.get(),
 				modifier = Modifier.padding(end = Ui.Padding.M),
-				containerColor = MaterialTheme.colorScheme.secondaryContainer,
-				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-			) {
-				Icon(Icons.Filled.CreateNewFolder, Res.string.scene_list_create_group_button.get())
-			}
-			FloatingActionButton(
+			)
+			HdFab(
 				onClick = { showCreateSceneDialog = treeState.summary.sceneTree.root.value },
-				containerColor = MaterialTheme.colorScheme.secondaryContainer,
-				contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-			) {
-				Icon(Icons.Filled.PostAdd, Res.string.scene_list_create_group_button.get())
-			}
+				icon = Icons.Filled.PostAdd,
+				contentDescription = Res.string.scene_list_create_group_button.get(),
+			)
 		}
 	}
 
