@@ -50,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChart
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChartItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChart
@@ -211,10 +212,21 @@ private fun LoadingRow() {
 @Composable
 private fun StatsStrip(state: ProjectHome.State, isWide: Boolean) {
 	HdPlainSection {
-		HdResponsiveStrip(isWide = isWide) {
-			TotalWordsBlock(state, modifier = Modifier.cell())
-			ThisWeekBlock(state.writingActivity, modifier = Modifier.cell())
-			StreakBlock(state.writingActivity, modifier = Modifier.cell())
+		if (isWide) {
+			HdResponsiveStrip(isWide = true) {
+				TotalWordsBlock(state, modifier = Modifier.cell())
+				ThisWeekBlock(state.writingActivity, modifier = Modifier.cell())
+				StreakBlock(state.writingActivity, modifier = Modifier.cell())
+			}
+		} else {
+			TotalWordsBlock(state, modifier = Modifier.fillMaxWidth())
+			HdHairlineGrid(
+				columns = 2,
+				cells = listOf<@Composable () -> Unit>(
+					{ ThisWeekBlock(state.writingActivity) },
+					{ StreakBlock(state.writingActivity) },
+				),
+			)
 		}
 	}
 }
@@ -321,21 +333,23 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 			)
 		},
 	) {
-		HdResponsiveStrip(isWide = isWide) {
+		val scenes: @Composable () -> Unit = {
 			HdStatBlock(
 				label = stringResource(Res.string.project_home_stat_num_scenes),
 				value = state.numberOfScenes.formatDecimalSeparator(),
 				subtitle = "across $chapterCount chapters",
-				modifier = Modifier.cell(),
 			)
+		}
+		val avgPerScene: @Composable () -> Unit = {
 			HdStatBlock(
 				label = stringResource(Res.string.project_home_stat_avg_words_per_scene),
 				value = state.averageWordsPerScene.formatDecimalSeparator(),
 				subtitle = if (state.medianSceneWords > 0)
 					"${stringResource(Res.string.project_home_stat_scene_median).lowercase()} ${state.medianSceneWords.formatDecimalSeparator()}"
 				else null,
-				modifier = Modifier.cell(),
 			)
+		}
+		val longestScene: @Composable (Modifier) -> Unit = { mod ->
 			val longestName = state.longestSceneName
 			HdStatBlock(
 				label = stringResource(Res.string.project_home_stat_longest_scene),
@@ -344,41 +358,42 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 				subtitle = if (state.longestSceneWords > 0)
 					stringResource(Res.string.project_home_stat_longest_scene_words, state.longestSceneWords.formatDecimalSeparator())
 				else null,
-				modifier = Modifier.cell(),
+				modifier = mod,
 			)
-			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				HdMonoLabel(
-					text = "${stringResource(Res.string.project_home_stat_num_notes)} · ${stringResource(Res.string.project_home_stat_num_timeline_events)}",
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
+		}
+		val notes: @Composable () -> Unit = {
+			HdStatBlock(
+				label = stringResource(Res.string.project_home_stat_num_notes),
+				value = state.numberOfNotes.formatDecimalSeparator(),
+				valueStyle = MaterialTheme.typography.displayMedium,
+			)
+		}
+		val events: @Composable () -> Unit = {
+			HdStatBlock(
+				label = stringResource(Res.string.project_home_stat_num_timeline_events),
+				value = state.numberOfTimelineEvents.formatDecimalSeparator(),
+				valueStyle = MaterialTheme.typography.displayMedium,
+				valueColor = MaterialTheme.colorScheme.primary,
+			)
+		}
+
+		if (isWide) {
+			HdResponsiveStrip(isWide = true) {
+				Box(modifier = Modifier.cell()) { scenes() }
+				Box(modifier = Modifier.cell()) { avgPerScene() }
+				longestScene(Modifier.cell())
+				HdHairlineGrid(
+					columns = 2,
+					modifier = Modifier.cell(),
+					cells = listOf<@Composable () -> Unit>(notes, events),
 				)
-				Row(
-					verticalAlignment = Alignment.Bottom,
-					horizontalArrangement = Arrangement.spacedBy(20.dp),
-				) {
-					Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-						Text(
-							text = state.numberOfNotes.formatDecimalSeparator(),
-							style = MaterialTheme.typography.displayMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-						HdMonoLabel(
-							text = stringResource(Res.string.project_home_stat_num_notes),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					}
-					Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-						Text(
-							text = state.numberOfTimelineEvents.formatDecimalSeparator(),
-							style = MaterialTheme.typography.displayMedium,
-							color = MaterialTheme.colorScheme.primary,
-						)
-						HdMonoLabel(
-							text = stringResource(Res.string.project_home_stat_num_timeline_events),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					}
-				}
 			}
+		} else {
+			HdHairlineGrid(
+				columns = 2,
+				cells = listOf<@Composable () -> Unit>(scenes, avgPerScene, notes, events),
+			)
+			longestScene(Modifier.fillMaxWidth())
 		}
 
 		if (state.wordsByChapter.isNotEmpty()) {

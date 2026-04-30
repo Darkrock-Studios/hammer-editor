@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategorySwa
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
@@ -214,6 +215,24 @@ private fun HairlineSectionPreview() {
 					HdStatBlock("Avg / Scene", "1,547", subtitle = "median 1,695")
 				}
 			}
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun HairlineGridPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdHairlineGrid(
+				columns = 2,
+				cells = listOf<@Composable () -> Unit>(
+					{ HdStatBlock("Scenes", "15", subtitle = "across 13 chapters") },
+					{ HdStatBlock("Avg / Scene", "1,547", subtitle = "median 1,694") },
+					{ HdStatBlock("Notes", "2", valueStyle = MaterialTheme.typography.displayMedium) },
+					{ HdStatBlock("Events", "12", valueStyle = MaterialTheme.typography.displayMedium) },
+				),
+			)
 		}
 	}
 }
