@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,14 +52,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalPr
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChart
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.formatThousands
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -177,7 +177,7 @@ private fun DashboardHeader(
 						},
 					)
 				}
-				ProjectHomeMenu(component = component, scope = scope)
+				ProjectHomeMenu(component = component, hasServer = state.hasServer)
 			}
 		}
 		HdMonoLabel(
@@ -223,7 +223,7 @@ private fun StatsStrip(state: ProjectHome.State, isWide: Boolean) {
 private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modifier) {
 	HdStatBlock(
 		label = stringResource(Res.string.project_home_stat_total_words),
-		value = formatThousands(state.totalWords),
+		value = state.totalWords.formatDecimalSeparator(),
 		subtitle = if (state.totalWords > 0) {
 			stringResource(Res.string.project_home_stat_reading_time, estimateReadingMinutes(state.totalWords)) +
 				" · " + stringResource(Res.string.project_home_stat_pages, estimatePages(state.totalWords))
@@ -246,7 +246,7 @@ private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modif
 private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier = Modifier) {
 	HdStatBlock(
 		label = stringResource(Res.string.project_home_stat_this_week),
-		value = "+${formatThousands(activity.wordsThisWeek)}",
+		value = "+${activity.wordsThisWeek.formatDecimalSeparator()}",
 		valueColor = MaterialTheme.colorScheme.primary,
 		modifier = modifier,
 	) {
@@ -265,11 +265,11 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(
 			label = stringResource(Res.string.project_home_stat_today),
-			value = formatThousands(activity.wordsToday),
+			value = activity.wordsToday.formatDecimalSeparator(),
 		)
 		HdInlineStat(
 			label = stringResource(Res.string.project_home_stat_daily_avg),
-			value = formatThousands(activity.dailyAverageThisWeek),
+			value = activity.dailyAverageThisWeek.formatDecimalSeparator(),
 		)
 	}
 }
@@ -285,7 +285,7 @@ private fun StreakBlock(activity: WritingActivityDerived, modifier: Modifier = M
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(
 			label = stringResource(Res.string.project_home_stat_days_written),
-			value = formatThousands(activity.daysWritten),
+			value = activity.daysWritten.formatDecimalSeparator(),
 		)
 		val best = activity.bestDayInStreak
 		if (best != null) {
@@ -294,12 +294,18 @@ private fun StreakBlock(activity: WritingActivityDerived, modifier: Modifier = M
 				value = stringResource(
 					Res.string.project_home_stat_best_day_value,
 					best.date.toString(),
-					formatThousands(best.words),
+					best.words.formatDecimalSeparator(),
 				),
 			)
 		}
 	}
 }
+
+private data class ChapterStats(
+	val items: List<HdBarChartItem>,
+	val min: Int,
+	val max: Int,
+)
 
 @Composable
 private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
@@ -318,15 +324,15 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 		HdResponsiveStrip(isWide = isWide) {
 			HdStatBlock(
 				label = stringResource(Res.string.project_home_stat_num_scenes),
-				value = formatThousands(state.numberOfScenes),
+				value = state.numberOfScenes.formatDecimalSeparator(),
 				subtitle = "across $chapterCount chapters",
 				modifier = Modifier.cell(),
 			)
 			HdStatBlock(
 				label = stringResource(Res.string.project_home_stat_avg_words_per_scene),
-				value = formatThousands(state.averageWordsPerScene),
+				value = state.averageWordsPerScene.formatDecimalSeparator(),
 				subtitle = if (state.medianSceneWords > 0)
-					"${stringResource(Res.string.project_home_stat_scene_median).lowercase()} ${formatThousands(state.medianSceneWords)}"
+					"${stringResource(Res.string.project_home_stat_scene_median).lowercase()} ${state.medianSceneWords.formatDecimalSeparator()}"
 				else null,
 				modifier = Modifier.cell(),
 			)
@@ -336,7 +342,7 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 				value = longestName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
 				valueStyle = MaterialTheme.typography.headlineMedium,
 				subtitle = if (state.longestSceneWords > 0)
-					stringResource(Res.string.project_home_stat_longest_scene_words, formatThousands(state.longestSceneWords))
+					stringResource(Res.string.project_home_stat_longest_scene_words, state.longestSceneWords.formatDecimalSeparator())
 				else null,
 				modifier = Modifier.cell(),
 			)
@@ -351,7 +357,7 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 				) {
 					Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 						Text(
-							text = formatThousands(state.numberOfNotes),
+							text = state.numberOfNotes.formatDecimalSeparator(),
 							style = MaterialTheme.typography.displayMedium,
 							color = MaterialTheme.colorScheme.onSurface,
 						)
@@ -362,7 +368,7 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 					}
 					Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 						Text(
-							text = formatThousands(state.numberOfTimelineEvents),
+							text = state.numberOfTimelineEvents.formatDecimalSeparator(),
 							style = MaterialTheme.typography.displayMedium,
 							color = MaterialTheme.colorScheme.primary,
 						)
@@ -376,9 +382,18 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 		}
 
 		if (state.wordsByChapter.isNotEmpty()) {
+			val chapterStats = remember(state.wordsByChapter) {
+				val items = state.wordsByChapter.entries.mapIndexed { index, entry ->
+					HdBarChartItem(label = (index + 1).toString(), value = entry.value)
+				}
+				val values = state.wordsByChapter.values
+				ChapterStats(
+					items = items,
+					min = values.min(),
+					max = values.max(),
+				)
+			}
 			Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				val maxV = state.wordsByChapter.values.maxOrNull() ?: 0
-				val minV = state.wordsByChapter.values.minOrNull() ?: 0
 				HdSectionHeader(
 					marker = "—",
 					title = stringResource(Res.string.project_home_stat_chapter_words),
@@ -388,17 +403,15 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 							text = stringResource(
 								Res.string.project_home_stat_chapter_words_summary,
 								state.sceneWordsStdDev,
-								minV,
-								maxV,
+								chapterStats.min,
+								chapterStats.max,
 							),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					},
 				)
 				HdBarChart(
-					items = state.wordsByChapter.entries.mapIndexed { index, entry ->
-						HdBarChartItem(label = (index + 1).toString(), value = entry.value)
-					},
+					items = chapterStats.items,
 					modifier = Modifier.fillMaxWidth(),
 					height = 140.dp,
 				)
@@ -409,21 +422,34 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 
 @Composable
 private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
-	val totalEntries = state.encyclopediaEntriesByType.values.sum()
 	val typeCounts = state.encyclopediaEntriesByType
+	val totalEntries = remember(typeCounts) { typeCounts.values.sum() }
+	val headerSummary = remember(typeCounts, totalEntries) {
+		buildList {
+			if (totalEntries > 0) add("$totalEntries entries")
+			typeCounts[EntryType.PLACE]?.takeIf { it > 0 }?.let { add("$it places") }
+			typeCounts[EntryType.PERSON]?.takeIf { it > 0 }?.let { add("$it people") }
+			typeCounts[EntryType.THING]?.takeIf { it > 0 }?.let { add("$it things") }
+		}.joinToString(" · ").takeIf { it.isNotEmpty() }
+	}
+	val hammerColors = LocalHammerColors.current
+	val attributions = remember(state.topAppearances, hammerColors) {
+		state.topAppearances.map { entry ->
+			HdAttributionItem(
+				label = entry.name,
+				value = entry.sceneCount,
+				color = hammerColors.colorForCharacter(entry.entryId),
+			)
+		}
+	}
+
 	HdHairlineSection(
 		section = 2,
 		title = "Inhabitants",
 		headerTrailing = {
-			val parts = buildList {
-				if (totalEntries > 0) add("$totalEntries entries")
-				typeCounts[EntryType.PLACE]?.takeIf { it > 0 }?.let { add("$it places") }
-				typeCounts[EntryType.PERSON]?.takeIf { it > 0 }?.let { add("$it people") }
-				typeCounts[EntryType.THING]?.takeIf { it > 0 }?.let { add("$it things") }
-			}
-			if (parts.isNotEmpty()) {
+			if (headerSummary != null) {
 				HdMonoLabel(
-					text = parts.joinToString(" · "),
+					text = headerSummary,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
@@ -435,18 +461,8 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 					text = stringResource(Res.string.project_home_stat_characters_appearances),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
-				if (state.topAppearances.isNotEmpty()) {
-					val hammerColors = LocalHammerColors.current
-					HdMiniBarChart(
-						items = state.topAppearances.map { entry ->
-							HdAttributionItem(
-								label = entry.name,
-								value = entry.sceneCount,
-								color = hammerColors.colorForCharacter(entry.entryId),
-							)
-						},
-						modifier = Modifier.fillMaxWidth(),
-					)
+				if (attributions.isNotEmpty()) {
+					HdMiniBarChart(items = attributions, modifier = Modifier.fillMaxWidth())
 				} else {
 					Spacer(Modifier.height(48.dp))
 				}
@@ -456,7 +472,11 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 					text = stringResource(Res.string.project_home_stat_encyclopedia_entries),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
-				EncyclopediaDonut(state = state, modifier = Modifier.fillMaxWidth().height(220.dp))
+				EncyclopediaDonut(
+					typeCounts = typeCounts,
+					totalEntries = totalEntries,
+					modifier = Modifier.fillMaxWidth().height(220.dp),
+				)
 				if (state.totalEntryConnections > 0) {
 					HdMonoLabel(
 						text = stringResource(Res.string.project_home_stat_connections, state.totalEntryConnections),
@@ -476,13 +496,15 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 						today = today,
 					)
 					Spacer(Modifier.height(4.dp))
-					HdMetadataRow(
+					HdInlineStat(
 						label = stringResource(Res.string.project_home_stat_avg_weekday),
-						value = formatThousands(state.writingActivity.avgWeekday),
+						value = state.writingActivity.avgWeekday.formatDecimalSeparator(),
+						valueStyle = MaterialTheme.typography.titleSmall,
 					)
-					HdMetadataRow(
+					HdInlineStat(
 						label = stringResource(Res.string.project_home_stat_avg_weekend),
-						value = formatThousands(state.writingActivity.avgWeekend),
+						value = state.writingActivity.avgWeekend.formatDecimalSeparator(),
+						valueStyle = MaterialTheme.typography.titleSmall,
 					)
 				}
 			}
@@ -499,12 +521,15 @@ private fun DevicesSection(state: ProjectHome.State) {
 		val sorted = remember(state.wordsPerDevice) {
 			state.wordsPerDevice.entries.sortedByDescending { it.value }
 		}
-		val maxValue = sorted.firstOrNull()?.value?.coerceAtLeast(1) ?: 1
 		val palette = remember(sorted.size) { generateHueColorPalette(sorted.size.coerceAtLeast(1)) }
-		HdMiniBarChart(
-			items = sorted.mapIndexed { index, (label, words) ->
+		val items = remember(sorted, palette) {
+			sorted.mapIndexed { index, (label, words) ->
 				HdAttributionItem(label = label, value = words, color = palette[index])
-			},
+			}
+		}
+		val maxValue = sorted.firstOrNull()?.value?.coerceAtLeast(1) ?: 1
+		HdMiniBarChart(
+			items = items,
 			modifier = Modifier.fillMaxWidth(),
 			maxValue = maxValue,
 		)
@@ -513,28 +538,28 @@ private fun DevicesSection(state: ProjectHome.State) {
 
 @OptIn(ExperimentalKoalaPlotApi::class)
 @Composable
-private fun EncyclopediaDonut(state: ProjectHome.State, modifier: Modifier = Modifier) {
+private fun EncyclopediaDonut(
+	typeCounts: Map<EntryType, Int>,
+	totalEntries: Int,
+	modifier: Modifier = Modifier,
+) {
 	// KoalaPlot crashes on zero values, so add 0.01f.
-	val values = remember(state.encyclopediaEntriesByType) {
-		state.encyclopediaEntriesByType.map { it.value.toFloat() + .01f }
-	}
-	val keys = remember(state.encyclopediaEntriesByType) {
-		state.encyclopediaEntriesByType.keys.toList()
-	}
+	val values = remember(typeCounts) { typeCounts.map { it.value.toFloat() + .01f } }
+	val keys = remember(typeCounts) { typeCounts.keys.toList() }
 	if (values.isEmpty() || values.sum() <= 0f) {
 		Spacer(modifier = modifier.height(180.dp))
 		return
 	}
 
 	var hasAnimated by rememberSaveable { mutableStateOf(false) }
-	val totalEntries = state.encyclopediaEntriesByType.values.sum()
+	val animationDelay = remember { Random.nextInt(300, 1000) }
 	val hammerColors = LocalHammerColors.current
 
 	KoalaPlotTheme(
 		animationSpec = if (!hasAnimated) {
 			tween(
 				durationMillis = 800,
-				delayMillis = Random.nextInt(300, 1000),
+				delayMillis = animationDelay,
 				easing = LinearOutSlowInEasing,
 			)
 		} else {
@@ -553,7 +578,7 @@ private fun EncyclopediaDonut(state: ProjectHome.State, modifier: Modifier = Mod
 						horizontalAlignment = Alignment.CenterHorizontally,
 					) {
 						Text(
-							formatThousands(totalEntries),
+							totalEntries.formatDecimalSeparator(),
 							style = MaterialTheme.typography.headlineMedium,
 							color = MaterialTheme.colorScheme.onSurface,
 						)
@@ -579,17 +604,14 @@ private fun EncyclopediaDonut(state: ProjectHome.State, modifier: Modifier = Mod
 		}
 	}
 
-	if (!hasAnimated) {
-		hasAnimated = true
-	}
+	LaunchedEffect(Unit) { hasAnimated = true }
 }
 
 @Composable
 private fun ProjectHomeMenu(
 	component: ProjectHome,
-	scope: CoroutineScope,
+	hasServer: Boolean,
 ) {
-	val state by component.state.subscribeAsState()
 	var expanded by remember { mutableStateOf(false) }
 
 	Box {
@@ -637,7 +659,7 @@ private fun ProjectHomeMenu(
 				},
 			)
 
-			if (state.hasServer) {
+			if (hasServer) {
 				DropdownMenuItem(
 					text = { Text(Res.string.project_home_action_sync.get()) },
 					onClick = {

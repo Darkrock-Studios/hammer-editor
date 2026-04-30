@@ -14,17 +14,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Renders the dashboard-mock section header pattern:
+ * Section header pattern:
  *
  *     § I  Structure  ────────────────────  15 SCENES · 13 CHAPTERS
  *
- * The roman marker is rendered in mono small-caps, the title in
- * headlineSmall, a hairline divider fills the remaining row, and the
- * optional [trailing] slot holds right-aligned metadata text — typically
- * an [HdMonoLabel].
- *
- * Pass [section] as an Int for an automatic roman numeral, or use the
- * String overload for custom markers.
+ * Pass [section] as an Int for auto-romanization, or use the String
+ * overload for custom markers (e.g. "—").
  */
 @Composable
 fun HdSectionHeader(

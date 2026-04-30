@@ -8,16 +8,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 
 /**
- * Small-caps mono label — the most-used primitive in the design system.
- *
- * Renders [text] uppercased in [MaterialTheme.typography.labelSmall] (which
- * `HammerTypography` configures to monospace + extra letter spacing). Use
- * for column headers, metadata keys, navigation labels, chip labels — any
- * "manuscript ledger" annotation in the UI.
- *
- * Defaults to `onSurfaceVariant` (muted) since labels are typically used
- * as supporting text. Pass an explicit [color] for bright/branded usage,
- * or [style] = `labelMedium` for larger annotations.
+ * Mono small-caps label — the design system's annotation primitive.
+ * Auto-uppercases [text]; defaults to `onSurfaceVariant`.
  */
 @Composable
 fun HdMonoLabel(

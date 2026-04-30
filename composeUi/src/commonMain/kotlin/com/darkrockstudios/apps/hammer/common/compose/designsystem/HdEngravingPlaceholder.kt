@@ -14,14 +14,8 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.sqrt
 
 /**
- * Placeholder used when an entity (encyclopedia entry, character, etc.) has
- * no image. Renders a low-contrast 45° hatched stripe pattern with a
- * centered mono label:
- *
- *     [ENGRAVING · NAME]
- *
- * The hatching uses [MaterialTheme.colorScheme.outlineVariant] so it sits
- * on top of any surface tone and respects the project theme override.
+ * "No image" placeholder: 45° hatched stripes + `[ENGRAVING · NAME]`.
+ * Uses `outlineVariant` so it tints with any surface tone.
  */
 @Composable
 fun HdEngravingPlaceholder(

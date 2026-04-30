@@ -13,15 +13,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import kotlin.math.abs
 
 /**
- * A signed percent-change indicator with arrow:
- *
- *     ▲ 22% vs last week
- *     ▼ 3% vs last week
- *
- * Sign of [percent] determines the arrow and color (success / danger from
- * [LocalHammerColors]). Caller supplies the [suffix] text (e.g.
- * "vs last week", "today") in regular casing — internal label rendering is
- * left to caller for flexibility.
+ * Signed percent-change indicator: `▲ 22% vs last week`.
+ * Sign of [percent] picks arrow + success/danger color.
  */
 @Composable
 fun HdDeltaBadge(

@@ -12,14 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 
-/**
- * "Daily goal  847 / 1,000" with a thin LinearProgressIndicator below.
- *
- * Progress is clamped to [0, 1]. Caller passes the natural-language
- * [label] (defaults to "Daily goal"); the value text formats as
- * "current / goal".
- */
+/** "Daily goal  847 / 1,000" + thin progress bar. Progress clamped to [0,1]. */
 @Composable
 fun HdDailyGoalProgress(
 	current: Int,
@@ -43,7 +38,7 @@ fun HdDailyGoalProgress(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 			Text(
-				text = "${formatThousands(current)} / ${formatThousands(goal)}",
+				text = "${current.formatDecimalSeparator()} / ${goal.formatDecimalSeparator()}",
 				style = MaterialTheme.typography.titleSmall,
 				color = MaterialTheme.colorScheme.onSurface,
 			)

@@ -38,6 +38,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarItem
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -271,9 +273,9 @@ private fun CompactNavigation(
 			)
 		},
 		bottomBar = {
-			NavigationBar {
+			HdBottomBar {
 				ProjectRoot.DestinationTypes.entries.forEach { item ->
-					NavigationBarItem(
+					HdBottomBarItem(
 						selected = item == router.active.instance.getLocationType(),
 						onClick = { component.showDestination(item) },
 						icon = {
@@ -282,6 +284,7 @@ private fun CompactNavigation(
 								contentDescription = item.text.get()
 							)
 						},
+						label = item.text.get(),
 					)
 				}
 			}
