@@ -207,6 +207,12 @@ internal fun EncyclopediaEntryItem(
 									contentDescription = null,
 									modifier = Modifier
 										.fillMaxSize()
+										.sharedElement(
+											sharedContentState = rememberSharedContentState(
+												key = "encyclopedia-image-${entryDef.id}",
+											),
+											animatedVisibilityScope = animatedVisibilityScope,
+										)
 										.animateEnterExit(enter = fadeIn(), exit = fadeOut()),
 									contentScale = ContentScale.Fit,
 								)
