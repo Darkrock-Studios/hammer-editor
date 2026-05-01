@@ -26,7 +26,6 @@
 	<string name="encyclopedia_create_entry_tags_placeholder">ritual, magical, recurring…</string>
 	<string name="encyclopedia_create_entry_description_label">Description</string>
 	<string name="encyclopedia_create_entry_body_hint">A short defining note…</string>
-	<string name="encyclopedia_create_entry_markdown_hint">Markdown</string>
 	<string name="encyclopedia_create_entry_cover_art_label">Cover Art</string>
 	<string name="encyclopedia_create_entry_image_drop_hint">Drop image · or</string>
 	<string name="encyclopedia_create_entry_image_browse_button">Browse files</string>

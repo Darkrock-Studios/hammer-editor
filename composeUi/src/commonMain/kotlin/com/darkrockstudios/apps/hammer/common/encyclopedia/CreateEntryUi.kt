@@ -118,7 +118,6 @@ internal fun CreateEntryUi(
 					value = description,
 					onValueChange = { description = it },
 					placeholder = Res.string.encyclopedia_create_entry_body_hint.get(),
-					hint = Res.string.encyclopedia_create_entry_markdown_hint.get(),
 					singleLine = false,
 					minLines = 4,
 					maxLines = 12,
@@ -237,7 +236,10 @@ private fun HairlineModalHeader(
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
-		HdFolioDivider()
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
 	}
 }
 
