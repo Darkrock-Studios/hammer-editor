@@ -1,23 +1,61 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -25,15 +63,81 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
-import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_short
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_chip
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_dialog_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tag_chip
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_dialog_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_alias_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_aliases_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_empty
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_placeholder
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label_compact
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_toast
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_cancel_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_add
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_caption
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_scenes
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_tags
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_type
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_tags_label
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
@@ -41,7 +145,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+private val CardMaxWidth: Dp = 920.dp
+private val InsetFigureWidth: Dp = 240.dp
+private val InsetFigureHeight: Dp = 320.dp
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun ViewEntryUi(
 	component: ViewEntry,
@@ -58,9 +166,7 @@ internal fun ViewEntryUi(
 	val dispatcherDefault = rememberDefaultDispatcher()
 	val state by component.state.subscribeAsState()
 
-	val filePickerLauncher = rememberFilePickerLauncher(
-		type = FileKitType.Image
-	) { file ->
+	val filePickerLauncher = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
 		if (file != null) {
 			scope.launch { component.setImage(file.absolutePath()) }
 		}
@@ -69,11 +175,10 @@ internal fun ViewEntryUi(
 
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
-
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
-	val content = state.content
+	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	LaunchedEffect(state.content) {
 		state.content?.let {
@@ -82,193 +187,160 @@ internal fun ViewEntryUi(
 		}
 	}
 
-	BoxWithConstraints(
-		modifier = Modifier.fillMaxSize(),
-		contentAlignment = Alignment.TopCenter
+	val ruleColor = MaterialTheme.colorScheme.outlineVariant
+	val ruleSoft = ruleColor.copy(alpha = 0.5f)
+	val ruleStrong = MaterialTheme.colorScheme.outline
+	val content = state.content
+	val editing = state.editName || state.editText
+
+	val saveChanges: () -> Unit = saveAction@{
+		if (content == null) return@saveAction
+		scope.launch {
+			val result = component.updateEntry(
+				name = entryNameText,
+				text = entryText,
+				tags = content.tags,
+			)
+			if (result.error == EntryError.NONE) {
+				withContext(dispatcherMain) {
+					component.finishNameEdit()
+					component.finishTextEdit()
+				}
+			}
+			reportSaveResult(result, rootSnackbar, scope, strRes)
+		}
+	}
+
+	val discardChanges: () -> Unit = discard@{
+		if (content == null) return@discard
+		entryNameText = content.name
+		entryText = content.text
+		component.finishNameEdit()
+		component.finishTextEdit()
+	}
+
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.verticalScroll(rememberScrollState()),
+		horizontalAlignment = Alignment.CenterHorizontally,
 	) {
 		with(sharedTransitionScope) {
-			Card(
+			Column(
 				modifier = modifier
-					.padding(top = Ui.Padding.XL, bottom = Ui.Padding.L, start = Ui.Padding.M, end = Ui.Padding.M)
-					.heightIn(max = maxHeight)
-					.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f)
+					.padding(
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.L,
+						start = Ui.Padding.M,
+						end = Ui.Padding.M,
+					)
+					.widthIn(max = CardMaxWidth)
+					.fillMaxWidth()
+					.background(MaterialTheme.colorScheme.surface)
+					.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
 					.sharedElement(
-						sharedContentState = rememberSharedContentState(key = "encyclopedia-card-${state.entryDef.id}"),
-						animatedVisibilityScope = animatedVisibilityScope
+						sharedContentState = rememberSharedContentState(
+							key = "encyclopedia-card-${state.entryDef.id}",
+						),
+						animatedVisibilityScope = animatedVisibilityScope,
 					),
-				elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 			) {
-				Column(
-					modifier = Modifier.widthIn(Ui.DetailCard.MIN_WIDTH, Ui.DetailCard.MAX_WIDTH).wrapContentHeight()
-				) {
-				if (state.editName) {
-					TextField(
-						modifier = Modifier
-							.padding(top = Ui.Padding.M, bottom = Ui.Padding.M)
-							.wrapContentHeight()
-							.fillMaxWidth(),
-						value = entryNameText,
-						onValueChange = { entryNameText = it },
-						placeholder = { Text(Res.string.encyclopedia_entry_name_hint.get()) }
+				CrumbRow(
+					title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
+					menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+					onClose = {
+						if (editing) component.confirmClose() else closeEntry()
+					},
+				)
+
+				HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
+
+				StampRow(
+					entryDef = state.entryDef,
+					editing = editing,
+					onEdit = {
+						component.startNameEdit()
+						component.startTextEdit()
+					},
+					onSave = saveChanges,
+					onCancel = { discardConfirm = true },
+				)
+
+				HorizontalDivider(thickness = 2.dp, color = ruleStrong)
+
+				NameZone(
+					entryNameText = entryNameText,
+					onNameChange = { entryNameText = it },
+					editName = state.editName,
+					onStartEdit = component::startNameEdit,
+					compact = isCompact,
+					sharedKey = "encyclopedia-title-${state.entryDef.id}",
+					sharedTransitionScope = sharedTransitionScope,
+					animatedVisibilityScope = animatedVisibilityScope,
+				)
+
+				if (isCompact) {
+					CompactBody(
+						state = state,
+						entryText = entryText,
+						setEntryText = { entryText = it },
+						onStartTextEdit = component::startTextEdit,
+						onShowDeleteImage = component::showDeleteImageDialog,
+						onAddImage = component::showAddImageDialog,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
 					)
 				} else {
-					Row(modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L, start = Ui.Padding.L)) {
-						Text(
-							entryNameText,
-							style = MaterialTheme.typography.displaySmall,
-							color = MaterialTheme.colorScheme.onBackground,
-							modifier = Modifier
-								.weight(1f)
-								.sharedElement(
-									sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${state.entryDef.id}"),
-									animatedVisibilityScope = animatedVisibilityScope
-								)
-								.clickable { component.startNameEdit() }
-						)
-
-						DetailViewDropdownMenu(menuItems = state.menuItems)
-
-						IconButton(
-							onClick = {
-								if (state.editName || state.editText) {
-									component.confirmClose()
-								} else {
-									closeEntry()
-								}
-							},
-						) {
-							Icon(
-								Icons.Filled.Close,
-								contentDescription = Res.string.encyclopedia_entry_close_button.get(),
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						}
-					}
+					WideBody(
+						state = state,
+						entryText = entryText,
+						setEntryText = { entryText = it },
+						onStartTextEdit = component::startTextEdit,
+						onShowDeleteImage = component::showDeleteImageDialog,
+						onAddImage = component::showAddImageDialog,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
 				}
 
-				Row(
-					modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-					horizontalArrangement = Arrangement.End,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					if (content != null && (state.editName || state.editText)) {
-						IconButton(onClick = {
-							scope.launch {
-								val result = component.updateEntry(
-									name = entryNameText,
-									text = entryText,
-									tags = content.tags
-								)
-
-								if (result.error == EntryError.NONE) {
-									withContext(dispatcherMain) {
-										component.finishNameEdit()
-										component.finishTextEdit()
-									}
-								}
-
-								reportSaveResult(result, rootSnackbar, scope, strRes)
-							}
-						}) {
-							Icon(
-								Icons.Filled.Check,
-								Res.string.encyclopedia_entry_edit_save_button.get(),
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						}
-
-						IconButton(onClick = { discardConfirm = true }) {
-							Icon(
-								Icons.Filled.Cancel,
-								Res.string.encyclopedia_entry_edit_cancel_button.get(),
-								tint = MaterialTheme.colorScheme.error
-							)
-						}
-
-						if (screen.needsExplicitClose) {
-							Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-							HorizontalDivider(
-								modifier = Modifier.fillMaxHeight().width(1.dp)
-									.padding(top = Ui.Padding.M, bottom = Ui.Padding.M),
-								thickness = DividerDefaults.Thickness,
-								color = MaterialTheme.colorScheme.outline
-							)
-
-							Spacer(modifier = Modifier.size(Ui.Padding.XL))
-						}
-
-						if (discardConfirm) {
-							SimpleConfirm(
-								title = Res.string.encyclopedia_entry_discard_title.get(),
-								message = Res.string.encyclopedia_entry_discard_message.get(),
-								onDismiss = { discardConfirm = false }
-							) {
-								entryNameText = content.name
-								entryText = content.text
-
-								component.finishNameEdit()
-								component.finishTextEdit()
-
-								discardConfirm = false
-							}
-						}
-					}
+				if (content != null) {
+					ParticularsLedger(
+						state = state,
+						modifier = Modifier
+							.padding(horizontal = Ui.Padding.XXL)
+							.padding(top = 28.dp),
+					)
 				}
 
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
+				TagsAndAliasesZone(
+					state = state,
+					component = component,
+					compact = isCompact,
+				)
 
-				if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
-					Row {
-						Image(
-							modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.medium),
-							state = state,
-							showDeleteImageDialog = component::showDeleteImageDialog,
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-						)
-						Contents(
-							modifier = Modifier.weight(1f).wrapContentHeight()
-								.verticalScroll(rememberScrollState()),
-							component = component,
-							state = state,
-							editText = state.editText,
-							entryText = entryText,
-							setEntryText = { entryText = it },
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-							rootSnackbar = rootSnackbar,
-							strRes = strRes,
-						) { component.startTextEdit() }
-					}
-				} else {
-					Column(
-						modifier = Modifier.fillMaxWidth().wrapContentHeight().verticalScroll(rememberScrollState())
-					) {
-						Image(
-							modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(MaterialTheme.shapes.medium),
-							state = state,
-							showDeleteImageDialog = component::showDeleteImageDialog,
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-						)
-						Contents(
-							modifier = Modifier.wrapContentHeight(),
-							component = component,
-							state = state,
-							editText = state.editText,
-							entryText = entryText,
-							setEntryText = { entryText = it },
-							sharedTransitionScope = sharedTransitionScope,
-							animatedVisibilityScope = animatedVisibilityScope,
-							rootSnackbar = rootSnackbar,
-							strRes = strRes,
-						) { component.startTextEdit() }
-					}
-				}
-			}
+				AppearsInZone(
+					state = state,
+					component = component,
+				)
+
+				FooterColophon(
+					compact = isCompact,
+					ruleSoft = ruleSoft,
+				)
 			}
 		}
+	}
+
+	if (discardConfirm) {
+		SimpleConfirm(
+			title = Res.string.encyclopedia_entry_discard_title.get(),
+			message = Res.string.encyclopedia_entry_discard_message.get(),
+			onDismiss = { discardConfirm = false },
+			onConfirm = {
+				discardChanges()
+				discardConfirm = false
+			},
+		)
 	}
 
 	LaunchedEffect(state.showAddImageDialog) {
@@ -281,87 +353,467 @@ internal fun ViewEntryUi(
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_delete_image_title.get(),
 			message = Res.string.encyclopedia_entry_delete_image_message.get(),
-			onDismiss = { component.closeDeleteImageDialog() }
-		) {
-			scope.launch {
-				component.removeEntryImage()
-				state.entryImagePath?.let { path ->
-					imageLoader.diskCache?.remove(path)
-					imageLoader.memoryCache?.remove(MemoryCache.Key(path))
+			onDismiss = { component.closeDeleteImageDialog() },
+			onConfirm = {
+				scope.launch {
+					component.removeEntryImage()
+					state.entryImagePath?.let { path ->
+						imageLoader.diskCache?.remove(path)
+						imageLoader.memoryCache?.remove(MemoryCache.Key(path))
+					}
 				}
-			}
-			component.closeDeleteImageDialog()
-		}
+				component.closeDeleteImageDialog()
+			},
+		)
 	}
 
 	if (state.showDeleteEntryDialog) {
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_delete_title.get(),
 			message = Res.string.encyclopedia_entry_delete_message.get(),
-			onDismiss = { component.closeDeleteEntryDialog() }
-		) {
-			scope.launch(dispatcherDefault) {
-				if (component.deleteEntry(state.entryDef)) {
-					withContext(dispatcherMain) {
-						closeEntry()
+			onDismiss = { component.closeDeleteEntryDialog() },
+			onConfirm = {
+				scope.launch(dispatcherDefault) {
+					if (component.deleteEntry(state.entryDef)) {
+						withContext(dispatcherMain) { closeEntry() }
+						rootSnackbar.showSnackbar(
+							strRes.get(Res.string.encyclopedia_entry_delete_toast),
+						)
 					}
-					rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_entry_delete_toast))
 				}
-			}
-			component.closeDeleteEntryDialog()
-		}
+				component.closeDeleteEntryDialog()
+			},
+		)
 	}
 
 	if (state.confirmClose) {
 		SimpleConfirm(
 			title = Res.string.encyclopedia_entry_discard_title.get(),
 			message = Res.string.encyclopedia_entry_discard_message.get(),
-			onDismiss = { component.dismissConfirmClose() }
+			onDismiss = { component.dismissConfirmClose() },
+			onConfirm = {
+				component.dismissConfirmClose()
+				closeEntry()
+			},
+		)
+	}
+
+	TagAddDialog(state = state, component = component, scope = scope)
+	AliasAddDialog(
+		state = state,
+		component = component,
+		scope = scope,
+		rootSnackbar = rootSnackbar,
+		strRes = strRes,
+	)
+}
+
+@Composable
+private fun CrumbRow(
+	title: String,
+	menuSlot: @Composable () -> Unit,
+	onClose: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMonoLabel(
+			text = "← " + Res.string.encyclopedia_entry_crumb_root.get(),
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		HdMonoLabel(
+			text = "/",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		HdMonoLabel(
+			text = title,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		Spacer(modifier = Modifier.weight(1f))
+		menuSlot()
+		HairlineIconBox(
+			icon = Icons.Filled.Close,
+			contentDescription = Res.string.encyclopedia_entry_close_button.get(),
+			onClick = onClose,
+		)
+	}
+}
+
+@Composable
+private fun StampRow(
+	entryDef: EntryDef,
+	editing: Boolean,
+	onEdit: () -> Unit,
+	onSave: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		FolioStamp(entryDef = entryDef)
+		if (editing) {
+			Spacer(modifier = Modifier.weight(1f))
+			HdHairlineButton(
+				label = Res.string.encyclopedia_entry_edit_save_button.get(),
+				onClick = onSave,
+				emphasised = true,
+			)
+			HdHairlineButton(
+				label = Res.string.encyclopedia_entry_edit_cancel_button.get(),
+				onClick = onCancel,
+			)
+		} else {
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_folio_format.get(
+					folioInitials(entryDef),
+					folioId(entryDef),
+				),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			Spacer(modifier = Modifier.weight(1f))
+			HdHairlineButton(
+				label = Res.string.encyclopedia_entry_edit_button.get(),
+				onClick = onEdit,
+			)
+		}
+	}
+}
+
+@Composable
+private fun FolioStamp(
+	entryDef: EntryDef,
+) {
+	val typeColor = LocalHammerColors.current.colorFor(entryDef.type)
+	val ruleColor = MaterialTheme.colorScheme.outlineVariant
+	Row(
+		modifier = Modifier
+			.height(36.dp)
+			.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Box(
+			modifier = Modifier
+				.width(36.dp)
+				.height(36.dp)
+				.background(typeColor),
+			contentAlignment = Alignment.Center,
 		) {
-			component.dismissConfirmClose()
-			closeEntry()
+			Text(
+				text = entryDef.type.glyph(),
+				style = MaterialTheme.typography.titleMedium,
+				color = Color.Black,
+				fontWeight = FontWeight.Medium,
+			)
+		}
+		Box(
+			modifier = Modifier
+				.width(Dp.Hairline)
+				.height(36.dp)
+				.background(ruleColor),
+		)
+		HdMonoLabel(
+			text = entryDef.type.toStringResource().get(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.padding(horizontal = 14.dp),
+		)
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun NameZone(
+	entryNameText: String,
+	onNameChange: (String) -> Unit,
+	editName: Boolean,
+	onStartEdit: () -> Unit,
+	compact: Boolean,
+	sharedKey: String,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+	val onSurface = MaterialTheme.colorScheme.onSurface
+	val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+	val titleStyle = TextStyle(
+		fontSize = if (compact) 56.sp else 88.sp,
+		lineHeight = if (compact) 60.sp else 88.sp,
+		letterSpacing = (-2).sp,
+		fontWeight = FontWeight.ExtraLight,
+		color = onSurface,
+	)
+
+	Box(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+	) {
+		if (editName) {
+			BasicTextField(
+				value = entryNameText,
+				onValueChange = onNameChange,
+				modifier = Modifier.fillMaxWidth(),
+				textStyle = titleStyle,
+				cursorBrush = SolidColor(onSurface),
+				singleLine = false,
+				keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+			)
+			if (entryNameText.isEmpty()) {
+				Text(
+					text = Res.string.encyclopedia_entry_name_hint.get(),
+					style = titleStyle.copy(color = mutedColor),
+				)
+			}
+		} else {
+			with(sharedTransitionScope) {
+				Text(
+					text = entryNameText,
+					style = titleStyle,
+					modifier = Modifier
+						.fillMaxWidth()
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(key = sharedKey),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onStartEdit),
+				)
+			}
 		}
 	}
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun Image(
-	modifier: Modifier = Modifier,
+private fun WideBody(
 	state: ViewEntry.State,
-	showDeleteImageDialog: () -> Unit,
+	entryText: String,
+	setEntryText: (String) -> Unit,
+	onStartTextEdit: () -> Unit,
+	onShowDeleteImage: () -> Unit,
+	onAddImage: () -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-	if (state.entryImagePath != null) {
-		Box(modifier = modifier.wrapContentHeight()) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XXL),
+	) {
+		BodyTextZone(
+			editText = state.editText,
+			entryText = entryText,
+			setEntryText = setEntryText,
+			onStartTextEdit = onStartTextEdit,
+			modifier = Modifier.weight(1f),
+			sharedKey = "encyclopedia-text-${state.entryDef.id}",
+			animatedVisibilityScope = animatedVisibilityScope,
+			sharedTransitionScope = sharedTransitionScope,
+		)
+		Column(
+			modifier = Modifier.width(InsetFigureWidth),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		) {
+			InsetFigure(
+				state = state,
+				onShowDeleteImage = onShowDeleteImage,
+				onAddImage = onAddImage,
+				sharedTransitionScope = sharedTransitionScope,
+				animatedVisibilityScope = animatedVisibilityScope,
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(InsetFigureHeight),
+			)
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun CompactBody(
+	state: ViewEntry.State,
+	entryText: String,
+	setEntryText: (String) -> Unit,
+	onStartTextEdit: () -> Unit,
+	onShowDeleteImage: () -> Unit,
+	onAddImage: () -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		InsetFigure(
+			state = state,
+			onShowDeleteImage = onShowDeleteImage,
+			onAddImage = onAddImage,
+			sharedTransitionScope = sharedTransitionScope,
+			animatedVisibilityScope = animatedVisibilityScope,
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(240.dp),
+		)
+		HdMonoLabel(
+			text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		BodyTextZone(
+			editText = state.editText,
+			entryText = entryText,
+			setEntryText = setEntryText,
+			onStartTextEdit = onStartTextEdit,
+			modifier = Modifier.fillMaxWidth(),
+			sharedKey = "encyclopedia-text-${state.entryDef.id}",
+			animatedVisibilityScope = animatedVisibilityScope,
+			sharedTransitionScope = sharedTransitionScope,
+		)
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun BodyTextZone(
+	editText: Boolean,
+	entryText: String,
+	setEntryText: (String) -> Unit,
+	onStartTextEdit: () -> Unit,
+	modifier: Modifier,
+	sharedKey: String,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+	sharedTransitionScope: SharedTransitionScope,
+) {
+	val bodyStyle = MaterialTheme.typography.bodyLarge.copy(
+		color = MaterialTheme.colorScheme.onSurface,
+		lineHeight = 26.sp,
+	)
+	val mutedStyle = bodyStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+	if (editText) {
+		Column(modifier = modifier) {
+			BasicTextField(
+				value = entryText,
+				onValueChange = setEntryText,
+				modifier = Modifier
+					.fillMaxWidth()
+					.heightIn(min = 160.dp)
+					.padding(vertical = Ui.Padding.M),
+				textStyle = bodyStyle,
+				cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+			)
+			if (entryText.isEmpty()) {
+				Text(
+					text = Res.string.encyclopedia_entry_body_empty_placeholder.get(),
+					style = mutedStyle,
+				)
+			}
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				modifier = Modifier.padding(top = Ui.Padding.M),
+			)
+		}
+	} else {
+		val display = entryText.ifBlank { Res.string.encyclopedia_entry_body_empty_label.get() }
+		val style = if (entryText.isBlank()) mutedStyle else bodyStyle
+		with(sharedTransitionScope) {
+			Text(
+				text = display,
+				style = style,
+				modifier = modifier
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = sharedKey),
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
+					.clickable(onClick = onStartTextEdit),
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun InsetFigure(
+	state: ViewEntry.State,
+	onShowDeleteImage: () -> Unit,
+	onAddImage: () -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+	modifier: Modifier = Modifier,
+) {
+	val ruleColor = MaterialTheme.colorScheme.outlineVariant
+	val imagePath = state.entryImagePath
+	Box(
+		modifier = modifier
+			.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
+			.background(MaterialTheme.colorScheme.surfaceContainerLow),
+	) {
+		if (imagePath != null) {
+			val context = LocalPlatformContext.current
 			with(sharedTransitionScope) {
-				with(animatedVisibilityScope) {
-					val context = LocalPlatformContext.current
-					AsyncImage(
-						model = remember(state.entryImagePath) {
-							ImageRequest.Builder(context)
-								.data(state.entryImagePath)
-								.memoryCacheKeyExtras(mapOf("hash" to state.entryImageHash.toString()))
-								.placeholderMemoryCacheKey(state.entryImagePath)
-								.crossfade(false)
-								.build()
-						},
-						contentDescription = null,
-						modifier = Modifier.wrapContentHeight()
-							.fillMaxWidth()
-							.align(Alignment.TopEnd)
-							.animateEnterExit(
-								enter = fadeIn(),
-								exit = fadeOut()
+				AsyncImage(
+					model = remember(imagePath) {
+						ImageRequest.Builder(context)
+							.data(imagePath)
+							.memoryCacheKeyExtras(
+								mapOf("hash" to state.entryImageHash.toString()),
 							)
-//							.sharedElement(
-//								sharedContentState = rememberSharedContentState(key = "encyclopedia-image-${state.entryDef.id}"),
-//								animatedVisibilityScope = animatedVisibilityScope
-//							)
-							.clip(MaterialTheme.shapes.medium)
-							.clickable(onClick = showDeleteImageDialog),
-						contentScale = ContentScale.Fit,
+							.placeholderMemoryCacheKey(imagePath)
+							.crossfade(false)
+							.build()
+					},
+					contentDescription = null,
+					modifier = Modifier
+						.fillMaxSize()
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "encyclopedia-image-${state.entryDef.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onShowDeleteImage),
+					contentScale = ContentScale.Fit,
+				)
+			}
+		} else {
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.clickable(onClick = onAddImage),
+			) {
+				HdEngravingPlaceholder(
+					label = state.entryDef.name.uppercase(),
+					modifier = Modifier
+						.fillMaxWidth()
+						.weight(1f),
+				)
+				HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					HdMonoLabel(
+						text = Res.string.encyclopedia_entry_figure_label.get(),
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+					HdMonoLabel(
+						text = Res.string.encyclopedia_entry_figure_add.get(),
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
 			}
@@ -369,258 +821,453 @@ private fun Image(
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
-private fun Contents(
-	modifier: Modifier = Modifier,
-	component: ViewEntry,
+private fun ParticularsLedger(
 	state: ViewEntry.State,
-	editText: Boolean,
-	entryText: String,
-	setEntryText: (String) -> Unit,
-	sharedTransitionScope: SharedTransitionScope,
-	animatedVisibilityScope: AnimatedVisibilityScope,
-	rootSnackbar: RootSnackbarHostState,
-	strRes: StrRes,
-	beginEdit: () -> Unit,
+	modifier: Modifier = Modifier,
 ) {
-	val scope = rememberCoroutineScope()
-	val mainDispatcher = rememberMainDispatcher()
-	val content = state.content
-
-	Column(
-		modifier = modifier
-			.padding(start = Ui.Padding.XL, end = Ui.Padding.XL, bottom = Ui.Padding.XL)
-	) {
-		with(sharedTransitionScope) {
-			AssistChip(
-				onClick = {},
-				enabled = false,
-				label = { Text(state.entryDef.type.toStringResource().get()) },
-				leadingIcon = {
-					Icon(
-						getEntryTypeIcon(state.entryDef.type),
-						state.entryDef.type.toStringResource().get()
-					)
-				},
-				modifier = Modifier
-					.padding(end = Ui.Padding.L)
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${state.entryDef.id}"),
-						animatedVisibilityScope = animatedVisibilityScope
-					)
+	val content = state.content ?: return
+	val cells = listOf<@Composable () -> Unit>(
+		{
+			HdMetadataItem(
+				label = Res.string.encyclopedia_entry_particulars_type.get(),
+				value = state.entryDef.type.toStringResource().get(),
 			)
-		}
-
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-		if (content != null) {
-			if (editText) {
-				OutlinedTextField(
-					value = entryText,
-					onValueChange = setEntryText,
-					modifier = Modifier.fillMaxWidth()
-						.padding(PaddingValues(bottom = Ui.Padding.XL)),
-					placeholder = { Text(text = Res.string.encyclopedia_entry_body_empty_placeholder.get()) },
-					maxLines = 10,
-				)
-			} else {
-				val text = entryText.ifBlank {
-					Res.string.encyclopedia_entry_body_empty_label.get()
-				}
-				with(sharedTransitionScope) {
-					Text(
-						text,
-						modifier = Modifier
-							.fillMaxWidth()
-							.sharedElement(
-								sharedContentState = rememberSharedContentState(key = "encyclopedia-text-${state.entryDef.id}"),
-								animatedVisibilityScope = animatedVisibilityScope
-							)
-							.clickable { beginEdit() },
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onBackground,
-					)
-				}
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-			FlowRow(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-			) {
-				for (tag in content.tags) {
-					InputChip(
-						onClick = {
-							component.removeTag(tag)
-						},
-						label = { Text(tag) },
-						trailingIcon = {
-							Icon(
-								Icons.Filled.Delete,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						},
-						enabled = true,
-						selected = false
-					)
-				}
-
-				InputChip(
-					onClick = {
-						component.startTagAdd()
-					},
-					label = { Text(Res.string.encyclopedia_entry_add_tag.get()) },
-					leadingIcon = {
-						Icon(
-							Icons.Filled.Add,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					},
-					enabled = true,
-					selected = false
-				)
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-			Text(
-				text = Res.string.encyclopedia_entry_aliases_label.get(),
-				style = MaterialTheme.typography.titleSmall,
-				color = MaterialTheme.colorScheme.onBackground,
+		},
+		{
+			HdMetadataItem(
+				label = Res.string.encyclopedia_entry_particulars_tags.get(),
+				value = content.tags.size.toString(),
 			)
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
-			FlowRow(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-			) {
-				for (alias in content.aliases) {
-					InputChip(
-						onClick = { component.removeAlias(alias) },
-						label = { Text(alias) },
-						trailingIcon = {
-							Icon(
-								Icons.Filled.Delete,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.onSurface,
-							)
-						},
-						enabled = true,
-						selected = false,
-					)
-				}
-
-				InputChip(
-					onClick = { component.startAliasAdd() },
-					label = { Text(Res.string.encyclopedia_entry_add_alias.get()) },
-					leadingIcon = {
-						Icon(
-							Icons.Filled.Add,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.onSurface,
-						)
-					},
-					enabled = true,
-					selected = false,
-				)
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-			Text(
-				text = Res.string.encyclopedia_entry_appears_in_label.get(),
-				style = MaterialTheme.typography.titleSmall,
-				color = MaterialTheme.colorScheme.onBackground,
+		},
+		{
+			HdMetadataItem(
+				label = Res.string.encyclopedia_entry_particulars_aliases.get(),
+				value = content.aliases.size.toString(),
 			)
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
-			if (state.appearsIn.isEmpty()) {
-				Text(
-					text = Res.string.encyclopedia_entry_appears_in_empty.get(),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
+		},
+		{
+			HdMetadataItem(
+				label = Res.string.encyclopedia_entry_particulars_scenes.get(),
+				value = state.appearsIn.size.toString(),
+			)
+		},
+	)
+
+	Column(modifier = modifier.fillMaxWidth()) {
+		HdSectionHeader(
+			marker = "—",
+			title = Res.string.encyclopedia_entry_particulars_label.get(),
+		)
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
 				)
-			} else {
-				FlowRow(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-					verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-				) {
-					for (appearance in state.appearsIn) {
-						AssistChip(
-							onClick = { component.navigateToAppearance(appearance) },
-							label = { Text(appearance.name) },
-							leadingIcon = {
-								Icon(
-									imageVector = appearanceIcon(appearance.source),
-									contentDescription = null,
-									tint = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							},
-						)
-					}
-				}
-			}
-		} else {
-			CircularProgressIndicator()
+				.background(MaterialTheme.colorScheme.surfaceContainerLow),
+		) {
+			HdHairlineGrid(columns = 2, cells = cells)
 		}
 	}
+}
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsAndAliasesZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	compact: Boolean,
+) {
+	val content = state.content ?: return
+	val padding = Modifier.padding(horizontal = Ui.Padding.XXL).padding(top = 28.dp)
+	if (compact) {
+		Column(
+			modifier = padding.fillMaxWidth(),
+			verticalArrangement = Arrangement.spacedBy(28.dp),
+		) {
+			TagsSection(content.tags, component)
+			AliasesSection(content.aliases, component)
+		}
+	} else {
+		Row(
+			modifier = padding.fillMaxWidth(),
+			horizontalArrangement = Arrangement.spacedBy(28.dp),
+		) {
+			TagsSection(content.tags, component, modifier = Modifier.weight(1f))
+			AliasesSection(content.aliases, component, modifier = Modifier.weight(1f))
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsSection(
+	tags: Set<String>,
+	component: ViewEntry,
+	modifier: Modifier = Modifier,
+) {
+	Column(
+		modifier = modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			marker = "—",
+			title = Res.string.encyclopedia_entry_tags_label.get(),
+		)
+		FlowRow(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+			verticalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			tags.forEach { tag ->
+				HdTagChip(label = tag, onClick = { component.removeTag(tag) })
+			}
+			AddChip(
+				label = Res.string.encyclopedia_entry_add_tag_chip.get(),
+				onClick = component::startTagAdd,
+			)
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AliasesSection(
+	aliases: List<String>,
+	component: ViewEntry,
+	modifier: Modifier = Modifier,
+) {
+	Column(
+		modifier = modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			marker = "—",
+			title = Res.string.encyclopedia_entry_aliases_label.get(),
+		)
+		FlowRow(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+			verticalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			aliases.forEach { alias ->
+				AliasChip(label = alias, onRemove = { component.removeAlias(alias) })
+			}
+			AddChip(
+				label = Res.string.encyclopedia_entry_add_alias_chip.get(),
+				onClick = component::startAliasAdd,
+			)
+		}
+	}
+}
+
+@Composable
+private fun AppearsInZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL)
+			.padding(top = 28.dp),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			marker = "—",
+			title = Res.string.encyclopedia_entry_appears_in_label.get(),
+			trailing = {
+				HdMonoLabel(
+					text = "${state.appearsIn.size}",
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			},
+		)
+		if (state.appearsIn.isEmpty()) {
+			Text(
+				text = Res.string.encyclopedia_entry_appears_in_empty.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		} else {
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.border(
+						width = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+						shape = RectangleShape,
+					)
+					.padding(horizontal = Ui.Padding.L),
+			) {
+				state.appearsIn.forEachIndexed { index, appearance ->
+					SceneRow(
+						index = index + 1,
+						appearance = appearance,
+						isLast = index == state.appearsIn.lastIndex,
+						onClick = { component.navigateToAppearance(appearance) },
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun SceneRow(
+	index: Int,
+	appearance: ViewEntry.Appearance,
+	isLast: Boolean,
+	onClick: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.clickable(onClick = onClick)
+			.padding(vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMonoLabel(
+			text = Res.string.encyclopedia_entry_scene_index_format.get(
+				index.toString().padStart(2, '0'),
+			),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.width(48.dp),
+		)
+		Icon(
+			imageVector = appearanceIcon(appearance.source),
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(16.dp),
+		)
+		Text(
+			text = appearance.name,
+			style = MaterialTheme.typography.titleSmall,
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.weight(1f),
+		)
+		HdMonoLabel(
+			text = "↗",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
+	if (!isLast) {
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+		)
+	}
+}
+
+@Composable
+private fun FooterColophon(compact: Boolean, ruleSoft: Color) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL)
+			.padding(top = 36.dp, bottom = Ui.Padding.XXL),
+	) {
+		HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(top = Ui.Padding.L),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			HdMonoLabel(
+				text = if (compact) {
+					Res.string.encyclopedia_entry_colophon_label_compact.get()
+				} else {
+					Res.string.encyclopedia_entry_colophon_label.get()
+				},
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_colophon_end.get(),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+	}
+}
+
+@Composable
+private fun TagAddDialog(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	scope: CoroutineScope,
+) {
+	val mainDispatcher = rememberMainDispatcher()
 	SimpleDialog(
 		title = Res.string.encyclopedia_entry_add_tags_dialog_title.get(),
 		visible = state.showTagAdd,
 		onCloseRequest = component::endTagAdd,
 	) {
 		var newTagsText by rememberSaveable { mutableStateOf("") }
-		TextField(
-			modifier = Modifier.fillMaxWidth()
-				.padding(PaddingValues(bottom = Ui.Padding.L)),
-			value = newTagsText,
-			onValueChange = { newTagsText = it },
-			placeholder = { Text(Res.string.encyclopedia_create_entry_tags_label.get()) }
-		)
-		Button(onClick = {
-			scope.launch {
-				component.addTags(newTagsText)
-				withContext(mainDispatcher) {
-					newTagsText = ""
-				}
-			}
-		}) {
-			Text(Res.string.encyclopedia_entry_add_tags_button.get())
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			HdHairlineField(
+				label = Res.string.encyclopedia_create_entry_tags_label.get(),
+				value = newTagsText,
+				onValueChange = { newTagsText = it },
+			)
+			HdHairlineButton(
+				label = Res.string.encyclopedia_entry_add_tags_button.get(),
+				emphasised = true,
+				onClick = {
+					scope.launch {
+						component.addTags(newTagsText)
+						withContext(mainDispatcher) { newTagsText = "" }
+					}
+				},
+			)
 		}
 	}
+}
 
+@Composable
+private fun AliasAddDialog(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	scope: CoroutineScope,
+	rootSnackbar: RootSnackbarHostState,
+	strRes: StrRes,
+) {
+	val mainDispatcher = rememberMainDispatcher()
 	SimpleDialog(
 		title = Res.string.encyclopedia_entry_add_alias_dialog_title.get(),
 		visible = state.showAliasAdd,
 		onCloseRequest = component::endAliasAdd,
 	) {
 		var newAliasText by rememberSaveable { mutableStateOf("") }
-		TextField(
-			modifier = Modifier.fillMaxWidth()
-				.padding(PaddingValues(bottom = Ui.Padding.L)),
-			value = newAliasText,
-			onValueChange = { newAliasText = it },
-			placeholder = { Text(Res.string.encyclopedia_entry_alias_hint.get()) },
-		)
-		Button(onClick = {
-			scope.launch {
-				val result = component.addAlias(newAliasText)
-				withContext(mainDispatcher) {
-					if (result.error == EntryError.NONE) newAliasText = ""
-				}
-				reportSaveResult(result, rootSnackbar, scope, strRes)
-			}
-		}) {
-			Text(Res.string.encyclopedia_entry_add_alias_button.get())
+		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+			HdHairlineField(
+				label = Res.string.encyclopedia_entry_alias_hint.get(),
+				value = newAliasText,
+				onValueChange = { newAliasText = it },
+			)
+			HdHairlineButton(
+				label = Res.string.encyclopedia_entry_add_alias_button.get(),
+				emphasised = true,
+				onClick = {
+					scope.launch {
+						val result = component.addAlias(newAliasText)
+						withContext(mainDispatcher) {
+							if (result.error == EntryError.NONE) newAliasText = ""
+						}
+						reportSaveResult(result, rootSnackbar, scope, strRes)
+					}
+				},
+			)
 		}
 	}
 }
+
+@Composable
+private fun HairlineIconBox(
+	icon: ImageVector,
+	contentDescription: String,
+	onClick: () -> Unit,
+) {
+	Box(
+		modifier = Modifier
+			.size(28.dp)
+			.border(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				shape = RectangleShape,
+			)
+			.clickable(onClick = onClick),
+		contentAlignment = Alignment.Center,
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = contentDescription,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(16.dp),
+		)
+	}
+}
+
+@Composable
+private fun AddChip(label: String, onClick: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.height(24.dp)
+			.border(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				shape = RectangleShape,
+			)
+			.clickable(onClick = onClick)
+			.padding(horizontal = 10.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(4.dp),
+	) {
+		Icon(
+			imageVector = Icons.Filled.Add,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(12.dp),
+		)
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
+}
+
+@Composable
+private fun AliasChip(label: String, onRemove: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.height(26.dp)
+			.border(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				shape = RectangleShape,
+			)
+			.padding(start = 10.dp, end = 6.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			fontWeight = FontWeight.Light,
+		)
+		Box(
+			modifier = Modifier
+				.size(18.dp)
+				.clickable(onClick = onRemove),
+			contentAlignment = Alignment.Center,
+		) {
+			Icon(
+				imageVector = Icons.Filled.Delete,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.size(12.dp),
+			)
+		}
+	}
+}
+
+private fun folioInitials(entryDef: EntryDef): String =
+	entryDef.name
+		.uppercase()
+		.split(' ')
+		.mapNotNull { it.firstOrNull()?.toString() }
+		.joinToString("")
+		.take(3)
+		.ifBlank { "—" }
+
+private fun folioId(entryDef: EntryDef): String =
+	entryDef.id.toString().padStart(3, '0')
 
 private fun appearanceIcon(source: ViewEntry.AppearanceSource): ImageVector =
 	when (source) {
@@ -631,54 +1278,46 @@ private fun reportSaveResult(
 	result: EntryResult,
 	rootSnackbar: RootSnackbarHostState,
 	scope: CoroutineScope,
-	strRes: StrRes
+	strRes: StrRes,
 ) {
 	scope.launch {
 		when (result.error) {
-			EntryError.NAME_TOO_LONG -> scope.launch {
-				rootSnackbar.showSnackbar(
-					strRes.get(
-						Res.string.encyclopedia_create_entry_toast_too_long,
-						EncyclopediaRepository.MAX_NAME_SIZE
-					)
-				)
-			}
+			EntryError.NAME_TOO_LONG -> rootSnackbar.showSnackbar(
+				strRes.get(
+					Res.string.encyclopedia_create_entry_toast_too_long,
+					EncyclopediaRepository.MAX_NAME_SIZE,
+				),
+			)
 
-			EntryError.NAME_INVALID_CHARACTERS -> scope.launch {
-				rootSnackbar.showSnackbar(
-					strRes.get(Res.string.encyclopedia_create_entry_toast_invalid_name)
-				)
-			}
+			EntryError.NAME_INVALID_CHARACTERS -> rootSnackbar.showSnackbar(
+				strRes.get(Res.string.encyclopedia_create_entry_toast_invalid_name),
+			)
 
-			EntryError.TAG_TOO_LONG -> scope.launch {
-				rootSnackbar.showSnackbar(
-					strRes.get(
-						Res.string.encyclopedia_create_entry_toast_tag_too_long,
-						EncyclopediaRepository.MAX_TAG_SIZE
-					)
-				)
-			}
+			EntryError.TAG_TOO_LONG -> rootSnackbar.showSnackbar(
+				strRes.get(
+					Res.string.encyclopedia_create_entry_toast_tag_too_long,
+					EncyclopediaRepository.MAX_TAG_SIZE,
+				),
+			)
 
-			EntryError.NAME_TOO_SHORT -> scope.launch {
-				rootSnackbar.showSnackbar(
-					strRes.get(
-						Res.string.encyclopedia_create_entry_toast_tag_too_short,
-					)
-				)
-			}
+			EntryError.NAME_TOO_SHORT -> rootSnackbar.showSnackbar(
+				strRes.get(Res.string.encyclopedia_create_entry_toast_tag_too_short),
+			)
 
-			EntryError.ALIAS_TOO_LONG -> scope.launch {
-				rootSnackbar.showSnackbar(
-					strRes.get(
-						Res.string.encyclopedia_create_entry_toast_alias_too_long,
-						EncyclopediaRepository.MAX_NAME_SIZE
-					)
-				)
-			}
+			EntryError.ALIAS_TOO_LONG -> rootSnackbar.showSnackbar(
+				strRes.get(
+					Res.string.encyclopedia_create_entry_toast_alias_too_long,
+					EncyclopediaRepository.MAX_NAME_SIZE,
+				),
+			)
 
 			EntryError.NONE -> {
-				scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_create_entry_toast_success)) }
-				rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_entry_edit_save_toast))
+				rootSnackbar.showSnackbar(
+					strRes.get(Res.string.encyclopedia_create_entry_toast_success),
+				)
+				rootSnackbar.showSnackbar(
+					strRes.get(Res.string.encyclopedia_entry_edit_save_toast),
+				)
 			}
 		}
 	}
