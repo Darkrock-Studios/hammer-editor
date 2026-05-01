@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -119,37 +118,62 @@ private fun EncyclopediaUiPreview() {
 	EncyclopediaUi(component, rootSnackbar)
 }
 
+private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
+	override val state: Value<CreateEntry.State>
+		get() = MutableValue(CreateEntry.State(fakeProjectDef()))
+
+	override suspend fun createEntry(
+		name: String,
+		type: EntryType,
+		text: String,
+		tags: Set<String>,
+		imagePath: String?
+	): EntryResult = EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
+
+	override fun confirmClose() {}
+	override fun dismissConfirmClose() {}
+}
+
 @Preview
 @Composable
 private fun CreateEntryPreview() {
-	val component: CreateEntry = object : CreateEntry {
-		override val state: Value<CreateEntry.State>
-			get() = MutableValue(
-				CreateEntry.State(fakeProjectDef())
-			)
-
-		override suspend fun createEntry(
-			name: String,
-			type: EntryType,
-			text: String,
-			tags: Set<String>,
-			imagePath: String?
-		): EntryResult = EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
-
-		override fun confirmClose() {}
-		override fun dismissConfirmClose() {}
-	}
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL)) {
-		CreateEntryUi(
-			component = component,
-			scope = scope,
-			rootSnackbar = rootSnackbar,
-			modifier = Modifier.align(Alignment.Center)
+	AppTheme(globalSettingsPreview) {
+		Box(
+			modifier = Modifier
+				.background(MaterialTheme.colorScheme.background)
+				.size(width = 1280.dp, height = 900.dp),
 		) {
+			CreateEntryUi(
+				component = fakeCreateEntryComponent,
+				scope = scope,
+				rootSnackbar = rootSnackbar,
+				modifier = Modifier,
+			) {}
+		}
+	}
+}
 
+@Preview
+@Composable
+private fun CreateEntryNarrowPreview() {
+	val scope = rememberCoroutineScope()
+	val rootSnackbar = rememberRootSnackbarHostState()
+
+	AppTheme(globalSettingsPreview) {
+		Box(
+			modifier = Modifier
+				.background(MaterialTheme.colorScheme.background)
+				.size(width = 390.dp, height = 780.dp),
+		) {
+			CreateEntryUi(
+				component = fakeCreateEntryComponent,
+				scope = scope,
+				rootSnackbar = rootSnackbar,
+				modifier = Modifier,
+			) {}
 		}
 	}
 }
