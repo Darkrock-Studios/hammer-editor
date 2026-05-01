@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -23,9 +22,11 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -329,25 +330,35 @@ private fun CrumbRow(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(
-			text = "← " + Res.string.encyclopedia_entry_crumb_root.get(),
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HdMonoLabel(
-			text = "/",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		HdMonoLabel(
+		Row(
+			modifier = Modifier
+				.clickable(
+					onClick = onClose,
+					role = Role.Button,
+					onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
+				)
+				.padding(vertical = 4.dp),
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			HdMonoLabel(
+				text = "← " + Res.string.encyclopedia_entry_crumb_root.get(),
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+			HdMonoLabel(
+				text = "/",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		Text(
 			text = title,
+			style = MaterialTheme.typography.labelSmall,
 			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
 		)
-		Spacer(modifier = Modifier.weight(1f))
 		menuSlot()
-		HairlineIconBox(
-			icon = Icons.Filled.Close,
-			contentDescription = Res.string.encyclopedia_entry_close_button.get(),
-			onClick = onClose,
-		)
 	}
 }
 
@@ -1071,32 +1082,6 @@ private fun AliasAddDialog(
 				},
 			)
 		}
-	}
-}
-
-@Composable
-private fun HairlineIconBox(
-	icon: ImageVector,
-	contentDescription: String,
-	onClick: () -> Unit,
-) {
-	Box(
-		modifier = Modifier
-			.size(28.dp)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
-			.clickable(onClick = onClick),
-		contentAlignment = Alignment.Center,
-	) {
-		Icon(
-			imageVector = icon,
-			contentDescription = contentDescription,
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.size(16.dp),
-		)
 	}
 }
 
