@@ -1,40 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextRange
 import com.darkrockstudios.texteditor.CharLineOffset
-import com.darkrockstudios.texteditor.LineWrap
 import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
-import com.darkrockstudios.texteditor.richstyle.RichSpanStyle
+import com.darkrockstudios.texteditor.richstyle.HR_PLACEHOLDER
+import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
-
-internal data object HorizontalRuleSpanStyle : RichSpanStyle {
-	override fun DrawScope.drawCustomStyle(
-		layoutResult: TextLayoutResult,
-		lineWrap: LineWrap,
-		textRange: TextRange,
-	) {
-		val lineHeight = layoutResult.multiParagraph.getLineHeight(lineWrap.virtualLineIndex)
-		val left = layoutResult.getLineLeft(lineWrap.virtualLineIndex)
-		val right = layoutResult.getLineRight(lineWrap.virtualLineIndex)
-		val end = if (right > left) right else size.width
-		val midY = lineHeight / 2f
-		drawLine(
-			color = Color.Gray,
-			start = Offset(x = left, y = midY),
-			end = Offset(x = end, y = midY),
-			strokeWidth = 1.5f,
-			cap = Stroke.DefaultCap,
-		)
-	}
-}
-
-internal const val HR_PLACEHOLDER = " "
 
 internal fun insertLineBullet(state: TextEditorState) {
 	val saved = state.cursorPosition

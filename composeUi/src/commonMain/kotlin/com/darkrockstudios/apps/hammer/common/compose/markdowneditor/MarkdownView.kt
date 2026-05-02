@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
@@ -13,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.texteditor.RichTextView
-import com.darkrockstudios.texteditor.markdown.toAnnotatedStringFromMarkdown
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
@@ -32,10 +33,11 @@ fun MarkdownView(
 	contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
 	val markdownConfig = LocalMarkdownConfig.current
-	val annotated = remember(markdown, markdownConfig) {
-		markdown.toAnnotatedStringFromMarkdown(markdownConfig)
+	val state = rememberTextEditorState()
+	val markdownExtension = remember(state) { state.withMarkdown(markdownConfig) }
+	LaunchedEffect(markdownExtension, markdown) {
+		markdownExtension.importMarkdown(markdown)
 	}
-	val state = rememberTextEditorState(annotated)
 	RichTextView(
 		state = state,
 		modifier = modifier.semantics { text = AnnotatedString(markdown) },

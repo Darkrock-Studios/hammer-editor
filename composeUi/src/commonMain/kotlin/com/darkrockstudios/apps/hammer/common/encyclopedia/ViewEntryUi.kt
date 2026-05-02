@@ -130,10 +130,14 @@ internal fun ViewEntryUi(
 		component.finishTextEdit()
 	}
 
+	val outerScrollState = rememberScrollState()
+	val outerModifier = if (editing) {
+		Modifier.fillMaxSize()
+	} else {
+		Modifier.fillMaxSize().verticalScroll(outerScrollState)
+	}
 	Column(
-		modifier = Modifier
-			.fillMaxSize()
-			.verticalScroll(rememberScrollState()),
+		modifier = outerModifier,
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {
 		with(sharedTransitionScope) {
@@ -147,6 +151,7 @@ internal fun ViewEntryUi(
 					)
 					.widthIn(max = Ui.MaxWidth.CatalogueCard)
 					.fillMaxWidth()
+					.then(if (editing) Modifier.fillMaxHeight() else Modifier)
 					.background(MaterialTheme.colorScheme.surface)
 					.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
 					.sharedElement(
@@ -190,6 +195,7 @@ internal fun ViewEntryUi(
 					animatedVisibilityScope = animatedVisibilityScope,
 				)
 
+				val bodyOuterModifier = if (editing) Modifier.weight(1f) else Modifier
 				if (isCompact) {
 					CompactBody(
 						state = state,
@@ -198,6 +204,7 @@ internal fun ViewEntryUi(
 						onStartTextEdit = component::startTextEdit,
 						onShowDeleteImage = component::showDeleteImageDialog,
 						onAddImage = component::showAddImageDialog,
+						outerModifier = bodyOuterModifier,
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 					)
@@ -209,35 +216,38 @@ internal fun ViewEntryUi(
 						onStartTextEdit = component::startTextEdit,
 						onShowDeleteImage = component::showDeleteImageDialog,
 						onAddImage = component::showAddImageDialog,
+						outerModifier = bodyOuterModifier,
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 					)
 				}
 
-				if (content != null) {
-					ParticularsLedger(
+				if (!editing) {
+					if (content != null) {
+						ParticularsLedger(
+							state = state,
+							modifier = Modifier
+								.padding(horizontal = Ui.Padding.XXL)
+								.padding(top = 28.dp),
+						)
+					}
+
+					TagsAndAliasesZone(
 						state = state,
-						modifier = Modifier
-							.padding(horizontal = Ui.Padding.XXL)
-							.padding(top = 28.dp),
+						component = component,
+						compact = isCompact,
+					)
+
+					AppearsInZone(
+						state = state,
+						component = component,
+					)
+
+					FooterColophon(
+						compact = isCompact,
+						ruleSoft = ruleSoft,
 					)
 				}
-
-				TagsAndAliasesZone(
-					state = state,
-					component = component,
-					compact = isCompact,
-				)
-
-				AppearsInZone(
-					state = state,
-					component = component,
-				)
-
-				FooterColophon(
-					compact = isCompact,
-					ruleSoft = ruleSoft,
-				)
 			}
 		}
 	}
@@ -518,11 +528,12 @@ private fun WideBody(
 	onStartTextEdit: () -> Unit,
 	onShowDeleteImage: () -> Unit,
 	onAddImage: () -> Unit,
+	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	Row(
-		modifier = Modifier
+		modifier = outerModifier
 			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XXL),
@@ -532,7 +543,7 @@ private fun WideBody(
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
-			modifier = Modifier.weight(1f),
+			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
 			animatedVisibilityScope = animatedVisibilityScope,
 			sharedTransitionScope = sharedTransitionScope,
@@ -568,35 +579,39 @@ private fun CompactBody(
 	onStartTextEdit: () -> Unit,
 	onShowDeleteImage: () -> Unit,
 	onAddImage: () -> Unit,
+	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+	val editing = state.editText
 	Column(
-		modifier = Modifier
+		modifier = outerModifier
 			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		InsetFigure(
-			state = state,
-			onShowDeleteImage = onShowDeleteImage,
-			onAddImage = onAddImage,
-			sharedTransitionScope = sharedTransitionScope,
-			animatedVisibilityScope = animatedVisibilityScope,
-			modifier = Modifier
-				.fillMaxWidth()
-				.height(240.dp),
-		)
-		HdMonoLabel(
-			text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		if (!editing) {
+			InsetFigure(
+				state = state,
+				onShowDeleteImage = onShowDeleteImage,
+				onAddImage = onAddImage,
+				sharedTransitionScope = sharedTransitionScope,
+				animatedVisibilityScope = animatedVisibilityScope,
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(240.dp),
+			)
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 		BodyTextZone(
 			editText = state.editText,
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
-			modifier = Modifier.fillMaxWidth(),
+			modifier = if (editing) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
 			animatedVisibilityScope = animatedVisibilityScope,
 			sharedTransitionScope = sharedTransitionScope,
@@ -627,11 +642,10 @@ private fun BodyTextZone(
 			MarkdownEditField(
 				initialMarkdown = entryText,
 				onMarkdownChanged = setEntryText,
-				autoFocus = true,
-				minEditorHeight = 400.dp,
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.fillMaxWidth()
+					.weight(1f)
 					.padding(vertical = Ui.Padding.M),
 			)
 			HorizontalDivider(
