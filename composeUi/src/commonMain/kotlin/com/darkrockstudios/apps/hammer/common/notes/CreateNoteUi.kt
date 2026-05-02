@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ fun CreateNoteUi(
 	val mainDispatcher = rememberMainDispatcher()
 	val strRes = rememberStrRes()
 	var newNoteError by remember { mutableStateOf(false) }
+	var resetVersion by remember { mutableStateOf(0) }
 
 	Card(
 		modifier = modifier.padding(Ui.Padding.XL)
@@ -41,17 +43,21 @@ fun CreateNoteUi(
 				style = MaterialTheme.typography.headlineLarge
 			)
 
-			OutlinedTextField(
-				value = noteText,
-				onValueChange = { component.onTextChanged(it) },
-				modifier = Modifier.fillMaxWidth()
-					.widthIn(max = TextEditorDefaults.MAX_WIDTH)
-					.weight(1f),
-				isError = newNoteError,
-				label = {
-					Text(Res.string.notes_create_body_hint.get())
-				}
+			Text(
+				text = Res.string.notes_create_body_hint.get(),
+				style = MaterialTheme.typography.labelMedium,
+				color = if (newNoteError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
 			)
+			key(resetVersion) {
+				MarkdownEditField(
+					initialMarkdown = noteText,
+					onMarkdownChanged = { component.onTextChanged(it) },
+					contentPadding = PaddingValues(Ui.Padding.XL),
+					modifier = Modifier.fillMaxWidth()
+						.widthIn(max = TextEditorDefaults.MAX_WIDTH)
+						.weight(1f),
+				)
+			}
 
 			Row(
 				modifier = Modifier.fillMaxWidth(),
@@ -82,6 +88,7 @@ fun CreateNoteUi(
 							NoteError.NONE -> {
 								withContext(mainDispatcher) {
 									component.clearText()
+									resetVersion++
 								}
 								scope.launch {
 									rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_success))

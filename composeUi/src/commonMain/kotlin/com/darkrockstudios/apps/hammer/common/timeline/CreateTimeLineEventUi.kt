@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
@@ -70,11 +71,16 @@ fun CreateTimeLineEventUi(
 					singleLine = true
 				)
 
-				OutlinedTextField(
-					modifier = Modifier.fillMaxWidth().height(128.dp),
-					value = contentText,
-					onValueChange = { contentText = it },
-					label = { Text(Res.string.timeline_create_content_label.get()) },
+				Text(
+					text = Res.string.timeline_create_content_label.get(),
+					style = MaterialTheme.typography.labelMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				MarkdownEditField(
+					initialMarkdown = contentText,
+					onMarkdownChanged = { contentText = it },
+					contentPadding = PaddingValues(Ui.Padding.XL),
+					modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
 				)
 
 				Row(

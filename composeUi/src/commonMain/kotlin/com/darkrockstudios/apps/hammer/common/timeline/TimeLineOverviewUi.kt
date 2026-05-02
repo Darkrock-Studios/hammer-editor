@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -179,14 +180,14 @@ fun EventCard(
 								}
 							}
 						}
-						Text(
-							content,
+						MarkdownView(
+							markdown = content,
 							modifier = Modifier
 								.sharedElement(
 									sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
 									animatedVisibilityScope = animatedVisibilityScope
 								)
-								.testTag(EVENT_CARD_CONTENT_TAG)
+								.testTag(EVENT_CARD_CONTENT_TAG),
 						)
 					}
 				}

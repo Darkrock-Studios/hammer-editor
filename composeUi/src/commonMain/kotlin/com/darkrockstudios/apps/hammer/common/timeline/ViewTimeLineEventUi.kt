@@ -21,6 +21,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -164,19 +166,16 @@ fun ViewTimeLineEventUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 					if (state.isEditing) {
-						OutlinedTextField(
-							value = eventText,
-							onValueChange = { component.onEventTextChanged(it) },
+						MarkdownEditField(
+							initialMarkdown = eventText,
+							onMarkdownChanged = { component.onEventTextChanged(it) },
+							contentPadding = PaddingValues(Ui.Padding.XL),
 							modifier = Modifier.fillMaxWidth()
 								.padding(PaddingValues(bottom = Ui.Padding.XL)),
-							placeholder = { Text(text = Res.string.timeline_view_content_placeholder.get()) },
-							maxLines = 10,
 						)
 					} else {
-						Text(
-							event.content,
-							style = MaterialTheme.typography.bodyMedium,
-							color = MaterialTheme.colorScheme.onSurface,
+						MarkdownView(
+							markdown = event.content,
 							modifier = Modifier
 								.wrapContentHeight()
 								.fillMaxWidth()
@@ -184,7 +183,7 @@ fun ViewTimeLineEventUi(
 									sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
 									animatedVisibilityScope = animatedVisibilityScope
 								)
-								.clickable { component.beginEdit() }
+								.clickable { component.beginEdit() },
 						)
 					}
 				}

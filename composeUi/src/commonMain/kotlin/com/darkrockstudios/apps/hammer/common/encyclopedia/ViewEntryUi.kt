@@ -40,6 +40,8 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -622,22 +624,16 @@ private fun BodyTextZone(
 
 	if (editText) {
 		Column(modifier = modifier) {
-			BasicTextField(
-				value = entryText,
-				onValueChange = setEntryText,
+			MarkdownEditField(
+				initialMarkdown = entryText,
+				onMarkdownChanged = setEntryText,
+				autoFocus = true,
+				minEditorHeight = 400.dp,
+				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.fillMaxWidth()
-					.heightIn(min = 160.dp)
 					.padding(vertical = Ui.Padding.M),
-				textStyle = bodyStyle,
-				cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
 			)
-			if (entryText.isEmpty()) {
-				Text(
-					text = Res.string.encyclopedia_entry_body_empty_placeholder.get(),
-					style = mutedStyle,
-				)
-			}
 			HorizontalDivider(
 				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
@@ -645,19 +641,29 @@ private fun BodyTextZone(
 			)
 		}
 	} else {
-		val display = entryText.ifBlank { Res.string.encyclopedia_entry_body_empty_label.get() }
-		val style = if (entryText.isBlank()) mutedStyle else bodyStyle
 		with(sharedTransitionScope) {
-			Text(
-				text = display,
-				style = style,
-				modifier = modifier
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(key = sharedKey),
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-					.clickable(onClick = onStartTextEdit),
-			)
+			if (entryText.isBlank()) {
+				Text(
+					text = Res.string.encyclopedia_entry_body_empty_label.get(),
+					style = mutedStyle,
+					modifier = modifier
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(key = sharedKey),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onStartTextEdit),
+				)
+			} else {
+				MarkdownView(
+					markdown = entryText,
+					modifier = modifier
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(key = sharedKey),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onStartTextEdit),
+				)
+			}
 		}
 	}
 }

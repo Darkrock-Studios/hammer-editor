@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -21,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -154,18 +154,14 @@ fun NoteItem(
 				modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth()
 			) {
 				Row {
-					Text(
-						note.content,
+					MarkdownView(
+						markdown = note.content,
 						modifier = Modifier
 							.weight(1f)
 							.sharedElement(
 								sharedContentState = rememberSharedContentState(key = "note-content-${note.id}"),
 								animatedVisibilityScope = animatedVisibilityScope
 							),
-						style = MaterialTheme.typography.bodyMedium
-							.copy(color = MaterialTheme.colorScheme.onBackground),
-						maxLines = 12,
-						overflow = TextOverflow.Ellipsis
 					)
 				}
 				Spacer(modifier = Modifier.size(Ui.Padding.L))
