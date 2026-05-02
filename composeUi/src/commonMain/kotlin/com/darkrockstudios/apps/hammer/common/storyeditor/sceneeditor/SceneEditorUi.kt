@@ -11,6 +11,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
@@ -22,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
@@ -105,11 +107,10 @@ fun SceneEditorUi(
 			) {
 				EditorTopBar(component, rootSnackbar)
 
-				EditorToolBar(
+				MarkdownFormatBar(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
-					resetTextSize = component::resetTextSize,
 				)
 
 				AnimatedVisibility(
@@ -135,7 +136,8 @@ fun SceneEditorUi(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)
 							),
-							focusedBorderColor = MaterialTheme.colorScheme.primary,
+							focusedBorderColor = Color.Transparent,
+							unfocusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
