@@ -20,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownCon
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
-import com.darkrockstudios.texteditor.markdown.toAnnotatedStringFromMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
@@ -51,27 +50,24 @@ fun MarkdownEditField(
 	val platformSpellChecker by spellCheckRepository.dictionaryFlow.collectAsState(initial = null)
 	val editorSpellChecker = if (enableSpellChecking) platformSpellChecker.toEditorSpellChecker() else null
 
-	val initialAnnotated = remember {
-		initialMarkdown.toAnnotatedStringFromMarkdown(markdownConfig)
-	}
-
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = editorSpellChecker,
-		initialText = initialAnnotated,
+		initialText = null,
 		enableSpellChecking = enableSpellChecking,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 
-	LaunchedEffect(markdownConfig) {
-		markdownExtension.updateMarkdownConfiguration(markdownConfig)
-	}
-
-	LaunchedEffect(enabled) {
+	LaunchedEffect(markdownExtension) {
+		markdownExtension.importMarkdown(initialMarkdown)
 		if (enabled) {
 			textEditorState.textState.editOperations.collect {
 				onMarkdownChanged(markdownExtension.exportAsMarkdown())
 			}
 		}
+	}
+
+	LaunchedEffect(markdownConfig) {
+		markdownExtension.updateMarkdownConfiguration(markdownConfig)
 	}
 
 	Column(modifier = modifier) {
@@ -90,6 +86,7 @@ fun MarkdownEditField(
 			contentPadding = contentPadding,
 			modifier = Modifier
 				.fillMaxWidth()
+				.weight(1f)
 				.heightIn(min = minEditorHeight),
 		)
 	}
