@@ -1,9 +1,10 @@
-package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
+package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,6 +28,21 @@ internal actual fun EditorAction(
 			painter = painter,
 			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
 			contentDescription = null
+		)
+	}
+}
+
+@Composable
+internal actual fun EditorTextAction(
+	label: String,
+	active: Boolean,
+	onClick: () -> Unit,
+) {
+	IconButton(onClick = onClick) {
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelLarge,
+			color = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
 }
