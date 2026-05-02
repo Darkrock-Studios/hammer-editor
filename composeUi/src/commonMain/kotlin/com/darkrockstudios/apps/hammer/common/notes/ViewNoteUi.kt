@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.common.notes
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -16,12 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.coroutines.launch
@@ -43,9 +44,6 @@ fun ViewNoteUi(
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val noteText by component.noteText.subscribeAsState()
-	val annotatedNoteText = remember(noteText) {
-		AnnotatedString.Builder(noteText).toAnnotatedString()
-	}
 
 	Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
 		with(sharedTransitionScope) {
@@ -131,28 +129,27 @@ fun ViewNoteUi(
 										)
 									}
 								}
-								TextField(
+								MarkdownEditField(
+									initialMarkdown = noteText,
+									onMarkdownChanged = { component.onContentChanged(it) },
+									contentPadding = PaddingValues(Ui.Padding.XL),
 									modifier = Modifier
+										.padding(bottom = Ui.Padding.XL)
 										.fillMaxWidth()
 										.widthIn(max = TextEditorDefaults.MAX_WIDTH),
-									value = noteText,
-									onValueChange = { component.onContentChanged(it) },
 								)
 							}
 						} else {
-							ClickableText(
-								annotatedNoteText,
+							MarkdownView(
+								markdown = noteText,
 								modifier = Modifier
 									.weight(1f)
 									.sharedElement(
 										sharedContentState = rememberSharedContentState(key = "note-content-${state.note?.id}"),
 										animatedVisibilityScope = animatedVisibilityScope
-									),
-								style = MaterialTheme.typography.bodyMedium
-									.copy(color = MaterialTheme.colorScheme.onSurface),
-							) {
-								component.beginEdit()
-							}
+									)
+									.clickable { component.beginEdit() },
+							)
 						}
 					}
 				}

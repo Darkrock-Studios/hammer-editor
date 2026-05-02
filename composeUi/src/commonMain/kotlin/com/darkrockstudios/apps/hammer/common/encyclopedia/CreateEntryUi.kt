@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -113,14 +114,16 @@ internal fun CreateEntryUi(
 					placeholder = Res.string.encyclopedia_create_entry_tags_placeholder.get(),
 				)
 
-				HdHairlineField(
-					label = Res.string.encyclopedia_create_entry_description_label.get(),
-					value = description,
-					onValueChange = { description = it },
-					placeholder = Res.string.encyclopedia_create_entry_body_hint.get(),
-					singleLine = false,
-					minLines = 4,
-					maxLines = 12,
+				Text(
+					text = Res.string.encyclopedia_create_entry_description_label.get(),
+					style = MaterialTheme.typography.labelMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				MarkdownEditField(
+					initialMarkdown = description,
+					onMarkdownChanged = { description = it },
+					contentPadding = PaddingValues(Ui.Padding.XL),
+					modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
 				)
 
 				val attachedImage = imagePath

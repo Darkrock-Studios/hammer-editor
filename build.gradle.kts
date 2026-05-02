@@ -20,6 +20,7 @@ val xlibs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 allprojects {
 	repositories {
+		mavenLocal()
 		google()
 		mavenCentral()
 		maven("https://jitpack.io")
