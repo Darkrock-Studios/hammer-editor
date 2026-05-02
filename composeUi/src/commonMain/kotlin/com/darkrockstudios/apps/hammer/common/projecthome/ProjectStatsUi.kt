@@ -4,38 +4,16 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -45,27 +23,14 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdAttributionItem
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChart
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChartItem
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChart
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
-import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.style.KoalaPlotTheme
@@ -377,24 +342,34 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 			)
 		}
 
+		// On wide layouts, Scenes and Avg/Scene need horizontal room for
+		// big display values like "1,548", while Notes and Timeline have
+		// 1-2 digit values that look lonely in their own column. So Notes
+		// and Timeline share the third column, stacked vertically — they
+		// add up to roughly the same visual weight as a single tall tile.
+		// Longest scene gets its own full-width row below since its value
+		// is a name, not a number.
 		if (isWide) {
-			HdResponsiveStrip(isWide = true) {
-				Box(modifier = Modifier.cell()) { scenes() }
-				Box(modifier = Modifier.cell()) { avgPerScene() }
-				longestScene(Modifier.cell())
-				HdHairlineGrid(
-					columns = 2,
-					modifier = Modifier.cell(),
-					cells = listOf<@Composable () -> Unit>(notes, events),
-				)
-			}
+			HdHairlineGrid(
+				columns = 3,
+				cells = listOf<@Composable () -> Unit>(
+					scenes,
+					avgPerScene,
+					{
+						Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+							notes()
+							events()
+						}
+					},
+				),
+			)
 		} else {
 			HdHairlineGrid(
 				columns = 2,
 				cells = listOf<@Composable () -> Unit>(scenes, avgPerScene, notes, events),
 			)
-			longestScene(Modifier.fillMaxWidth())
 		}
+		longestScene(Modifier.fillMaxWidth())
 
 		if (state.wordsByChapter.isNotEmpty()) {
 			val chapterStats = remember(state.wordsByChapter) {

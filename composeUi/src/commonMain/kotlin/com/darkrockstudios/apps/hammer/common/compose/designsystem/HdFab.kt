@@ -34,7 +34,7 @@ fun HdFab(
 		modifier = modifier
 			.border(
 				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.24f),
+				color = MaterialTheme.colorScheme.outline,
 				shape = RectangleShape,
 			),
 		shape = RectangleShape,
