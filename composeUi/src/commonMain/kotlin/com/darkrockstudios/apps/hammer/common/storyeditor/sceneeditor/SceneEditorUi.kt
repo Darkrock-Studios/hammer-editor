@@ -107,6 +107,11 @@ fun SceneEditorUi(
 			) {
 				EditorTopBar(component, rootSnackbar)
 
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
 				MarkdownFormatBar(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
