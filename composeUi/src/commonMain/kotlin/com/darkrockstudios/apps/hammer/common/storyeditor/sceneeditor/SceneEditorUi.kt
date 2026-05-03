@@ -102,7 +102,10 @@ fun SceneEditorUi(
 			val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
 				boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
 			}
-			val isWide = remainingWidth >= SCENE_METADATA_MIN_WIDTH
+			val isWide = remember(remainingWidth) { remainingWidth >= SCENE_METADATA_MIN_WIDTH }
+			val onToggleMetadata: () -> Unit = remember(isWide, component) {
+				if (isWide) component::toggleMetadataPanelVisible else component::toggleMetadataModal
+			}
 
 			Column(
 				modifier = Modifier
@@ -112,7 +115,7 @@ fun SceneEditorUi(
 				EditorTopBar(
 					component = component,
 					rootSnackbar = rootSnackbar,
-					onToggleMetadata = if (isWide) component::toggleMetadataPanelVisible else component::toggleMetadataModal,
+					onToggleMetadata = onToggleMetadata,
 				)
 
 				HorizontalDivider(

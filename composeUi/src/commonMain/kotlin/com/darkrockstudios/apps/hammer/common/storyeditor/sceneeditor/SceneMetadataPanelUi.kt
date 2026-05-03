@@ -18,11 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerM
@@ -59,6 +58,13 @@ private fun RefBucket.label(): String = when (this) {
 }
 
 @Composable
+private fun RefBucket.searchPlaceholder(): String = when (this) {
+	RefBucket.Characters -> Res.string.scene_editor_metadata_references_add_dialog_search_characters.get()
+	RefBucket.Locations -> Res.string.scene_editor_metadata_references_add_dialog_search_locations.get()
+	RefBucket.Other -> Res.string.scene_editor_metadata_references_add_dialog_search_other.get()
+}
+
+@Composable
 fun SceneMetadataPanelUi(
 	component: SceneMetadataPanel,
 	modifier: Modifier = Modifier,
@@ -75,7 +81,6 @@ fun SceneMetadataPanelUi(
 	) {
 		Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 
-			// Header — × close + Metadata title, edge-to-edge hairline below
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
@@ -104,7 +109,6 @@ fun SceneMetadataPanelUi(
 				color = MaterialTheme.colorScheme.outlineVariant,
 			)
 
-			// Scene title + word count, edge-to-edge hairline below
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
@@ -136,115 +140,109 @@ fun SceneMetadataPanelUi(
 
 			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 
-			// Outline
-			HdHairlineField(
-				label = Res.string.scene_editor_metadata_outline_label.get(),
-				value = state.metadata.outline,
-				onValueChange = component::updateOutline,
-				placeholder = Res.string.scene_editor_metadata_outline_placeholder.get(),
-				singleLine = false,
-				minLines = 3,
-			)
-
-			SpacerXL()
-
-			// Notes
-			HdHairlineField(
-				label = Res.string.scene_editor_metadata_notes_label.get(),
-				value = state.metadata.notes,
-				onValueChange = component::updateNotes,
-				placeholder = Res.string.scene_editor_metadata_notes_placeholder.get(),
-				singleLine = false,
-				minLines = 3,
-			)
-
-			SpacerXL()
-
-			// Draft Name with inline validation message below
-			var isDraftNameValid by remember(state.metadata.currentDraftName) {
-				mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
-			}
-			HdHairlineField(
-				label = Res.string.scene_editor_metadata_draft_name_label.get(),
-				value = state.metadata.currentDraftName,
-				onValueChange = { newName ->
-					isDraftNameValid = component.validateDraftName(newName)
-					component.updateDraftName(newName)
-				},
-				singleLine = true,
-			)
-			if (!isDraftNameValid) {
-				SpacerM()
-				Text(
-					Res.string.scene_draft_invalid_name.get(),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.error,
+				HdHairlineField(
+					label = Res.string.scene_editor_metadata_outline_label.get(),
+					value = state.metadata.outline,
+					onValueChange = component::updateOutline,
+					placeholder = Res.string.scene_editor_metadata_outline_placeholder.get(),
+					singleLine = false,
+					minLines = 3,
 				)
-			}
 
-			SpacerXL()
-
-			// References — collapsible, expanded by default, with trailing add button
-			CollapsableSection(
-				startExpanded = true,
-				header = {
-					HdMonoLabel(
-						text = Res.string.scene_editor_metadata_references_header.get(),
-						modifier = Modifier.padding(end = Ui.Padding.M),
-					)
-				},
-				trailingAction = {
-					HdHairlineButton(
-						label = Res.string.scene_editor_metadata_references_add_button.get(),
-						onClick = { showAddDialog = true },
-					)
-				},
-				body = { ReferencesBody(state, component) }
-			)
-
-			// Dismissed — peer of References, only visible when non-empty
-			if (state.dismissedRefs.isNotEmpty()) {
 				SpacerXL()
-				CollapsableSection(
-					startExpanded = false,
-					header = {
-						Row(verticalAlignment = Alignment.CenterVertically) {
-							HdMonoLabel(
-								text = Res.string.scene_editor_metadata_references_dismissed_label.get(),
-							)
-							Text(
-								text = " · ${state.dismissedRefs.size}",
-								style = MaterialTheme.typography.labelSmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-								modifier = Modifier.padding(start = 4.dp, end = Ui.Padding.M),
-							)
-						}
+
+				HdHairlineField(
+					label = Res.string.scene_editor_metadata_notes_label.get(),
+					value = state.metadata.notes,
+					onValueChange = component::updateNotes,
+					placeholder = Res.string.scene_editor_metadata_notes_placeholder.get(),
+					singleLine = false,
+					minLines = 3,
+				)
+
+				SpacerXL()
+
+				var isDraftNameValid by remember(state.metadata.currentDraftName) {
+					mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
+				}
+				HdHairlineField(
+					label = Res.string.scene_editor_metadata_draft_name_label.get(),
+					value = state.metadata.currentDraftName,
+					onValueChange = { newName ->
+						isDraftNameValid = component.validateDraftName(newName)
+						component.updateDraftName(newName)
 					},
-					body = { DismissedBody(state, component) }
+					singleLine = true,
+				)
+				if (!isDraftNameValid) {
+					SpacerM()
+					Text(
+						Res.string.scene_draft_invalid_name.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
+
+				SpacerXL()
+
+				CollapsableSection(
+					startExpanded = true,
+					header = {
+						HdMonoLabel(
+							text = Res.string.scene_editor_metadata_references_header.get(),
+							modifier = Modifier.padding(end = Ui.Padding.M),
+						)
+					},
+					trailingAction = {
+						HdHairlineButton(
+							label = Res.string.scene_editor_metadata_references_add_button.get(),
+							onClick = { showAddDialog = true },
+						)
+					},
+					body = { ReferencesBody(state, component) }
+				)
+
+				if (state.dismissedRefs.isNotEmpty()) {
+					SpacerXL()
+					CollapsableSection(
+						startExpanded = false,
+						header = {
+							Row(verticalAlignment = Alignment.CenterVertically) {
+								HdMonoLabel(
+									text = Res.string.scene_editor_metadata_references_dismissed_label.get(),
+								)
+								Text(
+									text = " · ${state.dismissedRefs.size}",
+									style = MaterialTheme.typography.labelSmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+									modifier = Modifier.padding(start = 4.dp, end = Ui.Padding.M),
+								)
+							}
+						},
+						body = { DismissedBody(state, component) }
+					)
+				}
+
+				SpacerXL()
+
+				CollapsableSection(
+					header = {
+						HdMonoLabel(
+							text = Res.string.scene_editor_metadata_advanced_header.get(),
+							modifier = Modifier.padding(end = Ui.Padding.M),
+						)
+					},
+					body = { AdvancedBody(state) }
 				)
 			}
-
-			SpacerXL()
-
-			CollapsableSection(
-				header = {
-					HdMonoLabel(
-						text = Res.string.scene_editor_metadata_advanced_header.get(),
-						modifier = Modifier.padding(end = Ui.Padding.M),
-					)
-				},
-				body = { AdvancedBody(state) }
-			)
-			} // end body padded Column
 		}
 	}
 
-	if (showAddDialog) {
-		AddReferenceDialog(
-			component = component,
-			onDismiss = { showAddDialog = false },
-		)
-	}
+	AddReferenceDialog(
+		component = component,
+		visible = showAddDialog,
+		onDismiss = { showAddDialog = false },
+	)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -262,7 +260,9 @@ private fun ReferencesBody(
 			)
 			return@Column
 		}
-		val grouped = state.confirmedRefs.groupBy { it.type.bucket() }
+		val grouped = remember(state.confirmedRefs) {
+			state.confirmedRefs.groupBy { it.type.bucket() }
+		}
 		RefBucket.entries.forEach { bucket ->
 			val refs = grouped[bucket] ?: return@forEach
 			RefChipBucket(
@@ -284,7 +284,9 @@ private fun DismissedBody(
 	component: SceneMetadataPanel,
 ) {
 	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
-		val grouped = state.dismissedRefs.groupBy { it.type.bucket() }
+		val grouped = remember(state.dismissedRefs) {
+			state.dismissedRefs.groupBy { it.type.bucket() }
+		}
 		RefBucket.entries.forEach { bucket ->
 			val refs = grouped[bucket] ?: return@forEach
 			RefChipBucket(
@@ -357,21 +359,21 @@ private fun AdvancedBody(state: SceneMetadataPanel.State) {
 @Composable
 private fun AddReferenceDialog(
 	component: SceneMetadataPanel,
+	visible: Boolean,
 	onDismiss: () -> Unit,
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
 	var tab by rememberSaveable { mutableStateOf(RefBucket.Characters) }
 
-	val suggestions by remember(query, tab) {
-		derivedStateOf {
-			component.searchEntriesForAdd(query)
-				.filter { it.entryDef.type.bucket() == tab }
-		}
+	val suggestions = remember(query, tab) {
+		component.searchEntriesForAdd(query)
+			.filter { it.entryDef.type.bucket() == tab }
 	}
 
-	Dialog(
-		onDismissRequest = onDismiss,
-		properties = DialogProperties(usePlatformDefaultWidth = false),
+	AnimatedDialog(
+		visible = visible,
+		onCloseRequest = onDismiss,
+		dismissOnTapOutside = true,
 	) {
 		Surface(
 			modifier = Modifier
@@ -388,14 +390,13 @@ private fun AddReferenceDialog(
 		) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 
-				// Header
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					Text(
 						text = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
 						style = MaterialTheme.typography.titleLarge,
 						modifier = Modifier.weight(1f),
 					)
-					IconButton(onClick = onDismiss) {
+					IconButton(onClick = { requestDismiss() }) {
 						Icon(
 							imageVector = Icons.Filled.Close,
 							contentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
@@ -406,7 +407,6 @@ private fun AddReferenceDialog(
 
 				SpacerL()
 
-				// Type tabs
 				Row(modifier = Modifier.fillMaxWidth()) {
 					RefBucket.entries.forEach { bucket ->
 						TabPill(
@@ -423,23 +423,16 @@ private fun AddReferenceDialog(
 
 				SpacerL()
 
-				// Search
 				HdSearchField(
 					value = query,
 					onValueChange = { query = it },
-					placeholder = when (tab) {
-						RefBucket.Characters -> Res.string.scene_editor_metadata_references_add_dialog_search_characters.get()
-						RefBucket.Locations -> Res.string.scene_editor_metadata_references_add_dialog_search_locations.get()
-						RefBucket.Other -> Res.string.scene_editor_metadata_references_add_dialog_search_other.get()
-					},
+					placeholder = tab.searchPlaceholder(),
 					onClear = { query = "" },
 					modifier = Modifier.fillMaxWidth(),
 				)
 
 				SpacerL()
 
-				// Suggestion list — type-to-autocomplete: derived live from
-				// component.searchEntriesForAdd(query) keyed on query+tab.
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
@@ -479,14 +472,13 @@ private fun AddReferenceDialog(
 
 				SpacerL()
 
-				// Footer
 				Row(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.End,
 				) {
 					HdHairlineButton(
 						label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
-						onClick = onDismiss,
+						onClick = { requestDismiss() },
 						emphasised = true,
 					)
 				}
