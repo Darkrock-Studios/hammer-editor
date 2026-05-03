@@ -446,20 +446,15 @@ private fun AddReferenceDialog(
 						.heightIn(min = 120.dp, max = 320.dp),
 				) {
 					if (suggestions.isEmpty()) {
-						Column(
+						Box(
 							modifier = Modifier
 								.fillMaxWidth()
 								.padding(vertical = Ui.Padding.XL),
-							horizontalAlignment = Alignment.CenterHorizontally,
+							contentAlignment = Alignment.Center,
 						) {
 							Text(
 								text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
 								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-							SpacerM()
-							HdMonoLabel(
-								text = Res.string.scene_editor_metadata_references_add_dialog_create_hint.get(),
 								color = MaterialTheme.colorScheme.onSurfaceVariant,
 							)
 						}

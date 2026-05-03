@@ -79,7 +79,6 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_locations">Search locations…</string>
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Search entries…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
-	<string name="scene_editor_metadata_references_add_dialog_create_hint">Create new in encyclopedia.</string>
 	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
 
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
