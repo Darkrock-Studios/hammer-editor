@@ -228,7 +228,10 @@ private fun SceneMetadataSidebar(component: SceneEditor, isWide: Boolean) {
 		) {
 			SceneMetadataPanelUi(
 				component = component.sceneMetadataComponent,
-				modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+				modifier = Modifier
+					.widthIn(max = SCENE_METADATA_MAX_WIDTH)
+					.fillMaxWidth()
+					.wrapContentHeight(),
 				closeMetadata = { requestDismiss() },
 			)
 		}
