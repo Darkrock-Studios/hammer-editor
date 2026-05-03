@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -65,9 +67,11 @@ fun SceneMetadataPanelUi(
 	val state by component.state.subscribeAsState()
 	var showAddDialog by rememberSaveable { mutableStateOf(false) }
 
-	Card(
+	Surface(
 		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
-		elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM)
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surfaceContainerLow,
+		tonalElevation = 0.dp,
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL).verticalScroll(rememberScrollState())) {
 
@@ -343,11 +347,18 @@ private fun AddReferenceDialog(
 		onDismissRequest = onDismiss,
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Card(
+		Surface(
 			modifier = Modifier
 				.widthIn(min = 320.dp, max = 520.dp)
-				.padding(Ui.Padding.L),
-			elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM),
+				.padding(Ui.Padding.L)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
+				),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			tonalElevation = 0.dp,
 		) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 
