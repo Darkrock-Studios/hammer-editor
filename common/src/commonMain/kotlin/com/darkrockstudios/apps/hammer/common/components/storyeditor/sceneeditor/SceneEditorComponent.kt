@@ -79,11 +79,17 @@ class SceneEditorComponent(
 
 		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
-				_state.update {
-					it.copy(
-						spellCheckingEnabled = settings.spellCheckSettings.enabled,
-						metadataPanelVisible = settings.metadataPanelVisible,
-					)
+				val current = _state.value
+				if (
+					current.spellCheckingEnabled != settings.spellCheckSettings.enabled ||
+					current.metadataPanelVisible != settings.metadataPanelVisible
+				) {
+					_state.update {
+						it.copy(
+							spellCheckingEnabled = settings.spellCheckSettings.enabled,
+							metadataPanelVisible = settings.metadataPanelVisible,
+						)
+					}
 				}
 			}
 		}
