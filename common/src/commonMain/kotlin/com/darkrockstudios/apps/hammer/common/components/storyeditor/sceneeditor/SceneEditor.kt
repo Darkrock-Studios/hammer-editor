@@ -39,7 +39,12 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun beginDiscard()
 	fun endDiscard()
 	fun doDiscard()
-	fun toggleMetadataVisibility()
+	/** Wide layouts: flips the persisted `GlobalSettings.metadataPanelVisible` preference. */
+	fun toggleMetadataPanelVisible()
+
+	/** Narrow layouts: flips the transient modal-state, no persistence. */
+	fun toggleMetadataModal()
+
 	fun decreaseTextSize()
 	fun increaseTextSize()
 	fun resetTextSize()
@@ -54,7 +59,10 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val confirmDelete: Boolean = false,
 		val confirmArchive: Boolean = false,
 		val confirmDiscard: Boolean = false,
-		val showMetadata: Boolean = false,
+		/** Persistent preference; only consulted on wide layouts (in-line aside). */
+		val metadataPanelVisible: Boolean = true,
+		/** Transient; only consulted on narrow layouts where the panel renders as a Dialog. */
+		val showMetadataModal: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
 		val spellChecker: PlatformSpellChecker? = null,

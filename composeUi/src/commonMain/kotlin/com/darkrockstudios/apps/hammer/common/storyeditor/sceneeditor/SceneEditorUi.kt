@@ -100,12 +100,21 @@ fun SceneEditorUi(
 				CircularProgressIndicator()
 			}
 		} else {
+			val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
+				boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+			}
+			val isWide = remainingWidth >= SCENE_METADATA_MIN_WIDTH
+
 			Column(
 				modifier = Modifier
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
 			) {
-				EditorTopBar(component, rootSnackbar)
+				EditorTopBar(
+					component = component,
+					rootSnackbar = rootSnackbar,
+					onToggleMetadata = if (isWide) component::toggleMetadataPanelVisible else component::toggleMetadataModal,
+				)
 
 				HorizontalDivider(
 					thickness = Dp.Hairline,
@@ -152,10 +161,7 @@ fun SceneEditorUi(
 
 					HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
 
-					val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
-						boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
-					}
-					SceneMetadataSidebar(component, remainingWidth)
+					SceneMetadataSidebar(component, isWide)
 				}
 			}
 		}
@@ -197,12 +203,12 @@ fun SceneEditorUi(
 }
 
 @Composable
-private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
+private fun SceneMetadataSidebar(component: SceneEditor, isWide: Boolean) {
 	val state by component.state.subscribeAsState()
 
-	if (remainingWidth >= SCENE_METADATA_MIN_WIDTH) {
+	if (isWide) {
 		AnimatedVisibility(
-			visible = state.showMetadata,
+			visible = state.metadataPanelVisible,
 			enter = slideInHorizontally { it } + fadeIn(),
 			exit = slideOutHorizontally { it } + fadeOut(),
 		) {
@@ -211,17 +217,17 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 				modifier = Modifier.wrapContentWidth()
 					.widthIn(max = SCENE_METADATA_MAX_WIDTH)
 					.fillMaxHeight(),
-				closeMetadata = component::toggleMetadataVisibility,
+				closeMetadata = component::toggleMetadataPanelVisible,
 			)
 		}
 	} else {
-		if (state.showMetadata) {
-			Dialog(onDismissRequest = component::toggleMetadataVisibility) {
+		if (state.showMetadataModal) {
+			Dialog(onDismissRequest = component::toggleMetadataModal) {
 				Box(modifier = Modifier.padding(Ui.Padding.L)) {
 					SceneMetadataPanelUi(
 						component = component.sceneMetadataComponent,
 						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-						closeMetadata = component::toggleMetadataVisibility,
+						closeMetadata = component::toggleMetadataModal,
 					)
 				}
 			}
