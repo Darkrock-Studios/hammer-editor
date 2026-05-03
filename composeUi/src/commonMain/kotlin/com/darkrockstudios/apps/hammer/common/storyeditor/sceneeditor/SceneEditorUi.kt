@@ -17,7 +17,6 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
@@ -221,16 +220,17 @@ private fun SceneMetadataSidebar(component: SceneEditor, isWide: Boolean) {
 			)
 		}
 	} else {
-		if (state.showMetadataModal) {
-			Dialog(onDismissRequest = component::toggleMetadataModal) {
-				Box(modifier = Modifier.padding(Ui.Padding.L)) {
-					SceneMetadataPanelUi(
-						component = component.sceneMetadataComponent,
-						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-						closeMetadata = component::toggleMetadataModal,
-					)
-				}
-			}
+		AnimatedDialog(
+			visible = state.showMetadataModal,
+			onCloseRequest = component::toggleMetadataModal,
+			modifier = Modifier.padding(Ui.Padding.L),
+			dismissOnTapOutside = true,
+		) {
+			SceneMetadataPanelUi(
+				component = component.sceneMetadataComponent,
+				modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+				closeMetadata = { requestDismiss() },
+			)
 		}
 	}
 }
