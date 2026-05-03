@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -37,24 +38,27 @@ actual fun EditorTopBar(
 		if (state.isEditingName) {
 			var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
 
-			TextField(
+			HdHairlineField(
+				label = Res.string.scene_editor_name_hint.get(),
 				value = editSceneNameValue,
 				onValueChange = { editSceneNameValue = it },
-				modifier = Modifier.padding(Ui.Padding.S),
-				label = { Text(Res.string.scene_editor_name_hint.get()) }
+				modifier = Modifier
+					.weight(1f)
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
+				singleLine = true,
 			)
 			IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
 				Icon(
 					Icons.Filled.Check,
 					Res.string.scene_editor_rename_button.get(),
-					tint = MaterialTheme.colorScheme.onSurface
+					tint = MaterialTheme.colorScheme.primary,
 				)
 			}
 			IconButton(onClick = component::endSceneNameEdit) {
 				Icon(
-					Icons.Filled.Cancel,
+					Icons.Filled.Close,
 					Res.string.scene_editor_cancel_button.get(),
-					tint = MaterialTheme.colorScheme.error
+					tint = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
 		} else {
