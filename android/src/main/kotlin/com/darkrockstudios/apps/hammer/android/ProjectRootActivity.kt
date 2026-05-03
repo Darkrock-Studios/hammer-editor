@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.android
 
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -19,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -43,6 +41,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarIt
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -50,7 +49,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
@@ -105,18 +103,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					UiTheme.FollowSystem -> isSystemInDarkTheme()
 				}
 
-				// Dynamic color is available on Android 12+
-				val localCtx = LocalContext.current
-				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
-					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-					return when {
-						dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
-						dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
-						else -> null
-					}
-				}
-
-				AppTheme(settingsState, isDark, ::getDynamicColorScheme) {
+				AppTheme(settingsState, isDark) {
 					Content(component)
 				}
 			}

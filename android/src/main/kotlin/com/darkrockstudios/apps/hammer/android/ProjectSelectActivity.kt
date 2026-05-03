@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -18,10 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
@@ -77,21 +75,9 @@ class ProjectSelectActivity : AppCompatActivity() {
 				UiTheme.FollowSystem -> isSystemInDarkTheme()
 			}
 
-			// Dynamic color is available on Android 12+
-			val localCtx = LocalContext.current
-			fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
-				val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-				return when {
-					dynamicColor && useDark -> dynamicDarkColorScheme(localCtx)
-					dynamicColor && !useDark -> dynamicLightColorScheme(localCtx)
-					else -> null
-				}
-			}
-
 			AppTheme(
 				settings = settingsState,
 				useDarkTheme = isDark,
-				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
 				ProjectSelectContent(component)
 			}
