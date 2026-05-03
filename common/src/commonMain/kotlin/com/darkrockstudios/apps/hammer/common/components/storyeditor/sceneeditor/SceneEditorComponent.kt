@@ -52,7 +52,8 @@ class SceneEditorComponent(
 	private val _state = MutableValue(
 		SceneEditor.State(
 			sceneItem = originalSceneItem,
-			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled
+			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled,
+			metadataPanelVisible = settingsRepository.globalSettings.metadataPanelVisible,
 		)
 	)
 	override val state: Value<SceneEditor.State> = _state
@@ -79,7 +80,10 @@ class SceneEditorComponent(
 		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
 				_state.update {
-					it.copy(spellCheckingEnabled = settings.spellCheckSettings.enabled)
+					it.copy(
+						spellCheckingEnabled = settings.spellCheckSettings.enabled,
+						metadataPanelVisible = settings.metadataPanelVisible,
+					)
 				}
 			}
 		}
@@ -253,7 +257,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.i("Toggle Metadata")
-			toggleMetadataVisibility()
+			toggleMetadataPanelVisible()
 		}
 
 		val focusModeItem = MenuItemDescriptor(
@@ -416,11 +420,17 @@ class SceneEditorComponent(
 		closeSceneEditor()
 	}
 
-	override fun toggleMetadataVisibility() {
+	override fun toggleMetadataPanelVisible() {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(metadataPanelVisible = it.metadataPanelVisible.not())
+			}
+		}
+	}
+
+	override fun toggleMetadataModal() {
 		_state.getAndUpdate {
-			it.copy(
-				showMetadata = it.showMetadata.not()
-			)
+			it.copy(showMetadataModal = it.showMetadataModal.not())
 		}
 	}
 

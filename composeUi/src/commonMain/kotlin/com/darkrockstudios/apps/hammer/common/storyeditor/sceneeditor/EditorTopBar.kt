@@ -8,4 +8,5 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 expect fun EditorTopBar(
 	component: SceneEditor,
 	rootSnackbar: RootSnackbarHostState,
+	onToggleMetadata: () -> Unit,
 )

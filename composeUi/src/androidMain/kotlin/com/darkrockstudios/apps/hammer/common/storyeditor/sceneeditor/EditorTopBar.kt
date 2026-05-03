@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 actual fun EditorTopBar(
 	component: SceneEditor,
 	rootSnackbar: RootSnackbarHostState,
+	onToggleMetadata: () -> Unit,
 ) {
 	val state by component.state.subscribeAsState()
 	val title = remember { derivedStateOf { state.sceneItem.name } }
@@ -62,7 +63,7 @@ actual fun EditorTopBar(
 		}
 
 		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
-			IconButton(onClick = component::toggleMetadataVisibility) {
+			IconButton(onClick = onToggleMetadata) {
 				Icon(
 					Icons.Filled.Info,
 					contentDescription = Res.string.scene_editor_metadata_button.get(),

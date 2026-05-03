@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 actual fun EditorTopBar(
 	component: SceneEditor,
 	rootSnackbar: RootSnackbarHostState,
+	onToggleMetadata: () -> Unit,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
@@ -105,7 +106,7 @@ actual fun EditorTopBar(
 				}
 			}
 
-			IconButton(onClick = component::toggleMetadataVisibility) {
+			IconButton(onClick = onToggleMetadata) {
 				Icon(
 					imageVector = Icons.Default.Info,
 					contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
