@@ -73,43 +73,68 @@ fun SceneMetadataPanelUi(
 		color = MaterialTheme.colorScheme.surfaceContainerLow,
 		tonalElevation = 0.dp,
 	) {
-		Column(modifier = Modifier.padding(Ui.Padding.XL).verticalScroll(rememberScrollState())) {
+		Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 
-			// Header — close + Metadata title
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				IconButton(onClick = closeMetadata) {
+			// Header — × close + Metadata title, edge-to-edge hairline below
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(start = Ui.Padding.M, end = Ui.Padding.L, top = Ui.Padding.S, bottom = Ui.Padding.S),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				IconButton(
+					onClick = closeMetadata,
+					modifier = Modifier.size(36.dp),
+				) {
 					Icon(
 						imageVector = Icons.Default.Close,
 						contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
-						tint = MaterialTheme.colorScheme.onBackground
+						tint = MaterialTheme.colorScheme.onSurface,
 					)
 				}
+				Spacer(Modifier.width(Ui.Padding.S))
 				Text(
 					text = Res.string.scene_editor_metadata_title.get(),
-					style = MaterialTheme.typography.headlineMedium
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface,
 				)
 			}
-
-			SpacerL()
-
-			// Scene title + word count
-			Text(
-				state.sceneItem.name,
-				style = MaterialTheme.typography.titleLarge,
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
 			)
-			Row(modifier = Modifier.align(Alignment.End)) {
-				Text(
-					Res.string.scene_editor_metadata_word_count_label.get(),
-					modifier = Modifier.padding(end = Ui.Padding.M),
-					style = MaterialTheme.typography.headlineSmall,
-				)
-				Text(
-					"${state.wordCount}",
-					style = MaterialTheme.typography.headlineSmall,
-				)
-			}
 
-			SpacerXL()
+			// Scene title + word count, edge-to-edge hairline below
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				verticalAlignment = Alignment.Bottom,
+			) {
+				Text(
+					text = state.sceneItem.name,
+					modifier = Modifier.weight(1f).padding(end = Ui.Padding.M),
+					style = MaterialTheme.typography.titleLarge,
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+				Row(verticalAlignment = Alignment.Bottom) {
+					HdMonoLabel(
+						text = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),
+						modifier = Modifier.padding(end = 6.dp, bottom = 2.dp),
+					)
+					Text(
+						text = "${state.wordCount}",
+						style = MaterialTheme.typography.titleMedium,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+				}
+			}
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
 
 			// Outline
 			HdHairlineField(
@@ -210,6 +235,7 @@ fun SceneMetadataPanelUi(
 				},
 				body = { AdvancedBody(state) }
 			)
+			} // end body padded Column
 		}
 	}
 
