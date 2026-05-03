@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
@@ -78,9 +79,10 @@ actual fun EditorTopBar(
 					modifier = Modifier.width(IntrinsicSize.Min),
 					horizontalArrangement = Arrangement.End,
 				) {
-					Badge(
-						modifier = Modifier.align(Alignment.Top).padding(top = Ui.Padding.L)
-					) { Text(Res.string.scene_editor_unsaved_chip.get()) }
+					HdUnsavedBadge(
+						text = Res.string.scene_editor_unsaved_chip.get(),
+						modifier = Modifier.align(Alignment.CenterVertically)
+					)
 
 					Spacer(modifier = Modifier.weight(1f))
 

@@ -201,15 +201,13 @@ private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
 			enter = slideInHorizontally { it } + fadeIn(),
 			exit = slideOutHorizontally { it } + fadeOut(),
 		) {
-			Box(modifier = Modifier.padding(Ui.Padding.L)) {
-				SceneMetadataPanelUi(
-					component = component.sceneMetadataComponent,
-					modifier = Modifier.wrapContentWidth()
-						.widthIn(max = SCENE_METADATA_MAX_WIDTH)
-						.fillMaxHeight(),
-					closeMetadata = component::toggleMetadataVisibility,
-				)
-			}
+			SceneMetadataPanelUi(
+				component = component.sceneMetadataComponent,
+				modifier = Modifier.wrapContentWidth()
+					.widthIn(max = SCENE_METADATA_MAX_WIDTH)
+					.fillMaxHeight(),
+				closeMetadata = component::toggleMetadataVisibility,
+			)
 		}
 	} else {
 		if (state.showMetadata) {
