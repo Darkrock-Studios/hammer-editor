@@ -58,7 +58,7 @@ fun MarkdownFormatBar(
 
 	val showOverflow = decreaseTextSize != null || increaseTextSize != null
 
-	BoxWithConstraints(modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant)) {
+	BoxWithConstraints(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
 		val compact = maxWidth < TOOLBAR_COMPACT_THRESHOLD
 		val rowModifier = if (compact) {
 			Modifier.horizontalScroll(rememberScrollState())
