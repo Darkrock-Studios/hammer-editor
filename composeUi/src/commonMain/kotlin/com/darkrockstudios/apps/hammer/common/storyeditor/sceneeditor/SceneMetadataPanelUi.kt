@@ -1,42 +1,60 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
+import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
+
+private enum class RefBucket { Characters, Locations, Other }
+
+private fun EntryType.bucket(): RefBucket = when (this) {
+	EntryType.PERSON -> RefBucket.Characters
+	EntryType.PLACE -> RefBucket.Locations
+	else -> RefBucket.Other
+}
+
+@Composable
+private fun RefBucket.label(): String = when (this) {
+	RefBucket.Characters -> Res.string.scene_editor_metadata_references_characters_label.get()
+	RefBucket.Locations -> Res.string.scene_editor_metadata_references_locations_label.get()
+	RefBucket.Other -> Res.string.scene_editor_metadata_references_other_label.get()
+}
 
 @Composable
 fun SceneMetadataPanelUi(
@@ -45,12 +63,15 @@ fun SceneMetadataPanelUi(
 	closeMetadata: () -> Unit
 ) {
 	val state by component.state.subscribeAsState()
+	var showAddDialog by rememberSaveable { mutableStateOf(false) }
 
 	Card(
 		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
 		elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM)
 	) {
 		Column(modifier = Modifier.padding(Ui.Padding.XL).verticalScroll(rememberScrollState())) {
+
+			// Header — close + Metadata title
 			Row(verticalAlignment = Alignment.CenterVertically) {
 				IconButton(onClick = closeMetadata) {
 					Icon(
@@ -59,7 +80,6 @@ fun SceneMetadataPanelUi(
 						tint = MaterialTheme.colorScheme.onBackground
 					)
 				}
-
 				Text(
 					text = Res.string.scene_editor_metadata_title.get(),
 					style = MaterialTheme.typography.headlineMedium
@@ -68,18 +88,17 @@ fun SceneMetadataPanelUi(
 
 			SpacerL()
 
+			// Scene title + word count
 			Text(
 				state.sceneItem.name,
 				style = MaterialTheme.typography.titleLarge,
 			)
-
 			Row(modifier = Modifier.align(Alignment.End)) {
 				Text(
 					Res.string.scene_editor_metadata_word_count_label.get(),
 					modifier = Modifier.padding(end = Ui.Padding.M),
 					style = MaterialTheme.typography.headlineSmall,
 				)
-
 				Text(
 					"${state.wordCount}",
 					style = MaterialTheme.typography.headlineSmall,
@@ -88,82 +107,141 @@ fun SceneMetadataPanelUi(
 
 			SpacerXL()
 
-			OutlinedTextField(
+			// Outline
+			HdHairlineField(
+				label = Res.string.scene_editor_metadata_outline_label.get(),
 				value = state.metadata.outline,
 				onValueChange = component::updateOutline,
-				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
-				maxLines = 4,
-				label = { Text(Res.string.scene_editor_metadata_outline_label.get()) },
-				placeholder = {
-					Text(
-						Res.string.scene_editor_metadata_outline_placeholder.get(),
-						style = MaterialTheme.typography.bodyLarge,
-					)
-				},
-				textStyle = MaterialTheme.typography.bodyLarge,
+				placeholder = Res.string.scene_editor_metadata_outline_placeholder.get(),
+				singleLine = false,
+				minLines = 3,
 			)
 
 			SpacerXL()
 
-			OutlinedTextField(
+			// Notes
+			HdHairlineField(
+				label = Res.string.scene_editor_metadata_notes_label.get(),
 				value = state.metadata.notes,
 				onValueChange = component::updateNotes,
-				modifier = Modifier.heightIn(128.dp).fillMaxWidth(),
-				maxLines = 4,
-				label = { Text(Res.string.scene_editor_metadata_notes_label.get()) },
-				placeholder = {
-					Text(
-						Res.string.scene_editor_metadata_notes_placeholder.get(),
-						style = MaterialTheme.typography.bodyLarge,
-					)
-				},
-				textStyle = MaterialTheme.typography.bodyLarge,
+				placeholder = Res.string.scene_editor_metadata_notes_placeholder.get(),
+				singleLine = false,
+				minLines = 3,
 			)
 
 			SpacerXL()
 
-			var isDraftNameValid by remember {
+			// Draft Name with inline validation message below
+			var isDraftNameValid by remember(state.metadata.currentDraftName) {
 				mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
 			}
-
-			OutlinedTextField(
+			HdHairlineField(
+				label = Res.string.scene_editor_metadata_draft_name_label.get(),
 				value = state.metadata.currentDraftName,
 				onValueChange = { newName ->
 					isDraftNameValid = component.validateDraftName(newName)
 					component.updateDraftName(newName)
 				},
-				modifier = Modifier.fillMaxWidth(),
-				maxLines = 1,
-				label = { Text(Res.string.scene_editor_metadata_draft_name_label.get()) },
-				textStyle = MaterialTheme.typography.bodyLarge,
-				isError = !isDraftNameValid,
-				supportingText = if (!isDraftNameValid) {
-					{ Text(Res.string.scene_draft_invalid_name.get()) }
-				} else null
+				singleLine = true,
 			)
+			if (!isDraftNameValid) {
+				SpacerM()
+				Text(
+					Res.string.scene_draft_invalid_name.get(),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.error,
+				)
+			}
+
+			SpacerXL()
+
+			// References — collapsible, expanded by default, with trailing add button
+			CollapsableSection(
+				startExpanded = true,
+				header = {
+					HdMonoLabel(
+						text = Res.string.scene_editor_metadata_references_header.get(),
+						modifier = Modifier.padding(end = Ui.Padding.M),
+					)
+				},
+				trailingAction = {
+					HdHairlineButton(
+						label = Res.string.scene_editor_metadata_references_add_button.get(),
+						onClick = { showAddDialog = true },
+					)
+				},
+				body = { ReferencesBody(state, component) }
+			)
+
+			// Dismissed — peer of References, only visible when non-empty
+			if (state.dismissedRefs.isNotEmpty()) {
+				SpacerXL()
+				CollapsableSection(
+					startExpanded = false,
+					header = {
+						Row(verticalAlignment = Alignment.CenterVertically) {
+							HdMonoLabel(
+								text = Res.string.scene_editor_metadata_references_dismissed_label.get(),
+							)
+							Text(
+								text = " · ${state.dismissedRefs.size}",
+								style = MaterialTheme.typography.labelSmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+								modifier = Modifier.padding(start = 4.dp, end = Ui.Padding.M),
+							)
+						}
+					},
+					body = { DismissedBody(state, component) }
+				)
+			}
 
 			SpacerXL()
 
 			CollapsableSection(
 				header = {
-					Text(
-						Res.string.scene_editor_metadata_references_header.get(),
-						style = MaterialTheme.typography.titleMedium,
+					HdMonoLabel(
+						text = Res.string.scene_editor_metadata_advanced_header.get(),
+						modifier = Modifier.padding(end = Ui.Padding.M),
 					)
 				},
-				body = { ReferencesSection(state, component) }
+				body = { AdvancedBody(state) }
 			)
+		}
+	}
 
-			SpacerXL()
+	if (showAddDialog) {
+		AddReferenceDialog(
+			component = component,
+			onDismiss = { showAddDialog = false },
+		)
+	}
+}
 
-			CollapsableSection(
-				header = {
-					Text(
-						Res.string.scene_editor_metadata_advanced_header.get(),
-						style = MaterialTheme.typography.titleMedium,
-					)
-				},
-				body = { AdvancedSection(state) }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReferencesBody(
+	state: SceneMetadataPanel.State,
+	component: SceneMetadataPanel,
+) {
+	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
+		if (state.confirmedRefs.isEmpty()) {
+			Text(
+				Res.string.scene_editor_metadata_references_empty.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			return@Column
+		}
+		val grouped = state.confirmedRefs.groupBy { it.type.bucket() }
+		RefBucket.entries.forEach { bucket ->
+			val refs = grouped[bucket] ?: return@forEach
+			RefChipBucket(
+				label = bucket.label(),
+				refs = refs,
+				variant = HdReferenceChipVariant.Active,
+				onClickRef = component::navigateToEntry,
+				onActionRef = component::dismissReference,
+				actionDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
 			)
 		}
 	}
@@ -171,227 +249,274 @@ fun SceneMetadataPanelUi(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReferencesSection(
+private fun DismissedBody(
 	state: SceneMetadataPanel.State,
 	component: SceneMetadataPanel,
 ) {
-	Column(modifier = Modifier.padding(Ui.Padding.L)) {
-		Text(
-			Res.string.scene_editor_metadata_references_confirmed_label.get(),
-			style = MaterialTheme.typography.titleSmall,
-		)
-		SpacerL()
-		if (state.confirmedRefs.isEmpty() && state.dismissedRefs.isEmpty()) {
-			Text(
-				Res.string.scene_editor_metadata_references_empty.get(),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		} else {
-			FlowRow(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-				verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-			) {
-				for (ref in state.confirmedRefs) {
-					InputChip(
-						onClick = { component.navigateToEntry(ref) },
-						label = { EntryRefChipLabel(type = ref.type, name = ref.name) },
-						trailingIcon = {
-							ChipAction(
-								onClick = { component.dismissReference(ref.id) },
-								icon = Icons.Filled.Close,
-								contentDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
-								tint = MaterialTheme.colorScheme.onSurface,
-							)
-						},
-						selected = true,
-					)
-				}
-			}
-		}
-
-		SpacerL()
-		AddReferenceField(component = component)
-
-		if (state.dismissedRefs.isNotEmpty()) {
-			SpacerXL()
-			CollapsableSection(
-				header = {
-					Text(
-						Res.string.scene_editor_metadata_references_dismissed_label.get(),
-						style = MaterialTheme.typography.titleSmall,
-					)
-				},
-				body = {
-					FlowRow(
-						modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.M),
-						horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-						verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-					) {
-						for (ref in state.dismissedRefs) {
-							AssistChip(
-								onClick = { component.navigateToEntry(ref) },
-								label = { EntryRefChipLabel(type = ref.type, name = ref.name) },
-								trailingIcon = {
-									ChipAction(
-										onClick = { component.restoreDismissedReference(ref.id) },
-										icon = Icons.Filled.Add,
-										contentDescription = Res.string.scene_editor_metadata_references_restore.get(),
-										tint = MaterialTheme.colorScheme.onSurfaceVariant,
-									)
-								},
-							)
-						}
-					}
-				}
+	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
+		val grouped = state.dismissedRefs.groupBy { it.type.bucket() }
+		RefBucket.entries.forEach { bucket ->
+			val refs = grouped[bucket] ?: return@forEach
+			RefChipBucket(
+				label = bucket.label(),
+				refs = refs,
+				variant = HdReferenceChipVariant.Dismissed,
+				onClickRef = component::navigateToEntry,
+				onActionRef = component::restoreDismissedReference,
+				actionDescription = Res.string.scene_editor_metadata_references_restore.get(),
 			)
 		}
 	}
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipAction(
-	onClick: () -> Unit,
-	icon: ImageVector,
-	contentDescription: String,
-	tint: Color,
+private fun RefChipBucket(
+	label: String,
+	refs: List<EntryDef>,
+	variant: HdReferenceChipVariant,
+	onClickRef: (EntryDef) -> Unit,
+	onActionRef: (Int) -> Unit,
+	actionDescription: String,
 ) {
-	IconButton(onClick = onClick, modifier = Modifier.size(24.dp)) {
-		Icon(icon, contentDescription = contentDescription, tint = tint)
+	HdMonoLabel(text = label)
+	SpacerM()
+	FlowRow(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+		verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+	) {
+		for (ref in refs) {
+			HdReferenceChip(
+				type = ref.type,
+				name = ref.name,
+				onClick = { onClickRef(ref) },
+				onAction = { onActionRef(ref.id) },
+				actionContentDescription = actionDescription,
+				variant = variant,
+			)
+		}
+	}
+	SpacerL()
+}
+
+@Composable
+private fun AdvancedBody(state: SceneMetadataPanel.State) {
+	Column(
+		modifier = Modifier.padding(top = Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMetadataItem(
+			label = Res.string.scene_editor_metadata_entity_id.get(),
+			value = state.sceneItem.id.toString(),
+			selectable = true,
+		)
+		HdMetadataItem(
+			label = Res.string.scene_editor_metadata_entity_filename.get(),
+			value = state.filename,
+			selectable = true,
+		)
+		HdMetadataItem(
+			label = Res.string.scene_editor_metadata_entity_path.get(),
+			value = state.path,
+			selectable = true,
+		)
 	}
 }
 
 @Composable
-private fun AddReferenceField(component: SceneMetadataPanel) {
+private fun AddReferenceDialog(
+	component: SceneMetadataPanel,
+	onDismiss: () -> Unit,
+) {
 	var query by rememberSaveable { mutableStateOf("") }
-	var hasFocus by remember { mutableStateOf(false) }
-	var fieldSize by remember { mutableStateOf(IntSize.Zero) }
-	val density = LocalDensity.current
-	val suggestions by remember(query) {
-		derivedStateOf { component.searchEntriesForAdd(query) }
-	}
-	val dropdownOpen = hasFocus && query.isNotBlank()
+	var tab by rememberSaveable { mutableStateOf(RefBucket.Characters) }
 
-	fun pick(suggestion: SceneMetadataPanel.AddSuggestion) {
-		component.addConfirmedReference(suggestion.entryDef.id)
-		query = ""
+	val suggestions by remember(query, tab) {
+		derivedStateOf {
+			component.searchEntriesForAdd(query)
+				.filter { it.entryDef.type.bucket() == tab }
+		}
 	}
 
-	// Non-focusable Popup (not ExposedDropdownMenuBox) so the field keeps
-	// focus and continues receiving keystrokes while suggestions update.
-	Box(modifier = Modifier.fillMaxWidth()) {
-		OutlinedTextField(
-			value = query,
-			onValueChange = { query = it },
+	Dialog(
+		onDismissRequest = onDismiss,
+		properties = DialogProperties(usePlatformDefaultWidth = false),
+	) {
+		Card(
 			modifier = Modifier
-				.fillMaxWidth()
-				.onSizeChanged { fieldSize = it }
-				.onFocusChanged { hasFocus = it.isFocused },
-			singleLine = true,
-			placeholder = { Text(Res.string.scene_editor_metadata_references_add_placeholder.get()) },
-			leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-			trailingIcon = if (query.isNotEmpty()) {
-				{
-					IconButton(onClick = { query = "" }) {
-						Icon(Icons.Filled.Close, contentDescription = null)
+				.widthIn(min = 320.dp, max = 520.dp)
+				.padding(Ui.Padding.L),
+			elevation = CardDefaults.cardElevation(Ui.ToneElevation.MEDIUM),
+		) {
+			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
+
+				// Header
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Text(
+						text = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
+						style = MaterialTheme.typography.titleLarge,
+						modifier = Modifier.weight(1f),
+					)
+					IconButton(onClick = onDismiss) {
+						Icon(
+							imageVector = Icons.Filled.Close,
+							contentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
 					}
 				}
-			} else null,
-			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-			keyboardActions = KeyboardActions(onDone = {
-				suggestions.firstOrNull()?.let(::pick)
-			}),
-		)
-		if (dropdownOpen) {
-			val fieldWidthDp = with(density) { fieldSize.width.toDp() }
-			Popup(
-				alignment = Alignment.TopStart,
-				offset = IntOffset(0, fieldSize.height),
-				properties = PopupProperties(focusable = false),
-				onDismissRequest = {},
-			) {
-				Surface(
-					modifier = Modifier.width(fieldWidthDp),
-					shadowElevation = 8.dp,
-					tonalElevation = Ui.ToneElevation.MEDIUM,
-					shape = MaterialTheme.shapes.medium,
+
+				SpacerL()
+
+				// Type tabs
+				Row(modifier = Modifier.fillMaxWidth()) {
+					RefBucket.entries.forEach { bucket ->
+						TabPill(
+							label = bucket.label(),
+							active = tab == bucket,
+							onClick = {
+								tab = bucket
+								query = ""
+							},
+							modifier = Modifier.weight(1f),
+						)
+					}
+				}
+
+				SpacerL()
+
+				// Search
+				HdSearchField(
+					value = query,
+					onValueChange = { query = it },
+					placeholder = when (tab) {
+						RefBucket.Characters -> Res.string.scene_editor_metadata_references_add_dialog_search_characters.get()
+						RefBucket.Locations -> Res.string.scene_editor_metadata_references_add_dialog_search_locations.get()
+						RefBucket.Other -> Res.string.scene_editor_metadata_references_add_dialog_search_other.get()
+					},
+					onClear = { query = "" },
+					modifier = Modifier.fillMaxWidth(),
+				)
+
+				SpacerL()
+
+				// Suggestion list — type-to-autocomplete: derived live from
+				// component.searchEntriesForAdd(query) keyed on query+tab.
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.heightIn(min = 120.dp, max = 320.dp),
 				) {
-					Column {
-						if (suggestions.isEmpty()) {
+					if (suggestions.isEmpty()) {
+						Column(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(vertical = Ui.Padding.XL),
+							horizontalAlignment = Alignment.CenterHorizontally,
+						) {
 							Text(
-								text = Res.string.scene_editor_metadata_references_add_no_matches.get(),
+								text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
 								style = MaterialTheme.typography.bodySmall,
 								color = MaterialTheme.colorScheme.onSurfaceVariant,
-								modifier = Modifier.padding(Ui.Padding.L),
 							)
-						} else {
-							suggestions.forEach { suggestion ->
-								DropdownMenuItem(
-									text = {
-										Row(verticalAlignment = Alignment.CenterVertically) {
-											EntryRefChipLabel(
-												type = suggestion.entryDef.type,
-												name = suggestion.entryDef.name,
-											)
-											if (suggestion.isDismissed) {
-												Spacer(Modifier.size(8.dp))
-												Text(
-													Res.string.scene_editor_metadata_references_add_dismissed_hint.get(),
-													style = MaterialTheme.typography.labelSmall,
-													color = MaterialTheme.colorScheme.onSurfaceVariant,
-												)
-											}
-										}
+							SpacerM()
+							HdMonoLabel(
+								text = Res.string.scene_editor_metadata_references_add_dialog_create_hint.get(),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+					} else {
+						LazyColumn(modifier = Modifier.fillMaxWidth()) {
+							items(suggestions, key = { it.entryDef.id }) { suggestion ->
+								SuggestionRow(
+									suggestion = suggestion,
+									onClick = {
+										component.addConfirmedReference(suggestion.entryDef.id)
+										query = ""
 									},
-									onClick = { pick(suggestion) },
+								)
+								HorizontalDivider(
+									thickness = Dp.Hairline,
+									color = MaterialTheme.colorScheme.outlineVariant,
 								)
 							}
 						}
 					}
 				}
+
+				SpacerL()
+
+				// Footer
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.End,
+				) {
+					HdHairlineButton(
+						label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
+						onClick = onDismiss,
+						emphasised = true,
+					)
+				}
 			}
 		}
 	}
 }
 
 @Composable
-fun AdvancedSection(state: SceneMetadataPanel.State) {
-	Column(modifier = Modifier.padding(Ui.Padding.L)) {
-		Text(
-			Res.string.scene_editor_metadata_entity_id.get(),
-			style = MaterialTheme.typography.titleMedium,
-		)
-		SelectionContainer {
+private fun TabPill(
+	label: String,
+	active: Boolean,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val accent = MaterialTheme.colorScheme.primary
+	val onSurface = MaterialTheme.colorScheme.onSurface
+	val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+	Box(
+		modifier = modifier
+			.clickable(onClick = onClick)
+			.padding(vertical = Ui.Padding.M),
+		contentAlignment = Alignment.Center,
+	) {
+		Column(horizontalAlignment = Alignment.CenterHorizontally) {
 			Text(
-				state.sceneItem.id.toString(),
-				style = MaterialTheme.typography.bodySmall,
+				text = label,
+				style = MaterialTheme.typography.labelLarge,
+				color = if (active) onSurface else mutedColor,
+			)
+			SpacerM()
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(2.dp)
+					.background(if (active) accent else MaterialTheme.colorScheme.outlineVariant)
 			)
 		}
+	}
+}
 
-		SpacerL()
-
-		Text(
-			Res.string.scene_editor_metadata_entity_filename.get(),
-			style = MaterialTheme.typography.titleMedium,
+@Composable
+private fun SuggestionRow(
+	suggestion: SceneMetadataPanel.AddSuggestion,
+	onClick: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.clickable(onClick = onClick)
+			.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		EntryRefChipLabel(
+			type = suggestion.entryDef.type,
+			name = suggestion.entryDef.name,
 		)
-		SelectionContainer {
-			Text(
-				state.filename,
-				style = MaterialTheme.typography.bodySmall,
-			)
-		}
-
-		SpacerL()
-
-		Text(
-			Res.string.scene_editor_metadata_entity_path.get(),
-			style = MaterialTheme.typography.titleMedium,
-		)
-		SelectionContainer {
-			Text(
-				state.path,
-				style = MaterialTheme.typography.bodySmall,
+		if (suggestion.isDismissed) {
+			Spacer(Modifier.width(Ui.Padding.M))
+			HdMonoLabel(
+				text = Res.string.scene_editor_metadata_references_add_dismissed_hint.get(),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
 	}

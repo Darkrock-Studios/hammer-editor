@@ -69,6 +69,18 @@
 	<string name="scene_editor_metadata_references_add_placeholder">Add reference…</string>
 	<string name="scene_editor_metadata_references_add_dismissed_hint">(dismissed)</string>
 	<string name="scene_editor_metadata_references_add_no_matches">No matches</string>
+	<string name="scene_editor_metadata_references_characters_label">Characters</string>
+	<string name="scene_editor_metadata_references_locations_label">Locations</string>
+	<string name="scene_editor_metadata_references_other_label">Other</string>
+	<string name="scene_editor_metadata_references_add_button">+ Add reference</string>
+	<string name="scene_editor_metadata_references_add_dialog_title">Add reference</string>
+	<string name="scene_editor_metadata_references_add_dialog_done">Done</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_characters">Search characters…</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_locations">Search locations…</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_other">Search entries…</string>
+	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
+	<string name="scene_editor_metadata_references_add_dialog_create_hint">Create new in encyclopedia.</string>
+	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
 
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 
