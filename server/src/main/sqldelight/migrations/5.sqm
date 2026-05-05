@@ -1,0 +1,20 @@
+CREATE TABLE writing_activity (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	device_id TEXT NOT NULL CHECK (device_id != ''),
+	content TEXT NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+	UNIQUE(user_id, project_id, device_id)
+);
+
+CREATE TABLE project_data (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	content TEXT NOT NULL,
+	hash TEXT NOT NULL,
+	updated_at INTEGER NOT NULL,
+	PRIMARY KEY(user_id, project_id),
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);
