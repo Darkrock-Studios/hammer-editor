@@ -12,6 +12,7 @@ interface ViewNote {
 	data class State(
 		val projectDef: ProjectDef,
 		val note: NoteContent? = null,
+		val tags: Set<String> = emptySet(),
 		val confirmDiscard: Boolean = false,
 		val confirmClose: Boolean = false,
 		val confirmDelete: Boolean = false,
@@ -21,6 +22,7 @@ interface ViewNote {
 
 	fun discardEdit()
 	fun onContentChanged(newContent: String)
+	fun onTagsChanged(newTags: Set<String>)
 	suspend fun deleteNote(id: Int)
 	fun confirmDelete()
 	fun dismissConfirmDelete()

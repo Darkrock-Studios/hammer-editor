@@ -2,9 +2,11 @@ package com.darkrockstudios.apps.hammer.common.notes
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -40,19 +43,32 @@ fun BrowseNotesUi(
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 	var searchQuery by rememberSaveable { mutableStateOf("") }
 	var sortAscending by rememberSaveable { mutableStateOf(false) }
+	var selectedTags by remember { mutableStateOf<Set<String>>(emptySet()) }
 
-	val filteredSortedNotes by remember(state.notes, searchQuery, sortAscending) {
+	val availableTags by remember(state.notes) {
 		derivedStateOf {
-			val filtered = if (searchQuery.isBlank()) {
+			state.notes.flatMap { it.tags }.toSortedSet().toList()
+		}
+	}
+
+	val filteredSortedNotes by remember(state.notes, searchQuery, sortAscending, selectedTags) {
+		derivedStateOf {
+			val byText = if (searchQuery.isBlank()) {
 				state.notes
 			} else {
 				state.notes.filter { it.content.contains(searchQuery, ignoreCase = true) }
 			}
 
-			if (sortAscending) {
-				filtered.sortedBy { it.created }
+			val byTags = if (selectedTags.isEmpty()) {
+				byText
 			} else {
-				filtered.sortedByDescending { it.created }
+				byText.filter { note -> selectedTags.all { tag -> tag in note.tags } }
+			}
+
+			if (sortAscending) {
+				byTags.sortedBy { it.created }
+			} else {
+				byTags.sortedByDescending { it.created }
 			}
 		}
 	}
@@ -77,6 +93,7 @@ fun BrowseNotesUi(
 					onClose = {
 						showSearchBar = false
 						searchQuery = ""
+						selectedTags = emptySet()
 					}
 				)
 			} else {
@@ -94,6 +111,34 @@ fun BrowseNotesUi(
 							tint = MaterialTheme.colorScheme.onSurface
 						)
 					}
+				}
+			}
+		}
+
+		AnimatedVisibility(visible = showSearchBar && availableTags.isNotEmpty()) {
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.horizontalScroll(rememberScrollState())
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
+				horizontalArrangement = Arrangement.spacedBy(6.dp),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Text(
+					text = Res.string.notes_search_filter_tags_label.get(),
+					style = MaterialTheme.typography.labelSmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					modifier = Modifier.padding(end = Ui.Padding.S),
+				)
+				availableTags.forEach { tag ->
+					val isSelected = tag in selectedTags
+					HdTagChip(
+						label = tag,
+						active = isSelected,
+						onClick = {
+							selectedTags = if (isSelected) selectedTags - tag else selectedTags + tag
+						},
+					)
 				}
 			}
 		}
@@ -129,7 +174,7 @@ fun BrowseNotesUi(
 	}
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun NoteItem(
 	note: NoteContent,
@@ -179,6 +224,19 @@ fun NoteItem(
 						animatedVisibilityScope = animatedVisibilityScope
 					)
 				)
+
+				if (note.tags.isNotEmpty()) {
+					Spacer(modifier = Modifier.size(Ui.Padding.S))
+					FlowRow(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalArrangement = Arrangement.spacedBy(6.dp),
+					) {
+						note.tags.sorted().forEach { tag ->
+							HdTagChip(label = tag, active = false)
+						}
+					}
+				}
 			}
 		}
 	}

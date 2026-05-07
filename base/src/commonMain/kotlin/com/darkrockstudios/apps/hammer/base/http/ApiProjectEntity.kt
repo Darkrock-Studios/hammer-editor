@@ -54,12 +54,14 @@ sealed interface ApiProjectEntity {
 		override val type: Type = Type.NOTE,
 		override val id: Int,
 		val content: String,
-		val created: Instant
+		val created: Instant,
+		val tags: Set<String> = emptySet(),
 	) : ApiProjectEntity {
 		override fun hash(): String = EntityHasher.hashNote(
 			id = id,
 			created = created,
 			content = content,
+			tags = tags,
 		)
 	}
 

@@ -272,7 +272,8 @@ class ProjectSynchronizationComponent(
 		val localEntity = ApiProjectEntity.NoteEntity(
 			id = local.id,
 			created = local.created,
-			content = local.content
+			content = local.content,
+			tags = local.tags,
 		)
 
 		withContext(mainDispatcher) {
@@ -420,7 +421,7 @@ class ProjectSynchronizationComponent(
 	}
 
 	private fun validateNoteEntity(resolvedEntity: ApiProjectEntity.NoteEntity): ProjectSynchronization.EntityMergeError.NoteMergeError? {
-		val error = notesRepository.validateNote(resolvedEntity.content)
+		val error = notesRepository.validateNote(resolvedEntity.content, resolvedEntity.tags)
 		return when (error) {
 			NoteError.NONE -> null
 			NoteError.EMPTY -> ProjectSynchronization.EntityMergeError.NoteMergeError(
@@ -429,6 +430,10 @@ class ProjectSynchronizationComponent(
 
 			NoteError.TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
 				noteError = Res.string.notes_create_toast_too_long.toMsg()
+			)
+
+			NoteError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
+				noteError = Res.string.notes_create_toast_tag_too_long.toMsg()
 			)
 		}
 	}

@@ -3,7 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.notesrepository
 enum class NoteError {
 	NONE,
 	EMPTY,
-	TOO_LONG;
+	TOO_LONG,
+	TAG_TOO_LONG;
 
 	val isSuccess: Boolean
 		get() = this == NONE

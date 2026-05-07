@@ -92,11 +92,13 @@ class EntityHashSensitivityTest {
 			id = 1,
 			content = "base content",
 			created = Instant.fromEpochMilliseconds(0),
+			tags = setOf("base-tag"),
 		)
 		val mutations = mapOf(
 			"id" to base.copy(id = 999),
 			"content" to base.copy(content = "different"),
 			"created" to base.copy(created = Instant.fromEpochMilliseconds(1_000_000)),
+			"tags" to base.copy(tags = setOf("different")),
 		)
 		assertEveryFieldAffectsHash(base, mutations, ApiProjectEntity.NoteEntity::class)
 	}

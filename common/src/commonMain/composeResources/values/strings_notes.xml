@@ -15,6 +15,11 @@
 	<string name="notes_create_toast_success">Note Created</string>
 	<string name="notes_create_toast_too_long">Note was too long</string>
 	<string name="notes_create_toast_empty">Note was empty</string>
+	<string name="notes_create_toast_tag_too_long">Tag was too long (max %1$d)</string>
+	<string name="notes_create_tags_label">Tags</string>
+	<string name="notes_create_tags_hint">↵ to add</string>
+	<string name="notes_create_tags_placeholder">idea, todo, follow-up…</string>
+	<string name="notes_search_filter_tags_label">Filter by tag</string>
 	<string name="notes_delete_title">Delete Note?</string>
 	<string name="notes_delete_message">This action cannot be undone!</string>
 	<string name="notes_delete_toast_success">Note %1$s Deleted</string>

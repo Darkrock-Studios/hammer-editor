@@ -39,6 +39,7 @@ class ServerNoteSynchronizerTest :
 			id = 1,
 			content = "Test Content",
 			created = Instant.fromEpochSeconds(123),
+			tags = setOf("alpha", "beta"),
 		)
 	}
 
@@ -47,6 +48,7 @@ class ServerNoteSynchronizerTest :
 			id = 1,
 			content = "Test Content Different",
 			created = Instant.fromEpochSeconds(123),
+			tags = setOf("alpha", "beta"),
 		)
 	}
 
