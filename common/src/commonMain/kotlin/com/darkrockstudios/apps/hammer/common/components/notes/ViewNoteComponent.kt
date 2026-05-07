@@ -56,11 +56,17 @@ class ViewNoteComponent(
 		updateShouldClose()
 	}
 
+	override fun onTagsChanged(newTags: Set<String>) {
+		_state.getAndUpdate { it.copy(tags = newTags) }
+		updateShouldClose()
+	}
+
 	override suspend fun storeNoteUpdate() {
 		val note = state.value.note
 		if (note != null) {
 			val updatedNote = note.copy(
-				content = noteText.value
+				content = noteText.value,
+				tags = state.value.tags,
 			)
 			notesRepository.updateNote(updatedNote)
 			notesRepository.loadNotes()
@@ -68,6 +74,7 @@ class ViewNoteComponent(
 			_state.getAndUpdate {
 				it.copy(
 					note = updatedNote,
+					tags = updatedNote.tags,
 					isEditing = false
 				)
 			}
@@ -105,16 +112,20 @@ class ViewNoteComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
-		return state.value.isEditing && (state.value.note?.content != noteText.value)
+		val note = state.value.note ?: return false
+		return state.value.isEditing &&
+			(note.content != noteText.value || note.tags != state.value.tags)
 	}
 
 	override fun discardEdit() {
+		val note = _state.value.note
 		_state.getAndUpdate {
 			it.copy(
-				isEditing = false
+				isEditing = false,
+				tags = note?.tags ?: emptySet(),
 			)
 		}
-		_noteText.update { _state.value.note?.content ?: "" }
+		_noteText.update { note?.content ?: "" }
 		updateShouldClose()
 	}
 
@@ -164,14 +175,14 @@ class ViewNoteComponent(
 			notesRepository.loadNotes {
 				note = notesRepository.findNoteForId(noteId)
 				if (note != null) {
-					_state.getAndUpdate { it.copy(note = note) }
+					_state.getAndUpdate { it.copy(note = note, tags = note?.tags ?: emptySet()) }
 					_noteText.update { note?.content ?: "" }
 				} else {
 					error("Failed to load note: $noteId")
 				}
 			}
 		} else {
-			_state.getAndUpdate { it.copy(note = note) }
+			_state.getAndUpdate { it.copy(note = note, tags = note?.tags ?: emptySet()) }
 			_noteText.update { note?.content ?: "" }
 		}
 	}

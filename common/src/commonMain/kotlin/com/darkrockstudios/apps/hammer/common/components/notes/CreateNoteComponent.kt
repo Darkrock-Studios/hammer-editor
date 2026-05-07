@@ -50,8 +50,8 @@ class CreateNoteComponent(
 		updateShouldClose()
 	}
 
-	override suspend fun createNote(noteText: String): NoteError {
-		val result = notesRepository.createNote(noteText)
+	override suspend fun createNote(noteText: String, tags: Set<String>): NoteError {
+		val result = notesRepository.createNote(noteText, tags)
 		return if (isSuccess(result)) {
 			dismissCreate()
 			notesRepository.loadNotes()

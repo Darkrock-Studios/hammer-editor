@@ -16,11 +16,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -30,7 +33,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ViewNoteUi(
 	component: ViewNote,
@@ -129,6 +132,14 @@ fun ViewNoteUi(
 										)
 									}
 								}
+								HdHairlineTagField(
+									label = Res.string.notes_create_tags_label.get(),
+									tags = state.tags.toList(),
+									onTagsChange = { component.onTagsChanged(it.toSet()) },
+									hint = Res.string.notes_create_tags_hint.get(),
+									placeholder = Res.string.notes_create_tags_placeholder.get(),
+									modifier = Modifier.padding(vertical = Ui.Padding.M),
+								)
 								MarkdownEditField(
 									initialMarkdown = noteText,
 									onMarkdownChanged = { component.onContentChanged(it) },
@@ -140,16 +151,31 @@ fun ViewNoteUi(
 								)
 							}
 						} else {
-							MarkdownView(
-								markdown = noteText,
-								modifier = Modifier
-									.weight(1f)
-									.sharedElement(
-										sharedContentState = rememberSharedContentState(key = "note-content-${state.note?.id}"),
-										animatedVisibilityScope = animatedVisibilityScope
-									)
-									.clickable { component.beginEdit() },
-							)
+							Column(modifier = Modifier.weight(1f)) {
+								if (state.note?.tags?.isNotEmpty() == true) {
+									FlowRow(
+										modifier = Modifier
+											.fillMaxWidth()
+											.padding(vertical = Ui.Padding.M),
+										horizontalArrangement = Arrangement.spacedBy(6.dp),
+										verticalArrangement = Arrangement.spacedBy(6.dp),
+									) {
+										state.note?.tags?.sorted()?.forEach { tag ->
+											HdTagChip(label = tag, active = true)
+										}
+									}
+								}
+								MarkdownView(
+									markdown = noteText,
+									modifier = Modifier
+										.fillMaxWidth()
+										.sharedElement(
+											sharedContentState = rememberSharedContentState(key = "note-content-${state.note?.id}"),
+											animatedVisibilityScope = animatedVisibilityScope
+										)
+										.clickable { component.beginEdit() },
+								)
+							}
 						}
 					}
 				}

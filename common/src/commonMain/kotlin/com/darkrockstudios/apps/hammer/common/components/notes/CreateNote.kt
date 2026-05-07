@@ -13,7 +13,7 @@ interface CreateNote {
 		val confirmDiscard: Boolean = false,
 	)
 
-	suspend fun createNote(noteText: String): NoteError
+	suspend fun createNote(noteText: String, tags: Set<String>): NoteError
 	fun closeCreate()
 	fun confirmDiscard()
 	fun cancelDiscard()

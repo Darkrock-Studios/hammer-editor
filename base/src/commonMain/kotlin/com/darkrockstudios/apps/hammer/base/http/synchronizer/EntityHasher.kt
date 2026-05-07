@@ -50,12 +50,18 @@ object EntityHasher {
 		return d.digest().base64Url
 	}
 
-	fun hashNote(id: Int, created: Instant, content: String): String {
+	fun hashNote(
+		id: Int,
+		created: Instant,
+		content: String,
+		tags: Set<String> = emptySet(),
+	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
 		d.update(id, buf)
 		d.update(created.epochSeconds, buf)
 		d.update(content, buf)
+		tags.sorted().forEach { tag -> d.update(tag, buf) }
 		return d.digest().base64Url
 	}
 

@@ -82,14 +82,18 @@ class NotesRepository(
 					id = noteContainer.note.id,
 					created = noteContainer.note.created,
 					content = noteContainer.note.content,
+					tags = noteContainer.note.tags,
 				)
 			}
 			syncDataRepository.markEntityAsDirty(id, hash)
 		}
 	}
 
-	suspend fun createNote(noteText: String): CResult<NoteContent> {
-		val result = validateNote(noteText)
+	suspend fun createNote(
+		noteText: String,
+		tags: Set<String> = emptySet(),
+	): CResult<NoteContent> {
+		val result = validateNote(noteText, tags)
 		return if (result != NoteError.NONE) {
 			CResult.failure(InvalidNote(result))
 		} else {
@@ -98,7 +102,8 @@ class NotesRepository(
 				NoteContent(
 					id = newId,
 					created = Clock.System.now(),
-					content = noteText
+					content = noteText,
+					tags = cleanTags(tags),
 				)
 			)
 
@@ -119,10 +124,11 @@ class NotesRepository(
 	}
 
 	suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true) {
-		notesDatasource.updateNote(noteContent)
+		val cleaned = noteContent.copy(tags = cleanTags(noteContent.tags))
+		notesDatasource.updateNote(cleaned)
 
 		if (markForSync) {
-			markForSync(id = noteContent.id)
+			markForSync(id = cleaned.id)
 		}
 	}
 
@@ -138,15 +144,28 @@ class NotesRepository(
 		updateNotes(updatedNotes)
 	}
 
-	fun validateNote(noteText: String): NoteError {
+	fun validateNote(noteText: String, tags: Set<String> = emptySet()): NoteError {
 		val trimmed = noteText.trim()
 		return if (noteText.trim().length > MAX_NOTE_SIZE) {
 			NoteError.TOO_LONG
 		} else if (trimmed.isEmpty()) {
 			NoteError.EMPTY
+		} else if (tags.any { it.length > MAX_TAG_SIZE }) {
+			NoteError.TAG_TOO_LONG
 		} else {
 			NoteError.NONE
 		}
+	}
+
+	private fun cleanTags(tags: Set<String>): Set<String> {
+		val regex = Regex("""[\w-]+""")
+		return tags
+			.asSequence()
+			.map { it.trim() }
+			.map { if (it.startsWith("#")) it.substring(1) else it }
+			.filter { it.isNotEmpty() }
+			.filter { regex.matches(it) }
+			.toSet()
 	}
 
 	suspend fun getNoteById(id: Int): NoteContainer? {
@@ -159,5 +178,6 @@ class NotesRepository(
 
 	companion object {
 		const val MAX_NOTE_SIZE = 10000
+		const val MAX_TAG_SIZE = 32
 	}
 }

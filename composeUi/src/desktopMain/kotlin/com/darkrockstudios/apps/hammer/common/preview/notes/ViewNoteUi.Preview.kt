@@ -34,6 +34,7 @@ private fun ViewNoteUiPreview() {
 
 		override fun discardEdit() {}
 		override fun onContentChanged(newContent: String) {}
+		override fun onTagsChanged(newTags: Set<String>) {}
 		override suspend fun deleteNote(id: Int) {}
 		override fun confirmDelete() {}
 		override fun dismissConfirmDelete() {}

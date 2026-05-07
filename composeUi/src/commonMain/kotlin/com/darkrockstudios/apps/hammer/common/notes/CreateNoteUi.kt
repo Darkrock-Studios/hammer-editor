@@ -9,9 +9,11 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -28,6 +30,7 @@ fun CreateNoteUi(
 	val strRes = rememberStrRes()
 	var newNoteError by remember { mutableStateOf(false) }
 	var resetVersion by remember { mutableStateOf(0) }
+	val tags = remember { mutableStateListOf<String>() }
 
 	Card(
 		modifier = modifier.padding(Ui.Padding.XL)
@@ -48,6 +51,18 @@ fun CreateNoteUi(
 				style = MaterialTheme.typography.labelMedium,
 				color = if (newNoteError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
 			)
+
+			HdHairlineTagField(
+				label = Res.string.notes_create_tags_label.get(),
+				tags = tags,
+				onTagsChange = {
+					tags.clear()
+					tags.addAll(it)
+				},
+				hint = Res.string.notes_create_tags_hint.get(),
+				placeholder = Res.string.notes_create_tags_placeholder.get(),
+			)
+
 			key(resetVersion) {
 				MarkdownEditField(
 					initialMarkdown = noteText,
@@ -74,7 +89,7 @@ fun CreateNoteUi(
 					modifier = Modifier.weight(1f),
 					onClick = {
 					scope.launch {
-						val result = component.createNote(noteText)
+						val result = component.createNote(noteText, tags.toSet())
 						newNoteError = !result.isSuccess
 						when (result) {
 							NoteError.TOO_LONG -> scope.launch {
@@ -85,9 +100,19 @@ fun CreateNoteUi(
 								rootSnackbar.showSnackbar(strRes.get(Res.string.notes_create_toast_empty))
 							}
 
+							NoteError.TAG_TOO_LONG -> scope.launch {
+								rootSnackbar.showSnackbar(
+									strRes.get(
+										Res.string.notes_create_toast_tag_too_long,
+										NotesRepository.MAX_TAG_SIZE,
+									)
+								)
+							}
+
 							NoteError.NONE -> {
 								withContext(mainDispatcher) {
 									component.clearText()
+									tags.clear()
 									resetVersion++
 								}
 								scope.launch {
