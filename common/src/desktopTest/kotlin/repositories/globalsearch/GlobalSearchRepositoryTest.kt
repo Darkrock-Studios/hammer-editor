@@ -260,6 +260,132 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `parseQuery extracts tags and free text in any order`() {
+		val parsed = GlobalSearchRepository.parseQuery("dragon #fantasy battle #adventure")
+		assertEquals(listOf("fantasy", "adventure"), parsed.tags)
+		assertEquals("dragon battle", parsed.text)
+	}
+
+	@Test
+	fun `parseQuery handles tag-only and stray hash`() {
+		val tagOnly = GlobalSearchRepository.parseQuery("#hero")
+		assertEquals(listOf("hero"), tagOnly.tags)
+		assertEquals("", tagOnly.text)
+
+		val strayHash = GlobalSearchRepository.parseQuery("# foo")
+		assertTrue(strayHash.tags.isEmpty())
+		assertEquals("foo", strayHash.text)
+	}
+
+	@Test
+	fun `setQuery filters notes by tag when only a tag is specified`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "Once a hero rose",
+					tags = setOf("fantasy"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 2,
+					created = Clock.System.now(),
+					content = "Random text",
+					tags = setOf("misc"),
+				)
+			),
+		)
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `setQuery combines tag filter with free text`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "Dragon attack",
+					tags = setOf("fantasy"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 2,
+					created = Clock.System.now(),
+					content = "Dragon roars",
+					tags = setOf("misc"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 3,
+					created = Clock.System.now(),
+					content = "Sleepy village",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy dragon")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `setQuery with tag excludes scenes`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Battle",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "Battle plans",
+					tags = setOf("plot"),
+				)
+			),
+		)
+
+		val repo = createRepository()
+		repo.setQuery("#plot")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results
+		assertTrue(results.none { it is SearchResult.Scene })
+		assertEquals(1, results.filterIsInstance<SearchResult.Note>().size)
+	}
+
+	@Test
+	fun `setQuery exposes parsed tags on state`() = runTest {
+		val repo = createRepository()
+		repo.setQuery("#a #b text")
+		advanceUntilIdle()
+
+		assertEquals(listOf("a", "b"), repo.state.value.parsedTags)
+		assertEquals("text", repo.state.value.parsedText)
+	}
+
+	@Test
 	fun `setQuery debounces - only the latest query produces results`() = runTest {
 		every { notes.getNotes() } returns listOf(
 			NoteContainer(NoteContent(id = 1, created = Clock.System.now(), content = "alpha line")),
