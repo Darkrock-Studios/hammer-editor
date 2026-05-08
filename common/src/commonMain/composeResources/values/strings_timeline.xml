@@ -11,6 +11,10 @@
 	<string name="timeline_create_create_event_button">Create</string>
 	<string name="timeline_create_toast_success">Event Created</string>
 	<string name="timeline_create_toast_failure">Failed to create event</string>
+	<string name="timeline_create_toast_tag_too_long">Tag was too long (max %1$d)</string>
+	<string name="timeline_create_tags_label">Tags</string>
+	<string name="timeline_create_tags_hint">↵ to add</string>
+	<string name="timeline_create_tags_placeholder">arc, foreshadow, conflict…</string>
 
 	<string name="timeline_view_title">Event</string>
 	<string name="timeline_view_save_button">Save</string>

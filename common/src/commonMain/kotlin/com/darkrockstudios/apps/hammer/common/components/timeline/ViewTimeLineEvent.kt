@@ -10,6 +10,7 @@ interface ViewTimeLineEvent {
 
 	fun onEventTextChanged(text: String)
 	fun onDateTextChanged(text: String)
+	fun onTagsChanged(newTags: Set<String>)
 	suspend fun storeEvent(event: TimeLineEvent): Boolean
 	fun startDeleteEvent()
 	fun endDeleteEvent()
@@ -20,6 +21,7 @@ interface ViewTimeLineEvent {
 
 	data class State(
 		val event: TimeLineEvent? = null,
+		val tags: Set<String> = emptySet(),
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val confirmDelete: Boolean = false,
 		val confirmClose: Boolean = false,

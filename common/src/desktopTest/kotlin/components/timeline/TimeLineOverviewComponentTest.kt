@@ -94,19 +94,22 @@ class TimeLineOverviewComponentTest : BaseTest() {
 		val eventDate = slot<String>()
 		val eventId = slot<Int>()
 		val eventOrder = slot<Int>()
+		val eventTags = slot<Set<String>>()
 		coEvery {
 			timelineRepo.createEvent(
 				capture(eventContent),
 				capture(eventDate),
 				capture(eventId),
 				capture(eventOrder),
+				capture(eventTags),
 			)
 		} coAnswers {
 			val event = TimeLineEvent(
 				id = 0,
 				order = 0,
 				date = eventDate.captured,
-				content = eventContent.captured
+				content = eventContent.captured,
+				tags = eventTags.captured,
 			)
 			val timeline = TimeLineContainer(
 				events = listOf(event)

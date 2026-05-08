@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -153,7 +154,7 @@ class ProjectSynchronizationComponent(
 			}
 
 			is ApiProjectEntity.TimelineEventEntity -> {
-				null
+				validateTimelineEventEntity(resolvedEntity)
 			}
 		}
 
@@ -297,7 +298,8 @@ class ProjectSynchronizationComponent(
 			id = local.id,
 			date = local.date,
 			content = local.content,
-			order = local.order
+			order = local.order,
+			tags = local.tags,
 		)
 
 		withContext(mainDispatcher) {
@@ -434,6 +436,17 @@ class ProjectSynchronizationComponent(
 
 			NoteError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
 				noteError = Res.string.notes_create_toast_tag_too_long.toMsg()
+			)
+		}
+	}
+
+	private fun validateTimelineEventEntity(
+		resolvedEntity: ApiProjectEntity.TimelineEventEntity,
+	): ProjectSynchronization.EntityMergeError.TimelineEventMergeError? {
+		return when (timeLineRepository.validateTags(resolvedEntity.tags)) {
+			TimeLineEventError.NONE -> null
+			TimeLineEventError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
+				tagError = Res.string.timeline_create_toast_tag_too_long.toMsg()
 			)
 		}
 	}

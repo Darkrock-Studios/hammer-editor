@@ -84,7 +84,9 @@ interface ProjectSynchronization {
 			val noteError: Msg? = null,
 		) : EntityMergeError()
 
-		class TimelineEventMergeError : EntityMergeError()
+		class TimelineEventMergeError(
+			val tagError: Msg? = null,
+		) : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(
 			val nameError: Msg? = null,
