@@ -147,8 +147,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = viewEvent,
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = { viewEvent(event.id) },
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -156,7 +158,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithText(date).assertIsDisplayed()
+		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 
 		compose.onNodeWithTag(EVENT_CARD_TAG).performClick()
@@ -180,8 +182,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -189,7 +193,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithText(date).assertIsDisplayed()
+		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
@@ -209,8 +213,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -218,7 +224,8 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithTag(EVENT_CARD_DATE_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("UNDATED").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
@@ -238,8 +245,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)

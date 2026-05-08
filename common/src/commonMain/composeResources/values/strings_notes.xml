@@ -34,7 +34,7 @@
 	<string name="notes_view_action_save">Save</string>
 	<string name="notes_view_status_unsaved">UNSAVED</string>
 	<string name="notes_view_status_word_char">%1$d W · %2$d CH</string>
-	<string name="notes_view_status_hint">ESC TO CANCEL · ⌘↵ TO SAVE</string>
+	<string name="notes_view_status_hint">ESC TO CANCEL</string>
 
 	<string name="notes_search_button">Search notes</string>
 	<string name="notes_search_placeholder">Search notes</string>

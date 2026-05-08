@@ -31,7 +31,7 @@
 	<string name="timeline_view_content_placeholder">Describe your event</string>
 	<string name="timeline_view_status_unsaved">UNSAVED</string>
 	<string name="timeline_view_status_word_char">%1$d W · %2$d CH</string>
-	<string name="timeline_view_status_hint">ESC TO CANCEL · ⌘↵ TO SAVE</string>
+	<string name="timeline_view_status_hint">ESC TO CANCEL</string>
 	<string name="timeline_view_word_count_short">%1$d W</string>
 	<string name="timeline_view_tag_count_short">%1$d TAGS</string>
 	<string name="timeline_view_toast_save_success">Saved</string>
@@ -51,4 +51,21 @@
 
 	<string name="timeline_view_confirm_delete_title">Delete Timeline Event?</string>
 	<string name="timeline_view_confirm_delete_message">This cannot be undone!</string>
+
+	<string name="timeline_header">Time Line</string>
+	<string name="timeline_header_meta">%1$d ENTRIES · %2$d TAGS</string>
+	<string name="timeline_search_button">Search timeline</string>
+	<string name="timeline_search_placeholder">Search timeline</string>
+	<string name="timeline_search_close">Close search</string>
+	<string name="timeline_search_clear">Clear search</string>
+	<string name="timeline_filter_all">ALL</string>
+	<string name="timeline_filter_filtered">FILTERED · %1$d OF %2$d</string>
+	<string name="timeline_filter_clear_all">CLEAR ALL</string>
+	<string name="timeline_sort_label">SORT</string>
+	<string name="timeline_sort_chronological">Chronological</string>
+	<string name="timeline_sort_reverse">Reverse</string>
+	<string name="timeline_sort_title_az">Title A–Z</string>
+	<string name="timeline_sort_glyph_seq_asc">↑ SEQ</string>
+	<string name="timeline_sort_glyph_seq_desc">↓ SEQ</string>
+	<string name="timeline_sort_glyph_title_az">↓ A–Z</string>
 </resources>
