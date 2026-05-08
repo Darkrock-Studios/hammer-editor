@@ -1,19 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment.Companion.Center
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -30,49 +33,65 @@ fun CreateTimeLineEventUi(
 	rootSnackbar: RootSnackbarHostState,
 ) {
 	val strRes = rememberStrRes()
-
 	var dateText by remember { mutableStateOf("") }
 	var contentText by remember { mutableStateOf("") }
+	var resetVersion by remember { mutableStateOf(0) }
 	val tags = remember { mutableStateListOf<String>() }
 
-	val screen = LocalScreenCharacteristic.current
-	val needsExplicitClose = remember { screen.needsExplicitClose }
+	val wordCount = remember(contentText) {
+		contentText.split(Regex("\\s+")).count { it.isNotBlank() }
+	}
+	val charCount = contentText.length
 
-	Box(modifier = modifier.fillMaxSize()) {
-		Card(
-			modifier = Modifier.padding(Ui.Padding.XL).widthIn(max = 512.dp).align(Center),
-			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
-		) {
+	Card(
+		modifier = modifier.padding(Ui.Padding.XL)
+			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
+		elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL),
+		shape = RectangleShape,
+	) {
+		Column(modifier = Modifier.fillMaxWidth()) {
+
 			Column(
-				modifier = Modifier.padding(Ui.Padding.XL),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.L,
+					),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-				) {
-					Text(
-						Res.string.timeline_create_title.get(),
-						style = MaterialTheme.typography.headlineLarge
-					)
-					if (needsExplicitClose) {
-						IconButton(onClick = component::closeCreation) {
-							Icon(
-								Icons.Default.Close,
-								Res.string.timeline_create_close_button.get(),
-								tint = MaterialTheme.colorScheme.onSurfaceVariant
-							)
-						}
-					}
-				}
+				HdSectionHeader(
+					marker = "III · NEW",
+					title = Res.string.timeline_create_header.get(),
+					trailing = {
+						HdMonoLabel(text = "DRAFT")
+					},
+				)
+				HdMonoLabel(
+					text = Res.string.timeline_create_body_hint.get(),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			}
 
-				OutlinedTextField(
-					modifier = Modifier.fillMaxWidth(),
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				HdHairlineField(
+					label = Res.string.timeline_view_date_label.get(),
 					value = dateText,
 					onValueChange = { dateText = it },
-					label = { Text(Res.string.timeline_create_date_label.get()) },
-					singleLine = true
+					hint = Res.string.timeline_create_date_hint.get(),
+					placeholder = Res.string.timeline_create_date_placeholder.get(),
 				)
 
 				HdHairlineTagField(
@@ -85,57 +104,81 @@ fun CreateTimeLineEventUi(
 					hint = Res.string.timeline_create_tags_hint.get(),
 					placeholder = Res.string.timeline_create_tags_placeholder.get(),
 				)
+			}
 
-				Text(
-					text = Res.string.timeline_create_content_label.get(),
-					style = MaterialTheme.typography.labelMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
+			Box(
+				modifier = Modifier
+					.padding(horizontal = Ui.Padding.XL)
+					.padding(bottom = Ui.Padding.L)
+					.fillMaxWidth()
+					.weight(1f, fill = true)
+					.border(
+						width = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+						shape = RectangleShape,
+					),
+			) {
+				key(resetVersion) {
+					MarkdownEditField(
+						initialMarkdown = contentText,
+						onMarkdownChanged = { contentText = it },
+						contentPadding = PaddingValues(Ui.Padding.XL),
+						modifier = Modifier
+							.fillMaxWidth()
+							.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+					)
+				}
+			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				HdMonoLabel(text = "$wordCount W · $charCount CH")
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.timeline_create_cancel_button.get(),
+					onClick = { component.closeCreation() },
 				)
-				MarkdownEditField(
-					initialMarkdown = contentText,
-					onMarkdownChanged = { contentText = it },
-					contentPadding = PaddingValues(Ui.Padding.XL),
-					modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
-				)
-
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)
-				) {
-					OutlinedButton(
-						modifier = Modifier.weight(1f),
-						onClick = component::closeCreation
-					) {
-						Text(Res.string.timeline_create_close_button.get())
-					}
-
-					Button(
-						modifier = Modifier.weight(1f),
-						onClick = {
-							scope.launch {
-								when (component.createEvent(dateText, contentText, tags.toSet())) {
-									TimeLineEventError.NONE -> {
-										launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success)) }
-										component.closeCreation()
+				HdHairlineButton(
+					label = Res.string.timeline_create_create_button.get(),
+					emphasised = contentText.isNotBlank(),
+					onClick = {
+						scope.launch {
+							when (component.createEvent(dateText, contentText, tags.toSet())) {
+								TimeLineEventError.NONE -> {
+									launch {
+										rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
 									}
+									dateText = ""
+									contentText = ""
+									tags.clear()
+									resetVersion++
+									component.closeCreation()
+								}
 
-									TimeLineEventError.TAG_TOO_LONG -> {
-										launch {
-											rootSnackbar.showSnackbar(
-												strRes.get(
-													Res.string.timeline_create_toast_tag_too_long,
-													TimeLineRepository.MAX_TAG_SIZE,
-												)
+								TimeLineEventError.TAG_TOO_LONG -> {
+									launch {
+										rootSnackbar.showSnackbar(
+											strRes.get(
+												Res.string.timeline_create_toast_tag_too_long,
+												TimeLineRepository.MAX_TAG_SIZE,
 											)
-										}
+										)
 									}
 								}
 							}
 						}
-					) {
-						Text(Res.string.timeline_create_create_event_button.get())
-					}
-				}
+					},
+				)
 			}
 		}
 	}
