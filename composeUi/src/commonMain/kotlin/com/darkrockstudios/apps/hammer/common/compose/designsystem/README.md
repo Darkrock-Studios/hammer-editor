@@ -251,6 +251,65 @@ screen that surfaces them.
 
 ---
 
+## Patterns
+
+Recurring multi-component layouts that aren't a single `Hd*` primitive
+yet, but show up on enough screens that "do it the same way" matters
+more than "extract it now." When a third screen reaches for one of
+these, lift it into a real `Hd*` component.
+
+### Responsive browse-screen toolbar
+
+The shared shape of every list-of-things screen — Encyclopedia
+([`BrowseEntriesUi`](../../encyclopedia/BrowseEntriesUi.kt)), Notes
+([`BrowseNotesUi`](../../notes/BrowseNotesUi.kt)), and any future
+"browse + filter + search a collection" screen.
+
+The header reads `§ Roman  Title  ──────  meta`, sits above an
+[`HdFolioDivider`](HdFolioDivider.kt), and is followed by a single
+**filter strip** that holds the search field, the type/tag filter,
+and any per-screen affordances (sort menu, "+ new" button). Below
+that, the actual content (grid, list) scrolls.
+
+Two behaviors give the pattern its character:
+
+**1. Three-state width response.** Driven off
+`LocalScreenCharacteristic` — read both `isWide` (binary, project-wide
+threshold) **and** `windowWidthClass` (M3 size class, three buckets):
+
+| Width                                         | Title row                  | Filter strip                                       |
+|-----------------------------------------------|----------------------------|----------------------------------------------------|
+| **Expanded** (`windowWidthClass == Expanded`) | `§ N  Title  ───  meta`    | `[Search] │ [filters …] [trailing]` (one line)     |
+| **Medium** (`isWide && !Expanded`)            | `§ N  Title  ───  meta`    | `[Search]` then `[filters …] [trailing]` (stacked) |
+| **Compact** (`!isWide`)                       | `§ N  Title  ─────────  ⌕` | `[filters …] [trailing]`                           |
+
+The Compact title row swaps the section header for an inline
+[`HdSearchField`](HdSearchField.kt) + `×` close icon via
+`AnimatedContent` when the user taps the search glyph. The header's
+trailing meta is hidden in Compact since it competes with the icon
+for space. Rule of thumb: anything that lives "in the toolbar" on a
+desktop window must have a Compact home — either inline at the end
+of the filter row (sort, "+ new") or behind the title-row icon
+toggle (search).
+
+**2. Scroll-collapsing strip.** The whole filter strip is wrapped in
+a private `CollapsingStrip(scrollBehavior)` that translates the strip
+by `scrollBehavior.heightOffset` and reduces its reported height to
+match, so the content grid below slides up under it. Driven by
+[
+`TopAppBarDefaults.enterAlwaysScrollBehavior`](https://developer.android.com/reference/kotlin/androidx/compose/material3/TopAppBarDefaults)
+on `rememberTopAppBarState()`; the parent `Column` plumbs
+`Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)`. This
+gives the strip the same scroll-away semantics as an M3 TopAppBar
+without inheriting its chrome. Title row + folio divider stay put as
+the masthead.
+
+The `CollapsingStrip` helper is currently duplicated — a private
+copy lives in each browse screen. Lift it into `HdCollapsingStrip`
+the next time a third browse screen needs it.
+
+---
+
 ## Adding to the system
 
 Before adding a new component:

@@ -177,10 +177,7 @@ fun BrowseEntriesUi(
 			}
 		}
 
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
+		HdFolioDivider()
 
 		// Filter strip + its trailing divider, both translated by the
 		// scroll behavior's height offset so they slide off together.

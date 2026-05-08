@@ -17,12 +17,16 @@ import androidx.compose.ui.unit.dp
 /**
  * Hairline-bordered tag chip with a `#` mono prefix. Active state fills
  * with `surfaceContainerHigh` and a stronger border so the user can see
- * which tag is currently filtering. When [onRemove] is non-null an `×`
+ * which tag is currently filtering. Pass [accent] together with
+ * `active = true` to "light up" the chip with a deterministic color: the
+ * `#` prefix becomes a small filled swatch, the border takes the accent,
+ * and the fill is a tinted wash. When [onRemove] is non-null an `×`
  * affordance is appended after the label.
  *
- *     ┌───────────┐     ┌─────────────┐
- *     │ # animal  │     │ # animal × │
- *     └───────────┘     └─────────────┘
+ *     ┌───────────┐     ┌─────────────┐     ┌─────────────┐
+ *     │ # animal  │     │ # animal × │     │ ▪ animal × │
+ *     └───────────┘     └─────────────┘     └─────────────┘
+ *        idle              active              lit (accent)
  */
 @Composable
 fun HdTagChip(
@@ -31,16 +35,18 @@ fun HdTagChip(
 	onClick: (() -> Unit)? = null,
 	onRemove: (() -> Unit)? = null,
 	active: Boolean = false,
+	accent: Color? = null,
 ) {
-	val borderColor = if (active) {
-		MaterialTheme.colorScheme.outline
-	} else {
-		MaterialTheme.colorScheme.outlineVariant
+	val litAccent = accent.takeIf { active }
+	val borderColor = when {
+		litAccent != null -> litAccent
+		active -> MaterialTheme.colorScheme.outline
+		else -> MaterialTheme.colorScheme.outlineVariant
 	}
-	val background = if (active) {
-		MaterialTheme.colorScheme.surfaceContainerHigh
-	} else {
-		Color.Transparent
+	val background = when {
+		litAccent != null -> litAccent.copy(alpha = 0.15f)
+		active -> MaterialTheme.colorScheme.surfaceContainerHigh
+		else -> Color.Transparent
 	}
 	val labelColor = if (active) {
 		MaterialTheme.colorScheme.onSurface
@@ -58,11 +64,19 @@ fun HdTagChip(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(5.dp),
 	) {
-		Text(
-			text = "#",
-			style = MaterialTheme.typography.labelSmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		if (litAccent != null) {
+			Box(
+				modifier = Modifier
+					.size(7.dp)
+					.background(litAccent, RectangleShape),
+			)
+		} else {
+			Text(
+				text = "#",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 		Text(
 			text = label,
 			style = MaterialTheme.typography.labelMedium,
