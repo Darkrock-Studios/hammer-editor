@@ -77,14 +77,21 @@ buildConfig {
 }
 
 val GIT_TASK_NAME = "install-git-hooks"
-tasks.register<Copy>(GIT_TASK_NAME) {
-	from(layout.projectDirectory.file("../.gitHooks/pre-commit"))
-	into(layout.projectDirectory.dir("../.git/hooks"))
+val gitDir = layout.projectDirectory.file("../.git").asFile
+// In a git worktree `.git` is a file pointer rather than the hooks dir, so
+// register a no-op — hooks are installed when the main checkout builds.
+if (gitDir.isDirectory) {
+	tasks.register<Copy>(GIT_TASK_NAME) {
+		from(layout.projectDirectory.file("../.gitHooks/pre-commit"))
+		into(layout.projectDirectory.dir("../.git/hooks"))
 
-	doLast {
-		val file = layout.projectDirectory.file("../.git/hooks")
-		file.asFile.setExecutable(true)
+		doLast {
+			val file = layout.projectDirectory.file("../.git/hooks")
+			file.asFile.setExecutable(true)
+		}
 	}
+} else {
+	tasks.register(GIT_TASK_NAME)
 }
 
 afterEvaluate {
