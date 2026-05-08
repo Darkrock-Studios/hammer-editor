@@ -57,7 +57,10 @@ class ViewTimeLineEventComponent(
 					val updatedEvent = timeLine.events.find { it.id == eventId }
 					if (updatedEvent != state.value.event) {
 						_state.getAndUpdate {
-							it.copy(event = updatedEvent)
+							it.copy(
+								event = updatedEvent,
+								tags = if (it.isEditing) it.tags else (updatedEvent?.tags ?: emptySet()),
+							)
 						}
 					}
 				}
@@ -73,7 +76,8 @@ class ViewTimeLineEventComponent(
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
-						event = event
+						event = event,
+						tags = event?.tags ?: emptySet(),
 					)
 				}
 				_contentText.update { event?.content ?: "" }
@@ -96,13 +100,21 @@ class ViewTimeLineEventComponent(
 		updateShouldClose()
 	}
 
+	override fun onTagsChanged(newTags: Set<String>) {
+		_state.getAndUpdate { it.copy(tags = newTags) }
+		updateShouldClose()
+	}
+
 	override suspend fun storeEvent(event: TimeLineEvent): Boolean {
 		val success = timeLineRepository.updateEvent(event)
 
 		if (success) {
+			val stored = timeLineRepository.getTimelineEvent(event.id)
 			_state.getAndUpdate {
 				it.copy(
-					isEditing = false
+					isEditing = false,
+					event = stored ?: it.event,
+					tags = stored?.tags ?: it.tags,
 				)
 			}
 		}
@@ -161,9 +173,11 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
+		val event = state.value.event ?: return false
 		return state.value.isEditing && (
-			state.value.event?.content != contentText.value ||
-				state.value.event?.date != dateText.value
+			event.content != contentText.value ||
+				event.date != dateText.value ||
+				event.tags != state.value.tags
 			)
 	}
 
@@ -197,14 +211,16 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun discardEdit() {
+		val event = _state.value.event
 		_state.getAndUpdate {
 			it.copy(
 				isEditing = false,
 				confirmDiscard = false,
+				tags = event?.tags ?: emptySet(),
 			)
 		}
-		_contentText.update { _state.value.event?.content ?: "" }
-		_dateText.update { _state.value.event?.date ?: "" }
+		_contentText.update { event?.content ?: "" }
+		_dateText.update { event?.date ?: "" }
 		updateShouldClose()
 	}
 

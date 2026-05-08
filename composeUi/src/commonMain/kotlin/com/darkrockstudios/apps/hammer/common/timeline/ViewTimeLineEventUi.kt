@@ -21,13 +21,15 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ViewTimeLineEventUi(
 	component: ViewTimeLineEvent,
@@ -80,7 +82,8 @@ fun ViewTimeLineEventUi(
 								val success = component.storeEvent(
 									event.copy(
 										date = dateText,
-										content = eventText
+										content = eventText,
+										tags = state.tags,
 									)
 								)
 
@@ -166,6 +169,14 @@ fun ViewTimeLineEventUi(
 					Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 					if (state.isEditing) {
+						HdHairlineTagField(
+							label = Res.string.timeline_create_tags_label.get(),
+							tags = state.tags.toList(),
+							onTagsChange = { component.onTagsChanged(it.toSet()) },
+							hint = Res.string.timeline_create_tags_hint.get(),
+							placeholder = Res.string.timeline_create_tags_placeholder.get(),
+							modifier = Modifier.padding(vertical = Ui.Padding.M),
+						)
 						MarkdownEditField(
 							initialMarkdown = eventText,
 							onMarkdownChanged = { component.onEventTextChanged(it) },
@@ -174,6 +185,19 @@ fun ViewTimeLineEventUi(
 								.padding(PaddingValues(bottom = Ui.Padding.XL)),
 						)
 					} else {
+						if (event.tags.isNotEmpty()) {
+							FlowRow(
+								modifier = Modifier
+									.fillMaxWidth()
+									.padding(vertical = Ui.Padding.M),
+								horizontalArrangement = Arrangement.spacedBy(6.dp),
+								verticalArrangement = Arrangement.spacedBy(6.dp),
+							) {
+								event.tags.sorted().forEach { tag ->
+									HdTagChip(label = tag, active = true)
+								}
+							}
+						}
 						MarkdownView(
 							markdown = event.content,
 							modifier = Modifier

@@ -49,6 +49,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			date = date,
 			content = content
 		)
+		coEvery { timelineRepo.getTimelineEvent(eventId) } returns updatedEvent
 		val success = component.storeEvent(updatedEvent)
 		assertTrue(success, "Update event failed")
 

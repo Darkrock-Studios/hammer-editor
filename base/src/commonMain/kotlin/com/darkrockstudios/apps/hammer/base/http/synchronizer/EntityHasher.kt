@@ -65,13 +65,20 @@ object EntityHasher {
 		return d.digest().base64Url
 	}
 
-	fun hashTimelineEvent(id: Int, order: Int, content: String, date: String?): String {
+	fun hashTimelineEvent(
+		id: Int,
+		order: Int,
+		content: String,
+		date: String?,
+		tags: Set<String> = emptySet(),
+	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
 		d.update(id, buf)
 		d.update(order, buf)
 		d.update(content, buf)
 		if (date != null) d.update(date, buf)
+		tags.sorted().forEach { tag -> d.update(tag, buf) }
 		return d.digest().base64Url
 	}
 

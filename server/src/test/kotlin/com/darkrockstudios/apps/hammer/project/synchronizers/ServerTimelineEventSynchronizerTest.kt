@@ -27,6 +27,7 @@ class ServerTimelineEventSynchronizerTest :
 			date = "July 4th",
 			content = "Test Content",
 			order = 1,
+			tags = setOf("alpha", "beta"),
 		)
 	}
 
@@ -36,6 +37,7 @@ class ServerTimelineEventSynchronizerTest :
 			date = "July 4th",
 			content = "Test Content Different",
 			order = 3,
+			tags = setOf("alpha", "beta"),
 		)
 	}
 }

@@ -13,9 +13,12 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -30,6 +33,7 @@ fun CreateTimeLineEventUi(
 
 	var dateText by remember { mutableStateOf("") }
 	var contentText by remember { mutableStateOf("") }
+	val tags = remember { mutableStateListOf<String>() }
 
 	val screen = LocalScreenCharacteristic.current
 	val needsExplicitClose = remember { screen.needsExplicitClose }
@@ -71,6 +75,17 @@ fun CreateTimeLineEventUi(
 					singleLine = true
 				)
 
+				HdHairlineTagField(
+					label = Res.string.timeline_create_tags_label.get(),
+					tags = tags,
+					onTagsChange = {
+						tags.clear()
+						tags.addAll(it)
+					},
+					hint = Res.string.timeline_create_tags_hint.get(),
+					placeholder = Res.string.timeline_create_tags_placeholder.get(),
+				)
+
 				Text(
 					text = Res.string.timeline_create_content_label.get(),
 					style = MaterialTheme.typography.labelMedium,
@@ -98,11 +113,22 @@ fun CreateTimeLineEventUi(
 						modifier = Modifier.weight(1f),
 						onClick = {
 							scope.launch {
-								if (component.createEvent(dateText, contentText)) {
-									launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success)) }
-									component.closeCreation()
-								} else {
-									launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_failure)) }
+								when (component.createEvent(dateText, contentText, tags.toSet())) {
+									TimeLineEventError.NONE -> {
+										launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success)) }
+										component.closeCreation()
+									}
+
+									TimeLineEventError.TAG_TOO_LONG -> {
+										launch {
+											rootSnackbar.showSnackbar(
+												strRes.get(
+													Res.string.timeline_create_toast_tag_too_long,
+													TimeLineRepository.MAX_TAG_SIZE,
+												)
+											)
+										}
+									}
 								}
 							}
 						}

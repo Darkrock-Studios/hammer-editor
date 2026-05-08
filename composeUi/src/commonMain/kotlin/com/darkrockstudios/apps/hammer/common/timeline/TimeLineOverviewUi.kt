@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -98,7 +99,7 @@ const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
 const val EVENT_CARD_MAX_CONTENT_LENGTH = 256
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun EventCard(
 	event: TimeLineEvent,
@@ -189,6 +190,19 @@ fun EventCard(
 								)
 								.testTag(EVENT_CARD_CONTENT_TAG),
 						)
+
+						if (event.tags.isNotEmpty()) {
+							Spacer(modifier = Modifier.size(Ui.Padding.S))
+							FlowRow(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.spacedBy(6.dp),
+								verticalArrangement = Arrangement.spacedBy(6.dp),
+							) {
+								event.tags.sorted().forEach { tag ->
+									HdTagChip(label = tag, active = false)
+								}
+							}
+						}
 					}
 				}
 			}

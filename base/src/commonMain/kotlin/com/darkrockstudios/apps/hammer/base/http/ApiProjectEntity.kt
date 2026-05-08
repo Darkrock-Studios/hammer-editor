@@ -71,13 +71,15 @@ sealed interface ApiProjectEntity {
 		override val id: Int,
 		val order: Int,
 		val date: String?,
-		val content: String
+		val content: String,
+		val tags: Set<String> = emptySet(),
 	) : ApiProjectEntity {
 		override fun hash(): String = EntityHasher.hashTimelineEvent(
 			id = id,
 			order = order,
 			content = content,
 			date = date,
+			tags = tags,
 		)
 	}
 

@@ -4,16 +4,17 @@ import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import getProjectDef
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import repositories.timeline.TimeLineTestBase
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 
@@ -36,10 +37,12 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 		val date = "date"
 		val content = "content"
 
+		every { timelineRepo.validateTags(any()) } returns TimeLineEventError.NONE
 		coEvery {
 			timelineRepo.createEvent(
 				content = any(),
-				date = any()
+				date = any(),
+				tags = any(),
 			)
 		} returns TimeLineEvent(
 			id = id + 1,
@@ -53,18 +56,20 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
 			onClose = {}
 		)
-		val didCreate = component.createEvent(dateText = date, contentText = content)
+		val result = component.createEvent(dateText = date, contentText = content)
 
 		val eventContent = slot<String>()
 		val eventDate = slot<String>()
+		val eventTags = slot<Set<String>>()
 		coVerify(exactly = 1) {
 			timelineRepo.createEvent(
-				capture(eventContent),
-				capture(eventDate),
+				content = capture(eventContent),
+				date = capture(eventDate),
+				tags = capture(eventTags),
 			)
 		}
 
-		assertTrue { didCreate }
+		assertEquals(TimeLineEventError.NONE, result)
 
 		assertEquals(
 			content,
@@ -75,6 +80,11 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 			date,
 			eventDate.captured,
 			"Timeline did not pass the correct event data to be saved"
+		)
+		assertEquals(
+			emptySet(),
+			eventTags.captured,
+			"Tags should default to empty"
 		)
 	}
 }

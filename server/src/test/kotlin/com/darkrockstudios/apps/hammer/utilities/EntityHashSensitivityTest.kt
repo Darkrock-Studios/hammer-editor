@@ -110,12 +110,14 @@ class EntityHashSensitivityTest {
 			order = 0,
 			date = "Year 1",
 			content = "base content",
+			tags = setOf("base-tag"),
 		)
 		val mutations = mapOf(
 			"id" to base.copy(id = 999),
 			"order" to base.copy(order = 999),
 			"date" to base.copy(date = "Year 2"),
 			"content" to base.copy(content = "different"),
+			"tags" to base.copy(tags = setOf("different")),
 		)
 		assertEveryFieldAffectsHash(base, mutations, ApiProjectEntity.TimelineEventEntity::class)
 	}
