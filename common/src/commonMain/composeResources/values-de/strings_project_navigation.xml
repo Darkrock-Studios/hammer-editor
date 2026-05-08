@@ -3,6 +3,6 @@
 	<string name="project_nav_home">Start</string>
 	<string name="project_nav_scene_editor">Geschichte</string>
 	<string name="project_nav_notes">Notiz</string>
-	<string name="project_nav_encyclopedia">Lexikon</string>
+	<string name="project_nav_encyclopedia">Encyc.</string>
 	<string name="project_nav_time_line">Zeitstrahl</string>
 </resources>
