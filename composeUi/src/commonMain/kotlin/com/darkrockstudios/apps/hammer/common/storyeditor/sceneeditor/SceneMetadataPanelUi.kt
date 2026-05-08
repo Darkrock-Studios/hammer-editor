@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 import com.darkrockstudios.apps.hammer.common.compose.SpacerM
 import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
@@ -115,12 +116,18 @@ fun SceneMetadataPanelUi(
 					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
 				verticalAlignment = Alignment.Bottom,
 			) {
-				Text(
-					text = state.sceneItem.name,
-					modifier = Modifier.weight(1f).padding(end = Ui.Padding.M),
-					style = MaterialTheme.typography.titleLarge,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
+				Column(modifier = Modifier.weight(1f).padding(end = Ui.Padding.M)) {
+					Text(
+						text = state.sceneItem.name,
+						style = MaterialTheme.typography.titleLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+					HdEntityId(
+						prefix = "SCN",
+						id = state.sceneItem.id,
+						modifier = Modifier.padding(top = 2.dp),
+					)
+				}
 				Row(verticalAlignment = Alignment.Bottom) {
 					HdMonoLabel(
 						text = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),

@@ -157,6 +157,13 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdMonoLabel`](HdMonoLabel.kt)** — auto-uppercase mono caption.
   The default label primitive everywhere — counters, breadcrumbs,
   metadata, "FILTER ↗" affordances, footer folios.
+- **[`HdEntityId`](HdEntityId.kt)** — catalogue-card identifier
+  greeble: `ENT-034`, `SCN-12`, `NOTE-007`. Short type prefix +
+  zero-padded id, rendered as a [`HdMonoLabel`](HdMonoLabel.kt). Sits
+  in folio footers and masthead stamp rows next to dates and counters
+  to give every detail surface a stable "row-in-the-system" anchor.
+  Caller picks the prefix (`"ENT"`, `"SCN"`, `"NOTE"`, …) — keep them
+  short and uppercase.
 - **[`HdMetadataItem`](HdMetadataItem.kt)** — stacked
   `LABEL` / `value` pair. For label-over-value blocks.
 - **[`HdInlineStat`](HdStatBlock.kt)** — `Today  ·  847`, label
