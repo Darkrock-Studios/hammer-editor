@@ -14,6 +14,8 @@ interface GlobalSearch {
 
 	data class State(
 		val query: String = "",
+		val parsedText: String = "",
+		val parsedTags: List<String> = emptyList(),
 		val filter: GlobalSearchFilter = GlobalSearchFilter.All,
 		val isSearching: Boolean = false,
 		val results: List<SearchResult> = emptyList(),

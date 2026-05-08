@@ -2,7 +2,7 @@
 <resources>
 	<string name="global_search_button">Search project</string>
 	<string name="global_search_title">Search project</string>
-	<string name="global_search_placeholder">Type to search...</string>
+	<string name="global_search_placeholder">Type to search, use #tag to filter…</string>
 	<string name="global_search_clear">Clear search</string>
 	<string name="global_search_close">Close search</string>
 	<string name="global_search_no_results">No results</string>

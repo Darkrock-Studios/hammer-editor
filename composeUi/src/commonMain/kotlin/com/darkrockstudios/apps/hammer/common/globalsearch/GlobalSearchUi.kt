@@ -108,7 +108,17 @@ fun GlobalSearchUi(component: GlobalSearch) {
 			}
 		}
 
+		AnimatedVisibility(visible = state.parsedTags.isNotEmpty()) {
+			Column {
+				Spacer(modifier = Modifier.size(Ui.Padding.M))
+				ParsedTagsRow(tags = state.parsedTags)
+			}
+		}
+
 		Spacer(modifier = Modifier.size(Ui.Padding.M))
+
+		val hasUsableQuery = state.parsedTags.any { it.isNotEmpty() } ||
+			state.parsedText.length >= MIN_QUERY_DISPLAY_LENGTH
 
 		when {
 			state.isSearching && state.results.isEmpty() -> {
@@ -120,7 +130,7 @@ fun GlobalSearchUi(component: GlobalSearch) {
 				}
 			}
 
-			state.query.length < MIN_QUERY_DISPLAY_LENGTH -> {
+			!hasUsableQuery -> {
 				EmptyState(Res.string.global_search_too_short.get())
 			}
 
@@ -142,6 +152,32 @@ fun GlobalSearchUi(component: GlobalSearch) {
 						)
 					}
 				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun ParsedTagsRow(tags: List<String>) {
+	LazyRow(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		items(tags, key = { it }) { tag ->
+			Surface(
+				color = MaterialTheme.colorScheme.primaryContainer,
+				contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+				shape = MaterialTheme.shapes.small,
+			) {
+				Text(
+					text = "#$tag",
+					style = MaterialTheme.typography.labelMedium,
+					fontWeight = FontWeight.SemiBold,
+					modifier = Modifier.padding(
+						horizontal = Ui.Padding.M,
+						vertical = Ui.Padding.S,
+					),
+				)
 			}
 		}
 	}
