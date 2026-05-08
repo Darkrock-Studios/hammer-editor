@@ -474,13 +474,6 @@ private fun EditStatusFooter(text: String) {
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(text = Res.string.timeline_view_status_word_char.get(words, chars))
-		Box(
-			modifier = Modifier
-				.height(14.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-		HdMonoLabel(text = Res.string.timeline_view_status_unsaved.get())
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(text = Res.string.timeline_view_status_hint.get())
 	}
