@@ -12,29 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
-import com.darkrockstudios.apps.hammer.common.notes.NoteItem
 import kotlin.time.Clock
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Preview
-@Composable
-private fun NoteItemPreview() {
-	val note = NoteContent(
-		id = 1,
-		created = Clock.System.now(),
-		content = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters."
-	)
-	SharedTransitionLayout {
-		AnimatedVisibility(visible = true) {
-			NoteItem(
-				note = note,
-				sharedTransitionScope = this@SharedTransitionLayout,
-				animatedVisibilityScope = this@AnimatedVisibility,
-				viewNote = {}
-			)
-		}
-	}
-}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
@@ -63,17 +41,20 @@ private fun fakeComponent(): BrowseNotes = object : BrowseNotes {
 					NoteContent(
 						id = 0,
 						created = Clock.System.now(),
-						content = "This is a really great note, the best, everyone is saying so."
+						content = "This is a really great note, the best, everyone is saying so.",
+						tags = setOf("voice", "research"),
 					),
 					NoteContent(
 						id = 1,
 						created = Clock.System.now(),
-						content = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters."
+						content = "Prow scuttle parrel provost Sail ho shrouds spirits boom mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's nest nipperkin grog yardarm hempen halter furl. Swab barque interloper chantey doubloon starboard grog black jack gangway rutters.",
+						tags = setOf("ch1", "research"),
 					),
 					NoteContent(
 						id = 2,
 						created = Clock.System.now(),
-						content = "Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to."
+						content = "Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.",
+						tags = setOf("voice"),
 					),
 				)
 			)
