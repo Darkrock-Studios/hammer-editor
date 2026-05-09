@@ -99,6 +99,39 @@ If you write a new `Hd*` component, follow the same rule.
 
 ---
 
+## Greebles
+
+A **greeble** is a small, catalogue-card-feeling label that adds
+typeset texture without doing structural work — entity IDs
+(`ENT-034`), inline counters (`256 W`, `9 ENTRIES`), section markers
+(`§ I`), folio captions, masthead stamps. They're the small-caps
+mono lines that make a page feel set in lead rather than rendered
+from a template, and they're a big part of why the design system
+works. We want more of them, not fewer.
+
+The rule is **a greeble has to mean something**. It has to encode a
+real value the user could in principle verify, even if they never
+would. `ENT-034` is the entry's actual id. `256 W` is the actual
+word count. `§ I  Structure` numbers the actual first section of
+the screen. The shape is decorative; the content is not.
+
+What we don't ship: fabricated bookends — `FOL. 01 OF 14`,
+`VOL. I`, `EDITION VII` — that look right but have no source of
+truth behind them. A reader who looks twice feels lied to, and the
+catalogue-card credibility of every other greeble drops with it.
+
+When the obvious source isn't there, **find a less obvious real
+one** before reaching for filler. Examples that have anchored
+real greebles in this codebase: section counts (`§§ 3`), entity
+counts (`9 ENTRIES`), last-edit timestamps, locale codes, format
+versions, dictionary status, sync state, on/off toggles
+(`ON · 1,000 W / WEEK`). A faint real number reads better than a
+confident invented one. If after looking you genuinely can't find
+something real for the slot — leave the slot empty rather than
+fabricate.
+
+---
+
 ## Goals
 
 - **Cohesion.** A screen built from `Hd*` components should feel like

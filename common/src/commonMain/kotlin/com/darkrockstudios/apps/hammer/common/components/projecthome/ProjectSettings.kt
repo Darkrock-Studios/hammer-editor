@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface ProjectSettings : HammerComponent {
+	val projectName: String
 	val spellCheckSettings: SpellCheckSettings
 	val projectInfoState: Value<ProjectInfoState>
 
