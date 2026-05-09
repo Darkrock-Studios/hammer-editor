@@ -7,7 +7,7 @@ data_version = "1.0"
 jvm = "21"
 kache = "2.1.1"
 kompressCore = "1.3.1"
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 
 # Android
 android_gradle_plugin = "8.13.2"
@@ -90,7 +90,7 @@ kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.8.2-SNAPSHOT"
+compose-texteditor = "1.9.3"
 platform-spellcheckerkt = "1.0.0"
 flatpak-gradle-generator = "1.7.0"
 colorpicker-compose = "1.1.3"
