@@ -1,25 +1,36 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.darkrockstudios.apps.hammer.Res
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
-import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsUi
-import com.darkrockstudios.apps.hammer.project_home_settings_close_button
-import com.darkrockstudios.apps.hammer.project_home_settings_title
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
+import org.jetbrains.compose.resources.stringResource
+
+private val MaxColumnWidth = 880.dp
 
 @Composable
 fun ProjectSettingsUi(
@@ -27,58 +38,189 @@ fun ProjectSettingsUi(
 	component: ProjectSettings,
 	onClose: () -> Unit,
 ) {
-	Column(modifier = modifier.padding(horizontal = Ui.Padding.XL)) {
-		// Header section
-		val screen = LocalScreenCharacteristic.current
-		when (screen.windowWidthClass) {
-			WindowWidthSizeClass.Companion.Compact -> {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					HeaderUi(
-						Res.string.project_home_settings_title,
-						"\uD83D\uDEE0",
-						Modifier.weight(1f).padding(top = Ui.Padding.L)
-					)
-					IconButton(onClick = onClose) {
-						Icon(
-							Icons.Default.Close,
-							tint = MaterialTheme.colorScheme.onBackground,
-							contentDescription = Res.string.project_home_settings_close_button.get()
-						)
-					}
-				}
-			}
+	val state by component.projectInfoState.subscribeAsState()
+	val screen = LocalScreenCharacteristic.current
+	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
-			else -> {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Text(
-						Res.string.project_home_settings_title.get(),
-						modifier = Modifier.weight(1f),
-						style = MaterialTheme.typography.displayMedium,
-						color = MaterialTheme.colorScheme.onSurface
+	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
+	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
+
+	Column(
+		modifier = modifier
+			.fillMaxSize()
+			.background(MaterialTheme.colorScheme.surface),
+	) {
+		Breadcrumb(
+			projectName = component.projectName,
+			isCompact = isCompact,
+			onClose = onClose,
+		)
+		HdFolioDivider()
+
+		Column(
+			modifier = Modifier
+				.weight(1f)
+				.fillMaxWidth()
+				.verticalScroll(rememberScrollState())
+				.padding(horizontal = outerHorizontal, vertical = outerVertical),
+		) {
+			Box(
+				modifier = Modifier
+					.widthIn(max = MaxColumnWidth)
+					.fillMaxWidth()
+					.align(Alignment.CenterHorizontally),
+			) {
+				Column(verticalArrangement = Arrangement.spacedBy(40.dp)) {
+					Hero(
+						projectName = component.projectName,
+						authorName = state.data.authorName,
+						isCompact = isCompact,
 					)
-					IconButton(onClick = onClose) {
-						Icon(
-							Icons.Default.Close,
-							contentDescription = Res.string.project_home_settings_close_button.get(),
-							tint = MaterialTheme.colorScheme.onBackground,
-						)
+
+					if (state.isLoaded) {
+						ProjectInfoSettingsUi(component)
+
+						HdHairlineSection(
+							section = 3,
+							title = Res.string.project_settings_spellcheck_section_title.get(),
+							contentSpacing = 18.dp,
+						) {
+							SpellCheckSettingsContent(component.spellCheckSettings)
+						}
 					}
+
+					Spacer(Modifier.height(8.dp))
 				}
 			}
 		}
 
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-		ProjectInfoSettingsUi(component)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-		SpellCheckSettingsUi(component.spellCheckSettings)
+		FolioCaption(
+			projectName = component.projectName,
+			sectionCount = 3,
+			horizontalPadding = outerHorizontal,
+		)
 	}
 }
+
+@Composable
+private fun Breadcrumb(
+	projectName: String,
+	isCompact: Boolean,
+	onClose: () -> Unit,
+) {
+	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = horizontal, vertical = 14.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(12.dp),
+	) {
+		HdMonoLabel(
+			modifier = Modifier
+				.clickable(onClick = onClose),
+			text = "← " + Res.string.project_settings_breadcrumb_home.get(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		HdMonoLabel(
+			text = "/",
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+		HdMonoLabel(
+			text = Res.string.project_settings_breadcrumb_root.get(),
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		if (!isCompact) {
+			HdMonoLabel(
+				text = "/",
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+			HdMonoLabel(
+				modifier = Modifier.weight(1f, fill = false),
+				text = projectName,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+		}
+		Spacer(Modifier.weight(1f))
+		AutosaveBadge()
+	}
+}
+
+@Composable
+private fun AutosaveBadge() {
+	val success = LocalHammerColors.current.success
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		Box(
+			modifier = Modifier
+				.size(6.dp)
+				.background(success, RectangleShape),
+		)
+		HdMonoLabel(
+			text = Res.string.project_settings_autosaved.get(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
+}
+
+@Composable
+private fun Hero(
+	projectName: String,
+	authorName: String?,
+	isCompact: Boolean,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+		HdMonoLabel(text = Res.string.project_settings_hero_marker.get())
+		Text(
+			text = projectName,
+			style = if (isCompact) MaterialTheme.typography.displaySmall
+			else MaterialTheme.typography.displayMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 2,
+			overflow = TextOverflow.Ellipsis,
+		)
+		val by = if (authorName.isNullOrBlank()) {
+			Res.string.project_settings_hero_no_author.get()
+		} else {
+			stringResource(Res.string.project_settings_hero_by, authorName)
+		}
+		Text(
+			text = by,
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
+}
+
+@Composable
+private fun FolioCaption(
+	projectName: String,
+	sectionCount: Int,
+	horizontalPadding: Dp,
+) {
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = horizontalPadding, vertical = 10.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+	) {
+		HdMonoLabel(
+			text = stringResource(Res.string.project_settings_folio_caption, projectName),
+		)
+		HdMonoLabel(
+			text = "·",
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+		HdMonoLabel(
+			text = stringResource(Res.string.project_settings_folio_section_count, sectionCount),
+		)
+	}
+}
+

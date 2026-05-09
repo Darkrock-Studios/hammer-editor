@@ -24,6 +24,8 @@ class ProjectSettingsComponent(
 	private val mainDispatcher by injectMainDispatcher()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 
+	override val projectName: String = projectDef.name
+
 	override val spellCheckSettings: SpellCheckSettings = SpellCheckSettingsComponent(componentContext)
 
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())

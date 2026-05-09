@@ -13,6 +13,7 @@ data class HammerExtendedColors(
 	val event: Color,
 	val idea: Color,
 	val success: Color,
+	val warning: Color,
 	val danger: Color,
 	val characterPalette: List<Color>,
 ) {
@@ -64,6 +65,7 @@ val LightHammerColors = HammerExtendedColors(
 	event = Color(0xFFA17430),
 	idea = Color(0xFF6F4E97),
 	success = Color(0xFF2E7D32),
+	warning = Color(0xFFB58940),
 	danger = Color(0xFFC62828),
 	characterPalette = LightCharacterPalette,
 )
@@ -75,6 +77,7 @@ val DarkHammerColors = HammerExtendedColors(
 	event = Color(0xFFE0B05C),
 	idea = Color(0xFFA88FCC),
 	success = Color(0xFF7BC97D),
+	warning = Color(0xFFE0B36B),
 	danger = Color(0xFFE57373),
 	characterPalette = DarkCharacterPalette,
 )

@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -141,6 +142,13 @@ private fun DashboardHeader(
 						} else {
 							MaterialTheme.colorScheme.primary
 						},
+					)
+				}
+				IconButton(onClick = { component.showProjectSettings() }) {
+					Icon(
+						Icons.Default.Settings,
+						contentDescription = stringResource(Res.string.project_home_action_settings_button),
+						tint = MaterialTheme.colorScheme.primary,
 					)
 				}
 				ProjectHomeMenu(component = component, hasServer = state.hasServer)
@@ -621,14 +629,6 @@ private fun ProjectHomeMenu(
 				text = { Text(Res.string.global_search_button.get()) },
 				onClick = {
 					component.showGlobalSearch()
-					expanded = false
-				},
-			)
-
-			DropdownMenuItem(
-				text = { Text(Res.string.project_home_action_settings_button.get()) },
-				onClick = {
-					component.showProjectSettings()
 					expanded = false
 				},
 			)
