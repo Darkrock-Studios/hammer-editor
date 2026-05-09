@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -14,6 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -22,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
@@ -29,10 +33,13 @@ import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import net.peanuuutz.tomlkt.Toml
+import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Clock
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
 class ProjectsListComponent(
 	componentContext: ComponentContext,
@@ -47,6 +54,8 @@ class ProjectsListComponent(
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
+	private val fileSystem: FileSystem by inject()
+	private val toml: Toml by inject()
 	private val strRes: StrRes by inject()
 	private val clock: Clock by inject()
 
@@ -149,20 +158,34 @@ class ProjectsListComponent(
 		loadProjectsJob?.cancel()
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
-			val projectData = projects.mapNotNull { projectDef ->
+			val projectData = projects.parallelMap { projectDef ->
 				val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 				if (metadata != null) {
-					ProjectData(projectDef, metadata)
+					ProjectData(projectDef, metadata, loadStoredProjectData(projectDef))
 				} else {
 					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
 					null
 				}
-			}.sortedByDescending { it.metadata.info.lastAccessed }
+			}.filterNotNull().sortedByDescending { it.metadata.info.lastAccessed }
 
 			withContext(dispatcherMain) {
 				_state.getAndUpdate { it.copy(projects = projectData) }
 				loadProjectsJob = null
 			}
+		}
+	}
+
+	/**
+	 * Reads `project_data.toml` (author, theme, word-count goal) without
+	 * opening a per-project Koin scope — the projects list previews many
+	 * projects and a full scope per row would be wasteful.
+	 */
+	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData {
+		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
+		return try {
+			fileSystem.readToml<StoredProjectData>(path, toml).data
+		} catch (e: Exception) {
+			StoredData()
 		}
 	}
 

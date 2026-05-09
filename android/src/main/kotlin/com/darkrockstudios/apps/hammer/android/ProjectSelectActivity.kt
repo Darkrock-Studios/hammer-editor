@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -21,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
@@ -39,7 +39,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -185,9 +184,6 @@ private fun CompactNavigation(
 				}
 			}
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component, Modifier.fab())
-		}
 	)
 }
 
@@ -208,9 +204,6 @@ private fun MediumNavigation(
 				ProjectSelectionUi(component)
 			}
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component, Modifier.fab())
-		}
 	)
 }
 
@@ -284,9 +277,6 @@ private fun ExpandedNavigation(
 				ProjectSelectionUi(component)
 			}
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component, Modifier.fab())
-		}
 	)
 }
 
