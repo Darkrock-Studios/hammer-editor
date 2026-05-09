@@ -34,7 +34,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -138,9 +137,6 @@ private fun MediumNavigation(
 				)
 			}
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component)
-		}
 	)
 }
 
@@ -172,9 +168,6 @@ private fun ExpandedNavigation(
 				}
 			)
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component)
-		}
 	)
 }
 
