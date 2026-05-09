@@ -52,6 +52,7 @@
 	<string name="settings_enable_dnd_focus_mode_title">\"Nicht stören\" im Fokus-Modus aktivieren</string>
 	<string name="settings_dnd_permission_button">\"Bitte nicht stören\"-Berechtigung gewähren</string>
 	<string name="settings_dnd_permission_explanation">Hammer benötigt die Berechtigung, um \"Nicht stören-Modus\" zu aktivieren, wenn du dich im Fokus-Modus befindest.</string>
+	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Rechtschreibung überprüfen</string>
 	<string name="settings_spellcheck_notice">Rechtschreibprüfung ist experimentell! Wenn sie Probleme verursacht, schalte sie einfach aus.</string>
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren (experimentell)</string>
