@@ -265,6 +265,77 @@ yet, but show up on enough screens that "do it the same way" matters
 more than "extract it now." When a third screen reaches for one of
 these, lift it into a real `Hd*` component.
 
+### Responsive layouts
+
+Hammer runs from a 360dp phone to a 1440dp desktop window in the same
+codebase. Screens decide their own layout — there is no
+`isPhone()` short-circuit. Two tools, used for two different scopes:
+
+**1. Page-level —
+[`LocalScreenCharacteristic`](../ScreenCharacteristics.kt).** Provided
+once at the application root by `SetScreenCharacteristics(...)`. Read
+this when a *screen* needs to pick a layout against the **window** it
+lives in (e.g. nav rail vs. bottom bar, two-pane vs. single-pane).
+The characteristic exposes:
+
+| Field                | Type                    | Use for                                                                                |
+|----------------------|-------------------------|----------------------------------------------------------------------------------------|
+| `isWide`             | `Boolean`               | Project-wide binary cut. Default reach for screen layout.                              |
+| `windowWidthClass`   | `WindowWidthSizeClass`  | Three-bucket Material 3 size class (Compact/Medium/Expanded) when binary isn't enough. |
+| `windowHeightClass`  | `WindowHeightSizeClass` | Vertical layout decisions on landscape phones / short windows.                         |
+| `needsExplicitClose` | `Boolean`               | Add an explicit close affordance on platforms without a system back gesture (desktop). |
+
+**2. Component-local — `BoxWithConstraints`.** Read this when the
+decision is about the **container** the component is rendered in, not
+the window — modals that cap their own width, side panels, embedded
+detail surfaces. A 1080dp modal on a 1440dp window should still drop
+to a single-pane layout when the user shrinks the window past the
+modal's responsive threshold; reading `LocalScreenCharacteristic`
+would miss that.
+
+Rule of thumb: **screens read the window, components measure
+themselves.**
+
+#### Common transformations
+
+When the available space drops below a threshold, lay out the same
+content in a Compact-friendly form:
+
+| Wide layout                                          | Compact equivalent                                                                         |
+|------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Side rail + content (sticky chapter nav, side TOC)   | Top dropdown over the same content                                                         |
+| Multi-column row of stat tiles                       | Vertical stack — use [`HdResponsiveStrip`](HdResponsiveStrip.kt)                           |
+| Two-pane master/detail                               | Single pane with navigation                                                                |
+| Inline search field in toolbar                       | Search glyph that swaps in via `AnimatedContent` (see browse-screen-toolbar pattern below) |
+| Trailing meta on title row (`§ N  Title  ───  meta`) | Hide meta — title row only competes with affordances                                       |
+| Modal with masthead padding (`Padding.XXL`)          | Full-bleed sheet, no outer padding                                                         |
+
+The shared move: **never compress; always reflow.** If a Wide
+component would clip or truncate at Compact, restructure rather than
+shrink. Mono labels, hairline rules, and square corners stay the
+same — the *arrangement* changes.
+
+#### Thresholds
+
+- **`isWide`** is the project's binary threshold (currently 720dp on
+  most screens, 600dp where noted). Use this as the default cut.
+- For finer control reach for the M3 `windowWidthClass`:
+	- **Expanded** ≥ 840dp — desktop, large tablets in landscape.
+	- **Medium** 600–839dp — tablets, large phones in landscape.
+	- **Compact** < 600dp — phones in portrait.
+- Component-local `BoxWithConstraints` thresholds are picked per
+  component and named in code (e.g. `private val WideThreshold =
+  720.dp`). Don't sprinkle magic numbers — name them.
+
+#### Worked example — `OutlineOverviewUi`
+
+The story-outline modal caps itself at 1080×880dp, so its layout is
+driven by `BoxWithConstraints` against the modal's own width, not
+the window's. Above 720dp the modal renders a 240dp left rail plus a
+reading column; below 720dp the rail collapses into a top dropdown
+above the same reading column. The reading content itself is
+identical — only the chapter-jump affordance reflows.
+
 ### Responsive browse-screen toolbar
 
 The shared shape of every list-of-things screen — Encyclopedia
