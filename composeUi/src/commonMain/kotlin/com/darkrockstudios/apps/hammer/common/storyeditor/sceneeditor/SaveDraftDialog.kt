@@ -1,26 +1,32 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.FormDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SaveDraftDialog(
 	state: SceneEditor.State,
@@ -33,109 +39,92 @@ internal fun SaveDraftDialog(
 	var draftName by remember { mutableStateOf("") }
 
 	val metadataState by component.sceneMetadataComponent.state.subscribeAsState()
+	val currentDraftName = metadataState.metadata.currentDraftName
 	val isValidDraftName = remember(draftName) {
 		component.sceneMetadataComponent.validateDraftName(draftName)
 	}
+	val currentDraftIsValid = remember(currentDraftName) {
+		component.sceneMetadataComponent.validateDraftName(currentDraftName)
+	}
 
-	if (state.isSavingDraft) {
-		AlertDialog(
-			onDismissRequest = {
+	if (!state.isSavingDraft) return
+
+	fun close() {
+		component.endSaveDraft()
+		draftName = ""
+	}
+
+	fun submit() {
+		if (!isValidDraftName || !currentDraftIsValid) return
+		scope.launch {
+			if (component.saveDraft(currentDraftName, draftName)) {
+				showSnackbar(strRes.get(Res.string.save_draft_dialog_toast_success))
 				component.endSaveDraft()
-				draftName = ""
-			},
-			icon = {
-				Icon(Icons.Filled.Save, contentDescription = null)
-			},
-			title = {
-				Text(text = Res.string.save_draft_dialog_title.get())
-			},
-			text = {
-				Column(
-					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)
+				withContext(mainDispatcher) { draftName = "" }
+			}
+		}
+	}
+
+	FormDialog(
+		visible = true,
+		marker = "§ SAVE",
+		meta = "DRAFT",
+		title = Res.string.save_draft_dialog_title.get(),
+		confirmLabel = Res.string.save_draft_dialog_save_button.get(),
+		cancelLabel = Res.string.save_draft_dialog_cancel_button.get(),
+		onConfirm = ::submit,
+		onCancel = ::close,
+		onDismiss = ::close,
+		confirmEnabled = isValidDraftName && currentDraftIsValid,
+	) {
+		// Read-only "current draft" status block — uses the same mono-caps-label vocabulary.
+		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+			Text(
+				text = Res.string.save_draft_dialog_current_draft.get().uppercase(),
+				fontFamily = FontFamily.Monospace,
+				fontSize = 10.sp,
+				letterSpacing = 1.8.sp,
+				color = if (currentDraftIsValid) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+			)
+			Text(
+				text = "\"$currentDraftName\"",
+				style = MaterialTheme.typography.titleMedium.copy(
+					fontWeight = FontWeight.Normal,
+					letterSpacing = (-0.16).sp,
+				),
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+			if (!currentDraftIsValid) {
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					modifier = Modifier.padding(top = 2.dp),
 				) {
-					val currentDraftIsValid = remember(metadataState.metadata.currentDraftName) {
-						component.sceneMetadataComponent.validateDraftName(metadataState.metadata.currentDraftName)
-					}
-
-					Surface(
-						shape = MaterialTheme.shapes.medium,
-						color = if (currentDraftIsValid) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.errorContainer,
-						modifier = Modifier.fillMaxWidth()
-					) {
-						Column(
-							modifier = Modifier.padding(Ui.Padding.M)
-						) {
-							Text(
-								text = Res.string.save_draft_dialog_current_draft.get(),
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant
-							)
-							Text(
-								text = "\"${metadataState.metadata.currentDraftName}\"",
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-								modifier = Modifier.fillMaxWidth(),
-								textAlign = TextAlign.Center
-							)
-							if (!currentDraftIsValid) {
-								Row(
-									modifier = Modifier.fillMaxWidth(),
-									verticalAlignment = Alignment.CenterVertically
-								) {
-									Icon(
-										Icons.Filled.Error,
-										tint = MaterialTheme.colorScheme.error,
-										contentDescription = null
-									)
-									Text(
-										modifier = Modifier.padding(start = Ui.Padding.M),
-										text = Res.string.save_draft_dialog_error.get(),
-										style = MaterialTheme.typography.bodySmall,
-										color = MaterialTheme.colorScheme.error
-									)
-								}
-							}
-						}
-					}
-
-					OutlinedTextField(
-						value = draftName,
-						onValueChange = { draftName = it },
-						singleLine = true,
-						label = { Text("New Draft Name") },
-						placeholder = { Text(Res.string.save_draft_dialog_name_hint.get()) },
-						modifier = Modifier.fillMaxWidth(),
-						shape = MaterialTheme.shapes.medium
+					Icon(
+						Icons.Filled.Error,
+						tint = MaterialTheme.colorScheme.error,
+						contentDescription = null,
+						modifier = Modifier.padding(end = 2.dp),
+					)
+					Text(
+						text = Res.string.save_draft_dialog_error.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.error,
 					)
 				}
-			},
-			confirmButton = {
-				Button(
-					onClick = {
-						scope.launch {
-							if (component.saveDraft(metadataState.metadata.currentDraftName, draftName)) {
-								showSnackbar(strRes.get(Res.string.save_draft_dialog_toast_success))
-								component.endSaveDraft()
-								withContext(mainDispatcher) {
-									draftName = ""
-								}
-							}
-						}
-					},
-					enabled = isValidDraftName && component.sceneMetadataComponent.validateDraftName(metadataState.metadata.currentDraftName)
-				) {
-					Text(Res.string.save_draft_dialog_save_button.get())
-				}
-			},
-			dismissButton = {
-				TextButton(onClick = {
-					component.endSaveDraft()
-					draftName = ""
-				}) {
-					Text(Res.string.save_draft_dialog_cancel_button.get())
-				}
 			}
+		}
+
+		FormField(
+			value = draftName,
+			onValueChange = { draftName = it },
+			label = "NEW DRAFT NAME",
+			placeholder = Res.string.save_draft_dialog_name_hint.get(),
+			autoFocus = true,
+			error = if (draftName.isNotEmpty() && !isValidDraftName) {
+				Res.string.save_draft_dialog_error.get()
+			} else null,
+			onImeAction = ::submit,
 		)
 	}
 }
