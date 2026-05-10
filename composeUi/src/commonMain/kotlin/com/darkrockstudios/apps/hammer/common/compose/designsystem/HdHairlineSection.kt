@@ -1,21 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Dashboard section: [HdSectionHeader] + content + trailing hairline
- * divider. Use [HdPlainSection] when the section has no § marker.
+ * Dashboard section: a left-side hairline bracket runs the full height of
+ * the section, marrying the [HdSectionHeader] to its content like a
+ * marginalia rule on a manuscript page. Content is inset to clear the rule.
  */
 @Composable
 fun HdHairlineSection(
@@ -26,24 +22,29 @@ fun HdHairlineSection(
 	contentSpacing: Dp = 16.dp,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(contentSpacing),
+	Row(
+		modifier = modifier
+			.fillMaxWidth()
+			.height(IntrinsicSize.Min),
 	) {
-		HdSectionHeader(
-			section = section,
-			title = title,
-			modifier = Modifier.fillMaxWidth(),
-			trailing = headerTrailing,
-		)
-		content()
-		HorizontalDivider(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(top = 8.dp),
+		VerticalDivider(
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(start = 16.dp),
+			verticalArrangement = Arrangement.spacedBy(contentSpacing),
+		) {
+			HdSectionHeader(
+				section = section,
+				title = title,
+				modifier = Modifier.fillMaxWidth(),
+				trailing = headerTrailing,
+			)
+			content()
+		}
 	}
 }
 
@@ -62,12 +63,5 @@ fun HdPlainSection(
 		verticalArrangement = Arrangement.spacedBy(contentSpacing),
 	) {
 		content()
-		HorizontalDivider(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(top = 8.dp),
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
 	}
 }

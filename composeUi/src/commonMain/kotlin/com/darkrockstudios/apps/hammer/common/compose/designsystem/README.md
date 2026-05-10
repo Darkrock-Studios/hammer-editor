@@ -36,6 +36,15 @@ deliberately ignore its elevation system.
   [`HdFab`](HdFab.kt)) where `outlineVariant` would disappear into the
   fill. `outlineVariant` is the body rule on neutral surfaces.
   Use both on purpose.
+- A vertical hairline along the **left edge** of a section is the
+  Hammer way to group content. The rule runs the full height of the
+  section — header through content — like a marginalia bracket on a
+  manuscript page, and the content is inset (`16.dp`) to clear the
+  rule. This substitutes for the visual grouping that elevation,
+  card backgrounds, or trailing dividers would normally provide.
+  See [`HdHairlineSection`](HdHairlineSection.kt). When you need to
+  signal "these things belong together" on a long-scrolling screen,
+  reach for the marginalia rule before any heavier chrome.
 
 ### 2. Square corners
 
@@ -167,9 +176,11 @@ These set up the page. Use them before reaching for raw `Column` /
   section in a scrolling screen. Pass an Int for auto-romanized
   section numbers.
 - **[`HdHairlineSection`](HdHairlineSection.kt)** —
-  `HdSectionHeader` + content + trailing hairline. The dashboard's
-  section unit. `HdPlainSection` is the same minus the header for
-  unmarked top strips.
+  `HdSectionHeader` + content with a left-side marginalia rule running
+  the full section height. The default section unit on long-scrolling
+  screens — the rule is what visually groups header + content together
+  in lieu of elevation or card backgrounds. `HdPlainSection` is the
+  same minus the header and the rule, for unmarked top strips.
 - **[`HdFolioDivider`](HdFolioDivider.kt)** — the masthead rule stack
   (2dp `outline`, gap, 1dp `outlineVariant`) used directly under
   screen / modal headers. Anything that's a "title bar" should sit on

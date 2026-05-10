@@ -70,7 +70,7 @@ fun ProjectSettingsUi(
 					.fillMaxWidth()
 					.align(Alignment.CenterHorizontally),
 			) {
-				Column(verticalArrangement = Arrangement.spacedBy(40.dp)) {
+				Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
 					Hero(
 						projectName = component.projectName,
 						authorName = state.data.authorName,
