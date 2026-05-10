@@ -1,151 +1,168 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.HAMMER_INK_URL
 import com.darkrockstudios.apps.hammer.base.PATREON_URL
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val DialogMaxWidth = 540.dp
+private val DialogMaxHeight = 760.dp
+private const val SECTION_COUNT = 4
+
 @Composable
 internal fun ServerSetupHelpDialog(onDismiss: () -> Unit) {
 	val uriHandler = LocalUriHandler.current
+	var isOpen by remember { mutableStateOf(true) }
 
-	BasicAlertDialog(
-		onDismissRequest = onDismiss,
-		modifier = Modifier.widthIn(max = 520.dp).padding(Ui.Padding.M),
-		properties = DialogProperties(usePlatformDefaultWidth = false),
+	AnimatedDialogContainer(
+		isOpen = isOpen,
+		onDismissRequest = { isOpen = false },
+		onClosed = onDismiss,
+		properties = DialogProperties(
+			dismissOnBackPress = true,
+			dismissOnClickOutside = true,
+			usePlatformDefaultWidth = false,
+		),
 	) {
 		Surface(
-			shape = RoundedCornerShape(16.dp),
+			modifier = Modifier
+				.padding(Ui.Padding.XL)
+				.widthIn(max = DialogMaxWidth)
+				.heightIn(max = DialogMaxHeight)
+				.fillMaxWidth()
+				.fillMaxHeight(0.9f)
+				.predictiveBackTransform(),
+			shape = RectangleShape,
 			color = MaterialTheme.colorScheme.surface,
-			tonalElevation = Ui.ToneElevation.MEDIUM
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
 		) {
-			Column(
-				modifier = Modifier
-					.padding(Ui.Padding.XL)
-					.verticalScroll(rememberScrollState())
-			) {
-				// Title
-				Text(
-					Res.string.server_setup_help_title.get(),
-					style = MaterialTheme.typography.headlineSmall,
-					color = MaterialTheme.colorScheme.onSurface
-				)
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
+			Column(modifier = Modifier.fillMaxWidth()) {
+				Masthead(onClose = ::requestDismiss)
+				HdFolioDivider()
 
-				// Intro
-				Text(
-					Res.string.server_setup_help_intro.get(),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-				// Official Server Section
-				HelpSectionHeader(Res.string.server_setup_help_official_header.get())
-				Text(
-					Res.string.server_setup_help_official_body.get(),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-				Spacer(modifier = Modifier.size(Ui.Padding.S))
-
-				// Patreon link
-				Row(verticalAlignment = Alignment.CenterVertically) {
+				Column(
+					modifier = Modifier
+						.weight(1f)
+						.fillMaxWidth()
+						.verticalScroll(rememberScrollState())
+						.padding(
+							start = Ui.Padding.XL,
+							end = Ui.Padding.XL,
+							top = Ui.Padding.L,
+							bottom = Ui.Padding.L,
+						),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+				) {
 					Text(
-						Res.string.server_setup_help_patreon.get() + " ",
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
+						text = Res.string.server_setup_help_title.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onSurface,
 					)
-				}
-				Row {
-					TextButton(
-						onClick = { uriHandler.openUri(PATREON_URL) },
-						contentPadding = PaddingValues(horizontal = Ui.Padding.L)
+
+					Text(
+						text = Res.string.server_setup_help_intro.get(),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+
+					HdHairlineSection(
+						section = 1,
+						title = Res.string.server_setup_help_official_header.get(),
 					) {
 						Text(
-							Res.string.server_setup_help_patreon_link.get(),
-							style = MaterialTheme.typography.bodyMedium.copy(
-								textDecoration = TextDecoration.Underline
-							)
+							text = Res.string.server_setup_help_official_body.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
+						Text(
+							text = Res.string.server_setup_help_patreon.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+						) {
+							HdHairlineButton(
+								label = Res.string.server_setup_help_patreon_link.get(),
+								onClick = { uriHandler.openUri(PATREON_URL) },
+							)
+							HdHairlineButton(
+								label = Res.string.server_setup_help_hammer_link.get(),
+								onClick = { uriHandler.openUri(HAMMER_INK_URL) },
+							)
+						}
 					}
-					Spacer(modifier = Modifier.size(Ui.Padding.L))
-					TextButton(
-						onClick = { uriHandler.openUri(HAMMER_INK_URL) },
-						contentPadding = PaddingValues(horizontal = Ui.Padding.L)
+
+					HdHairlineSection(
+						section = 2,
+						title = Res.string.server_setup_help_registration_header.get(),
 					) {
 						Text(
-							Res.string.server_setup_help_hammer_link.get(),
-							style = MaterialTheme.typography.bodyMedium.copy(
-								textDecoration = TextDecoration.Underline
-							)
+							text = Res.string.server_setup_help_registration_body.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
-				}
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
 
-				// Registration Section
-				HelpSectionHeader(Res.string.server_setup_help_registration_header.get())
-				Text(
-					Res.string.server_setup_help_registration_body.get(),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
+					HdHairlineSection(
+						section = 3,
+						title = Res.string.server_setup_help_setup_header.get(),
+					) {
+						SetupStep(index = 1, text = Res.string.server_setup_help_setup_step1.get())
+						SetupStep(index = 2, text = Res.string.server_setup_help_setup_step2.get())
+						SetupStep(index = 3, text = Res.string.server_setup_help_setup_step3.get())
+					}
 
-				// Setup Section
-				HelpSectionHeader(Res.string.server_setup_help_setup_header.get())
-				Column(modifier = Modifier.padding(start = Ui.Padding.M)) {
-					HelpBulletPoint("1.", Res.string.server_setup_help_setup_step1.get())
-					HelpBulletPoint("2.", Res.string.server_setup_help_setup_step2.get())
-					HelpBulletPoint("3.", Res.string.server_setup_help_setup_step3.get())
-				}
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-				// Important Note Section
-				Surface(
-					modifier = Modifier.fillMaxWidth(),
-					shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-					color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-				) {
-					Column(modifier = Modifier.padding(Ui.Padding.M)) {
+					HdCatalogueCard(topStart = "NOTE") {
 						Text(
-							Res.string.server_setup_help_note_header.get(),
+							text = Res.string.server_setup_help_note_header.get(),
 							style = MaterialTheme.typography.titleSmall,
-							color = MaterialTheme.colorScheme.onTertiaryContainer
+							color = MaterialTheme.colorScheme.onSurface,
 						)
-						Spacer(modifier = Modifier.size(Ui.Padding.S))
+						Spacer(modifier = Modifier.height(Ui.Padding.S))
 						Text(
-							Res.string.server_setup_help_note_body.get(),
+							text = Res.string.server_setup_help_note_body.get(),
 							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onTertiaryContainer
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
 				}
-				Spacer(modifier = Modifier.size(Ui.Padding.XL))
 
-				// Dismiss Button
+				HdFolioDivider()
 				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.End
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							horizontal = Ui.Padding.XL,
+							vertical = Ui.Padding.L,
+						),
+					horizontalArrangement = Arrangement.End,
 				) {
-					Button(onClick = onDismiss) {
-						Text(Res.string.server_setup_help_dismiss_button.get())
-					}
+					HdHairlineButton(
+						label = Res.string.server_setup_help_dismiss_button.get(),
+						onClick = ::requestDismiss,
+						emphasised = true,
+					)
 				}
 			}
 		}
@@ -153,28 +170,51 @@ internal fun ServerSetupHelpDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun HelpSectionHeader(text: String) {
-	Text(
-		text,
-		style = MaterialTheme.typography.titleSmall,
-		color = MaterialTheme.colorScheme.primary
-	)
-	Spacer(modifier = Modifier.size(Ui.Padding.S))
+private fun Masthead(onClose: () -> Unit) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMonoLabel(
+			text = "§ HELP · SYNC SERVERS",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Box(
+			modifier = Modifier
+				.height(12.dp)
+				.width(Dp.Hairline)
+				.background(MaterialTheme.colorScheme.outlineVariant),
+		)
+		HdMonoLabel(text = "§§ $SECTION_COUNT")
+		Spacer(modifier = Modifier.weight(1f))
+		HdMonoLabel(
+			text = "× CLOSE",
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier
+				.clickable(onClick = onClose)
+				.padding(vertical = 4.dp, horizontal = 4.dp),
+		)
+	}
 }
 
 @Composable
-private fun HelpBulletPoint(number: String, text: String) {
-	Row(modifier = Modifier.padding(vertical = 2.dp)) {
-		Text(
-			number,
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.primary,
-			modifier = Modifier.width(24.dp)
+private fun SetupStep(index: Int, text: String) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		HdMonoLabel(
+			text = index.toString().padStart(2, '0'),
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.width(28.dp),
 		)
 		Text(
-			text,
+			text = text,
 			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
 }
