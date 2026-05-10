@@ -1,267 +1,110 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudSync
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCatalogueCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+private const val EMAIL_GREEBLE_MAX = 28
 
 @Composable
 fun ServerSettingsUi(
 	component: AccountSettings,
 	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState
+	rootSnackbar: RootSnackbarHostState,
+	modifier: Modifier = Modifier,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
 
-	val successColor = Color(0xFF4CAF50)
-	val dividerColor = MaterialTheme.colorScheme.outlineVariant
+	val topEnd = if (state.serverIsLoggedIn) {
+		val email = state.currentEmail
+		if (!email.isNullOrBlank()) {
+			"CONNECTED · ${truncate(email, EMAIL_GREEBLE_MAX)}"
+		} else {
+			"CONNECTED"
+		}
+	} else {
+		"NOT CONNECTED"
+	}
+	val bottomStart = state.currentUrl
+		?.takeIf { state.serverIsLoggedIn && it.isNotBlank() }
+		?.let { "URL · ${truncate(it, EMAIL_GREEBLE_MAX)}" }
 
-	Column(
-		modifier = Modifier.padding(Ui.Padding.M)
+	HdCatalogueCard(
+		modifier = modifier,
+		topStart = "§ III · SYNC",
+		topEnd = topEnd,
+		bottomStart = bottomStart,
 	) {
 		Row(
+			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
-			modifier = Modifier.fillMaxWidth()
 		) {
 			Text(
-				Res.string.settings_server_header.get(),
-				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.onBackground,
+				text = Res.string.settings_server_description.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+				modifier = Modifier.weight(1f),
 			)
-			Spacer(modifier = Modifier.weight(1f))
-			IconButton(onClick = { showHelpDialog = true }) {
-				Icon(
-					imageVector = Icons.Outlined.Info,
-					contentDescription = Res.string.server_setup_help_icon_description.get(),
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
+			Spacer(Modifier.size(12.dp))
+			HdMonoLabel(
+				text = "HELP ↗",
+				modifier = Modifier.clickable { showHelpDialog = true },
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+
+		Spacer(Modifier.size(20.dp))
+
+		AnimatedContent(targetState = state.serverIsLoggedIn) { loggedIn ->
+			if (loggedIn) {
+				LoggedInBody(
+					autoSync = state.syncAutomaticSync,
+					autoCloseDialog = state.syncAutoCloseDialog,
+					autoBackups = state.syncAutomaticBackups,
+					onAutoSyncChange = { scope.launch { component.setAutoSyncing(it) } },
+					onAutoCloseChange = { scope.launch { component.setAutoCloseDialogs(it) } },
+					onAutoBackupsChange = { scope.launch { component.setAutomaticBackups(it) } },
+					onRemoveServer = { showConfirmRemoveServer = true },
+				)
+			} else {
+				LoggedOutBody(
+					onSetupServer = { scope.launch { component.beginSetupServer() } },
 				)
 			}
 		}
-		Text(
-			Res.string.settings_server_description.get(),
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onBackground,
-			fontStyle = FontStyle.Italic
-		)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-		if (state.serverIsLoggedIn.not()) {
-			// Disconnected State
-			Surface(
-				modifier = Modifier.fillMaxWidth(),
-				shape = RoundedCornerShape(12.dp),
-				color = MaterialTheme.colorScheme.surfaceVariant,
-				border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-			) {
-				Column(
-					modifier = Modifier.padding(Ui.Padding.XL),
-					horizontalAlignment = Alignment.CenterHorizontally
-				) {
-					Icon(
-						Icons.Default.CloudSync,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(64.dp)
-					)
-					Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-					Text(
-						Res.string.settings_server_enable_sync_backup.get(),
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						fontWeight = FontWeight.Bold
-					)
-					Spacer(modifier = Modifier.size(Ui.Padding.S))
-
-					Text(
-						Res.string.settings_server_enable_sync_backup_desc.get(),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						textAlign = TextAlign.Center
-					)
-					Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-					Button(
-						onClick = { scope.launch { component.beginSetupServer() } },
-						modifier = Modifier.fillMaxWidth()
-					) {
-						Text(Res.string.settings_server_setup_button.get())
-					}
-				}
-			}
-
-		} else {
-			// Logged In State
-			Surface(
-				modifier = Modifier.fillMaxWidth(),
-				shape = RoundedCornerShape(12.dp),
-				color = MaterialTheme.colorScheme.surfaceVariant,
-				border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-			) {
-				Column(modifier = Modifier.padding(Ui.Padding.L)) {
-					Text(
-						Res.string.settings_server_connection_header.get(),
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-					Text(
-						state.currentEmail ?: Res.string.settings_server_unknown_error.get(),
-						style = MaterialTheme.typography.headlineSmall,
-						fontWeight = FontWeight.Bold,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-					Text(
-						state.currentUrl ?: Res.string.settings_server_unknown_error.get(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-					)
-					Spacer(modifier = Modifier.size(Ui.Padding.M))
-					Row(verticalAlignment = Alignment.CenterVertically) {
-						Icon(
-							Icons.Default.CheckCircle,
-							contentDescription = null,
-							tint = successColor,
-							modifier = Modifier.size(16.dp)
-						)
-						Spacer(modifier = Modifier.size(Ui.Padding.S))
-						Text(
-							Res.string.settings_server_configured.get(),
-							style = MaterialTheme.typography.bodyMedium,
-							color = successColor
-						)
-					}
-					Spacer(modifier = Modifier.size(Ui.Padding.L))
-					Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-						FilledTonalButton(onClick = {
-							scope.launch {
-								if (component.authTest()) {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.settings_server_authtest_toast_success))
-								} else {
-									rootSnackbar.showSnackbar(strRes.get(Res.string.settings_server_authtest_toast_failure))
-								}
-							}
-						}) {
-							Text(Res.string.settings_server_test_auth_button.get())
-						}
-						FilledTonalButton(onClick = { component.reauthenticate() }) {
-							Text(Res.string.settings_server_reauth_button.get())
-						}
-					}
-				}
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-			HorizontalDivider(Modifier, DividerDefaults.Thickness, color = dividerColor)
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-			Text(
-				Res.string.settings_server_sync_backup_preferences.get(),
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onBackground
-			)
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
-
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					var autoSyncValue by remember(state.syncAutomaticSync) { mutableStateOf(state.syncAutomaticSync) }
-					Checkbox(
-						checked = autoSyncValue,
-						onCheckedChange = {
-							scope.launch { component.setAutoSyncing(it) }
-							autoSyncValue = it
-						}
-					)
-					Text(
-						Res.string.settings_server_auto_sync.get(),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onBackground,
-					)
-				}
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					var autoCloseValue by remember(state.syncAutoCloseDialog) { mutableStateOf(state.syncAutoCloseDialog) }
-					Checkbox(
-						checked = autoCloseValue,
-						onCheckedChange = {
-							scope.launch { component.setAutoCloseDialogs(it) }
-							autoCloseValue = it
-						}
-					)
-					Text(
-						Res.string.settings_server_sync_auto_close.get(),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onBackground,
-					)
-				}
-				Spacer(modifier = Modifier.size(Ui.Padding.S))
-				Column {
-					Row(verticalAlignment = Alignment.CenterVertically) {
-						var autoBackupsValue by remember(state.syncAutomaticBackups) { mutableStateOf(state.syncAutomaticBackups) }
-						Checkbox(
-							checked = autoBackupsValue,
-							onCheckedChange = {
-								scope.launch { component.setAutomaticBackups(it) }
-								autoBackupsValue = it
-							}
-						)
-						Text(
-							Res.string.settings_server_sync_backup.get(),
-							style = MaterialTheme.typography.bodyMedium,
-							color = MaterialTheme.colorScheme.onBackground,
-						)
-					}
-				}
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-			HorizontalDivider(Modifier, DividerDefaults.Thickness, color = dividerColor)
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-			Text(
-				Res.string.settings_server_danger_zone.get(),
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.error
-			)
-			Spacer(modifier = Modifier.size(Ui.Padding.S))
-			OutlinedButton(
-				onClick = { showConfirmRemoveServer = true },
-				colors = ButtonDefaults.outlinedButtonColors(
-					contentColor = MaterialTheme.colorScheme.error,
-					containerColor = Color.Transparent
-				),
-				border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-				modifier = Modifier.fillMaxWidth(),
-			) {
-				Text(Res.string.settings_server_remove_server_button.get())
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.XL))
-		}
 	}
+
 	if (showConfirmRemoveServer) {
 		SimpleConfirm(
 			title = Res.string.settings_remove_server_dialog_title.get(),
@@ -283,3 +126,72 @@ fun ServerSettingsUi(
 		ServerSetupHelpDialog(onDismiss = { showHelpDialog = false })
 	}
 }
+
+@Composable
+private fun LoggedOutBody(
+	onSetupServer: () -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+		Text(
+			text = Res.string.settings_server_enable_sync_backup_desc.get(),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		HdHairlineButton(
+			label = Res.string.settings_server_setup_button.get(),
+			onClick = onSetupServer,
+			emphasised = true,
+		)
+	}
+}
+
+@Composable
+private fun LoggedInBody(
+	autoSync: Boolean,
+	autoCloseDialog: Boolean,
+	autoBackups: Boolean,
+	onAutoSyncChange: (Boolean) -> Unit,
+	onAutoCloseChange: (Boolean) -> Unit,
+	onAutoBackupsChange: (Boolean) -> Unit,
+	onRemoveServer: () -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+		HdMonoLabel(text = Res.string.settings_server_sync_backup_preferences.get())
+
+		HdHairlineToggleRow(
+			checked = autoSync,
+			onCheckedChange = onAutoSyncChange,
+			label = Res.string.settings_server_auto_sync.get(),
+		)
+		HdHairlineToggleRow(
+			checked = autoCloseDialog,
+			onCheckedChange = onAutoCloseChange,
+			label = Res.string.settings_server_sync_auto_close.get(),
+		)
+		HdHairlineToggleRow(
+			checked = autoBackups,
+			onCheckedChange = onAutoBackupsChange,
+			label = Res.string.settings_server_sync_backup.get(),
+		)
+
+		Spacer(Modifier.size(8.dp))
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+		Spacer(Modifier.size(4.dp))
+
+		HdMonoLabel(
+			text = Res.string.settings_server_danger_zone.get(),
+			color = MaterialTheme.colorScheme.error,
+		)
+		HdHairlineButton(
+			label = Res.string.settings_server_remove_server_button.get(),
+			onClick = onRemoveServer,
+			danger = true,
+		)
+	}
+}
+
+private fun truncate(text: String, max: Int): String =
+	if (text.length <= max) text else text.take(max - 1) + "…"

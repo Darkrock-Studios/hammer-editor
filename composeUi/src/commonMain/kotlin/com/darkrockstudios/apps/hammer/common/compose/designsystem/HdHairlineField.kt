@@ -37,6 +37,7 @@ fun HdHairlineField(
 	placeholder: String? = null,
 	hint: String? = null,
 	counter: String? = null,
+	error: String? = null,
 	singleLine: Boolean = true,
 	minLines: Int = 1,
 	maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
@@ -66,6 +67,7 @@ fun HdHairlineField(
 		}
 		val onSurface = MaterialTheme.colorScheme.onSurface
 		val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+		val errorColor = MaterialTheme.colorScheme.error
 		val textStyle = (if (singleLine) MaterialTheme.typography.bodyLarge
 		else MaterialTheme.typography.bodyMedium)
 			.copy(color = onSurface)
@@ -98,7 +100,15 @@ fun HdHairlineField(
 		}
 		HorizontalDivider(
 			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
+			color = if (error != null) errorColor
+			else MaterialTheme.colorScheme.outlineVariant,
 		)
+		if (error != null) {
+			HdMonoLabel(
+				modifier = Modifier.padding(top = 4.dp),
+				text = error,
+				color = errorColor,
+			)
+		}
 	}
 }

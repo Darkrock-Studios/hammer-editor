@@ -26,6 +26,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
@@ -80,7 +82,7 @@ internal fun CustomThemeSection(
 		},
 		contentSpacing = 18.dp,
 	) {
-		HairlineToggleRow(
+		HdHairlineToggleRow(
 			checked = enabled,
 			onCheckedChange = { enabled = it },
 			label = Res.string.project_info_theme_enable_label.get(),
@@ -148,7 +150,7 @@ internal fun WordCountGoalSection(
 		headerTrailing = { HdMonoLabel(text = meta) },
 		contentSpacing = 18.dp,
 	) {
-		HairlineToggleRow(
+		HdHairlineToggleRow(
 			checked = enabled,
 			onCheckedChange = { enabled = it },
 			label = Res.string.project_info_word_goal_enable_label.get(),
@@ -172,125 +174,25 @@ internal fun WordCountGoalSection(
 					counter = "W",
 					imeAction = ImeAction.Done,
 				)
-				CadencePicker(
+				HdHairlineSegmentedPicker(
+					options = WordCountGoal.Cadence.entries,
 					selected = cadence,
 					onSelect = { if (enabled) cadence = it },
+					label = { c ->
+						when (c) {
+							WordCountGoal.Cadence.DAY ->
+								Res.string.project_info_word_goal_cadence_day.get()
+
+							WordCountGoal.Cadence.WEEK ->
+								Res.string.project_info_word_goal_cadence_week.get()
+						}
+					},
+					title = Res.string.project_info_word_goal_cadence_label.get(),
 					modifier = Modifier.weight(1f),
 				)
 			}
 			EffectivePerDay(perDay = effectivePerDay)
 		}
-	}
-}
-
-@Composable
-private fun HairlineToggleRow(
-	checked: Boolean,
-	onCheckedChange: (Boolean) -> Unit,
-	label: String,
-	modifier: Modifier = Modifier,
-	hint: String? = null,
-) {
-	Row(
-		modifier = modifier
-			.fillMaxWidth()
-			.clickable { onCheckedChange(!checked) },
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-	) {
-		HairlineCheckbox(checked = checked)
-		Column(modifier = Modifier.weight(1f)) {
-			Text(
-				text = label,
-				style = MaterialTheme.typography.bodyLarge,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			if (hint != null) {
-				Text(
-					text = hint,
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
-		}
-	}
-}
-
-@Composable
-private fun HairlineCheckbox(checked: Boolean) {
-	val borderColor = if (checked) MaterialTheme.colorScheme.primary
-	else MaterialTheme.colorScheme.outlineVariant
-	val fill = if (checked) MaterialTheme.colorScheme.primary
-	else Color.Transparent
-	Box(
-		modifier = Modifier
-			.size(18.dp)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
-			.background(fill, RectangleShape),
-		contentAlignment = Alignment.Center,
-	) {
-		if (checked) {
-			Text(
-				text = "✓",
-				style = MaterialTheme.typography.labelSmall,
-				color = MaterialTheme.colorScheme.onPrimary,
-			)
-		}
-	}
-}
-
-@Composable
-private fun CadencePicker(
-	selected: WordCountGoal.Cadence,
-	onSelect: (WordCountGoal.Cadence) -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	Column(
-		modifier = modifier,
-		verticalArrangement = Arrangement.spacedBy(8.dp),
-	) {
-		HdMonoLabel(text = Res.string.project_info_word_goal_cadence_label.get())
-		Row(modifier = Modifier.fillMaxWidth()) {
-			CadenceCell(
-				label = Res.string.project_info_word_goal_cadence_day.get(),
-				selected = selected == WordCountGoal.Cadence.DAY,
-				onClick = { onSelect(WordCountGoal.Cadence.DAY) },
-				modifier = Modifier.weight(1f),
-			)
-			CadenceCell(
-				label = Res.string.project_info_word_goal_cadence_week.get(),
-				selected = selected == WordCountGoal.Cadence.WEEK,
-				onClick = { onSelect(WordCountGoal.Cadence.WEEK) },
-				modifier = Modifier.weight(1f).offset(x = (-1).dp),
-			)
-		}
-	}
-}
-
-@Composable
-private fun CadenceCell(
-	label: String,
-	selected: Boolean,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
-	else MaterialTheme.colorScheme.outlineVariant
-	val labelColor = if (selected) MaterialTheme.colorScheme.onSurface
-	else MaterialTheme.colorScheme.onSurfaceVariant
-	Box(
-		modifier = modifier
-			.heightIn(min = 36.dp)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
-			.clickable(onClick = onClick)
-			.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
-		contentAlignment = Alignment.Center,
-	) {
-		Text(
-			text = label.uppercase(),
-			style = MaterialTheme.typography.labelMedium,
-			color = labelColor,
-		)
 	}
 }
 
