@@ -3,19 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projectselection.about
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -24,7 +12,8 @@ import com.darkrockstudios.apps.hammer.about_logs_export_button
 import com.darkrockstudios.apps.hammer.about_logs_header
 import com.darkrockstudios.apps.hammer.about_logs_no_logs
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,25 +23,21 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 @Composable
-actual fun PlatformAboutSection(component: AboutApp) {
+actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val context = LocalContext.current
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	var exporting by remember { mutableStateOf(false) }
 	val noLogsMessage = Res.string.about_logs_no_logs.get()
 
-	Spacer(modifier = Modifier.size(Ui.Padding.XL))
-
-	Column {
-		Text(
-			text = Res.string.about_logs_header.get(),
-			style = MaterialTheme.typography.headlineSmall,
-		)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.S))
-
-		Button(
+	HdHairlineSection(
+		section = section,
+		title = Res.string.about_logs_header.get(),
+	) {
+		HdHairlineButton(
+			label = Res.string.about_logs_export_button.get(),
 			onClick = {
+				if (exporting) return@HdHairlineButton
 				exporting = true
 				scope.launch {
 					val success = exportAndShareLogs(context, state.logDirectoryPath)
@@ -62,12 +47,11 @@ actual fun PlatformAboutSection(component: AboutApp) {
 					exporting = false
 				}
 			},
-			enabled = !exporting
-		) {
-			Text(Res.string.about_logs_export_button.get())
-		}
+		)
 	}
 }
+
+actual val platformAboutSectionCount: Int = 1
 
 private suspend fun exportAndShareLogs(context: Context, logDirPath: String): Boolean {
 	return withContext(Dispatchers.IO) {
