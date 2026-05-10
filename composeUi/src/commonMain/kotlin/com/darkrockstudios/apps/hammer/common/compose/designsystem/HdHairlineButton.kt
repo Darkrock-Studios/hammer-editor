@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  *
  * [emphasised] swaps the border + label to the theme's primary color
  * for the action button in a pair (Save/Cancel, Create/Cancel).
+ * [danger] swaps to the theme's error color for destructive actions
+ * (Remove Server, Delete Project) and takes precedence over emphasised.
  */
 @Composable
 fun HdHairlineButton(
@@ -29,16 +31,17 @@ fun HdHairlineButton(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 	emphasised: Boolean = false,
+	danger: Boolean = false,
 ) {
-	val borderColor = if (emphasised) {
-		MaterialTheme.colorScheme.primary
-	} else {
-		MaterialTheme.colorScheme.outlineVariant
+	val borderColor = when {
+		danger -> MaterialTheme.colorScheme.error
+		emphasised -> MaterialTheme.colorScheme.primary
+		else -> MaterialTheme.colorScheme.outlineVariant
 	}
-	val labelColor = if (emphasised) {
-		MaterialTheme.colorScheme.primary
-	} else {
-		MaterialTheme.colorScheme.onSurface
+	val labelColor = when {
+		danger -> MaterialTheme.colorScheme.error
+		emphasised -> MaterialTheme.colorScheme.primary
+		else -> MaterialTheme.colorScheme.onSurface
 	}
 	Box(
 		modifier = modifier

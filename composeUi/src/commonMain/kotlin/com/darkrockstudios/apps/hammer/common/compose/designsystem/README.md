@@ -192,6 +192,21 @@ These set up the page. Use them before reaching for raw `Column` /
 - **[`HdHairlineGrid`](HdHairlineGrid.kt)** — N-column grid with
   hairlines between every cell. For paired numeric stats on narrow
   layouts where a single-column stack feels limp.
+- **[`HdCatalogueCard`](HdCatalogueCard.kt)** — doubled-hairline
+  library-card affordance for highlighting one section above the rest.
+  Outer + inner hairline borders separated by a 6dp gap, with up to
+  four corner greeble slots (`topStart` / `topEnd` / `bottomStart` /
+  `bottomEnd`) that "punch through" the inner border with a
+  `surface`-colored background. Use *sparingly* — its job is to make
+  one group louder than the marginalia rules around it. Greebles
+  follow the "must mean something" rule; leave a slot null rather
+  than fabricate.
+
+      ┌──────────────────────────────────────────────────┐
+      │ ┌──[ § III · SYNC ]────────────[ CONNECTED ]──┐  │
+      │ │   <body content>                             │  │
+      │ └─[ KTOR · HTTPS ]─────────[ LAST SYNC 14:32 ]┘  │
+      └──────────────────────────────────────────────────┘
 
 ### Mono & numeric labels
 
@@ -246,6 +261,18 @@ The handwriting of the system. Reach for these instead of styling
   centered `+` tile, mono hint, and a "browse files" affordance.
   Populated state shows the image with a hairline-bordered remove
   affordance.
+- **[`HdHairlineCheckbox`](HdHairlineCheckbox.kt)** — square hairline
+  checkbox. Empty when unchecked; primary fill + check glyph when
+  checked. Pair with [`HdHairlineToggleRow`](HdHairlineToggleRow.kt)
+  for the full row pattern.
+- **[`HdHairlineToggleRow`](HdHairlineToggleRow.kt)** —
+  `[ ✓ ]  Label` clickable row with optional hint line. The default
+  toggle pattern; replaces M3 `Checkbox` + `Text` rows.
+- **[`HdHairlineSegmentedPicker`](HdHairlineSegmentedPicker.kt)** —
+  generic segmented hairline picker `[ DAY │ WEEK ]`. Cells share
+  borders by overlapping 1dp; selected cell takes `onSurface` border
+  and label color, the rest stay muted. Use for small enums (3–4
+  values) where a dropdown would feel out of vocabulary.
 
 ### Categorization
 
