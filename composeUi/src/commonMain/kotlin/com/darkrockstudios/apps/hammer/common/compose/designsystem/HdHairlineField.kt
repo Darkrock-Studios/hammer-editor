@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -43,6 +45,10 @@ fun HdHairlineField(
 	maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
 	imeAction: ImeAction = if (singleLine) ImeAction.Next else ImeAction.Default,
 	capitalization: KeyboardCapitalization = KeyboardCapitalization.Sentences,
+	keyboardType: KeyboardType = KeyboardType.Text,
+	visualTransformation: VisualTransformation = VisualTransformation.None,
+	enabled: Boolean = true,
+	trailing: (@Composable () -> Unit)? = null,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
 		Row(
@@ -68,34 +74,45 @@ fun HdHairlineField(
 		val onSurface = MaterialTheme.colorScheme.onSurface
 		val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
 		val errorColor = MaterialTheme.colorScheme.error
+		val textColor = if (enabled) onSurface else mutedColor
 		val textStyle = (if (singleLine) MaterialTheme.typography.bodyLarge
 		else MaterialTheme.typography.bodyMedium)
-			.copy(color = onSurface)
+			.copy(color = textColor)
 
-		Box(
+		Row(
 			modifier = Modifier
 				.fillMaxWidth()
 				.padding(top = 6.dp, bottom = 6.dp),
+			verticalAlignment = Alignment.CenterVertically,
 		) {
-			BasicTextField(
-				value = value,
-				onValueChange = onValueChange,
-				modifier = Modifier.fillMaxWidth(),
-				singleLine = singleLine,
-				minLines = minLines,
-				maxLines = maxLines,
-				textStyle = textStyle,
-				cursorBrush = SolidColor(onSurface),
-				keyboardOptions = KeyboardOptions(
-					imeAction = imeAction,
-					capitalization = capitalization,
-				),
-			)
-			if (value.isEmpty() && placeholder != null) {
-				Text(
-					text = placeholder,
-					style = textStyle.copy(color = mutedColor),
+			Box(modifier = Modifier.weight(1f)) {
+				BasicTextField(
+					value = value,
+					onValueChange = onValueChange,
+					modifier = Modifier.fillMaxWidth(),
+					enabled = enabled,
+					singleLine = singleLine,
+					minLines = minLines,
+					maxLines = maxLines,
+					textStyle = textStyle,
+					cursorBrush = SolidColor(onSurface),
+					visualTransformation = visualTransformation,
+					keyboardOptions = KeyboardOptions(
+						imeAction = imeAction,
+						capitalization = capitalization,
+						keyboardType = keyboardType,
+					),
 				)
+				if (value.isEmpty() && placeholder != null) {
+					Text(
+						text = placeholder,
+						style = textStyle.copy(color = mutedColor),
+					)
+				}
+			}
+			if (trailing != null) {
+				Spacer(modifier = Modifier.size(8.dp))
+				trailing()
 			}
 		}
 		HorizontalDivider(

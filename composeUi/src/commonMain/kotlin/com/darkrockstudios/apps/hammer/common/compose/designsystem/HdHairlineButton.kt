@@ -32,22 +32,25 @@ fun HdHairlineButton(
 	modifier: Modifier = Modifier,
 	emphasised: Boolean = false,
 	danger: Boolean = false,
+	enabled: Boolean = true,
 ) {
-	val borderColor = when {
+	val activeBorder = when {
 		danger -> MaterialTheme.colorScheme.error
 		emphasised -> MaterialTheme.colorScheme.primary
 		else -> MaterialTheme.colorScheme.outlineVariant
 	}
-	val labelColor = when {
+	val activeLabel = when {
 		danger -> MaterialTheme.colorScheme.error
 		emphasised -> MaterialTheme.colorScheme.primary
 		else -> MaterialTheme.colorScheme.onSurface
 	}
+	val borderColor = if (enabled) activeBorder else MaterialTheme.colorScheme.outlineVariant
+	val labelColor = if (enabled) activeLabel else MaterialTheme.colorScheme.onSurfaceVariant
 	Box(
 		modifier = modifier
 			.heightIn(min = 32.dp)
 			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
-			.clickable(onClick = onClick)
+			.clickable(enabled = enabled, onClick = onClick)
 			.padding(horizontal = Ui.Padding.L, vertical = 6.dp),
 		contentAlignment = Alignment.Center,
 	) {
