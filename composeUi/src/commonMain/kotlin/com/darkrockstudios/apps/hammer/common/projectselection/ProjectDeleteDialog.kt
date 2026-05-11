@@ -1,26 +1,35 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.Res
+import androidx.compose.ui.window.DialogProperties
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.delete_project_cancel
-import com.darkrockstudios.apps.hammer.delete_project_confirm
-import com.darkrockstudios.apps.hammer.delete_project_confirm_hint
-import com.darkrockstudios.apps.hammer.delete_project_title
-import com.darkrockstudios.apps.hammer.delete_project_warning
 import org.jetbrains.compose.resources.stringResource
+
+private val DialogMaxWidth = 480.dp
 
 @Composable
 fun ProjectDeleteDialog(
@@ -28,75 +37,164 @@ fun ProjectDeleteDialog(
 	projectDef: ProjectDef,
 	close: () -> Unit
 ) {
-	SimpleDialog(
-		onCloseRequest = close,
-		visible = true,
-		title = Res.string.delete_project_title.get(),
-		modifier = Modifier.widthIn(min = 320.dp, max = 400.dp)
+	var isOpen by remember { mutableStateOf(true) }
+	var confirmationText by rememberSaveable { mutableStateOf("") }
+	val isConfirmed = confirmationText.trim().equals(projectDef.name, ignoreCase = true)
+	val showMismatch = confirmationText.isNotBlank() && !isConfirmed
+
+	AnimatedDialogContainer(
+		isOpen = isOpen,
+		onDismissRequest = { isOpen = false },
+		onClosed = close,
+		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		var confirmationText by rememberSaveable { mutableStateOf("") }
-
-		val isConfirmed = confirmationText.trim().equals(projectDef.name, ignoreCase = true)
-
-		Column(
+		Surface(
 			modifier = Modifier
+				.padding(Ui.Padding.M)
+				.widthIn(max = DialogMaxWidth)
 				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.L)
-				.padding(bottom = Ui.Padding.L)
+				.predictiveBackTransform(),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
 		) {
-			Text(
-				text = Res.string.delete_project_warning.get(),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.error
-			)
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			OutlinedTextField(
-				value = confirmationText,
-				onValueChange = { confirmationText = it },
-				label = { Text(stringResource(Res.string.delete_project_confirm_hint, projectDef.name)) },
-				singleLine = true,
-				modifier = Modifier.fillMaxWidth(),
-				keyboardOptions = KeyboardOptions(
-					imeAction = ImeAction.Done
-				),
-				keyboardActions = KeyboardActions(
-					onDone = {
-						if (isConfirmed) {
-							component.deleteProject(projectDef)
-							close()
-						}
-					}
+			Column {
+				Masthead(
+					projectName = projectDef.name,
+					onClose = { isOpen = false },
 				)
-			)
+				HdFolioDivider()
 
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
+				Text(
+					text = Res.string.delete_project_title.get(),
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							start = Ui.Padding.XL,
+							end = Ui.Padding.XL,
+							top = Ui.Padding.L,
+							bottom = Ui.Padding.S,
+						),
+				)
 
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End
-			) {
-				TextButton(onClick = close) {
-					Text(Res.string.delete_project_cancel.get())
-				}
-
-				Spacer(modifier = Modifier.width(Ui.Padding.M))
-
-				Button(
-					onClick = {
-						component.deleteProject(projectDef)
-						close()
-					},
-					enabled = isConfirmed,
-					colors = ButtonDefaults.buttonColors(
-						containerColor = MaterialTheme.colorScheme.error,
-						contentColor = MaterialTheme.colorScheme.onError
-					)
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							start = Ui.Padding.XL,
+							end = Ui.Padding.XL,
+							top = Ui.Padding.L,
+							bottom = Ui.Padding.L,
+						),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					Text(Res.string.delete_project_confirm.get())
+					Text(
+						text = Res.string.delete_project_warning.get(),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.error,
+					)
+
+					HdHairlineField(
+						label = "CONFIRM NAME",
+						value = confirmationText,
+						onValueChange = { confirmationText = it },
+						placeholder = stringResource(
+							Res.string.delete_project_confirm_hint,
+							projectDef.name,
+						),
+						hint = projectDef.name,
+						singleLine = true,
+						imeAction = ImeAction.Done,
+						error = if (showMismatch) "Does not match" else null,
+					)
 				}
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
+				ActionRow(
+					confirmEnabled = isConfirmed,
+					onCancel = { isOpen = false },
+					onConfirm = {
+						component.deleteProject(projectDef)
+						isOpen = false
+					},
+				)
 			}
 		}
+	}
+}
+
+@Composable
+private fun Masthead(
+	projectName: String,
+	onClose: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMonoLabel(
+			text = "§ DELETE PROJECT",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		MastheadSeparator()
+		HdMonoLabel(text = projectName)
+		Spacer(modifier = Modifier.weight(1f))
+		HdMonoLabel(
+			text = "× CLOSE",
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier
+				.clickable(onClick = onClose)
+				.padding(vertical = 4.dp, horizontal = 4.dp),
+		)
+	}
+}
+
+@Composable
+private fun MastheadSeparator() {
+	Box(
+		modifier = Modifier
+			.height(12.dp)
+			.width(Dp.Hairline)
+			.background(MaterialTheme.colorScheme.outlineVariant),
+	)
+}
+
+@Composable
+private fun ActionRow(
+	confirmEnabled: Boolean,
+	onCancel: () -> Unit,
+	onConfirm: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		HdHairlineButton(
+			label = Res.string.delete_project_cancel.get(),
+			onClick = onCancel,
+		)
+		Spacer(modifier = Modifier.weight(1f))
+		HdHairlineButton(
+			label = Res.string.delete_project_confirm.get(),
+			onClick = onConfirm,
+			danger = true,
+			enabled = confirmEnabled,
+		)
 	}
 }
