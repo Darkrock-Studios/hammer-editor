@@ -2,9 +2,11 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -12,6 +14,11 @@ import androidx.compose.ui.unit.dp
  * Dashboard section: a left-side hairline bracket runs the full height of
  * the section, marrying the [HdSectionHeader] to its content like a
  * marginalia rule on a manuscript page. Content is inset to clear the rule.
+ *
+ * The bracket is drawn via [drawBehind] rather than a child [VerticalDivider]
+ * with IntrinsicSize.Min — that approach forces intrinsic measurement of
+ * descendants, which crashes when any child is a SubcomposeLayout (KoalaPlot
+ * PieChart, lazy lists, BoxWithConstraints, etc.).
  */
 @Composable
 fun HdHairlineSection(
@@ -22,29 +29,30 @@ fun HdHairlineSection(
 	contentSpacing: Dp = 16.dp,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
-	Row(
+	val dividerColor = MaterialTheme.colorScheme.outlineVariant
+	val strokePx = with(LocalDensity.current) { Dp.Hairline.toPx().coerceAtLeast(1f) }
+	Column(
 		modifier = modifier
 			.fillMaxWidth()
-			.height(IntrinsicSize.Min),
+			.drawBehind {
+				val x = strokePx / 2f
+				drawLine(
+					color = dividerColor,
+					start = Offset(x, 0f),
+					end = Offset(x, size.height),
+					strokeWidth = strokePx,
+				)
+			}
+			.padding(start = 16.dp),
+		verticalArrangement = Arrangement.spacedBy(contentSpacing),
 	) {
-		VerticalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
+		HdSectionHeader(
+			section = section,
+			title = title,
+			modifier = Modifier.fillMaxWidth(),
+			trailing = headerTrailing,
 		)
-		Column(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(start = 16.dp),
-			verticalArrangement = Arrangement.spacedBy(contentSpacing),
-		) {
-			HdSectionHeader(
-				section = section,
-				title = title,
-				modifier = Modifier.fillMaxWidth(),
-				trailing = headerTrailing,
-			)
-			content()
-		}
+		content()
 	}
 }
 
