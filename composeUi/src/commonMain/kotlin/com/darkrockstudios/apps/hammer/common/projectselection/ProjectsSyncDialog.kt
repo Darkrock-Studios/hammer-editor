@@ -2,8 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -16,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,14 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.accentColor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import kotlinx.coroutines.launch
@@ -189,7 +179,7 @@ private fun TitleAndToolbar(
 		Spacer(modifier = Modifier.weight(1f))
 
 		if (!syncComplete) {
-			ToolBtn(active = false, onClick = onStop) {
+			HdToolButton(active = false, onClick = onStop) {
 				Box(
 					modifier = Modifier
 						.size(9.dp)
@@ -198,53 +188,8 @@ private fun TitleAndToolbar(
 			}
 		}
 
-		ToolBtn(active = inLogView, onClick = onToggleLog) {
-			LogGlyph()
-		}
-	}
-}
-
-@Composable
-private fun ToolBtn(
-	active: Boolean,
-	onClick: () -> Unit,
-	content: @Composable () -> Unit,
-) {
-	val borderColor = if (active) {
-		MaterialTheme.colorScheme.outline
-	} else {
-		MaterialTheme.colorScheme.outlineVariant
-	}
-	val bg = if (active) {
-		MaterialTheme.colorScheme.surfaceContainerHigh
-	} else {
-		Color.Transparent
-	}
-	Box(
-		modifier = Modifier
-			.size(30.dp)
-			.background(bg)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
-			.clickable(onClick = onClick),
-		contentAlignment = Alignment.Center,
-	) {
-		content()
-	}
-}
-
-@Composable
-private fun LogGlyph() {
-	Column(
-		verticalArrangement = Arrangement.spacedBy(2.dp),
-		horizontalAlignment = Alignment.CenterHorizontally,
-	) {
-		repeat(3) {
-			Box(
-				modifier = Modifier
-					.width(12.dp)
-					.height(1.dp)
-					.background(MaterialTheme.colorScheme.onSurfaceVariant),
-			)
+		HdToolButton(active = inLogView, onClick = onToggleLog) {
+			HdLogGlyph()
 		}
 	}
 }
