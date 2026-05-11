@@ -86,7 +86,7 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 
 // Manuscript shape system — every M3 component reads square corners by
 // default. Per-component rounding (e.g. chart bars) is opted in
-// explicitly. See designsystem/README.md.
+// explicitly. See designsystem/DESIGN_README.md.
 private val SquareCorners = RoundedCornerShape(0.dp)
 private val HammerShapes = Shapes(
 	extraSmall = SquareCorners,
