@@ -244,6 +244,15 @@ The handwriting of the system. Reach for these instead of styling
   `primary` for the "Save" half of a Save / Cancel pair.
 - **[`HdFab`](HdFab.kt)** — square FAB, primary fill, hairline
   outline, no elevation. Replaces M3 `FloatingActionButton`.
+- **[`HdToolButton`](HdToolButton.kt)** — 30dp square hairline
+  toolbar action with a centered slot the caller fills with a glyph.
+  `active = true` flips the border to `outline` and fills the
+  background with `surfaceContainerHigh` so the button reads as
+  "currently engaged". Use for compact dialog-toolbar toggles (log
+  tail, stop) — too small for [`HdHairlineButton`](HdHairlineButton.kt)'s
+  label, too chrome-light for an M3 `IconButton`. Pair with
+  [`HdLogGlyph`](HdToolButton.kt) — three stacked hairlines — for
+  the log/list toggle glyph.
 - **[`HdHairlineField`](HdHairlineField.kt)** — labeled
   hairline-underline text field. Mono label + optional hint and
   counter, chrome-less `BasicTextField`, hairline rule below. The
