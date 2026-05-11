@@ -171,33 +171,11 @@ internal fun ServerSetupHelpDialog(onDismiss: () -> Unit) {
 
 @Composable
 private fun Masthead(onClose: () -> Unit) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ HELP · SYNC SERVERS",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Box(
-			modifier = Modifier
-				.height(12.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-		HdMonoLabel(text = "§§ $SECTION_COUNT")
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "× CLOSE",
-			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier
-				.clickable(onClick = onClose)
-				.padding(vertical = 4.dp, horizontal = 4.dp),
-		)
-	}
+	HdMasthead(
+		section = "HELP · SYNC SERVERS",
+		leadingMeta = listOf("§§ $SECTION_COUNT"),
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
+	)
 }
 
 @Composable

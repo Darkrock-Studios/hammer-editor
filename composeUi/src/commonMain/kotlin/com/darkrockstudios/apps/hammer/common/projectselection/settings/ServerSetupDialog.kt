@@ -237,50 +237,17 @@ private fun Masthead(
 	onHelp: () -> Unit,
 	onClose: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ SERVER SETUP",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		if (existingServer) {
-			MastheadSeparator()
-			HdMonoLabel(text = "EXISTING")
-		}
-		if (loggedIn) {
-			MastheadSeparator()
-			HdMonoLabel(text = "CONNECTED")
-		}
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "? HELP",
-			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier
-				.clickable(onClick = onHelp)
-				.padding(vertical = 4.dp, horizontal = 4.dp),
-		)
-		HdMonoLabel(
-			text = "× CLOSE",
-			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier
-				.clickable(onClick = onClose)
-				.padding(vertical = 4.dp, horizontal = 4.dp),
-		)
+	val meta = buildList {
+		if (existingServer) add("EXISTING")
+		if (loggedIn) add("CONNECTED")
 	}
-}
-
-@Composable
-private fun MastheadSeparator() {
-	Box(
-		modifier = Modifier
-			.height(12.dp)
-			.width(Dp.Hairline)
-			.background(MaterialTheme.colorScheme.outlineVariant),
+	HdMasthead(
+		section = "SERVER SETUP",
+		leadingMeta = meta,
+		trailing = {
+			HdMastheadAction(label = "? HELP", onClick = onHelp)
+			HdMastheadAction(label = "× CLOSE", onClick = onClose)
+		},
 	)
 }
 
