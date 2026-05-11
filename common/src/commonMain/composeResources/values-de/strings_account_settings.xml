@@ -54,7 +54,7 @@
 	<string name="settings_dnd_permission_explanation">Hammer benötigt die Berechtigung, um \"Nicht stören-Modus\" zu aktivieren, wenn du dich im Fokus-Modus befindest.</string>
 	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Rechtschreibung überprüfen</string>
-	<string name="settings_spellcheck_notice">Rechtschreibprüfung ist experimentell! Wenn sie Probleme verursacht, schalte sie einfach aus.</string>
+	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.</string>
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren (experimentell)</string>
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
