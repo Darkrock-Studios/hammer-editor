@@ -24,7 +24,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import org.jetbrains.compose.resources.stringResource
@@ -138,37 +139,10 @@ private fun Masthead(
 	projectName: String,
 	onClose: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ DELETE PROJECT",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		MastheadSeparator()
-		HdMonoLabel(text = projectName)
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "× CLOSE",
-			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier
-				.clickable(onClick = onClose)
-				.padding(vertical = 4.dp, horizontal = 4.dp),
-		)
-	}
-}
-
-@Composable
-private fun MastheadSeparator() {
-	Box(
-		modifier = Modifier
-			.height(12.dp)
-			.width(Dp.Hairline)
-			.background(MaterialTheme.colorScheme.outlineVariant),
+	HdMasthead(
+		section = "DELETE PROJECT",
+		leadingMeta = listOf(projectName),
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
 	)
 }
 

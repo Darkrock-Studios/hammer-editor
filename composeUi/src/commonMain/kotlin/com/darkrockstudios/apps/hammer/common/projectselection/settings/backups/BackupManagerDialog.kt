@@ -24,6 +24,8 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -152,35 +154,11 @@ private fun Masthead(
 	backupCount: Int,
 	onClose: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ BACKUPS",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		if (backupCount > 0) {
-			Box(
-				modifier = Modifier
-					.height(12.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-			HdMonoLabel(text = "§§ $backupCount")
-		}
-		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = "× CLOSE",
-			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier
-				.clickable(onClick = onClose)
-				.padding(vertical = 4.dp, horizontal = 4.dp),
-		)
-	}
+	HdMasthead(
+		section = "BACKUPS",
+		leadingMeta = if (backupCount > 0) listOf("§§ $backupCount") else emptyList(),
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
+	)
 }
 
 @Composable

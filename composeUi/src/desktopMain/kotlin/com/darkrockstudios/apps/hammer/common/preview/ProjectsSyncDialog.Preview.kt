@@ -1,108 +1,60 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.router.slot.ChildSlot
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.Padded
-import com.darkrockstudios.apps.hammer.common.components.ToastMessage
-import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
-import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.Msg
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectStatusUi
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectsSyncDialogContents
-import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogContents
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogD
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogD
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 
 @Preview
 @Composable
-private fun ProjectsSyncDialogPreview() = Padded {
-	Box(modifier = Modifier.border(1.dp, Color.Black).padding(16.dp)) {
-		ProjectsSyncDialogContents(
-			component = fakeProjectsList
-		)
+private fun SyncLogRowsPreview() = Padded {
+	Column(
+		modifier = Modifier.fillMaxWidth().padding(16.dp),
+		verticalArrangement = Arrangement.spacedBy(4.dp),
+	) {
+		SyncLogMessageUi(syncLogI("Sync started", "Apophis"))
+		SyncLogMessageUi(syncLogD("Diff scan complete", "Apophis"))
+		SyncLogMessageUi(syncLogW("Scene 12 — local newer, kept local", "Insurgency"))
+		SyncLogMessageUi(syncLogE("Connection lost (504) — queued for retry", "Alice In Wonderland"))
+		SyncLogMessageUi(syncAccLogD("Sync started · 8 projects"))
 	}
 }
 
 @Preview
 @Composable
-private fun ProjectsSyncLogPreview() = Padded {
-	Box(modifier = Modifier.border(1.dp, Color.Black).padding(16.dp)) {
-		SyncLogContents(component = fakeProjectsList)
+private fun StatusGlyphPreview() = Padded {
+	Column(
+		modifier = Modifier.padding(16.dp),
+		verticalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		HdStatus.entries.forEach { status -> HdStatusGlyph(status) }
 	}
 }
 
 @Preview
 @Composable
-private fun ProjectStatusUiPreview() = Padded {
-	val notStarted = ProjectsList.ProjectSyncStatus("Test Project 1")
-	ProjectStatusUi(notStarted)
-}
-
-private val fakeProjectsList = object : ProjectsList {
-	override val state: Value<ProjectsList.State> = MutableValue(
-		ProjectsList.State(
-			projectsPath = HPath("", "", true), syncState = ProjectsList.SyncState(
-				syncComplete = false, projectsStatus = mapOf(
-					"Test Project 1" to ProjectsList.ProjectSyncStatus("Test Project 1"),
-					"Test Project 2" to ProjectsList.ProjectSyncStatus(
-						"Test Project 2", 0.25f, ProjectsList.Status.Syncing
-					),
-					"Test Project 3" to ProjectsList.ProjectSyncStatus(
-						"Test Project 3", 0.5f, ProjectsList.Status.Failed
-					),
-					"Test Project 4" to ProjectsList.ProjectSyncStatus(
-						"Test Project 4", 1f, ProjectsList.Status.Complete
-					),
-
-					), syncLog = listOf(
-					syncLogI("Log 1 asd qwe zxc dasd qwe", "Project1"),
-					syncLogW("Log 2 asd qwe zxc dasd qwe", "Project1"),
-					syncLogE("Log 3 asd qwe zxc dasd qwe", "Project1"),
-					syncLogD("Log 4 asd qwe zxc dasd qwe", "Project1"),
-					syncAccLogD("Log 4 asd qwe zxc dasd qwe"),
-				)
-			)
-		)
-	)
-	override val modalRouterState: Value<ChildSlot<ProjectListModalRouter.Config, ProjectsList.ModalDestination>>
-		get() = TODO("Not yet implemented")
-	override val toast: Flow<ToastMessage> = MutableSharedFlow()
-	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}
-	override fun showToast(scope: CoroutineScope, message: String) {}
-	override fun showToast(scope: CoroutineScope, message: Msg) {}
-	override suspend fun showToast(message: StringResource, vararg params: Any) {}
-	override suspend fun showToast(message: String) {}
-	override suspend fun showToast(message: Msg) {}
-	override fun loadProjectList() {}
-	override fun selectProject(projectDef: ProjectDef) {}
-	override fun showCreate() {}
-	override fun hideCreate() {}
-	override fun createProject(projectName: String) {}
-	override fun deleteProject(projectDef: ProjectDef) {}
-	override fun renameProject(projectDef: ProjectDef, newName: String) {}
-	override fun syncProjects(callback: (Boolean) -> Unit) {}
-	override fun showProjectsSync() {}
-	override fun hideProjectsSync() {}
-	override fun cancelProjectsSync() {}
-	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? = null
-	override fun onProjectNameUpdate(newProjectName: String) {}
-	override fun showProjectRename(projectDef: ProjectDef) {}
-	override fun dismissProjectRename() {}
-	override fun showProjectDelete(projectDef: ProjectDef) {}
-	override fun dismissProjectDelete() {}
+private fun HairlineProgressBarPreview() = Padded {
+	Column(
+		modifier = Modifier.fillMaxWidth().padding(16.dp),
+		verticalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		HdHairlineProgressBar(progress = 0f)
+		HdHairlineProgressBar(progress = 0.33f)
+		HdHairlineProgressBar(progress = 0.66f)
+		HdHairlineProgressBar(progress = 1f)
+	}
 }
