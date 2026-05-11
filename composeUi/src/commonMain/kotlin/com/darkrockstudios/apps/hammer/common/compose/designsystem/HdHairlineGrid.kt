@@ -1,18 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -42,20 +37,32 @@ fun HdHairlineGrid(
 	if (cells.isEmpty()) return
 	val rows = cells.chunked(columns)
 	val dividerColor = MaterialTheme.colorScheme.outlineVariant
+	val strokePx = with(LocalDensity.current) { Dp.Hairline.toPx().coerceAtLeast(1f) }
+	// Vertical dividers are drawn via drawBehind instead of being placed as
+	// child VerticalDividers inside a height(IntrinsicSize.Min) row, because
+	// that approach crashes when a cell contains a SubcomposeLayout.
 	Column(modifier = modifier.fillMaxWidth()) {
 		rows.forEachIndexed { rowIdx, rowCells ->
 			if (rowIdx > 0) {
 				HorizontalDivider(thickness = Dp.Hairline, color = dividerColor)
 			}
-			Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-				rowCells.forEachIndexed { colIdx, cell ->
-					if (colIdx > 0) {
-						VerticalDivider(
-							modifier = Modifier.fillMaxHeight(),
-							thickness = Dp.Hairline,
-							color = dividerColor,
-						)
-					}
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.drawBehind {
+						val step = size.width / columns
+						for (i in 1 until columns) {
+							val x = step * i
+							drawLine(
+								color = dividerColor,
+								start = Offset(x, 0f),
+								end = Offset(x, size.height),
+								strokeWidth = strokePx,
+							)
+						}
+					},
+			) {
+				rowCells.forEach { cell ->
 					Box(
 						modifier = Modifier
 							.weight(1f)
