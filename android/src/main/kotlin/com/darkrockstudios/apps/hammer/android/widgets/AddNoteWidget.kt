@@ -55,6 +55,16 @@ class AddNoteWidget : GlanceAppWidget() {
 		}
 	}
 
+	override suspend fun providePreview(context: Context, widgetCategory: Int) {
+		provideContent {
+			AddNoteWidgetContent(
+				projectName = "Apophis",
+				accentHex = "#5A66B5",
+				onClick = getAddNoteActionCallback(null),
+			)
+		}
+	}
+
 	private fun getAddNoteActionCallback(projectName: String?): Action {
 		return actionRunCallback<AddNoteClickAction>(
 			actionParametersOf(AddNoteActionParameterKey to (projectName ?: ""))
@@ -70,7 +80,9 @@ private fun AddNoteWidgetContent(
 ) {
 	val accent = remember(accentHex) { parseAccent(accentHex) }
 	val num = remember(projectName) { stableProjectNumber(projectName) }
-	val tag = remember(projectName) { projectTag(projectName) }
+	val header = remember(projectName, num) {
+		if (projectName.isNullOrBlank()) "§ $num · ANY" else "§ $num · $projectName"
+	}
 
 	Box(
 		modifier = GlanceModifier
@@ -94,20 +106,11 @@ private fun AddNoteWidgetContent(
 					.fillMaxHeight()
 					.padding(horizontal = 8.dp, vertical = 6.dp),
 			) {
-				Row(
-					modifier = GlanceModifier.fillMaxWidth(),
-					verticalAlignment = Alignment.Vertical.Top,
-				) {
-					Text(
-						text = "§ $num",
-						style = monoMicroStyle(widgetColor { it.onSurfaceVariant }),
-					)
-					Box(modifier = GlanceModifier.defaultWeight()) {}
-					Text(
-						text = tag,
-						style = monoMicroStyle(widgetColor { it.onSurfaceMuted }),
-					)
-				}
+				Text(
+					text = header,
+					maxLines = 1,
+					style = monoMicroStyle(widgetColor { it.onSurfaceVariant }),
+				)
 
 				Box(
 					modifier = GlanceModifier.defaultWeight().fillMaxWidth(),

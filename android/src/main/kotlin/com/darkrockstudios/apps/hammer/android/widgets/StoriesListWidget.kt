@@ -57,7 +57,18 @@ class StoriesListWidget : GlanceAppWidget() {
 		val rows = withContext(Dispatchers.IO) { loadRows() }
 		provideContent { StoriesListWidgetContent(rows) }
 	}
+
+	override suspend fun providePreview(context: Context, widgetCategory: Int) {
+		provideContent { StoriesListWidgetContent(SAMPLE_ROWS) }
+	}
 }
+
+private val SAMPLE_ROWS = listOf(
+	StoryRow(name = "Apophis", path = "p/apophis", accentHex = "#5A66B5", words = 81402, lastAccessed = null),
+	StoryRow(name = "Alice In Wonderland", path = "p/alice", accentHex = "#B65648", words = 26890, lastAccessed = null),
+	StoryRow(name = "The Pilgrimage", path = "p/pilgrim", accentHex = "#6750A4", words = 54310, lastAccessed = null),
+	StoryRow(name = "Longshore Drift", path = "p/longshore", accentHex = "#5B8A58", words = 18204, lastAccessed = null),
+)
 
 @Immutable
 private data class StoryRow(
@@ -116,7 +127,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 					text = "HAMMER · LIBRARY",
 					style = monoMicroStyle(widgetColor { it.onSurfaceVariant }),
 				)
-				Box(modifier = GlanceModifier.defaultWeight()) {}
+				Spacer(modifier = GlanceModifier.defaultWeight())
 				Text(
 					text = if (rows.isEmpty()) "—" else "${rows.size} STORIES",
 					style = monoMicroStyle(widgetColor { it.onSurface }),
@@ -161,7 +172,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 					text = "FOL. 00",
 					style = monoMicroStyle(widgetColor { it.onSurfaceDim }),
 				)
-				Box(modifier = GlanceModifier.defaultWeight()) {}
+				Spacer(modifier = GlanceModifier.defaultWeight())
 				Text(
 					text = "TAP TO OPEN",
 					style = monoMicroStyle(widgetColor { it.onSurfaceDim }),
@@ -206,7 +217,7 @@ private fun StoryRowUi(row: StoryRow) {
 			}
 			Spacer(modifier = GlanceModifier.width(8.dp))
 			Text(
-				text = formatWords(row.words),
+				text = "${formatWidgetWords(row.words)} w",
 				style = monoMicroStyle(widgetColor { it.onSurfaceMuted }, size = 10.sp),
 			)
 			Spacer(modifier = GlanceModifier.width(6.dp))
@@ -230,12 +241,6 @@ private fun titleStyle(): TextStyle = TextStyle(
 	fontFamily = FontFamily.Serif,
 	fontWeight = FontWeight.Medium,
 )
-
-private fun formatWords(words: Int?): String = when {
-	words == null -> "— w"
-	words >= 1000 -> "%.1fk w".format(words / 1000.0)
-	else -> "$words w"
-}
 
 private const val ACTION_KEY_OPEN_PROJECT_NAME = "open_project_name"
 private val OpenProjectNameKey = ActionParameters.Key<String>(ACTION_KEY_OPEN_PROJECT_NAME)

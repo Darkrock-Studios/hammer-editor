@@ -43,6 +43,15 @@ data class WritingActivityDerived(
 }
 
 /**
+ * Parse the raw `dailyWordTotals` map (string-keyed for TOML serialization)
+ * into a [LocalDate]-keyed map. Unparseable keys are silently dropped.
+ */
+fun parseDailyWordTotals(dailyWordTotals: Map<String, Int>): Map<LocalDate, Int> =
+	dailyWordTotals.mapNotNull { (key, value) ->
+		runCatching { LocalDate.parse(key) }.getOrNull()?.let { it to value }
+	}.toMap()
+
+/**
  * Derives time-sensitive writing-activity stats from a per-day word total map.
  *
  * The map only needs entries for days the user actually wrote (positive values);

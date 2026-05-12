@@ -1,11 +1,21 @@
 package com.darkrockstudios.apps.hammer.android
 
 import android.app.Application
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
+import android.content.ComponentName
+import android.os.Build
+import androidx.collection.intSetOf
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
+import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
+import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
+import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
@@ -54,6 +64,39 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		applicationScope.launch {
 			getKoin().get<ProjectShortcutsManager>().refresh()
 		}
+
+		publishWidgetPreviews()
+	}
+
+	private fun publishWidgetPreviews() {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
+		applicationScope.launch {
+			val appWidgetManager = getSystemService(AppWidgetManager::class.java) ?: return@launch
+			val glanceManager = GlanceAppWidgetManager(this@HammerApplication)
+			val receivers = listOf(
+				AddNoteWidgetReceiver::class,
+				StoriesListWidgetReceiver::class,
+				StoryInfoWidgetReceiver::class,
+			)
+			receivers
+				.filter { needsPublish(appWidgetManager, it.java) }
+				.forEach { receiver ->
+					runCatching {
+						glanceManager.setWidgetPreviews(receiver, intSetOf(WIDGET_CATEGORY_HOME_SCREEN))
+					}.onFailure { Napier.w(it) { "Failed to publish previews for $receiver" } }
+				}
+		}
+	}
+
+	@androidx.annotation.RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+	private fun needsPublish(
+		appWidgetManager: AppWidgetManager,
+		receiverClass: Class<out GlanceAppWidgetReceiver>,
+	): Boolean {
+		val componentName = ComponentName(this, receiverClass)
+		val info = appWidgetManager.installedProviders.firstOrNull { it.provider == componentName }
+			?: return true
+		return (info.generatedPreviewCategories and WIDGET_CATEGORY_HOME_SCREEN) == 0
 	}
 
 	override fun newImageLoader(context: coil3.PlatformContext): ImageLoader {
