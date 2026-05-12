@@ -76,7 +76,7 @@ fun main(args: Array<String>) {
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
-		modules(mainModule, imageLoadingModule, aboutLibrariesModule, appModule(appScope))
+		modules(mainModule, imageLoadingModule, aboutLibrariesModule, desktopModule, appModule(appScope))
 	}
 
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }

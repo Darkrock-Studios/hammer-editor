@@ -32,6 +32,7 @@ kotlin {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.aboutlibraries.core)
+				implementation(libs.multiplatform.settings)
 			}
 		}
 		val jvmMain by getting {
