@@ -12,7 +12,7 @@ class ProjectStatisticsCacheReader(
 	private val toml: Toml,
 ) {
 
-	fun loadTotalWords(projectDef: ProjectDef): Int? {
+	fun loadStatistics(projectDef: ProjectDef): ProjectStatistics? {
 		val file = StatisticsCachePaths.statsFile(projectDef)
 		if (!fileSystem.exists(file)) return null
 
@@ -24,6 +24,8 @@ class ProjectStatisticsCacheReader(
 		}
 
 		if (stats.schemaVersion != ProjectStatistics.CURRENT_SCHEMA_VERSION) return null
-		return stats.totalWords
+		return stats
 	}
+
+	fun loadTotalWords(projectDef: ProjectDef): Int? = loadStatistics(projectDef)?.totalWords
 }

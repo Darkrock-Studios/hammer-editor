@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDe
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -35,7 +36,6 @@ import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.koin.core.component.inject
@@ -231,11 +231,7 @@ class ProjectHomeComponent(
 	private fun subscribeToStats() {
 		scope.launch {
 			statisticsService.statsFlow.collect { stats ->
-				val dailyTotals = stats.dailyWordTotals.entries
-					.mapNotNull { (key, value) ->
-						runCatching { LocalDate.parse(key) }.getOrNull()?.let { it to value }
-					}
-					.toMap()
+				val dailyTotals = parseDailyWordTotals(stats.dailyWordTotals)
 				val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
 				val derived = deriveWritingStats(dailyTotals, today)
 				withContext(dispatcherMain) {

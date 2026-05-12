@@ -1,14 +1,26 @@
 package com.darkrockstudios.apps.hammer.android.widgets
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.GlanceModifier
+import androidx.glance.background
 import androidx.glance.color.ColorProvider
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Row
+import androidx.glance.layout.fillMaxHeight
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
 import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider as SingleColorProvider
 import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
  * Editorial / folio palette ported from the Claude Design "Hammer · Android
@@ -53,7 +65,7 @@ internal fun widgetColor(pick: (WidgetColors) -> Color): androidx.glance.unit.Co
 	ColorProvider(day = pick(lightWidgetColors), night = pick(darkWidgetColors))
 
 internal fun singleWidgetColor(color: Color): androidx.glance.unit.ColorProvider =
-	SingleColorProvider(color)
+	ColorProvider(day = color, night = color)
 
 /** Fallback stripe color when a project has no custom theme — the design's HAMMER_LIGHT.primary purple. */
 internal val FallbackAccent: Color = Color(0xFF6750A4)
@@ -69,13 +81,6 @@ internal fun stableProjectNumber(projectName: String?): String {
 	if (projectName.isNullOrBlank()) return "??"
 	val n = projectName.hashCode().absoluteValue % 100
 	return n.toString().padStart(2, '0')
-}
-
-/** 3-letter uppercase tag from the project name (letters/digits only). "ANY" for the un-bound widget. */
-internal fun projectTag(projectName: String?): String {
-	if (projectName.isNullOrBlank()) return "ANY"
-	val letters = projectName.filter { it.isLetterOrDigit() }.take(3).uppercase()
-	return letters.ifBlank { "ANY" }
 }
 
 internal fun monoMicroStyle(
@@ -97,3 +102,104 @@ internal fun monoLabelStyle(
 	fontFamily = FontFamily.Monospace,
 	fontWeight = FontWeight.Medium,
 )
+
+@Composable
+internal fun WidgetHairline(
+	color: androidx.glance.unit.ColorProvider,
+	modifier: GlanceModifier = GlanceModifier,
+) {
+	Box(
+		modifier = modifier
+			.fillMaxWidth()
+			.height(1.dp)
+			.background(color),
+	) {}
+}
+
+/**
+ * Word-count formatter shared across widgets. Renders as a 2-digit truncated
+ * "k" once we cross 1k, "M" past a million; null gets an em-dash.
+ */
+internal fun formatWidgetWords(words: Int?): String = when {
+	words == null -> "—"
+	words >= 1_000_000 -> "%.1fM".format(words / 1_000_000.0)
+	words >= 10_000 -> "%.0fk".format(words / 1_000.0)
+	words >= 1_000 -> "%.1fk".format(words / 1_000.0)
+	else -> words.toString()
+}
+
+/**
+ * Hairline progress bar. Glance has no fractional-width modifier, so the bar
+ * is rendered as N equal-weight segments — each one fill or track based on the
+ * rounded percentage. Glance caps Row children at 10, so 10 is the max.
+ */
+@Composable
+internal fun WidgetProgressBar(
+	value: Int,
+	max: Int,
+	fillColor: androidx.glance.unit.ColorProvider,
+	trackColor: androidx.glance.unit.ColorProvider = widgetColor { it.ruleSoft },
+	heightDp: Int = 4,
+	segments: Int = 10,
+) {
+	val cappedSegments = segments.coerceAtMost(10)
+	val pct = if (max > 0) (value.toFloat() / max.toFloat()).coerceIn(0f, 1f) else 0f
+	val filled = (pct * cappedSegments).roundToInt().coerceIn(0, cappedSegments)
+	Row(
+		modifier = GlanceModifier
+			.fillMaxWidth()
+			.height(heightDp.dp)
+			.background(trackColor),
+	) {
+		repeat(cappedSegments) { i ->
+			Box(
+				modifier = GlanceModifier
+					.defaultWeight()
+					.fillMaxHeight()
+					.background(if (i < filled) fillColor else trackColor),
+			) {}
+		}
+	}
+}
+
+/**
+ * 7-day session sparkline. Each value renders as a vertical bar of dp height
+ * proportional to the peak; zero values draw a 1dp baseline tick in the soft
+ * rule color so the grid stays legible. Bar gap is faked with right-padding so
+ * we keep the Row at one child per value (Glance caps Row children at 10).
+ */
+@Composable
+internal fun WidgetSparkline(
+	values: List<Int>,
+	fillColor: androidx.glance.unit.ColorProvider,
+	emptyColor: androidx.glance.unit.ColorProvider = widgetColor { it.ruleSoft },
+	heightDp: Int = 28,
+) {
+	val peak = max(values.maxOrNull() ?: 1, 1)
+	Row(
+		modifier = GlanceModifier
+			.fillMaxWidth()
+			.height(heightDp.dp),
+	) {
+		values.forEachIndexed { i, v ->
+			val barH = if (v > 0) {
+				max(2, (v.toFloat() / peak * heightDp).roundToInt()).coerceAtMost(heightDp)
+			} else 1
+			val cellPadding = if (i < values.lastIndex) 2.dp else 0.dp
+			Box(
+				modifier = GlanceModifier
+					.defaultWeight()
+					.fillMaxHeight()
+					.padding(end = cellPadding),
+				contentAlignment = Alignment.BottomCenter,
+			) {
+				Box(
+					modifier = GlanceModifier
+						.fillMaxWidth()
+						.height(barH.dp)
+						.background(if (v > 0) fillColor else emptyColor),
+				) {}
+			}
+		}
+	}
+}
