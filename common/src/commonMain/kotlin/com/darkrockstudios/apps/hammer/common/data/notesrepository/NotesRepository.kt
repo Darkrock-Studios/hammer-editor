@@ -67,6 +67,12 @@ class NotesRepository(
 	)
 	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
 
+	private val _noteContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val noteContentChangedFlow: SharedFlow<Unit> = _noteContentChangedFlow
+
 	private suspend fun updateNotes(notes: List<NoteContainer>) {
 		_notes = notes.toMutableList()
 		_notesListFlow.emit(notes)
@@ -114,6 +120,7 @@ class NotesRepository(
 				originalHash = ""
 			)
 
+			_noteContentChangedFlow.emit(Unit)
 			CResult.success(newNote.note)
 		}
 	}
@@ -121,6 +128,7 @@ class NotesRepository(
 	suspend fun deleteNote(id: Int) {
 		notesDatasource.deleteNote(id)
 		syncDataRepository.recordIdDeletion(id)
+		_noteContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true) {
@@ -130,6 +138,7 @@ class NotesRepository(
 		if (markForSync) {
 			markForSync(id = cleaned.id)
 		}
+		_noteContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun reIdNote(oldId: Int, newId: Int) {
@@ -142,6 +151,7 @@ class NotesRepository(
 			updatedNotes[index] = NoteContainer(newNote)
 		}
 		updateNotes(updatedNotes)
+		_noteContentChangedFlow.emit(Unit)
 	}
 
 	fun validateNote(noteText: String, tags: Set<String> = emptySet()): NoteError {

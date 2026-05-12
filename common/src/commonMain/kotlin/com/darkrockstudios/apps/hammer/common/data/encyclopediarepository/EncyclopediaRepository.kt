@@ -55,6 +55,12 @@ class EncyclopediaRepository(
 	)
 	val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
 
+	private val _entryContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val entryContentChangedFlow: SharedFlow<Unit> = _entryContentChangedFlow
+
 	private suspend fun updateEntries(entries: List<EntryDef>) {
 		_entryListFlow.emit(entries)
 	}
@@ -96,6 +102,7 @@ class EncyclopediaRepository(
 		)
 
 		statisticsRepository.markDirty()
+		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -204,6 +211,7 @@ class EncyclopediaRepository(
 		if (forceId == null) markForSynchronization(newDef)
 
 		statisticsRepository.markDirty()
+		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -212,6 +220,7 @@ class EncyclopediaRepository(
 		syncDataRepository.recordIdDeletion(entryDef.id)
 		statisticsRepository.markDirty()
 		referenceIndexRepository.markEntryDeleted(entryDef.id)
+		_entryContentChangedFlow.emit(Unit)
 		return true
 	}
 
