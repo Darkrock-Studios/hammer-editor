@@ -31,6 +31,7 @@ dependencies {
 	implementation(libs.glance.appwidget)
 	implementation(libs.glance.material3)
 	implementation(libs.androidx.datastore)
+	implementation(libs.tomlkt)
 	implementation(libs.work.runtime.ktx)
 	implementation(libs.material)
 	implementation(libs.appcompat)

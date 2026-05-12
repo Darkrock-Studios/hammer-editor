@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -39,15 +39,29 @@ fun HdMasthead(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(
-			text = "§ $section",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		for (meta in leadingMeta) {
-			MastheadSeparator()
-			HdMonoLabel(text = meta)
+		Row(
+			modifier = Modifier.weight(1f),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			HdMonoLabel(
+				text = "§ $section",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+				softWrap = false,
+				overflow = TextOverflow.Ellipsis,
+			)
+			for (meta in leadingMeta) {
+				MastheadSeparator()
+				HdMonoLabel(
+					text = meta,
+					modifier = Modifier.weight(1f, fill = false),
+					maxLines = 1,
+					softWrap = false,
+					overflow = TextOverflow.Ellipsis,
+				)
+			}
 		}
-		Spacer(modifier = Modifier.weight(1f))
 		trailing()
 	}
 }
@@ -62,6 +76,8 @@ fun HdMastheadAction(
 	HdMonoLabel(
 		text = label,
 		color = MaterialTheme.colorScheme.onSurface,
+		maxLines = 1,
+		softWrap = false,
 		modifier = modifier
 			.clickable(onClick = onClick)
 			.padding(Ui.Padding.S),
