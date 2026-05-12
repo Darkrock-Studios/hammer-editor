@@ -1,49 +1,80 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.drafts
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
+import com.darkrockstudios.apps.hammer.draft_compare_current_accept_button
+import com.darkrockstudios.apps.hammer.draft_compare_current_header
+import com.darkrockstudios.apps.hammer.draft_compare_current_subheader
+import com.darkrockstudios.apps.hammer.draft_compare_draft_accept_button
+import com.darkrockstudios.apps.hammer.draft_compare_draft_header
+import com.darkrockstudios.apps.hammer.draft_compare_draft_subheader
+import com.darkrockstudios.apps.hammer.draft_compare_tab_title_current
+import com.darkrockstudios.apps.hammer.draft_compare_tab_title_draft
 import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 
+private const val PANE_DRAFT = 0
+private const val PANE_CURRENT = 1
+
 @Composable
 fun DraftCompareUi(component: DraftCompare) {
 	val screen = LocalScreenCharacteristic.current
+	val draftName = component.draftDef.draftName
 
 	Column(modifier = Modifier.fillMaxSize()) {
-		if (LocalScreenCharacteristic.current.needsExplicitClose) {
-			IconButton(
-				onClick = { component.cancel() },
-				modifier = Modifier.align(Alignment.End)
-			) {
-				Icon(
-					Icons.Default.Cancel,
-					contentDescription = Res.string.draft_compare_cancel_button.get(),
-					tint = MaterialTheme.colorScheme.onBackground
-				)
-			}
-		}
+		HdMasthead(
+			section = "DRAFT COMPARE",
+			leadingMeta = listOf(draftName),
+			trailing = {
+				if (screen.needsExplicitClose) {
+					HdMastheadAction(label = "× CLOSE", onClick = component::cancel)
+				}
+			},
+		)
+		HdFolioDivider()
 
 		when (screen.windowWidthClass) {
 			WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> {
@@ -59,30 +90,31 @@ fun DraftCompareUi(component: DraftCompare) {
 
 @Composable
 private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
-	var tabState by rememberSaveable { mutableIntStateOf(0) }
-	val titles = remember {
-		listOf(Res.string.draft_compare_tab_title_draft, Res.string.draft_compare_tab_title_current)
-	}
+	var pane by rememberSaveable { mutableIntStateOf(PANE_DRAFT) }
+	val draftLabel = Res.string.draft_compare_tab_title_draft.get()
+	val currentLabel = Res.string.draft_compare_tab_title_current.get()
 
 	Column(modifier = modifier) {
-		TabRow(selectedTabIndex = tabState) {
-			titles.forEachIndexed { index, title ->
-				Tab(
-					text = { Text(title.get()) },
-					selected = tabState == index,
-					onClick = { tabState = index }
-				)
-			}
-		}
-		if (tabState == 0) {
-			DraftContent(
-				modifier = Modifier.weight(1f),
-				component = component
+		HdHairlineSegmentedPicker(
+			options = listOf(PANE_DRAFT, PANE_CURRENT),
+			selected = pane,
+			onSelect = { pane = it },
+			label = { if (it == PANE_DRAFT) draftLabel else currentLabel },
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		)
+		if (pane == PANE_DRAFT) {
+			DraftPane(
+				modifier = Modifier.fillMaxSize(),
+				sectionNumber = 1,
+				component = component,
 			)
-		} else if (tabState == 1) {
-			CurrentContent(
-				modifier = Modifier.weight(1f),
-				component = component
+		} else {
+			CurrentPane(
+				modifier = Modifier.fillMaxSize(),
+				sectionNumber = 1,
+				component = component,
 			)
 		}
 	}
@@ -91,22 +123,92 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 @Composable
 private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 	Row(modifier = modifier) {
-		DraftContent(
-			modifier = Modifier.weight(1f),
+		DraftPane(
+			modifier = Modifier.weight(1f).fillMaxHeight(),
+			sectionNumber = 1,
 			component = component,
 		)
-
-		CurrentContent(
-			modifier = Modifier.weight(1f),
-			component = component
+		VerticalDivider(
+			color = MaterialTheme.colorScheme.outlineVariant,
+			thickness = Dp.Hairline,
+		)
+		CurrentPane(
+			modifier = Modifier.weight(1f).fillMaxHeight(),
+			sectionNumber = 2,
+			component = component,
 		)
 	}
 }
 
 @Composable
-private fun CurrentContent(
+private fun DraftPane(
 	modifier: Modifier,
-	component: DraftCompare
+	sectionNumber: Int,
+	component: DraftCompare,
+) {
+	val strRes = rememberStrRes()
+	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
+
+	key(state.draftContent) {
+		val textEditorState = rememberTextEditorState(
+			initialText = getInitialEditorContent(state.draftContent, markdownConfig)
+		)
+
+		var title by remember { mutableStateOf("") }
+		LaunchedEffect(component.draftDef.draftName) {
+			title = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
+		}
+
+		Column(
+			modifier = modifier.padding(
+				horizontal = Ui.Padding.XL,
+				vertical = Ui.Padding.L,
+			),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			HdSectionHeader(
+				section = sectionNumber,
+				title = title,
+				trailing = { HdMonoLabel(text = "READ ONLY") },
+			)
+			Text(
+				text = Res.string.draft_compare_draft_subheader.get(),
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			HdHairlineButton(
+				label = Res.string.draft_compare_draft_accept_button.get(),
+				onClick = { component.pickDraft() },
+				emphasised = true,
+			)
+			Box(
+				modifier = Modifier
+					.weight(1f)
+					.fillMaxWidth()
+					.border(
+						width = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+						shape = RectangleShape,
+					)
+					.padding(Ui.Padding.L),
+			) {
+				TextEditor(
+					modifier = Modifier.fillMaxSize(),
+					state = textEditorState,
+					enabled = false,
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun CurrentPane(
+	modifier: Modifier,
+	sectionNumber: Int,
+	component: DraftCompare,
 ) {
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
@@ -128,83 +230,43 @@ private fun CurrentContent(
 			}
 		}
 
-		Card(
-			modifier = modifier.padding(Ui.Padding.L),
-			border = BorderStroke(2.dp, MaterialTheme.colorScheme.tertiaryContainer),
-			elevation = CardDefaults.outlinedCardElevation(
-				defaultElevation = Ui.Elevation.MEDIUM
+		Column(
+			modifier = modifier.padding(
+				horizontal = Ui.Padding.XL,
+				vertical = Ui.Padding.L,
 			),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
-			Column(modifier = Modifier.padding(Ui.Padding.L)) {
-				Text(
-					Res.string.draft_compare_current_header.get(),
-					style = MaterialTheme.typography.headlineLarge
-				)
-				Text(
-					Res.string.draft_compare_current_subheader.get(),
-					style = MaterialTheme.typography.bodySmall,
-					fontStyle = FontStyle.Italic
-				)
-
-				Button(onClick = { component.pickMerged() }) {
-					Text(Res.string.draft_compare_current_accept_button.get())
-				}
-
+			HdSectionHeader(
+				section = sectionNumber,
+				title = Res.string.draft_compare_current_header.get(),
+				trailing = { HdMonoLabel(text = "EDITABLE") },
+			)
+			Text(
+				text = Res.string.draft_compare_current_subheader.get(),
+				style = MaterialTheme.typography.bodySmall,
+				fontStyle = FontStyle.Italic,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			HdHairlineButton(
+				label = Res.string.draft_compare_current_accept_button.get(),
+				onClick = { component.pickMerged() },
+				emphasised = true,
+			)
+			Box(
+				modifier = Modifier
+					.weight(1f)
+					.fillMaxWidth()
+					.border(
+						width = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+						shape = RectangleShape,
+					)
+					.padding(Ui.Padding.L),
+			) {
 				TextEditor(
 					modifier = Modifier.fillMaxSize(),
 					state = textEditorState,
-				)
-			}
-		}
-	}
-}
-
-@Composable
-private fun DraftContent(
-	modifier: Modifier,
-	component: DraftCompare,
-) {
-	val strRes = rememberStrRes()
-	val state by component.state.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
-
-	key(state.draftContent) {
-		val textEditorState = rememberTextEditorState(
-			initialText = getInitialEditorContent(state.draftContent, markdownConfig)
-		)
-
-		var headerText by remember { mutableStateOf("") }
-		LaunchedEffect(component.draftDef.draftName) {
-			headerText = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
-		}
-
-		Card(modifier = modifier.padding(Ui.Padding.L)) {
-			Column(modifier = Modifier.padding(Ui.Padding.L)) {
-
-				/*
-				val date = remember(component.draftDef.draftTimestamp) {
-					val created = component.draftDef.draftTimestamp.toLocalDateTime(TimeZone.currentSystemDefault())
-					created.format("dd MMM `yy")
-				}
-				*/
-
-				Text(
-					headerText,
-					style = MaterialTheme.typography.headlineLarge
-				)
-				Text(
-					Res.string.draft_compare_draft_subheader.get(),
-					style = MaterialTheme.typography.bodySmall,
-					fontStyle = FontStyle.Italic
-				)
-				Button(onClick = { component.pickDraft() }) {
-					Text(Res.string.draft_compare_draft_accept_button.get())
-				}
-
-				TextEditor(
-					modifier = Modifier.fillMaxSize(),
-					state = textEditorState,
-					enabled = false,
 				)
 			}
 		}
