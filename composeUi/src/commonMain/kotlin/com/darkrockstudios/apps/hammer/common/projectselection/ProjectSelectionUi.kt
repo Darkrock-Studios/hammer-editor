@@ -22,7 +22,10 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.about.AboutAppUi
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
 
@@ -35,6 +38,24 @@ fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 		ProjectSelection.Locations.AboutApp -> Icons.Filled.Info
 	}
 }
+
+@Composable
+fun ProjectSelection.Locations.toHdNavRailDestination(): HdNavRailDestination<ProjectSelection.Locations> =
+	HdNavRailDestination(
+		id = this,
+		icon = getLocationIcon(this),
+		label = text.get(),
+		shortLabel = shortText.get(),
+	)
+
+@Composable
+fun ProjectSelection.Locations.toHdBottomBarDestination(): HdBottomBarDestination<ProjectSelection.Locations> =
+	HdBottomBarDestination(
+		id = this,
+		icon = getLocationIcon(this),
+		label = text.get(),
+		shortLabel = shortText.get(),
+	)
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi

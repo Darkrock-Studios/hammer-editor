@@ -32,6 +32,12 @@ data class GlobalSettings(
 	 * panel renders as a Dialog and uses transient state instead.
 	 */
 	val metadataPanelVisible: Boolean = true,
+	/**
+	 * Whether the desktop project navigation rail is expanded (full labels)
+	 * vs. collapsed (icons + short labels). UI state persisted here for the
+	 * same reason as [metadataPanelVisible].
+	 */
+	val navRailExpanded: Boolean = false,
 	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(
 		locale = Locale.forLanguage(
 			language = "en",

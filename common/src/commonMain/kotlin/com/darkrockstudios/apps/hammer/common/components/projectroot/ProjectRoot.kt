@@ -29,8 +29,10 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
 	val projectTheme: Value<ProjectThemeState>
+	val navRailState: Value<NavRailState>
 
 	data class ProjectThemeState(val theme: ProjectTheme?)
+	data class NavRailState(val expanded: Boolean)
 
 	fun showEditor()
 	fun showNotes()
@@ -38,6 +40,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun showHome()
 	fun showTimeLine()
 	fun showDestination(type: DestinationTypes)
+	fun toggleNavRailExpanded()
 	fun isAtRoot(): Boolean
 
 	fun showProjectSync()
@@ -91,12 +94,12 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class FocusModeModal(val component: FocusMode) : ModalDestination()
 	}
 
-	enum class DestinationTypes(val text: StringResource) {
-		Home(Res.string.project_nav_home),
-		Editor(Res.string.project_nav_scene_editor),
-		Notes(Res.string.project_nav_notes),
-		Encyclopedia(Res.string.project_nav_encyclopedia),
-		TimeLine(Res.string.project_nav_time_line),
+	enum class DestinationTypes(val text: StringResource, val shortText: StringResource) {
+		Home(Res.string.project_nav_home, Res.string.project_nav_home_short),
+		Editor(Res.string.project_nav_scene_editor, Res.string.project_nav_scene_editor_short),
+		Notes(Res.string.project_nav_notes, Res.string.project_nav_notes_short),
+		Encyclopedia(Res.string.project_nav_encyclopedia, Res.string.project_nav_encyclopedia_short),
+		TimeLine(Res.string.project_nav_time_line, Res.string.project_nav_time_line_short),
 	}
 
 	fun closeRequestDealtWith(item: CloseConfirm)
