@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Headline stat block — the dashboard's foundational tile.
@@ -33,6 +35,7 @@ fun HdStatBlock(
 	subtitle: String? = null,
 	valueStyle: TextStyle = MaterialTheme.typography.displayLarge,
 	valueColor: Color = MaterialTheme.colorScheme.onSurface,
+	valueMaxLines: Int = 1,
 	content: @Composable ColumnScope.() -> Unit = {},
 ) {
 	Column(
@@ -43,10 +46,17 @@ fun HdStatBlock(
 			text = label,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
+		val resolvedFontSize = valueStyle.fontSize.takeIf { it.isSp } ?: 57.sp
 		Text(
 			text = value,
 			style = valueStyle,
 			color = valueColor,
+			autoSize = TextAutoSize.StepBased(
+				minFontSize = resolvedFontSize * 0.7f,
+				maxFontSize = resolvedFontSize,
+				stepSize = 1.sp,
+			),
+			maxLines = valueMaxLines,
 		)
 		if (subtitle != null) {
 			Text(

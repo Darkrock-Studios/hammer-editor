@@ -328,6 +328,7 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 				label = stringResource(Res.string.project_home_stat_longest_scene),
 				value = longestName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
 				valueStyle = MaterialTheme.typography.headlineMedium,
+				valueMaxLines = 2,
 				subtitle = if (state.longestSceneWords > 0)
 					stringResource(Res.string.project_home_stat_longest_scene_words, state.longestSceneWords.formatDecimalSeparator())
 				else null,
