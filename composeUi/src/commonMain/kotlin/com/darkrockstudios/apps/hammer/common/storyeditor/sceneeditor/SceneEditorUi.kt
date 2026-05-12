@@ -128,6 +128,7 @@ fun SceneEditorUi(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
+					resetTextSize = component::resetTextSize,
 				)
 
 				AnimatedVisibility(
