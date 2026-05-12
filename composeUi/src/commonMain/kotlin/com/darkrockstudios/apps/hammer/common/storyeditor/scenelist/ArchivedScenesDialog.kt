@@ -1,147 +1,241 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.archived_scenes_dialog_title
 import com.darkrockstudios.apps.hammer.archived_scenes_empty
 import com.darkrockstudios.apps.hammer.archived_scenes_restore_button
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
-@ExperimentalMaterialApi
-@ExperimentalComposeApi
+private val DialogMaxWidth = 580.dp
+private val DialogBodyMinHeight = 280.dp
+
 @Composable
 internal fun ArchivedScenesDialog(
 	archivedScenes: List<SceneItem>,
 	onUnarchive: (SceneItem) -> Unit,
 	onDismiss: () -> Unit
 ) {
-	SimpleDialog(
-		onCloseRequest = onDismiss,
-		visible = true,
-		title = Res.string.archived_scenes_dialog_title.get()
+	var isOpen by remember { mutableStateOf(true) }
+	val requestClose = { isOpen = false }
+
+	AnimatedDialogContainer(
+		isOpen = isOpen,
+		onDismissRequest = requestClose,
+		onClosed = onDismiss,
+		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Column(
+		Surface(
 			modifier = Modifier
+				.padding(Ui.Padding.M)
+				.widthIn(max = DialogMaxWidth)
 				.fillMaxWidth()
-				.heightIn(min = Ui.Padding.XL, max = Ui.Padding.XL * 20)
-				.padding(Ui.Padding.L)
+				.predictiveBackTransform(),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
 		) {
-			if (archivedScenes.isEmpty()) {
+			Column {
+				Masthead(count = archivedScenes.size, onClose = requestClose)
+				HdFolioDivider()
+
+				TitleRow()
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(vertical = Ui.Padding.XL * 2),
-					contentAlignment = Alignment.Center
+						.heightIn(min = DialogBodyMinHeight),
 				) {
-					Column(
-						horizontalAlignment = Alignment.CenterHorizontally,
-						verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
-					) {
-						Icon(
-							Icons.Default.Archive,
-							contentDescription = null,
-							modifier = Modifier.size(48.dp),
-							tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-						)
-						Text(
-							Res.string.archived_scenes_empty.get(),
-							style = MaterialTheme.typography.bodyLarge,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
-						)
+					if (archivedScenes.isEmpty()) {
+						EmptyState()
+					} else {
+						SceneList(scenes = archivedScenes, onUnarchive = onUnarchive)
 					}
 				}
-			} else {
-				Text(
-					"${archivedScenes.size} archived scene${if (archivedScenes.size != 1) "s" else ""}",
-					style = MaterialTheme.typography.labelMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					modifier = Modifier.padding(bottom = Ui.Padding.M)
-				)
-				LazyColumn(
-					modifier = Modifier.fillMaxWidth(),
-					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)
-				) {
-					items(archivedScenes, key = { it.id }) { scene ->
-						ArchivedSceneItem(
-							scene = scene,
-							onUnarchive = { onUnarchive(scene) }
-						)
-					}
-				}
+
+				FooterBar()
 			}
 		}
 	}
 }
 
 @Composable
-private fun ArchivedSceneItem(
-	scene: SceneItem,
-	onUnarchive: () -> Unit
-) {
-	Card(
-		modifier = Modifier.fillMaxWidth(),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-		)
+private fun Masthead(count: Int, onClose: () -> Unit) {
+	val meta = if (count == 0) "EMPTY" else "$count ARCHIVED"
+	HdMasthead(
+		section = "ARCHIVE",
+		leadingMeta = listOf(meta),
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
+	)
+}
+
+@Composable
+private fun TitleRow() {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(
+				start = Ui.Padding.XL,
+				end = Ui.Padding.XL,
+				top = Ui.Padding.L,
+				bottom = Ui.Padding.M,
+			),
+		verticalAlignment = Alignment.CenterVertically,
 	) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(Ui.Padding.L),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
-				Icons.Default.Description,
-				contentDescription = null,
-				tint = MaterialTheme.colorScheme.primary,
-				modifier = Modifier.size(24.dp)
+		Text(
+			text = Res.string.archived_scenes_dialog_title.get(),
+			style = MaterialTheme.typography.headlineSmall,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+	}
+}
+
+@Composable
+private fun SceneList(
+	scenes: List<SceneItem>,
+	onUnarchive: (SceneItem) -> Unit,
+) {
+	LazyColumn(modifier = Modifier.fillMaxWidth()) {
+		items(scenes, key = { it.id }) { scene ->
+			val isLast = scene.id == scenes.last().id
+			SceneRow(
+				scene = scene,
+				onUnarchive = { onUnarchive(scene) },
+				isLast = isLast,
 			)
-			Column(
-				modifier = Modifier.weight(1f),
-				verticalArrangement = Arrangement.spacedBy(2.dp)
-			) {
-				Text(
-					scene.name,
-					style = MaterialTheme.typography.bodyLarge,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis
-				)
-				Text(
-					"ID: ${scene.id}",
-					style = MaterialTheme.typography.labelSmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
-			FilledTonalIconButton(
-				onClick = onUnarchive,
-				colors = IconButtonDefaults.filledTonalIconButtonColors(
-					containerColor = MaterialTheme.colorScheme.primaryContainer,
-					contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-				)
-			) {
-				Icon(
-					Icons.Default.Unarchive,
-					contentDescription = Res.string.archived_scenes_restore_button.get()
-				)
-			}
 		}
+	}
+}
+
+@Composable
+private fun SceneRow(
+	scene: SceneItem,
+	onUnarchive: () -> Unit,
+	isLast: Boolean,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(
+				start = Ui.Padding.XL,
+				end = Ui.Padding.XL,
+				top = Ui.Padding.L,
+				bottom = Ui.Padding.L,
+			),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		Column(
+			modifier = Modifier.weight(1f),
+			verticalArrangement = Arrangement.spacedBy(2.dp),
+		) {
+			Text(
+				text = scene.name,
+				style = MaterialTheme.typography.bodyLarge,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+			)
+			HdEntityId(prefix = "SCN", id = scene.id, padTo = 4)
+		}
+		HdHairlineButton(
+			label = Res.string.archived_scenes_restore_button.get(),
+			emphasised = true,
+			onClick = onUnarchive,
+		)
+	}
+	if (!isLast) {
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+	}
+}
+
+@Composable
+private fun EmptyState() {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(Ui.Padding.XL * 2),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterVertically),
+	) {
+		HdMonoLabel(
+			text = "ARCHIVE · EMPTY",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Text(
+			text = Res.string.archived_scenes_empty.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
+}
+
+@Composable
+private fun FooterBar() {
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Spacer(modifier = Modifier.weight(1f))
+		HdMonoLabel(
+			text = "ESC CLOSE",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 	}
 }
