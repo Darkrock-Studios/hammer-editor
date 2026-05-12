@@ -92,6 +92,8 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun doDiscard() {}
 	override fun toggleMetadataPanelVisible() {}
 	override fun toggleMetadataModal() {}
+	override fun setLayoutMode(isWide: Boolean) {}
+
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}
 	override fun resetTextSize() {}
