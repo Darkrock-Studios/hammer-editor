@@ -132,6 +132,7 @@ private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
 
 	override fun confirmClose() {}
 	override fun dismissConfirmClose() {}
+	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }
 
 @Preview
@@ -274,6 +275,7 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun removeAlias(alias: String) {}
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {}
+	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }
 
 private fun fakeEntryDef(): EntryDef = EntryDef(
