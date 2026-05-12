@@ -24,6 +24,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -66,6 +67,7 @@ class SceneMetadataPanelComponent(
 	override fun onCreate() {
 		super.onCreate()
 		subscribeToBufferUpdates()
+		subscribeToMetadataUpdates()
 		startMetadataStore()
 
 		scope.launch {
@@ -90,6 +92,35 @@ class SceneMetadataPanelComponent(
 		// chip resolver have data even if no other part of the UI has triggered a
 		// load yet.
 		scope.launch { encyclopediaRepository.ensureEntriesLoaded() }
+	}
+
+	private fun subscribeToMetadataUpdates() {
+		scope.launch {
+			sceneEditor.metadataUpdateFlow
+				.filter { (sceneId, _) -> sceneId == originalSceneItem.id }
+				.collect { (_, external) ->
+					val current = state.value.metadata
+					val refsChanged = current.confirmedReferences != external.confirmedReferences ||
+						current.dismissedReferences != external.dismissedReferences
+					if (!refsChanged) return@collect
+
+					// Merge: take ref fields from the external write (e.g. auto-confirm on save),
+					// keep user-editable fields (outline / notes / currentDraftName) from local state.
+					val merged = current.copy(
+						confirmedReferences = external.confirmedReferences,
+						dismissedReferences = external.dismissedReferences,
+					)
+					withContext(dispatcherMain) {
+						_state.getAndUpdate { it.copy(metadata = merged) }
+					}
+					// Re-emit so a pending debounced write picks up the merged state instead of
+					// the stale value it had queued.
+					if (_metadataUpdateFlow.tryEmit(merged).not()) {
+						Napier.w { "Failed to re-emit merged metadata after external update" }
+					}
+					refreshReferences()
+				}
+		}
 	}
 
 	private suspend fun rebuildSearchableEntries(defs: List<EntryDef>) {

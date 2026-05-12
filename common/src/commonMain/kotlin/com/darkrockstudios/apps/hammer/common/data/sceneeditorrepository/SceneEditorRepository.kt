@@ -98,6 +98,12 @@ class SceneEditorRepository(
 	)
 	private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
 
+	private val _metadataUpdateFlow = MutableSharedFlow<Pair<Int, SceneMetadata>>(
+		extraBufferCapacity = 8,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>> = _metadataUpdateFlow
+
 	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
 		extraBufferCapacity = 1,
 		replay = 1,
@@ -503,6 +509,8 @@ class SceneEditorRepository(
 				removed = previousConfirmed - newConfirmed,
 			)
 		}
+
+		_metadataUpdateFlow.tryEmit(sceneId to metadata)
 	}
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
