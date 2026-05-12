@@ -192,7 +192,7 @@ private fun HistoryAndOverflow(
 		) {
 			if (decreaseTextSize != null) {
 				DropdownMenuItem(
-					text = { Text("Decrease text size") },
+					text = { Text(Res.string.markdown_format_bar_decrease_text_size.get()) },
 					leadingIcon = {
 						Icon(
 							imageVector = EditorIcons.IconTextDecrease,
@@ -207,7 +207,7 @@ private fun HistoryAndOverflow(
 			}
 			if (increaseTextSize != null) {
 				DropdownMenuItem(
-					text = { Text("Increase text size") },
+					text = { Text(Res.string.markdown_format_bar_increase_text_size.get()) },
 					leadingIcon = {
 						Icon(
 							imageVector = EditorIcons.IconTextIncrease,
@@ -222,7 +222,7 @@ private fun HistoryAndOverflow(
 			}
 			if (resetTextSize != null) {
 				DropdownMenuItem(
-					text = { Text("Reset text size") },
+					text = { Text(Res.string.markdown_format_bar_reset_text_size.get()) },
 					leadingIcon = {
 						Icon(
 							imageVector = EditorIcons.IconTextReset,
