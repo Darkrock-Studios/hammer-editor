@@ -104,6 +104,7 @@ fun CreateNoteUi(
 					},
 					hint = Res.string.notes_create_tags_hint.get(),
 					placeholder = Res.string.notes_create_tags_placeholder.get(),
+					suggestTags = component::suggestTags,
 				)
 			}
 

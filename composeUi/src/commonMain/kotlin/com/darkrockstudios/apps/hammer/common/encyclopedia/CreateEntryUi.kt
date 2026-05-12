@@ -112,6 +112,7 @@ internal fun CreateEntryUi(
 					},
 					hint = Res.string.encyclopedia_create_entry_tags_hint.get(),
 					placeholder = Res.string.encyclopedia_create_entry_tags_placeholder.get(),
+					suggestTags = component::suggestTags,
 				)
 
 				Text(

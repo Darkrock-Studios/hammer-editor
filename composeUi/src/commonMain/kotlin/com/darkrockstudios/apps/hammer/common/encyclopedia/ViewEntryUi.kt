@@ -1047,11 +1047,26 @@ private fun TagAddDialog(
 		onCloseRequest = component::endTagAdd,
 	) {
 		var newTagsText by rememberSaveable { mutableStateOf("") }
+		val existingTags = state.content?.tags.orEmpty()
+		val suggestions = remember(newTagsText, existingTags) {
+			val prefix = newTagsText.substringAfterLast(' ').trim().removePrefix("#")
+			if (prefix.isEmpty()) emptyList()
+			else component.suggestTags(prefix).filter { it !in existingTags }
+		}
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
 			HdHairlineField(
 				label = Res.string.encyclopedia_create_entry_tags_label.get(),
 				value = newTagsText,
 				onValueChange = { newTagsText = it },
+			)
+			HdTagSuggestionStrip(
+				suggestions = suggestions,
+				onSelect = { tag ->
+					scope.launch {
+						component.addTags(tag)
+						withContext(mainDispatcher) { newTagsText = "" }
+					}
+				},
 			)
 			HdHairlineButton(
 				label = Res.string.encyclopedia_entry_add_tags_button.get(),

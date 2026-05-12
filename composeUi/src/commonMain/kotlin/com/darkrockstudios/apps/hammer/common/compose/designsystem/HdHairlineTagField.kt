@@ -35,20 +35,32 @@ fun HdHairlineTagField(
 	modifier: Modifier = Modifier,
 	hint: String? = null,
 	placeholder: String? = null,
+	suggestTags: (prefix: String) -> List<String> = { emptyList() },
 ) {
 	var draft by remember { mutableStateOf("") }
 
-	val addCurrent: () -> Boolean = add@{
-		val candidate = draft.trim().removePrefix("#")
-		if (candidate.isEmpty()) return@add false
-		if (!tags.contains(candidate)) onTagsChange(tags + candidate)
+	val addTag: (String) -> Unit = { raw ->
+		val candidate = raw.trim().removePrefix("#")
+		if (candidate.isNotEmpty() && !tags.contains(candidate)) {
+			onTagsChange(tags + candidate)
+		}
 		draft = ""
+	}
+	val addCurrent: () -> Boolean = add@{
+		if (draft.trim().removePrefix("#").isEmpty()) return@add false
+		addTag(draft)
 		true
 	}
 	val removeLast: () -> Boolean = remove@{
 		if (draft.isNotEmpty() || tags.isEmpty()) return@remove false
 		onTagsChange(tags.dropLast(1))
 		true
+	}
+
+	val suggestions = remember(draft, tags, suggestTags) {
+		val prefix = draft.trim().removePrefix("#")
+		if (prefix.isEmpty()) emptyList()
+		else suggestTags(prefix).filter { it !in tags }
 	}
 
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -133,5 +145,34 @@ fun HdHairlineTagField(
 			thickness = Dp.Hairline,
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
+
+		HdTagSuggestionStrip(
+			suggestions = suggestions,
+			onSelect = { addTag(it) },
+			modifier = Modifier.padding(top = 6.dp),
+		)
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun HdTagSuggestionStrip(
+	suggestions: List<String>,
+	onSelect: (String) -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	if (suggestions.isEmpty()) return
+	FlowRow(
+		modifier = modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+		verticalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		suggestions.forEach { tag ->
+			HdTagChip(
+				label = tag,
+				active = false,
+				onClick = { onSelect(tag) },
+			)
+		}
 	}
 }

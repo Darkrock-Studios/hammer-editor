@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
@@ -42,6 +43,12 @@ class TimeLineRepository(
 		replay = 1
 	)
 	val timelineFlow: SharedFlow<TimeLineContainer> = _timelineFlow
+
+	private val _eventContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val eventContentChangedFlow: SharedFlow<Unit> = _eventContentChangedFlow
 
 	fun initialize(): TimeLineRepository {
 		projectScope.scope.registerCallback(this)
@@ -91,6 +98,7 @@ class TimeLineRepository(
 	private suspend fun storeAndEmitTimeline(timeLine: TimeLineContainer) {
 		datasource.storeTimeline(timeLine, projectDef)
 		_timelineFlow.emit(timeLine)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean {
@@ -152,6 +160,7 @@ class TimeLineRepository(
 		)
 
 		_timelineFlow.emit(updatedTimeline)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun storeTimeline() {
@@ -261,17 +270,6 @@ class TimeLineRepository(
 		} else {
 			TimeLineEventError.NONE
 		}
-	}
-
-	private fun cleanTags(tags: Set<String>): Set<String> {
-		val regex = Regex("""[\w-]+""")
-		return tags
-			.asSequence()
-			.map { it.trim() }
-			.map { if (it.startsWith("#")) it.substring(1) else it }
-			.filter { it.isNotEmpty() }
-			.filter { regex.matches(it) }
-			.toSet()
 	}
 
 	/**

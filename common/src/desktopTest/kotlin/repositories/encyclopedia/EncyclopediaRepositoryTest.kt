@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepo
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import app.cash.turbine.test
 import createProject
 import getProjectDef
 import io.mockk.*
@@ -369,6 +370,37 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val repo = createRepository()
 		val entryDef = repo.findEntryDef(7)
 		assertNull(entryDef)
+	}
+
+	@Test
+	fun `entryContentChangedFlow emits on create update and delete`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 50
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+
+		val repo = createRepository()
+
+		repo.entryContentChangedFlow.test {
+			repo.createEntry(
+				name = "NewEntry",
+				type = EntryType.PERSON,
+				text = "",
+				tags = emptySet(),
+				imagePath = null,
+				forceId = null,
+			)
+			awaitItem()
+
+			repo.updateEntry(
+				oldEntryDef = entry1().toDef(projDef),
+				name = entry1().name,
+				text = "updated text",
+				tags = entry1().tags,
+			)
+			awaitItem()
+
+			repo.deleteEntry(entry1().toDef(projDef))
+			awaitItem()
+		}
 	}
 
 	private fun assertInvalid(
