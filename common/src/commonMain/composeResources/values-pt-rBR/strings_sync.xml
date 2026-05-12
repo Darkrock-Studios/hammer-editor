@@ -10,6 +10,13 @@
 	<string name="sync_conflict_tab_local">Local</string>
 	<string name="sync_conflict_tab_remote">Remoto</string>
 	<string name="sync_conflict_icon_description">conflito</string>
+	<string name="sync_conflict_header_title">%1$s Conflict</string>
+	<string name="sync_conflict_entity_label_scene">Scene</string>
+	<string name="sync_conflict_entity_label_note">Note</string>
+	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
+	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia Entry</string>
+	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
+	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
 	<string name="sync_conflict">Conflito</string>
 	<string name="sync_conflict_local_entry">Entrada local:</string>
 	<string name="sync_conflict_local_use_button">Usar Local</string>
