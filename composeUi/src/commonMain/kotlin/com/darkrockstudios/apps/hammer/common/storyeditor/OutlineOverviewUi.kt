@@ -28,11 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -102,20 +101,15 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 		state.overview.firstOrNull()?.projectName()
 	}
 
-	Dialog(
-		onDismissRequest = component::dismiss,
-		properties = DialogProperties(
-			usePlatformDefaultWidth = false,
-			dismissOnBackPress = true,
-			dismissOnClickOutside = true,
-		),
+	AnimatedFullScreenDialog(
+		onDismissed = component::dismiss,
+		backgroundColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
 	) {
 		Box(
 			modifier = Modifier
 				.fillMaxSize()
-				.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f))
 				.pointerInput(Unit) {
-					detectTapGestures(onTap = { component.dismiss() })
+					detectTapGestures(onTap = { requestDismiss() })
 				},
 			contentAlignment = Alignment.Center,
 		) {
@@ -139,7 +133,6 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 							shape = RectangleShape,
 						)
 						.pointerInput(Unit) {
-							// Swallow taps on the modal so they don't dismiss.
 							detectTapGestures(onTap = {})
 						},
 				) {
@@ -147,7 +140,7 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 						chapterCount = totalChapters,
 						sceneCount = totalScenes,
 						isWide = isWide,
-						onClose = component::dismiss,
+						onClose = { requestDismiss() },
 					)
 
 					HdFolioDivider()
