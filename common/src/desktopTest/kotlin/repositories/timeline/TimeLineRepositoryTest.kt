@@ -1,6 +1,7 @@
 package repositories.timeline
 
 import PROJECT_EMPTY_NAME
+import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
@@ -322,5 +323,36 @@ class TimeLineRepositoryTest : BaseTest() {
 			TimeLineEventError.NONE,
 			repo.validateTags(setOf("x".repeat(MAX_TAG_SIZE))),
 		)
+	}
+
+	@Test
+	fun `eventContentChangedFlow emits on create update and delete`() = runTest {
+		every { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncDataRepository.recordIdDeletion(any()) } returns Unit
+
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		setupTimelne(projDef, fakeEvents())
+
+		val idRepo = mockk<IdRepository>()
+		coEvery { idRepo.claimNextId() } returns 99
+
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idRepository = idRepo,
+			datasource = datasource,
+		).initialize()
+		advanceUntilIdle()
+
+		repo.eventContentChangedFlow.test {
+			val created = repo.createEvent(content = "c", date = null)
+			awaitItem()
+
+			repo.updateEvent(event = created.copy(content = "c2"))
+			awaitItem()
+
+			repo.deleteEvent(event = created)
+			awaitItem()
+		}
 	}
 }

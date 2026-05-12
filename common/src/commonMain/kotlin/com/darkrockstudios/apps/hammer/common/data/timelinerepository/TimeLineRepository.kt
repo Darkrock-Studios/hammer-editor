@@ -43,6 +43,12 @@ class TimeLineRepository(
 	)
 	val timelineFlow: SharedFlow<TimeLineContainer> = _timelineFlow
 
+	private val _eventContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val eventContentChangedFlow: SharedFlow<Unit> = _eventContentChangedFlow
+
 	fun initialize(): TimeLineRepository {
 		projectScope.scope.registerCallback(this)
 
@@ -91,6 +97,7 @@ class TimeLineRepository(
 	private suspend fun storeAndEmitTimeline(timeLine: TimeLineContainer) {
 		datasource.storeTimeline(timeLine, projectDef)
 		_timelineFlow.emit(timeLine)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean {
@@ -152,6 +159,7 @@ class TimeLineRepository(
 		)
 
 		_timelineFlow.emit(updatedTimeline)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun storeTimeline() {
