@@ -23,6 +23,9 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
@@ -49,6 +52,24 @@ fun getDestinationIcon(location: ProjectRoot.DestinationTypes): ImageVector {
 		ProjectRoot.DestinationTypes.Home -> vectorResource(Res.drawable.ic_home)
 	}
 }
+
+@Composable
+fun ProjectRoot.DestinationTypes.toHdNavRailDestination(): HdNavRailDestination<ProjectRoot.DestinationTypes> =
+	HdNavRailDestination(
+		id = this,
+		icon = getDestinationIcon(this),
+		label = text.get(),
+		shortLabel = shortText.get(),
+	)
+
+@Composable
+fun ProjectRoot.DestinationTypes.toHdBottomBarDestination(): HdBottomBarDestination<ProjectRoot.DestinationTypes> =
+	HdBottomBarDestination(
+		id = this,
+		icon = getDestinationIcon(this),
+		label = text.get(),
+		shortLabel = shortText.get(),
+	)
 
 @Composable
 fun ProjectRootUi(

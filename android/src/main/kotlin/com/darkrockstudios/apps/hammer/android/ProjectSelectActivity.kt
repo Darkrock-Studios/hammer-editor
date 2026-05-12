@@ -33,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarItem
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -42,6 +41,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -166,21 +166,12 @@ private fun CompactNavigation(
 			)
 		},
 		bottomBar = {
-			HdBottomBar {
-				ProjectSelection.Locations.entries.forEach { item ->
-					HdBottomBarItem(
-						selected = item == stackState.active.configuration.location,
-						onClick = { component.showLocation(item) },
-						icon = {
-							Icon(
-								imageVector = getLocationIcon(item),
-								contentDescription = item.text.get()
-							)
-						},
-						label = item.text.get(),
-					)
-				}
-			}
+			val destinations = ProjectSelection.Locations.entries.map { it.toHdBottomBarDestination() }
+			HdBottomBar(
+				destinations = destinations,
+				selectedId = stackState.active.configuration.location,
+				onSelect = { component.showLocation(it) },
+			)
 		},
 	)
 }

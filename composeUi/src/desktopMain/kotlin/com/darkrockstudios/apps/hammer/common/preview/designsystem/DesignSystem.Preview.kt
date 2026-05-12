@@ -217,34 +217,61 @@ private fun HairlineGridPreview() {
 	}
 }
 
+private val navRailPreviewDestinations = listOf(
+	HdNavRailDestination(id = "home", icon = Icons.Default.Refresh, label = "Home", shortLabel = "HOME"),
+	HdNavRailDestination(id = "editor", icon = Icons.Default.MoreVert, label = "Story", shortLabel = "STRY"),
+	HdNavRailDestination(id = "notes", icon = Icons.Default.Warning, label = "Notes", shortLabel = "NOTE"),
+)
+
 @Preview
 @Composable
-private fun NavRailPreview() {
+private fun NavRailCollapsedPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
-		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
-			HdNavRail {
-				HdNavRailItem(
-					selected = true,
-					onClick = {},
-					icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-					label = "Home",
-				)
-				HdNavRailItem(
-					selected = false,
-					onClick = {},
-					icon = { Icon(Icons.Default.MoreVert, contentDescription = null) },
-					label = "Editor",
-				)
-				HdNavRailItem(
-					selected = false,
-					onClick = {},
-					icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-					label = "Notes",
-				)
-			}
+		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background).height(500.dp)) {
+			HdNavRail(
+				destinations = navRailPreviewDestinations,
+				selectedId = "home",
+				onSelect = {},
+				expanded = false,
+				onToggleExpanded = {},
+				footer = {
+					HdMonoLabel(
+						text = "v2.2.0",
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				},
+			)
 			Column(modifier = Modifier.padding(24.dp)) {
 				HdMonoLabel(
-					text = "Selected item adopts project secondaryContainer",
+					text = "Collapsed — sliding indicator on the left edge",
+					style = MaterialTheme.typography.labelMedium,
+				)
+			}
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun NavRailExpandedPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background).height(500.dp)) {
+			HdNavRail(
+				destinations = navRailPreviewDestinations,
+				selectedId = "editor",
+				onSelect = {},
+				expanded = true,
+				onToggleExpanded = {},
+				footer = {
+					HdMonoLabel(
+						text = "v2.2.0",
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				},
+			)
+			Column(modifier = Modifier.padding(24.dp)) {
+				HdMonoLabel(
+					text = "Expanded — full labels beside icons",
 					style = MaterialTheme.typography.labelMedium,
 				)
 			}
@@ -396,30 +423,21 @@ private fun BarChartPreview() {
 	}
 }
 
+private val bottomBarPreviewDestinations = listOf(
+	HdBottomBarDestination(id = "home", icon = Icons.Default.Refresh, label = "Home", shortLabel = "HOME"),
+	HdBottomBarDestination(id = "editor", icon = Icons.Default.MoreVert, label = "Story", shortLabel = "STRY"),
+	HdBottomBarDestination(id = "notes", icon = Icons.Default.Warning, label = "Notes", shortLabel = "NOTE"),
+)
+
 @Preview
 @Composable
 private fun BottomBarPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
-		HdBottomBar {
-			HdBottomBarItem(
-				selected = true,
-				onClick = {},
-				icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-				label = "Home",
-			)
-			HdBottomBarItem(
-				selected = false,
-				onClick = {},
-				icon = { Icon(Icons.Default.MoreVert, contentDescription = null) },
-				label = "Editor",
-			)
-			HdBottomBarItem(
-				selected = false,
-				onClick = {},
-				icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-				label = "Notes",
-			)
-		}
+		HdBottomBar(
+			destinations = bottomBarPreviewDestinations,
+			selectedId = "home",
+			onSelect = {},
+		)
 	}
 }
 
@@ -884,48 +902,27 @@ private fun DesignSystemGalleryPreview() {
 
 			// ── Navigation ──────────────────────────────────────────────────
 			GallerySection("Navigation") {
-				Row(modifier = Modifier.fillMaxWidth()) {
-					HdNavRail {
-						HdNavRailItem(
-							selected = true,
-							onClick = {},
-							icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-							label = "Home",
-						)
-						HdNavRailItem(
-							selected = false,
-							onClick = {},
-							icon = { Icon(Icons.Default.MoreVert, contentDescription = null) },
-							label = "Editor",
-						)
-						HdNavRailItem(
-							selected = false,
-							onClick = {},
-							icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-							label = "Notes",
-						)
-					}
-				}
-				HdBottomBar {
-					HdBottomBarItem(
-						selected = true,
-						onClick = {},
-						icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-						label = "Home",
+				Row(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+					HdNavRail(
+						destinations = navRailPreviewDestinations,
+						selectedId = "home",
+						onSelect = {},
+						expanded = false,
+						onToggleExpanded = {},
 					)
-					HdBottomBarItem(
-						selected = false,
-						onClick = {},
-						icon = { Icon(Icons.Default.MoreVert, contentDescription = null) },
-						label = "Editor",
-					)
-					HdBottomBarItem(
-						selected = false,
-						onClick = {},
-						icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-						label = "Notes",
+					HdNavRail(
+						destinations = navRailPreviewDestinations,
+						selectedId = "home",
+						onSelect = {},
+						expanded = true,
+						onToggleExpanded = {},
 					)
 				}
+				HdBottomBar(
+					destinations = bottomBarPreviewDestinations,
+					selectedId = "home",
+					onSelect = {},
+				)
 			}
 		}
 	}

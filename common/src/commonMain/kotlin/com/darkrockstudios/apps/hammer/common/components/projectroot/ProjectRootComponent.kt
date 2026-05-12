@@ -13,9 +13,11 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import org.koin.core.component.inject
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import kotlinx.coroutines.launch
@@ -31,9 +33,15 @@ class ProjectRootComponent(
 	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val settingsRepository: GlobalSettingsRepository by inject()
 
 	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
 	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
+
+	private val _navRailState = MutableValue(
+		ProjectRoot.NavRailState(expanded = settingsRepository.globalSettings.navRailExpanded)
+	)
+	override val navRailState: Value<ProjectRoot.NavRailState> = _navRailState
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
@@ -89,6 +97,22 @@ class ProjectRootComponent(
 					_projectTheme.value = ProjectRoot.ProjectThemeState(theme = stored?.data?.theme)
 				}
 			}
+		}
+
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				if (_navRailState.value.expanded != settings.navRailExpanded) {
+					withContext(dispatcherMain) {
+						_navRailState.update { it.copy(expanded = settings.navRailExpanded) }
+					}
+				}
+			}
+		}
+	}
+
+	override fun toggleNavRailExpanded() {
+		scope.launch {
+			settingsRepository.updateSettings { it.copy(navRailExpanded = !it.navRailExpanded) }
 		}
 	}
 

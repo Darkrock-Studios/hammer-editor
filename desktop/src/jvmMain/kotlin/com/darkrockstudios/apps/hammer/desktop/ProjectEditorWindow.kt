@@ -25,9 +25,10 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailItem
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -36,7 +37,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.globalsearch.globalSearchShortcutModifier
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
-import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -198,29 +199,29 @@ private fun FrameWindowScope.EditorMenuBar(
 
 @Composable
 private fun AppContent(component: ProjectRoot) {
-	val destinations = remember { ProjectRoot.DestinationTypes.entries }
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
+	val navRailState by component.navRailState.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
+
+	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
 	ProjectThemeOverride(themeState.theme) {
 		Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
 			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-				HdNavRail {
-					destinations.forEach { item ->
-						HdNavRailItem(
-							selected = router.active.instance.getLocationType() == item,
-							onClick = { component.showDestination(item) },
-							icon = {
-								Icon(
-									imageVector = getDestinationIcon(item),
-									contentDescription = item.text.get(),
-								)
-							},
-							label = item.text.get(),
+				HdNavRail(
+					destinations = destinations,
+					selectedId = router.active.instance.getLocationType(),
+					onSelect = { component.showDestination(it) },
+					expanded = navRailState.expanded,
+					onToggleExpanded = { component.toggleNavRailExpanded() },
+					footer = {
+						HdMonoLabel(
+							text = "v${BuildMetadata.APP_VERSION}",
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
-					}
-				}
+					},
+				)
 
 				ProjectRootUi(component, rootSnackbar)
 			}

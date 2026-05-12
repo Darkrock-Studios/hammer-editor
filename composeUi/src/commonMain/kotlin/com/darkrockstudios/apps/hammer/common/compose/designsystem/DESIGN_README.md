@@ -328,13 +328,20 @@ screen that surfaces them.
 
 ### Navigation
 
-- **[`HdNavRail`](HdNavRail.kt)** / **`HdNavRailItem`** — vertical
-  rail with selected state driven by `secondaryContainer` so the
-  per-project theme override colors the active item.
-- **[`HdBottomBar`](HdBottomBar.kt)** / **`HdBottomBarItem`** — slim
-  56dp icon-only bottom bar; the phone counterpart to `HdNavRail`.
-  Replaces M3 `NavigationBar` because 80dp + gesture inset is too
-  heavy for a writing app.
+- **[`HdNavRail`](HdNavRail.kt)** — expandable vertical rail. Takes a
+  list of `HdNavRailDestination<T>` (icon + full label + short mono
+  caption) plus an `expanded` flag and a toggle callback. Collapses to
+  72dp (icon stacked over a 4-char `HdMonoLabel`) and expands to 208dp
+  (full label beside the icon). A `secondary`-tinted hairline on the
+  left edge slides between destinations when selection changes,
+  replacing a pill background so the chrome stays grayscale.
+- **[`HdBottomBar`](HdBottomBar.kt)** — slim 64dp icon-plus-mono-caption
+  bottom bar; the phone counterpart to `HdNavRail`. Same data-driven API
+  (`HdBottomBarDestination<T>` list + `selectedId` + `onSelect`). A
+  `secondary` indicator slides along the **top** edge between cells when
+  selection changes (the rail uses the left edge). Replaces M3
+  `NavigationBar` because 80dp + gesture inset is too heavy for a
+  writing app.
 
 ---
 

@@ -9,23 +9,39 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.project_select_nav_about_app
+import com.darkrockstudios.apps.hammer.project_select_nav_about_app_short
 import com.darkrockstudios.apps.hammer.project_select_nav_account_settings
+import com.darkrockstudios.apps.hammer.project_select_nav_account_settings_short
 import com.darkrockstudios.apps.hammer.project_select_nav_projects_list
+import com.darkrockstudios.apps.hammer.project_select_nav_projects_list_short
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
 
 interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	val stack: Value<ChildStack<Config, Destination>>
+	val navRailState: Value<NavRailState>
 
 	fun isAtRoot(): Boolean
 	fun onBack()
 
 	fun showLocation(location: Locations)
+	fun toggleNavRailExpanded()
 
-	enum class Locations(val text: StringResource) {
-		Projects(Res.string.project_select_nav_projects_list),
-		Settings(Res.string.project_select_nav_account_settings),
-		AboutApp(Res.string.project_select_nav_about_app),
+	data class NavRailState(val expanded: Boolean)
+
+	enum class Locations(val text: StringResource, val shortText: StringResource) {
+		Projects(
+			Res.string.project_select_nav_projects_list,
+			Res.string.project_select_nav_projects_list_short,
+		),
+		Settings(
+			Res.string.project_select_nav_account_settings,
+			Res.string.project_select_nav_account_settings_short,
+		),
+		AboutApp(
+			Res.string.project_select_nav_about_app,
+			Res.string.project_select_nav_about_app_short,
+		),
 	}
 
 	@Serializable

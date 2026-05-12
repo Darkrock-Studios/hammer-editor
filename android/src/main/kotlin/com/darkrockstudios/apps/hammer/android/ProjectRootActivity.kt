@@ -43,7 +43,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarItem
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -60,6 +59,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.projectroot.toHdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.russhwolf.settings.Settings
@@ -324,21 +324,12 @@ private fun CompactNavigation(
 			)
 		},
 		bottomBar = {
-			HdBottomBar {
-				ProjectRoot.DestinationTypes.entries.forEach { item ->
-					HdBottomBarItem(
-						selected = item == router.active.instance.getLocationType(),
-						onClick = { component.showDestination(item) },
-						icon = {
-							Icon(
-								imageVector = getDestinationIcon(item),
-								contentDescription = item.text.get()
-							)
-						},
-						label = item.text.get(),
-					)
-				}
-			}
+			val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdBottomBarDestination() }
+			HdBottomBar(
+				destinations = destinations,
+				selectedId = router.active.instance.getLocationType(),
+				onSelect = { component.showDestination(it) },
+			)
 		},
 		floatingActionButton = {
 			ProjectRootFab(component, Modifier.fab())
