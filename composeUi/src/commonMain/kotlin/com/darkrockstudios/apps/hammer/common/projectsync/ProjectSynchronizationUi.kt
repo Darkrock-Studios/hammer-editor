@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
@@ -33,7 +33,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private val DialogMaxWidth = 580.dp
+private val DialogMaxWidth = 800.dp
 private val DialogBodyMinHeight = 280.dp
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -159,7 +159,7 @@ internal fun ProjectSynchronizationContent(
 				val conflict = state.entityConflict
 				when {
 					projectDataConflict != null || conflict != null -> ConflictBody(
-						title = state.conflictTitle?.get() ?: "error",
+						summary = rememberConflictSummary(conflict, projectDataConflict),
 						infoMessage = if (conflict != null) Res.string.sync_conflict_merge_explained.get() else null,
 						onInfoClick = { msg ->
 							scope.launch {
@@ -168,7 +168,7 @@ internal fun ProjectSynchronizationContent(
 						},
 					) {
 						if (projectDataConflict != null) {
-							ProjectDataConflict(projectDataConflict, component)
+							ProjectDataConflict(projectDataConflict, component, screenCharacteristics)
 						} else when (conflict!!) {
 							is ProjectSynchronization.EntityConflict.SceneConflict ->
 								SceneConflict(conflict, component, screenCharacteristics)
@@ -375,61 +375,137 @@ private fun FooterBar(inLogView: Boolean) {
 	}
 }
 
+internal data class ConflictSummary(
+	val label: String,
+	val name: String?,
+	val meta: String?,
+)
+
 @Composable
-private fun ConflictBody(
-	title: String,
-	infoMessage: String?,
-	onInfoClick: (String) -> Unit,
-	content: @Composable () -> Unit,
-) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(Ui.Padding.XL),
-	) {
-		ConflictHeader(
-			title = title,
-			infoMessage = infoMessage,
-			onInfoClick = if (infoMessage != null) onInfoClick else null,
-		)
-		content()
+private fun rememberConflictSummary(
+	entity: ProjectSynchronization.EntityConflict<*>?,
+	projectData: ProjectSynchronization.ProjectDataConflictState?,
+): ConflictSummary {
+	val sceneLabel = Res.string.sync_conflict_entity_label_scene.get()
+	val noteLabel = Res.string.sync_conflict_entity_label_note.get()
+	val timelineLabel = Res.string.sync_conflict_entity_label_timeline_event.get()
+	val encyclopediaLabel = Res.string.sync_conflict_entity_label_encyclopedia_entry.get()
+	val sceneDraftLabel = Res.string.sync_conflict_entity_label_scene_draft.get()
+	val projectDataLabel = Res.string.sync_conflict_entity_label_project_data.get()
+	return remember(entity, projectData) {
+		when (entity) {
+			is ProjectSynchronization.EntityConflict.SceneConflict -> ConflictSummary(
+				label = sceneLabel,
+				name = entity.serverEntity.name,
+				meta = null,
+			)
+			is ProjectSynchronization.EntityConflict.NoteConflict -> ConflictSummary(
+				label = noteLabel,
+				name = entity.serverEntity.content.firstNonBlankLine().truncateWithEllipsis(40),
+				meta = null,
+			)
+			is ProjectSynchronization.EntityConflict.TimelineEventConflict -> ConflictSummary(
+				label = timelineLabel,
+				name = entity.serverEntity.content.firstNonBlankLine().truncateWithEllipsis(40),
+				meta = entity.serverEntity.date?.takeIf { it.isNotBlank() },
+			)
+			is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> ConflictSummary(
+				label = encyclopediaLabel,
+				name = entity.serverEntity.name,
+				meta = "ENC · ${entity.serverEntity.entryType.uppercase()}",
+			)
+			is ProjectSynchronization.EntityConflict.SceneDraftConflict -> ConflictSummary(
+				label = sceneDraftLabel,
+				name = entity.serverEntity.name,
+				meta = null,
+			)
+			null -> ConflictSummary(
+				label = if (projectData != null) projectDataLabel else "Conflict",
+				name = null,
+				meta = null,
+			)
+		}
 	}
 }
 
 @Composable
-private fun ConflictHeader(
-	title: String,
-	infoMessage: String? = null,
-	onInfoClick: ((String) -> Unit)? = null,
+private fun ConflictBody(
+	summary: ConflictSummary,
+	infoMessage: String?,
+	onInfoClick: (String) -> Unit,
+	content: @Composable () -> Unit,
 ) {
-	Box(
-		modifier = Modifier.wrapContentHeight().fillMaxWidth(),
-		contentAlignment = Alignment.Center
-	) {
-		Row(verticalAlignment = Alignment.CenterVertically) {
-			Icon(
-				Icons.Default.Warning,
-				contentDescription = Res.string.sync_conflict_icon_description.get(),
-				modifier = Modifier.size(32.dp),
-				tint = MaterialTheme.colorScheme.error
-			)
+	Column(modifier = Modifier.fillMaxSize()) {
+		ConflictHeaderStrip(
+			summary = summary,
+			infoMessage = infoMessage,
+			onInfoClick = if (infoMessage != null) onInfoClick else null,
+		)
+		Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+			content()
+		}
+	}
+}
 
-			Text(
-				text = title,
-				style = MaterialTheme.typography.headlineSmall,
-				modifier = Modifier.padding(start = Ui.Padding.L)
-			)
-
-			if (infoMessage != null && onInfoClick != null) {
-				Icon(
-					Icons.Default.Info,
-					contentDescription = infoMessage,
-					modifier = Modifier
-						.padding(start = Ui.Padding.M)
-						.clickable { onInfoClick(infoMessage) },
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
-				)
+@Composable
+private fun ConflictHeaderStrip(
+	summary: ConflictSummary,
+	infoMessage: String?,
+	onInfoClick: ((String) -> Unit)?,
+) {
+	Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			HdWarnGlyph(size = 22.dp)
+			Column(modifier = Modifier.weight(1f)) {
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Text(
+						text = Res.string.sync_conflict_header_title.get(summary.label),
+						style = MaterialTheme.typography.titleLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+					if (infoMessage != null && onInfoClick != null) {
+						Spacer(modifier = Modifier.size(Ui.Padding.M))
+						Icon(
+							imageVector = Icons.Default.Info,
+							contentDescription = infoMessage,
+							modifier = Modifier
+								.size(18.dp)
+								.clickable { onInfoClick(infoMessage) },
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+				}
+				if (summary.name != null || summary.meta != null) {
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+					) {
+						if (summary.name != null) {
+							Text(
+								text = "“${summary.name}”",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+						if (summary.meta != null) {
+							HdMonoLabel(
+								text = "· ${summary.meta}",
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+					}
+				}
 			}
 		}
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
 	}
 }
