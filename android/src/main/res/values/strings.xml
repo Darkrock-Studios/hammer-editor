@@ -24,4 +24,5 @@
     <string name="note_widget_config_title">Configure Note Widget:</string>
     <string name="note_widget_config_project_checkbox">Add notes to specified project</string>
     <string name="note_widget_config_project_checkbox_explained">If no project is selected, you will be asked to choose a project each time.</string>
+    <string name="stories_list_widget_description">Hammer · Library — open a story</string>
 </resources>
