@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * Mono small-caps label — the design system's annotation primitive.
@@ -17,11 +18,17 @@ fun HdMonoLabel(
 	modifier: Modifier = Modifier,
 	color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 	style: TextStyle = MaterialTheme.typography.labelSmall,
+	maxLines: Int = Int.MAX_VALUE,
+	softWrap: Boolean = true,
+	overflow: TextOverflow = TextOverflow.Clip,
 ) {
 	Text(
 		text = text.uppercase(),
 		modifier = modifier,
 		color = color,
 		style = style,
+		maxLines = maxLines,
+		softWrap = softWrap,
+		overflow = overflow,
 	)
 }

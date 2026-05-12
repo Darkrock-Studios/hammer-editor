@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
@@ -57,3 +59,23 @@ data class StoredProjectData(
 	val data: ProjectData = ProjectData(),
 	val lastSyncedHash: String? = null,
 )
+
+/**
+ * Reads `project_data.toml` for [projectDef] off the IO dispatcher without
+ * opening a per-project Koin scope. Returns `StoredProjectData()` defaults
+ * when the file is missing or unreadable so callers don't need to handle
+ * I/O errors themselves.
+ */
+suspend fun loadStoredProjectData(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+): StoredProjectData = withContext(Dispatchers.IO) {
+	val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
+	try {
+		fileSystem.readToml<StoredProjectData>(path, toml)
+	} catch (e: Exception) {
+		Napier.d("No project_data.toml at $path (${e.message})")
+		StoredProjectData()
+	}
+}
