@@ -44,9 +44,9 @@ import kotlin.math.roundToInt
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 
 private enum class NotesSortMode(
-	val labelRes: StringResource,
-	val glyphRes: StringResource,
-) {
+	override val labelRes: StringResource,
+	override val glyphRes: StringResource,
+) : HdSortOption {
 	DateDesc(Res.string.notes_sort_newest, Res.string.notes_sort_glyph_date_desc),
 	DateAsc(Res.string.notes_sort_oldest, Res.string.notes_sort_glyph_date_asc),
 	WordsDesc(Res.string.notes_sort_longest, Res.string.notes_sort_glyph_words_desc),
@@ -274,9 +274,11 @@ fun BrowseNotesUi(
 					null
 				},
 				trailing = {
-					SortMenuButton(
-						sortMode = sortMode,
-						onSortChange = { sortMode = it },
+					HdSortMenu(
+						label = Res.string.notes_sort_label,
+						options = NotesSortMode.entries,
+						selected = sortMode,
+						onSelect = { sortMode = it },
 					)
 				},
 			)
@@ -612,70 +614,6 @@ private fun ActiveFiltersStrip(
 				contentAlignment = Alignment.Center,
 			) {
 				HdMonoLabel(text = stringResource(Res.string.notes_filter_clear_all))
-			}
-		}
-	}
-}
-
-@Composable
-private fun SortMenuButton(
-	sortMode: NotesSortMode,
-	onSortChange: (NotesSortMode) -> Unit,
-) {
-	var expanded by remember { mutableStateOf(false) }
-	Box {
-		Row(
-			modifier = Modifier
-				.height(32.dp)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
-				.clickable { expanded = true }
-				.padding(horizontal = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-		) {
-			HdMonoLabel(
-				text = stringResource(Res.string.notes_sort_label),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdMonoLabel(
-				text = stringResource(sortMode.glyphRes),
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
-		DropdownMenu(
-			expanded = expanded,
-			onDismissRequest = { expanded = false },
-		) {
-			NotesSortMode.entries.forEach { mode ->
-				DropdownMenuItem(
-					text = {
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							verticalAlignment = Alignment.CenterVertically,
-						) {
-							Text(
-								text = stringResource(mode.labelRes),
-								style = MaterialTheme.typography.bodyMedium,
-								color = if (mode == sortMode) {
-									MaterialTheme.colorScheme.onSurface
-								} else {
-									MaterialTheme.colorScheme.onSurfaceVariant
-								},
-							)
-							Spacer(modifier = Modifier.weight(1f))
-							Spacer(modifier = Modifier.width(Ui.Padding.XL))
-							HdMonoLabel(text = stringResource(mode.glyphRes))
-						}
-					},
-					onClick = {
-						onSortChange(mode)
-						expanded = false
-					},
-				)
 			}
 		}
 	}
