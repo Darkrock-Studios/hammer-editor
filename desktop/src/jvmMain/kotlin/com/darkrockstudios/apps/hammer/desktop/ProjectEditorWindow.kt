@@ -9,6 +9,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
@@ -34,7 +37,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.globalsearch.globalSearchShortcutModifier
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
@@ -87,10 +89,18 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		onKeyEvent = { event ->
-			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
-				backDispatcher.back()
-			} else {
-				false
+			when {
+				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
+					backDispatcher.back()
+				}
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.F &&
+					event.isShiftPressed &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					component.showGlobalSearch()
+					true
+				}
+				else -> false
 			}
 		}
 	) {
@@ -207,7 +217,7 @@ private fun AppContent(component: ProjectRoot) {
 	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
 	ProjectThemeOverride(themeState.theme) {
-		Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
+		Box {
 			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 				HdNavRail(
 					destinations = destinations,
