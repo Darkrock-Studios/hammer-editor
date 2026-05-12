@@ -36,11 +36,57 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
+import kotlin.time.Instant
+import org.jetbrains.compose.resources.StringResource
 
 private val WideContentPadding: Dp = Ui.Padding.XXL
 private val NarrowContentPadding: Dp = Ui.Padding.XL
+
+private enum class ProjectsSortMode(
+	override val labelRes: StringResource,
+	override val glyphRes: StringResource,
+) : HdSortOption {
+	LastAccessedDesc(
+		Res.string.projects_list_sort_recently_opened,
+		Res.string.projects_list_sort_glyph_opened_desc,
+	),
+	LastAccessedAsc(
+		Res.string.projects_list_sort_least_recent,
+		Res.string.projects_list_sort_glyph_opened_asc,
+	),
+	CreatedDesc(
+		Res.string.projects_list_sort_newest,
+		Res.string.projects_list_sort_glyph_created_desc,
+	),
+	CreatedAsc(
+		Res.string.projects_list_sort_oldest,
+		Res.string.projects_list_sort_glyph_created_asc,
+	),
+	WordCountDesc(
+		Res.string.projects_list_sort_longest,
+		Res.string.projects_list_sort_glyph_words_desc,
+	),
+	WordCountAsc(
+		Res.string.projects_list_sort_shortest,
+		Res.string.projects_list_sort_glyph_words_asc,
+	),
+}
+
+private fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List<ProjectData> = when (mode) {
+	// Sentinels keep never-opened projects and projects without cached stats
+	// at the bottom regardless of direction, so ascending sorts don't lead with "unknown".
+	ProjectsSortMode.LastAccessedDesc -> projects.sortedByDescending { it.metadata.info.lastAccessed }
+	ProjectsSortMode.LastAccessedAsc -> projects.sortedBy { it.metadata.info.lastAccessed ?: Instant.DISTANT_FUTURE }
+	ProjectsSortMode.CreatedDesc -> projects.sortedByDescending { it.metadata.info.created }
+	ProjectsSortMode.CreatedAsc -> projects.sortedBy { it.metadata.info.created }
+	ProjectsSortMode.WordCountDesc -> projects.sortedByDescending { it.totalWords }
+	ProjectsSortMode.WordCountAsc -> projects.sortedBy { it.totalWords ?: Int.MAX_VALUE }
+}
 
 @Composable
 fun ProjectListUi(
@@ -58,6 +104,11 @@ fun ProjectListUi(
 	Toaster(component, rootSnackbar)
 
 	val horizontalPadding = if (isWide) WideContentPadding else NarrowContentPadding
+
+	var sortMode by remember { mutableStateOf(ProjectsSortMode.LastAccessedDesc) }
+	val sortedProjects by remember(state.projects, sortMode) {
+		derivedStateOf { applySort(state.projects, sortMode) }
+	}
 
 	// Same scroll-away pattern as the scene list outline button: hide the
 	// bar when the user scrolls down, reveal it on any upward scroll.
@@ -82,6 +133,8 @@ fun ProjectListUi(
 			onCreate = component::showCreate,
 			showCreate = isWide,
 			horizontalPadding = horizontalPadding,
+			sortMode = sortMode,
+			onSortChange = { sortMode = it },
 		)
 
 		HdFolioDivider()
@@ -100,20 +153,20 @@ fun ProjectListUi(
 					.nestedScroll(scrollConnection),
 				state = listState,
 			) {
-				if (state.projects.isEmpty()) {
+				if (sortedProjects.isEmpty()) {
 					item(key = "empty") {
 						EmptyState(horizontalPadding = horizontalPadding)
 					}
 				}
 
 				items(
-					count = state.projects.size,
-					key = { index -> state.projects[index].definition.name.hashCode() }
+					count = sortedProjects.size,
+					key = { index -> sortedProjects[index].definition.name.hashCode() }
 				) { index ->
 					ProjectIndexRow(
 						isWide = isWide,
 						index = index,
-						projectData = state.projects[index],
+						projectData = sortedProjects[index],
 						onProjectClick = component::selectProject,
 						onProjectAltClick = component::showProjectDelete,
 						onProjectRenameClick = component::showProjectRename,
@@ -156,6 +209,8 @@ private fun Masthead(
 	onCreate: () -> Unit,
 	showCreate: Boolean,
 	horizontalPadding: Dp,
+	sortMode: ProjectsSortMode,
+	onSortChange: (ProjectsSortMode) -> Unit,
 ) {
 	Row(
 		modifier = Modifier
@@ -175,6 +230,12 @@ private fun Masthead(
 		HdMonoLabel(
 			text = entrySummary(entryCount),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		HdSortMenu(
+			label = Res.string.projects_list_sort_label,
+			options = ProjectsSortMode.entries,
+			selected = sortMode,
+			onSelect = onSortChange,
 		)
 		if (isServerSynced) {
 			RefreshAffordance(onClick = onSync)
