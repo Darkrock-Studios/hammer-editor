@@ -58,7 +58,7 @@ class BrowseNotesComponent(
 			tagIndexService.tagIndex.collect {
 				val ranked = tagIndexService.getRankedTags(TaggedEntityType.Note)
 				withContext(dispatcherMain) {
-					_rankedTags.value = ranked
+					if (ranked != _rankedTags.value) _rankedTags.value = ranked
 				}
 			}
 		}
