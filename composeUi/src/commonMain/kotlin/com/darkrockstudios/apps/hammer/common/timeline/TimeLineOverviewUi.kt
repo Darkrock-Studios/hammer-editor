@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.compose.resources.StringResource
@@ -70,18 +71,6 @@ private fun applySort(events: List<TimeLineEvent>, mode: TimeLineSortMode): List
 		TimeLineSortMode.TitleAsc -> events.sortedBy { it.firstLine().lowercase() }
 	}
 
-private fun buildTagIndex(events: List<TimeLineEvent>): List<Pair<String, Int>> {
-	val counts = mutableMapOf<String, Int>()
-	for (event in events) {
-		for (tag in event.tags) {
-			counts[tag] = (counts[tag] ?: 0) + 1
-		}
-	}
-	return counts.entries
-		.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-		.map { it.key to it.value }
-}
-
 @OptIn(
 	ExperimentalSharedTransitionApi::class,
 	ExperimentalMaterial3Api::class,
@@ -96,6 +85,7 @@ fun TimeLineOverviewUi(
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val state by component.state.subscribeAsState()
+	val tagIndex by component.rankedTags.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
@@ -106,10 +96,6 @@ fun TimeLineOverviewUi(
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
 	val events = state.timeLine?.events ?: emptyList()
-
-	val tagIndex by remember(events) {
-		derivedStateOf { buildTagIndex(events) }
-	}
 
 	val visibleEvents by remember(events, searchQuery, sortMode, activeTags) {
 		derivedStateOf {
@@ -510,7 +496,7 @@ private fun CollapsingStrip(
 
 @Composable
 private fun TagFilterBar(
-	tags: List<Pair<String, Int>>,
+	tags: List<TagCount>,
 	total: Int,
 	activeTags: Set<String>,
 	onToggle: (String) -> Unit,
