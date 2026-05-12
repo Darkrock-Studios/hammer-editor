@@ -5,12 +5,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.runBlocking
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import kotlin.time.Clock
 
 actual val exampleProjectModule = module {
 	singleOf(::ExampleProjectRepositoryiOs) bind ExampleProjectRepository::class
@@ -18,8 +19,10 @@ actual val exampleProjectModule = module {
 
 private class ExampleProjectRepositoryiOs(
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val fileSystem: FileSystem,
-) : ExampleProjectRepository(globalSettingsRepository) {
+	fileSystem: FileSystem,
+	toml: Toml,
+	clock: Clock,
+) : ExampleProjectRepository(globalSettingsRepository, fileSystem, toml, clock) {
 
 	override fun removeExampleProject() {
 		val projectPath = projectsDir() / PROJECT_NAME
@@ -44,6 +47,4 @@ private class ExampleProjectRepositoryiOs(
 			Napier.i("Skipping example project creation")
 		}
 	}
-
-	private fun projectsDir() = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
 }

@@ -3,12 +3,13 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.Path.Companion.toPath
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.io.InputStream
+import kotlin.time.Clock
 
 actual val exampleProjectModule = module {
 	singleOf(::ExampleProjectRepositoryAndroid) bind ExampleProjectRepository::class
@@ -16,8 +17,10 @@ actual val exampleProjectModule = module {
 
 class ExampleProjectRepositoryAndroid(
 	globalSettingsRepository: GlobalSettingsRepository,
-	private val fileSystem: FileSystem
-) : ExampleProjectRepository(globalSettingsRepository) {
+	fileSystem: FileSystem,
+	toml: Toml,
+	clock: Clock,
+) : ExampleProjectRepository(globalSettingsRepository, fileSystem, toml, clock) {
 
 	private fun loadExampleProjectZip(): ByteArray {
 		val path = "/raw/$EXAMPLE_PROJECT_FILE_NAME"
@@ -45,11 +48,5 @@ class ExampleProjectRepositoryAndroid(
 		} else {
 			Napier.i("Skipping example project creation")
 		}
-	}
-
-	private fun projectsDir() = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
-
-	companion object {
-		private const val PROJECT_NAME = "Alice In Wonderland"
 	}
 }
