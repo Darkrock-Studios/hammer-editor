@@ -10,6 +10,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
 import kotlin.time.Clock
@@ -57,6 +58,15 @@ private fun fakeComponent(): BrowseNotes = object : BrowseNotes {
 						tags = setOf("voice"),
 					),
 				)
+			)
+		)
+
+	override val rankedTags: Value<List<TagCount>>
+		get() = MutableValue(
+			listOf(
+				TagCount("research", 2),
+				TagCount("voice", 2),
+				TagCount("ch1", 1),
 			)
 		)
 

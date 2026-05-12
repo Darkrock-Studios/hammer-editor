@@ -46,6 +46,7 @@ private fun ViewNoteUiPreview() {
 		override fun cancelDiscard() {}
 		override fun confirmClose() {}
 		override fun cancelClose() {}
+		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 
 	val rootSnackbar = rememberRootSnackbarHostState()

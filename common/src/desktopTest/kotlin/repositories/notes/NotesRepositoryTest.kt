@@ -280,6 +280,31 @@ class NotesRepositoryTest : BaseTest() {
 		assertTrue(ffs.exists(newPath))
 	}
 
+	@Test
+	fun `noteContentChangedFlow emits on create update and delete`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { idRepository.claimNextId() } returns 20
+
+		val repo = createRepository()
+		advanceUntilIdle()
+
+		repo.noteContentChangedFlow.test {
+			repo.createNote("a note")
+			awaitItem()
+
+			repo.updateNote(
+				NoteContent(id = 12, created = Instant.fromEpochSeconds(1), content = "x"),
+				markForSync = false,
+			)
+			awaitItem()
+
+			repo.deleteNote(13)
+			awaitItem()
+		}
+	}
+
 	companion object {
 		@JvmStatic
 		fun provideCreateFailureTestData(): Stream<Arguments> {

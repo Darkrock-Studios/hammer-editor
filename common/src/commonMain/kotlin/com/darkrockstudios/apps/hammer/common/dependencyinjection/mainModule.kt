@@ -46,6 +46,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -177,6 +178,8 @@ val mainModule = module {
 		scopedOf(::ReferenceIndexDatasource)
 		scopedOf(::ReferenceIndexRepository)
 		scopedOf(::ReferenceIndexService)
+
+		scopedOf(::TagIndexService)
 		scopedOf(::ScrubInvalidReferencesUseCase)
 		scopedOf(::AutoConfirmReferencesUseCase)
 		scopedOf(::BackfillEntryReferencesUseCase)

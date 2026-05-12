@@ -4,8 +4,9 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 
-interface CreateEntry {
+interface CreateEntry : TagSuggesting {
 
 	val state: Value<State>
 

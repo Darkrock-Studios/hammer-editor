@@ -103,6 +103,7 @@ fun CreateTimeLineEventUi(
 					},
 					hint = Res.string.timeline_create_tags_hint.get(),
 					placeholder = Res.string.timeline_create_tags_placeholder.get(),
+					suggestTags = component::suggestTags,
 				)
 			}
 
