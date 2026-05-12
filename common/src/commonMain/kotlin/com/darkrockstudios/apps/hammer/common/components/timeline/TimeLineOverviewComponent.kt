@@ -60,7 +60,7 @@ class TimeLineOverviewComponent(
 			tagIndexService.tagIndex.collect {
 				val ranked = tagIndexService.getRankedTags(TaggedEntityType.TimelineEvent)
 				withContext(mainDispatcher) {
-					_rankedTags.value = ranked
+					if (ranked != _rankedTags.value) _rankedTags.value = ranked
 				}
 			}
 		}
