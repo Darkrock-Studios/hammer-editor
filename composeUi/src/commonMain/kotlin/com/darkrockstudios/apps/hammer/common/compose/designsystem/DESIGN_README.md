@@ -416,6 +416,59 @@ reading column; below 720dp the rail collapses into a top dropdown
 above the same reading column. The reading content itself is
 identical — only the chapter-jump affordance reflows.
 
+### Dialog masthead
+
+The standard masthead for any modal dialog —
+[`FormDialog`](../FormDialog.kt),
+[`ConfirmationDialog` / `IndexStripDialog`](../ConfirmationDialog.kt),
+and [`GlobalSearchUi`](../../globalsearch/GlobalSearchUi.kt) all use this
+shape, and any new dialog should too:
+
+```
+  § MARKER ──────────────── META  ×
+  ════════════════════════════════
+  ────────────────────────────────
+  <body content>
+```
+
+- **§-marker row.** A small-caps mono caption on the left, optional
+  matching mono meta caption on the right (`PROJECT`, `12 RESULTS`,
+  `LAST EDIT 14:32` — must obey the [greeble rule](#greebles): real
+  values, not fabricated). On desktop add a trailing `×` close glyph
+  after the meta, since the dialog has no system back gesture.
+- **[`HdFolioDivider`](HdFolioDivider.kt) underneath.** The 2dp +
+  hairline rule stack is what gives the dialog its "title bar"
+  weight without a shadow.
+- **Body.** Padded `start = 26.dp, end = 26.dp, top = 22.dp, bottom = 22–26.dp`
+  (the wider gutter sets dialogs apart from scrolling screens, which
+  use `Padding.XL = 16.dp`).
+
+The marker row is **not** an `HdSectionHeader` — that primitive is
+reserved for in-screen sections and renders a roman-numeral marker
+(`§ I`). Dialogs use a single short keyword (`§ RENAME`, `§ DELETE`,
+`§ SEARCH PROJECT`) which doubles as the dialog's accessible title.
+Pass the `§` as a literal character in the marker string.
+
+Exact mono styling, copied so far in each call site:
+
+```kotlin
+fontFamily = FontFamily.Monospace,
+fontSize = 10.sp,
+fontWeight = FontWeight.Medium,
+letterSpacing = 1.8.sp,
+color = MaterialTheme.colorScheme.onSurfaceVariant,
+```
+
+(Destructive variants — `IndexStripDialog(destructive = true)` —
+swap the marker color to `error`.)
+
+Three occurrences now share this shape, so per the
+[Adding to the system](#adding-to-the-system) rules this is the next
+candidate to lift into a real `Hd*` primitive (working name:
+`HdDialogMasthead`). Until that lands, copy the exact styling above
+rather than improvising — the cohesion comes from the consistent
+metrics, not just the layout.
+
 ### Responsive browse-screen toolbar
 
 The shared shape of every list-of-things screen — Encyclopedia
