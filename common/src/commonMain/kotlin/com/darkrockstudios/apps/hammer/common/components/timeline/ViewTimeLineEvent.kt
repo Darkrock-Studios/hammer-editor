@@ -2,9 +2,10 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 
-interface ViewTimeLineEvent {
+interface ViewTimeLineEvent : TagSuggesting {
 	val eventId: Int
 	val state: Value<State>
 

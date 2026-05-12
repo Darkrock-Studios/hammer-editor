@@ -131,6 +131,7 @@ fun ViewTimeLineEventUi(
 						onTagsChanged = { component.onTagsChanged(it.toSet()) },
 						eventText = eventText,
 						onEventTextChanged = { component.onEventTextChanged(it) },
+						suggestTags = component::suggestTags,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -379,6 +380,7 @@ private fun EditBody(
 	onTagsChanged: (List<String>) -> Unit,
 	eventText: String,
 	onEventTextChanged: (String) -> Unit,
+	suggestTags: (prefix: String) -> List<String>,
 	modifier: Modifier = Modifier,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -400,6 +402,7 @@ private fun EditBody(
 			onTagsChange = onTagsChanged,
 			hint = Res.string.timeline_create_tags_hint.get(),
 			placeholder = Res.string.timeline_create_tags_placeholder.get(),
+			suggestTags = suggestTags,
 			modifier = Modifier.padding(
 				horizontal = Ui.Padding.XL,
 				vertical = Ui.Padding.L,

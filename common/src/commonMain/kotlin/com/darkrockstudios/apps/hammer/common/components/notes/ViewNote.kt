@@ -4,8 +4,9 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 
-interface ViewNote {
+interface ViewNote : TagSuggesting {
 	val state: Value<State>
 	val noteText: Value<String>
 
