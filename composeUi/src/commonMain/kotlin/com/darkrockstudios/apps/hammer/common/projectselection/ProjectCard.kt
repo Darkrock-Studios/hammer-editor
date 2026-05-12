@@ -29,8 +29,15 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
 import com.darkrockstudios.apps.hammer.project_select_card_rename_button
+import com.darkrockstudios.apps.hammer.projects_list_card_by_author
+import com.darkrockstudios.apps.hammer.projects_list_card_content_description
+import com.darkrockstudios.apps.hammer.projects_list_card_created
+import com.darkrockstudios.apps.hammer.projects_list_card_never_opened
+import com.darkrockstudios.apps.hammer.projects_list_card_opened
+import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -79,10 +86,24 @@ fun ProjectIndexRow(
 	val lastAccessedDate = remember(projectData.metadata.info) {
 		projectData.metadata.info.lastAccessed?.let { formatStamp(it) }
 	}
+	val wordsLabel = projectData.totalWords?.let {
+		Res.string.projects_list_card_words.get(it.formatDecimalSeparator())
+	}
+	val byAuthor = author?.let { Res.string.projects_list_card_by_author.get(it) }
+	val createdText = Res.string.projects_list_card_created.get(createdDate)
+	val openedText = lastAccessedDate
+		?.let { Res.string.projects_list_card_opened.get(it) }
+		?: Res.string.projects_list_card_never_opened.get()
+	val cardContentDescription =
+		Res.string.projects_list_card_content_description.get(projectData.definition.name)
 	val rowNumber = remember(index) { (index + 1).toString().padStart(2, '0') }
-	val subline = remember(isWide, author, createdDate, lastAccessedDate) {
-		if (isWide) wideSubline(author, createdDate)
-		else compactMeta(createdDate, lastAccessedDate)
+	val subline = remember(isWide, byAuthor, createdText, openedText, wordsLabel) {
+		val parts = if (isWide) {
+			listOfNotNull(byAuthor, createdText)
+		} else {
+			listOfNotNull(createdText, openedText, wordsLabel)
+		}
+		parts.joinToString(" · ")
 	}
 
 	Row(
@@ -91,7 +112,7 @@ fun ProjectIndexRow(
 			.height(IntrinsicSize.Min)
 			.combinedClickable(onClick = { onProjectClick(projectData.definition) })
 			.semantics {
-				contentDescription = "Project ${projectData.definition.name}"
+				contentDescription = cardContentDescription
 			}
 			.testTag(ProjectCardTestTag),
 		verticalAlignment = Alignment.CenterVertically,
@@ -138,9 +159,9 @@ fun ProjectIndexRow(
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			} else {
-				if (author != null) {
+				if (byAuthor != null) {
 					Text(
-						text = "by $author",
+						text = byAuthor,
 						style = MaterialTheme.typography.bodyMedium,
 						fontStyle = FontStyle.Italic,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -155,15 +176,26 @@ fun ProjectIndexRow(
 		}
 
 		if (isWide) {
-			HdMonoLabel(
-				text = lastAccessedDate ?: "—",
-				color = if (lastAccessedDate != null) {
-					MaterialTheme.colorScheme.onSurfaceVariant
-				} else {
-					MaterialTheme.colorScheme.outline
-				},
+			Column(
 				modifier = Modifier.padding(horizontal = Ui.Padding.L),
-			)
+				horizontalAlignment = Alignment.End,
+				verticalArrangement = Arrangement.spacedBy(2.dp),
+			) {
+				HdMonoLabel(
+					text = lastAccessedDate ?: "—",
+					color = if (lastAccessedDate != null) {
+						MaterialTheme.colorScheme.onSurfaceVariant
+					} else {
+						MaterialTheme.colorScheme.outline
+					},
+				)
+				if (wordsLabel != null) {
+					HdMonoLabel(
+						text = wordsLabel,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+			}
 		}
 
 		ProjectOptionsMenu(
@@ -219,16 +251,6 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color) {
 			},
 	)
 }
-
-private fun wideSubline(author: String?, createdDate: String): String =
-	if (author != null) "by $author · Created $createdDate" else "Created · $createdDate"
-
-private fun compactMeta(createdDate: String, lastAccessedDate: String?): String =
-	if (lastAccessedDate != null) {
-		"Created $createdDate · Opened $lastAccessedDate"
-	} else {
-		"Created $createdDate · Never opened"
-	}
 
 private fun formatStamp(instant: Instant): String =
 	instant.toLocalDateTime(TimeZone.currentSystemDefault())

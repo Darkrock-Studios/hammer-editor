@@ -10,4 +10,5 @@ data class ProjectData(
 	val definition: ProjectDef,
 	val metadata: ProjectMetadata,
 	val storedData: StoredData = StoredData(),
+	val totalWords: Int? = null,
 )
