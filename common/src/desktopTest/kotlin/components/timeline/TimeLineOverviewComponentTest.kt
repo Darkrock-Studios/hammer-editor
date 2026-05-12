@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -17,6 +19,7 @@ import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -49,6 +52,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 	lateinit var timelineRepo: TimeLineRepository
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
+	lateinit var tagIndexService: TagIndexService
 
 	@BeforeEach
 	override fun setup() {
@@ -67,12 +71,16 @@ class TimeLineOverviewComponentTest : BaseTest() {
 		globalSettingsFlow = mockk()
 		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
 
+		tagIndexService = mockk(relaxed = true)
+		every { tagIndexService.tagIndex } returns MutableStateFlow(TagIndex.EMPTY)
+
 		lifecycleCallbacks = mutableListOf()
 
 		val testModule = module {
 			single { timelineRepo } bind TimeLineRepository::class
 			single { idRepo } bind IdRepository::class
 			single { globalSettingsRepo }
+			single { tagIndexService } bind TagIndexService::class
 		}
 		setupKoin(testModule)
 

@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownVie
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -68,18 +69,6 @@ private fun applySort(notes: List<NoteContent>, mode: NotesSortMode): List<NoteC
 	NotesSortMode.TitleAsc -> notes.sortedBy { it.firstLine().lowercase() }
 }
 
-private fun buildTagIndex(notes: List<NoteContent>): List<Pair<String, Int>> {
-	val counts = mutableMapOf<String, Int>()
-	for (note in notes) {
-		for (tag in note.tags) {
-			counts[tag] = (counts[tag] ?: 0) + 1
-		}
-	}
-	return counts.entries
-		.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-		.map { it.key to it.value }
-}
-
 @OptIn(
 	ExperimentalSharedTransitionApi::class,
 	ExperimentalLayoutApi::class,
@@ -93,6 +82,7 @@ fun BrowseNotesUi(
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val state by component.state.subscribeAsState()
+	val tagIndex by component.rankedTags.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
 	// Three width states, mirroring Encyclopedia's behavior:
@@ -109,10 +99,6 @@ fun BrowseNotesUi(
 	// sort menu and tag filter, so we toggle it in place of the section
 	// header — same affordance pattern Encyclopedia uses.
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
-
-	val tagIndex by remember(state.notes) {
-		derivedStateOf { buildTagIndex(state.notes) }
-	}
 
 	val visibleNotes by remember(state.notes, searchQuery, sortMode, activeTags) {
 		derivedStateOf {
@@ -483,7 +469,7 @@ private fun NoteCard(
 
 @Composable
 private fun TagFilterBar(
-	tags: List<Pair<String, Int>>,
+	tags: List<TagCount>,
 	total: Int,
 	activeTags: Set<String>,
 	onToggle: (String) -> Unit,

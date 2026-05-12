@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.components.SavableProjectComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -19,15 +22,20 @@ class BrowseNotesComponent(
 ) : SavableProjectComponentBase<BrowseNotes.State>(projectDef, componentContext), BrowseNotes {
 
 	private val notesRepository: NotesRepository by projectInject()
+	private val tagIndexService: TagIndexService by projectInject()
 
 	private val _state =
 		MutableValue(BrowseNotes.State(projectDef = projectDef, notes = emptyList()))
 	override val state: Value<BrowseNotes.State> = _state
 	override fun getStateSerializer() = BrowseNotes.State.serializer()
 
+	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
+	override val rankedTags: Value<List<TagCount>> = _rankedTags
+
 	override fun onCreate() {
 		super.onCreate()
 		watchNotes()
+		watchTags()
 		notesRepository.loadNotes()
 	}
 
@@ -40,6 +48,17 @@ class BrowseNotesComponent(
 					_state.getAndUpdate {
 						it.copy(notes = notes)
 					}
+				}
+			}
+		}
+	}
+
+	private fun watchTags() {
+		scope.launch {
+			tagIndexService.tagIndex.collect {
+				val ranked = tagIndexService.getRankedTags(TaggedEntityType.Note)
+				withContext(dispatcherMain) {
+					_rankedTags.value = ranked
 				}
 			}
 		}
