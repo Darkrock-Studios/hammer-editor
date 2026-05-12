@@ -36,6 +36,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.essenty.statekeeper.getSerializable
 import com.arkivanov.essenty.statekeeper.putSerializable
+import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
@@ -51,6 +52,8 @@ import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
@@ -60,10 +63,13 @@ import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.russhwolf.settings.Settings
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
 import org.koin.android.ext.android.inject
 import org.koin.core.component.getScopeId
 import org.koin.java.KoinJavaComponent.getKoin
@@ -72,6 +78,9 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	private val settings: Settings by inject()
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val shortcutsManager: ProjectShortcutsManager by inject()
+	private val projectsRepository: ProjectsRepository by inject()
+	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val mainDispatcher by injectMainDispatcher()
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private var settingsUpdateJob: Job? = null
@@ -84,11 +93,17 @@ class ProjectRootActivity : AppCompatActivity() {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
 
-		val projectDef = intent.extras?.getSerializable(EXTRA_PROJECT, ProjectDef.serializer())
+		val projectDef = resolveProjectDef(intent)
 		if (projectDef == null) {
 			finish()
 		} else {
 			viewModel.setProjectDef(projectDef)
+
+			val fromShortcut = intent.action == ACTION_OPEN_PROJECT
+			lifecycleScope.launch {
+				if (fromShortcut) bumpLastAccessed(projectDef)
+				shortcutsManager.refresh()
+			}
 
 			val component = retainedComponent { componentContext ->
 				ProjectRootComponent(
@@ -124,6 +139,23 @@ class ProjectRootActivity : AppCompatActivity() {
 				}
 			}
 		}
+	}
+
+	private fun resolveProjectDef(intent: Intent): ProjectDef? {
+		intent.extras?.getSerializable(EXTRA_PROJECT, ProjectDef.serializer())?.let { return it }
+
+		val name = intent.getStringExtra(EXTRA_PROJECT_NAME)?.takeIf { it.isNotBlank() } ?: return null
+		val match = projectsRepository.getProjects().firstOrNull { it.name == name }
+		if (match == null) Napier.w("Project shortcut for missing project: $name")
+		return match
+	}
+
+	private suspend fun bumpLastAccessed(projectDef: ProjectDef) = withContext(Dispatchers.IO) {
+		runCatching {
+			projectMetadataDatasource.updateMetadata(projectDef) { metadata ->
+				metadata.copy(info = metadata.info.copy(lastAccessed = Clock.System.now()))
+			}
+		}.onFailure { Napier.w("Failed to bump lastAccessed for shortcut launch: ${projectDef.name}", it) }
 	}
 
 	override fun onStart() {
@@ -237,6 +269,8 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	companion object {
 		const val EXTRA_PROJECT = "project"
+		const val EXTRA_PROJECT_NAME = "project_name"
+		const val ACTION_OPEN_PROJECT = "com.darkrockstudios.apps.hammer.android.OPEN_PROJECT"
 
 		fun createIntent(context: Context, projectDef: ProjectDef): Intent {
 			val intent = Intent(context, ProjectRootActivity::class.java)
@@ -246,6 +280,11 @@ class ProjectRootActivity : AppCompatActivity() {
 			intent.putExtras(extras)
 			return intent
 		}
+
+		fun createShortcutIntent(context: Context, projectName: String): Intent =
+			Intent(context, ProjectRootActivity::class.java)
+				.setAction(ACTION_OPEN_PROJECT)
+				.putExtra(EXTRA_PROJECT_NAME, projectName)
 	}
 }
 

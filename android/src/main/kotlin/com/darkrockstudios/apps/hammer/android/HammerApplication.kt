@@ -4,6 +4,8 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
+import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
@@ -18,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
@@ -41,11 +44,16 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 				mainModule,
 				imageLoadingModule,
 				aboutLibrariesModule,
+				shortcutsModule,
 				appModule(applicationScope)
 			)
 		}
 
 		runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
+
+		applicationScope.launch {
+			getKoin().get<ProjectShortcutsManager>().refresh()
+		}
 	}
 
 	override fun newImageLoader(context: coil3.PlatformContext): ImageLoader {
