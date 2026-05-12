@@ -14,7 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.icons.*
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_reset_text_size
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
@@ -25,6 +30,7 @@ fun MarkdownFormatBar(
 	modifier: Modifier = Modifier.fillMaxWidth(),
 	decreaseTextSize: (() -> Unit)? = null,
 	increaseTextSize: (() -> Unit)? = null,
+	resetTextSize: (() -> Unit)? = null,
 ) {
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
@@ -56,7 +62,7 @@ fun MarkdownFormatBar(
 		state.editOperations.collect { reconcileHorizontalRules(state) }
 	}
 
-	val showOverflow = decreaseTextSize != null || increaseTextSize != null
+	val showOverflow = decreaseTextSize != null || increaseTextSize != null || resetTextSize != null
 
 	BoxWithConstraints(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
 		val compact = maxWidth < TOOLBAR_COMPACT_THRESHOLD
@@ -86,6 +92,7 @@ fun MarkdownFormatBar(
 				state = state,
 				decreaseTextSize = decreaseTextSize,
 				increaseTextSize = increaseTextSize,
+				resetTextSize = resetTextSize,
 				showOverflow = showOverflow,
 			)
 		}
@@ -153,6 +160,7 @@ private fun HistoryAndOverflow(
 	state: TextEditorState,
 	decreaseTextSize: (() -> Unit)?,
 	increaseTextSize: (() -> Unit)?,
+	resetTextSize: (() -> Unit)?,
 	showOverflow: Boolean,
 ) {
 	EditorAction(
@@ -208,6 +216,21 @@ private fun HistoryAndOverflow(
 					},
 					onClick = {
 						increaseTextSize()
+						menuExpanded = false
+					},
+				)
+			}
+			if (resetTextSize != null) {
+				DropdownMenuItem(
+					text = { Text("Reset text size") },
+					leadingIcon = {
+						Icon(
+							imageVector = EditorIcons.IconTextReset,
+							contentDescription = null,
+						)
+					},
+					onClick = {
+						resetTextSize()
 						menuExpanded = false
 					},
 				)
