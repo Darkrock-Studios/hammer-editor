@@ -14,9 +14,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -266,8 +266,13 @@ class SceneEditorRepository(
 	}
 
 	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
+		if (source == UpdateSource.Editor) {
+			val newBuffer = SceneBuffer(content, dirty = true, source = source)
+			updateSceneBuffer(newBuffer)
+			return true
+		}
+
 		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		// Skip update if nothing is different
 		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
 			updateSceneBuffer(newBuffer)
