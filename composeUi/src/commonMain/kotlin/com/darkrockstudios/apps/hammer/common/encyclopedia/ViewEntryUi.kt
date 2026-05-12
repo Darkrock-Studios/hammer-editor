@@ -1034,6 +1034,7 @@ private fun FooterColophon(compact: Boolean, ruleSoft: Color) {
 	}
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagAddDialog(
 	state: ViewEntry.State,
@@ -1047,12 +1048,42 @@ private fun TagAddDialog(
 		onCloseRequest = component::endTagAdd,
 	) {
 		var newTagsText by rememberSaveable { mutableStateOf("") }
+		val existingTags = state.content?.tags.orEmpty()
+		// addTags splits the input on whitespace, so the suggestion prefix
+		// is whatever the user is currently typing — the last whitespace-
+		// delimited token.
+		val prefix = newTagsText.substringAfterLast(' ').trim().removePrefix("#")
+		val suggestions = if (prefix.isNotEmpty()) {
+			component.suggestTags(prefix).filter { it !in existingTags }
+		} else {
+			emptyList()
+		}
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
 			HdHairlineField(
 				label = Res.string.encyclopedia_create_entry_tags_label.get(),
 				value = newTagsText,
 				onValueChange = { newTagsText = it },
 			)
+			if (suggestions.isNotEmpty()) {
+				FlowRow(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalArrangement = Arrangement.spacedBy(6.dp),
+				) {
+					suggestions.forEach { tag ->
+						HdTagChip(
+							label = tag,
+							active = false,
+							onClick = {
+								scope.launch {
+									component.addTags(tag)
+									withContext(mainDispatcher) { newTagsText = "" }
+								}
+							},
+						)
+					}
+				}
+			}
 			HdHairlineButton(
 				label = Res.string.encyclopedia_entry_add_tags_button.get(),
 				emphasised = true,
