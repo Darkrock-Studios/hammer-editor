@@ -23,7 +23,6 @@ import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.unit.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -33,7 +32,6 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
-import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -146,21 +144,6 @@ private fun AddNoteWidgetContent(
 		}
 	}
 }
-
-private fun monoMicroStyle(color: ColorProvider) = TextStyle(
-	color = color,
-	fontSize = 9.sp,
-	fontFamily = FontFamily.Monospace,
-	fontWeight = FontWeight.Medium,
-)
-
-private fun monoLabelStyle(color: ColorProvider, size: androidx.compose.ui.unit.TextUnit = 10.sp) =
-	TextStyle(
-		color = color,
-		fontSize = size,
-		fontFamily = FontFamily.Monospace,
-		fontWeight = FontWeight.Medium,
-	)
 
 private const val ACTION_KEY_PROJECT_NAME = "project_name"
 private val AddNoteActionParameterKey = ActionParameters.Key<String>(ACTION_KEY_PROJECT_NAME)

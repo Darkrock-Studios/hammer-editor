@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+					android:description="@string/stories_list_widget_description"
+					android:minWidth="180dp"
+					android:minHeight="110dp"
+					android:targetCellWidth="4"
+					android:targetCellHeight="3"
+					android:resizeMode="horizontal|vertical"
+					android:initialLayout="@layout/stories_list_widget_loading"
+					android:previewLayout="@layout/stories_list_widget_preview"
+					android:widgetCategory="home_screen"/>

@@ -28,11 +28,12 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.essenty.statekeeper.putSerializable
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteActivity
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarItem
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -125,11 +126,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 	}
 
 	private fun onProjectSelected(projectDef: ProjectDef) {
-		val intent = Intent(this, ProjectRootActivity::class.java)
-		val extras = Bundle()
-		extras.putSerializable(ProjectRootActivity.EXTRA_PROJECT, projectDef, ProjectDef.serializer())
-		intent.putExtras(extras)
-		startActivity(intent)
+		startActivity(ProjectRootActivity.createIntent(this, projectDef))
 	}
 }
 
@@ -169,9 +166,9 @@ private fun CompactNavigation(
 			)
 		},
 		bottomBar = {
-			NavigationBar {
+			HdBottomBar {
 				ProjectSelection.Locations.entries.forEach { item ->
-					NavigationBarItem(
+					HdBottomBarItem(
 						selected = item == stackState.active.configuration.location,
 						onClick = { component.showLocation(item) },
 						icon = {
@@ -180,6 +177,7 @@ private fun CompactNavigation(
 								contentDescription = item.text.get()
 							)
 						},
+						label = item.text.get(),
 					)
 				}
 			}

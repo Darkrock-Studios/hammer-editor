@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.android.widgets
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.glance.color.ColorProvider
+import androidx.glance.text.FontFamily
+import androidx.glance.text.FontWeight
+import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider as SingleColorProvider
 import kotlin.math.absoluteValue
 
@@ -72,3 +77,23 @@ internal fun projectTag(projectName: String?): String {
 	val letters = projectName.filter { it.isLetterOrDigit() }.take(3).uppercase()
 	return letters.ifBlank { "ANY" }
 }
+
+internal fun monoMicroStyle(
+	color: androidx.glance.unit.ColorProvider,
+	size: TextUnit = 9.sp,
+): TextStyle = TextStyle(
+	color = color,
+	fontSize = size,
+	fontFamily = FontFamily.Monospace,
+	fontWeight = FontWeight.Medium,
+)
+
+internal fun monoLabelStyle(
+	color: androidx.glance.unit.ColorProvider,
+	size: TextUnit = 10.sp,
+): TextStyle = TextStyle(
+	color = color,
+	fontSize = size,
+	fontFamily = FontFamily.Monospace,
+	fontWeight = FontWeight.Medium,
+)

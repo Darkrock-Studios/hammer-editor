@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.android
 
+import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
@@ -33,6 +35,7 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.essenty.statekeeper.getSerializable
+import com.arkivanov.essenty.statekeeper.putSerializable
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
@@ -234,6 +237,15 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	companion object {
 		const val EXTRA_PROJECT = "project"
+
+		fun createIntent(context: Context, projectDef: ProjectDef): Intent {
+			val intent = Intent(context, ProjectRootActivity::class.java)
+			val extras = Bundle().apply {
+				putSerializable(EXTRA_PROJECT, projectDef, ProjectDef.serializer())
+			}
+			intent.putExtras(extras)
+			return intent
+		}
 	}
 }
 
