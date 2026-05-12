@@ -263,7 +263,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.i("Toggle Metadata")
-			toggleMetadataPanelVisible()
+			toggleMetadata()
 		}
 
 		val focusModeItem = MenuItemDescriptor(
@@ -438,6 +438,16 @@ class SceneEditorComponent(
 		_state.getAndUpdate {
 			it.copy(showMetadataModal = it.showMetadataModal.not())
 		}
+	}
+
+	private var isWideLayout = false
+
+	override fun setLayoutMode(isWide: Boolean) {
+		isWideLayout = isWide
+	}
+
+	private fun toggleMetadata() {
+		if (isWideLayout) toggleMetadataPanelVisible() else toggleMetadataModal()
 	}
 
 	override fun resetTextSize() {

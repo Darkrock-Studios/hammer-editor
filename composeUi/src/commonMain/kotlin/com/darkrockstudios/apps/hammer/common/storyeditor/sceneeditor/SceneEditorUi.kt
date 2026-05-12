@@ -103,6 +103,7 @@ fun SceneEditorUi(
 				boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
 			}
 			val isWide = remember(remainingWidth) { remainingWidth >= SCENE_METADATA_MIN_WIDTH }
+			SideEffect { component.setLayoutMode(isWide) }
 			val onToggleMetadata: () -> Unit = remember(isWide, component) {
 				if (isWide) component::toggleMetadataPanelVisible else component::toggleMetadataModal
 			}

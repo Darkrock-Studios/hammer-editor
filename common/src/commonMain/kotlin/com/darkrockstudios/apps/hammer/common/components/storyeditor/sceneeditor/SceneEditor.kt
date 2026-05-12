@@ -45,6 +45,9 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	/** Narrow layouts: flips the transient modal-state, no persistence. */
 	fun toggleMetadataModal()
 
+	/** Informs the component whether the current layout is wide (sidebar) or narrow (modal). */
+	fun setLayoutMode(isWide: Boolean)
+
 	fun decreaseTextSize()
 	fun increaseTextSize()
 	fun resetTextSize()
