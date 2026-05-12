@@ -202,9 +202,16 @@ class ReferenceIndexService(
 	private suspend fun matchableEntries(): List<MatchableEntry> {
 		matchableCacheLock.withLock { matchableCache }?.let { return it }
 
-		val entries = encyclopediaRepository.ensureEntriesLoaded()
-			.filter { it.type in config.enabledEntryTypes }
+		val allEntries = encyclopediaRepository.ensureEntriesLoaded()
+		val entries = allEntries.filter { it.type in config.enabledEntryTypes }
 		if (entries.isEmpty()) {
+			if (allEntries.isNotEmpty()) {
+				Napier.w(
+					"matchableEntries: filter dropped all ${allEntries.size} entries — " +
+						"none matched enabledEntryTypes=${config.enabledEntryTypes}. " +
+						"Available types: ${allEntries.map { it.type }.toSet()}"
+				)
+			}
 			matchableCacheLock.withLock { matchableCache = emptyList() }
 			return emptyList()
 		}

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import io.github.aakira.napier.Napier
 
 /**
  * Runs the reference matcher against a scene's current buffer text and adds any
@@ -36,6 +37,10 @@ class AutoConfirmReferencesUseCase(
 		)
 		if (newRefs.isEmpty()) return
 
+		Napier.i(
+			"AutoConfirm: scene ${sceneItem.id} adding ${newRefs.size} new reference(s): " +
+				newRefs.joinToString(", ") { "${it.entryId} via '${it.matchedAlias}'" }
+		)
 		val newConfirmed = metadata.confirmedReferences + newRefs.map { it.entryId }
 		val newMetadata = metadata.copy(confirmedReferences = newConfirmed)
 		sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneItem.id)
