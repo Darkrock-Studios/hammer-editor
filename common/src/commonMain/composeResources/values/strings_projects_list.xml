@@ -9,6 +9,12 @@
 	<string name="projects_list_toast_sync_complete">Projects synced</string>
 	<string name="projects_list_toast_sync_failed">Failed to sync projects</string>
 	<string name="projects_list_item_more_button">More</string>
+	<string name="projects_list_card_words">%1$s words</string>
+	<string name="projects_list_card_by_author">by %1$s</string>
+	<string name="projects_list_card_created">Created %1$s</string>
+	<string name="projects_list_card_opened">Opened %1$s</string>
+	<string name="projects_list_card_never_opened">Never opened</string>
+	<string name="projects_list_card_content_description">Project %1$s</string>
 	<string name="account_sync_dialog_title">Synchronization</string>
 	<string name="account_sync_dialog_header">Account Sync</string>
 	<string name="account_sync_dialog_cancel_button">Cancel</string>

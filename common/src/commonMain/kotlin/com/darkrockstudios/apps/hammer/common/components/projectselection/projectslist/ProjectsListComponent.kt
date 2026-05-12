@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
@@ -54,6 +55,7 @@ class ProjectsListComponent(
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
+	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
 	private val fileSystem: FileSystem by inject()
 	private val toml: Toml by inject()
 	private val strRes: StrRes by inject()
@@ -161,7 +163,12 @@ class ProjectsListComponent(
 			val projectData = projects.parallelMap { projectDef ->
 				val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 				if (metadata != null) {
-					ProjectData(projectDef, metadata, loadStoredProjectData(projectDef))
+					ProjectData(
+						definition = projectDef,
+						metadata = metadata,
+						storedData = loadStoredProjectData(projectDef),
+						totalWords = statisticsCacheReader.loadTotalWords(projectDef),
+					)
 				} else {
 					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
 					null
