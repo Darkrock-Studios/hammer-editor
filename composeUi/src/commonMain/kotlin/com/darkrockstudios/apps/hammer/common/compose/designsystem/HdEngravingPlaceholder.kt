@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
@@ -28,6 +29,7 @@ fun HdEngravingPlaceholder(
 	Box(
 		modifier = modifier
 			.background(backgroundColor)
+			.clipToBounds()
 			.drawWithCache {
 				val strokeWidth = 1.dp.toPx()
 				val diagonal = sqrt(size.width * size.width + size.height * size.height)

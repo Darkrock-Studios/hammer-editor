@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -60,8 +61,7 @@ private enum class TimeLineSortMode(
 	TitleAsc(Res.string.timeline_sort_title_az, Res.string.timeline_sort_glyph_title_az),
 }
 
-private fun TimeLineEvent.firstLine(): String =
-	content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+private fun TimeLineEvent.firstLine(): String = content.firstNonBlankLine()
 
 private fun applySort(events: List<TimeLineEvent>, mode: TimeLineSortMode): List<TimeLineEvent> =
 	when (mode) {

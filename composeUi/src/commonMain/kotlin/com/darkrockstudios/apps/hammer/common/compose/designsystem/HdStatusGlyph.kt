@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
@@ -17,8 +18,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 
 enum class HdStatus {
@@ -69,6 +73,30 @@ fun HdStatusGlyph(
 			modifier = base
 				.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant, shape = RectangleShape)
 				.drawCross(accent),
+		)
+	}
+}
+
+/** Amber-filled square stamped with a mono `!`. Conflict indicator. */
+@Composable
+fun HdWarnGlyph(
+	modifier: Modifier = Modifier,
+	size: Dp = 22.dp,
+) {
+	val amber = LocalHammerColors.current.warning
+	val ink = MaterialTheme.colorScheme.surface
+	Box(
+		modifier = modifier.size(size).background(amber),
+		contentAlignment = Alignment.Center,
+	) {
+		Text(
+			text = "!",
+			color = ink,
+			style = TextStyle(
+				fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
+				fontWeight = FontWeight.SemiBold,
+				fontSize = (size.value * 0.6f).sp,
+			),
 		)
 	}
 }

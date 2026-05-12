@@ -1,80 +1,130 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.Button
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.*
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_explanation
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_author
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_theme
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_word_goal
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_resolve_button
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_unset
+import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
+import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
+
+private enum class DataChoice { LOCAL, REMOTE }
 
 @Composable
 internal fun ProjectDataConflict(
 	conflictState: ProjectSynchronization.ProjectDataConflictState,
 	component: ProjectSynchronization,
+	screenCharacteristics: WindowSizeClass,
 ) {
-	var authorChoice by remember { mutableStateOf(Side.LOCAL) }
-	var themeChoice by remember { mutableStateOf(Side.LOCAL) }
-	var goalChoice by remember { mutableStateOf(Side.LOCAL) }
+	var authorChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var themeChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var goalChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
-	Column(modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L)) {
+	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
+	val themeConflict = conflictState.local.theme != conflictState.server.theme
+	val goalConflict = conflictState.local.wordCountGoal != conflictState.server.wordCountGoal
+
+	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
+	val localLabel = Res.string.sync_conflict_tab_local.get()
+	val remoteLabel = Res.string.sync_conflict_tab_remote.get()
+	val dayLabel = Res.string.sync_conflict_project_data_cadence_day.get()
+	val weekLabel = Res.string.sync_conflict_project_data_cadence_week.get()
+	val stackVertical = screenCharacteristics.widthSizeClass == WindowWidthSizeClass.Compact
+
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.verticalScroll(rememberScrollState())
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+	) {
 		Text(
-			Res.string.sync_conflict_project_data_explanation.get(),
+			text = Res.string.sync_conflict_project_data_explanation.get(),
 			style = MaterialTheme.typography.bodyMedium,
-			modifier = Modifier.padding(bottom = Ui.Padding.L)
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 
-		ConflictRow(
+		PerFieldChoice(
 			label = Res.string.sync_conflict_project_data_field_author.get(),
-			localValue = displayString(conflictState.local.authorName),
-			serverValue = displayString(conflictState.server.authorName),
+			conflict = authorConflict,
+			localValue = displayString(conflictState.local.authorName, unsetLabel),
+			serverValue = displayString(conflictState.server.authorName, unsetLabel),
 			selected = authorChoice,
 			onSelect = { authorChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
 		)
-		Spacer(Modifier.size(Ui.Padding.M))
 
-		ConflictRow(
+		PerFieldChoice(
 			label = Res.string.sync_conflict_project_data_field_theme.get(),
-			localValue = displayString(conflictState.local.theme),
-			serverValue = displayString(conflictState.server.theme),
+			conflict = themeConflict,
+			localValue = displayTheme(conflictState.local.theme, unsetLabel),
+			serverValue = displayTheme(conflictState.server.theme, unsetLabel),
 			selected = themeChoice,
 			onSelect = { themeChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
 		)
-		Spacer(Modifier.size(Ui.Padding.M))
 
-		ConflictRow(
+		PerFieldChoice(
 			label = Res.string.sync_conflict_project_data_field_word_goal.get(),
-			localValue = displayWordGoal(conflictState.local.wordCountGoal),
-			serverValue = displayWordGoal(conflictState.server.wordCountGoal),
+			conflict = goalConflict,
+			localValue = displayWordGoal(conflictState.local.wordCountGoal, unsetLabel, dayLabel, weekLabel),
+			serverValue = displayWordGoal(conflictState.server.wordCountGoal, unsetLabel, dayLabel, weekLabel),
 			selected = goalChoice,
 			onSelect = { goalChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
 		)
-		Spacer(Modifier.size(Ui.Padding.L))
 
-		Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-			Button(
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.End,
+		) {
+			HdHairlineButton(
+				label = Res.string.sync_conflict_project_data_resolve_button.get().uppercase(),
 				onClick = {
 					component.resolveProjectDataConflict(
 						buildResolved(
@@ -86,99 +136,122 @@ internal fun ProjectDataConflict(
 						)
 					)
 				},
+				emphasised = true,
+			)
+		}
+	}
+}
+
+@Composable
+private fun PerFieldChoice(
+	label: String,
+	conflict: Boolean,
+	localValue: String,
+	serverValue: String,
+	selected: DataChoice,
+	onSelect: (DataChoice) -> Unit,
+	localLabel: String,
+	remoteLabel: String,
+	stackVertical: Boolean,
+) {
+	HdConflictField(label = label, conflict = conflict) {
+		if (stackVertical) {
+			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+				DataChoiceCell(
+					heading = localLabel,
+					value = localValue,
+					selected = selected == DataChoice.LOCAL,
+					onClick = { onSelect(DataChoice.LOCAL) },
+					modifier = Modifier.fillMaxWidth(),
+				)
+				DataChoiceCell(
+					heading = remoteLabel,
+					value = serverValue,
+					selected = selected == DataChoice.REMOTE,
+					onClick = { onSelect(DataChoice.REMOTE) },
+					modifier = Modifier.fillMaxWidth(),
+				)
+			}
+		} else {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
-				Text(Res.string.sync_conflict_project_data_resolve_button.get())
+				DataChoiceCell(
+					heading = localLabel,
+					value = localValue,
+					selected = selected == DataChoice.LOCAL,
+					onClick = { onSelect(DataChoice.LOCAL) },
+					modifier = Modifier.weight(1f),
+				)
+				DataChoiceCell(
+					heading = remoteLabel,
+					value = serverValue,
+					selected = selected == DataChoice.REMOTE,
+					onClick = { onSelect(DataChoice.REMOTE) },
+					modifier = Modifier.weight(1f),
+				)
 			}
 		}
 	}
 }
 
 @Composable
-private fun ConflictRow(
-	label: String,
-	localValue: String,
-	serverValue: String,
-	selected: Side,
-	onSelect: (Side) -> Unit,
-) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Text(
-			label,
-			style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-		)
-		Spacer(Modifier.size(Ui.Padding.S))
-		Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-			SideOption(
-				modifier = Modifier.weight(1f),
-				heading = Res.string.sync_conflict_tab_local.get(),
-				value = localValue,
-				selected = selected == Side.LOCAL,
-				onClick = { onSelect(Side.LOCAL) },
-			)
-			Spacer(Modifier.size(Ui.Padding.M))
-			SideOption(
-				modifier = Modifier.weight(1f),
-				heading = Res.string.sync_conflict_tab_remote.get(),
-				value = serverValue,
-				selected = selected == Side.SERVER,
-				onClick = { onSelect(Side.SERVER) },
-			)
-		}
-	}
-}
-
-@Composable
-private fun SideOption(
-	modifier: Modifier,
+private fun DataChoiceCell(
 	heading: String,
 	value: String,
 	selected: Boolean,
 	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
 ) {
-	Row(
+	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
+	else MaterialTheme.colorScheme.outlineVariant
+	val backgroundColor = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh
+	else MaterialTheme.colorScheme.surface
+	Column(
 		modifier = modifier
+			.background(backgroundColor, RectangleShape)
+			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
 			.selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-			.padding(Ui.Padding.S),
-		verticalAlignment = Alignment.CenterVertically,
+			.padding(Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(2.dp),
 	) {
-		RadioButton(selected = selected, onClick = onClick)
-		Spacer(Modifier.size(Ui.Padding.S))
-		Column(modifier = Modifier.wrapContentSize()) {
-			Text(heading, style = MaterialTheme.typography.labelSmall)
-			Text(value, style = MaterialTheme.typography.bodyMedium)
-		}
+		HdMonoLabel(
+			text = heading,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Text(
+			text = value,
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
 	}
 }
-
-private enum class Side { LOCAL, SERVER }
 
 private fun buildResolved(
 	local: ProjectData,
 	server: ProjectData,
-	authorChoice: Side,
-	themeChoice: Side,
-	goalChoice: Side,
+	authorChoice: DataChoice,
+	themeChoice: DataChoice,
+	goalChoice: DataChoice,
 ): ProjectData = ProjectData(
-	authorName = if (authorChoice == Side.LOCAL) local.authorName else server.authorName,
-	theme = if (themeChoice == Side.LOCAL) local.theme else server.theme,
-	wordCountGoal = if (goalChoice == Side.LOCAL) local.wordCountGoal else server.wordCountGoal,
+	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
+	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
+	wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
 )
 
-@Composable
-private fun displayString(value: String?): String =
-	if (value.isNullOrBlank()) Res.string.sync_conflict_project_data_value_unset.get() else value
+private fun displayString(value: String?, unsetLabel: String): String =
+	if (value.isNullOrBlank()) unsetLabel else value
 
-@Composable
-private fun displayString(theme: ProjectTheme?): String =
-	if (theme == null) Res.string.sync_conflict_project_data_value_unset.get()
-	else "${theme.primary} • ${theme.secondary}"
+private fun displayTheme(theme: ProjectTheme?, unsetLabel: String): String =
+	if (theme == null) unsetLabel else "${theme.primary} • ${theme.secondary}"
 
-@Composable
-private fun displayWordGoal(goal: WordCountGoal?): String {
-	if (goal == null) return Res.string.sync_conflict_project_data_value_unset.get()
+private fun displayWordGoal(goal: WordCountGoal?, unsetLabel: String, dayLabel: String, weekLabel: String): String {
+	if (goal == null) return unsetLabel
 	val cadence = when (goal.cadence) {
-		WordCountGoal.Cadence.DAY -> Res.string.sync_conflict_project_data_cadence_day.get()
-		WordCountGoal.Cadence.WEEK -> Res.string.sync_conflict_project_data_cadence_week.get()
+		WordCountGoal.Cadence.DAY -> dayLabel
+		WordCountGoal.Cadence.WEEK -> weekLabel
 	}
 	return "${goal.count} / $cadence"
 }
+

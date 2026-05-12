@@ -146,6 +146,33 @@ private fun TimelineConflictPreview() {
 
 @Preview
 @Composable
+private fun EncyclopediaEntryConflictCompactPreview() {
+	val serverEntity = ApiProjectEntity.EncyclopediaEntryEntity(
+		id = 1,
+		name = "White Rabbit",
+		entryType = "person",
+		text = "A nervous, waistcoated rabbit who carries a pocket-watch and is always late.",
+		tags = setOf("wonderland", "guide"),
+		image = null,
+		aliases = listOf("The Rabbit"),
+	)
+	val clientEntity = serverEntity.copy(
+		name = "White Rabbit (the Herald)",
+		text = "A herald between worlds. Revised in draft 3 to give him a formal title at court.",
+		tags = setOf("wonderland", "herald", "court"),
+		aliases = listOf("The Rabbit", "The Herald"),
+	)
+
+	val conflict = ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict(
+		serverEntry = serverEntity,
+		clientEntry = clientEntity,
+	)
+
+	ProjectSynchronizationPreview(conflict, Res.string.sync_conflict_encyclopedia_title, compactSize())
+}
+
+@Preview
+@Composable
 private fun EncyclopediaEntryConflictPreview() {
 	val serverEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 		id = 1,

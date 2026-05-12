@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -57,8 +58,7 @@ private enum class NotesSortMode(
 private fun NoteContent.wordCount(): Int =
 	content.split(Regex("\\s+")).count { it.isNotBlank() }
 
-private fun NoteContent.firstLine(): String =
-	content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+private fun NoteContent.firstLine(): String = content.firstNonBlankLine()
 
 private fun applySort(notes: List<NoteContent>, mode: NotesSortMode): List<NoteContent> = when (mode) {
 	NotesSortMode.DateDesc -> notes.sortedByDescending { it.created }

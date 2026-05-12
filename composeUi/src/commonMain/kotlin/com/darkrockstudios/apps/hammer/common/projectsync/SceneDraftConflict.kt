@@ -1,26 +1,29 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_draft_field_content
+import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_draft_field_name
 import kotlinx.coroutines.launch
 
 @Composable
@@ -29,127 +32,84 @@ internal fun SceneDraftConflict(
 	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
+	val scope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
+	val client = entityConflict.clientEntity
+	var nameTextValue by rememberSaveable(client) { mutableStateOf(client.name) }
+	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
+	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
+
+	val useLocal = {
+		val error = component.resolveConflict(
+			client.copy(name = nameTextValue, content = contentTextValue)
+		)
+		if (error is ProjectSynchronization.EntityMergeError.SceneDraftMergeError) {
+			scope.launch { nameError = error.nameError?.text(strRes) }
+		}
+	}
+	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
+
 	EntityConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = { m, c, p -> LocalDraft(m, c, p) },
-		RemoteEntity = { m, c, p -> RemoteDraft(m, c, p) },
-	)
-}
-
-@Composable
-private fun LocalDraft(
-	modifier: Modifier = Modifier,
-	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
-	component: ProjectSynchronization
-) {
-	val scope = rememberCoroutineScope()
-	val strRes = rememberStrRes()
-	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.SceneDraftEntity
-	var nameTextValue by rememberSaveable(entity) { mutableStateOf(entity?.name ?: "") }
-	var nameError by rememberSaveable(entity) { mutableStateOf<String?>(null) }
-	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
-
-	Column(modifier = modifier.padding(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Text(
-				text = Res.string.sync_conflict_title_scene_draft_local.get(),
-				style = MaterialTheme.typography.headlineSmall
-			)
-			Button(onClick = {
-				val error = component.resolveConflict(
-					entityConflict.clientEntity.copy(
-						name = nameTextValue,
-						content = contentTextValue
+		onUseLocal = useLocal,
+		onUseRemote = useRemote,
+		LocalBody = { m, c, _ ->
+			Column(
+				modifier = m
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
+					.verticalScroll(rememberScrollState()),
+				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+			) {
+				HdConflictField(
+					label = Res.string.sync_conflict_title_scene_draft_field_name.get(),
+					conflict = c.serverEntity.name != c.clientEntity.name,
+				) {
+					HdHairlineField(
+						label = "",
+						value = nameTextValue,
+						onValueChange = { nameTextValue = it },
+						singleLine = true,
+						error = nameError,
+						modifier = Modifier.fillMaxWidth(),
 					)
-				)
-
-				if (error is ProjectSynchronization.EntityMergeError.SceneDraftMergeError) {
-					scope.launch {
-						nameError = error.nameError?.text(strRes)
-					}
 				}
-			}) {
-				Text(Res.string.sync_conflict_local_use_button.get())
+				HdConflictField(
+					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
+					conflict = c.serverEntity.content != c.clientEntity.content,
+				) {
+					HdHairlineField(
+						label = "",
+						value = contentTextValue,
+						onValueChange = { contentTextValue = it },
+						singleLine = false,
+						minLines = 8,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				}
 			}
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		TextField(
-			value = nameTextValue,
-			onValueChange = { nameTextValue = it },
-			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
-			label = { Text(Res.string.sync_conflict_title_scene_draft_field_name.get()) },
-			isError = (nameError != null),
-			modifier = Modifier.fillMaxWidth(),
-			singleLine = true
-		)
-		if (nameError != null) {
-			Text(
-				nameError ?: "",
-				style = MaterialTheme.typography.bodySmall,
-				fontStyle = FontStyle.Italic,
-				color = MaterialTheme.colorScheme.error
-			)
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		TextField(
-			value = contentTextValue,
-			onValueChange = { contentTextValue = it },
-			placeholder = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) },
-			label = { Text(Res.string.sync_conflict_title_scene_draft_field_content.get()) },
-			modifier = Modifier.fillMaxWidth().weight(1f)
-		)
-	}
-}
-
-@Composable
-private fun RemoteDraft(
-	modifier: Modifier = Modifier,
-	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.SceneDraftEntity>,
-	component: ProjectSynchronization
-) {
-	Column(modifier = modifier.padding(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Text(
-				text = Res.string.sync_conflict_title_scene_draft_remote.get(),
-				style = MaterialTheme.typography.headlineSmall
-			)
-			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-				Text(Res.string.sync_conflict_remote_use_button.get())
+		},
+		RemoteBody = { m, c, _ ->
+			Column(
+				modifier = m
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
+					.verticalScroll(rememberScrollState()),
+				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+			) {
+				HdConflictField(
+					label = Res.string.sync_conflict_title_scene_draft_field_name.get(),
+					conflict = c.serverEntity.name != c.clientEntity.name,
+				) {
+					ReadOnlyLine(c.serverEntity.name)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
+					conflict = c.serverEntity.content != c.clientEntity.content,
+				) {
+					ReadOnlyBlock(c.serverEntity.content)
+				}
 			}
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		Text(
-			Res.string.sync_conflict_title_scene_draft_field_name.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			fontWeight = FontWeight.Bold
-		)
-		SelectionContainer {
-			Text(
-				entityConflict.serverEntity.name,
-				style = MaterialTheme.typography.bodyLarge
-			)
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		Text(
-			Res.string.sync_conflict_title_scene_draft_field_content.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			fontWeight = FontWeight.Bold
-		)
-		SelectionContainer(modifier = Modifier.weight(1f)) {
-			Text(
-				entityConflict.serverEntity.content,
-				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-			)
-		}
-	}
+		},
+	)
 }

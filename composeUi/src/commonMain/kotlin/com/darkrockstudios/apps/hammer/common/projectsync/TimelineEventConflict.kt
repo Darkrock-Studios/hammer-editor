@@ -1,27 +1,28 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_missing_date
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_content
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_date
 
 @Composable
 internal fun TimelineEventConflict(
@@ -29,119 +30,82 @@ internal fun TimelineEventConflict(
 	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
+	val client = entityConflict.clientEntity
+	var dateTextValue by rememberSaveable(client) { mutableStateOf(client.date.orEmpty()) }
+	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
+
+	val useLocal = {
+		component.resolveConflict(
+			client.copy(
+				date = dateTextValue.ifBlank { null },
+				content = contentTextValue,
+			)
+		)
+		Unit
+	}
+	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
+
 	EntityConflict(
 		entityConflict = entityConflict,
 		component = component,
 		screenCharacteristics = screenCharacteristics,
-		LocalEntity = { m, c, p -> LocalEvent(m, c, p) },
-		RemoteEntity = { m, c, p -> RemoteEvent(m, c, p) },
-	)
-}
-
-@Composable
-private fun getDateText(entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>): String {
-	val date = entityConflict.serverEntity.date
-	return if (date.isNullOrBlank()) {
-		Res.string.sync_conflict_timeline_event_missing_date.get()
-	} else {
-		date
-	}
-}
-
-@Composable
-private fun LocalEvent(
-	modifier: Modifier = Modifier,
-	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
-	component: ProjectSynchronization
-) {
-	val entity = component.state.value.entityConflict?.clientEntity as? ApiProjectEntity.TimelineEventEntity
-	var dateTextValue by rememberSaveable(entity) { mutableStateOf(entity?.date ?: "") }
-	var contentTextValue by rememberSaveable(entity) { mutableStateOf(entity?.content ?: "") }
-
-	Column(modifier = modifier.padding(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Text(
-				text = Res.string.sync_conflict_title_timeline_event_local.get(),
-				style = MaterialTheme.typography.headlineSmall
-			)
-			Button(onClick = {
-				component.resolveConflict(
-					entityConflict.clientEntity.copy(
-						date = dateTextValue,
-						content = contentTextValue
+		onUseLocal = useLocal,
+		onUseRemote = useRemote,
+		LocalBody = { m, c, _ ->
+			Column(
+				modifier = m
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
+					.verticalScroll(rememberScrollState()),
+				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+			) {
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
+					conflict = c.serverEntity.date != c.clientEntity.date,
+				) {
+					HdHairlineField(
+						label = "",
+						value = dateTextValue,
+						onValueChange = { dateTextValue = it },
+						singleLine = true,
+						modifier = Modifier.fillMaxWidth(),
 					)
-				)
-			}) {
-				Text(Res.string.sync_conflict_local_use_button.get())
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
+					conflict = c.serverEntity.content != c.clientEntity.content,
+				) {
+					HdHairlineField(
+						label = "",
+						value = contentTextValue,
+						onValueChange = { contentTextValue = it },
+						singleLine = false,
+						minLines = 6,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				}
 			}
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		TextField(
-			value = dateTextValue,
-			onValueChange = { dateTextValue = it },
-			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) },
-			label = { Text(Res.string.sync_conflict_title_timeline_event_field_date.get()) },
-			modifier = Modifier.fillMaxWidth(),
-			singleLine = true
-		)
-		Spacer(Modifier.size(Ui.Padding.M))
-		TextField(
-			value = contentTextValue,
-			onValueChange = { contentTextValue = it },
-			placeholder = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) },
-			label = { Text(Res.string.sync_conflict_title_timeline_event_field_content.get()) },
-			modifier = Modifier.fillMaxWidth().weight(1f)
-		)
-	}
-}
-
-@Composable
-private fun RemoteEvent(
-	modifier: Modifier = Modifier,
-	entityConflict: ProjectSynchronization.EntityConflict<ApiProjectEntity.TimelineEventEntity>,
-	component: ProjectSynchronization
-) {
-	Column(modifier = modifier.padding(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Text(
-				text = Res.string.sync_conflict_title_timeline_event_remote.get(),
-				style = MaterialTheme.typography.headlineSmall
-			)
-			Button(onClick = { component.resolveConflict(entityConflict.serverEntity) }) {
-				Text(Res.string.sync_conflict_remote_use_button.get())
+		},
+		RemoteBody = { m, c, _ ->
+			val missingDateLabel = Res.string.sync_conflict_timeline_event_missing_date.get()
+			Column(
+				modifier = m
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
+					.verticalScroll(rememberScrollState()),
+				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+			) {
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
+					conflict = c.serverEntity.date != c.clientEntity.date,
+				) {
+					ReadOnlyLine(c.serverEntity.date?.takeIf { it.isNotBlank() } ?: missingDateLabel)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
+					conflict = c.serverEntity.content != c.clientEntity.content,
+				) {
+					ReadOnlyBlock(c.serverEntity.content)
+				}
 			}
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		Text(
-			Res.string.sync_conflict_title_timeline_event_field_date.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			fontWeight = FontWeight.Bold
-		)
-		SelectionContainer {
-			Text(
-				getDateText(entityConflict),
-				style = MaterialTheme.typography.bodyLarge
-			)
-		}
-		Spacer(Modifier.size(Ui.Padding.M))
-		Text(
-			Res.string.sync_conflict_title_timeline_event_field_content.get(),
-			style = MaterialTheme.typography.bodyLarge,
-			fontWeight = FontWeight.Bold
-		)
-		SelectionContainer(modifier = Modifier.weight(1f)) {
-			Text(
-				entityConflict.serverEntity.content,
-				modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-			)
-		}
-	}
+		},
+	)
 }
