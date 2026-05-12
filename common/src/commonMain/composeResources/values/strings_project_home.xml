@@ -71,6 +71,8 @@
 	<string name="project_home_action_export_toast_success">Story Exported</string>
 
 	<string name="project_home_export_dialog_title">Export Story</string>
+	<string name="project_home_export_section">EXPORT</string>
+	<string name="project_home_export_close">× CLOSE</string>
 	<string name="project_home_export_chapters_label">Treat top-level scenes as chapters</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.md)</string>
