@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.coroutines.CoroutineScope
@@ -165,17 +166,6 @@ class NotesRepository(
 		} else {
 			NoteError.NONE
 		}
-	}
-
-	private fun cleanTags(tags: Set<String>): Set<String> {
-		val regex = Regex("""[\w-]+""")
-		return tags
-			.asSequence()
-			.map { it.trim() }
-			.map { if (it.startsWith("#")) it.substring(1) else it }
-			.filter { it.isNotEmpty() }
-			.filter { regex.matches(it) }
-			.toSet()
 	}
 
 	suspend fun getNoteById(id: Int): NoteContainer? {
