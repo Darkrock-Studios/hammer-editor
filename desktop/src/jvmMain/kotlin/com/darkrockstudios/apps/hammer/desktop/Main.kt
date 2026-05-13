@@ -27,9 +27,10 @@ import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModu
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
-import com.jthemedetecor.OsThemeDetector
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
+import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -84,8 +85,7 @@ fun main(args: Array<String>) {
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
 
-	val osThemeDetector = OsThemeDetector.getDetector()
-	if (osThemeDetector.isDark) {
+	if (getPlatformDarkModeDetector().isDark()) {
 		LafManager.install(DarculaTheme())
 	} else {
 		LafManager.install(IntelliJTheme())
@@ -109,28 +109,19 @@ fun main(args: Array<String>) {
 		setSingletonImageLoaderFactory { imageLoader }
 
 		val settingsState by globalSettings.subscribeAsState()
-		val initialDark = when (settingsState.uiTheme) {
+		val systemDark = isSystemInDarkMode()
+		val darkMode = when (settingsState.uiTheme) {
 			UiTheme.Light -> false
 			UiTheme.Dark -> true
-			UiTheme.FollowSystem -> osThemeDetector.isDark
+			UiTheme.FollowSystem -> systemDark
 		}
-		var darkMode by remember(initialDark) { mutableStateOf(initialDark) }
-		val themeListener = remember {
-			{ isDarkModeEnabled: Boolean ->
-				darkMode = isDarkModeEnabled
-
-				if (darkMode) {
-					LafManager.install(DarculaTheme())
-				} else {
-					LafManager.install(IntelliJTheme())
-				}
-				LafManager.updateLaf()
+		LaunchedEffect(darkMode) {
+			if (darkMode) {
+				LafManager.install(DarculaTheme())
+			} else {
+				LafManager.install(IntelliJTheme())
 			}
-		}
-		if (settingsState.uiTheme == UiTheme.FollowSystem) {
-			osThemeDetector.registerListener(themeListener)
-		} else {
-			osThemeDetector.registerListener(themeListener)
+			LafManager.updateLaf()
 		}
 
 		AppTheme(useDarkTheme = darkMode, settings = settingsState) {

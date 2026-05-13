@@ -51,6 +51,7 @@ kotlin {
 				implementation(libs.jetbrains.compose.desktop)
 				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
+				implementation(libs.nucleus.darkmode.detector)
 			}
 		}
 		val jvmTest by getting {
