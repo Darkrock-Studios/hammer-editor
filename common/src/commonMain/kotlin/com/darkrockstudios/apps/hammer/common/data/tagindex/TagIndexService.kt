@@ -2,13 +2,11 @@ package com.darkrockstudios.apps.hammer.common.data.tagindex
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -28,12 +26,12 @@ class TagIndexService(
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
 	private val sceneEditorRepository: SceneEditorRepository,
+	private val buildTagIndex: BuildTagIndexUseCase,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
-	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 	private val serviceScope = CoroutineScope(dispatcherDefault)
 
 	private val _tagIndex = MutableStateFlow(TagIndex.EMPTY)
@@ -98,75 +96,12 @@ class TagIndexService(
 	private suspend fun rebuild() {
 		_isCalculating.value = true
 		try {
-			val tagToEntities = mutableMapOf<String, MutableSet<TaggedEntityRef>>()
-			val countsByType = mutableMapOf<TaggedEntityType, MutableMap<String, Int>>()
-
-			val noteContainers = notesRepository.notesListFlow.first()
-			for (container in noteContainers) {
-				val ref = TaggedEntityRef(TaggedEntityType.Note, container.note.id)
-				for (tag in container.note.tags) {
-					accumulate(tagToEntities, countsByType, TaggedEntityType.Note, tag, ref)
-				}
-			}
-
-			val timeline = timeLineRepository.timelineFlow.first()
-			for (event in timeline.events) {
-				val ref = TaggedEntityRef(TaggedEntityType.TimelineEvent, event.id)
-				for (tag in event.tags) {
-					accumulate(tagToEntities, countsByType, TaggedEntityType.TimelineEvent, tag, ref)
-				}
-			}
-
-			val entryDefs = encyclopediaRepository.ensureEntriesLoaded()
-			val entries = coroutineScope {
-				entryDefs.map { def ->
-					async { def.id to encyclopediaRepository.loadEntry(def).entry.tags }
-				}.awaitAll()
-			}
-			for ((entryId, tags) in entries) {
-				val ref = TaggedEntityRef(TaggedEntityType.Encyclopedia, entryId)
-				for (tag in tags) {
-					accumulate(tagToEntities, countsByType, TaggedEntityType.Encyclopedia, tag, ref)
-				}
-			}
-
-			val sceneTags = withContext(dispatcherIo) {
-				val sceneItems = sceneEditorRepository.getScenes()
-					.filter { it.type == SceneItem.Type.Scene } + sceneEditorRepository.getArchivedScenes()
-				coroutineScope {
-					sceneItems.map { scene ->
-						async { scene.id to sceneEditorRepository.loadSceneMetadata(scene.id).tags }
-					}.awaitAll()
-				}
-			}
-			for ((sceneId, tags) in sceneTags) {
-				val ref = TaggedEntityRef(TaggedEntityType.Scene, sceneId)
-				for (tag in tags) {
-					accumulate(tagToEntities, countsByType, TaggedEntityType.Scene, tag, ref)
-				}
-			}
-
-			_tagIndex.value = TagIndex(
-				tagToEntities = tagToEntities.mapValues { it.value.toSet() },
-				countsByType = countsByType.mapValues { it.value.toMap() },
-			)
+			_tagIndex.value = buildTagIndex()
 		} catch (t: Throwable) {
 			Napier.e("TagIndexService rebuild failed", t)
 		} finally {
 			_isCalculating.value = false
 		}
-	}
-
-	private fun accumulate(
-		tagToEntities: MutableMap<String, MutableSet<TaggedEntityRef>>,
-		countsByType: MutableMap<TaggedEntityType, MutableMap<String, Int>>,
-		type: TaggedEntityType,
-		tag: String,
-		ref: TaggedEntityRef,
-	) {
-		tagToEntities.getOrPut(tag) { mutableSetOf() }.add(ref)
-		val perType = countsByType.getOrPut(type) { mutableMapOf() }
-		perType[tag] = (perType[tag] ?: 0) + 1
 	}
 
 	override fun onScopeClose(scope: Scope) {
