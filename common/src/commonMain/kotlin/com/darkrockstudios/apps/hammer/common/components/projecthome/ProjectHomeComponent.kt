@@ -247,6 +247,8 @@ class ProjectHomeComponent(
 							wordsPerDevice = stats.wordsPerDevice,
 							topAppearances = stats.topAppearances,
 							totalEntryConnections = stats.totalEntryConnections,
+							tagFrequencies = stats.tagFrequencies,
+							tagUsesBySource = stats.tagUsesBySource,
 							wordCountGoal = stats.wordCountGoal,
 							writingActivity = derived,
 							hasServer = globalSettingsRepository.serverSettings != null,
