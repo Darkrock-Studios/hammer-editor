@@ -32,8 +32,10 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdown
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.*
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
@@ -82,7 +84,7 @@ fun ProjectStatsUi(
 			InhabitantsSection(state = state, isWide = isWide)
 		}
 
-		if (state.tagFrequencies.isNotEmpty()) {
+		if (state.tagBreakdowns.isNotEmpty()) {
 			ThemesSection(state = state, isWide = isWide)
 		}
 
@@ -521,20 +523,27 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 private const val THEMES_TOP_WIDE = 10
 private const val THEMES_TOP_NARROW = 7
 
+private val THEMES_SOURCE_ORDER = listOf(
+	TaggedEntityType.Scene,
+	TaggedEntityType.Note,
+	TaggedEntityType.Encyclopedia,
+	TaggedEntityType.TimelineEvent,
+)
+
 @Composable
-private fun colorForTagSource(source: TagSource): Color {
+private fun colorForTagSource(source: TaggedEntityType): Color {
 	val hc = LocalHammerColors.current
 	return when (source) {
-		TagSource.SCENE -> MaterialTheme.colorScheme.primary
-		TagSource.NOTE -> hc.thing
-		TagSource.ENCYCLOPEDIA -> hc.place
-		TagSource.EVENT -> hc.event
+		TaggedEntityType.Scene -> MaterialTheme.colorScheme.primary
+		TaggedEntityType.Note -> hc.thing
+		TaggedEntityType.Encyclopedia -> hc.place
+		TaggedEntityType.TimelineEvent -> hc.event
 	}
 }
 
 @Composable
-private fun connectiveBreadthCaption(connective: TagFrequency, short: Boolean): String {
-	val isAllFour = connective.breadth >= TagSource.entries.size
+private fun connectiveBreadthCaption(connective: TagBreakdown, short: Boolean): String {
+	val isAllFour = connective.breadth >= THEMES_SOURCE_ORDER.size
 	return when {
 		isAllFour && short -> stringResource(Res.string.project_home_stat_themes_all_four_short)
 		isAllFour -> stringResource(Res.string.project_home_stat_themes_all_four, connective.total)
@@ -552,18 +561,18 @@ private fun connectiveBreadthCaption(connective: TagFrequency, short: Boolean): 
 }
 
 @Composable
-private fun labelForTagSource(source: TagSource): String = stringResource(
+private fun labelForTagSource(source: TaggedEntityType): String = stringResource(
 	when (source) {
-		TagSource.SCENE -> Res.string.project_home_stat_themes_source_scenes
-		TagSource.NOTE -> Res.string.project_home_stat_themes_source_notes
-		TagSource.ENCYCLOPEDIA -> Res.string.project_home_stat_themes_source_encyclopedia
-		TagSource.EVENT -> Res.string.project_home_stat_themes_source_events
+		TaggedEntityType.Scene -> Res.string.project_home_stat_themes_source_scenes
+		TaggedEntityType.Note -> Res.string.project_home_stat_themes_source_notes
+		TaggedEntityType.Encyclopedia -> Res.string.project_home_stat_themes_source_encyclopedia
+		TaggedEntityType.TimelineEvent -> Res.string.project_home_stat_themes_source_events
 	}
 )
 
 @Composable
 private fun ThemesStackedBar(
-	tag: TagFrequency,
+	tag: TagBreakdown,
 	max: Int,
 	modifier: Modifier = Modifier,
 	height: Dp = 8.dp,
@@ -580,7 +589,7 @@ private fun ThemesStackedBar(
 				.fillMaxWidth(fraction)
 				.fillMaxHeight(),
 		) {
-			TagSource.entries.forEach { source ->
+			THEMES_SOURCE_ORDER.forEach { source ->
 				val count = tag.getCount(source)
 				if (count > 0) {
 					Box(
@@ -597,11 +606,11 @@ private fun ThemesStackedBar(
 
 @Composable
 private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
-	val tags = state.tagFrequencies
-	val totalUses = remember(state.tagUsesBySource) { state.tagUsesBySource.values.sum() }
+	val tags = state.tagBreakdowns
+	val totalUses = remember(state.tagUsesByType) { state.tagUsesByType.values.sum() }
 	val connective = remember(tags) {
 		tags.maxWithOrNull(
-			compareBy<TagFrequency> { it.breadth }.thenBy { it.total }
+			compareBy<TagBreakdown> { it.breadth }.thenBy { it.total }
 		)
 	}
 
@@ -623,13 +632,13 @@ private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
 			ThemesSectionWide(
 				tags = tags,
 				connective = connective,
-				tagUsesBySource = state.tagUsesBySource,
+				tagUsesByType = state.tagUsesByType,
 			)
 		} else {
 			ThemesSectionNarrow(
 				tags = tags,
 				connective = connective,
-				tagUsesBySource = state.tagUsesBySource,
+				tagUsesByType = state.tagUsesByType,
 			)
 		}
 	}
@@ -637,9 +646,9 @@ private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
 
 @Composable
 private fun ThemesSectionWide(
-	tags: List<TagFrequency>,
-	connective: TagFrequency?,
-	tagUsesBySource: Map<String, Int>,
+	tags: List<TagBreakdown>,
+	connective: TagBreakdown?,
+	tagUsesByType: Map<TaggedEntityType, Int>,
 ) {
 	val top = remember(tags) { tags.take(THEMES_TOP_WIDE) }
 	val max = top.firstOrNull()?.total ?: 1
@@ -694,9 +703,9 @@ private fun ThemesSectionWide(
 				modifier = Modifier.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(10.dp),
 			) {
-				val distMax = tagUsesBySource.values.maxOrNull()?.coerceAtLeast(1) ?: 1
-				TagSource.entries.forEach { source ->
-					val count = tagUsesBySource[source.name] ?: 0
+				val distMax = tagUsesByType.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+				THEMES_SOURCE_ORDER.forEach { source ->
+					val count = tagUsesByType[source] ?: 0
 					ThemesDistributionRow(
 						source = source,
 						count = count,
@@ -709,7 +718,7 @@ private fun ThemesSectionWide(
 }
 
 @Composable
-private fun ThemesRankedRow(rank: Int, tag: TagFrequency, max: Int) {
+private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int) {
 	Row(
 		modifier = Modifier.fillMaxWidth(),
 		verticalAlignment = Alignment.CenterVertically,
@@ -757,7 +766,7 @@ private fun ThemesRankedRow(rank: Int, tag: TagFrequency, max: Int) {
 }
 
 @Composable
-private fun ThemesConnectiveCallout(connective: TagFrequency?) {
+private fun ThemesConnectiveCallout(connective: TagBreakdown?) {
 	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
 	if (connective == null) return
 	Row(
@@ -782,7 +791,7 @@ private fun ThemesConnectiveCallout(connective: TagFrequency?) {
 
 @Composable
 private fun ThemesDistributionRow(
-	source: TagSource,
+	source: TaggedEntityType,
 	count: Int,
 	fraction: Float,
 ) {
@@ -831,9 +840,9 @@ private fun ThemesDistributionRow(
 
 @Composable
 private fun ThemesSectionNarrow(
-	tags: List<TagFrequency>,
-	connective: TagFrequency?,
-	tagUsesBySource: Map<String, Int>,
+	tags: List<TagBreakdown>,
+	connective: TagBreakdown?,
+	tagUsesByType: Map<TaggedEntityType, Int>,
 ) {
 	val top = remember(tags) { tags.take(THEMES_TOP_NARROW) }
 	val max = top.firstOrNull()?.total ?: 1
@@ -931,9 +940,9 @@ private fun ThemesSectionNarrow(
 		modifier = Modifier.padding(vertical = 12.dp),
 	)
 	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_distribution))
-	val distMax = tagUsesBySource.values.maxOrNull()?.coerceAtLeast(1) ?: 1
-	val distributionCells: List<@Composable () -> Unit> = TagSource.entries.map { source ->
-		val count = tagUsesBySource[source.name] ?: 0
+	val distMax = tagUsesByType.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+	val distributionCells: List<@Composable () -> Unit> = THEMES_SOURCE_ORDER.map { source ->
+		val count = tagUsesByType[source] ?: 0
 		val cell: @Composable () -> Unit = {
 			ThemesDistributionCellNarrow(
 				source = source,
@@ -947,7 +956,7 @@ private fun ThemesSectionNarrow(
 }
 
 @Composable
-private fun ThemesDistributionCellNarrow(source: TagSource, count: Int, fraction: Float) {
+private fun ThemesDistributionCellNarrow(source: TaggedEntityType, count: Int, fraction: Float) {
 	Column(
 		modifier = Modifier.fillMaxWidth(),
 		verticalArrangement = Arrangement.spacedBy(4.dp),
