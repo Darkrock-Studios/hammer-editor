@@ -31,6 +31,7 @@ class ViewEntryComponent(
 	private val removeMenu: (id: String) -> Unit,
 	private val closeEntry: () -> Unit,
 	private val showScene: (SceneItem) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(
@@ -259,6 +260,10 @@ class ViewEntryComponent(
 				reload()
 			}
 		}
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
 	}
 
 	override fun startTagAdd() {

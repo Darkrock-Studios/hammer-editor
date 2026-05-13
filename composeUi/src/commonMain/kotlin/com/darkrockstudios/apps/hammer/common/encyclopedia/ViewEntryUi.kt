@@ -40,9 +40,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -862,7 +862,11 @@ private fun TagsSection(
 			verticalArrangement = Arrangement.spacedBy(6.dp),
 		) {
 			tags.forEach { tag ->
-				HdTagChip(label = tag, onClick = { component.removeTag(tag) })
+				HdTagChip(
+					label = tag,
+					onClick = { component.showGlobalSearchForTag(tag) },
+					onRemove = { component.removeTag(tag) },
+				)
 			}
 			AddChip(
 				label = Res.string.encyclopedia_entry_add_tag_chip.get(),
