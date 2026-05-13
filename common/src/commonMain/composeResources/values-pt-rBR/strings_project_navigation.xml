@@ -3,6 +3,13 @@
 	<string name="project_nav_home">Início</string>
 	<string name="project_nav_scene_editor">História</string>
 	<string name="project_nav_notes">Anotações</string>
-	<string name="project_nav_encyclopedia">Encyc.</string>
+	<string name="project_nav_encyclopedia">Encyclopedia</string>
 	<string name="project_nav_time_line">Linha do Tempo</string>
+	<string name="project_nav_home_short">HOME</string>
+	<string name="project_nav_scene_editor_short">STRY</string>
+	<string name="project_nav_notes_short">NOTE</string>
+	<string name="project_nav_encyclopedia_short">ENCY</string>
+	<string name="project_nav_time_line_short">TIME</string>
+	<string name="nav_rail_expand">Expand navigation</string>
+	<string name="nav_rail_collapse">Collapse navigation</string>
 </resources>
