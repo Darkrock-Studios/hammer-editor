@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -100,7 +99,6 @@ class StatisticsService(
 			var longestSceneName: String? = null
 			var longestSceneWords = 0
 			val wordsByScene = mutableMapOf<Int, Int>()
-			val tagAccumulator = mutableMapOf<String, MutableMap<String, Int>>()
 
 			tree.forEach { node ->
 				if (node.value.type == SceneItem.Type.Scene) {
@@ -112,8 +110,6 @@ class StatisticsService(
 						longestSceneWords = count
 						longestSceneName = node.value.name
 					}
-					val metadata = sceneEditorRepository.loadSceneMetadata(node.value.id)
-					tagAccumulator.recordTags(cleanTags(metadata.tags), TagSource.SCENE)
 				}
 			}
 
@@ -141,39 +137,15 @@ class StatisticsService(
 			encyclopediaRepository.loadEntries()
 			val entries = encyclopediaRepository.entryListFlow.first()
 			val entriesByType = mutableMapOf<String, Int>()
-			val entryTags = coroutineScope {
-				entries.map { entry ->
-					async { encyclopediaRepository.loadEntry(entry).entry.tags }
-				}.awaitAll()
-			}
-			entries.forEachIndexed { index, entry ->
+			entries.forEach { entry ->
 				val typeKey = entry.type.name
 				entriesByType[typeKey] = (entriesByType[typeKey] ?: 0) + 1
-				tagAccumulator.recordTags(cleanTags(entryTags[index]), TagSource.ENCYCLOPEDIA)
 			}
 
 			yield()
 
-			val notes = notesRepository.notesListFlow.first()
-			val notesCount = notes.size
-			notes.forEach { container ->
-				tagAccumulator.recordTags(cleanTags(container.note.tags), TagSource.NOTE)
-			}
-			val timelineEvents = timeLineRepository.loadTimeline().events
-			val timelineCount = timelineEvents.size
-			timelineEvents.forEach { event ->
-				tagAccumulator.recordTags(cleanTags(event.tags), TagSource.EVENT)
-			}
-
-			yield()
-
-			val tagUsesBySource = mutableMapOf<String, Int>()
-			val tagFrequencies = tagAccumulator
-				.map { (name, byKind) ->
-					byKind.forEach { (src, c) -> tagUsesBySource.merge(src, c, Int::plus) }
-					TagFrequency(name, byKind.toMap())
-				}
-				.sortedByDescending { it.total }
+			val notesCount = notesRepository.notesListFlow.first().size
+			val timelineCount = timeLineRepository.loadTimeline().events.size
 
 			yield()
 
@@ -233,8 +205,6 @@ class StatisticsService(
 				wordsPerDevice = wordsPerDevice,
 				topAppearances = topAppearances,
 				totalEntryConnections = totalEntryConnections,
-				tagFrequencies = tagFrequencies,
-				tagUsesBySource = tagUsesBySource,
 				wordCountGoal = wordCountGoal,
 				isDirty = false,
 				lastCalculated = clock.now(),
@@ -275,15 +245,6 @@ class StatisticsService(
 			val variance = counts.sumOf { val d = it - mean; d * d } / counts.size
 			return sqrt(variance).toInt()
 		}
-	}
-}
-
-private fun MutableMap<String, MutableMap<String, Int>>.recordTags(tags: Set<String>, source: TagSource) {
-	if (tags.isEmpty()) return
-	val key = source.name
-	for (tag in tags) {
-		val byKind = getOrPut(tag) { mutableMapOf() }
-		byKind[key] = (byKind[key] ?: 0) + 1
 	}
 }
 

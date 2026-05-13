@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyW
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
@@ -49,6 +50,7 @@ class ProjectHomeComponent(
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
+	private val tagIndexService: TagIndexService by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val importStoryUseCase: ImportStoryUseCase by projectInject()
 	private val markdownImporter: StoryImporter by inject()
@@ -247,8 +249,6 @@ class ProjectHomeComponent(
 							wordsPerDevice = stats.wordsPerDevice,
 							topAppearances = stats.topAppearances,
 							totalEntryConnections = stats.totalEntryConnections,
-							tagFrequencies = stats.tagFrequencies,
-							tagUsesBySource = stats.tagUsesBySource,
 							wordCountGoal = stats.wordCountGoal,
 							writingActivity = derived,
 							hasServer = globalSettingsRepository.serverSettings != null,
@@ -271,6 +271,18 @@ class ProjectHomeComponent(
 			statisticsService.isCalculating.collect { isCalculating ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(isLoadingStats = isCalculating) }
+				}
+			}
+		}
+
+		scope.launch {
+			tagIndexService.tagIndex.collect { index ->
+				val breakdowns = index.toBreakdowns()
+				val usesByType = index.totalUsesByType()
+				withContext(dispatcherMain) {
+					_state.getAndUpdate {
+						it.copy(tagBreakdowns = breakdowns, tagUsesByType = usesByType)
+					}
 				}
 			}
 		}

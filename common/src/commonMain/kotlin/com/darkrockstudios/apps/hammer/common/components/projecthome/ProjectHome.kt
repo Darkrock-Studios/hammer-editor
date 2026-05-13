@@ -13,8 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.TagFrequency
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.LocalDate
@@ -68,8 +68,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val wordsPerDevice: Map<String, Int> = emptyMap(),
 		val topAppearances: List<EntryAppearance> = emptyList(),
 		val totalEntryConnections: Int = 0,
-		val tagFrequencies: List<TagFrequency> = emptyList(),
-		val tagUsesBySource: Map<String, Int> = emptyMap(),
+		val tagBreakdowns: List<TagBreakdown> = emptyList(),
+		val tagUsesByType: Map<TaggedEntityType, Int> = emptyMap(),
 		val wordCountGoal: WordCountGoal? = null,
 		val writingActivity: WritingActivityDerived = WritingActivityDerived.Empty,
 		val showExportDialog: Boolean = false,
