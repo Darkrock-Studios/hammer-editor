@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
@@ -129,13 +130,22 @@ class TagIndexServiceTest : BaseTest() {
 		}
 	}
 
-	private fun makeService() = TagIndexService(
-		projectDef = projectDef,
-		encyclopediaRepository = encyclopedia,
-		notesRepository = notes,
-		timeLineRepository = timeline,
-		sceneEditorRepository = sceneEditor,
-	)
+	private fun makeService(): TagIndexService {
+		val buildTagIndex = BuildTagIndexUseCase(
+			encyclopediaRepository = encyclopedia,
+			notesRepository = notes,
+			timeLineRepository = timeline,
+			sceneEditorRepository = sceneEditor,
+		)
+		return TagIndexService(
+			projectDef = projectDef,
+			encyclopediaRepository = encyclopedia,
+			notesRepository = notes,
+			timeLineRepository = timeline,
+			sceneEditorRepository = sceneEditor,
+			buildTagIndex = buildTagIndex,
+		)
+	}
 
 	@Test
 	fun `initial subscription builds index across all three sources`() =
