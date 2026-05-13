@@ -49,7 +49,6 @@ fun GlobalSearchUi(component: GlobalSearch) {
 		visible = isOpen,
 		onCloseRequest = { isOpen = false },
 		onDismissed = component::dismiss,
-		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.TopCenter,
 		dismissOnTapOutside = true,
 	) {
