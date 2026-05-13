@@ -12,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Text
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
-import androidx.compose.ui.window.Window
+import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
+import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -82,8 +84,9 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		component.cancelCloseRequest()
 	}
 
-	Window(
-		title = Res.string.project_window_title.get(projectDef.name),
+	val windowTitle = Res.string.project_window_title.get(projectDef.name)
+	JewelDecoratedWindow(
+		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
@@ -105,6 +108,13 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
+
+		JewelTitleBar {
+			Text(
+				text = windowTitle,
+				modifier = Modifier.align(Alignment.CenterHorizontally),
+			)
+		}
 
 		Column {
 			EditorMenuBar(component, app, ::onRequestClose)

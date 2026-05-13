@@ -52,6 +52,9 @@ kotlin {
 				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)
+				implementation(libs.nucleus.decorated.window.jni)
+				implementation(libs.nucleus.decorated.window.jewel)
+				implementation(libs.jewel.int.ui.standalone)
 			}
 		}
 		val jvmTest by getting {

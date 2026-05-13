@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -14,7 +16,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.Window
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -33,6 +34,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
+import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -56,19 +59,27 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	}
 	LifecycleController(lifecycle, windowState)
 
-	Window(
-		title = Res.string.account_window_title.get(),
+	val title = Res.string.account_window_title.get()
+	JewelDecoratedWindow(
+		title = title,
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
 		onKeyEvent = { event ->
 			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
 				backDispatcher.back()
+				true
 			} else {
 				false
 			}
 		}
 	) {
+		JewelTitleBar {
+			Text(
+				text = title,
+				modifier = Modifier.align(Alignment.CenterHorizontally),
+			)
+		}
 		Content(component)
 	}
 }
