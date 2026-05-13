@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
@@ -35,6 +36,7 @@ class SceneMetadataPanelComponent(
 	componentContext: ComponentContext,
 	private val originalSceneItem: SceneItem,
 	private val showEntry: (EntryDef) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	SceneMetadataPanel {
 
@@ -100,16 +102,15 @@ class SceneMetadataPanelComponent(
 				.filter { (sceneId, _) -> sceneId == originalSceneItem.id }
 				.collect { (_, external) ->
 					val current = state.value.metadata
-					val refsChanged = current.confirmedReferences != external.confirmedReferences ||
-						current.dismissedReferences != external.dismissedReferences
-					if (!refsChanged) return@collect
-
-					// Merge: take ref fields from the external write (e.g. auto-confirm on save),
-					// keep user-editable fields (outline / notes / currentDraftName) from local state.
-					val merged = current.copy(
-						confirmedReferences = external.confirmedReferences,
-						dismissedReferences = external.dismissedReferences,
+					// Keep the user-editable text fields local; let everything else (refs, tags,
+					// future-added fields) take the external write. Listing the local-owned fields
+					// is the more stable invariant when SceneMetadata gains new fields.
+					val merged = external.copy(
+						outline = current.outline,
+						notes = current.notes,
+						currentDraftName = current.currentDraftName,
 					)
+					if (merged == current) return@collect
 					withContext(dispatcherMain) {
 						_state.getAndUpdate { it.copy(metadata = merged) }
 					}
@@ -297,8 +298,23 @@ class SceneMetadataPanelComponent(
 		mutateMetadata { it.copy(dismissedReferences = it.dismissedReferences - entryId) }
 	}
 
+	override fun addTags(input: String) {
+		val cleaned = parseTagInput(input)
+		if (cleaned.isEmpty()) return
+		mutateMetadata { it.copy(tags = it.tags + cleaned) }
+	}
+
+	override fun removeTag(tag: String) {
+		if (tag !in state.value.metadata.tags) return
+		mutateMetadata { it.copy(tags = it.tags - tag) }
+	}
+
 	override fun navigateToEntry(entryDef: EntryDef) {
 		showEntry(entryDef)
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
 	}
 
 	private fun mutateMetadata(transform: (SceneMetadata) -> SceneMetadata) {

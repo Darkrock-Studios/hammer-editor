@@ -255,6 +255,40 @@ class EntityHasherTest {
 	}
 
 	@Test
+	fun `hashScene differs when tags differ`() {
+		val base = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			tags = emptySet(),
+		)
+		val different = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			tags = setOf("important"),
+		)
+		assertNotEquals(
+			base, different,
+			"hashScene must include tags in the digest"
+		)
+	}
+
+	@Test
+	fun `hashScene tags are order-independent`() {
+		// Defends against a Set-iteration-order regression - the impl must sort tags before hashing
+		val a = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			tags = linkedSetOf("alpha", "beta", "gamma"),
+		)
+		val b = EntityHasher.hashScene(
+			id = 2, order = 0, path = listOf(0, 1), name = "Test",
+			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
+			tags = linkedSetOf("gamma", "alpha", "beta"),
+		)
+		assertEquals(a, b, "tags must be sorted before hashing for stability")
+	}
+
+	@Test
 	fun hashSceneDefaultArchivedMatchesExplicitFalse() {
 		// Hash with default archived (should be false)
 		val hashDefault = EntityHasher.hashScene(

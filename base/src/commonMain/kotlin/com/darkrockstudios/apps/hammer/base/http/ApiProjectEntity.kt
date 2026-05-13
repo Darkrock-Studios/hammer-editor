@@ -33,6 +33,7 @@ sealed interface ApiProjectEntity {
 		val archived: Boolean = false,
 		val confirmedReferences: Set<Int> = emptySet(),
 		val dismissedReferences: Set<Int> = emptySet(),
+		val tags: Set<String> = emptySet(),
 	) : ApiProjectEntity {
 		override fun hash(): String = EntityHasher.hashScene(
 			id = id,
@@ -46,6 +47,7 @@ sealed interface ApiProjectEntity {
 			archived = archived,
 			confirmedReferences = confirmedReferences,
 			dismissedReferences = dismissedReferences,
+			tags = tags,
 		)
 	}
 

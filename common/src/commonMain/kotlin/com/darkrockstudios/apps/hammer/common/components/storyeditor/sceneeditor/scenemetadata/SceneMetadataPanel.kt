@@ -4,9 +4,10 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
-interface SceneMetadataPanel : HammerComponent {
+interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 	val state: Value<State>
 
 	fun updateOutline(text: String)
@@ -33,6 +34,19 @@ interface SceneMetadataPanel : HammerComponent {
 	 * Returns up to [maxResults] entries sorted by name.
 	 */
 	fun searchEntriesForAdd(query: String, maxResults: Int = 20): List<AddSuggestion>
+
+	/**
+	 * Adds one or more tags from a free-form space-separated string. Input is
+	 * normalized (trim, strip `#`, regex `[\w-]+`); invalid pieces are dropped.
+	 * Tags already on the scene are silently no-ops.
+	 */
+	fun addTags(input: String)
+
+	/** Removes a single tag from this scene's metadata. */
+	fun removeTag(tag: String)
+
+	/** Open global search prefilled with `#<tag>`. */
+	fun showGlobalSearchForTag(tag: String)
 
 	data class State(
 		val sceneItem: SceneItem,

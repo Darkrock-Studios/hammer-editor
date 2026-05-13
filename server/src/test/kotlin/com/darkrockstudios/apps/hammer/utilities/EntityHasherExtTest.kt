@@ -103,6 +103,20 @@ class EntityHasherExtTest {
 				confirmedReferences = setOf(11, 12, 13),
 				dismissedReferences = setOf(99),
 			),
+			// Scene with tags - guards against the extension forgetting to forward
+			// the tags field to hashScene.
+			ApiProjectEntity.SceneEntity(
+				id = 8,
+				order = 0,
+				path = listOf(0),
+				name = "Scene With Tags",
+				sceneType = ApiSceneType.Scene,
+				content = "",
+				outline = "",
+				notes = "",
+				archived = false,
+				tags = setOf("important", "draft"),
+			),
 		)
 
 		testScenes.forEach { scene ->
@@ -122,6 +136,7 @@ class EntityHasherExtTest {
 				archived = scene.archived,
 				confirmedReferences = scene.confirmedReferences,
 				dismissedReferences = scene.dismissedReferences,
+				tags = scene.tags,
 			)
 
 			// They MUST match
