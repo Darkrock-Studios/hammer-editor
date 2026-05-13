@@ -34,8 +34,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -454,7 +454,6 @@ internal fun EventCard(
 							HdTagChip(
 								label = tag,
 								active = isActive,
-								accent = if (isActive) hammerColors.colorForCharacter(tag) else null,
 								onClick = { onTagClick(tag) },
 							)
 						}
@@ -544,7 +543,6 @@ private fun TagFilterBar(
 				HdTagChip(
 					label = "$label · $count",
 					active = isActive,
-					accent = if (isActive) hammerColors.colorForCharacter(label) else null,
 					onClick = { onToggle(label) },
 				)
 			}
@@ -613,7 +611,6 @@ private fun ActiveFiltersStrip(
 				HdTagChip(
 					label = tag,
 					active = true,
-					accent = hammerColors.colorForCharacter(tag),
 					onClick = { onToggle(tag) },
 					onRemove = { onToggle(tag) },
 				)

@@ -13,20 +13,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 
 /**
- * Hairline-bordered tag chip with a `#` mono prefix. Active state fills
- * with `surfaceContainerHigh` and a stronger border so the user can see
- * which tag is currently filtering. Pass [accent] together with
- * `active = true` to "light up" the chip with a deterministic color: the
- * `#` prefix becomes a small filled swatch, the border takes the accent,
- * and the fill is a tinted wash. When [onRemove] is non-null an `×`
- * affordance is appended after the label.
+ * Hairline-bordered tag chip. The leading glyph is a small filled swatch
+ * colored from [accent], which defaults to a deterministic per-label
+ * color via [LocalHammerColors]. Pass `accent = null` explicitly to
+ * suppress the swatch and show a neutral `#` prefix. Active state fills
+ * with `surfaceContainerHigh` and uses a stronger border so the user can
+ * see which tag is currently filtering. When [onRemove] is non-null an
+ * `×` affordance is appended after the label.
  *
- *     ┌───────────┐     ┌─────────────┐     ┌─────────────┐
- *     │ # animal  │     │ # animal × │     │ ▪ animal × │
- *     └───────────┘     └─────────────┘     └─────────────┘
- *        idle              active              lit (accent)
+ *     ┌─────────────┐     ┌─────────────┐     ┌───────────┐
+ *     │ ▪ animal   │     │ ▪ animal × │     │ # animal  │
+ *     └─────────────┘     └─────────────┘     └───────────┘
+ *         idle              active             accent=null
  */
 @Composable
 fun HdTagChip(
@@ -35,18 +36,17 @@ fun HdTagChip(
 	onClick: (() -> Unit)? = null,
 	onRemove: (() -> Unit)? = null,
 	active: Boolean = false,
-	accent: Color? = null,
+	accent: Color? = LocalHammerColors.current.tagColor(label),
 ) {
-	val litAccent = accent.takeIf { active }
-	val borderColor = when {
-		litAccent != null -> litAccent
-		active -> MaterialTheme.colorScheme.outline
-		else -> MaterialTheme.colorScheme.outlineVariant
+	val borderColor = if (active) {
+		MaterialTheme.colorScheme.outline
+	} else {
+		MaterialTheme.colorScheme.outlineVariant
 	}
-	val background = when {
-		litAccent != null -> litAccent.copy(alpha = 0.15f)
-		active -> MaterialTheme.colorScheme.surfaceContainerHigh
-		else -> Color.Transparent
+	val background = if (active) {
+		MaterialTheme.colorScheme.surfaceContainerHigh
+	} else {
+		Color.Transparent
 	}
 	val labelColor = if (active) {
 		MaterialTheme.colorScheme.onSurface
@@ -64,11 +64,11 @@ fun HdTagChip(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(5.dp),
 	) {
-		if (litAccent != null) {
+		if (accent != null) {
 			Box(
 				modifier = Modifier
 					.size(7.dp)
-					.background(litAccent, RectangleShape),
+					.background(accent, RectangleShape),
 			)
 		} else {
 			Text(
