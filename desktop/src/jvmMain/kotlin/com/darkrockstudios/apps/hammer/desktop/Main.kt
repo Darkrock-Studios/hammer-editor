@@ -31,6 +31,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
+import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
 import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
@@ -71,6 +72,15 @@ private fun setupLogging(appScope: CoroutineScope) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	// Must run before AWT/Swing starts: detect Linux desktop scale and feed it to AWT.
+	// No-op on macOS/Windows and on JBR (which detects scale natively).
+	if (System.getProperty("sun.java2d.uiScale") == null) {
+		val scale = getLinuxNativeScaleFactor()
+		if (scale > 0.0) {
+			System.setProperty("sun.java2d.uiScale", scale.toString())
+		}
+	}
+
 	handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)
