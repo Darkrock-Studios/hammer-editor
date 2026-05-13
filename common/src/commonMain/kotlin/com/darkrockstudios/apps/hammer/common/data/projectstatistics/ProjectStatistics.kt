@@ -14,6 +14,23 @@ data class EntryAppearance(
 )
 
 @Serializable
+enum class TagSource { SCENE, NOTE, ENCYCLOPEDIA, EVENT }
+
+/**
+ * TOML keys must be primitive, so the per-source counts are keyed by [TagSource.name].
+ * Use [getCount] to read by enum.
+ */
+@Serializable
+data class TagFrequency(
+	val name: String,
+	val countBySource: Map<String, Int>,
+) {
+	val total: Int get() = countBySource.values.sum()
+	val breadth: Int get() = countBySource.count { (_, v) -> v > 0 }
+	fun getCount(source: TagSource): Int = countBySource[source.name] ?: 0
+}
+
+@Serializable
 data class ProjectStatistics(
 	val numberOfScenes: Int,
 	val totalWords: Int,
@@ -35,6 +52,10 @@ data class ProjectStatistics(
 	val topAppearances: List<EntryAppearance> = emptyList(),
 	// Sum of all entry->scene references across the project.
 	val totalEntryConnections: Int = 0,
+	// All project tags ranked desc by total usage across scenes/notes/encyclopedia/events.
+	val tagFrequencies: List<TagFrequency> = emptyList(),
+	// Total tag uses per source (keyed by TagSource.name for TOML compatibility).
+	val tagUsesBySource: Map<String, Int> = emptyMap(),
 	// Word-count goal snapshot (null if user hasn't set one).
 	val wordCountGoal: WordCountGoal? = null,
 	val isDirty: Boolean = false,

@@ -3,16 +3,17 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
+import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.TagFrequency
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -67,6 +68,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val wordsPerDevice: Map<String, Int> = emptyMap(),
 		val topAppearances: List<EntryAppearance> = emptyList(),
 		val totalEntryConnections: Int = 0,
+		val tagFrequencies: List<TagFrequency> = emptyList(),
+		val tagUsesBySource: Map<String, Int> = emptyMap(),
 		val wordCountGoal: WordCountGoal? = null,
 		val writingActivity: WritingActivityDerived = WritingActivityDerived.Empty,
 		val showExportDialog: Boolean = false,

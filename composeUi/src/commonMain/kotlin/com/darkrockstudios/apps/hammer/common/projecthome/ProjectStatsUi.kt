@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -28,9 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.*
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.PieChart
@@ -77,6 +80,10 @@ fun ProjectStatsUi(
 
 		if (state.dailyWordTotals.isNotEmpty() || state.encyclopediaEntriesByType.isNotEmpty() || state.topAppearances.isNotEmpty()) {
 			InhabitantsSection(state = state, isWide = isWide)
+		}
+
+		if (state.tagFrequencies.isNotEmpty()) {
+			ThemesSection(state = state, isWide = isWide)
 		}
 
 		if (state.wordsPerDevice.size >= 2) {
@@ -511,10 +518,482 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 	}
 }
 
+private const val THEMES_TOP_WIDE = 10
+private const val THEMES_TOP_NARROW = 7
+
+@Composable
+private fun colorForTagSource(source: TagSource): Color {
+	val hc = LocalHammerColors.current
+	return when (source) {
+		TagSource.SCENE -> MaterialTheme.colorScheme.primary
+		TagSource.NOTE -> hc.thing
+		TagSource.ENCYCLOPEDIA -> hc.place
+		TagSource.EVENT -> hc.event
+	}
+}
+
+@Composable
+private fun connectiveBreadthCaption(connective: TagFrequency, short: Boolean): String {
+	val isAllFour = connective.breadth >= TagSource.entries.size
+	return when {
+		isAllFour && short -> stringResource(Res.string.project_home_stat_themes_all_four_short)
+		isAllFour -> stringResource(Res.string.project_home_stat_themes_all_four, connective.total)
+		short -> stringResource(
+			Res.string.project_home_stat_themes_breadth_of_four_short,
+			connective.breadth,
+		)
+
+		else -> stringResource(
+			Res.string.project_home_stat_themes_breadth_of_four,
+			connective.breadth,
+			connective.total,
+		)
+	}
+}
+
+@Composable
+private fun labelForTagSource(source: TagSource): String = stringResource(
+	when (source) {
+		TagSource.SCENE -> Res.string.project_home_stat_themes_source_scenes
+		TagSource.NOTE -> Res.string.project_home_stat_themes_source_notes
+		TagSource.ENCYCLOPEDIA -> Res.string.project_home_stat_themes_source_encyclopedia
+		TagSource.EVENT -> Res.string.project_home_stat_themes_source_events
+	}
+)
+
+@Composable
+private fun ThemesStackedBar(
+	tag: TagFrequency,
+	max: Int,
+	modifier: Modifier = Modifier,
+	height: Dp = 8.dp,
+) {
+	val safeMax = max.coerceAtLeast(1)
+	val fraction = (tag.total.toFloat() / safeMax).coerceIn(0f, 1f)
+	Box(
+		modifier = modifier
+			.height(height)
+			.background(MaterialTheme.colorScheme.surfaceVariant),
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth(fraction)
+				.fillMaxHeight(),
+		) {
+			TagSource.entries.forEach { source ->
+				val count = tag.getCount(source)
+				if (count > 0) {
+					Box(
+						modifier = Modifier
+							.weight(count.toFloat())
+							.fillMaxHeight()
+							.background(colorForTagSource(source)),
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
+	val tags = state.tagFrequencies
+	val totalUses = remember(state.tagUsesBySource) { state.tagUsesBySource.values.sum() }
+	val connective = remember(tags) {
+		tags.maxWithOrNull(
+			compareBy<TagFrequency> { it.breadth }.thenBy { it.total }
+		)
+	}
+
+	HdHairlineSection(
+		section = 3,
+		title = stringResource(Res.string.project_home_stat_themes_title),
+		headerTrailing = {
+			HdMonoLabel(
+				text = stringResource(
+					Res.string.project_home_stat_themes_summary,
+					tags.size,
+					totalUses,
+				),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		},
+	) {
+		if (isWide) {
+			ThemesSectionWide(
+				tags = tags,
+				connective = connective,
+				tagUsesBySource = state.tagUsesBySource,
+			)
+		} else {
+			ThemesSectionNarrow(
+				tags = tags,
+				connective = connective,
+				tagUsesBySource = state.tagUsesBySource,
+			)
+		}
+	}
+}
+
+@Composable
+private fun ThemesSectionWide(
+	tags: List<TagFrequency>,
+	connective: TagFrequency?,
+	tagUsesBySource: Map<String, Int>,
+) {
+	val top = remember(tags) { tags.take(THEMES_TOP_WIDE) }
+	val max = top.firstOrNull()?.total ?: 1
+
+	Row(modifier = Modifier.fillMaxWidth()) {
+		Column(
+			modifier = Modifier.weight(1.55f),
+			verticalArrangement = Arrangement.spacedBy(14.dp),
+		) {
+			top.forEachIndexed { index, tag ->
+				ThemesRankedRow(rank = index + 1, tag = tag, max = max)
+			}
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+			) {
+				HdMonoLabel(
+					text = stringResource(
+						Res.string.project_home_stat_themes_showing,
+						top.size,
+						tags.size,
+					),
+				)
+				HdMonoLabel(
+					text = stringResource(Res.string.project_home_stat_themes_columns_legend),
+				)
+			}
+		}
+		Spacer(Modifier.width(32.dp))
+		VerticalDivider(
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+		Column(
+			modifier = Modifier
+				.weight(1f)
+				.padding(start = 32.dp),
+			verticalArrangement = Arrangement.spacedBy(8.dp),
+		) {
+			ThemesConnectiveCallout(connective = connective)
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				modifier = Modifier.padding(vertical = 8.dp),
+			)
+			HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_distribution))
+			Column(
+				modifier = Modifier.fillMaxWidth(),
+				verticalArrangement = Arrangement.spacedBy(10.dp),
+			) {
+				val distMax = tagUsesBySource.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+				TagSource.entries.forEach { source ->
+					val count = tagUsesBySource[source.name] ?: 0
+					ThemesDistributionRow(
+						source = source,
+						count = count,
+						fraction = count.toFloat() / distMax,
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun ThemesRankedRow(rank: Int, tag: TagFrequency, max: Int) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(14.dp),
+	) {
+		HdMonoLabel(
+			text = rank.toString().padStart(2, '0'),
+			modifier = Modifier.width(24.dp),
+		)
+		Row(
+			modifier = Modifier.weight(1f),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			Text(
+				text = "#",
+				style = MaterialTheme.typography.labelMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+			Text(
+				text = tag.name,
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+			)
+		}
+		HdMonoLabel(
+			text = stringResource(Res.string.project_home_stat_themes_breadth, tag.breadth),
+			modifier = Modifier.width(36.dp),
+			textAlign = TextAlign.End,
+		)
+		ThemesStackedBar(
+			tag = tag,
+			max = max,
+			modifier = Modifier.weight(2f),
+		)
+		Text(
+			text = tag.total.formatDecimalSeparator(),
+			style = MaterialTheme.typography.titleMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+			textAlign = TextAlign.End,
+			modifier = Modifier.width(40.dp),
+		)
+	}
+}
+
+@Composable
+private fun ThemesConnectiveCallout(connective: TagFrequency?) {
+	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
+	if (connective == null) return
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.Bottom,
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		Text(
+			text = "#",
+			style = MaterialTheme.typography.headlineSmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Text(
+			text = connective.name,
+			style = MaterialTheme.typography.displaySmall,
+			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+		)
+	}
+	HdMonoLabel(text = connectiveBreadthCaption(connective, short = false))
+}
+
+@Composable
+private fun ThemesDistributionRow(
+	source: TagSource,
+	count: Int,
+	fraction: Float,
+) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(10.dp),
+	) {
+		Row(
+			modifier = Modifier.width(120.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+		) {
+			Box(
+				modifier = Modifier
+					.size(10.dp)
+					.background(colorForTagSource(source)),
+			)
+			Text(
+				text = labelForTagSource(source),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+			)
+		}
+		Box(
+			modifier = Modifier
+				.weight(1f)
+				.height(5.dp)
+				.background(MaterialTheme.colorScheme.surfaceVariant),
+		) {
+			Box(
+				modifier = Modifier
+					.fillMaxWidth(fraction.coerceIn(0f, 1f))
+					.fillMaxHeight()
+					.background(colorForTagSource(source)),
+			)
+		}
+		HdMonoLabel(
+			text = count.formatDecimalSeparator(),
+			modifier = Modifier.width(36.dp),
+			textAlign = TextAlign.End,
+		)
+	}
+}
+
+@Composable
+private fun ThemesSectionNarrow(
+	tags: List<TagFrequency>,
+	connective: TagFrequency?,
+	tagUsesBySource: Map<String, Int>,
+) {
+	val top = remember(tags) { tags.take(THEMES_TOP_NARROW) }
+	val max = top.firstOrNull()?.total ?: 1
+	val rule = MaterialTheme.colorScheme.outlineVariant
+
+	if (connective != null) {
+		Column(modifier = Modifier.fillMaxWidth()) {
+			HorizontalDivider(thickness = Dp.Hairline, color = rule)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(vertical = 12.dp),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Column(modifier = Modifier.weight(1f)) {
+					HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
+					Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+						Text(
+							text = "#",
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+						Text(
+							text = connective.name,
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onSurface,
+							maxLines = 1,
+						)
+					}
+				}
+				Column(horizontalAlignment = Alignment.End) {
+					Text(
+						text = connective.total.formatDecimalSeparator(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+					HdMonoLabel(text = connectiveBreadthCaption(connective, short = true))
+				}
+			}
+			HorizontalDivider(thickness = Dp.Hairline, color = rule)
+		}
+	}
+
+	Column(
+		modifier = Modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(12.dp),
+	) {
+		top.forEachIndexed { index, tag ->
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(10.dp),
+			) {
+				HdMonoLabel(
+					text = (index + 1).toString().padStart(2, '0'),
+					modifier = Modifier.width(18.dp),
+				)
+				Row(
+					modifier = Modifier.width(96.dp),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(4.dp),
+				) {
+					Text(
+						text = "#",
+						style = MaterialTheme.typography.labelMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+					Text(
+						text = tag.name,
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurface,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+					)
+				}
+				ThemesStackedBar(
+					tag = tag,
+					max = max,
+					modifier = Modifier.weight(1f),
+					height = 6.dp,
+				)
+				HdMonoLabel(
+					text = tag.total.formatDecimalSeparator(),
+					modifier = Modifier.width(28.dp),
+					textAlign = TextAlign.End,
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+			}
+		}
+	}
+
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = rule,
+		modifier = Modifier.padding(vertical = 12.dp),
+	)
+	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_distribution))
+	val distMax = tagUsesBySource.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+	val distributionCells: List<@Composable () -> Unit> = TagSource.entries.map { source ->
+		val count = tagUsesBySource[source.name] ?: 0
+		val cell: @Composable () -> Unit = {
+			ThemesDistributionCellNarrow(
+				source = source,
+				count = count,
+				fraction = count.toFloat() / distMax,
+			)
+		}
+		cell
+	}
+	HdHairlineGrid(columns = 2, cells = distributionCells)
+}
+
+@Composable
+private fun ThemesDistributionCellNarrow(source: TagSource, count: Int, fraction: Float) {
+	Column(
+		modifier = Modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(4.dp),
+	) {
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			Box(
+				modifier = Modifier
+					.size(8.dp)
+					.background(colorForTagSource(source)),
+			)
+			Text(
+				text = labelForTagSource(source),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				modifier = Modifier.weight(1f),
+				maxLines = 1,
+			)
+			HdMonoLabel(
+				text = count.formatDecimalSeparator(),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(3.dp)
+				.background(MaterialTheme.colorScheme.surfaceVariant),
+		) {
+			Box(
+				modifier = Modifier
+					.fillMaxWidth(fraction.coerceIn(0f, 1f))
+					.fillMaxHeight()
+					.background(colorForTagSource(source)),
+			)
+		}
+	}
+}
+
 @Composable
 private fun DevicesSection(state: ProjectHome.State) {
 	HdHairlineSection(
-		section = 3,
+		section = 4,
 		title = stringResource(Res.string.project_home_stat_words_per_device),
 	) {
 		val sorted = remember(state.wordsPerDevice) {

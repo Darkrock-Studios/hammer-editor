@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -399,6 +398,97 @@ private fun EntryCardPreview() {
 				tags = listOf("animal", "guide", "panic"),
 				modifier = Modifier.fillMaxWidth(),
 			)
+		}
+	}
+}
+
+private val themePreviewTags = listOf(
+	HdThemeTagPreview("ch1", scene = 4, note = 2, ency = 2, event = 3),
+	HdThemeTagPreview("scale", scene = 2, note = 1, ency = 2, event = 2),
+	HdThemeTagPreview("magic", scene = 1, note = 0, ency = 4, event = 1),
+	HdThemeTagPreview("dream", scene = 3, note = 1, ency = 0, event = 1),
+	HdThemeTagPreview("carroll", scene = 0, note = 4, ency = 0, event = 0),
+	HdThemeTagPreview("royal", scene = 1, note = 0, ency = 2, event = 1),
+	HdThemeTagPreview("guide", scene = 0, note = 0, ency = 3, event = 0),
+	HdThemeTagPreview("language", scene = 0, note = 3, ency = 0, event = 0),
+	HdThemeTagPreview("panic", scene = 0, note = 0, ency = 2, event = 1),
+	HdThemeTagPreview("animal", scene = 0, note = 0, ency = 3, event = 0),
+)
+
+private data class HdThemeTagPreview(
+	val name: String,
+	val scene: Int,
+	val note: Int,
+	val ency: Int,
+	val event: Int,
+) {
+	val total: Int get() = scene + note + ency + event
+	val breadth: Int get() = listOf(scene, note, ency, event).count { it > 0 }
+}
+
+@Preview
+@Composable
+private fun ThemesRankedRowPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			val hc = LocalHammerColors.current
+			val max = themePreviewTags.maxOf { it.total }
+			Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+				themePreviewTags.take(6).forEachIndexed { index, tag ->
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(14.dp),
+					) {
+						HdMonoLabel(
+							text = (index + 1).toString().padStart(2, '0'),
+							modifier = Modifier.width(24.dp),
+						)
+						Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+							androidx.compose.material3.Text(
+								"#",
+								style = MaterialTheme.typography.labelMedium,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+							androidx.compose.material3.Text(
+								tag.name,
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onSurface
+							)
+						}
+						HdMonoLabel("${tag.breadth}/4", modifier = Modifier.width(36.dp))
+						Box(
+							modifier = Modifier
+								.weight(2f)
+								.height(8.dp)
+								.background(MaterialTheme.colorScheme.surfaceVariant),
+						) {
+							val fraction = tag.total / max.toFloat()
+							Row(modifier = Modifier.fillMaxWidth(fraction).fillMaxHeight()) {
+								if (tag.scene > 0) Box(
+									Modifier.weight(tag.scene.toFloat()).fillMaxHeight()
+										.background(MaterialTheme.colorScheme.primary)
+								)
+								if (tag.note > 0) Box(
+									Modifier.weight(tag.note.toFloat()).fillMaxHeight().background(hc.thing)
+								)
+								if (tag.ency > 0) Box(
+									Modifier.weight(tag.ency.toFloat()).fillMaxHeight().background(hc.place)
+								)
+								if (tag.event > 0) Box(
+									Modifier.weight(tag.event.toFloat()).fillMaxHeight().background(hc.event)
+								)
+							}
+						}
+						androidx.compose.material3.Text(
+							tag.total.toString(),
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.onSurface,
+							modifier = Modifier.width(40.dp),
+						)
+					}
+				}
+			}
 		}
 	}
 }

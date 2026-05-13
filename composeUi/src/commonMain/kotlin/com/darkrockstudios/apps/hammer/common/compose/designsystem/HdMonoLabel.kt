@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 
 /**
@@ -21,6 +22,7 @@ fun HdMonoLabel(
 	maxLines: Int = Int.MAX_VALUE,
 	softWrap: Boolean = true,
 	overflow: TextOverflow = TextOverflow.Clip,
+	textAlign: TextAlign? = null,
 ) {
 	Text(
 		text = text.uppercase(),
@@ -30,5 +32,6 @@ fun HdMonoLabel(
 		maxLines = maxLines,
 		softWrap = softWrap,
 		overflow = overflow,
+		textAlign = textAlign,
 	)
 }
