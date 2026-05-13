@@ -28,7 +28,8 @@ class ViewTimeLineEventComponent(
 	private val onCloseEvent: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
-	private val updateShouldClose: () -> Unit
+	private val updateShouldClose: () -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewTimeLineEvent {
 
 	private val mainDispatcher by injectMainDispatcher()
@@ -103,6 +104,28 @@ class ViewTimeLineEventComponent(
 	override fun onTagsChanged(newTags: Set<String>) {
 		_state.getAndUpdate { it.copy(tags = newTags) }
 		updateShouldClose()
+	}
+
+	override suspend fun removeTag(tag: String) {
+		if (state.value.isEditing) return
+		val event = state.value.event ?: return
+		if (tag !in event.tags) return
+
+		val updated = event.copy(tags = event.tags - tag)
+		val success = timeLineRepository.updateEvent(updated)
+		if (success) {
+			val stored = timeLineRepository.getTimelineEvent(event.id)
+			_state.getAndUpdate {
+				it.copy(
+					event = stored ?: updated,
+					tags = stored?.tags ?: updated.tags,
+				)
+			}
+		}
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
 	}
 
 	override suspend fun storeEvent(event: TimeLineEvent): Boolean {

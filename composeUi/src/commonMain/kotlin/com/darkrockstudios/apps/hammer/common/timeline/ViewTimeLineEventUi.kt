@@ -141,6 +141,8 @@ fun ViewTimeLineEventUi(
 						event = event,
 						eventText = eventText,
 						onEnterEdit = { component.beginEdit() },
+						onTagClick = component::showGlobalSearchForTag,
+						onTagRemove = { tag -> scope.launch { component.removeTag(tag) } },
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 						modifier = Modifier.weight(1f, fill = false),
@@ -323,6 +325,8 @@ private fun ViewBody(
 	event: TimeLineEvent?,
 	eventText: String,
 	onEnterEdit: () -> Unit,
+	onTagClick: (String) -> Unit,
+	onTagRemove: (String) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	modifier: Modifier = Modifier,
@@ -344,7 +348,12 @@ private fun ViewBody(
 				verticalArrangement = Arrangement.spacedBy(6.dp),
 			) {
 				eventTags.sorted().forEach { tag ->
-					HdTagChip(label = tag, active = true)
+					HdTagChip(
+						label = tag,
+						active = true,
+						onClick = { onTagClick(tag) },
+						onRemove = { onTagRemove(tag) },
+					)
 				}
 			}
 

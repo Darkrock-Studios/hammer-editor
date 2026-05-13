@@ -12,6 +12,8 @@ interface ViewTimeLineEvent : TagSuggesting {
 	fun onEventTextChanged(text: String)
 	fun onDateTextChanged(text: String)
 	fun onTagsChanged(newTags: Set<String>)
+	suspend fun removeTag(tag: String)
+	fun showGlobalSearchForTag(tag: String)
 	suspend fun storeEvent(event: TimeLineEvent): Boolean
 	fun startDeleteEvent()
 	fun endDeleteEvent()

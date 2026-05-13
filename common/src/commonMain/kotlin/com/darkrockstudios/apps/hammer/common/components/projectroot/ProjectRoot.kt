@@ -5,6 +5,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -47,6 +47,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun dismissProjectSync()
 
 	fun showGlobalSearch()
+	fun showGlobalSearchForTag(tag: String)
 	fun dismissGlobalSearch()
 
 	fun showFocusMode(sceneItem: SceneItem)

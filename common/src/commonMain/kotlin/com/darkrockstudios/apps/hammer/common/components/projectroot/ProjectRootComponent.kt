@@ -8,7 +8,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -17,11 +16,11 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
-import org.koin.core.component.inject
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -61,6 +60,7 @@ class ProjectRootComponent(
 		::updateCloseConfirmRequirement,
 		::showProjectSync,
 		::showGlobalSearch,
+		::showGlobalSearchForTag,
 		::showFocusMode,
 		::showEncyclopediaEntry,
 		::showEditorScene,
@@ -186,6 +186,9 @@ class ProjectRootComponent(
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
 
 	override fun showGlobalSearch() = modalRouter.showGlobalSearch()
+
+	override fun showGlobalSearchForTag(tag: String) =
+		modalRouter.showGlobalSearch(initialQuery = "#$tag")
 
 	override fun dismissGlobalSearch() = modalRouter.dismissGlobalSearch()
 

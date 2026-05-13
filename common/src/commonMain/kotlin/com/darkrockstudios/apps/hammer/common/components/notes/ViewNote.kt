@@ -24,6 +24,8 @@ interface ViewNote : TagSuggesting {
 	fun discardEdit()
 	fun onContentChanged(newContent: String)
 	fun onTagsChanged(newTags: Set<String>)
+	suspend fun removeTag(tag: String)
+	fun showGlobalSearchForTag(tag: String)
 	suspend fun deleteNote(id: Int)
 	fun confirmDelete()
 	fun dismissConfirmDelete()

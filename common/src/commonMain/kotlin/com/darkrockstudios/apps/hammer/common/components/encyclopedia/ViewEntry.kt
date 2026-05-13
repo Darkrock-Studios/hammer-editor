@@ -60,6 +60,7 @@ interface ViewEntry : TagSuggesting {
 	fun confirmClose()
 	fun dismissConfirmClose()
 	fun removeTag(tag: String)
+	fun showGlobalSearchForTag(tag: String)
 	fun startTagAdd()
 	suspend fun addTags(tagInput: String)
 	fun endTagAdd()

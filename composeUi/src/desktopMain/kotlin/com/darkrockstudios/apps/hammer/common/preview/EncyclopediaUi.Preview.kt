@@ -266,6 +266,7 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override fun confirmClose() {}
 	override fun dismissConfirmClose() {}
 	override fun removeTag(tag: String) {}
+	override fun showGlobalSearchForTag(tag: String) {}
 	override fun startTagAdd() {}
 	override suspend fun addTags(tagInput: String) {}
 	override fun endTagAdd() {}

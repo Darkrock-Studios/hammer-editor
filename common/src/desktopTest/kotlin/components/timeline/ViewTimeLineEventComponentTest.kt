@@ -34,7 +34,8 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			onCloseEvent = {},
 			addMenu = {},
 			removeMenu = {},
-			updateShouldClose = {}
+			updateShouldClose = {},
+			onShowGlobalSearchForTag = {},
 		)
 		lifecycleCallbacks[1].onCreate()
 		advanceUntilIdle()

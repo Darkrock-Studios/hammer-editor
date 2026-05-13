@@ -92,6 +92,7 @@ class ViewEntryComponentTest : BaseTest() {
 			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
+			onShowGlobalSearchForTag = {},
 		)
 
 		val result = comp.updateEntry(
@@ -131,6 +132,7 @@ class ViewEntryComponentTest : BaseTest() {
 			removeMenu = {},
 			closeEntry = {},
 			showScene = {},
+			onShowGlobalSearchForTag = {},
 		)
 
 		val result = comp.updateEntry(

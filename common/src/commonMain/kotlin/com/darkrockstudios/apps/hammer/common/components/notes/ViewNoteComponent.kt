@@ -22,6 +22,7 @@ class ViewNoteComponent(
 	private val updateShouldClose: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewNote {
 
 	private val notesRepository: NotesRepository by projectInject()
@@ -59,6 +60,22 @@ class ViewNoteComponent(
 	override fun onTagsChanged(newTags: Set<String>) {
 		_state.getAndUpdate { it.copy(tags = newTags) }
 		updateShouldClose()
+	}
+
+	override suspend fun removeTag(tag: String) {
+		if (state.value.isEditing) return
+		val note = state.value.note ?: return
+		if (tag !in note.tags) return
+
+		val updatedNote = note.copy(tags = note.tags - tag)
+		notesRepository.updateNote(updatedNote)
+		notesRepository.loadNotes()
+
+		_state.getAndUpdate { it.copy(note = updatedNote, tags = updatedNote.tags) }
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
 	}
 
 	override suspend fun storeNoteUpdate() {

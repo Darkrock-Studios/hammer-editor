@@ -15,8 +15,8 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -32,6 +32,7 @@ internal class ProjectRootRouter(
 	private val updateShouldClose: () -> Unit,
 	private val showProjectSync: () -> Unit,
 	private val showGlobalSearch: () -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
 	private val showEntry: (EntryDef) -> Unit,
 	private val showScene: (SceneItem) -> Unit,
@@ -104,7 +105,8 @@ internal class ProjectRootRouter(
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
 
@@ -116,6 +118,7 @@ internal class ProjectRootRouter(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			showScene = showScene,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
 
@@ -125,7 +128,8 @@ internal class ProjectRootRouter(
 			projectDef = config.projectDef,
 			updateShouldClose = updateShouldClose,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
 

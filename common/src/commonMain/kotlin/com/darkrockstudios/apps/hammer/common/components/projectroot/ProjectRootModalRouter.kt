@@ -62,12 +62,13 @@ class ProjectRootModalRouter(
 				)
 			)
 
-			Config.GlobalSearch -> GlobalSearchModal(
+			is Config.GlobalSearch -> GlobalSearchModal(
 				GlobalSearchComponent(
 					componentContext,
 					projectDef,
 					::dismissGlobalSearch,
 					navigateGlobalSearchResult,
+					initialQuery = config.initialQuery,
 				)
 			)
 
@@ -100,8 +101,8 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
-	fun showGlobalSearch() {
-		navigation.activate(Config.GlobalSearch)
+	fun showGlobalSearch(initialQuery: String? = null) {
+		navigation.activate(Config.GlobalSearch(initialQuery))
 	}
 
 	fun dismissGlobalSearch() {
@@ -132,7 +133,7 @@ class ProjectRootModalRouter(
 		data object ServerReauth : Config()
 
 		@Serializable
-		data object GlobalSearch : Config()
+		data class GlobalSearch(val initialQuery: String? = null) : Config()
 
 		@Serializable
 		data class FocusMode(val sceneItem: SceneItem) : Config()
