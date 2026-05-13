@@ -5,34 +5,27 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.ClientMessage
-import com.darkrockstudios.apps.hammer.common.data.ExportOptions
-import com.darkrockstudios.apps.hammer.common.data.ImportOptions
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
-import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
-import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
-import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
-import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
-import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +49,7 @@ class ProjectHomeComponent(
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
+	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val importStoryUseCase: ImportStoryUseCase by projectInject()
 	private val markdownImporter: StoryImporter by inject()
 
@@ -317,6 +311,7 @@ class ProjectHomeComponent(
 		scope.launch {
 			_state.getAndUpdate { it.copy(isLoadingStats = true) }
 			statisticsService.recalculateStatistics()
+			referenceIndexService.recalculate()
 		}
 	}
 
