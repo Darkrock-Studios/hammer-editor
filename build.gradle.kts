@@ -24,6 +24,8 @@ allprojects {
 		google()
 		mavenCentral()
 		maven("https://jitpack.io")
+		// Jewel artifacts (transitive via nucleus.decorated-window-jewel) — IDEA-aligned snapshot versions
+		maven("https://www.jetbrains.com/intellij-repository/snapshots")
 	}
 
 	tasks.withType<Test> {

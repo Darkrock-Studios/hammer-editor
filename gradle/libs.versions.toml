@@ -91,6 +91,8 @@ compose-texteditor = "2.0.0"
 platform-spellcheckerkt = "1.1.0"
 flatpak-gradle-generator = "1.7.0"
 nucleus = "1.15.4"
+# Jewel version is dictated by what nucleus.decorated-window-jewel 1.15.4 ships against
+jewel = "0.34.0-261.22158.19"
 colorpicker-compose = "1.1.4"
 material-kolor = "4.1.1"
 
@@ -273,6 +275,9 @@ platform-spellcheckerkt = { module = "com.darkrockstudios:platform-spellcheckerk
 bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 
 nucleus_darkmode_detector = { module = "io.github.kdroidfilter:nucleus.darkmode-detector", version.ref = "nucleus" }
+nucleus_decorated_window_jni = { module = "io.github.kdroidfilter:nucleus.decorated-window-jni", version.ref = "nucleus" }
+nucleus_decorated_window_jewel = { module = "io.github.kdroidfilter:nucleus.decorated-window-jewel", version.ref = "nucleus" }
+jewel_int_ui_standalone = { module = "org.jetbrains.jewel:jewel-int-ui-standalone", version.ref = "jewel" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

@@ -31,6 +31,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
+import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -124,16 +125,18 @@ fun main(args: Array<String>) {
 			LafManager.updateLaf()
 		}
 
-		AppTheme(useDarkTheme = darkMode, settings = settingsState) {
-			when (val windowState = applicationState.windows.value) {
-				is WindowState.ProjectSectionWindow -> {
-					ProjectSelectionWindow { project ->
-						applicationState.openProject(project)
+		IntUiTheme(isDark = darkMode) {
+			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
+				when (val windowState = applicationState.windows.value) {
+					is WindowState.ProjectSectionWindow -> {
+						ProjectSelectionWindow { project ->
+							applicationState.openProject(project)
+						}
 					}
-				}
 
-				is WindowState.ProjectWindow -> {
-					ProjectEditorWindow(applicationState, windowState.projectDef)
+					is WindowState.ProjectWindow -> {
+						ProjectEditorWindow(applicationState, windowState.projectDef)
+					}
 				}
 			}
 		}
