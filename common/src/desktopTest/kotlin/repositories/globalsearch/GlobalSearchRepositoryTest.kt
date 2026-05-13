@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -55,6 +56,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		// Defaults: empty results
 		every { sceneEditor.getScenes() } returns emptyList()
 		every { sceneEditor.getSceneBuffer(any<SceneItem>()) } returns null
+		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
 		every { notes.getNotes() } returns emptyList()
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(emptyList())
 		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
@@ -346,33 +348,62 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `setQuery with tag excludes scenes`() = runTest {
-		val scene = SceneItem(
+	fun `setQuery with tag returns matching scenes by metadata`() = runTest {
+		val taggedScene = SceneItem(
 			projectDef = projectDef,
 			type = SceneItem.Type.Scene,
 			id = 7,
 			name = "Battle",
 			order = 0,
 		)
-		every { sceneEditor.getScenes() } returns listOf(scene)
-		every { notes.getNotes() } returns listOf(
-			NoteContainer(
-				NoteContent(
-					id = 1,
-					created = Clock.System.now(),
-					content = "Battle plans",
-					tags = setOf("plot"),
-				)
-			),
+		val untaggedScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 8,
+			name = "Picnic",
+			order = 1,
 		)
+		every { sceneEditor.getScenes() } returns listOf(taggedScene, untaggedScene)
+		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
+		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("misc"))
 
 		val repo = createRepository()
 		repo.setQuery("#plot")
 		advanceUntilIdle()
 
-		val results = repo.state.value.results
-		assertTrue(results.none { it is SearchResult.Scene })
-		assertEquals(1, results.filterIsInstance<SearchResult.Note>().size)
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
+		assertTrue(results.first().title.contains("#plot"))
+	}
+
+	@Test
+	fun `setQuery combines tag filter with free text for scenes`() = runTest {
+		val matchingScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Dragon attack",
+			order = 0,
+		)
+		val tagOnlyScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 8,
+			name = "Picnic",
+			order = 1,
+		)
+		every { sceneEditor.getScenes() } returns listOf(matchingScene, tagOnlyScene)
+		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("fantasy"))
+		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy dragon")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
 	}
 
 	@Test

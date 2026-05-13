@@ -79,6 +79,13 @@
 	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
 	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
 
+	<string name="scene_editor_metadata_tags_header">Tags</string>
+	<string name="scene_editor_metadata_tags_empty">No tags yet</string>
+	<string name="scene_editor_metadata_tags_add_button">+ Add tag</string>
+	<string name="scene_editor_metadata_tags_add_dialog_title">Add tags</string>
+	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
+	<string name="scene_editor_metadata_tags_add_dialog_done">Done</string>
+
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 
 	<string name="default_draft_name">New Draft</string>

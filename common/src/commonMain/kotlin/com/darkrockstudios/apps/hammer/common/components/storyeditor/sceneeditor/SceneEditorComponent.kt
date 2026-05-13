@@ -38,6 +38,7 @@ class SceneEditorComponent(
 	private val showDraftsList: (SceneItem) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
+	showGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
@@ -65,6 +66,7 @@ class SceneEditorComponent(
 		componentContext = childContext("scene-${originalSceneItem.id}-metadata"),
 		originalSceneItem = originalSceneItem,
 		showEntry = showEntry,
+		onShowGlobalSearchForTag = showGlobalSearchForTag,
 	)
 
 	private val sceneDef: SceneItem = state.value.sceneItem

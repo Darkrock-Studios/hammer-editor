@@ -12,4 +12,5 @@ data class SceneMetadata(
 	val currentDraftName: String = "",
 	val confirmedReferences: Set<Int> = emptySet(),
 	val dismissedReferences: Set<Int> = emptySet(),
+	val tags: Set<String> = emptySet(),
 )

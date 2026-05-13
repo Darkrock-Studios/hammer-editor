@@ -67,6 +67,7 @@ class ClientSceneSynchronizer(
 			archived = scene.archived,
 			confirmedReferences = metadata.confirmedReferences,
 			dismissedReferences = metadata.dismissedReferences,
+			tags = metadata.tags,
 		)
 	}
 
@@ -110,6 +111,7 @@ class ClientSceneSynchronizer(
 				archived = sceneItem.archived,
 				confirmedReferences = metadata.confirmedReferences,
 				dismissedReferences = metadata.dismissedReferences,
+				tags = metadata.tags,
 			)
 		} else {
 			null
@@ -179,6 +181,7 @@ class ClientSceneSynchronizer(
 					outline = serverEntity.outline,
 					confirmedReferences = serverEntity.confirmedReferences,
 					dismissedReferences = serverEntity.dismissedReferences,
+					tags = serverEntity.tags,
 				)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 
@@ -294,6 +297,7 @@ class ClientSceneSynchronizer(
 					outline = serverEntity.outline,
 					confirmedReferences = serverEntity.confirmedReferences,
 					dismissedReferences = serverEntity.dismissedReferences,
+					tags = serverEntity.tags,
 				)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 			}
@@ -306,6 +310,7 @@ class ClientSceneSynchronizer(
 				outline = serverEntity.outline,
 				confirmedReferences = serverEntity.confirmedReferences,
 				dismissedReferences = serverEntity.dismissedReferences,
+				tags = serverEntity.tags,
 			)
 
 			sceneEditorRepository.createArchivedScene(

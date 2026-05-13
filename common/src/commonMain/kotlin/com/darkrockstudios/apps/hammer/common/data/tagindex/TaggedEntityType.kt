@@ -4,4 +4,5 @@ enum class TaggedEntityType {
 	Encyclopedia,
 	Note,
 	TimelineEvent,
+	Scene,
 }

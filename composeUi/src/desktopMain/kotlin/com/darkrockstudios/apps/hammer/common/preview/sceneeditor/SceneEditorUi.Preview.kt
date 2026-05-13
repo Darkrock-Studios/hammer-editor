@@ -60,6 +60,10 @@ private fun fakeComponent() = object : SceneEditor {
 		override fun addConfirmedReference(entryId: Int) {}
 		override fun searchEntriesForAdd(query: String, maxResults: Int) = emptyList<SceneMetadataPanel.AddSuggestion>()
 		override fun navigateToEntry(entryDef: EntryDef) {}
+		override fun addTags(input: String) {}
+		override fun removeTag(tag: String) {}
+		override fun showGlobalSearchForTag(tag: String) {}
+		override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 	}
 
 	override fun addEditorMenu() {}

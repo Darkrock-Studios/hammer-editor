@@ -34,6 +34,10 @@ private fun SceneMetadataPanelUiPreview() {
 			override fun searchEntriesForAdd(query: String, maxResults: Int) =
 				emptyList<SceneMetadataPanel.AddSuggestion>()
 			override fun navigateToEntry(entryDef: com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef) {}
+			override fun addTags(input: String) {}
+			override fun removeTag(tag: String) {}
+			override fun showGlobalSearchForTag(tag: String) {}
+			override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 		},
 		closeMetadata = {}
 	)

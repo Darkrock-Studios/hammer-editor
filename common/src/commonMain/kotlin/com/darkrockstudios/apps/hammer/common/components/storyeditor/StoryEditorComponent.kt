@@ -27,6 +27,7 @@ class StoryEditorComponent(
 	removeMenu: (id: String) -> Unit,
 	showFocusMode: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
+	showGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), StoryEditor {
 
 	private val sceneEditor: SceneEditorRepository by projectInject()
@@ -51,6 +52,7 @@ class StoryEditorComponent(
 			removeMenu = removeMenu,
 			openFocusMode = showFocusMode,
 			openEntry = showEntry,
+			openGlobalSearchForTag = showGlobalSearchForTag,
 		)
 
 	private val listRouter =

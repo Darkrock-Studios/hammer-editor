@@ -99,8 +99,7 @@ class GlobalSearchRepository(
 			if (filter.includesEncyclopedia) searchEncyclopedia(parsed) else emptyList()
 		}
 		val scenesDeferred = async {
-			// Scenes have no tags — skip them when the user is filtering by tag.
-			if (filter.includesScenes && parsed.tags.isEmpty()) searchScenes(parsed) else emptyList()
+			if (filter.includesScenes) searchScenes(parsed) else emptyList()
 		}
 
 		awaitAll(notesDeferred, timelineDeferred, encyclopediaDeferred, scenesDeferred)
@@ -218,27 +217,51 @@ class GlobalSearchRepository(
 
 	private suspend fun searchScenes(parsed: ParsedQuery): List<SearchResult> {
 		val query = parsed.text
+		val needTags = parsed.tags.isNotEmpty()
 		val scenes = sceneEditor.getScenes().filter { it.type == SceneItem.Type.Scene }
 		return scenes
-			.mapNotNull { scene ->
-				if (query.isEmpty()) return@mapNotNull null
-				val nameMatch = findMatch(scene.name, query)
-				if (nameMatch != null) {
-					return@mapNotNull SearchResult.Scene(
-						sceneItem = scene,
-						title = scene.name,
-						snippet = nameMatch,
-					)
-				}
-				val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return@mapNotNull null
-				val bodyMatch = findMatch(text, query) ?: return@mapNotNull null
-				SearchResult.Scene(
-					sceneItem = scene,
-					title = scene.name,
-					snippet = bodyMatch,
-				)
-			}
+			.mapNotNull { scene -> matchScene(scene, query, needTags, parsed.tags) }
 			.take(PER_SOURCE_CAP)
+	}
+
+	private suspend fun matchScene(
+		scene: SceneItem,
+		query: String,
+		needTags: Boolean,
+		tagNeedles: List<String>,
+	): SearchResult? {
+		if (!needTags) {
+			if (query.isEmpty()) return null
+			val nameMatch = findMatch(scene.name, query)
+			if (nameMatch != null) {
+				return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = nameMatch)
+			}
+			val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
+			val bodyMatch = findMatch(text, query) ?: return null
+			return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = bodyMatch)
+		}
+
+		val metadata = withContext(dispatcherIo) {
+			runCatching { sceneEditor.loadSceneMetadata(scene.id) }.getOrNull()
+		} ?: return null
+		if (!metadata.tags.matchesAllTags(tagNeedles)) return null
+
+		val matchedTag = metadata.tags.firstOrNull { tag ->
+			tagNeedles.any { tag.contains(it, ignoreCase = true) }
+		}
+		val title = if (matchedTag != null) "${scene.name}  •  #$matchedTag" else scene.name
+
+		if (query.isEmpty()) {
+			val snippet = previewSnippet(scene.name) ?: return null
+			return SearchResult.Scene(sceneItem = scene, title = title, snippet = snippet)
+		}
+		val nameMatch = findMatch(scene.name, query)
+		if (nameMatch != null) {
+			return SearchResult.Scene(sceneItem = scene, title = title, snippet = nameMatch)
+		}
+		val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
+		val bodyMatch = findMatch(text, query) ?: return null
+		return SearchResult.Scene(sceneItem = scene, title = title, snippet = bodyMatch)
 	}
 
 	private fun matchOrPreview(content: String, query: String): AnnotatedSnippet? {

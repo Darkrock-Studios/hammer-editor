@@ -85,6 +85,7 @@ internal class ProjectRootRouter(
 			removeMenu = removeMenu,
 			showFocusMode = showFocusMode,
 			showEntry = showEntry,
+			showGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 
 		scope.launch {

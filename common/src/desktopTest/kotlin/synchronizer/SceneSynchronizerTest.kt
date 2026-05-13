@@ -2,14 +2,10 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.ScenePathSegments
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.rootSceneNode
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -410,6 +406,97 @@ class SceneSynchronizerTest : BaseTest() {
 			hashWithRefs, hashWithoutRefs,
 			"Scene sync hash must change when confirmedReferences changes, or sync will silently drop the field"
 		)
+	}
+
+	@Test
+	fun `getEntityHash - tags in scene metadata change the hash`() = runTest {
+		// Defends against a regression where SceneMetadata.tags stops being fed into the
+		// sync hash. If that breaks, two clients silently never converge on tag state
+		// because the change-detection layer thinks nothing changed.
+		val sceneId = 43
+		val sceneItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Scene With Tags",
+			order = 0,
+		)
+		val filePath = HPath("/scene.md", "scene.md", false)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns sceneItem
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns null
+		every { sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId) } returns filePath
+		every { sceneEditorRepository.getScenePathSegments(filePath) } returns ScenePathSegments(listOf(0))
+		coEvery { sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, filePath) } returns "scene text"
+
+		val sync = defaultSceneSynchronizer()
+
+		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+			SceneMetadata(tags = setOf("important", "draft"))
+		val hashWithTags = sync.getEntityHash(sceneId)
+
+		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+			SceneMetadata(tags = emptySet())
+		val hashWithoutTags = sync.getEntityHash(sceneId)
+
+		assertNotNull(hashWithTags)
+		assertNotNull(hashWithoutTags)
+		assertNotEquals(
+			hashWithTags, hashWithoutTags,
+			"Scene sync hash must change when tags change, or sync will silently drop the field"
+		)
+	}
+
+	@Test
+	fun `Download Scene - stores tags from server entity into metadata`() = runTest {
+		val sceneId = 44
+		val syncId = "syncId"
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = sceneId,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Tagged Scene",
+			path = listOf(0),
+			content = "Scene Content",
+			outline = "",
+			notes = "",
+			tags = setOf("magic", "spoiler"),
+		)
+		val filePath = HPath("/", "", true)
+		val clientEntity = SceneItem.fromApiEntity(serverEntity, def)
+		val content = SceneContent(clientEntity, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+		coEvery {
+			sceneEditorRepository.createScene(
+				parent = rootNode.value,
+				sceneName = serverEntity.name,
+				forceId = serverEntity.id,
+				forceOrder = serverEntity.order
+			)
+		} coAnswers {
+			val entityTreeNode = TreeNode(clientEntity)
+			rootNode.addChild(entityTreeNode)
+			clientEntity
+		}
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(clientEntity.id) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
+
+		val sync = defaultSceneSynchronizer()
+		sync.storeEntity(
+			serverEntity = serverEntity,
+			syncId = syncId,
+			onLog = {}
+		)
+
+		coVerify(exactly = 1) {
+			sceneEditorRepository.storeMetadata(
+				match { it.tags == setOf("magic", "spoiler") },
+				sceneId,
+			)
+		}
 	}
 
 	@Test

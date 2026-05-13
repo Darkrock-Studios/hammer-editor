@@ -22,6 +22,7 @@ object EntityHasher {
 		archived: Boolean = false,
 		confirmedReferences: Set<Int> = emptySet(),
 		dismissedReferences: Set<Int> = emptySet(),
+		tags: Set<String> = emptySet(),
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -47,6 +48,7 @@ object EntityHasher {
 		for (ref in dismissedReferences.sorted()) {
 			d.update(ref, buf)
 		}
+		tags.sorted().forEach { tag -> d.update(tag, buf) }
 		return d.digest().base64Url
 	}
 

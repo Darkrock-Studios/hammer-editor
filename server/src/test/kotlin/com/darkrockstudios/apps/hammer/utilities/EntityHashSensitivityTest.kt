@@ -54,6 +54,7 @@ class EntityHashSensitivityTest {
 			"archived" to base.copy(archived = true),
 			"confirmedReferences" to base.copy(confirmedReferences = setOf(7)),
 			"dismissedReferences" to base.copy(dismissedReferences = setOf(7)),
+			"tags" to base.copy(tags = setOf("important")),
 		)
 		assertEveryFieldAffectsHash(base, mutations, ApiProjectEntity.SceneEntity::class)
 	}

@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryRefer
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -283,9 +284,7 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun addTags(tagInput: String) {
-		val newTags = tagInput.splitToSequence(" ")
-			.filter { it.isNotBlank() }
-			.toSet()
+		val newTags = parseTagInput(tagInput)
 
 		state.value.content?.apply {
 			encyclopediaRepository.updateEntry(

@@ -161,6 +161,37 @@ class SceneMetadataDatasourceTest : BaseTest() {
 		}
 
 	@Test
+	fun `Store and load Metadata round-trips tags`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val sceneId = 2
+
+		val metadata = SceneMetadata(
+			outline = "Outline",
+			notes = "Notes",
+			tags = setOf("important", "draft", "world-building"),
+		)
+
+		val datasource = createDatasource(projDef)
+		datasource.storeMetadata(metadata, sceneId)
+
+		val loaded = datasource.loadMetadata(sceneId)
+		assertEquals(metadata, loaded)
+		assertEquals(setOf("important", "draft", "world-building"), loaded?.tags)
+	}
+
+	@Test
+	fun `Existing Metadata files without tags field load with empty defaults`() =
+		runTest(mainTestDispatcher) {
+			val projDef = getProject1Def()
+			createProject(ffs, PROJECT_1_NAME)
+
+			val datasource = createDatasource(projDef)
+			val metadata = datasource.loadMetadata(1)
+			assertEquals(emptySet<String>(), metadata?.tags)
+		}
+
+	@Test
 	fun `ReId Scene Metadata`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

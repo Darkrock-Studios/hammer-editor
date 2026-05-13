@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,20 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
-import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
-import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
-import com.darkrockstudios.apps.hammer.common.compose.SpacerL
-import com.darkrockstudios.apps.hammer.common.compose.SpacerM
-import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -73,6 +60,7 @@ fun SceneMetadataPanelUi(
 ) {
 	val state by component.state.subscribeAsState()
 	var showAddDialog by rememberSaveable { mutableStateOf(false) }
+	var showAddTagDialog by rememberSaveable { mutableStateOf(false) }
 
 	Surface(
 		modifier = modifier.widthIn(min = SCENE_METADATA_MIN_WIDTH),
@@ -233,6 +221,25 @@ fun SceneMetadataPanelUi(
 				SpacerXL()
 
 				CollapsableSection(
+					startExpanded = true,
+					header = {
+						HdMonoLabel(
+							text = Res.string.scene_editor_metadata_tags_header.get(),
+							modifier = Modifier.padding(end = Ui.Padding.M),
+						)
+					},
+					trailingAction = {
+						HdHairlineButton(
+							label = Res.string.scene_editor_metadata_tags_add_button.get(),
+							onClick = { showAddTagDialog = true },
+						)
+					},
+					body = { TagsBody(state, component) }
+				)
+
+				SpacerXL()
+
+				CollapsableSection(
 					header = {
 						HdMonoLabel(
 							text = Res.string.scene_editor_metadata_advanced_header.get(),
@@ -249,6 +256,13 @@ fun SceneMetadataPanelUi(
 		component = component,
 		visible = showAddDialog,
 		onDismiss = { showAddDialog = false },
+	)
+
+	AddTagDialog(
+		component = component,
+		visible = showAddTagDialog,
+		existingTags = state.metadata.tags,
+		onDismiss = { showAddTagDialog = false },
 	)
 }
 
@@ -382,113 +396,85 @@ private fun AddReferenceDialog(
 		onCloseRequest = onDismiss,
 		dismissOnTapOutside = true,
 	) {
-		Surface(
-			modifier = Modifier
-				.widthIn(min = 320.dp, max = 520.dp)
-				.padding(Ui.Padding.L)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			tonalElevation = 0.dp,
+		HdHairlineDialogShell(
+			title = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
+			onClose = { requestDismiss() },
+			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
 		) {
-			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					Text(
-						text = Res.string.scene_editor_metadata_references_add_dialog_title.get(),
-						style = MaterialTheme.typography.titleLarge,
+			Row(modifier = Modifier.fillMaxWidth()) {
+				RefBucket.entries.forEach { bucket ->
+					TabPill(
+						label = bucket.label(),
+						active = tab == bucket,
+						onClick = {
+							tab = bucket
+							query = ""
+						},
 						modifier = Modifier.weight(1f),
 					)
-					IconButton(onClick = { requestDismiss() }) {
-						Icon(
-							imageVector = Icons.Filled.Close,
-							contentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+				}
+			}
+
+			SpacerL()
+
+			HdSearchField(
+				value = query,
+				onValueChange = { query = it },
+				placeholder = tab.searchPlaceholder(),
+				onClear = { query = "" },
+				modifier = Modifier.fillMaxWidth(),
+			)
+
+			SpacerL()
+
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.heightIn(min = 120.dp, max = 320.dp),
+			) {
+				if (suggestions.isEmpty()) {
+					Box(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(vertical = Ui.Padding.XL),
+						contentAlignment = Alignment.Center,
+					) {
+						Text(
+							text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
-				}
-
-				SpacerL()
-
-				Row(modifier = Modifier.fillMaxWidth()) {
-					RefBucket.entries.forEach { bucket ->
-						TabPill(
-							label = bucket.label(),
-							active = tab == bucket,
-							onClick = {
-								tab = bucket
-								query = ""
-							},
-							modifier = Modifier.weight(1f),
-						)
-					}
-				}
-
-				SpacerL()
-
-				HdSearchField(
-					value = query,
-					onValueChange = { query = it },
-					placeholder = tab.searchPlaceholder(),
-					onClear = { query = "" },
-					modifier = Modifier.fillMaxWidth(),
-				)
-
-				SpacerL()
-
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(min = 120.dp, max = 320.dp),
-				) {
-					if (suggestions.isEmpty()) {
-						Box(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(vertical = Ui.Padding.XL),
-							contentAlignment = Alignment.Center,
-						) {
-							Text(
-								text = Res.string.scene_editor_metadata_references_add_dialog_empty.get(),
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
+				} else {
+					LazyColumn(modifier = Modifier.fillMaxWidth()) {
+						items(suggestions, key = { it.entryDef.id }) { suggestion ->
+							SuggestionRow(
+								suggestion = suggestion,
+								onClick = {
+									component.addConfirmedReference(suggestion.entryDef.id)
+									query = ""
+								},
+							)
+							HorizontalDivider(
+								thickness = Dp.Hairline,
+								color = MaterialTheme.colorScheme.outlineVariant,
 							)
 						}
-					} else {
-						LazyColumn(modifier = Modifier.fillMaxWidth()) {
-							items(suggestions, key = { it.entryDef.id }) { suggestion ->
-								SuggestionRow(
-									suggestion = suggestion,
-									onClick = {
-										component.addConfirmedReference(suggestion.entryDef.id)
-										query = ""
-									},
-								)
-								HorizontalDivider(
-									thickness = Dp.Hairline,
-									color = MaterialTheme.colorScheme.outlineVariant,
-								)
-							}
-						}
 					}
 				}
+			}
 
-				SpacerL()
+			SpacerL()
 
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.End,
-				) {
-					HdHairlineButton(
-						label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
-						onClick = { requestDismiss() },
-						emphasised = true,
-					)
-				}
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.End,
+			) {
+				HdHairlineButton(
+					label = Res.string.scene_editor_metadata_references_add_dialog_done.get(),
+					onClick = { requestDismiss() },
+					emphasised = true,
+				)
 			}
 		}
 	}
@@ -523,6 +509,105 @@ private fun TabPill(
 					.height(2.dp)
 					.background(if (active) accent else MaterialTheme.colorScheme.outlineVariant)
 			)
+		}
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsBody(
+	state: SceneMetadataPanel.State,
+	component: SceneMetadataPanel,
+) {
+	val tags = state.metadata.tags
+	if (tags.isEmpty()) {
+		Text(
+			Res.string.scene_editor_metadata_tags_empty.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.padding(top = Ui.Padding.M),
+		)
+		return
+	}
+	val sortedTags = remember(tags) { tags.sorted() }
+	FlowRow(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(top = Ui.Padding.M),
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+		verticalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		for (tag in sortedTags) {
+			HdTagChip(
+				label = tag,
+				active = true,
+				onClick = { component.showGlobalSearchForTag(tag) },
+				onRemove = { component.removeTag(tag) },
+			)
+		}
+	}
+}
+
+@Composable
+private fun AddTagDialog(
+	component: SceneMetadataPanel,
+	visible: Boolean,
+	existingTags: Set<String>,
+	onDismiss: () -> Unit,
+) {
+	var draft by rememberSaveable { mutableStateOf("") }
+	LaunchedEffect(visible) { if (!visible) draft = "" }
+
+	val suggestions = remember(draft, existingTags) {
+		val prefix = draft.substringAfterLast(' ').trim().removePrefix("#")
+		if (prefix.isEmpty()) emptyList()
+		else component.suggestTags(prefix).filter { it !in existingTags }
+	}
+
+	AnimatedDialog(
+		visible = visible,
+		onCloseRequest = onDismiss,
+		dismissOnTapOutside = true,
+	) {
+		val submit: () -> Unit = {
+			if (draft.isNotBlank()) component.addTags(draft)
+			requestDismiss()
+		}
+		HdHairlineDialogShell(
+			title = Res.string.scene_editor_metadata_tags_add_dialog_title.get(),
+			onClose = { requestDismiss() },
+			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
+		) {
+			HdHairlineField(
+				label = Res.string.scene_editor_metadata_tags_header.get(),
+				value = draft,
+				onValueChange = { draft = it },
+				placeholder = Res.string.scene_editor_metadata_tags_add_dialog_placeholder.get(),
+				singleLine = true,
+			)
+
+			SpacerM()
+
+			HdTagSuggestionStrip(
+				suggestions = suggestions,
+				onSelect = { tag ->
+					component.addTags(tag)
+					draft = ""
+				},
+			)
+
+			SpacerL()
+
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.End,
+			) {
+				HdHairlineButton(
+					label = Res.string.scene_editor_metadata_tags_add_dialog_done.get(),
+					onClick = submit,
+					emphasised = true,
+				)
+			}
 		}
 	}
 }

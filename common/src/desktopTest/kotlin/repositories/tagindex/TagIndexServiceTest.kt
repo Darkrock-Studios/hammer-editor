@@ -1,13 +1,15 @@
 package repositories.tagindex
 
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
@@ -37,12 +39,14 @@ class TagIndexServiceTest : BaseTest() {
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var notes: NotesRepository
 	private lateinit var timeline: TimeLineRepository
+	private lateinit var sceneEditor: SceneEditorRepository
 
 	private lateinit var entryContentChangedFlow: MutableSharedFlow<Unit>
 	private lateinit var noteContentChangedFlow: MutableSharedFlow<Unit>
 	private lateinit var eventContentChangedFlow: MutableSharedFlow<Unit>
 	private lateinit var notesListFlow: MutableSharedFlow<List<NoteContainer>>
 	private lateinit var timelineFlow: MutableSharedFlow<TimeLineContainer>
+	private lateinit var sceneMetadataUpdateFlow: MutableSharedFlow<Pair<Int, SceneMetadata>>
 
 	@BeforeEach
 	override fun setup() {
@@ -52,6 +56,7 @@ class TagIndexServiceTest : BaseTest() {
 		encyclopedia = mockk(relaxed = true)
 		notes = mockk(relaxed = true)
 		timeline = mockk(relaxed = true)
+		sceneEditor = mockk(relaxed = true)
 
 		entryContentChangedFlow = unitFlow()
 		noteContentChangedFlow = unitFlow()
@@ -62,12 +67,18 @@ class TagIndexServiceTest : BaseTest() {
 		timelineFlow = MutableSharedFlow(
 			replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		)
+		sceneMetadataUpdateFlow = MutableSharedFlow(
+			extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST,
+		)
 
 		every { encyclopedia.entryContentChangedFlow } returns entryContentChangedFlow
 		every { notes.noteContentChangedFlow } returns noteContentChangedFlow
 		every { timeline.eventContentChangedFlow } returns eventContentChangedFlow
 		every { notes.notesListFlow } returns notesListFlow
 		every { timeline.timelineFlow } returns timelineFlow
+		every { sceneEditor.metadataUpdateFlow } returns sceneMetadataUpdateFlow
+		every { sceneEditor.getScenes() } returns emptyList()
+		every { sceneEditor.getArchivedScenes() } returns emptyList()
 	}
 
 	private fun unitFlow() = MutableSharedFlow<Unit>(
@@ -101,11 +112,29 @@ class TagIndexServiceTest : BaseTest() {
 			id = id, name = "E$id", type = EntryType.PERSON, text = "", tags = tags.toSet(),
 		)
 
+	private fun scene(id: Int) = SceneItem(
+		projectDef = projectDef,
+		type = SceneItem.Type.Scene,
+		id = id,
+		name = "S$id",
+		order = id,
+	)
+
+	private fun stubScenes(vararg sceneAndTags: Pair<Int, Set<String>>) {
+		val items = sceneAndTags.map { scene(it.first) }
+		every { sceneEditor.getScenes() } returns items
+		every { sceneEditor.getArchivedScenes() } returns emptyList()
+		for ((id, tags) in sceneAndTags) {
+			coEvery { sceneEditor.loadSceneMetadata(id) } returns SceneMetadata(tags = tags)
+		}
+	}
+
 	private fun makeService() = TagIndexService(
 		projectDef = projectDef,
 		encyclopediaRepository = encyclopedia,
 		notesRepository = notes,
 		timeLineRepository = timeline,
+		sceneEditorRepository = sceneEditor,
 	)
 
 	@Test
@@ -231,6 +260,54 @@ class TagIndexServiceTest : BaseTest() {
 
 		stubNotes(note(1, "alpha"), note(2, "alpha"))
 		noteContentChangedFlow.tryEmit(Unit)
+		advanceUntilIdle()
+
+		assertEquals(2, service.tagIndex.value.tagToEntities["alpha"]?.size)
+	}
+
+	@Test
+	fun `initial subscription includes scenes with tags`() = runTest(mainTestDispatcher) {
+		stubNotes()
+		stubTimeline()
+		stubEntries()
+		stubScenes(
+			1 to setOf("alpha", "scene-tag"),
+			2 to setOf("alpha"),
+		)
+
+		val service = makeService()
+		advanceUntilIdle()
+
+		val index = service.tagIndex.value
+		assertEquals(
+			setOf(
+				TaggedEntityRef(TaggedEntityType.Scene, 1),
+				TaggedEntityRef(TaggedEntityType.Scene, 2),
+			),
+			index.tagToEntities["alpha"],
+		)
+		assertEquals(
+			setOf(TaggedEntityRef(TaggedEntityType.Scene, 1)),
+			index.tagToEntities["scene-tag"],
+		)
+
+		val sceneRanked = service.getRankedTags(TaggedEntityType.Scene)
+		assertEquals(listOf("alpha" to 2, "scene-tag" to 1), sceneRanked.map { it.tag to it.count })
+	}
+
+	@Test
+	fun `scene metadata update triggers rebuild`() = runTest(mainTestDispatcher) {
+		stubNotes()
+		stubTimeline()
+		stubEntries()
+		stubScenes(1 to setOf("alpha"))
+
+		val service = makeService()
+		advanceUntilIdle()
+		assertEquals(1, service.tagIndex.value.tagToEntities["alpha"]?.size)
+
+		stubScenes(1 to setOf("alpha"), 2 to setOf("alpha"))
+		sceneMetadataUpdateFlow.tryEmit(2 to SceneMetadata(tags = setOf("alpha")))
 		advanceUntilIdle()
 
 		assertEquals(2, service.tagIndex.value.tagToEntities["alpha"]?.size)

@@ -2,26 +2,17 @@ package com.darkrockstudios.apps.hammer.common.data.tagindex
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -36,11 +27,13 @@ class TagIndexService(
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
+	private val sceneEditorRepository: SceneEditorRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 	private val serviceScope = CoroutineScope(dispatcherDefault)
 
 	private val _tagIndex = MutableStateFlow(TagIndex.EMPTY)
@@ -49,6 +42,19 @@ class TagIndexService(
 	private val _isCalculating = MutableStateFlow(false)
 	val isCalculating: StateFlow<Boolean> = _isCalculating.asStateFlow()
 
+	// Scene metadata writes also fire for outline/notes/draft-name edits, so filter to
+	// emissions where the tag set actually changed - otherwise typing in the outline
+	// thrashes the index rebuild.
+	private val sceneTagChangedFlow = flow {
+		val seenTags = mutableMapOf<Int, Set<String>>()
+		sceneEditorRepository.metadataUpdateFlow.collect { (sceneId, metadata) ->
+			if (seenTags[sceneId].orEmpty() != metadata.tags) {
+				seenTags[sceneId] = metadata.tags
+				emit(Unit)
+			}
+		}
+	}
+
 	init {
 		projectScope.scope.registerCallback(this)
 		serviceScope.launch {
@@ -56,6 +62,7 @@ class TagIndexService(
 				encyclopediaRepository.entryContentChangedFlow,
 				notesRepository.noteContentChangedFlow,
 				timeLineRepository.eventContentChangedFlow,
+				sceneTagChangedFlow,
 			)
 				.onStart { emit(Unit) }
 				.debounce(REBUILD_DEBOUNCE)
@@ -120,6 +127,22 @@ class TagIndexService(
 				val ref = TaggedEntityRef(TaggedEntityType.Encyclopedia, entryId)
 				for (tag in tags) {
 					accumulate(tagToEntities, countsByType, TaggedEntityType.Encyclopedia, tag, ref)
+				}
+			}
+
+			val sceneTags = withContext(dispatcherIo) {
+				val sceneItems = sceneEditorRepository.getScenes()
+					.filter { it.type == SceneItem.Type.Scene } + sceneEditorRepository.getArchivedScenes()
+				coroutineScope {
+					sceneItems.map { scene ->
+						async { scene.id to sceneEditorRepository.loadSceneMetadata(scene.id).tags }
+					}.awaitAll()
+				}
+			}
+			for ((sceneId, tags) in sceneTags) {
+				val ref = TaggedEntityRef(TaggedEntityType.Scene, sceneId)
+				for (tag in tags) {
+					accumulate(tagToEntities, countsByType, TaggedEntityType.Scene, tag, ref)
 				}
 			}
 
