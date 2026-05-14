@@ -6,7 +6,34 @@ on:
       - 'v*'
 
 jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'adopt'
+          java-version: 21
+          cache: gradle
+
+      - name: Run Round-Trip Sync Integration Tests
+        id: integration-tests
+        run: ./gradlew :integrationTests:jvmTest
+
+      - name: Upload integration test report on failure
+        if: failure() && steps.integration-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-report
+          path: |
+            integrationTests/build/reports/tests/jvmTest/
+            integrationTests/build/test-results/jvmTest/
+
   windows:
+    needs: integration-tests
     runs-on: windows-latest
     permissions:
       contents: write
@@ -90,6 +117,7 @@ jobs:
           artifacts: "${{ github.workspace }}\\release-artifacts\\hammer.msi,${{ github.workspace }}\\release-artifacts\\hammer.exe,${{ github.workspace }}\\release-artifacts\\hammer-portable.exe,${{ github.workspace }}\\release-artifacts\\hammer.appx"
 
   linux:
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -169,6 +197,7 @@ jobs:
           artifacts: "${{ github.workspace }}/release-artifacts/hammer.deb,${{ github.workspace }}/release-artifacts/hammer.rpm,${{ github.workspace }}/release-artifacts/hammer.AppImage,${{ github.workspace }}/release-artifacts/hammer.snap,${{ github.workspace }}/release-artifacts/hammer.flatpak"
 
   macos:
+    needs: integration-tests
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -229,6 +258,7 @@ jobs:
           artifacts: "${{ github.workspace }}/release-artifacts/hammer.dmg,${{ github.workspace }}/release-artifacts/hammer.pkg"
 
   server:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -284,6 +314,7 @@ jobs:
           artifacts: "${{ github.workspace }}/server/build/distributions/*.*"
 
   android:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -350,6 +381,7 @@ jobs:
           artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk"
 
   snap:
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -388,6 +420,7 @@ jobs:
           artifacts: hammer.snap
 
   flatpak:
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
