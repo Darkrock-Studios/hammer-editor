@@ -3,6 +3,11 @@
  * Handles settings panel interactions, copy URL functionality, and share dialog
  */
 
+// Top-level functions in this file are wired to HTML elements from mustache
+// templates (onclick=..., hx-* attributes) — ESLint can't see those references.
+/* eslint-disable no-unused-vars */
+/* global htmx */
+
 document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
 	initCopyUrl();

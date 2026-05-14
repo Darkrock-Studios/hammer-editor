@@ -22,3 +22,13 @@ exclude_paths:
     # `scss_function-disallowed-list` as unknown rule). Re-enable once Codacy's
     # Stylelint config is fixed.
     - 'server/src/main/resources/assets/css/**'
+
+engines:
+    # Lizard's language-agnostic complexity metrics (NLOC, CCN, parameter count)
+    # don't map well to Jetpack Compose composables — long declarative UI
+    # functions and many composable parameters are idiomatic. Disable Lizard
+    # for composeUi entirely; detekt still enforces complexity on this code.
+    Lizard:
+        exclude_paths:
+            - 'composeUi/**'
+            - 'android/src/main/kotlin/**/widgets/**'

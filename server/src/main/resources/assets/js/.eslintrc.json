@@ -1,0 +1,12 @@
+{
+	"env": {
+		"browser": true,
+		"es2021": true
+	},
+	"globals": {
+		"htmx": "readonly"
+	},
+	"rules": {
+		"no-unused-vars": "off"
+	}
+}
