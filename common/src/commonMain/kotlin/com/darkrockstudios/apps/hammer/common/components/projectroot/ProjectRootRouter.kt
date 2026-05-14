@@ -36,6 +36,7 @@ internal class ProjectRootRouter(
 	private val showFocusMode: (SceneItem) -> Unit,
 	private val showEntry: (EntryDef) -> Unit,
 	private val showScene: (SceneItem) -> Unit,
+	private val onCloseProject: (() -> Unit)?,
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
 ) : Router {
@@ -140,6 +141,7 @@ internal class ProjectRootRouter(
 			projectDef = config.projectDef,
 			showProjectSync = showProjectSync,
 			onShowGlobalSearch = showGlobalSearch,
+			onCloseProject = onCloseProject,
 		)
 	}
 

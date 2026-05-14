@@ -27,6 +27,7 @@ class ProjectRootComponent(
 	projectDef: ProjectDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val onCloseProject: (() -> Unit)? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val syncDataRepository: SyncDataRepository by projectInject()
@@ -64,6 +65,7 @@ class ProjectRootComponent(
 		::showFocusMode,
 		::showEncyclopediaEntry,
 		::showEditorScene,
+		onCloseProject,
 		scope,
 		dispatcherMain
 	)

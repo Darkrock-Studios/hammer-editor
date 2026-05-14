@@ -40,6 +40,7 @@ class ProjectHomeComponent(
 	projectDef: ProjectDef,
 	private val showProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
+	private val onCloseProject: (() -> Unit)? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectHome,
 	ComponentToaster by ComponentToasterImpl() {
 
@@ -335,5 +336,11 @@ class ProjectHomeComponent(
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
+
+	override fun supportsCloseProject(): Boolean = onCloseProject != null
+	override fun closeProject() {
+		onCloseProject?.invoke()
+	}
+
 	override fun onBack() = contentRouter.onBack()
 }

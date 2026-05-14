@@ -47,6 +47,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun showProjectStats()
 	fun showProjectSettings()
 
+	fun supportsCloseProject(): Boolean
+	fun closeProject()
+
 	fun onBack()
 
 	@Serializable

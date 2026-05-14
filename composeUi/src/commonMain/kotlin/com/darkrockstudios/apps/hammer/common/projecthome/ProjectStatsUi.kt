@@ -27,14 +27,16 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
+import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdown
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdown
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.*
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
@@ -1155,6 +1157,17 @@ private fun ProjectHomeMenu(
 						component.createBackup { _ ->
 							expanded = false
 						}
+					},
+				)
+			}
+
+			if (component.supportsCloseProject()) {
+				HorizontalDivider()
+				DropdownMenuItem(
+					text = { Text(Res.string.project_window_menu_item_close.get()) },
+					onClick = {
+						component.closeProject()
+						expanded = false
 					},
 				)
 			}
