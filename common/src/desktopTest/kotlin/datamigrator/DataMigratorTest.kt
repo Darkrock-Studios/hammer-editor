@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.migrator.MigrateInstallIdToGlobal
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration1_2
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -120,6 +121,7 @@ class DataMigratorTest : BaseTest() {
 		val mockMigrator = mockk<Migration0_1>()
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
+			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
@@ -168,6 +170,7 @@ class DataMigratorTest : BaseTest() {
 		every { mockMigrator.toVersion } returns 1
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
+			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
@@ -193,7 +196,7 @@ class DataMigratorTest : BaseTest() {
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
-				dataVersion = PROJECT_DATA_VERSION
+				dataVersion = 1
 			)
 		)
 
@@ -205,11 +208,15 @@ class DataMigratorTest : BaseTest() {
 			)
 		} just Runs
 
-		val migrator = DataMigrator(
+		// Pin latestProjectDataVersion to 1 so this test stays focused on a single 0→1
+		// hop regardless of the global PROJECT_DATA_VERSION value.
+		val migrator = object : DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
-		)
+		) {
+			override val latestProjectDataVersion = 1
+		}
 
 		runBlocking { migrator.handleDataMigration() }
 

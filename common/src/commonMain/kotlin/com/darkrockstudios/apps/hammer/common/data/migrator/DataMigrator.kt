@@ -21,6 +21,7 @@ open class DataMigrator(
 		val migrators = mutableMapOf<Int, Migration>()
 
 		getKoin().get<Migration0_1>().addToMap(migrators)
+		getKoin().get<Migration1_2>().addToMap(migrators)
 
 		return migrators
 	}
