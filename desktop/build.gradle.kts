@@ -59,8 +59,15 @@ kotlin {
 	}
 }
 
+// Pin jpackage's bundled runtime to the JetBrains Runtime.
+val jbrLauncher = javaToolchains.launcherFor {
+	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+	vendor.set(JvmVendorSpec.JETBRAINS)
+}
+
 compose.desktop {
 	application {
+		javaHome = jbrLauncher.get().metadata.installationPath.asFile.absolutePath
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(

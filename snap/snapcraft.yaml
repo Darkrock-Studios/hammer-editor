@@ -37,18 +37,25 @@ parts:
         build-packages:
             - wget
         override-build: |
+            set -euo pipefail
+
             # Download and setup JetBrains Runtime SDK (full JDK with jlink/jpackage)
-            # This is critical - createDistributable bundles whatever JVM is in JAVA_HOME
+            # createDistributable bundles whatever JVM is in JAVA_HOME, so any
+            # silent fall-through to the container's OpenJDK ships a non-JBR
+            # runtime and the app crashes on startup with the Nucleus check.
             echo "Downloading JetBrains Runtime SDK..."
-            wget -q https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
+            wget https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
             tar -xzf jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
             export JAVA_HOME=$PWD/jbrsdk_jcef-21.0.9-linux-x64-b1163.86
             export PATH=$JAVA_HOME/bin:$PATH
 
+            # Fail fast if the JBR SDK extract didn't produce a usable toolchain.
+            test -x "$JAVA_HOME/bin/java"
+            test -x "$JAVA_HOME/bin/jlink"
+            test -x "$JAVA_HOME/bin/jpackage"
+
             echo "Building with JBR SDK (JAVA_HOME=$JAVA_HOME)"
             java -version
-            # Verify jlink and jpackage are available
-            which jlink jpackage
 
             # Run gradle build with createDistributable
             # This will now bundle JBR (not OpenJDK) in lib/runtime/
