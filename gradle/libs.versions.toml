@@ -6,7 +6,7 @@ data_version = "1.0"
 # Kotlin
 jvm = "21"
 kache = "2.1.1"
-kompressCore = "1.4.2"
+kompressCore = "1.4.3"
 kotlin = "2.3.21"
 
 # Android
