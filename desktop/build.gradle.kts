@@ -97,6 +97,7 @@ nucleus.application {
 		description = "A simple tool for building stories."
 		copyright = "© 2025 Adam W. Brown, All rights reserved."
 		vendor = "Dark Rock Studios"
+		homepage = "https://github.com/Wavesonics/hammer-editor"
 		licenseFile.set(project.file("../LICENSE"))
 
 		windows {
@@ -124,6 +125,7 @@ nucleus.application {
 		linux {
 			shortcut = true
 			rpmLicenseType = "MIT"
+			debMaintainer = "Adam W. Brown <adamwbrown@gmail.com>"
 			iconFile.set(project.file("icons/linux.png"))
 
 			appImage {
