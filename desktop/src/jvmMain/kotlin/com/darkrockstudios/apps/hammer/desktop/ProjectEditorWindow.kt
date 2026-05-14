@@ -15,9 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
-import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
-import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
-import org.jetbrains.jewel.ui.component.Text
+import androidx.compose.material3.Text
+import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -66,12 +67,8 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		ProjectRootComponent(
 			componentContext = compContext,
 			projectDef = projectDef,
-			addMenu = { menu ->
-				app.addMenu(menu)
-			},
-			removeMenu = { menuId ->
-				app.removeMenu(menuId)
-			}
+			addMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
+			removeMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 		)
 	}
 
@@ -85,7 +82,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
-	JewelDecoratedWindow(
+	DecoratedWindow(
 		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
@@ -109,18 +106,21 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 
-		JewelTitleBar {
+		TitleBar {
 			Text(
 				text = windowTitle,
+				color = LocalTitleBarStyle.current.colors.content,
 				modifier = Modifier.align(Alignment.CenterHorizontally),
 			)
 		}
 
-		Column {
-			EditorMenuBar(component, app, ::onRequestClose)
-
-			AppContent(component)
-		}
+		// The old menu bar approach
+//		Column {
+//			EditorMenuBar(component, app, ::onRequestClose)
+//
+//			AppContent(component)
+//		}
+		AppContent(component)
 
 		LaunchedEffect(closeRequest) {
 			if (closeRequest != ApplicationState.CloseType.None) {

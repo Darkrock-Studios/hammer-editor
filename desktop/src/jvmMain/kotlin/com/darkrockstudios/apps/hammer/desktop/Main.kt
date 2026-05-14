@@ -33,7 +33,7 @@ import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
-import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
+import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -153,7 +153,7 @@ fun main(args: Array<String>) {
 			}
 		}
 
-		IntUiTheme(isDark = darkMode) {
+		NucleusDecoratedWindowTheme(isDark = darkMode) {
 			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {

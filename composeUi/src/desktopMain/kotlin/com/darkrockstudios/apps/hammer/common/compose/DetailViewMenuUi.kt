@@ -5,5 +5,5 @@ import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 
 @Composable
 actual fun DetailViewDropdownMenu(menuItems: Set<MenuItemDescriptor>) {
-	// No-op on desktop
+	TopAppBarDropdownMenu(menuItems = menuItems)
 }
