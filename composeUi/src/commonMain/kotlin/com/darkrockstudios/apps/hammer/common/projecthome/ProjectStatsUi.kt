@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdown
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
@@ -228,10 +229,21 @@ private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modif
 	) {
 		val goal = state.wordCountGoal
 		if (goal != null) {
+			val current = when (goal.cadence) {
+				WordCountGoal.Cadence.DAY -> state.writingActivity.wordsToday
+				WordCountGoal.Cadence.WEEK -> state.writingActivity.wordsThisWeek
+			}
+			val label = stringResource(
+				when (goal.cadence) {
+					WordCountGoal.Cadence.DAY -> Res.string.project_home_stat_daily_goal
+					WordCountGoal.Cadence.WEEK -> Res.string.project_home_stat_weekly_goal
+				}
+			)
 			Spacer(Modifier.height(4.dp))
 			HdDailyGoalProgress(
-				current = state.writingActivity.wordsToday,
+				current = current,
 				goal = goal.count,
+				label = label,
 				modifier = Modifier.fillMaxWidth(),
 			)
 		}
