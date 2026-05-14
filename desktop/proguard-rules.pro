@@ -81,6 +81,8 @@
 ################################################################################
 # The broad `native <methods>` rule above keeps the methods, but the class
 # itself must also survive for JNI's class lookup to find the native impl.
+# Windows decorations now use the JBR variant (no JNI bridge needed); the
+# Linux HiDPI bridge still uses JNI.
 -keep class io.github.kdroidfilter.nucleus.hidpi.HiDpiLinuxBridge {
     native <methods>;
 }

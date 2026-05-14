@@ -18,7 +18,10 @@ version = libs.versions.app.get()
 
 
 kotlin {
-	jvmToolchain(libs.versions.jvm.get().toInt())
+	jvmToolchain {
+		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+		vendor.set(JvmVendorSpec.JETBRAINS)
+	}
 	jvm()
 	sourceSets {
 		all {
@@ -46,7 +49,7 @@ kotlin {
 				implementation(libs.jetbrains.compose.desktop)
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)
-				implementation(libs.nucleus.decorated.window.jni)
+				implementation(libs.nucleus.decorated.window.jbr)
 				implementation(libs.nucleus.decorated.window.jewel)
 				implementation(libs.nucleus.linux.hidpi)
 				implementation(libs.jewel.int.ui.standalone)
