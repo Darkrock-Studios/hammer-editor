@@ -1,9 +1,4 @@
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.AppImageCategory
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapCompression
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapConfinement
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapGrade
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapPlug
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.*
 
 val data_version: String by extra
 
@@ -49,7 +44,6 @@ kotlin {
 				// because nucleus brings its own forked desktop-application tasks.
 				implementation(libs.jetbrains.compose.ui.tooling.preview)
 				implementation(libs.jetbrains.compose.desktop)
-				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jni)

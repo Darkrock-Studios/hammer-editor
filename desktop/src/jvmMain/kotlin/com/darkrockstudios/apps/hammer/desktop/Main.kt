@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.runtime.*
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import coil3.ImageLoader
@@ -24,13 +26,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
-import com.github.weisj.darklaf.LafManager
-import com.github.weisj.darklaf.theme.DarculaTheme
-import com.github.weisj.darklaf.theme.IntelliJTheme
-import com.github.weisj.darklaf.theme.Theme
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
@@ -76,19 +73,6 @@ private fun configureLinuxHiDpi() {
 	System.setProperty("sun.java2d.uiScale", rounded.toString())
 }
 
-/**
- * Install the Darklaf LAF for Swing chrome (file pickers, JMenuBar). No-ops when the
- * requested theme is already the installed one — Darklaf warns on redundant installs.
- *
- * @return true if a new theme was actually installed (caller should call [LafManager.updateLaf]).
- */
-private fun installSwingTheme(dark: Boolean): Boolean {
-	val target: Class<out Theme> = if (dark) DarculaTheme::class.java else IntelliJTheme::class.java
-	if (LafManager.getInstalledTheme()?.javaClass == target) return false
-	LafManager.install(if (dark) DarculaTheme() else IntelliJTheme())
-	return true
-}
-
 private fun setupLogging(appScope: CoroutineScope) {
 	val consoleHandler = ConsoleHandler()
 	consoleHandler.level = if(getInDevelopmentMode()) {
@@ -121,8 +105,6 @@ fun main(args: Array<String>) {
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
 
-	installSwingTheme(dark = getPlatformDarkModeDetector().isDark())
-
 	// Listen and react to Global Settings updates
 	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
 	val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
@@ -147,12 +129,6 @@ fun main(args: Array<String>) {
 			UiTheme.Dark -> true
 			UiTheme.FollowSystem -> systemDark
 		}
-		LaunchedEffect(darkMode) {
-			if (installSwingTheme(dark = darkMode)) {
-				LafManager.updateLaf()
-			}
-		}
-
 		NucleusDecoratedWindowTheme(isDark = darkMode) {
 			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
 				when (val windowState = applicationState.windows.value) {

@@ -8,7 +8,7 @@
 # Essential for stack traces, reflection, and DI (Koin/Serialization)
 -keepattributes SourceFile,LineNumberTable,Signature,InnerClasses,EnclosingMethod,Exceptions,*Annotation*
 
-# Preserve the ServiceLoader directory (Essential for Ktor, Darklaf, and Coil)
+# Preserve the ServiceLoader directory (Essential for Ktor and Coil)
 -keepdirectories META-INF/services
 -adaptresourcefilenames META-INF/services/**
 -adaptresourcefilecontents META-INF/services/**
@@ -20,13 +20,6 @@
     public static void main(java.lang.String[]);
 }
 -keep class com.darkrockstudios.** { *; }
-
-################################################################################
-# DARKLAF / JTHEMEDETECTOR (Fixes Theme Provider Error)
-################################################################################
-# Keep the Darklaf package and all classes implementing the Theme interface
--keep class com.github.weisj.darklaf.** { *; }
--keep class * implements com.github.weisj.darklaf.theme.Theme
 
 ################################################################################
 # COIL 3 (Fixes Images Not Loading)
@@ -55,7 +48,6 @@
 -keep class com.sun.jna.** { *; }
 -keep class * implements com.sun.jna.** { *; }
 -keep class oshi.** { *; }
--keep class com.jthemedetecor.** { *; }
 -keep class sun.** { *; }
 -keep class com.sun.** { *; }
 -keepclasseswithmembernames class * {
@@ -80,7 +72,6 @@
 -dontwarn okio.**
 -dontwarn org.slf4j.**
 -dontwarn javax.annotation.**
--dontwarn com.github.weisj.darklaf.**
 -dontwarn oshi.**
 
 -keep class com.arkivanov.decompose.extensions.compose.mainthread.SwingMainThreadChecker { *; }
