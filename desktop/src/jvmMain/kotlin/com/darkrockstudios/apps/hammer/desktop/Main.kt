@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModu
 import com.github.weisj.darklaf.LafManager
 import com.github.weisj.darklaf.theme.DarculaTheme
 import com.github.weisj.darklaf.theme.IntelliJTheme
+import com.github.weisj.darklaf.theme.Theme
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.getPlatformDarkModeDetector
@@ -57,6 +58,37 @@ private fun handleArguments(args: Array<String>) {
 	setInDevelopmentMode(devMode)
 }
 
+/**
+ * Detect the GNOME/KDE compositor scale and feed it to AWT before Swing initializes.
+ *
+ * OpenJDK on XWayland honors integer `sun.java2d.uiScale` reliably but fractional
+ * values (GNOME's 125%/133%/150%) are inconsistent — we round up so 1.333 → 2.
+ * JetBrains Runtime detects scale natively and ignores both properties.
+ */
+private fun configureLinuxHiDpi() {
+	if (System.getProperty("sun.java2d.uiScale") != null) return
+
+	val detected = getLinuxNativeScaleFactor()
+	if (detected <= 1.0) return
+
+	val rounded = kotlin.math.ceil(detected).toInt()
+	System.setProperty("sun.java2d.uiScale.enabled", "true")
+	System.setProperty("sun.java2d.uiScale", rounded.toString())
+}
+
+/**
+ * Install the Darklaf LAF for Swing chrome (file pickers, JMenuBar). No-ops when the
+ * requested theme is already the installed one — Darklaf warns on redundant installs.
+ *
+ * @return true if a new theme was actually installed (caller should call [LafManager.updateLaf]).
+ */
+private fun installSwingTheme(dark: Boolean): Boolean {
+	val target: Class<out Theme> = if (dark) DarculaTheme::class.java else IntelliJTheme::class.java
+	if (LafManager.getInstalledTheme()?.javaClass == target) return false
+	LafManager.install(if (dark) DarculaTheme() else IntelliJTheme())
+	return true
+}
+
 private fun setupLogging(appScope: CoroutineScope) {
 	val consoleHandler = ConsoleHandler()
 	consoleHandler.level = if(getInDevelopmentMode()) {
@@ -72,14 +104,7 @@ private fun setupLogging(appScope: CoroutineScope) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
-	// Must run before AWT/Swing starts: detect Linux desktop scale and feed it to AWT.
-	// No-op on macOS/Windows and on JBR (which detects scale natively).
-	if (System.getProperty("sun.java2d.uiScale") == null) {
-		val scale = getLinuxNativeScaleFactor()
-		if (scale > 0.0) {
-			System.setProperty("sun.java2d.uiScale", scale.toString())
-		}
-	}
+	configureLinuxHiDpi()
 
 	handleArguments(args)
 
@@ -96,11 +121,7 @@ fun main(args: Array<String>) {
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
 
-	if (getPlatformDarkModeDetector().isDark()) {
-		LafManager.install(DarculaTheme())
-	} else {
-		LafManager.install(IntelliJTheme())
-	}
+	installSwingTheme(dark = getPlatformDarkModeDetector().isDark())
 
 	// Listen and react to Global Settings updates
 	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
@@ -127,12 +148,9 @@ fun main(args: Array<String>) {
 			UiTheme.FollowSystem -> systemDark
 		}
 		LaunchedEffect(darkMode) {
-			if (darkMode) {
-				LafManager.install(DarculaTheme())
-			} else {
-				LafManager.install(IntelliJTheme())
+			if (installSwingTheme(dark = darkMode)) {
+				LafManager.updateLaf()
 			}
-			LafManager.updateLaf()
 		}
 
 		IntUiTheme(isDark = darkMode) {
