@@ -20,6 +20,11 @@ jobs:
           distribution: 'adopt'
           java-version: 21
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Gradle caching
         uses: actions/cache@v5
         with:
@@ -30,59 +35,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Package Windows ".msi" distribution
-        run: ./gradlew :desktop:packageReleaseMsi
+      - name: Package Windows distributions
+        run: >
+          ./gradlew
+          :desktop:packageReleaseMsi
+          :desktop:packageReleaseExe
+          :desktop:packageReleasePortable
+          :desktop:packageReleaseAppX
 
-      - name: Rename MSI Artifact
-        shell: cmd
+      - name: Stage Windows artifacts
+        shell: pwsh
         run: |
-          setlocal enabledelayedexpansion
-
-          set "pattern=hammer-*.msi"
-          set "newName=hammer.msi"
-          set "foundFile="
-
-          for /r %%i in (%pattern%) do (
-            set "foundFile=%%i"
-          )
-
-          if defined foundFile (
-          echo Renaming !foundFile! to %newName%
-            ren "!foundFile!" "%newName%"
-          ) else (
-            echo No file matching pattern found.
-          )
-
-          endlocal
-
-          echo Successfully renamed file to "hammer.msi"
-
-      - name: Package Windows ".exe" distribution
-        run: ./gradlew :desktop:packageReleaseExe
-
-      - name: Rename EXE Artifact
-        shell: cmd
-        run: |
-          setlocal enabledelayedexpansion
-
-          set "pattern=hammer-*.exe"
-          set "newName=hammer.exe"
-          set "foundFile="
-
-          for /r %%i in (%pattern%) do (
-            set "foundFile=%%i"
-          )
-
-          if defined foundFile (
-          echo Renaming !foundFile! to %newName%
-            ren "!foundFile!" "%newName%"
-          ) else (
-            echo No file matching pattern found.
-          )
-
-          endlocal
-
-          echo Successfully renamed file to "hammer.exe"
+          $stage = "$env:GITHUB_WORKSPACE\release-artifacts"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $root = "desktop\build\compose\binaries\main-release"
+          Get-ChildItem -Path "$root\msi" -Filter *.msi -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.msi"
+          Get-ChildItem -Path "$root\exe" -Filter *.exe -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.exe"
+          Get-ChildItem -Path "$root\portable" -Filter *.exe -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer-portable.exe"
+          Get-ChildItem -Path "$root\appx" -Include *.appx,*.msix -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.appx"
+          Get-ChildItem $stage
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -93,10 +64,12 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}\\desktop\\build\\installers\\main-release\\msi\\hammer.msi,${{ github.workspace }}\\desktop\\build\\installers\\main-release\\exe\\hammer.exe"
+          artifacts: "${{ github.workspace }}\\release-artifacts\\hammer.msi,${{ github.workspace }}\\release-artifacts\\hammer.exe,${{ github.workspace }}\\release-artifacts\\hammer-portable.exe,${{ github.workspace }}\\release-artifacts\\hammer.appx"
 
   linux:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -107,6 +80,19 @@ jobs:
           distribution: 'jetbrains'
           java-version: 21
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot snapd flatpak flatpak-builder libfuse2
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08
+          flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+
       - name: Gradle caching
         uses: actions/cache@v5
         with:
@@ -117,48 +103,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Package Linux ".deb" distribution
-        run: ./gradlew :desktop:packageReleaseDeb
+      - name: Package Linux distributions
+        run: >
+          ./gradlew
+          :desktop:packageReleaseDeb
+          :desktop:packageReleaseRpm
+          :desktop:packageReleaseAppImage
+          :desktop:packageReleaseSnap
+          :desktop:packageReleaseFlatpak
 
-      - name: Rename DEB Artifact
+      - name: Stage Linux artifacts
         run: |
-          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/deb/
-          # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer_*.deb' -print -quit)
-
-          # if no file was found, exit with an error message
-          if [ -z "$file" ]; then
-            echo "Error: no file matching the pattern found."
-            exit 1
-          fi
-
-          # rename the file to "hammer.deb"
-          mv "$file" "${file/hammer_*/hammer}.deb"
-
-          echo "File renamed successfully."
-
-      - name: Package Linux ".rpm" distribution
-        run: ./gradlew :desktop:packageReleaseRpm
-
-      - name: Rename RPM Artifact
-        run: |
-          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/rpm/
-          # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer-*.rpm' -print -quit)
-
-          # if no file was found, exit with an error message
-          if [ -z "$file" ]; then
-            echo "Error: no file matching the pattern found."
-            exit 1
-          fi
-
-          # rename the file to "hammer.rpm"
-          mv "$file" "hammer.rpm"
-
-          echo "File renamed successfully."
-
-      - name: Build Linux ".appimage" distribution
-        run: ./gradlew buildDistAppImage
+          STAGE="$GITHUB_WORKSPACE/release-artifacts"
+          mkdir -p "$STAGE"
+          ROOT="desktop/build/compose/binaries/main-release"
+          cp "$(find "$ROOT/deb" -maxdepth 2 -type f -name '*.deb' | head -1)" "$STAGE/hammer.deb"
+          cp "$(find "$ROOT/rpm" -maxdepth 2 -type f -name '*.rpm' | head -1)" "$STAGE/hammer.rpm"
+          cp "$(find "$ROOT/appimage" -maxdepth 2 -type f -name '*.AppImage' | head -1)" "$STAGE/hammer.AppImage"
+          cp "$(find "$ROOT/snap" -maxdepth 2 -type f -name '*.snap' | head -1)" "$STAGE/hammer.snap"
+          cp "$(find "$ROOT/flatpak" -maxdepth 2 -type f -name '*.flatpak' | head -1)" "$STAGE/hammer.flatpak"
+          ls -la "$STAGE"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -169,7 +133,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
+          artifacts: "${{ github.workspace }}/release-artifacts/hammer.deb,${{ github.workspace }}/release-artifacts/hammer.rpm,${{ github.workspace }}/release-artifacts/hammer.AppImage,${{ github.workspace }}/release-artifacts/hammer.snap,${{ github.workspace }}/release-artifacts/hammer.flatpak"
 
   macos:
     runs-on: macos-latest
@@ -183,6 +147,11 @@ jobs:
           distribution: 'adopt'
           java-version: 21
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Gradle caching
         uses: actions/cache@v5
         with:
@@ -193,47 +162,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Package MacOS ".dmg" distribution
-        run: ./gradlew :desktop:packageReleaseDmg
+      - name: Package macOS distributions
+        run: >
+          ./gradlew
+          :desktop:packageReleaseDmg
+          :desktop:packageReleasePkg
 
-      - name: Rename DMG Artifact
+      - name: Stage macOS artifacts
         run: |
-          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/dmg/
-          # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer-*.dmg' -print -quit)
-
-          # if no file was found, exit with an error message
-          if [ -z "$file" ]; then
-            echo "Error: no file matching the pattern found."
-            exit 1
-          fi
-
-          # rename the file to "hammer.dmg"
-          mv "$file" "${file/hammer-*/hammer}.dmg"
-
-          echo "File renamed successfully."
-
-      - name: Package MacOS ".pkg" distribution
-        run: ./gradlew :desktop:packageReleasePkg
-
-      - name: Rename PKG Artifact
-        run: |
-          cd $GITHUB_WORKSPACE/desktop/build/installers/main-release/pkg/
-          # find the file matching the pattern and store its name in a variable
-          file=$(find . -type f -name 'hammer-*.pkg' -print -quit)
-
-          # if no file was found, exit with an error message
-          if [ -z "$file" ]; then
-            echo "Error: no file matching the pattern found."
-            exit 1
-          fi
-
-          # rename the file to "hammer.pkg"
-          mv "$file" "hammer.pkg"
-
-          echo "File renamed successfully."
-          echo "Contents of pkg directory:"
-          ls -la
+          STAGE="$GITHUB_WORKSPACE/release-artifacts"
+          mkdir -p "$STAGE"
+          ROOT="desktop/build/compose/binaries/main-release"
+          cp "$(find "$ROOT/dmg" -maxdepth 2 -type f -name '*.dmg' | head -1)" "$STAGE/hammer.dmg"
+          cp "$(find "$ROOT/pkg" -maxdepth 2 -type f -name '*.pkg' | head -1)" "$STAGE/hammer.pkg"
+          ls -la "$STAGE"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
@@ -244,7 +186,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/dmg/hammer.dmg,${{ github.workspace }}/desktop/build/installers/main-release/pkg/hammer.pkg"
+          artifacts: "${{ github.workspace }}/release-artifacts/hammer.dmg,${{ github.workspace }}/release-artifacts/hammer.pkg"
 
   server:
     runs-on: ubuntu-latest
@@ -367,96 +309,9 @@ jobs:
           allowUpdates: true
           artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk"
 
-  snap:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up JBR
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'jetbrains'
-          java-version: 21
-          cache: gradle
-
-      - name: Grant Permission to Execute
-        run: chmod +x gradlew
-
-      - name: Build Snap
-        uses: snapcore/action-build@v1
-        id: build-snap
-
-      - name: Rename Snap Artifact
-        run: |
-          mv "${{ steps.build-snap.outputs.snap }}" hammer.snap
-          echo "File renamed successfully."
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: true
-          prerelease: true
-          artifactErrorsFailBuild: true
-          allowUpdates: true
-          artifacts: hammer.snap
-
-  flatpak:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up JBR
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'jetbrains'
-          java-version: 21
-          cache: gradle
-
-      - name: Install Flatpak and flatpak-builder
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-
-      - name: Cache Flatpak SDK and runtime
-        uses: actions/cache@v5
-        with:
-          path: ~/.local/share/flatpak
-          key: flatpak-sdk-runtime-24.08
-
-      - name: Install Flatpak SDK and runtime
-        run: |
-          flatpak install --user -y flathub org.freedesktop.Platform//24.08
-          flatpak install --user -y flathub org.freedesktop.Sdk//24.08
-
-      - name: Grant Permission to Execute
-        run: chmod +x gradlew
-
-      - name: Build Flatpak
-        run: ./gradlew buildDistFlatpak
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          draft: true
-          prerelease: true
-          artifactErrorsFailBuild: true
-          allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/flatpak/hammer.flatpak"
-
   set-release-body:
     runs-on: ubuntu-latest
-    needs: [ windows, linux, macos, android, server, snap, flatpak ]
+    needs: [ windows, linux, macos, android, server ]
     if: success()
 
     steps:
@@ -470,10 +325,10 @@ jobs:
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
-          
+
           echo "Tag: $TAG_NAME"
           echo -e "Tag message:\n$TAG_MESSAGE"
-          
+
           echo "tag_message<<EOF" >> $GITHUB_ENV
           echo "$TAG_MESSAGE" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
