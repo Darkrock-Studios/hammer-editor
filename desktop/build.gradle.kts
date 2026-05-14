@@ -51,7 +51,6 @@ kotlin {
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
 				implementation(libs.nucleus.decorated.window.jewel)
-				implementation(libs.nucleus.linux.hidpi)
 				implementation(libs.jewel.int.ui.standalone)
 			}
 		}

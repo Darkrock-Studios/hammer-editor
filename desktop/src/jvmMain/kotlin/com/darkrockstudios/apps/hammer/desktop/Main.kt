@@ -29,7 +29,6 @@ import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModu
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
-import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
@@ -55,24 +54,6 @@ private fun handleArguments(args: Array<String>) {
 	setInDevelopmentMode(devMode)
 }
 
-/**
- * Detect the GNOME/KDE compositor scale and feed it to AWT before Swing initializes.
- *
- * OpenJDK on XWayland honors integer `sun.java2d.uiScale` reliably but fractional
- * values (GNOME's 125%/133%/150%) are inconsistent — we round up so 1.333 → 2.
- * JetBrains Runtime detects scale natively and ignores both properties.
- */
-private fun configureLinuxHiDpi() {
-	if (System.getProperty("sun.java2d.uiScale") != null) return
-
-	val detected = getLinuxNativeScaleFactor()
-	if (detected <= 1.0) return
-
-	val rounded = kotlin.math.ceil(detected).toInt()
-	System.setProperty("sun.java2d.uiScale.enabled", "true")
-	System.setProperty("sun.java2d.uiScale", rounded.toString())
-}
-
 private fun setupLogging(appScope: CoroutineScope) {
 	val consoleHandler = ConsoleHandler()
 	consoleHandler.level = if(getInDevelopmentMode()) {
@@ -88,8 +69,6 @@ private fun setupLogging(appScope: CoroutineScope) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
-	configureLinuxHiDpi()
-
 	handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)

@@ -275,7 +275,6 @@ bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", ver
 nucleus_darkmode_detector = { module = "io.github.kdroidfilter:nucleus.darkmode-detector", version.ref = "nucleus" }
 nucleus_decorated_window_jbr = { module = "io.github.kdroidfilter:nucleus.decorated-window-jbr", version.ref = "nucleus" }
 nucleus_decorated_window_jewel = { module = "io.github.kdroidfilter:nucleus.decorated-window-jewel", version.ref = "nucleus" }
-nucleus_linux_hidpi = { module = "io.github.kdroidfilter:nucleus.linux-hidpi", version.ref = "nucleus" }
 jewel_int_ui_standalone = { module = "org.jetbrains.jewel:jewel-int-ui-standalone", version.ref = "jewel" }
 
 [plugins]
