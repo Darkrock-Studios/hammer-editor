@@ -160,7 +160,6 @@ jobs:
           :desktop:packageReleaseDeb
           :desktop:packageReleaseRpm
           :desktop:packageReleaseAppImage
-          :desktop:packageReleaseSnap
           :desktop:packageReleaseFlatpak
 
       - name: Stage Linux artifacts
@@ -178,7 +177,7 @@ jobs:
               echo "No file matching $name found under $ROOT" >&2; exit 1
             fi
           }
-          for pair in "*.deb|hammer.deb" "*.rpm|hammer.rpm" "*.AppImage|hammer.AppImage" "*.snap|hammer.snap" "*.flatpak|hammer.flatpak"; do
+          for pair in "*.deb|hammer.deb" "*.rpm|hammer.rpm" "*.AppImage|hammer.AppImage" "*.flatpak|hammer.flatpak"; do
             glob=${pair%|*}; out=${pair#*|}
             src=$(first "$glob"); require "$src" "$glob"
             cp "$src" "$STAGE/$out"
@@ -194,7 +193,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/release-artifacts/hammer.deb,${{ github.workspace }}/release-artifacts/hammer.rpm,${{ github.workspace }}/release-artifacts/hammer.AppImage,${{ github.workspace }}/release-artifacts/hammer.snap,${{ github.workspace }}/release-artifacts/hammer.flatpak"
+          artifacts: "${{ github.workspace }}/release-artifacts/hammer.deb,${{ github.workspace }}/release-artifacts/hammer.rpm,${{ github.workspace }}/release-artifacts/hammer.AppImage,${{ github.workspace }}/release-artifacts/hammer.flatpak"
 
   macos:
     needs: integration-tests

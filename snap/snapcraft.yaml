@@ -56,11 +56,11 @@ parts:
             # First build all necessary JARs, then create the distributable
             ./gradlew :desktop:jvmJar --no-daemon
             ./gradlew :desktop:createDistributable -x desktopTest --no-daemon
-            # Copy the gradle output to the install directory
-            # Note: outputBaseDir is set to 'installers' in build.gradle.kts
-            # This includes the bundled JBR at lib/runtime/
+            # Copy the gradle output to the install directory.
+            # Nucleus default outputBaseDir is build/compose/binaries.
+            # This includes the bundled JBR at lib/runtime/.
             mkdir -p $CRAFT_PART_INSTALL/lib
-            cp -r desktop/build/installers/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
+            cp -r desktop/build/compose/binaries/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
             # Create the bin directory and launcher script
             # Use the bundled JBR runtime instead of system OpenJDK
             mkdir -p $CRAFT_PART_INSTALL/bin

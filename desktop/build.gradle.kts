@@ -1,4 +1,5 @@
-import io.github.kdroidfilter.nucleus.desktop.application.dsl.*
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.AppImageCategory
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 
 val data_version: String by extra
 
@@ -87,8 +88,11 @@ nucleus.application {
 			TargetFormat.Deb,
 			TargetFormat.Rpm,
 			TargetFormat.AppImage,
-			TargetFormat.Snap,       // replaces bespoke snapcraft build
 			TargetFormat.Flatpak,    // replaces bespoke flatpak-builder
+			// Snap stays on the bespoke snap/snapcraft.yaml path because
+			// Nucleus derives the snap name from packageName, which would
+			// rename us from `hammer-editor` to `hammer` on the Snap Store.
+			// Tracking: https://github.com/NucleusFramework/Nucleus/issues/244
 		)
 		includeAllModules = true
 		packageName = "hammer"
@@ -132,25 +136,6 @@ nucleus.application {
 				genericName = "Story Editor"
 				synopsis = "A simple tool for building stories."
 				desktopEntries = mapOf("Keywords" to "writing;editor;story;novel;")
-			}
-
-			snap {
-				confinement = SnapConfinement.Strict
-				grade = SnapGrade.Stable
-				summary = "A simple tool for building stories"
-				base = "core22"
-				compression = SnapCompression.Xz
-				plugs = listOf(
-					SnapPlug.Home,
-					SnapPlug.Network,
-					SnapPlug.NetworkBind,
-					SnapPlug.Desktop,
-					SnapPlug.DesktopLegacy,
-					SnapPlug.Wayland,
-					SnapPlug.X11,
-					SnapPlug.Opengl,
-					SnapPlug.RemovableMedia,
-				)
 			}
 
 			flatpak {
