@@ -23,7 +23,8 @@ version = libs.versions.app.get()
 
 
 kotlin {
-	jvmToolchain(libs.versions.jvm.get().toInt())
+	// JDK 25 toolchain required for Nucleus AOT cache (Project Leyden).
+	jvmToolchain(libs.versions.desktopJvm.get().toInt())
 	jvm()
 	sourceSets {
 		all {
@@ -49,6 +50,7 @@ kotlin {
 				// because nucleus brings its own forked desktop-application tasks.
 				implementation(libs.jetbrains.compose.ui.tooling.preview)
 				implementation(libs.jetbrains.compose.desktop)
+				implementation(libs.nucleus.aot.runtime)
 				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
 			}
@@ -92,6 +94,7 @@ nucleus.application {
 			TargetFormat.Flatpak,    // replaces bespoke flatpak-builder
 		)
 		includeAllModules = true
+		enableAotCache = true
 		packageName = "hammer"
 		packageVersion = libs.versions.app.get()
 		description = "A simple tool for building stories."

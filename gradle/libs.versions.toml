@@ -5,6 +5,11 @@ data_version = "1.0"
 
 # Kotlin
 jvm = "21"
+# Desktop module uses JDK 25 for Nucleus AOT cache support (Project Leyden).
+# Other modules (Android, server) stay on 21. JDK 25 can run JDK 21 bytecode,
+# so the cross-module dependencies are fine. Named to avoid sharing a prefix
+# with `jvm`, which would turn `libs.versions.jvm.get()` into a group accessor.
+desktopJvm = "25"
 kache = "2.1.1"
 kompressCore = "1.3.1"
 kotlin = "2.3.21"
@@ -119,6 +124,7 @@ jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", versi
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrains_compose" }
 jetbrains_compose_desktop = { module = "org.jetbrains.compose.desktop:desktop", version.ref = "jetbrains_compose" }
+nucleus_aot_runtime = { module = "io.github.kdroidfilter:nucleus.aot-runtime", version.ref = "nucleus" }
 
 coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }

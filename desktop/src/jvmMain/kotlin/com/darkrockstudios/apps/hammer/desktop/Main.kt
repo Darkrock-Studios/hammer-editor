@@ -30,6 +30,7 @@ import com.github.weisj.darklaf.theme.IntelliJTheme
 import com.jthemedetecor.OsThemeDetector
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -38,6 +39,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
+import kotlin.system.exitProcess
 
 private fun handleArguments(args: Array<String>) {
 	val parser = ArgParser("hammer")
@@ -69,6 +71,14 @@ private fun setupLogging(appScope: CoroutineScope) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	// AOT training pass: Nucleus launches the app once during the build to
+	// record class loading + compilation into app.aot. Exit immediately
+	// without booting Koin / Compose, or the build hangs until the 300s
+	// safety timeout fires.
+	if (AotRuntime.isTraining()) {
+		exitProcess(0)
+	}
+
 	handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)
