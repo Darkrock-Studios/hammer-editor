@@ -15,6 +15,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.TopAppBarDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
@@ -129,6 +130,8 @@ actual fun EditorTopBar(
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
+
+			TopAppBarDropdownMenu(menuItems = state.menuItems)
 		}
 	}
 }

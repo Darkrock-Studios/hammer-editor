@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,9 +34,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import io.github.kdroidfilter.nucleus.window.jewel.JewelDecoratedWindow
-import io.github.kdroidfilter.nucleus.window.jewel.JewelTitleBar
-import org.jetbrains.jewel.ui.component.Text
+import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -60,7 +61,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	LifecycleController(lifecycle, windowState)
 
 	val title = Res.string.account_window_title.get()
-	JewelDecoratedWindow(
+	DecoratedWindow(
 		title = title,
 		state = windowState,
 		onCloseRequest = ::exitApplication,
@@ -74,9 +75,10 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 			}
 		}
 	) {
-		JewelTitleBar {
+		TitleBar {
 			Text(
 				text = title,
+				color = LocalTitleBarStyle.current.colors.content,
 				modifier = Modifier.align(Alignment.CenterHorizontally),
 			)
 		}
