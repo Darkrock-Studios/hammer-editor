@@ -1,4 +1,4 @@
-# ![Hammer Logo](readme/logo.png) Hammer: A story editor
+# <img src="readme/logo.svg" alt="Hammer Logo" width="48" valign="middle"> Hammer: A story editor
 
 A simple tool for building stories.
 
