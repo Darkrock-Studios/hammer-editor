@@ -18,7 +18,10 @@ version = libs.versions.app.get()
 
 
 kotlin {
-	jvmToolchain(libs.versions.jvm.get().toInt())
+	jvmToolchain {
+		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+		vendor.set(JvmVendorSpec.JETBRAINS)
+	}
 	jvm()
 	sourceSets {
 		all {
@@ -32,6 +35,7 @@ kotlin {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.aboutlibraries.core)
+				implementation(libs.multiplatform.settings)
 			}
 		}
 		val jvmMain by getting {
@@ -41,8 +45,9 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(compose.components.uiToolingPreview)
 				implementation(compose.desktop.currentOs)
-				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
+				implementation(libs.nucleus.darkmode.detector)
+				implementation(libs.nucleus.decorated.window.jbr)
 			}
 		}
 		val jvmTest by getting {
@@ -54,8 +59,15 @@ kotlin {
 	}
 }
 
+// Pin jpackage's bundled runtime to the JetBrains Runtime.
+val jbrLauncher = javaToolchains.launcherFor {
+	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+	vendor.set(JvmVendorSpec.JETBRAINS)
+}
+
 compose.desktop {
 	application {
+		javaHome = jbrLauncher.get().metadata.installationPath.asFile.absolutePath
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(

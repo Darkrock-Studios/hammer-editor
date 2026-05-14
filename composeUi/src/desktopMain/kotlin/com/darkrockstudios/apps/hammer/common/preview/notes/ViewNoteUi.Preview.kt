@@ -34,6 +34,9 @@ private fun ViewNoteUiPreview() {
 
 		override fun discardEdit() {}
 		override fun onContentChanged(newContent: String) {}
+		override fun onTagsChanged(newTags: Set<String>) {}
+		override suspend fun removeTag(tag: String) {}
+		override fun showGlobalSearchForTag(tag: String) {}
 		override suspend fun deleteNote(id: Int) {}
 		override fun confirmDelete() {}
 		override fun dismissConfirmDelete() {}
@@ -45,6 +48,7 @@ private fun ViewNoteUiPreview() {
 		override fun cancelDiscard() {}
 		override fun confirmClose() {}
 		override fun cancelClose() {}
+		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 
 	val rootSnackbar = rememberRootSnackbarHostState()

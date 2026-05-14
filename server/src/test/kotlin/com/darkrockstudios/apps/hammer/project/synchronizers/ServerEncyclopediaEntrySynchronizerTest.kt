@@ -29,6 +29,9 @@ class ServerEncyclopediaEntrySynchronizerTest :
 			text = "Test Text",
 			tags = setOf("Test Tag"),
 			image = null,
+			// Non-empty so the inherited Hash Entity / Save Entity / Load Entity tests
+			// exercise the aliases field end-to-end through the server hash path.
+			aliases = listOf("Alias One", "Alias Two"),
 		)
 	}
 
@@ -40,6 +43,8 @@ class ServerEncyclopediaEntrySynchronizerTest :
 			text = "Test Text",
 			tags = setOf(),
 			image = null,
+			// Different list so Hash Entity tests prove the field actually differentiates.
+			aliases = listOf("Alias One"),
 		)
 	}
 }

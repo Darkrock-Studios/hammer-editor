@@ -5,42 +5,42 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
-import com.darkrockstudios.apps.hammer.common.data.ClientMessage
-import com.darkrockstudios.apps.hammer.common.data.ExportOptions
-import com.darkrockstudios.apps.hammer.common.data.ImportOptions
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
-import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
-import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
-import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
-import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
-import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.koin.core.component.inject
+import kotlin.time.Clock
 
 class ProjectHomeComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val showProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
+	private val onCloseProject: (() -> Unit)? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectHome,
 	ComponentToaster by ComponentToasterImpl() {
 
@@ -51,6 +51,8 @@ class ProjectHomeComponent(
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
+	private val tagIndexService: TagIndexService by projectInject()
+	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val importStoryUseCase: ImportStoryUseCase by projectInject()
 	private val markdownImporter: StoryImporter by inject()
 
@@ -226,6 +228,9 @@ class ProjectHomeComponent(
 	private fun subscribeToStats() {
 		scope.launch {
 			statisticsService.statsFlow.collect { stats ->
+				val dailyTotals = parseDailyWordTotals(stats.dailyWordTotals)
+				val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+				val derived = deriveWritingStats(dailyTotals, today)
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
@@ -241,6 +246,12 @@ class ProjectHomeComponent(
 							sceneWordsStdDev = stats.sceneWordsStdDev,
 							numberOfNotes = stats.numberOfNotes,
 							numberOfTimelineEvents = stats.numberOfTimelineEvents,
+							dailyWordTotals = dailyTotals,
+							wordsPerDevice = stats.wordsPerDevice,
+							topAppearances = stats.topAppearances,
+							totalEntryConnections = stats.totalEntryConnections,
+							wordCountGoal = stats.wordCountGoal,
+							writingActivity = derived,
 							hasServer = globalSettingsRepository.serverSettings != null,
 							isLoadingStats = false
 						)
@@ -261,6 +272,18 @@ class ProjectHomeComponent(
 			statisticsService.isCalculating.collect { isCalculating ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(isLoadingStats = isCalculating) }
+				}
+			}
+		}
+
+		scope.launch {
+			tagIndexService.tagIndex.collect { index ->
+				val breakdowns = index.toBreakdowns()
+				val usesByType = index.totalUsesByType()
+				withContext(dispatcherMain) {
+					_state.getAndUpdate {
+						it.copy(tagBreakdowns = breakdowns, tagUsesByType = usesByType)
+					}
 				}
 			}
 		}
@@ -303,6 +326,7 @@ class ProjectHomeComponent(
 		scope.launch {
 			_state.getAndUpdate { it.copy(isLoadingStats = true) }
 			statisticsService.recalculateStatistics()
+			referenceIndexService.recalculate()
 		}
 	}
 
@@ -312,5 +336,11 @@ class ProjectHomeComponent(
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
+
+	override fun supportsCloseProject(): Boolean = onCloseProject != null
+	override fun closeProject() {
+		onCloseProject?.invoke()
+	}
+
 	override fun onBack() = contentRouter.onBack()
 }

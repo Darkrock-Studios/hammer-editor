@@ -15,7 +15,10 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.TopAppBarDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.launch
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
 actual fun EditorTopBar(
 	component: SceneEditor,
 	rootSnackbar: RootSnackbarHostState,
+	onToggleMetadata: () -> Unit,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
@@ -36,24 +40,27 @@ actual fun EditorTopBar(
 		if (state.isEditingName) {
 			var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
 
-			TextField(
+			HdHairlineField(
+				label = Res.string.scene_editor_name_hint.get(),
 				value = editSceneNameValue,
 				onValueChange = { editSceneNameValue = it },
-				modifier = Modifier.padding(Ui.Padding.S),
-				label = { Text(Res.string.scene_editor_name_hint.get()) }
+				modifier = Modifier
+					.weight(1f)
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
+				singleLine = true,
 			)
 			IconButton(onClick = { scope.launch { component.changeSceneName(editSceneNameValue) } }) {
 				Icon(
 					Icons.Filled.Check,
 					Res.string.scene_editor_rename_button.get(),
-					tint = MaterialTheme.colorScheme.onSurface
+					tint = MaterialTheme.colorScheme.primary,
 				)
 			}
 			IconButton(onClick = component::endSceneNameEdit) {
 				Icon(
-					Icons.Filled.Cancel,
+					Icons.Filled.Close,
 					Res.string.scene_editor_cancel_button.get(),
-					tint = MaterialTheme.colorScheme.error
+					tint = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
 		} else {
@@ -78,9 +85,10 @@ actual fun EditorTopBar(
 					modifier = Modifier.width(IntrinsicSize.Min),
 					horizontalArrangement = Arrangement.End,
 				) {
-					Badge(
-						modifier = Modifier.align(Alignment.Top).padding(top = Ui.Padding.L)
-					) { Text(Res.string.scene_editor_unsaved_chip.get()) }
+					HdUnsavedBadge(
+						text = Res.string.scene_editor_unsaved_chip.get(),
+						modifier = Modifier.align(Alignment.CenterVertically)
+					)
 
 					Spacer(modifier = Modifier.weight(1f))
 
@@ -99,7 +107,7 @@ actual fun EditorTopBar(
 				}
 			}
 
-			IconButton(onClick = component::toggleMetadataVisibility) {
+			IconButton(onClick = onToggleMetadata) {
 				Icon(
 					imageVector = Icons.Default.Info,
 					contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
@@ -122,6 +130,8 @@ actual fun EditorTopBar(
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}
+
+			TopAppBarDropdownMenu(menuItems = state.menuItems)
 		}
 	}
 }

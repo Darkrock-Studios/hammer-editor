@@ -21,9 +21,14 @@ open class DataMigrator(
 		val migrators = mutableMapOf<Int, Migration>()
 
 		getKoin().get<Migration0_1>().addToMap(migrators)
+		getKoin().get<Migration1_2>().addToMap(migrators)
 
 		return migrators
 	}
+
+	protected open fun getGlobalMigrations(): List<GlobalMigration> = listOf(
+		getKoin().get<MigrateInstallIdToGlobal>(),
+	)
 
 	private fun getProjects(): List<ProjectData> {
 		val projDir = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
@@ -34,12 +39,18 @@ open class DataMigrator(
 		return projects
 	}
 
-	fun handleDataMigration() {
+	suspend fun handleDataMigration() {
+		runGlobalMigrations()
+
 		if (checkIfMigrationNeeded()) {
 			doMigration()
 		} else {
 			Napier.d("No projects need migration. Skipping.")
 		}
+	}
+
+	private suspend fun runGlobalMigrations() {
+		getGlobalMigrations().forEach { it.migrate() }
 	}
 
 	fun checkIfMigrationNeeded(): Boolean {

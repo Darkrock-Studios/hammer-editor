@@ -3,12 +3,10 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import io.mockk.coEvery
@@ -205,7 +203,7 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 	fun `Hash Entity`() = runTest {
 		val entity = createExistingEntity()
 		val synchronizer = createSynchronizer()
-		val hash = EntityHasher.hashEntity(entity)
+		val hash = entity.hash()
 		val result = synchronizer.hashEntity(entity)
 		assertEquals(hash, result)
 	}

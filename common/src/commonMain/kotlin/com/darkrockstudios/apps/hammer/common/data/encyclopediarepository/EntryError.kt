@@ -11,6 +11,7 @@ enum class EntryError : BaseError {
 	NAME_TOO_LONG,
 	NAME_INVALID_CHARACTERS,
 	TAG_TOO_LONG,
+	ALIAS_TOO_LONG,
 }
 
 typealias EntryResult = CreateResult<EntryContainer, EntryError>

@@ -1,18 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import kotlinx.coroutines.CoroutineScope
@@ -22,72 +24,52 @@ import kotlinx.coroutines.launch
 fun BackupsSettingsUi(
 	component: AccountSettings,
 	scope: CoroutineScope,
+	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
 	val backupManagerSlot by component.backupManagerSlot.subscribeAsState()
 
 	Column(
-		modifier = Modifier.padding(Ui.Padding.M)
+		modifier = modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(16.dp),
 	) {
 		Text(
-			Res.string.settings_backups_header.get(),
-			style = MaterialTheme.typography.headlineSmall,
-			color = MaterialTheme.colorScheme.onBackground,
+			text = Res.string.settings_backups_explainations.get(),
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
 		)
-		Text(
-			Res.string.settings_backups_description.get(),
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onBackground,
-			fontStyle = FontStyle.Italic
-		)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-		Text(
-			Res.string.settings_backups_explainations.get(),
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onBackground,
-			fontStyle = FontStyle.Italic
-		)
-
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
 
 		var maxBackupsValue by remember(state.maxBackups) { mutableStateOf("${state.maxBackups}") }
-		val isMaxBackupsError = remember(maxBackupsValue) {
-			val value = maxBackupsValue.toIntOrNull()
-			value == null || value !in 1..GlobalSettings.MAX_BACKUPS
-		}
+		val parsedMaxBackups = maxBackupsValue.toIntOrNull()
+		val isMaxBackupsError = parsedMaxBackups == null
+				|| parsedMaxBackups !in 1..GlobalSettings.MAX_BACKUPS
 
-		OutlinedTextField(
-			modifier = Modifier.width(200.dp),
+		HdHairlineField(
+			modifier = Modifier.widthIn(max = 320.dp),
+			label = Res.string.settings_server_max_backups.get(),
 			value = maxBackupsValue,
-			onValueChange = { newText ->
-				if (newText.isEmpty() || newText.all { it.isDigit() }) {
-					maxBackupsValue = newText
-					newText.toIntOrNull()?.let { value ->
-						if (value in 1..GlobalSettings.MAX_BACKUPS) {
-							scope.launch { component.setMaxBackups(value) }
-						}
+			onValueChange = { input ->
+				val digits = input.filter(Char::isDigit)
+				maxBackupsValue = digits
+				digits.toIntOrNull()?.let { value ->
+					if (value in 1..GlobalSettings.MAX_BACKUPS) {
+						scope.launch { component.setMaxBackups(value) }
 					}
 				}
 			},
-			label = { Text(Res.string.settings_server_max_backups.get()) },
-			singleLine = true,
-			isError = isMaxBackupsError,
-			supportingText = {
-				if (isMaxBackupsError) {
-					Text(Res.string.settings_server_max_backups_error.get(GlobalSettings.MAX_BACKUPS))
-				}
-			}
+			hint = "1–${GlobalSettings.MAX_BACKUPS}",
+			imeAction = ImeAction.Done,
+			error = if (isMaxBackupsError) {
+				Res.string.settings_server_max_backups_error.get(GlobalSettings.MAX_BACKUPS)
+			} else {
+				null
+			},
 		)
 
-		Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-		Button(onClick = {
-			component.showBackupManager()
-		}) {
-			Text(Res.string.settings_backups_manage_button.get())
-		}
+		HdHairlineButton(
+			label = Res.string.settings_backups_manage_button.get(),
+			onClick = { component.showBackupManager() },
+		)
 	}
 
 	backupManagerSlot.child?.instance?.let { backupManager ->
@@ -95,7 +77,7 @@ fun BackupsSettingsUi(
 			component = backupManager,
 			onDismissRequest = {
 				component.dismissBackupManager()
-			}
+			},
 		)
 	}
 }

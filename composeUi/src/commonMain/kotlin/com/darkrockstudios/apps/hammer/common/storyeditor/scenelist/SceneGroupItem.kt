@@ -3,19 +3,22 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.bottomBorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
@@ -36,15 +39,11 @@ internal fun SceneGroupItem(
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
+	val isTopLevel = sceneNode.depth == 1
 
-	var groupModifier = draggable
+	val groupModifier = draggable
 		.fillMaxWidth()
-		.padding(start = (Ui.Padding.L * (sceneNode.depth - 1) * 2).coerceAtLeast(0.dp))
-		.clickable(onClick = { toggleExpand(sceneNode.value.id) })
-
-	if (!collapsed) {
-		groupModifier = groupModifier.bottomBorder(1.dp, MaterialTheme.colorScheme.outline)
-	}
+		.clickable { toggleExpand(scene.id) }
 
 	SceneGroupActionContainer(
 		scene = scene,
@@ -54,39 +53,72 @@ internal fun SceneGroupItem(
 		onCreateSceneClick = onCreateSceneClick,
 		onCreateGroupClick = onCreateGroupClick,
 	) {
-		Surface(
-			modifier = groupModifier,
-			tonalElevation = if (collapsed) 1.dp else 0.dp,
-		) {
-			Box {
-				Row(
-					modifier = Modifier.padding(Ui.Padding.XL).fillMaxWidth(),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					if (collapsed) {
-						Icon(
-							imageVector = Icons.Filled.Folder,
-							contentDescription = Res.string.scene_group_item_collapsed.get(),
-							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-						)
-					} else {
-						Icon(
-							imageVector = Icons.Filled.FolderOpen,
-							contentDescription = Res.string.scene_group_item_expanded.get(),
-							modifier = Modifier.size(24.dp).padding(end = Ui.Padding.M),
-						)
-					}
-
-					Text(
-						scene.name,
-						modifier = Modifier.weight(1f),
-						style = MaterialTheme.typography.bodyLarge
+		Box(modifier = groupModifier) {
+			Column(modifier = Modifier.fillMaxWidth()) {
+				if (isTopLevel) {
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
 					)
 				}
 
-				val hasDirtyBuffer = children.any { hasDirtyBuffer.contains(it.value.id) }
-				Unsaved(hasDirtyBuffer)
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							start = if (isTopLevel) {
+								Ui.Padding.XL
+							} else {
+								Ui.Padding.XL + (Ui.Padding.XL * (sceneNode.depth - 2).coerceAtLeast(0))
+							},
+							end = Ui.Padding.XL,
+							top = Ui.Padding.L,
+							bottom = Ui.Padding.L,
+						),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					if (isTopLevel) {
+						Icon(
+							imageVector = if (collapsed) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Filled.KeyboardArrowDown,
+							contentDescription = if (collapsed) {
+								Res.string.scene_group_item_collapsed.get()
+							} else {
+								Res.string.scene_group_item_expanded.get()
+							},
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.size(16.dp).padding(end = Ui.Padding.S),
+						)
+						Text(
+							text = scene.name,
+							style = MaterialTheme.typography.titleSmall,
+							fontWeight = FontWeight.Medium,
+							color = MaterialTheme.colorScheme.onSurface,
+							modifier = Modifier.weight(1f),
+						)
+					} else {
+						Icon(
+							imageVector = if (collapsed) Icons.Filled.Folder else Icons.Filled.FolderOpen,
+							contentDescription = if (collapsed) {
+								Res.string.scene_group_item_collapsed.get()
+							} else {
+								Res.string.scene_group_item_expanded.get()
+							},
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.size(20.dp).padding(end = Ui.Padding.M),
+						)
+						Text(
+							text = scene.name,
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Medium,
+							color = MaterialTheme.colorScheme.onSurface,
+							modifier = Modifier.weight(1f),
+						)
+					}
+				}
 			}
+
+			val groupHasDirtyBuffer = children.any { hasDirtyBuffer.contains(it.value.id) }
+			Unsaved(groupHasDirtyBuffer)
 		}
 	}
 }

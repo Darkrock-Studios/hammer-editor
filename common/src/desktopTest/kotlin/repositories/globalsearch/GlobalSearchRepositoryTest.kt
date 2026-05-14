@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -55,6 +56,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		// Defaults: empty results
 		every { sceneEditor.getScenes() } returns emptyList()
 		every { sceneEditor.getSceneBuffer(any<SceneItem>()) } returns null
+		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
 		every { notes.getNotes() } returns emptyList()
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(emptyList())
 		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
@@ -202,6 +204,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			extraBufferCapacity = 1,
 			onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		).apply { tryEmit(listOf(def)) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 
 		val repo = createRepository()
 		repo.setQuery("aragorn")
@@ -220,6 +223,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			extraBufferCapacity = 1,
 			onBufferOverflow = BufferOverflow.DROP_OLDEST,
 		).apply { tryEmit(listOf(def)) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 		every { encyclopedia.loadEntry(def) } returns EntryContainer(
 			EntryContent(
 				id = 12,
@@ -255,6 +259,161 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		val results = repo.state.value.results.filterIsInstance<SearchResult.TimelineEvent>()
 		assertEquals(1, results.size)
 		assertEquals(21, results.first().eventId)
+	}
+
+	@Test
+	fun `parseQuery extracts tags and free text in any order`() {
+		val parsed = GlobalSearchRepository.parseQuery("dragon #fantasy battle #adventure")
+		assertEquals(listOf("fantasy", "adventure"), parsed.tags)
+		assertEquals("dragon battle", parsed.text)
+	}
+
+	@Test
+	fun `parseQuery handles tag-only and stray hash`() {
+		val tagOnly = GlobalSearchRepository.parseQuery("#hero")
+		assertEquals(listOf("hero"), tagOnly.tags)
+		assertEquals("", tagOnly.text)
+
+		val strayHash = GlobalSearchRepository.parseQuery("# foo")
+		assertTrue(strayHash.tags.isEmpty())
+		assertEquals("foo", strayHash.text)
+	}
+
+	@Test
+	fun `setQuery filters notes by tag when only a tag is specified`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "Once a hero rose",
+					tags = setOf("fantasy"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 2,
+					created = Clock.System.now(),
+					content = "Random text",
+					tags = setOf("misc"),
+				)
+			),
+		)
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `setQuery combines tag filter with free text`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "Dragon attack",
+					tags = setOf("fantasy"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 2,
+					created = Clock.System.now(),
+					content = "Dragon roars",
+					tags = setOf("misc"),
+				)
+			),
+			NoteContainer(
+				NoteContent(
+					id = 3,
+					created = Clock.System.now(),
+					content = "Sleepy village",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy dragon")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `setQuery with tag returns matching scenes by metadata`() = runTest {
+		val taggedScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Battle",
+			order = 0,
+		)
+		val untaggedScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 8,
+			name = "Picnic",
+			order = 1,
+		)
+		every { sceneEditor.getScenes() } returns listOf(taggedScene, untaggedScene)
+		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
+		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("misc"))
+
+		val repo = createRepository()
+		repo.setQuery("#plot")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
+		assertTrue(results.first().title.contains("#plot"))
+	}
+
+	@Test
+	fun `setQuery combines tag filter with free text for scenes`() = runTest {
+		val matchingScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Dragon attack",
+			order = 0,
+		)
+		val tagOnlyScene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 8,
+			name = "Picnic",
+			order = 1,
+		)
+		every { sceneEditor.getScenes() } returns listOf(matchingScene, tagOnlyScene)
+		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("fantasy"))
+		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
+
+		val repo = createRepository()
+		repo.setQuery("#fantasy dragon")
+		advanceUntilIdle()
+
+		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
+	}
+
+	@Test
+	fun `setQuery exposes parsed tags on state`() = runTest {
+		val repo = createRepository()
+		repo.setQuery("#a #b text")
+		advanceUntilIdle()
+
+		assertEquals(listOf("a", "b"), repo.state.value.parsedTags)
+		assertEquals("text", repo.state.value.parsedText)
 	}
 
 	@Test

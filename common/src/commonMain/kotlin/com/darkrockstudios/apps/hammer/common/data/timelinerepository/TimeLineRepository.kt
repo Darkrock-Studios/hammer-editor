@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
@@ -43,6 +44,12 @@ class TimeLineRepository(
 	)
 	val timelineFlow: SharedFlow<TimeLineContainer> = _timelineFlow
 
+	private val _eventContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val eventContentChangedFlow: SharedFlow<Unit> = _eventContentChangedFlow
+
 	fun initialize(): TimeLineRepository {
 		projectScope.scope.registerCallback(this)
 
@@ -60,7 +67,8 @@ class TimeLineRepository(
 		content: String,
 		date: String?,
 		id: Int? = null,
-		order: Int? = null
+		order: Int? = null,
+		tags: Set<String> = emptySet(),
 	): TimeLineEvent {
 		val eventId = id ?: idRepository.claimNextId()
 		val timeline = timelineFlow.first()
@@ -69,7 +77,8 @@ class TimeLineRepository(
 			id = eventId,
 			order = order ?: timeline.events.size,
 			content = content,
-			date = date
+			date = date,
+			tags = cleanTags(tags),
 		)
 
 		val newTimeline = timeline.copy(
@@ -89,20 +98,22 @@ class TimeLineRepository(
 	private suspend fun storeAndEmitTimeline(timeLine: TimeLineContainer) {
 		datasource.storeTimeline(timeLine, projectDef)
 		_timelineFlow.emit(timeLine)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean {
+		val cleaned = event.copy(tags = cleanTags(event.tags))
 		val timeline = timelineFlow.first()
 
 		val events = timeline.events.toMutableList()
-		val originalIndex = events.indexOfFirst { it.id == event.id }
+		val originalIndex = events.indexOfFirst { it.id == cleaned.id }
 
 		var oldEvent: TimeLineEvent? = null
 		if (originalIndex != -1) {
 			oldEvent = events[originalIndex]
-			events[originalIndex] = event
+			events[originalIndex] = cleaned
 		} else {
-			events.add(event)
+			events.add(cleaned)
 		}
 
 		val updatedTimeline = correctEventOrder(
@@ -114,7 +125,7 @@ class TimeLineRepository(
 		storeAndEmitTimeline(updatedTimeline)
 
 		if (markForSync) {
-			markForSynchronization(oldEvent ?: event, originalIndex)
+			markForSynchronization(oldEvent ?: cleaned, originalIndex)
 		}
 
 		return true
@@ -149,6 +160,7 @@ class TimeLineRepository(
 		)
 
 		_timelineFlow.emit(updatedTimeline)
+		_eventContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun storeTimeline() {
@@ -245,9 +257,18 @@ class TimeLineRepository(
 				id = originalEvent.id,
 				order = originalOrder,
 				content = originalEvent.content,
-				date = originalEvent.date
+				date = originalEvent.date,
+				tags = originalEvent.tags,
 			)
 			syncDataRepository.markEntityAsDirty(originalEvent.id, hash)
+		}
+	}
+
+	fun validateTags(tags: Set<String>): TimeLineEventError {
+		return if (tags.any { it.length > MAX_TAG_SIZE }) {
+			TimeLineEventError.TAG_TOO_LONG
+		} else {
+			TimeLineEventError.NONE
 		}
 	}
 
@@ -279,5 +300,9 @@ class TimeLineRepository(
 				}.await()
 			}
 		}
+	}
+
+	companion object {
+		const val MAX_TAG_SIZE = 32
 	}
 }

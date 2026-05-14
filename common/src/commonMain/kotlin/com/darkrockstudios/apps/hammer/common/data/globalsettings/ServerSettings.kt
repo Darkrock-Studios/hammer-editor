@@ -12,8 +12,6 @@ data class ServerSettings(
 	val email: String,
 	val userId: Long,
 	@TomlLiteralString
-	val installId: String,
-	@TomlLiteralString
 	val bearerToken: String?,
 	@TomlLiteralString
 	val refreshToken: String?,

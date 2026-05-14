@@ -28,6 +28,16 @@ private fun SceneMetadataPanelUiPreview() {
 			override fun updateNotes(text: String) {}
 			override fun updateDraftName(text: String) {}
 			override fun validateDraftName(text: String) = true
+			override fun dismissReference(entryId: Int) {}
+			override fun restoreDismissedReference(entryId: Int) {}
+			override fun addConfirmedReference(entryId: Int) {}
+			override fun searchEntriesForAdd(query: String, maxResults: Int) =
+				emptyList<SceneMetadataPanel.AddSuggestion>()
+			override fun navigateToEntry(entryDef: com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef) {}
+			override fun addTags(input: String) {}
+			override fun removeTag(tag: String) {}
+			override fun showGlobalSearchForTag(tag: String) {}
+			override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 		},
 		closeMetadata = {}
 	)

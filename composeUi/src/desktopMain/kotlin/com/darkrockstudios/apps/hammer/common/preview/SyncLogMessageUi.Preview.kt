@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
@@ -10,7 +11,7 @@ import kotlin.time.Clock
 
 @Preview
 @Composable
-fun SyncLogMessageUiPreview() {
+private fun SyncLogMessageUiPreview() = Padded {
 	val testMessage = SyncLogMessage(
 		message = "Preview message",
 		level = SyncLogLevel.INFO,
@@ -19,28 +20,14 @@ fun SyncLogMessageUiPreview() {
 	)
 
 	Column {
+		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.DEBUG))
 		SyncLogMessageUi(testMessage)
 		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.WARN))
-		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.DEBUG))
 		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.ERROR))
 
-		/////////////////////////////
-
-		SyncLogMessageUi(
-			testMessage,
-			showProjectName = false
-		)
-		SyncLogMessageUi(
-			testMessage.copy(level = SyncLogLevel.WARN),
-			showProjectName = false
-		)
-		SyncLogMessageUi(
-			testMessage.copy(level = SyncLogLevel.DEBUG),
-			showProjectName = false
-		)
-		SyncLogMessageUi(
-			testMessage.copy(level = SyncLogLevel.ERROR),
-			showProjectName = false
-		)
+		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.DEBUG), showProjectName = false)
+		SyncLogMessageUi(testMessage, showProjectName = false)
+		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.WARN), showProjectName = false)
+		SyncLogMessageUi(testMessage.copy(level = SyncLogLevel.ERROR), showProjectName = false)
 	}
 }

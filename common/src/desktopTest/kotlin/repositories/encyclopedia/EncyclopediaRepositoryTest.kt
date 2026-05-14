@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepo
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import app.cash.turbine.test
 import createProject
 import getProjectDef
 import io.mockk.*
@@ -47,6 +48,9 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var statisticsRepository: StatisticsRepository
 
+	private lateinit var referenceIndexDatasource: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
+	private lateinit var referenceIndexRepository: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+
 	lateinit var datasource: EncyclopediaDatasource
 
 	private lateinit var fileSystem: FakeFileSystem
@@ -73,12 +77,17 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			fileSystem = fileSystem,
 			externalFileIo = externalFileIo,
 		)
+		referenceIndexDatasource = com.darkrockstudios.apps.hammer.common.data.references
+			.ReferenceIndexDatasource(fileSystem, toml, projDef)
+		referenceIndexRepository = com.darkrockstudios.apps.hammer.common.data.references
+			.ReferenceIndexRepository(projDef, referenceIndexDatasource)
 		return EncyclopediaRepository(
 			projectDef = projDef,
 			idRepository = idRepository,
 			datasource = datasource,
 			syncDataRepository = syncDataRepository,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = referenceIndexRepository,
 		)
 	}
 
@@ -199,6 +208,76 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Create Entry round-trips aliases`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 4
+
+		val repo = createRepository()
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = setOf("tag1"),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf("Bob", "Bobby"),
+		)
+
+		assertEquals(EntryError.NONE, result.error)
+		val container = result.instance ?: error("Expected entry container")
+		assertEquals(listOf("Bob", "Bobby"), container.entry.aliases)
+
+		val path = datasource.getEntryPath(container.entry).toOkioPath()
+		val loaded: EntryContainer = fileSystem.readToml(path, toml)
+		assertEquals(listOf("Bob", "Bobby"), loaded.entry.aliases)
+	}
+
+	@Test
+	fun `Create Entry cleans aliases - trims, dedupes, drops blanks and entry name`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 5
+
+		val repo = createRepository()
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = emptySet(),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf("  Bob  ", "Bob", "", "  ", "Robert"),
+		)
+
+		assertEquals(EntryError.NONE, result.error)
+		val container = result.instance ?: error("Expected entry container")
+		assertEquals(listOf("Bob"), container.entry.aliases)
+	}
+
+	@Test
+	fun `Create Entry rejects alias exceeding max length`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 6
+
+		val repo = createRepository()
+		val tooLong = "x".repeat(MAX_NAME_SIZE + 1)
+		val result = repo.createEntry(
+			name = "Robert",
+			type = EntryType.PERSON,
+			text = "A person",
+			tags = emptySet(),
+			imagePath = null,
+			forceId = null,
+			aliases = listOf(tooLong),
+		)
+
+		assertEquals(EntryError.ALIAS_TOO_LONG, result.error)
+	}
+
+	@Test
+	fun `Existing entry without aliases field loads with empty list`() = runTest {
+		val repo = createRepository()
+		val container = repo.loadEntry(entry1().toDef(projDef))
+		assertEquals(emptyList<String>(), container.entry.aliases)
+	}
+
+	@Test
 	fun `Delete Entry`() = runTest {
 		val deletionIdSlot = slot<Int>()
 		coEvery { syncDataRepository.recordIdDeletion(capture(deletionIdSlot)) } just Runs
@@ -211,6 +290,29 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
 		coVerify { syncDataRepository.recordIdDeletion(any()) }
+	}
+
+	@Test
+	fun `Delete Entry purges that entry id from the reference index`() = runTest {
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+
+		val repo = createRepository()
+		referenceIndexDatasource.saveIndex(
+			com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex(
+				isDirty = false,
+				entryToScenes = mapOf(
+					entry1().id to setOf(100, 200),
+					99 to setOf(100),
+				),
+			)
+		)
+		referenceIndexRepository.loadIndex()
+
+		repo.deleteEntry(entry1().toDef(projDef))
+
+		val saved = referenceIndexDatasource.loadIndex()
+		assertEquals(null, saved?.entryToScenes?.get(entry1().id))
+		assertEquals(setOf(100), saved?.entryToScenes?.get(99))
 	}
 
 	@Test
@@ -268,6 +370,37 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val repo = createRepository()
 		val entryDef = repo.findEntryDef(7)
 		assertNull(entryDef)
+	}
+
+	@Test
+	fun `entryContentChangedFlow emits on create update and delete`() = runTest {
+		coEvery { idRepository.claimNextId() } returns 50
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+
+		val repo = createRepository()
+
+		repo.entryContentChangedFlow.test {
+			repo.createEntry(
+				name = "NewEntry",
+				type = EntryType.PERSON,
+				text = "",
+				tags = emptySet(),
+				imagePath = null,
+				forceId = null,
+			)
+			awaitItem()
+
+			repo.updateEntry(
+				oldEntryDef = entry1().toDef(projDef),
+				name = entry1().name,
+				text = "updated text",
+				tags = entry1().tags,
+			)
+			awaitItem()
+
+			repo.deleteEntry(entry1().toDef(projDef))
+			awaitItem()
+		}
 	}
 
 	private fun assertInvalid(

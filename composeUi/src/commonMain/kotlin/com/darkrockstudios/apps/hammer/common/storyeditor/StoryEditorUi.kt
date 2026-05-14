@@ -58,7 +58,7 @@ fun StoryEditorUi(
 
 		val listModifier = if (isMultiPane) {
 			Modifier.requiredWidthIn(0.dp, dividerX).fillMaxHeight()
-				.rightBorder(1.dp, MaterialTheme.colorScheme.outline)
+				.rightBorder(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant)
 		} else {
 			Modifier.fillMaxSize()
 		}
@@ -68,6 +68,7 @@ fun StoryEditorUi(
 			routerState = component.listRouterState,
 			snackbarHostState = snackbarHostState,
 			modifier = listModifier,
+			isMultiPane = isMultiPane,
 		)
 
 		val detailsModifier = if (isMultiPane) {
@@ -128,7 +129,8 @@ private fun SetMultiPane(component: StoryEditor) {
 private fun ListPane(
 	routerState: Value<ChildStack<*, StoryEditor.ChildDestination.List>>,
 	snackbarHostState: RootSnackbarHostState,
-	modifier: Modifier
+	modifier: Modifier,
+	isMultiPane: Boolean,
 ) {
 	val state by routerState.subscribeAsState()
 
@@ -143,6 +145,7 @@ private fun ListPane(
 					component = child.component,
 					snackbarHostState = snackbarHostState,
 					modifier = Modifier.fillMaxSize(),
+					inSplitPane = isMultiPane,
 				)
 
 			is StoryEditor.ChildDestination.List.None -> Box {}

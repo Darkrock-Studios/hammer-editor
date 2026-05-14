@@ -3,10 +3,9 @@ package com.darkrockstudios.apps.hammer.desktop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,16 +14,12 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.Res
@@ -32,14 +27,16 @@ import com.darkrockstudios.apps.hammer.account_window_title
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionFab
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
-import com.darkrockstudios.apps.hammer.common.projectselection.getLocationIcon
+import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -51,7 +48,10 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	val backDispatcher = BackDispatcher()
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
-	val windowState = rememberWindowState()
+	val windowState = rememberPersistedWindowState(
+		WindowGeometryStore.Window.ProjectSelect,
+		defaultSize = coerceWindowSize(900.dp, 800.dp),
+	)
 	val component = remember {
 		ProjectSelectionComponent(
 			componentContext = compContext,
@@ -60,45 +60,41 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	}
 	LifecycleController(lifecycle, windowState)
 
-	Window(
-		title = Res.string.account_window_title.get(),
+	val title = Res.string.account_window_title.get()
+	DecoratedWindow(
+		title = title,
 		state = windowState,
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
 		onKeyEvent = { event ->
 			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
 				backDispatcher.back()
+				true
 			} else {
 				false
 			}
 		}
 	) {
+		TitleBar {
+			Text(
+				text = title,
+				color = LocalTitleBarStyle.current.colors.content,
+				modifier = Modifier.align(Alignment.CenterHorizontally),
+			)
+		}
 		Content(component)
 	}
 }
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@ExperimentalMaterialApi
+@ExperimentalComposeApi
 @Composable
 fun Content(component: ProjectSelection) {
-	val windowSizeClass = calculateWindowSizeClass()
-
-	when (windowSizeClass.widthSizeClass) {
-		WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> {
-			MediumNavigation(component)
-		}
-
-		WindowWidthSizeClass.Expanded -> {
-			ExpandedNavigation(component)
-		}
-	}
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
-@Composable
-private fun MediumNavigation(
-	component: ProjectSelection
-) {
 	val stackState by component.stack.subscribeAsState()
+	val navRailState by component.navRailState.subscribeAsState()
+
+	val destinations = ProjectSelection.Locations.entries.map { it.toHdNavRailDestination() }
+
 	Scaffold(
 		modifier = Modifier
 			.fillMaxSize()
@@ -110,27 +106,20 @@ private fun MediumNavigation(
 					.fillMaxSize()
 					.background(MaterialTheme.colorScheme.background)
 			) {
-				NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-					ProjectSelection.Locations.entries.forEach { item ->
-						NavigationRailItem(
-							icon = { Icon(imageVector = getLocationIcon(item), contentDescription = item.text.get()) },
-							label = { Text(item.text.get()) },
-							selected = item == stackState.active.configuration.location,
-							onClick = { component.showLocation(item) }
+				HdNavRail(
+					destinations = destinations,
+					selectedId = stackState.active.configuration.location,
+					onSelect = { component.showLocation(it) },
+					expanded = navRailState.expanded,
+					onToggleExpanded = { component.toggleNavRailExpanded() },
+					footer = {
+						val versionText = remember { getAppVersionString() }
+						HdMonoLabel(
+							text = versionText,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
-					}
-
-					Spacer(modifier = Modifier.weight(1f))
-
-					val versionText = remember { getAppVersionString() }
-
-					Text(
-						versionText,
-						style = MaterialTheme.typography.labelSmall,
-						fontWeight = FontWeight.Thin,
-						modifier = Modifier.align(Alignment.Start).padding(Ui.Padding.L)
-					)
-				}
+					},
+				)
 
 				ProjectSelectionUi(
 					component,
@@ -138,77 +127,5 @@ private fun MediumNavigation(
 				)
 			}
 		},
-		floatingActionButton = {
-			ProjectSelectionFab(component)
-		}
-	)
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
-@Composable
-private fun ExpandedNavigation(
-	component: ProjectSelection
-) {
-	val stackState by component.stack.subscribeAsState()
-	Scaffold(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background),
-		content = { innerPadding ->
-			val drawerState = rememberDrawerState(DrawerValue.Closed)
-			val scope = rememberCoroutineScope()
-			PermanentNavigationDrawer(
-				modifier = Modifier.padding(innerPadding),
-				drawerContent = {
-					PermanentDrawerSheet(modifier = Modifier.width(Ui.NavDrawer.widthExpanded)) {
-						NavigationDrawerContents(component, scope, stackState, drawerState)
-					}
-				},
-				content = {
-					ProjectSelectionUi(
-						component,
-						Modifier.padding(start = Ui.Padding.XL, top = Ui.Padding.XL)
-					)
-				}
-			)
-		},
-		floatingActionButton = {
-			ProjectSelectionFab(component)
-		}
-	)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ColumnScope.NavigationDrawerContents(
-	component: ProjectSelection,
-	scope: CoroutineScope,
-	stackState: ChildStack<ProjectSelection.Config, ProjectSelection.Destination>,
-	drawerState: DrawerState,
-) {
-	Spacer(Modifier.height(12.dp))
-	ProjectSelection.Locations.entries.forEach { item ->
-		NavigationDrawerItem(
-			icon = { Icon(getLocationIcon(item), contentDescription = item.text.get()) },
-			label = { Text(item.name) },
-			selected = item == stackState.active.configuration.location,
-			onClick = {
-				scope.launch { drawerState.close() }
-				component.showLocation(item)
-			},
-			modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-		)
-	}
-
-	Spacer(modifier = Modifier.weight(1f))
-
-	val versionText = remember { getAppVersionString() }
-
-	Text(
-		versionText,
-		modifier = Modifier
-			.padding(Ui.Padding.L)
-			.align(Alignment.Start),
-		style = MaterialTheme.typography.labelSmall,
 	)
 }

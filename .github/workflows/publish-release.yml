@@ -6,6 +6,8 @@ on:
 jobs:
   publish-google-play:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       BUILD_NUMBER: ${{ github.run_number }}
       RELEASE_BUILD: true
@@ -21,7 +23,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
         with:
           ruby-version: '3.4.8'
           bundler-cache: true
@@ -56,9 +58,22 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      - name: Publish F-Droid
+      - name: Create F-Droid tag
         run: |
-          ./gradlew publishFdroid
+          VERSION=${{ github.event.release.tag_name }}
+          VERSION=${VERSION#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
+          FDROID_TAG="fdroid-${VERSION_CODE}"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin release
+          git checkout release
+          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
+          git push origin tag "$FDROID_TAG"
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
@@ -79,7 +94,7 @@ jobs:
           gh release download ${{ github.event.release.tag_name }} -p 'hammer.snap' -R ${{ github.repository }}
 
       - name: Upload to Snap Store
-        uses: snapcore/action-publish@v1
+        uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_TOKEN }}
         with:
@@ -102,6 +117,14 @@ jobs:
 
       - name: Build MSIX package
         run: ./gradlew :desktop:packageMsix
+
+      - name: Upload Gradle problems report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-problems-report
+          path: build/reports/problems/problems-report.html
+          if-no-files-found: ignore
 
       - name: Submit to Microsoft Store
         shell: pwsh
@@ -163,6 +186,6 @@ jobs:
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        uses: Ilshidur/action-discord@master
+        uses: Ilshidur/action-discord@d2594079a10f1d6739ee50a2471f0ca57418b554 # 0.4.0
         with:
           args: "**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"

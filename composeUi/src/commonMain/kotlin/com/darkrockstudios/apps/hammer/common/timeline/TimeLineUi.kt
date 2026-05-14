@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -22,6 +20,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
 
@@ -96,12 +95,12 @@ fun TimelineFab(
 	val stack by component.stack.subscribeAsState()
 	when (stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
-			FloatingActionButton(
+			HdFab(
 				onClick = component::showCreateEvent,
-				modifier = modifier.testTag(TIME_LINE_CREATE_TAG)
-			) {
-				Icon(Icons.Default.Create, Res.string.timeline_create_event_button.get())
-			}
+				icon = Icons.Default.Create,
+				contentDescription = Res.string.timeline_create_event_button.get(),
+				modifier = modifier.testTag(TIME_LINE_CREATE_TAG),
+			)
 		}
 
 		is TimeLine.Destination.CreateEventDestination -> {

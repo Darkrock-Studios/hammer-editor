@@ -6,10 +6,13 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.PredictiveBackHandler
@@ -110,6 +113,86 @@ internal fun AnimatedDialogContainer(
 				scaleOut(targetScale = ENTER_INITIAL_SCALE, animationSpec = tween(ENTER_EXIT_MS)),
 		) {
 			scope.content()
+		}
+	}
+}
+
+/**
+ * Bare animated modal dialog with fade+scale enter/exit and predictive-back support.
+ * Unlike [SimpleDialog] this provides no built-in chrome — the caller supplies their own
+ * container (Card, Surface, etc.). Useful when the dialog content already has its own
+ * header / close affordance and you don't want SimpleDialog's title bar fighting with it.
+ *
+ * For a card-with-title-bar dialog, use [SimpleDialog]. For a full-screen one, use
+ * [AnimatedFullScreenDialog].
+ *
+ * @param visible drives the enter/exit transition. Flip to `false` to start the exit
+ *   animation. The dialog stays mounted while the exit plays.
+ * @param onCloseRequest fires when the user requests dismissal (in-content close,
+ *   ESC, scrim tap if [dismissOnTapOutside], or a committed predictive-back gesture).
+ *   Typical handler: flip your `visible` state to false.
+ * @param dismissOnTapOutside if true, taps on the surrounding scrim trigger an animated
+ *   dismiss. If false (the default), the user must use an in-content affordance, ESC, or
+ *   the back gesture.
+ * @param onDismissed fires after the exit animation completes — use this if you need to
+ *   clean up after the dialog has fully unmounted.
+ * @param content rendered inside the dialog. Call `requestDismiss()` on the receiver
+ *   scope to trigger the animated dismiss flow from inside (e.g. a close button).
+ */
+@Composable
+fun AnimatedDialog(
+	visible: Boolean,
+	onCloseRequest: () -> Unit,
+	modifier: Modifier = Modifier,
+	contentAlignment: Alignment = Alignment.Center,
+	dismissOnTapOutside: Boolean = false,
+	onDismissed: () -> Unit = {},
+	content: @Composable AnimatedDialogScope.() -> Unit,
+) {
+	var renderInternal by remember { mutableStateOf(visible) }
+	LaunchedEffect(visible) { if (visible) renderInternal = true }
+
+	if (!renderInternal) return
+
+	AnimatedDialogContainer(
+		isOpen = visible,
+		onDismissRequest = onCloseRequest,
+		onClosed = {
+			renderInternal = false
+			onDismissed()
+		},
+	) {
+		if (dismissOnTapOutside) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.clickable(
+						interactionSource = remember { MutableInteractionSource() },
+						indication = null,
+						onClick = { requestDismiss() },
+					),
+				contentAlignment = contentAlignment,
+			) {
+				Box(
+					modifier = modifier
+						.predictiveBackTransform()
+						.clickable(
+							interactionSource = remember { MutableInteractionSource() },
+							indication = null,
+							onClick = {},
+						),
+					contentAlignment = contentAlignment,
+				) {
+					content()
+				}
+			}
+		} else {
+			Box(
+				modifier = modifier.predictiveBackTransform(),
+				contentAlignment = contentAlignment,
+			) {
+				content()
+			}
 		}
 	}
 }

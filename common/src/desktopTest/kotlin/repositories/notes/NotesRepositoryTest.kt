@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository.Companion.MAX_NOTE_SIZE
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -172,6 +173,64 @@ class NotesRepositoryTest : BaseTest() {
 		}
 	}
 
+	@Test
+	fun `Create note with tags persists cleaned tags`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { idRepository.claimNextId() } returns 15
+
+		val repo = createRepository()
+		val result = repo.createNote(
+			noteText = "Note with tags",
+			tags = setOf("  alpha  ", "#beta", "alpha", "with space", "")
+		)
+
+		assertTrue(isSuccess(result))
+		assertEquals(setOf("alpha", "beta"), result.data.tags)
+
+		val path = datasource.getNotePath(result.data.id).toOkioPath()
+		val loaded: NoteContainer = ffs.readToml(path, toml)
+		assertEquals(setOf("alpha", "beta"), loaded.note.tags)
+	}
+
+	@Test
+	fun `Create note rejects tag exceeding MAX_TAG_SIZE`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { idRepository.claimNextId() } returns 15
+
+		val repo = createRepository()
+		val result = repo.createNote(
+			noteText = "Note",
+			tags = setOf("x".repeat(MAX_TAG_SIZE + 1))
+		)
+
+		assertTrue(isFailure(result))
+		assertEquals(NoteError.TAG_TOO_LONG, (result.exception as InvalidNote).error)
+	}
+
+	@Test
+	fun `Update note round-trips tags through TOML`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		val noteId = 12
+
+		val updated = NoteContent(
+			id = noteId,
+			created = Instant.fromEpochSeconds(123456),
+			content = "Updated",
+			tags = setOf("foo", "bar"),
+		)
+
+		val repo = createRepository()
+		repo.updateNote(updated, false)
+
+		val loaded: NoteContainer = ffs.readToml(datasource.getNotePath(noteId).toOkioPath(), toml)
+		assertEquals(setOf("foo", "bar"), loaded.note.tags)
+	}
+
 	@ParameterizedTest
 	@MethodSource("provideCreateFailureTestData")
 	fun `Create note failure for invalid name`(noteText: String, error: NoteError) = runTest {
@@ -219,6 +278,31 @@ class NotesRepositoryTest : BaseTest() {
 
 		assertFalse(ffs.exists(oldPath))
 		assertTrue(ffs.exists(newPath))
+	}
+
+	@Test
+	fun `noteContentChangedFlow emits on create update and delete`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { idRepository.claimNextId() } returns 20
+
+		val repo = createRepository()
+		advanceUntilIdle()
+
+		repo.noteContentChangedFlow.test {
+			repo.createNote("a note")
+			awaitItem()
+
+			repo.updateNote(
+				NoteContent(id = 12, created = Instant.fromEpochSeconds(1), content = "x"),
+				markForSync = false,
+			)
+			awaitItem()
+
+			repo.deleteNote(13)
+			awaitItem()
+		}
 	}
 
 	companion object {

@@ -40,6 +40,17 @@ object Ui {
 		val MAX_WIDTH = 700.dp
 	}
 
+	/**
+	 * Shared width caps for centered "card-like" surfaces that float on
+	 * the surface without filling it: the create-entry modal, the
+	 * catalogue-card view, future confirms. Keeps them visually
+	 * coordinated across the app.
+	 */
+	object MaxWidth {
+		val Modal = 640.dp
+		val CatalogueCard = 920.dp
+	}
+
 	val MIN_TOUCH_SIZE = 48.dp
 	val TOP_BAR_HEIGHT = 56.dp
 

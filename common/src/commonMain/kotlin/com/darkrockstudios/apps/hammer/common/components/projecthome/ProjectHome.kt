@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
+import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
@@ -11,8 +12,12 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToaster {
@@ -42,6 +47,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun showProjectStats()
 	fun showProjectSettings()
 
+	fun supportsCloseProject(): Boolean
+	fun closeProject()
+
 	fun onBack()
 
 	@Serializable
@@ -59,6 +67,14 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val sceneWordsStdDev: Int = 0,
 		val numberOfNotes: Int = 0,
 		val numberOfTimelineEvents: Int = 0,
+		val dailyWordTotals: Map<LocalDate, Int> = emptyMap(),
+		val wordsPerDevice: Map<String, Int> = emptyMap(),
+		val topAppearances: List<EntryAppearance> = emptyList(),
+		val totalEntryConnections: Int = 0,
+		val tagBreakdowns: List<TagBreakdown> = emptyList(),
+		val tagUsesByType: Map<TaggedEntityType, Int> = emptyMap(),
+		val wordCountGoal: WordCountGoal? = null,
+		val writingActivity: WritingActivityDerived = WritingActivityDerived.Empty,
 		val showExportDialog: Boolean = false,
 		val showExportFilePicker: Boolean = false,
 		val exportOptions: ExportOptions = ExportOptions(),

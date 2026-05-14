@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -20,14 +18,24 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
+import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
+import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -38,6 +46,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
+import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
@@ -49,6 +59,8 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
+import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -80,12 +92,17 @@ val mainModule = module {
 
 	single { Clock.System } bind Clock::class
 
+	single<NameMatcher> { WholeWordCaseSensitiveMatcher() }
+	single { ReferenceIndexConfig.default() }
+
 	includes(platformModule)
 
 	single { createHttpClient(get()) } bind HttpClient::class
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)
 	singleOf(::ServerProjectsApi)
+	singleOf(::WritingActivityApi)
+	singleOf(::ProjectDataApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -108,6 +125,8 @@ val mainModule = module {
 	singleOf(::ProjectBackupRepository)
 
 	singleOf(::ProjectMetadataDatasource)
+
+	singleOf(::ProjectStatisticsCacheReader)
 
 	singleOf(::Settings) bind Settings::class
 
@@ -149,6 +168,26 @@ val mainModule = module {
 		scopedOf(::StatisticsRepository)
 		scopedOf(::StatisticsService)
 
+		scopedOf(::WritingActivityDatasource)
+		scopedOf(::WritingActivityRepository)
+		scopedOf(::WritingSessionTracker)
+
+		scopedOf(::ProjectDataDatasource)
+		scopedOf(::ProjectDataRepository)
+		scopedOf(::ProjectDataConflictBroker)
+
+		scopedOf(::ReferenceIndexDatasource)
+		scopedOf(::ReferenceIndexRepository)
+		scopedOf(::ReferenceIndexService)
+
+		scopedOf(::BuildTagIndexUseCase)
+		scopedOf(::TagIndexService)
+		scopedOf(::ScrubInvalidReferencesUseCase)
+		scopedOf(::AutoConfirmReferencesUseCase)
+		scopedOf(::BackfillEntryReferencesUseCase)
+		scopedOf(::CleanupReferencesOnEntryDeleteUseCase)
+		scopedOf(::SceneMetadataReferenceRemapper) bind ReferenceRemapper::class
+
 		scopedOf(::SyncDataDatasource)
 
 		scopedOf(::ClientSceneSynchronizer)
@@ -166,6 +205,8 @@ val mainModule = module {
 		factoryOf(::IdConflictResolutionOperation)
 		factoryOf(::EntityDeleteOperation)
 		factoryOf(::EntityTransferOperation)
+		factoryOf(::WritingActivitySyncOperation)
+		factoryOf(::ProjectDataSyncOperation)
 		factoryOf(::FinalizeSyncOperation)
 
 		scopedOf(::SyncDataRepository)

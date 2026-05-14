@@ -1,18 +1,18 @@
 package repositories.timeline
 
 import PROJECT_EMPTY_NAME
+import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.*
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -246,5 +246,113 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val loadedContainer: TimeLineContainer = ffs.readToml(filePath, toml)
 		assertEquals(updatedEvent, loadedContainer.events.find { it.id == updatedEvent.id })
+	}
+
+	@Test
+	fun `Create event with tags persists cleaned tags`() = runTest {
+		every { syncDataRepository.isServerSynchronized() } returns false
+
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		setupTimelne(projDef, emptyList())
+
+		val idRepo = mockk<IdRepository>()
+		coEvery { idRepo.claimNextId() } returns 42
+
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idRepository = idRepo,
+			datasource = datasource,
+		).initialize()
+
+		val created = repo.createEvent(
+			content = "An event",
+			date = "Year 1",
+			tags = setOf("  alpha  ", "#beta", "alpha", "with space", ""),
+		)
+
+		assertEquals(setOf("alpha", "beta"), created.tags)
+
+		advanceUntilIdle()
+
+		val filePath = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		val loaded: TimeLineContainer = ffs.readToml(filePath, toml)
+		assertEquals(setOf("alpha", "beta"), loaded.events.find { it.id == 42 }?.tags)
+	}
+
+	@Test
+	fun `Update event with tags persists cleaned tags`() = runTest {
+		every { syncDataRepository.isServerSynchronized() } returns false
+
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val oldEvents = fakeEvents()
+		setupTimelne(projDef, oldEvents)
+
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idRepository = mockk(),
+			datasource = datasource,
+		).initialize()
+
+		val updatedEvent = oldEvents[2].copy(
+			tags = setOf("  alpha  ", "#beta", "with space"),
+		)
+		assertTrue("Event was not updated") { repo.updateEvent(event = updatedEvent) }
+
+		advanceUntilIdle()
+
+		val filePath = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		val loaded: TimeLineContainer = ffs.readToml(filePath, toml)
+		assertEquals(setOf("alpha", "beta"), loaded.events.find { it.id == updatedEvent.id }?.tags)
+	}
+
+	@Test
+	fun `Validate tags rejects tag exceeding MAX_TAG_SIZE`() {
+		val repo = TimeLineRepository(
+			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+			idRepository = mockk(),
+			datasource = datasource,
+		)
+
+		assertEquals(
+			TimeLineEventError.TAG_TOO_LONG,
+			repo.validateTags(setOf("x".repeat(MAX_TAG_SIZE + 1))),
+		)
+		assertEquals(
+			TimeLineEventError.NONE,
+			repo.validateTags(setOf("x".repeat(MAX_TAG_SIZE))),
+		)
+	}
+
+	@Test
+	fun `eventContentChangedFlow emits on create update and delete`() = runTest {
+		every { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncDataRepository.recordIdDeletion(any()) } returns Unit
+
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		setupTimelne(projDef, fakeEvents())
+
+		val idRepo = mockk<IdRepository>()
+		coEvery { idRepo.claimNextId() } returns 99
+
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idRepository = idRepo,
+			datasource = datasource,
+		).initialize()
+		advanceUntilIdle()
+
+		repo.eventContentChangedFlow.test {
+			val created = repo.createEvent(content = "c", date = null)
+			awaitItem()
+
+			repo.updateEvent(event = created.copy(content = "c2"))
+			awaitItem()
+
+			repo.deleteEvent(event = created)
+			awaitItem()
+		}
 	}
 }

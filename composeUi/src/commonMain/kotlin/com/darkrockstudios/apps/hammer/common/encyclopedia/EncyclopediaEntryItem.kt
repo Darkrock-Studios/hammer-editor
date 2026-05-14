@@ -1,22 +1,56 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Toys
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -24,7 +58,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -40,6 +77,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private val HeroHeight = 200.dp
+
 internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 	return when (type) {
 		EntryType.PERSON -> Icons.Filled.Person
@@ -50,7 +89,11 @@ internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(
+	ExperimentalLayoutApi::class,
+	ExperimentalMaterial3Api::class,
+	ExperimentalSharedTransitionApi::class,
+)
 @Composable
 internal fun EncyclopediaEntryItem(
 	entryDef: EntryDef,
@@ -60,14 +103,15 @@ internal fun EncyclopediaEntryItem(
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	modifier: Modifier = Modifier,
-	filterByType: (type: EntryType) -> Unit
+	tagsScrollHorizontally: Boolean = false,
+	activeTag: String? = null,
+	filterByType: (type: EntryType) -> Unit,
 ) {
 	val ioDispatcher = rememberIoDispatcher()
 	val mainDispatcher = rememberMainDispatcher()
 	var loadContentJob = remember<Job?> { null }
 	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
 	var entryImagePath by remember { mutableStateOf<String?>(null) }
-
 	var hasImage by remember { mutableStateOf<Boolean?>(null) }
 
 	val paletteState = rememberPaletteState(loader = FilePathLoader)
@@ -89,226 +133,262 @@ internal fun EncyclopediaEntryItem(
 		}
 	}
 
-	LaunchedEffect(entryImagePath) {
-		val path = entryImagePath
-		if (path != null) {
-			// TODO: This is too perfy, I like the effect, but disable for now
-			//paletteState.generate(path)
-		}
-	}
+	val ruleColor = MaterialTheme.colorScheme.outlineVariant
+	val ruleSoft = ruleColor.copy(alpha = 0.5f)
 
 	with(sharedTransitionScope) {
-		Card(
+		Column(
 			modifier = modifier
 				.fillMaxWidth()
-				.padding(Ui.Padding.XL)
+				.background(MaterialTheme.colorScheme.surfaceContainerLow)
+				.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
 				.sharedElement(
-					sharedContentState = rememberSharedContentState(key = "encyclopedia-card-${entryDef.id}"),
-					animatedVisibilityScope = animatedVisibilityScope
+					sharedContentState = rememberSharedContentState(
+						key = "encyclopedia-card-${entryDef.id}",
+					),
+					animatedVisibilityScope = animatedVisibilityScope,
 				)
 				.clickable { viewEntry(entryDef) },
-			elevation = CardDefaults.elevatedCardElevation(Ui.Elevation.SMALL)
 		) {
-			Column(modifier = Modifier.fillMaxWidth()) {
-
-				//  (hasImage == null) means we're loading, false means no image
-				if (hasImage != false) {
-					val palette = paletteState.palette
-					val defaultStartColor = MaterialTheme.colorScheme.surfaceVariant
-					val defaultEndColor = MaterialTheme.colorScheme.surface
-
-					val targetStartColor = palette?.dominantSwatch?.color
-						?: palette?.vibrantSwatch?.color
-						?: defaultStartColor
-					val targetEndColor = palette?.mutedSwatch?.color
-						?: palette?.darkMutedSwatch?.color
-						?: defaultEndColor
-
-					// Animate color transitions for smooth fade-in
-					val gradientStartColor by animateColorAsState(
-						targetValue = targetStartColor,
-						animationSpec = tween(durationMillis = 400),
-						label = "gradientStartColor"
-					)
-					val gradientEndColor by animateColorAsState(
-						targetValue = targetEndColor,
-						animationSpec = tween(durationMillis = 400),
-						label = "gradientEndColor"
-					)
-
-					Box(
-						modifier = Modifier
-							.fillMaxWidth()
-							.height(256.dp)
-							.clip(MaterialTheme.shapes.medium)
-					) {
-						if (entryImagePath != null) {
+			// Hero zone — image (full-bleed with palette gradient) or
+			// HdTypographicHero (name-as-art) when no image is set.
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.height(HeroHeight),
+			) {
+				when (hasImage) {
+					true -> {
+						val palette = paletteState.palette
+						val defaultStart = MaterialTheme.colorScheme.surfaceVariant
+						val defaultEnd = MaterialTheme.colorScheme.surface
+						val targetStart = palette?.dominantSwatch?.color
+							?: palette?.vibrantSwatch?.color
+							?: defaultStart
+						val targetEnd = palette?.mutedSwatch?.color
+							?: palette?.darkMutedSwatch?.color
+							?: defaultEnd
+						val gradientStart by animateColorAsState(
+							targetValue = targetStart,
+							animationSpec = tween(durationMillis = 400),
+							label = "gradientStart",
+						)
+						val gradientEnd by animateColorAsState(
+							targetValue = targetEnd,
+							animationSpec = tween(durationMillis = 400),
+							label = "gradientEnd",
+						)
+						val imagePath = entryImagePath
+						if (imagePath != null) {
 							with(animatedVisibilityScope) {
-								// Background: gradient using dominant colors from the image
 								Box(
 									modifier = Modifier
-										.matchParentSize()
-										.animateEnterExit(
-											enter = fadeIn(),
-											exit = fadeOut()
-										)
+										.fillMaxSize()
+										.animateEnterExit(enter = fadeIn(), exit = fadeOut())
 										.background(
 											brush = Brush.verticalGradient(
-												colors = listOf(gradientStartColor, gradientEndColor)
-											)
-										)
-								)
-
-								GradientDivider(
-									modifier = Modifier
-										.height(20.dp)
-										.align(Alignment.BottomStart)
-										.animateEnterExit(
-											enter = fadeIn(),
-											exit = fadeOut()
-										)
+												colors = listOf(gradientStart, gradientEnd),
+											),
+										),
 								)
 							}
 
-							// Foreground: fitted image
 							val context = LocalPlatformContext.current
 							with(animatedVisibilityScope) {
 								AsyncImage(
-									model = remember(entryImagePath) {
+									model = remember(imagePath) {
 										ImageRequest.Builder(context)
-											.data(entryImagePath)
-											.memoryCacheKey(entryImagePath)
-											.placeholderMemoryCacheKey(entryImagePath)
+											.data(imagePath)
+											.memoryCacheKey(imagePath)
+											.placeholderMemoryCacheKey(imagePath)
 											.crossfade(300)
 											.build()
 									},
 									contentDescription = null,
 									modifier = Modifier
-										.align(Alignment.Center)
-										.animateEnterExit(
-											enter = fadeIn(),
-											exit = fadeOut()
+										.fillMaxSize()
+										.sharedElement(
+											sharedContentState = rememberSharedContentState(
+												key = "encyclopedia-image-${entryDef.id}",
+											),
+											animatedVisibilityScope = animatedVisibilityScope,
 										)
-										.clip(MaterialTheme.shapes.medium),
-									contentScale = ContentScale.Fit
+										.animateEnterExit(enter = fadeIn(), exit = fadeOut()),
+									contentScale = ContentScale.Fit,
 								)
 							}
 						} else {
-							// Loading placeholder - keeps consistent height
 							Box(
 								modifier = Modifier.fillMaxSize(),
-								contentAlignment = Alignment.Center
+								contentAlignment = Alignment.Center,
 							) {
 								CircularProgressIndicator()
 							}
 						}
-
-						AssistChip(
-							onClick = { filterByType(entryDef.type) },
-							label = { Text(entryDef.type.toStringResource().get()) },
-							leadingIcon = {
-								Icon(
-									getEntryTypeIcon(entryDef.type),
-									entryDef.type.toStringResource().get()
-								)
-							},
-							modifier = Modifier
-								.align(Alignment.BottomEnd)
-								.padding(end = Ui.Padding.L)
-								.sharedElement(
-									sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${entryDef.id}"),
-									animatedVisibilityScope = animatedVisibilityScope
-								),
-						)
 					}
-				} else {
-					// No image - just show the chip
-					AssistChip(
+
+					false -> HdTypographicHero(
+						name = entryDef.name,
+						type = entryDef.type,
+						modifier = Modifier.fillMaxSize(),
+						height = HeroHeight,
+					)
+
+					null -> Box(
+						modifier = Modifier.fillMaxSize(),
+						contentAlignment = Alignment.Center,
+					) {
+						CircularProgressIndicator()
+					}
+				}
+
+				// Postage-stamp filter affordance — top-left of the
+				// hero, overlaying both image and typographic variants.
+				Box(
+					modifier = Modifier
+						.align(Alignment.TopStart)
+						.padding(10.dp)
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "encyclopedia-chip-${entryDef.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+				) {
+					HdTypeStamp(
+						type = entryDef.type,
+						label = entryDef.type.toStringResource().get().uppercase(),
 						onClick = { filterByType(entryDef.type) },
-						label = { Text(entryDef.type.toStringResource().get()) },
-						leadingIcon = {
-							Icon(
-								getEntryTypeIcon(entryDef.type),
-								entryDef.type.toStringResource().get()
-							)
-						},
+					)
+				}
+			}
+
+			HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
+
+			// Body — title (only when image hero — the typographic hero
+			// already shows the name) and the description.
+			Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+				if (hasImage == true) {
+					Text(
+						text = entryDef.name,
+						style = MaterialTheme.typography.titleLarge,
+						fontWeight = FontWeight.Normal,
+						color = MaterialTheme.colorScheme.onSurface,
+						maxLines = 2,
+						overflow = TextOverflow.Ellipsis,
 						modifier = Modifier
-							.align(Alignment.End)
-							.padding(end = Ui.Padding.L)
+							.padding(top = 14.dp, bottom = 6.dp)
 							.sharedElement(
-								sharedContentState = rememberSharedContentState(key = "encyclopedia-chip-${entryDef.id}"),
-								animatedVisibilityScope = animatedVisibilityScope
-							)
+								sharedContentState = rememberSharedContentState(
+									key = "encyclopedia-title-${entryDef.id}",
+								),
+								animatedVisibilityScope = animatedVisibilityScope,
+							),
 					)
 				}
 
-				Column(
-					modifier = Modifier
-						.padding(
-							top = Ui.Padding.L,
-							start = Ui.Padding.L,
-							end = Ui.Padding.L
-						)
-						.heightIn(min = 120.dp)
-				) {
-					Text(
-						entryDef.name,
-						style = MaterialTheme.typography.headlineMedium,
-						maxLines = 2,
-						overflow = TextOverflow.Ellipsis,
-						modifier = Modifier.sharedElement(
-							sharedContentState = rememberSharedContentState(key = "encyclopedia-title-${entryDef.id}"),
-							animatedVisibilityScope = animatedVisibilityScope
-						)
-					)
-
-					if (loadContentJob != null) {
+				val content = entryContent
+				if (loadContentJob != null && content == null) {
+					Box(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(vertical = 14.dp),
+						contentAlignment = Alignment.Center,
+					) {
 						CircularProgressIndicator()
-					} else {
-						val content = entryContent
-						if (content != null) {
-							Text(
-								content.text,
-								style = MaterialTheme.typography.bodyMedium,
-								maxLines = 3,
-								overflow = TextOverflow.Ellipsis,
-								modifier = Modifier.sharedElement(
-									sharedContentState = rememberSharedContentState(key = "encyclopedia-text-${entryDef.id}"),
-									animatedVisibilityScope = animatedVisibilityScope
-								)
+					}
+				} else if (content != null) {
+					Text(
+						text = content.text,
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						maxLines = if (hasImage == true) 4 else 5,
+						overflow = TextOverflow.Ellipsis,
+						modifier = Modifier
+							.padding(
+								top = if (hasImage == true) 0.dp else 14.dp,
+								bottom = 12.dp,
 							)
+							.sharedElement(
+								sharedContentState = rememberSharedContentState(
+									key = "encyclopedia-text-${entryDef.id}",
+								),
+								animatedVisibilityScope = animatedVisibilityScope,
+							),
+					)
+				} else {
+					Text(
+						text = Res.string.encyclopedia_entry_load_error.get(),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.error,
+						modifier = Modifier.padding(vertical = 12.dp),
+					)
+				}
+			}
 
-							Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-							FlowRow(
-								maxLines = 1,
-								overflow = FlowRowOverflow.Clip,
-								horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-								verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-							) {
-								for (tag in content.tags) {
-									InputChip(
-										onClick = {
-											component.addTagToSearch(tag)
-										},
-										label = { Text(tag) },
-										leadingIcon = {
-											Icon(
-												Icons.Filled.Tag,
-												contentDescription = null,
-												tint = MaterialTheme.colorScheme.onSurface
-											)
-										},
-										enabled = true,
-										selected = false
-									)
-								}
-							}
-						} else {
-							Text(Res.string.encyclopedia_entry_load_error.get())
+			// Tags — wrap row on wide cards, horizontally scrolling row
+			// on mobile so the meta footer stays readable.
+			val tags = entryContent?.tags.orEmpty()
+			if (tags.isNotEmpty()) {
+				if (tagsScrollHorizontally) {
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.horizontalScroll(rememberScrollState())
+							.padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+					) {
+						tags.forEach { tag ->
+							HdTagChip(
+								label = tag,
+								active = tag == activeTag,
+								onClick = { component.addTagToSearch(tag) },
+							)
+						}
+					}
+				} else {
+					FlowRow(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalArrangement = Arrangement.spacedBy(6.dp),
+					) {
+						tags.forEach { tag ->
+							HdTagChip(
+								label = tag,
+								active = tag == activeTag,
+								onClick = { component.addTagToSearch(tag) },
+							)
 						}
 					}
 				}
+			} else {
+				Spacer(modifier = Modifier.size(4.dp))
+			}
+
+			HorizontalDivider(thickness = Dp.Hairline, color = ruleSoft)
+
+			// Footer — mono meta on the left, OPEN affordance on the
+			// right. The card itself is the click target; this label
+			// is just a typographic affordance, not a separate button.
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = 12.dp, vertical = 8.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.SpaceBetween,
+			) {
+				val wordCount = entryContent?.text?.let { wordCount(it) } ?: 0
+				val tagCount = tags.size
+				HdMonoLabel(
+					text = formatEntryMeta(wordCount = wordCount, tagCount = tagCount),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				HdMonoLabel(
+					text = "↗ OPEN",
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
 			}
 		}
 	}
@@ -324,8 +404,26 @@ fun GradientDivider(modifier: Modifier = Modifier) {
 					colors = listOf(
 						Color.Transparent,
 						Color(0xFF222222),
-					)
-				)
-			)
+					),
+				),
+			),
 	)
+}
+
+private fun wordCount(text: String): Int {
+	if (text.isBlank()) return 0
+	return text.trim().split(Regex("\\s+")).size
+}
+
+private fun formatEntryMeta(wordCount: Int, tagCount: Int): String {
+	return buildString {
+		append(wordCount)
+		append(" W")
+		if (tagCount > 0) {
+			append(" · ")
+			append(tagCount)
+			append(" TAG")
+			if (tagCount != 1) append("S")
+		}
+	}
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
@@ -83,6 +84,18 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 	}
 }
 
+// Manuscript shape system — every M3 component reads square corners by
+// default. Per-component rounding (e.g. chart bars) is opted in
+// explicitly. See designsystem/DESIGN_README.md.
+private val SquareCorners = RoundedCornerShape(0.dp)
+private val HammerShapes = Shapes(
+	extraSmall = SquareCorners,
+	small = SquareCorners,
+	medium = SquareCorners,
+	large = SquareCorners,
+	extraLarge = SquareCorners,
+)
+
 @Composable
 fun AppTheme(
 	settings: GlobalSettings,
@@ -94,20 +107,17 @@ fun AppTheme(
 		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
 	}
 
-	val shapes = Shapes(
-		extraSmall = RoundedCornerShape(16.dp),
-		small = RoundedCornerShape(16.dp),
-		medium = RoundedCornerShape(8.dp),
-		large = RoundedCornerShape(4.dp),
-		extraLarge = RoundedCornerShape(4.dp),
-	)
+	val extendedColors = if (useDarkTheme) DarkHammerColors else LightHammerColors
 
-	MaterialTheme(
-		colorScheme = colors,
-		//shapes = shapes,
-	) {
-		ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
-			content()
+	CompositionLocalProvider(LocalHammerColors provides extendedColors) {
+		MaterialTheme(
+			colorScheme = colors,
+			shapes = HammerShapes,
+			typography = HammerTypography,
+		) {
+			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+				content()
+			}
 		}
 	}
 }

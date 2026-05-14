@@ -1,17 +1,28 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+private val DialogMaxWidth = 520.dp
 
 @Composable
 fun ExportOptionsDialog(
@@ -27,115 +38,104 @@ fun ExportOptionsDialog(
 		mutableStateOf(initialOptions.format)
 	}
 
-	SimpleDialog(
+	AnimatedDialog(
 		visible = visible,
 		onCloseRequest = onCancel,
-		title = Res.string.project_home_export_dialog_title.get(),
 		dismissOnTapOutside = true,
 	) {
-		Column(modifier = Modifier.padding(horizontal = Ui.Padding.L)) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Switch(
-					checked = treatAsChapters,
-					onCheckedChange = { treatAsChapters = it },
-				)
-				Spacer(modifier = Modifier.width(Ui.Padding.M))
-				Text(
-					stringResource(Res.string.project_home_export_chapters_label),
-					style = MaterialTheme.typography.bodyLarge,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
-			}
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Text(
-				stringResource(Res.string.project_home_export_format_label),
-				style = MaterialTheme.typography.labelLarge,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Spacer(modifier = Modifier.height(Ui.Padding.S))
-			ExportFormatDropdown(
-				selected = format,
-				onSelected = { format = it },
-				modifier = Modifier.fillMaxWidth(),
-			)
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End,
-			) {
-				TextButton(onClick = onCancel) {
-					Text(stringResource(Res.string.project_home_export_cancel))
-				}
-				Spacer(modifier = Modifier.width(Ui.Padding.M))
-				Button(onClick = {
-					onConfirm(
-						ExportOptions(
-							treatTopLevelAsChapters = treatAsChapters,
-							format = format,
-						)
-					)
-				}) {
-					Text(stringResource(Res.string.project_home_export_execute))
-				}
-			}
-		}
-	}
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ExportFormatDropdown(
-	selected: ExportFormat,
-	onSelected: (ExportFormat) -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	var expanded by remember { mutableStateOf(false) }
-
-	ExposedDropdownMenuBox(
-		expanded = expanded,
-		onExpandedChange = { expanded = it },
-		modifier = modifier,
-	) {
-		TextField(
-			value = formatLabel(selected),
-			onValueChange = {},
-			readOnly = true,
-			singleLine = true,
-			trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+		Surface(
 			modifier = Modifier
-				.fillMaxWidth()
-				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-		)
-
-		ExposedDropdownMenu(
-			expanded = expanded,
-			onDismissRequest = { expanded = false },
+				.padding(Ui.Padding.M)
+				.widthIn(max = DialogMaxWidth)
+				.fillMaxWidth(),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
 		) {
-			DropdownMenuItem(
-				text = { Text(stringResource(Res.string.project_home_export_format_markdown)) },
-				onClick = {
-					onSelected(ExportFormat.Markdown)
-					expanded = false
-				},
-			)
-			DropdownMenuItem(
-				text = { Text(stringResource(Res.string.project_home_export_format_epub)) },
-				onClick = { },
-				enabled = false,
-			)
+			Column {
+				HdMasthead(
+					section = stringResource(Res.string.project_home_export_section),
+					trailing = {
+						HdMastheadAction(
+							label = stringResource(Res.string.project_home_export_close),
+							onClick = onCancel,
+						)
+					},
+				)
+				HdFolioDivider()
+
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							start = Ui.Padding.XL,
+							end = Ui.Padding.XL,
+							top = Ui.Padding.L,
+							bottom = Ui.Padding.M,
+						),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Text(
+						text = Res.string.project_home_export_dialog_title.get(),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+				}
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
+				Column(
+					modifier = Modifier.padding(
+						horizontal = Ui.Padding.XL,
+						vertical = Ui.Padding.XL,
+					),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
+				) {
+					HdHairlineToggleRow(
+						checked = treatAsChapters,
+						onCheckedChange = { treatAsChapters = it },
+						label = stringResource(Res.string.project_home_export_chapters_label),
+					)
+
+					HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_export_format_label),
+						options = AVAILABLE_EXPORT_FORMATS,
+						selected = format,
+						onSelect = { format = it },
+						label = { stringResource(it.labelRes()) },
+					)
+				}
+
+				Spacer(modifier = Modifier.height(Ui.Padding.M))
+
+				HdButtonBar(
+					cancelLabel = stringResource(Res.string.project_home_export_cancel),
+					primaryLabel = stringResource(Res.string.project_home_export_execute),
+					onCancel = onCancel,
+					onPrimary = {
+						onConfirm(
+							ExportOptions(
+								treatTopLevelAsChapters = treatAsChapters,
+								format = format,
+							)
+						)
+					},
+				)
+			}
 		}
 	}
 }
 
-@Composable
-private fun formatLabel(format: ExportFormat): String = when (format) {
-	ExportFormat.Markdown -> stringResource(Res.string.project_home_export_format_markdown)
-	ExportFormat.Epub -> stringResource(Res.string.project_home_export_format_epub)
+private val AVAILABLE_EXPORT_FORMATS = listOf(ExportFormat.Markdown)
+
+private fun ExportFormat.labelRes(): StringResource = when (this) {
+	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
+	ExportFormat.Epub -> Res.string.project_home_export_format_epub
 }

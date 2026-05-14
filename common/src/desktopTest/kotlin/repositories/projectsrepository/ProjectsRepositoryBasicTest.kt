@@ -36,15 +36,55 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `File Name Validation`() = scope.runTest {
+		// Original allowed set
 		listOf("good", "cliché", "one two", "one_two", "1234567890", "nums1234567890", "aZ").forEach {
-			assertTrue(ProjectsRepository.validateFileName(it).isSuccess)
+			assertTrue(ProjectsRepository.validateFileName(it).isSuccess, "expected success for: $it")
+		}
+
+		// Newly allowed: hyphens, punctuation, parens, OS-forbidden chars (encoded on disk),
+		// and typographic quotes.
+		listOf(
+			"It's-a-me",
+			"Chapter 3: The Fall",
+			"What?",
+			"A & B",
+			"Foo (Bar) Baz",
+			"Hello, World!",
+			"Wait--really!",
+			"A/B Testing",
+			"path\\with\\backslash",
+			"star*name",
+			"quote \"thing\"",
+			"angle <bracket>",
+			"pipe|sep",
+			"It’s curly",
+			"“Hello”",
+		).forEach {
+			assertTrue(ProjectsRepository.validateFileName(it).isSuccess, "expected success for: $it")
 		}
 
 		assertFailure(null, Res.string.create_project_error_null_filename)
 		assertFailure("", Res.string.create_project_error_blank)
 		assertFailure("   ", Res.string.create_project_error_blank)
 
-		listOf("bad*bad", "bad-bad", "bad/bad", """bad\bad""").forEach {
+		// Newly disallowed: tilde (reserved delimiter), Windows reserved names, trailing
+		// dot/space, leading dot, and chars still outside the allowed set (e.g. @, #, $, %).
+		listOf(
+			"bad~bad",
+			"~leading",
+			"trailing~",
+			"CON",
+			"con",
+			"PRN.txt",
+			"COM1",
+			"name.",
+			"name ",
+			".hidden",
+			"bad@bad",
+			"bad#bad",
+			"bad\$bad",
+			"bad%bad",
+		).forEach {
 			assertFailure(it, Res.string.create_project_error_invalid_characters)
 		}
 	}

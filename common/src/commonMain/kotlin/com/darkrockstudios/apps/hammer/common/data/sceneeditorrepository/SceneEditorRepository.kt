@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -15,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -49,6 +51,8 @@ class SceneEditorRepository(
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
 	private val statisticsRepository: StatisticsRepository,
+	private val referenceIndexRepository: ReferenceIndexRepository,
+	private val writingSessionTracker: WritingSessionTracker,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -94,6 +98,12 @@ class SceneEditorRepository(
 	)
 	private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
 
+	private val _metadataUpdateFlow = MutableSharedFlow<Pair<Int, SceneMetadata>>(
+		extraBufferCapacity = 8,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST
+	)
+	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>> = _metadataUpdateFlow
+
 	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
 		extraBufferCapacity = 1,
 		replay = 1,
@@ -129,6 +139,9 @@ class SceneEditorRepository(
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
 				archived = scene.archived,
+				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
+				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
+				tags = metadata?.tags ?: emptySet(),
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -260,8 +273,13 @@ class SceneEditorRepository(
 	}
 
 	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
+		if (source == UpdateSource.Editor) {
+			val newBuffer = SceneBuffer(content, dirty = true, source = source)
+			updateSceneBuffer(newBuffer)
+			return true
+		}
+
 		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		// Skip update if nothing is different
 		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
 			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
 			updateSceneBuffer(newBuffer)
@@ -478,8 +496,22 @@ class SceneEditorRepository(
 		val scene = getSceneItemFromIdIncludingArchived(sceneId)
 			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
 
+		val previous = sceneMetadataDatasource.loadMetadata(sceneId)
+
 		markForSynchronization(scene)
 		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
+
+		val previousConfirmed = previous?.confirmedReferences.orEmpty()
+		val newConfirmed = metadata.confirmedReferences
+		if (previousConfirmed != newConfirmed) {
+			referenceIndexRepository.applySceneDelta(
+				sceneId = sceneId,
+				added = newConfirmed - previousConfirmed,
+				removed = previousConfirmed - newConfirmed,
+			)
+		}
+
+		_metadataUpdateFlow.tryEmit(sceneId to metadata)
 	}
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
@@ -587,6 +619,7 @@ class SceneEditorRepository(
 				content = content,
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
+				tags = metadata?.tags ?: emptySet(),
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -910,6 +943,8 @@ class SceneEditorRepository(
 
 				reloadScenes()
 				statisticsRepository.markDirty()
+				referenceIndexRepository.markSceneDeleted(scene.id)
+				writingSessionTracker.forgetBaseline(scene.id)
 
 				true
 			} else {
@@ -990,6 +1025,7 @@ class SceneEditorRepository(
 		} else {
 			val scenePath = getSceneFilePath(sceneItem)
 			val content = sceneDatasource.loadSceneBuffer(scenePath)
+			writingSessionTracker.rememberBaseline(sceneItem.id, content)
 			val newBuffer = SceneBuffer(
 				SceneContent(sceneItem, content),
 				source = UpdateSource.Repository
@@ -1023,6 +1059,11 @@ class SceneEditorRepository(
 
 			clearTempScene(sceneItem)
 			statisticsRepository.markDirty()
+			writingSessionTracker.onSceneSaved(
+				sceneId = sceneItem.id,
+				newContent = buffer.content.coerceMarkdown(),
+				source = buffer.source,
+			)
 		}
 
 		return success

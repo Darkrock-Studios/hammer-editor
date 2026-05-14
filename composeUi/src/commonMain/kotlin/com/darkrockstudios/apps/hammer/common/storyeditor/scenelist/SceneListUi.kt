@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
@@ -10,12 +15,19 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
@@ -43,6 +55,7 @@ fun SceneListUi(
 	component: SceneList,
 	snackbarHostState: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
+	inSplitPane: Boolean = false,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
@@ -54,6 +67,8 @@ fun SceneListUi(
 
 	var showCreateGroupDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 	var showCreateSceneDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
+
+	var addMenuOpen by remember { mutableStateOf(false) }
 
 	val treeState = rememberReorderableLazyListState(
 		summary = state.sceneSummary ?: emptySceneSummary(state.projectDef),
@@ -69,69 +84,151 @@ fun SceneListUi(
 	// TODO implement a real NUX system
 	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
-	Box {
-		Column(modifier = modifier.fillMaxSize()) {
-			Row(
-				modifier = Modifier.fillMaxWidth().height(Ui.TOP_BAR_HEIGHT).padding(horizontal = Ui.Padding.XL),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				HeaderUi(Res.string.scene_list_header, "\uD83D\uDCDD")
+	var footerVisible by remember { mutableStateOf(true) }
+	val scrollConnection = remember {
+		object : NestedScrollConnection {
+			override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+				if (available.y < -1f) footerVisible = false
+				else if (available.y > 1f) footerVisible = true
+				return Offset.Zero
+			}
+		}
+	}
 
-				OverflowMenu(component, treeState)
+	Surface(
+		modifier = modifier,
+		color = if (inSplitPane) {
+			MaterialTheme.colorScheme.surfaceContainerLow
+		} else {
+			MaterialTheme.colorScheme.surface
+		},
+	) {
+		Column(modifier = Modifier.fillMaxSize()) {
+			val (sceneCount, groupCount) = remember(state.sceneSummary) {
+				countSceneAndGroupNodes(state.sceneSummary)
+			}
+
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.L),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				HdMonoLabel(text = Res.string.scene_list_header.get())
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+				) {
+					HdMonoLabel(text = Res.string.scene_list_count_format.get(sceneCount, groupCount))
+					OverflowMenu(component, treeState)
+				}
 			}
 
 			HorizontalDivider(
-				modifier = Modifier.fillMaxWidth(),
-				thickness = DividerDefaults.Thickness,
-				color = DividerDefaults.color
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
 			)
 
-			SceneTree(
-				modifier = Modifier.fillMaxSize(),
-				state = treeState,
-				itemUi = { node: TreeValue<SceneItem>,
-				           toggleExpanded: (nodeId: Int) -> Unit,
-				           collapsed: Boolean,
-				           draggable: Modifier ->
+			Box(modifier = Modifier.weight(1f)) {
+				SceneTree(
+					modifier = Modifier.fillMaxSize().nestedScroll(scrollConnection),
+					state = treeState,
+					itemUi = { node: TreeValue<SceneItem>,
+					           toggleExpanded: (nodeId: Int) -> Unit,
+					           collapsed: Boolean,
+					           draggable: Modifier ->
 
-					SceneNode(
-						sceneNode = node,
-						draggableModifier = draggable,
-						state = state,
-						summary = treeState.summary,
-						component = component,
-						toggleExpand = toggleExpanded,
-						collapsed = collapsed,
-						shouldNux = shouldNux,
-						sceneDefDeleteTarget = { deleteTarget ->
-							sceneDefDeleteTarget = deleteTarget
-						},
-						sceneDefRenameTarget = { renameTarget ->
-							sceneDefRenameTarget = renameTarget
-						},
-						sceneDefArchiveTarget = { archiveTarget ->
-							sceneDefArchiveTarget = archiveTarget
-						},
-						createScene = { parent -> showCreateSceneDialog = parent },
-						createGroup = { parent -> showCreateGroupDialog = parent },
-					)
-				},
-				contentPadding = PaddingValues(bottom = 100.dp)
-			)
-		}
-
-		Row(modifier = Modifier.padding(Ui.Padding.L).align(Alignment.BottomEnd)) {
-			FloatingActionButton(
-				onClick = { showCreateGroupDialog = treeState.summary.sceneTree.root.value },
-				modifier = Modifier.padding(end = Ui.Padding.M)
-			) {
-				Icon(Icons.Filled.CreateNewFolder, Res.string.scene_list_create_group_button.get())
+						SceneNode(
+							sceneNode = node,
+							draggableModifier = draggable,
+							state = state,
+							summary = treeState.summary,
+							component = component,
+							toggleExpand = toggleExpanded,
+							collapsed = collapsed,
+							shouldNux = shouldNux,
+							sceneDefDeleteTarget = { deleteTarget ->
+								sceneDefDeleteTarget = deleteTarget
+							},
+							sceneDefRenameTarget = { renameTarget ->
+								sceneDefRenameTarget = renameTarget
+							},
+							sceneDefArchiveTarget = { archiveTarget ->
+								sceneDefArchiveTarget = archiveTarget
+							},
+							createScene = { parent -> showCreateSceneDialog = parent },
+							createGroup = { parent -> showCreateGroupDialog = parent },
+						)
+					},
+					contentPadding = PaddingValues(bottom = 80.dp)
+				)
 			}
-			FloatingActionButton(onClick = {
-				showCreateSceneDialog = treeState.summary.sceneTree.root.value
-			}) {
-				Icon(Icons.Filled.PostAdd, Res.string.scene_list_create_group_button.get())
+
+			AnimatedVisibility(
+				visible = footerVisible,
+				enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+				exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+			) {
+				Column {
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.M),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+					) {
+						HdHairlineButton(
+							label = Res.string.scene_list_outline_overview_button.get(),
+							onClick = component::showOutlineOverview,
+							modifier = Modifier.weight(1f),
+						)
+						Box {
+							IconButton(onClick = { addMenuOpen = true }) {
+								Icon(
+									imageVector = Icons.Filled.Add,
+									contentDescription = Res.string.scene_list_add_button.get(),
+									tint = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
+							DropdownMenu(
+								expanded = addMenuOpen,
+								onDismissRequest = { addMenuOpen = false },
+							) {
+								DropdownMenuItem(
+									text = { Text(Res.string.scene_list_create_menu_scene.get()) },
+									leadingIcon = {
+										Icon(
+											imageVector = Icons.Filled.PostAdd,
+											contentDescription = null,
+										)
+									},
+									onClick = {
+										addMenuOpen = false
+										showCreateSceneDialog = treeState.summary.sceneTree.root.value
+									},
+								)
+								DropdownMenuItem(
+									text = { Text(Res.string.scene_list_create_menu_group.get()) },
+									leadingIcon = {
+										Icon(
+											imageVector = Icons.Filled.CreateNewFolder,
+											contentDescription = null,
+										)
+									},
+									onClick = {
+										addMenuOpen = false
+										showCreateGroupDialog = treeState.summary.sceneTree.root.value
+									},
+								)
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -199,6 +296,20 @@ fun SceneListUi(
 			onDismiss = { component.dismissArchivedDialog() }
 		)
 	}
+}
+
+private fun countSceneAndGroupNodes(summary: SceneSummary?): Pair<Int, Int> {
+	if (summary == null) return 0 to 0
+	var scenes = 0
+	var groups = 0
+	for (i in 0 until summary.sceneTree.totalNodes) {
+		when (summary.sceneTree[i].value.type) {
+			SceneItem.Type.Scene -> scenes++
+			SceneItem.Type.Group -> groups++
+			SceneItem.Type.Root -> Unit
+		}
+	}
+	return scenes to groups
 }
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
@@ -284,7 +395,7 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 			Icon(
 				Icons.Filled.MoreVert,
 				contentDescription = Res.string.more_menu_button.get(),
-				tint = MaterialTheme.colorScheme.onSurface
+				tint = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		}
 
@@ -313,15 +424,6 @@ private fun OverflowMenu(component: SceneList, treeState: SceneTreeState) {
 					}
 				)
 			}
-
-			DropdownMenuItem(
-				text = { Text(Res.string.scene_list_outline_overview_button.get()) },
-				leadingIcon = { Icon(Icons.Default.ViewList, Res.string.scene_list_outline_overview_button.get()) },
-				onClick = {
-					menuOpen = false
-					component.showOutlineOverview()
-				}
-			)
 
 			DropdownMenuItem(
 				text = { Text(Res.string.view_archived_scenes_button.get()) },

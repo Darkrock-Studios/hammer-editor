@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.runtime.*
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import coil3.ImageLoader
@@ -24,12 +26,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
-import com.github.weisj.darklaf.LafManager
-import com.github.weisj.darklaf.theme.DarculaTheme
-import com.github.weisj.darklaf.theme.IntelliJTheme
-import com.jthemedetecor.OsThemeDetector
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
+import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -76,20 +76,13 @@ fun main(args: Array<String>) {
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
-		modules(mainModule, imageLoadingModule, aboutLibrariesModule, appModule(appScope))
+		modules(mainModule, imageLoadingModule, aboutLibrariesModule, desktopModule, appModule(appScope))
 	}
 
-	getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration()
+	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
-
-	val osThemeDetector = OsThemeDetector.getDetector()
-	if (osThemeDetector.isDark) {
-		LafManager.install(DarculaTheme())
-	} else {
-		LafManager.install(IntelliJTheme())
-	}
 
 	// Listen and react to Global Settings updates
 	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
@@ -109,40 +102,24 @@ fun main(args: Array<String>) {
 		setSingletonImageLoaderFactory { imageLoader }
 
 		val settingsState by globalSettings.subscribeAsState()
-		val initialDark = when (settingsState.uiTheme) {
+		val systemDark = isSystemInDarkMode()
+		val darkMode = when (settingsState.uiTheme) {
 			UiTheme.Light -> false
 			UiTheme.Dark -> true
-			UiTheme.FollowSystem -> osThemeDetector.isDark
+			UiTheme.FollowSystem -> systemDark
 		}
-		var darkMode by remember(initialDark) { mutableStateOf(initialDark) }
-		val themeListener = remember {
-			{ isDarkModeEnabled: Boolean ->
-				darkMode = isDarkModeEnabled
-
-				if (darkMode) {
-					LafManager.install(DarculaTheme())
-				} else {
-					LafManager.install(IntelliJTheme())
-				}
-				LafManager.updateLaf()
-			}
-		}
-		if (settingsState.uiTheme == UiTheme.FollowSystem) {
-			osThemeDetector.registerListener(themeListener)
-		} else {
-			osThemeDetector.registerListener(themeListener)
-		}
-
-		AppTheme(useDarkTheme = darkMode, settings = settingsState) {
-			when (val windowState = applicationState.windows.value) {
-				is WindowState.ProjectSectionWindow -> {
-					ProjectSelectionWindow { project ->
-						applicationState.openProject(project)
+		NucleusDecoratedWindowTheme(isDark = darkMode) {
+			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
+				when (val windowState = applicationState.windows.value) {
+					is WindowState.ProjectSectionWindow -> {
+						ProjectSelectionWindow { project ->
+							applicationState.openProject(project)
+						}
 					}
-				}
 
-				is WindowState.ProjectWindow -> {
-					ProjectEditorWindow(applicationState, windowState.projectDef)
+					is WindowState.ProjectWindow -> {
+						ProjectEditorWindow(applicationState, windowState.projectDef)
+					}
 				}
 			}
 		}

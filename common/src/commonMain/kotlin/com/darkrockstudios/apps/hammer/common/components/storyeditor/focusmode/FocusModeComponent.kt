@@ -125,14 +125,12 @@ class FocusModeComponent(
 	private fun watchSettings() {
 		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
-				if (settings.editorFontSize != _state.value.textSize) {
-					withContext(dispatcherMain) {
-						_state.getAndUpdate {
-							it.copy(
-								textSize = settings.editorFontSize,
-								spellCheckingEnabled = (settings.spellCheckSettings.isEnabledInFocusMode())
-							)
-						}
+				withContext(dispatcherMain) {
+					_state.getAndUpdate {
+						it.copy(
+							textSize = settings.editorFontSize,
+							spellCheckingEnabled = settings.spellCheckSettings.isEnabledInFocusMode(),
+						)
 					}
 				}
 			}

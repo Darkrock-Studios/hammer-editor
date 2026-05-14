@@ -10,12 +10,18 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -24,7 +30,9 @@ class ViewEntryComponent(
 	entryDef: EntryDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
-	private val closeEntry: () -> Unit
+	private val closeEntry: () -> Unit,
+	private val showScene: (SceneItem) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(
@@ -35,6 +43,10 @@ class ViewEntryComponent(
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val referenceIndexService: ReferenceIndexService by projectInject()
+	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
+	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -48,6 +60,29 @@ class ViewEntryComponent(
 		// Enable back handler only when editing
 		state.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = it.editName || it.editText
+		}
+
+		// Trigger an initial recompute so the index reflects current data
+		scope.launch { referenceIndexService.loadIndex() }
+
+		// Subscribe to "appears in" updates from the reference index
+		scope.launch {
+			referenceIndexService.flowForEntry(state.value.entryDef.id).collect { sceneIds ->
+				val resolved = sceneIds
+					.mapNotNull { id ->
+						sceneEditorRepository.getSceneItemFromIdIncludingArchived(id)?.let { item ->
+							ViewEntry.Appearance(
+								name = item.name,
+								sceneItem = item,
+								source = ViewEntry.AppearanceSource.Scene,
+							)
+						}
+					}
+					.sortedBy { it.name.lowercase() }
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(appearsIn = resolved) }
+				}
+			}
 		}
 
 		reload()
@@ -85,6 +120,7 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
+		cleanupReferencesOnDelete(entryDef.id)
 		encyclopediaRepository.deleteEntry(entryDef)
 		return true
 	}
@@ -166,7 +202,15 @@ class ViewEntryComponent(
 		text: String,
 		tags: Set<String>
 	): EntryResult {
-		val result = encyclopediaRepository.updateEntry(state.value.entryDef, name, text, tags)
+		val currentAliases = state.value.content?.aliases.orEmpty()
+		val previousName = state.value.entryDef.name
+		val result = encyclopediaRepository.updateEntry(
+			oldEntryDef = state.value.entryDef,
+			name = name,
+			text = text,
+			tags = tags,
+			aliases = currentAliases,
+		)
 		if (result.instance != null && result.error == EntryError.NONE) {
 			_state.getAndUpdate {
 				it.copy(
@@ -175,6 +219,10 @@ class ViewEntryComponent(
 			}
 
 			reload()
+
+			if (previousName != result.instance.entry.name) {
+				backfillEntryReferences(result.instance.entry)
+			}
 		}
 
 		return result
@@ -203,15 +251,20 @@ class ViewEntryComponent(
 				newTags.remove(tag)
 
 				encyclopediaRepository.updateEntry(
-					state.value.entryDef,
-					name,
-					text,
-					newTags
+					oldEntryDef = state.value.entryDef,
+					name = name,
+					text = text,
+					tags = newTags,
+					aliases = aliases,
 				)
 
 				reload()
 			}
 		}
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
 	}
 
 	override fun startTagAdd() {
@@ -231,9 +284,7 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun addTags(tagInput: String) {
-		val newTags = tagInput.splitToSequence(" ")
-			.filter { it.isNotBlank() }
-			.toSet()
+		val newTags = parseTagInput(tagInput)
 
 		state.value.content?.apply {
 			encyclopediaRepository.updateEntry(
@@ -241,11 +292,63 @@ class ViewEntryComponent(
 				name = name,
 				text = text,
 				tags = tags + newTags,
+				aliases = aliases,
 			)
 		}
 
 		endTagAdd()
 		reload()
+	}
+
+	override fun startAliasAdd() {
+		_state.getAndUpdate { it.copy(showAliasAdd = true) }
+	}
+
+	override fun endAliasAdd() {
+		_state.getAndUpdate { it.copy(showAliasAdd = false) }
+	}
+
+	override suspend fun addAlias(alias: String): EntryResult {
+		val current = state.value.content
+			?: return EntryResult(EntryError.NONE)
+		val trimmed = alias.trim()
+		if (trimmed.isEmpty()) {
+			endAliasAdd()
+			return EntryResult(EntryError.NONE)
+		}
+		val result = encyclopediaRepository.updateEntry(
+			oldEntryDef = state.value.entryDef,
+			name = current.name,
+			text = current.text,
+			tags = current.tags,
+			aliases = current.aliases + trimmed,
+		)
+		if (result.error == EntryError.NONE) {
+			endAliasAdd()
+			reload()
+			result.instance?.entry?.let { backfillEntryReferences(it) }
+		}
+		return result
+	}
+
+	override fun removeAlias(alias: String) {
+		scope.launch {
+			state.value.content?.apply {
+				encyclopediaRepository.updateEntry(
+					oldEntryDef = state.value.entryDef,
+					name = name,
+					text = text,
+					tags = tags,
+					aliases = aliases.filterNot { it == alias },
+				)
+
+				reload()
+			}
+		}
+	}
+
+	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {
+		showScene(appearance.sceneItem)
 	}
 
 	private fun getMenuId(): String {

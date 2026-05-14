@@ -1,0 +1,187 @@
+package com.darkrockstudios.apps.hammer.e2e.util
+
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.http.*
+import com.darkrockstudios.apps.hammer.datamigrator.getSerializerForType
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.toISO8601
+import kotlinx.coroutines.runBlocking
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
+import kotlin.uuid.Uuid
+
+class TestAccount(
+	val email: String,
+	val password: String,
+	val isAdmin: Boolean = false,
+) {
+	// Salt parameter is legacy - Argon2 generates and embeds salt automatically
+	val passwordHash: String = AccountsRepository.hashPassword(password)
+}
+
+class TestProject(
+	val name: String,
+	val uuid: Uuid,
+	val userId: Long,
+)
+
+object E2eTestData {
+	val json = createJsonSerializer()
+	val b64 = createTokenBase64()
+	val cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, b64)
+
+	fun createAccount(account: TestAccount, database: SqliteTestDatabase) {
+		database.serverDatabase.accountQueries.createAccount(
+			email = account.email,
+			password_hash = account.passwordHash,
+			cipher_secret = cipherSecretGenerator.generateToken(),
+			is_admin = account.isAdmin,
+		)
+	}
+
+	fun createProject(
+		project: TestProject,
+		database: SqliteTestDatabase,
+	) {
+		database.serverDatabase.projectQueries.createProject(
+			userId = project.userId,
+			name = project.name,
+			uuid = project.uuid.toString(),
+		)
+	}
+
+	val preDeletedProject1 = Uuid.random()
+	fun addDeletedProject(
+		userId: Long,
+		uuid: Uuid,
+		database: SqliteTestDatabase
+	) {
+		database.serverDatabase.deletedProjectQueries.addDeletedProject(
+			userId = userId,
+			uuid = uuid.toString(),
+		)
+	}
+
+	val tokenGenerator = SecureTokenGenerator(Token.LENGTH, b64)
+	fun createAuthToken(
+		userId: Long,
+		installId: String,
+		expires: Instant = Clock.System.now() + 30.days,
+		database: SqliteTestDatabase,
+		tokenHasher: TokenHasher,
+	): Token {
+		val plainAuthToken = tokenGenerator.generateToken()
+		val plainRefreshToken = tokenGenerator.generateToken()
+
+		val hashedAuthToken = runBlocking { tokenHasher.hashToken(plainAuthToken) }
+		val hashedRefreshToken = runBlocking { tokenHasher.hashToken(plainRefreshToken) }
+
+		database.serverDatabase.authTokenQueries.setToken(
+			userId = userId,
+			token = hashedAuthToken,
+			refresh = hashedRefreshToken,
+			expires = expires.toISO8601(),
+			installId = installId,
+		)
+
+		return Token(
+			userId = userId,
+			auth = plainAuthToken,
+			refresh = plainRefreshToken,
+		)
+	}
+
+	fun insertEntity(
+		userId: Long,
+		projectId: Long,
+		entity: ApiProjectEntity,
+		testDatabase: SqliteTestDatabase,
+		contentEncryptor: ContentEncryptor,
+	) {
+		val cipherSecret = testDatabase.serverDatabase.accountQueries
+			.getAccount(userId).executeAsOne().cipher_secret
+
+		val entityJson = json.encodeToString(getSerializerForType(entity.type), entity)
+		val encryptedJson = runBlocking {
+			contentEncryptor.encrypt(entityJson, cipherSecret)
+		}
+
+		testDatabase.serverDatabase.storyEntityQueries.insertNew(
+			userId = userId,
+			projectId = projectId,
+			id = entity.id.toLong(),
+			type = entity.type.toStringId(),
+			content = encryptedJson,
+			cipher = contentEncryptor.cipherName(),
+			hash = entity.hash(),
+		)
+	}
+
+	fun insertDeletedEntity(
+		id: Long,
+		userId: Long,
+		projectId: Long,
+		testDatabase: SqliteTestDatabase,
+	) {
+		testDatabase.serverDatabase.deletedEntityQueries.markEntityDeleted(
+			userId = userId,
+			projectId = projectId,
+			id = id,
+		)
+	}
+
+	fun createTestScene(id: Int): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
+			id = id,
+			name = "test scene $id",
+			content = "test content $id",
+			order = id - 1,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+		)
+	}
+
+	fun createTestSceneWithReferences(
+		id: Int,
+		confirmedReferences: Set<Int>,
+		dismissedReferences: Set<Int> = emptySet(),
+	): ApiProjectEntity.SceneEntity {
+		return ApiProjectEntity.SceneEntity(
+			id = id,
+			name = "test scene $id",
+			content = "test content $id",
+			order = id - 1,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			confirmedReferences = confirmedReferences,
+			dismissedReferences = dismissedReferences,
+		)
+	}
+
+	fun createTestNote(id: Int): ApiProjectEntity.NoteEntity {
+		return ApiProjectEntity.NoteEntity(
+			id = id,
+			content = "test content $id",
+			created = Instant.fromEpochSeconds(id * 1000000L),
+		)
+	}
+
+	fun createTestEncyclopediaEntry(
+		id: Int,
+		name: String = "test entry $id",
+		aliases: List<String> = emptyList(),
+	): ApiProjectEntity.EncyclopediaEntryEntity {
+		return ApiProjectEntity.EncyclopediaEntryEntity(
+			id = id,
+			name = name,
+			entryType = "person",
+			text = "test text $id",
+			tags = emptySet(),
+			image = null,
+			aliases = aliases,
+		)
+	}
+}

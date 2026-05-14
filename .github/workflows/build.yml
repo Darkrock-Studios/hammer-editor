@@ -27,11 +27,22 @@ jobs:
       - name: Run Kover
         run: ./gradlew koverXmlReport
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Run Server Migration Tests
         run: ./gradlew :server:verifySqlDelightMigration
+      - name: Run Round-Trip Sync Integration Tests
+        id: integration-tests
+        run: ./gradlew :integrationTests:jvmTest
+      - name: Upload integration test report on failure
+        if: failure() && steps.integration-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-report
+          path: |
+            integrationTests/build/reports/tests/jvmTest/
+            integrationTests/build/test-results/jvmTest/
 #  ios:
 #    runs-on: macos-latest
 #    steps:

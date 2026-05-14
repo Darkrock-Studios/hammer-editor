@@ -6,10 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  windows:
-    runs-on: windows-latest
-    permissions:
-      contents: write
+  integration-tests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -18,6 +16,35 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'adopt'
+          java-version: 21
+          cache: gradle
+
+      - name: Run Round-Trip Sync Integration Tests
+        id: integration-tests
+        run: ./gradlew :integrationTests:jvmTest
+
+      - name: Upload integration test report on failure
+        if: failure() && steps.integration-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-report
+          path: |
+            integrationTests/build/reports/tests/jvmTest/
+            integrationTests/build/test-results/jvmTest/
+
+  windows:
+    needs: integration-tests
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up JBR
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'jetbrains'
           java-version: 21
 
       - name: Gradle caching
@@ -85,7 +112,7 @@ jobs:
           echo Successfully renamed file to "hammer.exe"
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -96,6 +123,7 @@ jobs:
           artifacts: "${{ github.workspace }}\\desktop\\build\\installers\\main-release\\msi\\hammer.msi,${{ github.workspace }}\\desktop\\build\\installers\\main-release\\exe\\hammer.exe"
 
   linux:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -161,7 +189,7 @@ jobs:
         run: ./gradlew buildDistAppImage
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -172,15 +200,16 @@ jobs:
           artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
 
   macos:
+    needs: integration-tests
     runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up JDK
+      - name: Set up JBR
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
+          distribution: 'jetbrains'
           java-version: 21
 
       - name: Gradle caching
@@ -236,7 +265,7 @@ jobs:
           ls -la
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -247,6 +276,7 @@ jobs:
           artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/dmg/hammer.dmg,${{ github.workspace }}/desktop/build/installers/main-release/pkg/hammer.pkg"
 
   server:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -291,7 +321,7 @@ jobs:
           echo "File renamed successfully."
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -302,6 +332,7 @@ jobs:
           artifacts: "${{ github.workspace }}/server/build/distributions/*.*"
 
   android:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -357,7 +388,7 @@ jobs:
           echo "File renamed successfully."
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -368,6 +399,7 @@ jobs:
           artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk"
 
   snap:
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -386,7 +418,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Snap
-        uses: snapcore/action-build@v1
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
         id: build-snap
 
       - name: Rename Snap Artifact
@@ -395,7 +427,7 @@ jobs:
           echo "File renamed successfully."
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -406,6 +438,7 @@ jobs:
           artifacts: hammer.snap
 
   flatpak:
+    needs: integration-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -444,7 +477,7 @@ jobs:
         run: ./gradlew buildDistFlatpak
 
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -479,7 +512,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Set release body
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

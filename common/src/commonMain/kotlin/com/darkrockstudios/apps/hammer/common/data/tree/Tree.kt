@@ -179,7 +179,7 @@ data class TreeNode<T>(
 			else if (myChildrenIterator.hasNext()) {
 				advanceChildAndGetFirst()
 			} else {
-				throw IllegalStateException("No children left")
+				throw NoSuchElementException("Iterator exhausted")
 			}
 		}
 	}

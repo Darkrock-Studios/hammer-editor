@@ -1,8 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Folder
@@ -10,17 +9,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+private val DialogMaxWidth = 560.dp
 
 @Composable
 fun ImportStoryDialog(
@@ -31,120 +36,208 @@ fun ImportStoryDialog(
 	onOptionsChange: (ImportOptions) -> Unit,
 	onConfirm: () -> Unit,
 ) {
-	SimpleDialog(
-		visible = visible,
-		onCloseRequest = onCancel,
-		title = Res.string.project_home_import_dialog_title.get(),
-		dismissOnTapOutside = true,
+	var renderInternal by remember { mutableStateOf(visible) }
+	LaunchedEffect(visible) { if (visible) renderInternal = true }
+	if (!renderInternal) return
+
+	AnimatedDialogContainer(
+		isOpen = visible,
+		onDismissRequest = onCancel,
+		onClosed = { renderInternal = false },
+		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Column(modifier = Modifier.padding(horizontal = Ui.Padding.L)) {
-			Text(
-				stringResource(Res.string.project_home_import_format_label),
-				style = MaterialTheme.typography.labelLarge,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Spacer(modifier = Modifier.height(Ui.Padding.S))
-			ImportFormatDropdown(
-				selected = options.format,
-				onSelected = { onOptionsChange(options.copy(format = it)) },
-				modifier = Modifier.fillMaxWidth(),
-			)
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Text(
-				stringResource(Res.string.project_home_import_heading_label),
-				style = MaterialTheme.typography.labelLarge,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Spacer(modifier = Modifier.height(Ui.Padding.S))
-			ChapterHeadingLevelSelector(
-				selected = options.chapterHeadingLevel,
-				onSelected = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-			)
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Switch(
-					checked = options.createChapterGroups,
-					onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
+		Surface(
+			modifier = Modifier
+				.padding(Ui.Padding.M)
+				.widthIn(max = DialogMaxWidth)
+				.fillMaxWidth()
+				.predictiveBackTransform(),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
+		) {
+			Column {
+				ImportMasthead(
+					options = options,
+					preview = preview,
+					onClose = onCancel,
 				)
-				Spacer(modifier = Modifier.width(Ui.Padding.M))
+				HdFolioDivider()
+
 				Text(
-					stringResource(Res.string.project_home_import_create_groups_label),
-					style = MaterialTheme.typography.bodyLarge,
+					text = stringResource(Res.string.project_home_import_dialog_title),
+					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.L,
+					),
 				)
-			}
 
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Text(
-				stringResource(Res.string.project_home_import_preview_label),
-				style = MaterialTheme.typography.labelLarge,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Spacer(modifier = Modifier.height(Ui.Padding.S))
-			ImportPreviewPane(preview)
-
-			Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.End,
-			) {
-				TextButton(onClick = onCancel) {
-					Text(stringResource(Res.string.project_home_import_cancel))
-				}
-				Spacer(modifier = Modifier.width(Ui.Padding.M))
-				Button(
-					onClick = onConfirm,
-					enabled = !preview.isEmpty,
+				Column(
+					modifier = Modifier.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						bottom = Ui.Padding.XL,
+					),
 				) {
-					Text(stringResource(Res.string.project_home_import_execute))
+					HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_import_format_label),
+						options = AVAILABLE_IMPORT_FORMATS,
+						selected = options.format,
+						onSelect = { onOptionsChange(options.copy(format = it)) },
+						label = { stringResource(it.labelRes()) },
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_import_heading_label),
+						options = ChapterHeadingLevel.entries,
+						selected = options.chapterHeadingLevel,
+						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
+						label = { stringResource(it.labelRes()) },
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					HdHairlineToggleRow(
+						checked = options.createChapterGroups,
+						onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
+						label = stringResource(Res.string.project_home_import_create_groups_label),
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					ImportPreviewPane(preview)
 				}
+
+				ImportFooter(
+					onCancel = onCancel,
+					onConfirm = onConfirm,
+					confirmEnabled = !preview.isEmpty,
+				)
 			}
 		}
 	}
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview) {
-	Surface(
-		modifier = Modifier.fillMaxWidth(),
-		tonalElevation = 1.dp,
-		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+private fun ImportMasthead(
+	options: ImportOptions,
+	preview: ImportPreview,
+	onClose: () -> Unit,
+) {
+	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
+		buildList {
+			add(options.format.metaLabel())
+			add(options.chapterHeadingLevel.name.uppercase())
+			if (!preview.isEmpty) {
+				add("${preview.totalScenes} SCENES")
+			}
+		}
+	}
+	HdMasthead(
+		section = "IMPORT",
+		leadingMeta = meta,
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
+	)
+}
+
+@Composable
+private fun ImportFooter(
+	onCancel: () -> Unit,
+	onConfirm: () -> Unit,
+	confirmEnabled: Boolean,
+) {
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		Column(
+		HdMonoLabel(
+			text = "ESC CANCEL",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Spacer(modifier = Modifier.weight(1f))
+		HdHairlineButton(
+			label = stringResource(Res.string.project_home_import_cancel),
+			onClick = onCancel,
+		)
+		HdHairlineButton(
+			label = stringResource(Res.string.project_home_import_execute),
+			onClick = onConfirm,
+			emphasised = true,
+			enabled = confirmEnabled,
+		)
+	}
+}
+
+@Composable
+private fun ImportPreviewPane(preview: ImportPreview) {
+	Column {
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			HdMonoLabel(stringResource(Res.string.project_home_import_preview_label))
+			if (!preview.isEmpty) {
+				HdMonoLabel(
+					stringResource(
+						Res.string.project_home_import_preview_count,
+						preview.totalScenes,
+					),
+				)
+			}
+		}
+		Spacer(modifier = Modifier.height(Ui.Padding.S))
+		Box(
 			modifier = Modifier
-				.heightIn(max = 240.dp)
-				.verticalScroll(rememberScrollState())
-				.padding(Ui.Padding.M),
+				.fillMaxWidth()
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
+				)
+				.heightIn(max = 240.dp),
 		) {
 			if (preview.isEmpty) {
-				Text(
-					stringResource(Res.string.project_home_import_preview_empty),
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(Ui.Padding.L),
+					contentAlignment = Alignment.Center,
+				) {
+					HdMonoLabel(stringResource(Res.string.project_home_import_preview_empty))
+				}
 			} else {
-				Text(
-					stringResource(Res.string.project_home_import_preview_count, preview.totalScenes),
-					style = MaterialTheme.typography.labelMedium,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-				Spacer(modifier = Modifier.height(Ui.Padding.S))
-				preview.items.forEach { item ->
-					when (item) {
-						is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
-						is PreviewItem.Group -> {
-							PreviewGroupRow(item.name)
-							item.scenes.forEach { childScene ->
-								PreviewSceneRow(childScene.name, indented = true)
+				Column(
+					modifier = Modifier
+						.verticalScroll(rememberScrollState())
+						.padding(Ui.Padding.M),
+				) {
+					preview.items.forEach { item ->
+						when (item) {
+							is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
+							is PreviewItem.Group -> {
+								PreviewGroupRow(item.name)
+								item.scenes.forEach { childScene ->
+									PreviewSceneRow(childScene.name, indented = true)
+								}
 							}
 						}
 					}
@@ -163,7 +256,7 @@ private fun PreviewGroupRow(name: String) {
 		Icon(
 			Icons.Default.Folder,
 			contentDescription = null,
-			tint = MaterialTheme.colorScheme.primary,
+			tint = MaterialTheme.colorScheme.onSurface,
 			modifier = Modifier.size(18.dp),
 		)
 		Spacer(modifier = Modifier.width(Ui.Padding.S))
@@ -198,76 +291,17 @@ private fun PreviewSceneRow(name: String, indented: Boolean) {
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ImportFormatDropdown(
-	selected: ImportFormat,
-	onSelected: (ImportFormat) -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	var expanded by remember { mutableStateOf(false) }
+private val AVAILABLE_IMPORT_FORMATS = listOf(ImportFormat.Markdown)
 
-	ExposedDropdownMenuBox(
-		expanded = expanded,
-		onExpandedChange = { expanded = it },
-		modifier = modifier,
-	) {
-		TextField(
-			value = formatLabel(selected),
-			onValueChange = {},
-			readOnly = true,
-			singleLine = true,
-			trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-			modifier = Modifier
-				.fillMaxWidth()
-				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-		)
-
-		ExposedDropdownMenu(
-			expanded = expanded,
-			onDismissRequest = { expanded = false },
-		) {
-			DropdownMenuItem(
-				text = { Text(stringResource(Res.string.project_home_export_format_markdown)) },
-				onClick = {
-					onSelected(ImportFormat.Markdown)
-					expanded = false
-				},
-			)
-			DropdownMenuItem(
-				text = { Text(stringResource(Res.string.project_home_export_format_epub)) },
-				onClick = { },
-				enabled = false,
-			)
-		}
-	}
+private fun ImportFormat.labelRes(): StringResource = when (this) {
+	ImportFormat.Markdown -> Res.string.project_home_export_format_markdown
 }
 
-@Composable
-private fun formatLabel(format: ImportFormat): String = when (format) {
-	ImportFormat.Markdown -> stringResource(Res.string.project_home_export_format_markdown)
+private fun ImportFormat.metaLabel(): String = when (this) {
+	ImportFormat.Markdown -> "MARKDOWN"
 }
 
-@Composable
-private fun ChapterHeadingLevelSelector(
-	selected: ChapterHeadingLevel,
-	onSelected: (ChapterHeadingLevel) -> Unit,
-) {
-	val levels = remember { ChapterHeadingLevel.entries }
-	SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-		levels.forEachIndexed { index, level ->
-			SegmentedButton(
-				selected = level == selected,
-				onClick = { onSelected(level) },
-				shape = SegmentedButtonDefaults.itemShape(index = index, count = levels.size),
-			) {
-				Text(
-					when (level) {
-						ChapterHeadingLevel.H1 -> stringResource(Res.string.project_home_import_heading_h1)
-						ChapterHeadingLevel.H2 -> stringResource(Res.string.project_home_import_heading_h2)
-					}
-				)
-			}
-		}
-	}
+private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
+	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
+	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
 }

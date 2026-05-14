@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
+import com.darkrockstudios.apps.hammer.common.getPlatformName
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
+import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguage
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguageOrNull
 import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
@@ -99,6 +101,25 @@ class GlobalSettingsRepository(
 		return serverSettingsUpdates.first()?.userId
 			?: throw IllegalStateException("Server settings missing")
 	}
+
+	/**
+	 * Returns the stable per-install id, generating and persisting one on first
+	 * call. Used both as the server-side install identity (sent during login /
+	 * createAccount) and as the local writing-activity device id, so a single
+	 * install always presents the same identity in both contexts. Works without
+	 * a sync server — generation is purely local.
+	 */
+	suspend fun ensureInstallId(): String {
+		globalSettings.installId?.let { return it }
+		updateSettings { current ->
+			if (current.installId == null) current.copy(installId = Uuid.random().toString())
+			else current
+		}
+		return checkNotNull(globalSettings.installId) { "installId should be set after ensureInstallId" }
+	}
+
+	/** Friendly label for this device. Falls back to the platform name when unset. */
+	fun deviceLabelOrDefault(): String = globalSettings.deviceLabel ?: getPlatformName()
 
 	companion object {
 		const val DEFAULT_PROJECTS_DIR = "HammerProjects"

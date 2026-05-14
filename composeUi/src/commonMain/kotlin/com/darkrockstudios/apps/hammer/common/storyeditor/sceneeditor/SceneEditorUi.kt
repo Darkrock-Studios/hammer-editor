@@ -11,17 +11,18 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
@@ -98,14 +99,32 @@ fun SceneEditorUi(
 				CircularProgressIndicator()
 			}
 		} else {
+			val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
+				boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+			}
+			val isWide = remember(remainingWidth) { remainingWidth >= SCENE_METADATA_MIN_WIDTH }
+			SideEffect { component.setLayoutMode(isWide) }
+			val onToggleMetadata: () -> Unit = remember(isWide, component) {
+				if (isWide) component::toggleMetadataPanelVisible else component::toggleMetadataModal
+			}
+
 			Column(
 				modifier = Modifier
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
 			) {
-				EditorTopBar(component, rootSnackbar)
+				EditorTopBar(
+					component = component,
+					rootSnackbar = rootSnackbar,
+					onToggleMetadata = onToggleMetadata,
+				)
 
-				EditorToolBar(
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
+				MarkdownFormatBar(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
@@ -135,7 +154,8 @@ fun SceneEditorUi(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)
 							),
-							focusedBorderColor = MaterialTheme.colorScheme.primary,
+							focusedBorderColor = Color.Transparent,
+							unfocusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
@@ -145,10 +165,7 @@ fun SceneEditorUi(
 
 					HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))
 
-					val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
-						boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
-					}
-					SceneMetadataSidebar(component, remainingWidth)
+					SceneMetadataSidebar(component, isWide)
 				}
 			}
 		}
@@ -190,36 +207,38 @@ fun SceneEditorUi(
 }
 
 @Composable
-private fun SceneMetadataSidebar(component: SceneEditor, remainingWidth: Dp) {
+private fun SceneMetadataSidebar(component: SceneEditor, isWide: Boolean) {
 	val state by component.state.subscribeAsState()
 
-	if (remainingWidth >= SCENE_METADATA_MIN_WIDTH) {
+	if (isWide) {
 		AnimatedVisibility(
-			visible = state.showMetadata,
+			visible = state.metadataPanelVisible,
 			enter = slideInHorizontally { it } + fadeIn(),
 			exit = slideOutHorizontally { it } + fadeOut(),
 		) {
-			Box(modifier = Modifier.padding(Ui.Padding.L)) {
-				SceneMetadataPanelUi(
-					component = component.sceneMetadataComponent,
-					modifier = Modifier.wrapContentWidth()
-						.widthIn(max = SCENE_METADATA_MAX_WIDTH)
-						.fillMaxHeight(),
-					closeMetadata = component::toggleMetadataVisibility,
-				)
-			}
+			SceneMetadataPanelUi(
+				component = component.sceneMetadataComponent,
+				modifier = Modifier.wrapContentWidth()
+					.widthIn(max = SCENE_METADATA_MAX_WIDTH)
+					.fillMaxHeight(),
+				closeMetadata = component::toggleMetadataPanelVisible,
+			)
 		}
 	} else {
-		if (state.showMetadata) {
-			Dialog(onDismissRequest = component::toggleMetadataVisibility) {
-				Box(modifier = Modifier.padding(Ui.Padding.L)) {
-					SceneMetadataPanelUi(
-						component = component.sceneMetadataComponent,
-						modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-						closeMetadata = component::toggleMetadataVisibility,
-					)
-				}
-			}
+		AnimatedDialog(
+			visible = state.showMetadataModal,
+			onCloseRequest = component::toggleMetadataModal,
+			modifier = Modifier.padding(Ui.Padding.L),
+			dismissOnTapOutside = true,
+		) {
+			SceneMetadataPanelUi(
+				component = component.sceneMetadataComponent,
+				modifier = Modifier
+					.widthIn(max = SCENE_METADATA_MAX_WIDTH)
+					.fillMaxWidth()
+					.wrapContentHeight(),
+				closeMetadata = { requestDismiss() },
+			)
 		}
 	}
 }

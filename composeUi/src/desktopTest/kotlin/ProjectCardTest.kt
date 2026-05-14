@@ -5,8 +5,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCard
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 import io.mockk.*
 import org.junit.Rule
 import org.junit.Test
@@ -23,7 +23,9 @@ class ProjectCardTest {
 		every { onProjectAltClick(any()) } just Runs
 
 		compose.setContent {
-			ProjectCard(
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = onProjectAltClick,
@@ -45,7 +47,9 @@ class ProjectCardTest {
 		every { onProjectClick(any()) } just Runs
 
 		compose.setContent {
-			ProjectCard(
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
 				projectData = data,
 				onProjectClick = onProjectClick,
 				onProjectAltClick = {},
@@ -62,7 +66,9 @@ class ProjectCardTest {
 		val data = fakeProjectData()
 
 		compose.setContent {
-			ProjectCard(
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
 				projectData = data,
 				onProjectClick = {},
 				onProjectAltClick = {},

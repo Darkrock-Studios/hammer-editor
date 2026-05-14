@@ -7,9 +7,24 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,28 +34,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import net.peanuuutz.tomlkt.Toml
+import okio.FileSystem
 import org.koin.android.ext.android.inject
+
+private val ContentMaxWidth = 480.dp
 
 class AddNoteWidgetConfigActivity : ComponentActivity() {
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
 	private val projectsRepository: ProjectsRepository by inject()
+	private val fileSystem: FileSystem by inject()
+	private val toml: Toml by inject()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -59,8 +84,7 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 			Napier.e("AddNoteWidgetConfigActivity launched with invalid widget ID")
 			finish()
 		} else {
-			// Set this early so if the Activity is finished in any other way than save(), it will be
-			// considered canceled
+			// Set early so any non-save() exit is treated as cancelled.
 			setCancel(appWidgetId)
 		}
 
@@ -82,7 +106,6 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 				UiTheme.FollowSystem -> isSystemInDarkTheme()
 			}
 
-			// Dynamic color is available on Android 12+
 			val localCtx = LocalContext.current
 			fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
 				val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -99,6 +122,7 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
 				ConfigUi(
+					widgetId = appWidgetId,
 					projects = projects,
 					onSave = { proj ->
 						lifecycleScope.launch {
@@ -112,9 +136,11 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 	}
 
 	private suspend fun save(widgetId: Int, projectDef: ProjectDef?) {
+		val accentHex = projectDef?.let { loadStoredProjectData(it, fileSystem, toml).data.theme?.primary }
+
 		widgetConfigDataStore.updateData {
 			// TODO apparently we are supposed to save the glanceId, but it's an opaque class so... 🤷‍♂️
-			it.saveWidgetConfig(widgetId, projectDef)
+			it.saveWidgetConfig(widgetId, projectDef, accentHex)
 		}
 
 		val manager = GlanceAppWidgetManager(this)
@@ -135,73 +161,77 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 
 @Composable
 private fun ConfigUi(
+	widgetId: Int,
 	projects: List<ProjectDef>,
 	onSave: (projectDef: ProjectDef?) -> Unit,
 	onCancel: () -> Unit,
 ) {
-	Column(
-		modifier = Modifier
-			.fillMaxSize()
-			.systemBarsPadding(),
-		horizontalAlignment = Alignment.CenterHorizontally
+	var selectedProject by rememberSaveable(
+		saver = serializableStateSaver(ProjectDef.serializer())
 	) {
-		var selectedProject by rememberSaveable(
-			saver = serializableStateSaver(ProjectDef.serializer())
-		) {
-			mutableStateOf(projects.first())
-		}
-		var specificProject by rememberSaveable { mutableStateOf(true) }
+		mutableStateOf(projects.first())
+	}
+	var specificProject by rememberSaveable { mutableStateOf(true) }
+
+	Surface(
+		modifier = Modifier.fillMaxSize(),
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+	) {
 		Column(
 			modifier = Modifier
-				.padding(Ui.Padding.XL)
-				.width(IntrinsicSize.Max)
+				.fillMaxSize()
+				.systemBarsPadding()
+				.imePadding(),
 		) {
-			Text(
-				stringResource(R.string.note_widget_config_title),
-				style = MaterialTheme.typography.headlineMedium,
-				color = MaterialTheme.colorScheme.onBackground,
+			HdMasthead(
+				section = "WIDGET CONFIG",
+				leadingMeta = listOf("ID $widgetId"),
 			)
+			HdFolioDivider()
 
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				Checkbox(checked = specificProject, onCheckedChange = { specificProject = it })
-				Text(
-					text = stringResource(id = R.string.note_widget_config_project_checkbox),
-					color = MaterialTheme.colorScheme.onBackground,
-				)
-			}
-			Text(
-				text = stringResource(id = R.string.note_widget_config_project_checkbox_explained),
-				color = MaterialTheme.colorScheme.onBackground,
-				fontStyle = FontStyle.Italic,
-			)
-			Spacer(modifier = Modifier.size(Ui.Padding.M))
-			if (specificProject) {
-				ProjectDropDownUi(projects) {
-					selectedProject = it
-				}
-			}
-
-			Spacer(modifier = Modifier.size(Ui.Padding.L))
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.weight(1f)
+					.verticalScroll(rememberScrollState())
+					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+				horizontalAlignment = Alignment.CenterHorizontally,
 			) {
-				Button(onClick = onCancel) {
-					Text(stringResource(R.string.note_widget_dialog_cancel_button))
-				}
-
-				Button(
-					onClick = {
-						if (specificProject) {
-							onSave(selectedProject)
-						} else {
-							onSave(null)
-						}
-					}
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.widthIn(max = ContentMaxWidth),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					Text(stringResource(R.string.note_widget_dialog_save_button))
+					Text(
+						text = stringResource(R.string.note_widget_config_title),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
+
+					HdHairlineToggleRow(
+						checked = specificProject,
+						onCheckedChange = { specificProject = it },
+						label = stringResource(R.string.note_widget_config_project_checkbox),
+						hint = stringResource(R.string.note_widget_config_project_checkbox_explained),
+					)
+
+					if (specificProject) {
+						ProjectDropDownUi(
+							projects = projects,
+							onProjectSelected = { selectedProject = it },
+						)
+					}
 				}
 			}
+
+			HdButtonBar(
+				cancelLabel = stringResource(R.string.note_widget_dialog_cancel_button),
+				primaryLabel = stringResource(R.string.note_widget_dialog_save_button),
+				onCancel = onCancel,
+				onPrimary = { onSave(if (specificProject) selectedProject else null) },
+			)
 		}
 	}
 }

@@ -11,7 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -35,6 +37,7 @@ class EncyclopediaRepository(
 	private val datasource: EncyclopediaDatasource,
 	private val syncDataRepository: SyncDataRepository,
 	private val statisticsRepository: StatisticsRepository,
+	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -52,6 +55,12 @@ class EncyclopediaRepository(
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
 	val entryListFlow: SharedFlow<List<EntryDef>> = _entryListFlow
+
+	private val _entryContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val entryContentChangedFlow: SharedFlow<Unit> = _entryContentChangedFlow
 
 	private suspend fun updateEntries(entries: List<EntryDef>) {
 		_entryListFlow.emit(entries)
@@ -76,21 +85,25 @@ class EncyclopediaRepository(
 		name: String,
 		text: String,
 		tags: Set<String>,
+		aliases: List<String> = emptyList(),
 	): EntryResult {
-		val result = validateEntry(name, oldEntryDef.type, text, tags)
+		val result = validateEntry(name, oldEntryDef.type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
 
 		markForSynchronization(oldEntryDef)
 
 		val cleanedTags = cleanTags(tags)
+		val cleanedAliases = cleanAliases(aliases, name)
 		val container = datasource.updateEntry(
 			oldEntryDef = oldEntryDef,
 			name = name,
 			text = text,
 			tags = cleanedTags,
+			aliases = cleanedAliases,
 		)
 
 		statisticsRepository.markDirty()
+		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -98,6 +111,12 @@ class EncyclopediaRepository(
 		val entryDefs = datasource.loadEntriesImperative()
 
 		updateEntries(entryDefs)
+	}
+
+	suspend fun ensureEntriesLoaded(): List<EntryDef> {
+		entryListFlow.replayCache.firstOrNull()?.let { return it }
+		loadEntriesImperative()
+		return entryListFlow.replayCache.firstOrNull().orEmpty()
 	}
 
 	fun loadEntry(entryDef: EntryDef): EntryContainer {
@@ -114,13 +133,15 @@ class EncyclopediaRepository(
 		name: String,
 		type: EntryType,
 		text: String,
-		tags: Set<String>
+		tags: Set<String>,
+		aliases: List<String> = emptyList(),
 	): EntryError {
 		return when {
 			name.trim().isEmpty() -> EntryError.NAME_TOO_SHORT
 			name.trim().length > MAX_NAME_SIZE -> EntryError.NAME_TOO_LONG
 			!ENTRY_NAME_PATTERN.matches(name.trim()) -> EntryError.NAME_INVALID_CHARACTERS
 			tags.any { it.length > MAX_TAG_SIZE } -> EntryError.TAG_TOO_LONG
+			aliases.any { it.trim().length > MAX_NAME_SIZE } -> EntryError.ALIAS_TOO_LONG
 			else -> EntryError.NONE
 		}
 	}
@@ -149,7 +170,8 @@ class EncyclopediaRepository(
 				entryType = entryDef.type.text,
 				text = entry.text,
 				tags = entry.tags,
-				image = image
+				image = image,
+				aliases = entry.aliases,
 			)
 			syncDataRepository.markEntityAsDirty(entryDef.id, hash)
 		}
@@ -161,12 +183,14 @@ class EncyclopediaRepository(
 		text: String,
 		tags: Set<String>,
 		imagePath: String?,
-		forceId: Int? = null
+		forceId: Int? = null,
+		aliases: List<String> = emptyList(),
 	): EntryResult {
-		val result = validateEntry(name, type, text, tags)
+		val result = validateEntry(name, type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
 
 		val cleanedTags = cleanTags(tags)
+		val cleanedAliases = cleanAliases(aliases, name)
 
 		val newId = forceId ?: idRepository.claimNextId()
 		val entry = EntryContent(
@@ -174,7 +198,8 @@ class EncyclopediaRepository(
 			name = name.trim(),
 			type = type,
 			text = text.trim(),
-			tags = cleanedTags
+			tags = cleanedTags,
+			aliases = cleanedAliases,
 		)
 		val container = EntryContainer(entry)
 
@@ -187,6 +212,7 @@ class EncyclopediaRepository(
 		if (forceId == null) markForSynchronization(newDef)
 
 		statisticsRepository.markDirty()
+		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -194,6 +220,8 @@ class EncyclopediaRepository(
 		datasource.deleteEntry(entryDef)
 		syncDataRepository.recordIdDeletion(entryDef.id)
 		statisticsRepository.markDirty()
+		referenceIndexRepository.markEntryDeleted(entryDef.id)
+		_entryContentChangedFlow.emit(Unit)
 		return true
 	}
 
@@ -220,21 +248,15 @@ class EncyclopediaRepository(
 	fun getEntryDef(id: Int): EntryDef = datasource.getEntryDef(id)
 	fun findEntryDef(id: Int): EntryDef? = datasource.findEntryDef(id)
 
-	private fun cleanTags(tags: Set<String>): Set<String> {
-		val regex = Regex("""[\w-]+""")
-		return tags
-			.asSequence()
+	private fun cleanAliases(aliases: List<String>, entryName: String): List<String> {
+		val trimmedName = entryName.trim()
+		val seen = mutableSetOf<String>()
+		return aliases.asSequence()
 			.map { it.trim() }
-			.map {
-				if (it.startsWith("#")) {
-					it.substring(1)
-				} else {
-					it
-				}
-			}
 			.filter { it.isNotEmpty() }
-			.filter { regex.matches(it) }
-			.toSet()
+			.filter { it != trimmedName }
+			.filter { seen.add(it) }
+			.toList()
 	}
 
 	override fun onScopeClose(scope: Scope) {

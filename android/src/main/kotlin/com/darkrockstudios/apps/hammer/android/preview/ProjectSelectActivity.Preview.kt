@@ -79,9 +79,13 @@ val component = object : ProjectSelection {
 			)
 		)
 
+	override val navRailState: Value<ProjectSelection.NavRailState> =
+		MutableValue(ProjectSelection.NavRailState(expanded = false))
+
 	override fun isAtRoot() = false
 	override fun onBack() {}
 	override fun showLocation(location: ProjectSelection.Locations) {}
+	override fun toggleNavRailExpanded() {}
 	override val backHandler = dummyBackHandler
 }
 

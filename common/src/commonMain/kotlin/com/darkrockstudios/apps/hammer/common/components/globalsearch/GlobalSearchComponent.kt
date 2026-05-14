@@ -12,12 +12,19 @@ class GlobalSearchComponent(
 	projectDef: ProjectDef,
 	private val onDismiss: () -> Unit,
 	private val navigateToResult: (SearchResult) -> Unit,
+	initialQuery: String? = null,
 ) : ProjectComponentBase(projectDef, componentContext), GlobalSearch {
 
 	private val searchRepository: GlobalSearchRepository by projectInject()
 
 	override val state: Value<GlobalSearch.State>
 		get() = searchRepository.state
+
+	init {
+		if (!initialQuery.isNullOrBlank()) {
+			searchRepository.setQuery(initialQuery)
+		}
+	}
 
 	override fun onQueryChanged(query: String) {
 		searchRepository.setQuery(query)

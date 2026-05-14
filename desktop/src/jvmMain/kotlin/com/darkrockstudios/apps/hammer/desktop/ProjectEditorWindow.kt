@@ -1,19 +1,24 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.*
+import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.window.FrameWindowScope
+import androidx.compose.ui.window.MenuBar
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -21,19 +26,25 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.globalsearch.globalSearchShortcutModifier
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
-import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
+import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
+import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,19 +60,19 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	val backDispatcher = BackDispatcher()
 	val lifecycle = remember { LifecycleRegistry() }
 	val compContext = remember { DefaultComponentContext(lifecycle = lifecycle, backHandler = backDispatcher) }
-	val windowState = rememberWindowState(size = coerceWindowSize(1000.dp, 1200.dp))
+	val windowState = rememberPersistedWindowState(
+		WindowGeometryStore.Window.ProjectRoot,
+		defaultSize = coerceWindowSize(1400.dp, 1200.dp),
+	)
 	val closeRequest by app.closeRequest.subscribeAsState()
 
 	val component = remember<ProjectRoot> {
 		ProjectRootComponent(
 			componentContext = compContext,
 			projectDef = projectDef,
-			addMenu = { menu ->
-				app.addMenu(menu)
-			},
-			removeMenu = { menuId ->
-				app.removeMenu(menuId)
-			}
+			addMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
+			removeMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
+			onCloseProject = { app.showConfirmProjectClose(ApplicationState.CloseType.Project) },
 		)
 	}
 
@@ -74,27 +85,46 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		component.cancelCloseRequest()
 	}
 
-	Window(
-		title = Res.string.project_window_title.get(projectDef.name),
+	val windowTitle = Res.string.project_window_title.get(projectDef.name)
+	DecoratedWindow(
+		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		onKeyEvent = { event ->
-			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
-				backDispatcher.back()
-			} else {
-				false
+			when {
+				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
+					backDispatcher.back()
+				}
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.F &&
+					event.isShiftPressed &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					component.showGlobalSearch()
+					true
+				}
+				else -> false
 			}
 		}
 	) {
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 
-		Column {
-			EditorMenuBar(component, app, ::onRequestClose)
-
-			AppContent(component)
+		TitleBar {
+			Text(
+				text = windowTitle,
+				color = LocalTitleBarStyle.current.colors.content,
+				modifier = Modifier.align(Alignment.CenterHorizontally),
+			)
 		}
+
+		// The old menu bar approach
+//		Column {
+//			EditorMenuBar(component, app, ::onRequestClose)
+//
+//			AppContent(component)
+//		}
+		AppContent(component)
 
 		LaunchedEffect(closeRequest) {
 			if (closeRequest != ApplicationState.CloseType.None) {
@@ -192,37 +222,45 @@ private fun FrameWindowScope.EditorMenuBar(
 
 @Composable
 private fun AppContent(component: ProjectRoot) {
-	val destinations = remember { ProjectRoot.DestinationTypes.entries }
 	val router by component.routerState.subscribeAsState()
+	val themeState by component.projectTheme.subscribeAsState()
+	val navRailState by component.navRailState.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	Box(modifier = Modifier.globalSearchShortcutModifier { component.showGlobalSearch() }) {
-		Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-			NavigationRail(modifier = Modifier.padding(top = Ui.Padding.M)) {
-				destinations.forEach { item ->
-					NavigationRailItem(
-						icon = { Icon(imageVector = getDestinationIcon(item), contentDescription = item.text.get()) },
-						label = { Text(item.text.get()) },
-						selected = router.active.instance.getLocationType() == item,
-						onClick = { component.showDestination(item) }
-					)
-				}
+	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
+
+	ProjectThemeOverride(themeState.theme) {
+		Box {
+			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+				HdNavRail(
+					destinations = destinations,
+					selectedId = router.active.instance.getLocationType(),
+					onSelect = { component.showDestination(it) },
+					expanded = navRailState.expanded,
+					onToggleExpanded = { component.toggleNavRailExpanded() },
+					footer = {
+						HdMonoLabel(
+							text = "v${BuildMetadata.APP_VERSION}",
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					},
+				)
+
+				ProjectRootUi(component, rootSnackbar)
 			}
 
-			ProjectRootUi(component, rootSnackbar)
-		}
-
-		SnackbarHost(
-			rootSnackbar.snackbarHostState,
-			modifier = Modifier
-				.align(Alignment.BottomCenter)
-				.padding(bottom = Ui.Padding.XL)
-		)
-
-		Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
-			ProjectRootFab(
-				component
+			SnackbarHost(
+				rootSnackbar.snackbarHostState,
+				modifier = Modifier
+					.align(Alignment.BottomCenter)
+					.padding(bottom = Ui.Padding.XL)
 			)
+
+			Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
+				ProjectRootFab(
+					component
+				)
+			}
 		}
 	}
 }

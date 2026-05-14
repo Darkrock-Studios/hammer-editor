@@ -43,8 +43,10 @@ class ClientProjectSynchronizer(
 		projectScope.get<CollateIdsOperation>(),
 		projectScope.get<BackupOperation>(),
 		projectScope.get<IdConflictResolutionOperation>(),
+		projectScope.get<ProjectDataSyncOperation>(),
 		projectScope.get<EntityDeleteOperation>(),
 		projectScope.get<EntityTransferOperation>(),
+		projectScope.get<WritingActivitySyncOperation>(),
 		projectScope.get<FinalizeSyncOperation>(),
 	)
 

@@ -9,6 +9,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import getProject1Def
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -46,6 +49,9 @@ class ViewEntryComponentTest : BaseTest() {
 
 		val testModule = module {
 			single { encyclopediaRepository } bind EncyclopediaRepository::class
+			single<ReferenceIndexService> { mockk(relaxed = true) }
+			single<SceneEditorRepository> { mockk(relaxed = true) }
+			single<BackfillEntryReferencesUseCase> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -84,7 +90,9 @@ class ViewEntryComponentTest : BaseTest() {
 			entryDef = origDef,
 			addMenu = {},
 			removeMenu = {},
-			closeEntry = {}
+			closeEntry = {},
+			showScene = {},
+			onShowGlobalSearchForTag = {},
 		)
 
 		val result = comp.updateEntry(
@@ -122,7 +130,9 @@ class ViewEntryComponentTest : BaseTest() {
 			entryDef = origDef,
 			addMenu = {},
 			removeMenu = {},
-			closeEntry = {}
+			closeEntry = {},
+			showScene = {},
+			onShowGlobalSearchForTag = {},
 		)
 
 		val result = comp.updateEntry(

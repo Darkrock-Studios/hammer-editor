@@ -50,6 +50,7 @@ class ClientTimelineSynchronizer(
 				order = event.order,
 				date = event.date,
 				content = event.content,
+				tags = event.tags,
 			)
 		} else {
 			null
@@ -65,7 +66,8 @@ class ClientTimelineSynchronizer(
 			id = id,
 			order = event.order,
 			date = event.date,
-			content = event.content
+			content = event.content,
+			tags = event.tags,
 		)
 	}
 
@@ -83,6 +85,7 @@ class ClientTimelineSynchronizer(
 			order = serverEntity.order,
 			date = serverEntity.date,
 			content = serverEntity.content,
+			tags = serverEntity.tags,
 		)
 
 		timeLineRepository.updateEventForSync(event)

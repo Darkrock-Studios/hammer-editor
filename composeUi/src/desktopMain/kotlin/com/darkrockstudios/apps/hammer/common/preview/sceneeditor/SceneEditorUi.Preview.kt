@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
@@ -54,6 +55,15 @@ private fun fakeComponent() = object : SceneEditor {
 		override fun updateNotes(text: String) {}
 		override fun updateDraftName(text: String) {}
 		override fun validateDraftName(text: String) = true
+		override fun dismissReference(entryId: Int) {}
+		override fun restoreDismissedReference(entryId: Int) {}
+		override fun addConfirmedReference(entryId: Int) {}
+		override fun searchEntriesForAdd(query: String, maxResults: Int) = emptyList<SceneMetadataPanel.AddSuggestion>()
+		override fun navigateToEntry(entryDef: EntryDef) {}
+		override fun addTags(input: String) {}
+		override fun removeTag(tag: String) {}
+		override fun showGlobalSearchForTag(tag: String) {}
+		override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 	}
 
 	override fun addEditorMenu() {}
@@ -84,7 +94,10 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginDiscard() {}
 	override fun endDiscard() {}
 	override fun doDiscard() {}
-	override fun toggleMetadataVisibility() {}
+	override fun toggleMetadataPanelVisible() {}
+	override fun toggleMetadataModal() {}
+	override fun setLayoutMode(isWide: Boolean) {}
+
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}
 	override fun resetTextSize() {}

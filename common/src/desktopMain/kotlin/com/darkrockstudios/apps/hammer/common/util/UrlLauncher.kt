@@ -16,7 +16,7 @@ class UrlLauncherDesktop : UrlLauncher {
 
 			"mac" in osName -> Runtime.getRuntime().exec("open $url")
 			"nix" in osName || "nux" in osName -> Runtime.getRuntime().exec("xdg-open $url")
-			else -> throw RuntimeException("cannot open $url")
+			else -> throw UnsupportedOperationException("cannot open $url")
 		}
 	}
 }
