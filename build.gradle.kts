@@ -178,7 +178,7 @@ tasks.register("prepareForRelease") {
 		// Switch to release and reset to origin/release HEAD
 		git("checkout", "release")
 		git("reset", "--hard", "origin/release")
-		git("merge", "develop")
+		git("merge", "-X", "theirs", "develop")
 
 		// Create the release tag
 		git("tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
