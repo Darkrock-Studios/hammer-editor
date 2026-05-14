@@ -6,6 +6,8 @@ on:
 jobs:
   publish-google-play:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       BUILD_NUMBER: ${{ github.run_number }}
       RELEASE_BUILD: true
@@ -56,9 +58,22 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      - name: Publish F-Droid
+      - name: Create F-Droid tag
         run: |
-          ./gradlew publishFdroid
+          VERSION=${{ github.event.release.tag_name }}
+          VERSION=${VERSION#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
+          FDROID_TAG="fdroid-${VERSION_CODE}"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin release
+          git checkout release
+          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
+          git push origin tag "$FDROID_TAG"
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
