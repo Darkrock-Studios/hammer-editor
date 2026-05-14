@@ -39,6 +39,19 @@ class NotesRepository(
 
 	private var _notes = mutableListOf<NoteContainer>()
 
+	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+		replay = 1
+	)
+	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
+
+	private val _noteContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val noteContentChangedFlow: SharedFlow<Unit> = _noteContentChangedFlow
+
 	init {
 		projectScope.scope.registerCallback(this)
 		loadNotes()
@@ -60,19 +73,6 @@ class NotesRepository(
 		val foundContainer = _notes.find { it.note.id == id }
 		return foundContainer?.note
 	}
-
-	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		replay = 1
-	)
-	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
-
-	private val _noteContentChangedFlow = MutableSharedFlow<Unit>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST,
-	)
-	val noteContentChangedFlow: SharedFlow<Unit> = _noteContentChangedFlow
 
 	private suspend fun updateNotes(notes: List<NoteContainer>) {
 		_notes = notes.toMutableList()
