@@ -1,3 +1,8 @@
+// Top-level functions in this file are wired to HTML elements from mustache
+// templates (onclick=..., hx-* attributes) — ESLint can't see those references.
+/* eslint-disable no-unused-vars */
+/* global htmx */
+
 // Pen Name validation state
 const PenNameState = {
 	MIN_LENGTH: 4,

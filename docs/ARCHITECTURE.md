@@ -98,11 +98,11 @@ flowchart TD
     style Datasources fill:#6666FC, stroke:#1111AA, color:#FFFFFF
 ```
 
-### Routes
+### Server Routes
 These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Repositories, and then marshal data back into HTTP responses.
 
-### Repositories
+### Server Repositories
 These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above.
 
-### Datasource
+### Server Datasource
 Stateless classes for accessing Data.
