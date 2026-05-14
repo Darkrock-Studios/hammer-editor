@@ -1,5 +1,8 @@
 import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.registerLinuxDistributionTasks
 import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.updateFlatpakFiles
+import com.darkrockstudios.build.updateSnapcraftYaml
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
@@ -74,6 +77,7 @@ plugins {
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
+	alias(libs.plugins.flatpak.gradle.generator) apply false
 }
 
 dependencies {
@@ -91,6 +95,7 @@ kover {
 }
 
 registerPublishTasks()
+registerLinuxDistributionTasks(libs.versions.app.get())
 
 val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
@@ -124,8 +129,15 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	}
 }
 
+// Ensure flatpak generator runs after pre-flight checks
+project(":desktop").tasks.configureEach {
+	if (name == "flatpakGradleGenerator") {
+		mustRunAfter(releasePreFlightChecks)
+	}
+}
+
 tasks.register("prepareForRelease") {
-	dependsOn(releasePreFlightChecks)
+	dependsOn(releasePreFlightChecks, ":desktop:flatpakGradleGenerator")
 	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
@@ -158,6 +170,19 @@ tasks.register("prepareForRelease") {
 		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
 		writeChangelogMarkdown(releaseInfo, globalChangelogFile)
 
+		// Update snapcraft.yaml with new version and JVM version
+		val snapcraftPath = "snap/snapcraft.yaml".replace("/", File.separator)
+		val snapcraftFile = project.rootDir.resolve(snapcraftPath)
+		val jvmVersion = libs.versions.jvm.get()
+		updateSnapcraftYaml(releaseInfo.semVar, jvmVersion, snapcraftFile)
+
+		// Update Flatpak manifest and metainfo with new version and JVM version
+		val flatpakManifestPath = "flatpak/studio.darkrock.hammer.yaml".replace("/", File.separator)
+		val flatpakManifestFile = project.rootDir.resolve(flatpakManifestPath)
+		val flatpakMetainfoPath = "flatpak/studio.darkrock.hammer.metainfo.xml".replace("/", File.separator)
+		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
+		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
+
 		fun git(vararg args: String) {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
@@ -176,6 +201,12 @@ tasks.register("prepareForRelease") {
 		git("add", changeLogFile.absolutePath)
 		git("add", versionsFile.absolutePath)
 		git("add", globalChangelogFile.absolutePath)
+		git("add", snapcraftFile.absolutePath)
+		git("add", flatpakManifestFile.absolutePath)
+		git("add", flatpakMetainfoFile.absolutePath)
+		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
+		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
+		git("add", flatpakSourcesFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
 		// Switch to release and reset to origin/release HEAD

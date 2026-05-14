@@ -112,8 +112,6 @@ cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-pr
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
-jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrains_compose" }
-jetbrains_compose_desktop = { module = "org.jetbrains.compose.desktop:desktop", version.ref = "jetbrains_compose" }
 
 coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
@@ -294,7 +292,6 @@ buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
 aboutlibraries_plugin_android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
 flatpak_gradle_generator = { id = "io.github.jwharm.flatpak-gradle-generator", version.ref = "flatpak-gradle-generator" }
-nucleus = { id = "io.github.kdroidfilter.nucleus", version.ref = "nucleus" }
 
 [bundles]
 koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]
