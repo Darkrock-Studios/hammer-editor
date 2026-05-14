@@ -103,6 +103,14 @@ jobs:
       - name: Build MSIX package
         run: ./gradlew :desktop:packageMsix
 
+      - name: Upload Gradle problems report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-problems-report
+          path: build/reports/problems/problems-report.html
+          if-no-files-found: ignore
+
       - name: Submit to Microsoft Store
         shell: pwsh
         env:
