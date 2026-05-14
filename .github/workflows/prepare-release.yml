@@ -45,14 +45,37 @@ jobs:
 
       - name: Stage Windows artifacts
         shell: pwsh
+        # Nucleus splits store formats (AppX) into a sandboxed pipeline whose
+        # output path uses a `-sandboxed` suffix somewhere — exact location
+        # not pinned down in docs. Search the whole binaries tree by
+        # extension to be robust to either layout.
         run: |
           $stage = "$env:GITHUB_WORKSPACE\release-artifacts"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          $root = "desktop\build\compose\binaries\main-release"
-          Get-ChildItem -Path "$root\msi" -Filter *.msi -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.msi"
-          Get-ChildItem -Path "$root\exe" -Filter *.exe -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.exe"
-          Get-ChildItem -Path "$root\portable" -Filter *.exe -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer-portable.exe"
-          Get-ChildItem -Path "$root\appx" -Include *.appx,*.msix -Recurse | Select-Object -First 1 | Copy-Item -Destination "$stage\hammer.appx"
+          $root = "desktop\build\compose\binaries"
+          function Find-And-Copy([string]$pattern, [string[]]$excludePatterns, [string]$dest) {
+            $hit = Get-ChildItem -Path $root -Filter $pattern -Recurse -File |
+              Where-Object {
+                $path = $_.FullName
+                -not ($excludePatterns | Where-Object { $path -like "*$_*" })
+              } |
+              Select-Object -First 1
+            if (-not $hit) { throw "No file matching $pattern under $root" }
+            Copy-Item $hit.FullName -Destination $dest
+          }
+          # Find one MSI; one EXE that's NOT the portable; the portable EXE;
+          # and the AppX/MSIX.
+          Find-And-Copy "*.msi" @() "$stage\hammer.msi"
+          $allExes = Get-ChildItem -Path $root -Filter *.exe -Recurse -File
+          $installerExe = $allExes | Where-Object { $_.FullName -notlike "*portable*" } | Select-Object -First 1
+          $portableExe  = $allExes | Where-Object { $_.FullName -like     "*portable*" } | Select-Object -First 1
+          if (-not $installerExe) { throw "No NSIS exe found" }
+          if (-not $portableExe)  { throw "No portable exe found" }
+          Copy-Item $installerExe.FullName -Destination "$stage\hammer.exe"
+          Copy-Item $portableExe.FullName  -Destination "$stage\hammer-portable.exe"
+          $appx = Get-ChildItem -Path $root -Include *.appx,*.msix -Recurse -File | Select-Object -First 1
+          if (-not $appx) { throw "No AppX/MSIX found" }
+          Copy-Item $appx.FullName -Destination "$stage\hammer.appx"
           Get-ChildItem $stage
 
       - name: Create Release
@@ -113,15 +136,25 @@ jobs:
           :desktop:packageReleaseFlatpak
 
       - name: Stage Linux artifacts
+        # Nucleus splits store formats (Flatpak) into a sandboxed pipeline
+        # whose output path uses a `-sandboxed` suffix; search the whole
+        # binaries tree by extension to be robust to either layout.
         run: |
           STAGE="$GITHUB_WORKSPACE/release-artifacts"
           mkdir -p "$STAGE"
-          ROOT="desktop/build/compose/binaries/main-release"
-          cp "$(find "$ROOT/deb" -maxdepth 2 -type f -name '*.deb' | head -1)" "$STAGE/hammer.deb"
-          cp "$(find "$ROOT/rpm" -maxdepth 2 -type f -name '*.rpm' | head -1)" "$STAGE/hammer.rpm"
-          cp "$(find "$ROOT/appimage" -maxdepth 2 -type f -name '*.AppImage' | head -1)" "$STAGE/hammer.AppImage"
-          cp "$(find "$ROOT/snap" -maxdepth 2 -type f -name '*.snap' | head -1)" "$STAGE/hammer.snap"
-          cp "$(find "$ROOT/flatpak" -maxdepth 2 -type f -name '*.flatpak' | head -1)" "$STAGE/hammer.flatpak"
+          ROOT="desktop/build/compose/binaries"
+          first() { find "$ROOT" -type f -name "$1" | head -1; }
+          require() {
+            local found=$1 name=$2
+            if [ -z "$found" ] || [ ! -f "$found" ]; then
+              echo "No file matching $name found under $ROOT" >&2; exit 1
+            fi
+          }
+          for pair in "*.deb|hammer.deb" "*.rpm|hammer.rpm" "*.AppImage|hammer.AppImage" "*.snap|hammer.snap" "*.flatpak|hammer.flatpak"; do
+            glob=${pair%|*}; out=${pair#*|}
+            src=$(first "$glob"); require "$src" "$glob"
+            cp "$src" "$STAGE/$out"
+          done
           ls -la "$STAGE"
 
       - name: Create Release
@@ -169,12 +202,19 @@ jobs:
           :desktop:packageReleasePkg
 
       - name: Stage macOS artifacts
+        # PKG runs through Nucleus's sandboxed pipeline (Mac App Store target);
+        # output path uses a `-sandboxed` suffix. Search the whole binaries
+        # tree by extension to be robust to either layout.
         run: |
           STAGE="$GITHUB_WORKSPACE/release-artifacts"
           mkdir -p "$STAGE"
-          ROOT="desktop/build/compose/binaries/main-release"
-          cp "$(find "$ROOT/dmg" -maxdepth 2 -type f -name '*.dmg' | head -1)" "$STAGE/hammer.dmg"
-          cp "$(find "$ROOT/pkg" -maxdepth 2 -type f -name '*.pkg' | head -1)" "$STAGE/hammer.pkg"
+          ROOT="desktop/build/compose/binaries"
+          DMG=$(find "$ROOT" -type f -name '*.dmg' | head -1)
+          PKG=$(find "$ROOT" -type f -name '*.pkg' | head -1)
+          [ -f "$DMG" ] || { echo "No .dmg found"; exit 1; }
+          [ -f "$PKG" ] || { echo "No .pkg found"; exit 1; }
+          cp "$DMG" "$STAGE/hammer.dmg"
+          cp "$PKG" "$STAGE/hammer.pkg"
           ls -la "$STAGE"
 
       - name: Create Release
