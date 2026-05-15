@@ -183,8 +183,9 @@ jobs:
           Write-Host "Committing submission..."
           $headers = @{
             Authorization = "Bearer $accessToken"
+            "Content-Type" = "application/json"
           }
-          Invoke-RestMethod -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID/submissions/$submissionId/commit" -Method POST -Headers $headers
+          Invoke-RestMethod -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID/submissions/$submissionId/commit" -Method POST -Headers $headers -ContentType "application/json"
           
           Write-Host "✓ Submission committed successfully!"
 
