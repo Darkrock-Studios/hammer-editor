@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.preview
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.CollapsableSection
 import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 

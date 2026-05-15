@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
@@ -27,6 +28,14 @@ class TimeLineOverviewUiTest : BaseTest() {
 		}
 		every { stateValue.value } returns data
 		every { component.state } returns stateValue
+
+		val tagsObserver = slot<(List<TagCount>) -> Unit>()
+		val tagsValue: Value<List<TagCount>> = mockk()
+		every { tagsValue.subscribe(capture(tagsObserver)) } returns mockk<Cancellation>().apply {
+			every { cancel() } just Runs
+		}
+		every { tagsValue.value } returns emptyList()
+		every { component.rankedTags } returns tagsValue
 
 		return component
 	}
@@ -147,8 +156,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = viewEvent,
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = { viewEvent(event.id) },
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -156,7 +167,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithText(date).assertIsDisplayed()
+		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 
 		compose.onNodeWithTag(EVENT_CARD_TAG).performClick()
@@ -180,8 +191,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -189,7 +202,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithText(date).assertIsDisplayed()
+		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
@@ -209,8 +222,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -218,7 +233,8 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithTag(EVENT_CARD_DATE_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("UNDATED").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
@@ -238,8 +254,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				AnimatedVisibility(visible = true) {
 					EventCard(
 						event = event,
-						isDragging = false,
-						viewEvent = {},
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)

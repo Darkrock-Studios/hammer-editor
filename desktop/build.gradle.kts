@@ -18,7 +18,10 @@ version = libs.versions.app.get()
 
 
 kotlin {
-	jvmToolchain(libs.versions.jvm.get().toInt())
+	jvmToolchain {
+		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+		vendor.set(JvmVendorSpec.JETBRAINS)
+	}
 	jvm()
 	sourceSets {
 		all {
@@ -32,6 +35,7 @@ kotlin {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.aboutlibraries.core)
+				implementation(libs.multiplatform.settings)
 			}
 		}
 		val jvmMain by getting {
@@ -39,10 +43,11 @@ kotlin {
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
-				implementation(compose.preview)
+				implementation(compose.components.uiToolingPreview)
 				implementation(compose.desktop.currentOs)
-				implementation(libs.darklaf.core)
 				implementation(libs.kotlinx.cli)
+				implementation(libs.nucleus.darkmode.detector)
+				implementation(libs.nucleus.decorated.window.jbr)
 			}
 		}
 		val jvmTest by getting {
@@ -54,8 +59,15 @@ kotlin {
 	}
 }
 
+// Pin jpackage's bundled runtime to the JetBrains Runtime.
+val jbrLauncher = javaToolchains.launcherFor {
+	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+	vendor.set(JvmVendorSpec.JETBRAINS)
+}
+
 compose.desktop {
 	application {
+		javaHome = jbrLauncher.get().metadata.installationPath.asFile.absolutePath
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(
@@ -74,7 +86,7 @@ compose.desktop {
 			description = "A simple tool for building stories."
 			copyright = "© 2025 Adam W. Brown, All rights reserved."
 			licenseFile.set(project.file("../LICENSE"))
-			outputBaseDir.set(project.buildDir.resolve("installers"))
+			outputBaseDir.set(project.layout.buildDirectory.dir("installers"))
 
 			windows {
 				menuGroup = "Hammer"
@@ -137,9 +149,10 @@ tasks.register("packageMsix") {
 		val appVersion = libs.versions.app.get()
 		val msixVersion = "$appVersion.0" // MSIX requires 4-part version
 
-		val distributableDir = project.buildDir.resolve("installers/main/app/hammer")
+		val buildDir = project.layout.buildDirectory.get().asFile
+		val distributableDir = buildDir.resolve("installers/main/app/hammer")
 		val msixDir = project.rootDir.resolve("msix")
-		val outputMsix = project.buildDir.resolve("installers/Hammer-${appVersion}.msix")
+		val outputMsix = buildDir.resolve("installers/Hammer-${appVersion}.msix")
 
 		// Copy manifest
 		println("Copying AppxManifest.xml...")
@@ -172,7 +185,7 @@ tasks.register("packageMsix") {
 		}
 
 		println("Packaging MSIX with makeappx...")
-		val result = exec {
+		val result = project.providers.exec {
 			commandLine(
 				makeappxPath,
 				"pack",
@@ -180,7 +193,8 @@ tasks.register("packageMsix") {
 				"/p", outputMsix.absolutePath,
 				"/o"
 			)
-		}
+			isIgnoreExitValue = true
+		}.result.get()
 
 		if (result.exitValue == 0) {
 			println("✓ MSIX package created successfully!")
@@ -194,25 +208,34 @@ tasks.register("packageMsix") {
 }
 
 fun findMakeAppx(): String? {
-	// Common Windows SDK locations
 	val searchPaths = listOf(
 		"C:\\Program Files (x86)\\Windows Kits\\10\\bin",
 		"C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
 	)
 
+	// Prefer x64 over x86/arm/arm64 — walk() ordering is filesystem-dependent
+	// and on some runners the arm64 copy is encountered first.
+	val archPriority = listOf("x64", "x86", "arm", "arm64")
+
+	val candidates = mutableListOf<java.io.File>()
 	for (basePath in searchPaths) {
 		val baseDir = file(basePath)
 		if (baseDir.exists()) {
-			// Search in bin subdirectories (e.g., 10.0.22621.0/x64/)
-			baseDir.walk().forEach { file ->
-				if (file.name == "makeappx.exe") {
-					return file.absolutePath
+			baseDir.walk().forEach { f ->
+				if (f.name == "makeappx.exe") {
+					candidates += f
 				}
 			}
 		}
 	}
 
-	return null
+	return candidates
+		.sortedBy { f ->
+			val arch = f.parentFile?.name?.lowercase() ?: ""
+			archPriority.indexOf(arch).let { if (it == -1) Int.MAX_VALUE else it }
+		}
+		.firstOrNull()
+		?.absolutePath
 }
 
 tasks.named("flatpakGradleGenerator") {

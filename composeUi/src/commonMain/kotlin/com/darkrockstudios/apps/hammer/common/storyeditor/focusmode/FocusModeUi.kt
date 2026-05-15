@@ -11,7 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -20,15 +24,16 @@ import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.EditorToolBar
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
+import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -90,11 +95,10 @@ fun FocusModeUi(component: FocusMode) {
 					.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
-				EditorToolBar(
+				MarkdownFormatBar(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
-					resetTextSize = component::resetTextSize,
 					modifier = Modifier.weight(1f),
 				)
 
@@ -129,6 +133,12 @@ fun FocusModeUi(component: FocusMode) {
 					state = textEditorState,
 					contentPadding = PaddingValues(Ui.Padding.XL),
 					enabled = hasReceivedInitialBuffer,
+					style = rememberTextEditorStyle(
+						textStyle = TextStyle.Default.copy(
+							textIndent = TextIndent(firstLine = 24.sp)
+						),
+						focusedBorderColor = Color.Transparent,
+					),
 					modifier = Modifier
 						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 						.fillMaxHeight()

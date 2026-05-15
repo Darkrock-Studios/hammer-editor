@@ -5,15 +5,19 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import org.jetbrains.compose.resources.StringResource
 
@@ -24,6 +28,11 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
+	val projectTheme: Value<ProjectThemeState>
+	val navRailState: Value<NavRailState>
+
+	data class ProjectThemeState(val theme: ProjectTheme?)
+	data class NavRailState(val expanded: Boolean)
 
 	fun showEditor()
 	fun showNotes()
@@ -31,10 +40,18 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun showHome()
 	fun showTimeLine()
 	fun showDestination(type: DestinationTypes)
+	fun toggleNavRailExpanded()
 	fun isAtRoot(): Boolean
 
 	fun showProjectSync()
 	fun dismissProjectSync()
+
+	fun showGlobalSearch()
+	fun showGlobalSearchForTag(tag: String)
+	fun dismissGlobalSearch()
+
+	fun showFocusMode(sceneItem: SceneItem)
+	fun dismissFocusMode()
 
 	sealed class Destination<T : Router> : Router {
 		abstract val component: T
@@ -72,14 +89,18 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class ProjectSync(val component: ProjectSynchronization) : ModalDestination()
 
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
+
+		data class GlobalSearchModal(val component: GlobalSearch) : ModalDestination()
+
+		data class FocusModeModal(val component: FocusMode) : ModalDestination()
 	}
 
-	enum class DestinationTypes(val text: StringResource) {
-		Home(Res.string.project_nav_home),
-		Editor(Res.string.project_nav_scene_editor),
-		Notes(Res.string.project_nav_notes),
-		Encyclopedia(Res.string.project_nav_encyclopedia),
-		TimeLine(Res.string.project_nav_time_line),
+	enum class DestinationTypes(val text: StringResource, val shortText: StringResource) {
+		Home(Res.string.project_nav_home, Res.string.project_nav_home_short),
+		Editor(Res.string.project_nav_scene_editor, Res.string.project_nav_scene_editor_short),
+		Notes(Res.string.project_nav_notes, Res.string.project_nav_notes_short),
+		Encyclopedia(Res.string.project_nav_encyclopedia, Res.string.project_nav_encyclopedia_short),
+		TimeLine(Res.string.project_nav_time_line, Res.string.project_nav_time_line_short),
 	}
 
 	fun closeRequestDealtWith(item: CloseConfirm)

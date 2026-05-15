@@ -288,7 +288,81 @@ sequenceDiagram
 ```
 Note that the resolved `ApiProjectEntity` in the `force` request does not have to be exclusively the Client's or Server's copy, it can be a merging between the two that the client helped the user create.
 
-## Client Operations Sequence 
+## Project Data Sync (non-entity blob)
+
+In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal). This blob is synced as its own phase, inserted into the pipeline immediately *before* entity transfer so the project's identity is settled before any entity churn.
+
+The blob is a structured object — see `ProjectData` in the `base` module — but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: GET /project/$userId/$projectName/project_data
+    activate Server
+    Server -->> Client: 200 ProjectDataDto OR 204 No Content
+    deactivate Server
+
+    alt Local clean since last sync, server changed
+        Note right of Client: Fast-forward — adopt server state, save lastSyncedHash
+    else Both sides changed
+        Client->>Server: POST /project_data
+        Note right of Client: { data, originalHash = lastSyncedHash }
+        activate Server
+        alt Hashes match
+            Server -->> Client: 200 ProjectDataDto
+        else Conflict
+            Server -->> Client: 409 ProjectDataConflictDto
+            Note right of Client: User resolves per-field
+            Client->>Server: POST /project_data
+            Note right of Client: { data = resolved, originalHash = serverHash }
+            Server -->> Client: 200 ProjectDataDto
+        end
+        deactivate Server
+    end
+```
+
+Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
+
+## Writing Activity Sync (per-device slots)
+
+After entity transfer, the client syncs **writing activity** — an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every device's log, keyed by `deviceId`.
+
+The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* device slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data — each device is the sole writer of its slot, so there is nothing to conflict on across devices.
+
+For the device's own slot, `mergeOwnSlotSessions` (see [SessionMerge.kt](common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/writingactivity/SessionMerge.kt)) unions sessions by `startedAt`. On collision it keeps the higher `wordsWritten`, the later `endedAt`, and `sealed = local || remote` (sealing is one-way).
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: GET /api/project/$userId/$projectName/writing_activity
+    activate Server
+    Server -->> Client: 200 WritingActivityResponse
+    deactivate Server
+    Note left of Server: { deviceId → DeviceLog }
+
+    Note right of Client: Overwrite local copies of<br/>foreign device slots.<br/>Merge own slot with server's copy.
+
+    Client->>Server: POST /api/project/$userId/$projectName/writing_activity/$deviceId
+    activate Server
+    Note right of Client: DeviceLog (own slot, merged)
+    Server -->> Client: 200 OK
+    deactivate Server
+```
+
+Endpoints (both take `projectId` as a query parameter):
+
+- `GET  /api/project/{userId}/{projectName}/writing_activity` → `WritingActivityResponse` (`Map<deviceId, DeviceLog>`)
+- `POST /api/project/{userId}/{projectName}/writing_activity/{deviceId}` body: `DeviceLog`
+
+Data shapes (`WritingSession`, `DeviceLog`, `WritingActivityResponse`) live in [WritingSession.kt](base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
+
+Both GET and POST failures are logged and swallowed: the writing-activity phase never fails the surrounding project sync. Activity data is auxiliary observability — a transient network or server error must not block the user's actual content from syncing. Local state is left untouched on a failed GET, so the next sync simply tries again.
+
+## Client Operations Sequence
 Beyond the network side of the Protocol, the Client is doing a bit of work to ensure data loss is not possible, and to work out what should be done with the minimal book keeping data it has.
 
 ```mermaid
@@ -298,9 +372,11 @@ flowchart TD
     C --> D[CollateIds]
     D --> E[Backup]
     E --> F[IdConflictResolution]
-    F --> G[EntityDelete]
+    F --> P[ProjectDataSync]
+    P --> G[EntityDelete]
     G --> H[EntityTransfer]
-    H --> I[FinalizeSync]
+    H --> W[WritingActivitySync]
+    W --> I[FinalizeSync]
 ```
 
 ## Terminology

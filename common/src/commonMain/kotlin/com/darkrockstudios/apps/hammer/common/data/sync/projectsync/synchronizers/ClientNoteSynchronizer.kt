@@ -52,6 +52,7 @@ class ClientNoteSynchronizer(
 			id = noteContainer.note.id,
 			created = noteContainer.note.created,
 			content = noteContainer.note.content,
+			tags = noteContainer.note.tags,
 		)
 	}
 
@@ -62,6 +63,7 @@ class ClientNoteSynchronizer(
 			id = id,
 			created = note.created,
 			content = note.content,
+			tags = note.tags,
 		)
 	}
 
@@ -74,6 +76,7 @@ class ClientNoteSynchronizer(
 			id = serverEntity.id,
 			created = serverEntity.created,
 			content = serverEntity.content,
+			tags = serverEntity.tags,
 		)
 
 		notesRepository.updateNote(

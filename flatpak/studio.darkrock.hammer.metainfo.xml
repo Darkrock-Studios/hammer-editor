@@ -32,6 +32,32 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.0.0" date="2026-05-14">
+            <description>
+                <p>- Complete UI redesign!</p>
+                <p>- Global Search: Ctrl + Shift + F</p>
+                <p>- Tags on everything! Help organize your notes, scenes, and more</p>
+                <p>- Connections: Scenes now understand what Encylopedia entries are related to them</p>
+                <p>- Writing Activity Tracker: Keep motivate to keep writing!</p>
+                <p>- New Android widgets</p>
+                <p>- Rich Text support in Notes, Encylopedia, and Timeline</p>
+                <p>- Rewritten android text input</p>
+            </description>
+        </release>
+        <release version="2.2.0" date="2026-04-26">
+            <description>
+                <p>- Global Search across your entire story, with filters by entity type</p>
+                <p>- Text Editor improvements</p>
+                <p>- Import Story from file</p>
+                <p>- Export Options dialog with configurable export settings</p>
+                <p>- Focus Mode is now a fullscreen overlay, giving more writing space</p>
+                <p>- More project statistics</p>
+                <p>- Android: logs are now saved to disk and shareable as a zip</p>
+                <p>- Fixed encyclopedia entries not showing tags</p>
+                <p>- Fixed long project names hiding the menu</p>
+                <p>- Smoother dialog animations</p>
+            </description>
+        </release>
         <release version="2.1.4" date="2026-02-07">
             <description>
                 <p>- Fix more Android input issues</p>

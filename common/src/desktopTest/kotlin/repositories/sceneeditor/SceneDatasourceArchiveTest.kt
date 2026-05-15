@@ -73,7 +73,7 @@ class SceneDatasourceArchiveTest : BaseTest() {
 		assertTrue(ffs.exists(archivedDir), "Archived directory should exist")
 
 		val archivedFiles = ffs.list(archivedDir)
-		val archivedFile = archivedFiles.find { it.name.contains("-$sceneId") }
+		val archivedFile = archivedFiles.find { it.name.contains("~$sceneId") }
 		assertNotNull(archivedFile, "Archived scene file should exist")
 	}
 
@@ -88,7 +88,7 @@ class SceneDatasourceArchiveTest : BaseTest() {
 
 		// Verify it's in archived directory
 		val archivedDir = sceneDatasource.getArchivedDirectory().toOkioPath()
-		assertTrue(ffs.list(archivedDir).any { it.name.contains("-$sceneId") })
+		assertTrue(ffs.list(archivedDir).any { it.name.contains("~$sceneId") })
 
 		// Get the archived scene (with archived=true flag)
 		val archivedScenes = sceneDatasource.getArchivedScenes()
@@ -109,7 +109,7 @@ class SceneDatasourceArchiveTest : BaseTest() {
 		// Verify scene no longer exists in archived directory
 		val archivedFilesAfter = ffs.list(archivedDir)
 		assertFalse(
-			archivedFilesAfter.any { it.name.contains("-$sceneId") },
+			archivedFilesAfter.any { it.name.contains("~$sceneId") },
 			"Scene should not be in archived directory"
 		)
 

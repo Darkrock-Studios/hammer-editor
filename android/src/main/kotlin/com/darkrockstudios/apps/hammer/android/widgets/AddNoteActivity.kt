@@ -6,20 +6,35 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.activity.enableEdgeToEdge
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
@@ -27,9 +42,12 @@ import androidx.work.WorkManager
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
-import com.darkrockstudios.apps.hammer.common.compose.SpacerL
-import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -39,6 +57,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+
+private val DialogMaxWidth = 480.dp
 
 class AddNoteActivity : ComponentActivity(), KoinComponent {
 
@@ -55,11 +75,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 
 		val projectNameExtra = intent.extras?.getString(EXTRA_PROJECT_NAME)
-		val projectName = if (projectNameExtra.isNullOrBlank()) {
-			null
-		} else {
-			projectNameExtra
-		}
+		val projectName = if (projectNameExtra.isNullOrBlank()) null else projectNameExtra
 
 		val projects = projectsRepository.getProjects().map { projectDef ->
 			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
@@ -75,7 +91,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			finish()
 		} else {
 			val preselectedProject = projects.find { projectDef -> projectDef.name == projectName }
-			// Bail if we can't find the project
 			if (projectName != null && preselectedProject == null) {
 				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectName)
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
@@ -98,7 +113,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					UiTheme.FollowSystem -> isSystemInDarkTheme()
 				}
 
-				// Dynamic color is available on Android 12+
 				val localCtx = LocalContext.current
 				fun getDynamicColorScheme(useDark: Boolean): ColorScheme? {
 					val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -109,133 +123,44 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					}
 				}
 
-				BackHandler(true) {
-					if (noteText.isNotBlank()) {
-						confirmCancel = true
-					} else {
-						finish()
-					}
+				val tryCancel = {
+					if (noteText.isNotBlank()) confirmCancel = true else finish()
 				}
+
+				BackHandler(true) { tryCancel() }
 
 				AppTheme(
 					settings = settingsState,
 					useDarkTheme = isDark,
 					getOverrideColorScheme = ::getDynamicColorScheme
 				) {
-					Box(modifier = Modifier
-						.fillMaxWidth()
-						.systemBarsPadding()) {
-						if (confirmCancel.not()) {
-							OutlinedCard(
-								modifier = Modifier.height(IntrinsicSize.Min),
-								elevation = CardDefaults.outlinedCardElevation(Ui.Elevation.MEDIUM),
-							) {
-								Column(
-									modifier = Modifier
-										.padding(Ui.Padding.XL)
-										.width(IntrinsicSize.Min)
-								) {
-									Text(
-										stringResource(R.string.note_widget_dialog_title),
-										style = MaterialTheme.typography.headlineMedium,
-										color = MaterialTheme.colorScheme.onBackground
-									)
-
-									if (projectName == null) {
-										ProjectDropDownUi(projects) {
-											selectedProject = it
-										}
-									} else {
-										Text(
-											projectName,
-											style = MaterialTheme.typography.bodyLarge,
-											color = MaterialTheme.colorScheme.onBackground,
-											fontStyle = FontStyle.Italic
-										)
+					Box(
+						modifier = Modifier
+							.fillMaxWidth()
+							.systemBarsPadding()
+							.padding(Ui.Padding.M),
+						contentAlignment = Alignment.Center,
+					) {
+						if (!confirmCancel) {
+							AddNoteDialog(
+								projectName = projectName,
+								projects = projects,
+								preselectedProject = preselectedProject,
+								noteText = noteText,
+								onNoteTextChange = { noteText = it },
+								onProjectSelected = { selectedProject = it },
+								onCancel = tryCancel,
+								onSave = {
+									if (noteText.isNotBlank()) {
+										saveNote(preselectedProject ?: selectedProject, noteText)
 									}
-
-									SpacerL()
-
-									OutlinedTextField(
-										value = noteText,
-										onValueChange = { noteText = it },
-										modifier = Modifier.heightIn(128.dp),
-										maxLines = 10
-									)
-									SpacerL()
-									Row(
-										modifier = Modifier.fillMaxWidth(),
-										horizontalArrangement = Arrangement.SpaceBetween
-									) {
-										Button(
-											onClick = {
-												if (noteText.isNotBlank()) {
-													confirmCancel = true
-												} else {
-													finish()
-												}
-											}
-										) {
-											Text(stringResource(R.string.note_widget_dialog_cancel_button))
-										}
-
-										Button(
-											onClick = {
-												if (noteText.isNotBlank()) {
-													if (preselectedProject != null) {
-														saveNote(preselectedProject, noteText)
-													} else {
-														saveNote(selectedProject, noteText)
-													}
-												}
-											}
-										) {
-											Text(stringResource(R.string.note_widget_dialog_save_button))
-										}
-									}
-								}
-							}
+								},
+							)
 						} else {
-							OutlinedCard(
-								modifier = Modifier
-									.wrapContentSize()
-									.align(Alignment.Center),
-								elevation = CardDefaults.outlinedCardElevation(Ui.Elevation.MEDIUM),
-							) {
-								Column(
-									modifier = Modifier
-										.padding(Ui.Padding.XL)
-										.width(IntrinsicSize.Min)
-								) {
-									Text(
-										stringResource(R.string.note_widget_confirm_cancel_title),
-										style = MaterialTheme.typography.headlineMedium,
-										color = MaterialTheme.colorScheme.onBackground
-									)
-
-									SpacerL()
-
-									Row(
-										modifier = Modifier.fillMaxWidth(),
-										horizontalArrangement = Arrangement.SpaceBetween
-									) {
-										Button(
-											onClick = { confirmCancel = false }
-										) {
-											Text(stringResource(R.string.note_widget_confirm_cancel_negative))
-										}
-
-										SpacerXL()
-
-										Button(
-											modifier = Modifier.width(IntrinsicSize.Max),
-											onClick = { finish() }
-										) {
-											Text(stringResource(R.string.note_widget_confirm_cancel_positive))
-										}
-									}
-								}
-							}
+							DiscardConfirmDialog(
+								onKeepEditing = { confirmCancel = false },
+								onDiscard = ::finish,
+							)
 						}
 					}
 				}
@@ -262,5 +187,118 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	companion object {
 		const val EXTRA_PROJECT_NAME = "project_name"
+	}
+}
+
+@Composable
+private fun AddNoteDialog(
+	projectName: String?,
+	projects: List<ProjectDef>,
+	preselectedProject: ProjectDef?,
+	noteText: String,
+	onNoteTextChange: (String) -> Unit,
+	onProjectSelected: (ProjectDef) -> Unit,
+	onCancel: () -> Unit,
+	onSave: () -> Unit,
+) {
+	Surface(
+		modifier = Modifier
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+	) {
+		Column {
+			HdMasthead(
+				section = "ADD NOTE",
+				leadingMeta = if (projectName != null) listOf(projectName) else emptyList(),
+				trailing = { HdMastheadAction(label = "× CLOSE", onClick = onCancel) },
+			)
+			HdFolioDivider()
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(Ui.Padding.XL),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				if (preselectedProject == null) {
+					ProjectDropDownUi(projects = projects, onProjectSelected = onProjectSelected)
+				}
+				HdHairlineField(
+					label = "NOTE",
+					value = noteText,
+					onValueChange = onNoteTextChange,
+					singleLine = false,
+					minLines = 4,
+					maxLines = 10,
+				)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					HdHairlineButton(
+						label = stringResource(R.string.note_widget_dialog_cancel_button),
+						onClick = onCancel,
+					)
+					HdHairlineButton(
+						label = stringResource(R.string.note_widget_dialog_save_button),
+						emphasised = true,
+						enabled = noteText.isNotBlank(),
+						onClick = onSave,
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun DiscardConfirmDialog(
+	onKeepEditing: () -> Unit,
+	onDiscard: () -> Unit,
+) {
+	Surface(
+		modifier = Modifier
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant),
+	) {
+		Column {
+			HdMasthead(section = "DISCARD NOTE")
+			HdFolioDivider()
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(Ui.Padding.XL),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				Text(
+					text = stringResource(R.string.note_widget_confirm_cancel_title),
+					style = MaterialTheme.typography.bodyLarge,
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					HdHairlineButton(
+						label = stringResource(R.string.note_widget_confirm_cancel_negative),
+						onClick = onKeepEditing,
+					)
+					HdHairlineButton(
+						label = stringResource(R.string.note_widget_confirm_cancel_positive),
+						danger = true,
+						onClick = onDiscard,
+					)
+				}
+			}
+		}
 	}
 }

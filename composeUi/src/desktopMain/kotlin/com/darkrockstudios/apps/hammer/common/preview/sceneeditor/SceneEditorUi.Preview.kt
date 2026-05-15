@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.sceneeditor
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
@@ -11,7 +11,9 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import kotlinx.coroutines.CoroutineScope
@@ -21,9 +23,11 @@ import org.jetbrains.compose.resources.StringResource
 @Preview
 @Composable
 fun SceneEditorUiPreview() {
-	val component = fakeComponent()
-	val rootSnackbar = rememberRootSnackbarHostState()
-	SceneEditorUi(component, rootSnackbar)
+	KoinApplicationPreview {
+		val component = fakeComponent()
+		val rootSnackbar = rememberRootSnackbarHostState()
+		SceneEditorUi(component, rootSnackbar)
+	}
 }
 
 private fun fakeProjectDef(): ProjectDef = ProjectDef(
@@ -51,6 +55,15 @@ private fun fakeComponent() = object : SceneEditor {
 		override fun updateNotes(text: String) {}
 		override fun updateDraftName(text: String) {}
 		override fun validateDraftName(text: String) = true
+		override fun dismissReference(entryId: Int) {}
+		override fun restoreDismissedReference(entryId: Int) {}
+		override fun addConfirmedReference(entryId: Int) {}
+		override fun searchEntriesForAdd(query: String, maxResults: Int) = emptyList<SceneMetadataPanel.AddSuggestion>()
+		override fun navigateToEntry(entryDef: EntryDef) {}
+		override fun addTags(input: String) {}
+		override fun removeTag(tag: String) {}
+		override fun showGlobalSearchForTag(tag: String) {}
+		override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 	}
 
 	override fun addEditorMenu() {}
@@ -81,7 +94,10 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun beginDiscard() {}
 	override fun endDiscard() {}
 	override fun doDiscard() {}
-	override fun toggleMetadataVisibility() {}
+	override fun toggleMetadataPanelVisible() {}
+	override fun toggleMetadataModal() {}
+	override fun setLayoutMode(isWide: Boolean) {}
+
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}
 	override fun resetTextSize() {}

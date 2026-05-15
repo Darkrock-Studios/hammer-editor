@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			  android:layout_width="match_parent"
+			  android:layout_height="match_parent"
+			  android:orientation="vertical"
+			  android:background="#F5F0E9"
+			  android:paddingHorizontal="14dp"
+			  android:paddingVertical="8dp">
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal">
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:textColor="#49454F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="HAMMER · LIBRARY"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#1C1B1F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="3 STORIES"/>
+	</LinearLayout>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:layout_marginTop="4dp"
+			android:background="#C9C2B6"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:layout_marginTop="8dp"
+			android:gravity="center_vertical">
+		<View
+				android:layout_width="3dp"
+				android:layout_height="28dp"
+				android:background="#5A66B5"/>
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="12dp"
+				android:textColor="#1C1B1F"
+				android:textSize="13sp"
+				android:text="Apophis"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#79747E"
+				android:textSize="10sp"
+				android:fontFamily="monospace"
+				android:text="81.4k w"/>
+	</LinearLayout>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:layout_marginTop="8dp"
+			android:background="#E2DCD0"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:layout_marginTop="8dp"
+			android:gravity="center_vertical">
+		<View
+				android:layout_width="3dp"
+				android:layout_height="28dp"
+				android:background="#B65648"/>
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="12dp"
+				android:textColor="#1C1B1F"
+				android:textSize="13sp"
+				android:text="Alice In Wonderland"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#79747E"
+				android:textSize="10sp"
+				android:fontFamily="monospace"
+				android:text="26.9k w"/>
+	</LinearLayout>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:layout_marginTop="8dp"
+			android:background="#E2DCD0"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="0dp"
+			android:layout_weight="1"
+			android:orientation="horizontal"
+			android:layout_marginTop="8dp"
+			android:gravity="bottom">
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:textColor="#9C9AA1"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="FOL. 00"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#9C9AA1"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="TAP TO OPEN"/>
+	</LinearLayout>
+
+</LinearLayout>

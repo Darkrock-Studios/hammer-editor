@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.0.0] - 2026-5-14
+
+- Complete UI redesign!
+- Global Search: Ctrl + Shift + F
+- Tags on everything! Help organize your notes, scenes, and more
+- Connections: Scenes now understand what Encylopedia entries are related to them
+- Writing Activity Tracker: Keep motivate to keep writing!
+- New Android widgets
+- Rich Text support in Notes, Encylopedia, and Timeline
+- Rewritten android text input
+
+
+## [2.2.0] - 2026-4-26
+
+- Global Search across your entire story, with filters by entity type
+- Text Editor improvements
+- Import Story from file
+- Export Options dialog with configurable export settings
+- Focus Mode is now a fullscreen overlay, giving more writing space
+- More project statistics
+- Android: logs are now saved to disk and shareable as a zip
+- Fixed encyclopedia entries not showing tags
+- Fixed long project names hiding the menu
+- Smoother dialog animations
+
+
 ## [2.1.4] - 2026-2-7
 
 - Fix more Android input issues

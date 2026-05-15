@@ -68,8 +68,9 @@ The UI is a dumb and stateless as possible, each platform can have it's own impl
 
 These have a one-to-one relationship with UI elements. They are stateful and contain business logic.
 
-### ~~Use Cases (not used at the moment)~~
-~~Contains business logic, is stateless and can combine Services and Repositories~~
+### Use Cases
+
+Contains re-usable business logic, is stateless and can combine Services and Repositories.
 
 ### Services
 These are stateful and may combine multiple Repositories.
@@ -98,11 +99,11 @@ flowchart TD
     style Datasources fill:#6666FC, stroke:#1111AA, color:#FFFFFF
 ```
 
-### Routes
+### Server Routes
 These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Repositories, and then marshal data back into HTTP responses.
 
-### Repositories
+### Server Repositories
 These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above.
 
-### Datasource
+### Server Datasource
 Stateless classes for accessing Data.

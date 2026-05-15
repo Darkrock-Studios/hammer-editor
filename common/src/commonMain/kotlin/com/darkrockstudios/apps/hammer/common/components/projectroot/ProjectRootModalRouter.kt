@@ -6,15 +6,21 @@ import com.arkivanov.decompose.router.slot.SlotNavigation
 import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchComponent
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.serialization.Serializable
 
 class ProjectRootModalRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
+	private val navigateGlobalSearchResult: (SearchResult) -> Unit,
+	private val onFocusModeDismissed: (SceneItem) -> Unit,
 ) : Router {
 	private val navigation = SlotNavigation<Config>()
 
@@ -55,6 +61,28 @@ class ProjectRootModalRouter(
 					::showProjectSync,
 				)
 			)
+
+			is Config.GlobalSearch -> GlobalSearchModal(
+				GlobalSearchComponent(
+					componentContext,
+					projectDef,
+					::dismissGlobalSearch,
+					navigateGlobalSearchResult,
+					initialQuery = config.initialQuery,
+				)
+			)
+
+			is Config.FocusMode -> FocusModeModal(
+				FocusModeComponent(
+					componentContext,
+					projectDef,
+					config.sceneItem,
+					closeFocusMode = {
+						navigation.activate(Config.None)
+						onFocusModeDismissed(config.sceneItem)
+					},
+				)
+			)
 		}
 
 	fun showProjectSync() {
@@ -73,6 +101,26 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showGlobalSearch(initialQuery: String? = null) {
+		navigation.activate(Config.GlobalSearch(initialQuery))
+	}
+
+	fun dismissGlobalSearch() {
+		navigation.activate(Config.None)
+	}
+
+	fun showFocusMode(sceneItem: SceneItem) {
+		navigation.activate(Config.FocusMode(sceneItem))
+	}
+
+	fun dismissFocusMode() {
+		val active = state.value.child?.configuration as? Config.FocusMode
+		navigation.activate(Config.None)
+		if (active != null) {
+			onFocusModeDismissed(active.sceneItem)
+		}
+	}
+
 	@Serializable
 	sealed class Config {
 		@Serializable
@@ -83,5 +131,11 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data object ServerReauth : Config()
+
+		@Serializable
+		data class GlobalSearch(val initialQuery: String? = null) : Config()
+
+		@Serializable
+		data class FocusMode(val sceneItem: SceneItem) : Config()
 	}
 }

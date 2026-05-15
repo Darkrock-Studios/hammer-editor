@@ -5,14 +5,20 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutAppComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.ktor.client.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
 class ProjectSelectionComponent(
@@ -23,6 +29,7 @@ class ProjectSelectionComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
 	private val http: HttpClient by inject()
+	private val settingsRepository: GlobalSettingsRepository by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -33,9 +40,30 @@ class ProjectSelectionComponent(
 		childFactory = ::createChild
 	)
 
+	private val _navRailState = MutableValue(
+		ProjectSelection.NavRailState(expanded = settingsRepository.globalSettings.navRailExpanded)
+	)
+	override val navRailState: Value<ProjectSelection.NavRailState> = _navRailState
+
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
 			exampleProjectRepository.install()
+		}
+
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				if (_navRailState.value.expanded != settings.navRailExpanded) {
+					withContext(dispatcherMain) {
+						_navRailState.update { it.copy(expanded = settings.navRailExpanded) }
+					}
+				}
+			}
+		}
+	}
+
+	override fun toggleNavRailExpanded() {
+		scope.launch {
+			settingsRepository.updateSettings { it.copy(navRailExpanded = !it.navRailExpanded) }
 		}
 	}
 

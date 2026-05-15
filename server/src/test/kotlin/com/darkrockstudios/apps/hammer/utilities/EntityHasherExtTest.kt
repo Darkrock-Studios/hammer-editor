@@ -87,12 +87,41 @@ class EntityHasherExtTest {
 				outline = "Line1\nLine2\nLine3",
 				notes = "Notes with \"quotes\" and 'apostrophes'",
 				archived = true
-			)
+			),
+			// Scene with confirmed and dismissed reference sets - guards against the
+			// extension forgetting to forward these fields to hashScene.
+			ApiProjectEntity.SceneEntity(
+				id = 7,
+				order = 0,
+				path = listOf(0),
+				name = "Scene With Refs",
+				sceneType = ApiSceneType.Scene,
+				content = "",
+				outline = "",
+				notes = "",
+				archived = false,
+				confirmedReferences = setOf(11, 12, 13),
+				dismissedReferences = setOf(99),
+			),
+			// Scene with tags - guards against the extension forgetting to forward
+			// the tags field to hashScene.
+			ApiProjectEntity.SceneEntity(
+				id = 8,
+				order = 0,
+				path = listOf(0),
+				name = "Scene With Tags",
+				sceneType = ApiSceneType.Scene,
+				content = "",
+				outline = "",
+				notes = "",
+				archived = false,
+				tags = setOf("important", "draft"),
+			),
 		)
 
 		testScenes.forEach { scene ->
 			// Hash using extension
-			val hashFromExtension = EntityHasher.hashEntity(scene)
+			val hashFromExtension = scene.hash()
 
 			// Hash using direct call with ALL parameters explicitly passed
 			val hashDirect = EntityHasher.hashScene(
@@ -104,7 +133,10 @@ class EntityHasherExtTest {
 				content = scene.content,
 				outline = scene.outline,
 				notes = scene.notes,
-				archived = scene.archived
+				archived = scene.archived,
+				confirmedReferences = scene.confirmedReferences,
+				dismissedReferences = scene.dismissedReferences,
+				tags = scene.tags,
 			)
 
 			// They MUST match
@@ -147,13 +179,14 @@ class EntityHasherExtTest {
 		)
 
 		testDrafts.forEach { draft ->
-			val hashFromExtension = EntityHasher.hashEntity(draft)
+			val hashFromExtension = draft.hash()
 
 			val hashDirect = EntityHasher.hashSceneDraft(
 				id = draft.id,
+				sceneId = draft.sceneId,
 				name = draft.name,
 				created = draft.created,
-				content = draft.content
+				content = draft.content,
 			)
 
 			assertEquals(
@@ -194,7 +227,7 @@ class EntityHasherExtTest {
 		)
 
 		testNotes.forEach { note ->
-			val hashFromExtension = EntityHasher.hashEntity(note)
+			val hashFromExtension = note.hash()
 
 			val hashDirect = EntityHasher.hashNote(
 				id = note.id,
@@ -244,7 +277,7 @@ class EntityHasherExtTest {
 		)
 
 		testEvents.forEach { event ->
-			val hashFromExtension = EntityHasher.hashEntity(event)
+			val hashFromExtension = event.hash()
 
 			val hashDirect = EntityHasher.hashTimelineEvent(
 				id = event.id,
@@ -326,11 +359,22 @@ class EntityHasherExtTest {
 					base64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD",
 					fileExtension = "jpeg"
 				)
-			)
+			),
+			// Entry with aliases - guards against the extension forgetting to forward
+			// the aliases field to hashEncyclopediaEntry.
+			ApiProjectEntity.EncyclopediaEntryEntity(
+				id = 7,
+				name = "Robert",
+				entryType = "person",
+				text = "A character with nicknames",
+				tags = setOf("protagonist"),
+				image = null,
+				aliases = listOf("Bob", "Bobby", "Rob"),
+			),
 		)
 
 		testEntries.forEach { entry ->
-			val hashFromExtension = EntityHasher.hashEntity(entry)
+			val hashFromExtension = entry.hash()
 
 			val hashDirect = EntityHasher.hashEncyclopediaEntry(
 				id = entry.id,
@@ -338,7 +382,8 @@ class EntityHasherExtTest {
 				entryType = entry.entryType,
 				text = entry.text,
 				tags = entry.tags,
-				image = entry.image
+				image = entry.image,
+				aliases = entry.aliases,
 			)
 
 			assertEquals(

@@ -25,22 +25,26 @@ fun CollapsableSection(
 	startExpanded: Boolean = false,
 	modifier: Modifier = Modifier,
 	header: @Composable () -> Unit,
+	trailingAction: (@Composable () -> Unit)? = null,
 	body: @Composable () -> Unit,
 ) {
 	var expanded by rememberSaveable { mutableStateOf(startExpanded) }
 
 	Column(modifier = modifier) {
-		Row(
-			modifier = Modifier.clickable { expanded = expanded.not() },
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			header()
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Row(
+				modifier = Modifier.weight(1f).clickable { expanded = expanded.not() },
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				header()
 
-			if (expanded) {
-				Icon(Icons.Filled.ExpandLess, Res.string.collapse.get())
-			} else {
-				Icon(Icons.Filled.ExpandMore, Res.string.expand.get())
+				if (expanded) {
+					Icon(Icons.Filled.ExpandLess, Res.string.collapse.get())
+				} else {
+					Icon(Icons.Filled.ExpandMore, Res.string.expand.get())
+				}
 			}
+			trailingAction?.invoke()
 		}
 		AnimatedVisibility(
 			visible = expanded,

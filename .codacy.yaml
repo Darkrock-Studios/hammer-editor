@@ -1,0 +1,34 @@
+---
+# Codacy analysis configuration.
+# Docs: https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+
+exclude_paths:
+    # Compose Preview / design-system sample code — repeated string literals, long
+    # functions, and many parameters are intentional and not production code.
+    - 'composeUi/src/desktopMain/kotlin/com/darkrockstudios/apps/hammer/common/preview/**'
+    - 'android/src/main/kotlin/com/darkrockstudios/apps/hammer/android/preview/**'
+    - 'android/src/debug/kotlin/com/darkrockstudios/apps/hammer/android/preview/**'
+    - '**/*.Preview.kt'
+
+    # SQL test fixtures — historical schema snapshots and seed data, not authored
+    # SQL. T-SQL linter rules (set-nocount, schema-qualify, etc.) don't apply.
+    - 'server/src/test/resources/**/*.sql'
+
+    # Generated build output that occasionally ends up in analysis.
+    - '**/build/**'
+    - '**/generated/**'
+
+    # Stylelint is misconfigured upstream for these CSS files (flagging
+    # `scss_function-disallowed-list` as unknown rule). Re-enable once Codacy's
+    # Stylelint config is fixed.
+    - 'server/src/main/resources/assets/css/**'
+
+engines:
+    # Lizard's language-agnostic complexity metrics (NLOC, CCN, parameter count)
+    # don't map well to Jetpack Compose composables — long declarative UI
+    # functions and many composable parameters are idiomatic. Disable Lizard
+    # for composeUi entirely; detekt still enforces complexity on this code.
+    Lizard:
+        exclude_paths:
+            - 'composeUi/**'
+            - 'android/src/main/kotlin/**/widgets/**'

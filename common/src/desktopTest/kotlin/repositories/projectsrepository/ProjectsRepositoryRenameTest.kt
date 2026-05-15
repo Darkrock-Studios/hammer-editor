@@ -43,7 +43,7 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
 
 		val projectName = projectNames[0]
-		val newProjectName = "!-New Project Name"
+		val newProjectName = "@invalid Project Name"
 		val projPath = getProjectsDirectory().div(projectName)
 		val projDef = ProjectDefinition(projectName, projPath.toHPath())
 

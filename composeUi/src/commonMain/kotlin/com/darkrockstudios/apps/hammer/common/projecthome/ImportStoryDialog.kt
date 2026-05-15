@@ -1,0 +1,307 @@
+package com.darkrockstudios.apps.hammer.common.projecthome
+
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
+import com.darkrockstudios.apps.hammer.common.data.ImportFormat
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+
+private val DialogMaxWidth = 560.dp
+
+@Composable
+fun ImportStoryDialog(
+	visible: Boolean,
+	options: ImportOptions,
+	preview: ImportPreview,
+	onCancel: () -> Unit,
+	onOptionsChange: (ImportOptions) -> Unit,
+	onConfirm: () -> Unit,
+) {
+	var renderInternal by remember { mutableStateOf(visible) }
+	LaunchedEffect(visible) { if (visible) renderInternal = true }
+	if (!renderInternal) return
+
+	AnimatedDialogContainer(
+		isOpen = visible,
+		onDismissRequest = onCancel,
+		onClosed = { renderInternal = false },
+		properties = DialogProperties(usePlatformDefaultWidth = false),
+	) {
+		Surface(
+			modifier = Modifier
+				.padding(Ui.Padding.M)
+				.widthIn(max = DialogMaxWidth)
+				.fillMaxWidth()
+				.predictiveBackTransform(),
+			shape = RectangleShape,
+			color = MaterialTheme.colorScheme.surface,
+			contentColor = MaterialTheme.colorScheme.onSurface,
+			border = BorderStroke(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			),
+		) {
+			Column {
+				ImportMasthead(
+					options = options,
+					preview = preview,
+					onClose = onCancel,
+				)
+				HdFolioDivider()
+
+				Text(
+					text = stringResource(Res.string.project_home_import_dialog_title),
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.L,
+					),
+				)
+
+				Column(
+					modifier = Modifier.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						bottom = Ui.Padding.XL,
+					),
+				) {
+					HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_import_format_label),
+						options = AVAILABLE_IMPORT_FORMATS,
+						selected = options.format,
+						onSelect = { onOptionsChange(options.copy(format = it)) },
+						label = { stringResource(it.labelRes()) },
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_import_heading_label),
+						options = ChapterHeadingLevel.entries,
+						selected = options.chapterHeadingLevel,
+						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
+						label = { stringResource(it.labelRes()) },
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					HdHairlineToggleRow(
+						checked = options.createChapterGroups,
+						onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
+						label = stringResource(Res.string.project_home_import_create_groups_label),
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+					ImportPreviewPane(preview)
+				}
+
+				ImportFooter(
+					onCancel = onCancel,
+					onConfirm = onConfirm,
+					confirmEnabled = !preview.isEmpty,
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun ImportMasthead(
+	options: ImportOptions,
+	preview: ImportPreview,
+	onClose: () -> Unit,
+) {
+	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
+		buildList {
+			add(options.format.metaLabel())
+			add(options.chapterHeadingLevel.name.uppercase())
+			if (!preview.isEmpty) {
+				add("${preview.totalScenes} SCENES")
+			}
+		}
+	}
+	HdMasthead(
+		section = "IMPORT",
+		leadingMeta = meta,
+		trailing = { HdMastheadAction(label = "× CLOSE", onClick = onClose) },
+	)
+}
+
+@Composable
+private fun ImportFooter(
+	onCancel: () -> Unit,
+	onConfirm: () -> Unit,
+	confirmEnabled: Boolean,
+) {
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		HdMonoLabel(
+			text = "ESC CANCEL",
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Spacer(modifier = Modifier.weight(1f))
+		HdHairlineButton(
+			label = stringResource(Res.string.project_home_import_cancel),
+			onClick = onCancel,
+		)
+		HdHairlineButton(
+			label = stringResource(Res.string.project_home_import_execute),
+			onClick = onConfirm,
+			emphasised = true,
+			enabled = confirmEnabled,
+		)
+	}
+}
+
+@Composable
+private fun ImportPreviewPane(preview: ImportPreview) {
+	Column {
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			HdMonoLabel(stringResource(Res.string.project_home_import_preview_label))
+			if (!preview.isEmpty) {
+				HdMonoLabel(
+					stringResource(
+						Res.string.project_home_import_preview_count,
+						preview.totalScenes,
+					),
+				)
+			}
+		}
+		Spacer(modifier = Modifier.height(Ui.Padding.S))
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
+				)
+				.heightIn(max = 240.dp),
+		) {
+			if (preview.isEmpty) {
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(Ui.Padding.L),
+					contentAlignment = Alignment.Center,
+				) {
+					HdMonoLabel(stringResource(Res.string.project_home_import_preview_empty))
+				}
+			} else {
+				Column(
+					modifier = Modifier
+						.verticalScroll(rememberScrollState())
+						.padding(Ui.Padding.M),
+				) {
+					preview.items.forEach { item ->
+						when (item) {
+							is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
+							is PreviewItem.Group -> {
+								PreviewGroupRow(item.name)
+								item.scenes.forEach { childScene ->
+									PreviewSceneRow(childScene.name, indented = true)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun PreviewGroupRow(name: String) {
+	Row(
+		modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Icon(
+			Icons.Default.Folder,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.size(18.dp),
+		)
+		Spacer(modifier = Modifier.width(Ui.Padding.S))
+		Text(
+			name,
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+	}
+}
+
+@Composable
+private fun PreviewSceneRow(name: String, indented: Boolean) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(start = if (indented) Ui.Padding.L else 0.dp, top = 2.dp, bottom = 2.dp),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Icon(
+			Icons.AutoMirrored.Filled.Article,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(18.dp),
+		)
+		Spacer(modifier = Modifier.width(Ui.Padding.S))
+		Text(
+			name,
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+	}
+}
+
+private val AVAILABLE_IMPORT_FORMATS = listOf(ImportFormat.Markdown)
+
+private fun ImportFormat.labelRes(): StringResource = when (this) {
+	ImportFormat.Markdown -> Res.string.project_home_export_format_markdown
+}
+
+private fun ImportFormat.metaLabel(): String = when (this) {
+	ImportFormat.Markdown -> "MARKDOWN"
+}
+
+private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
+	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
+	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
+}

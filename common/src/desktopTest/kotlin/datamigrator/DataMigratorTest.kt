@@ -7,14 +7,17 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.migrator.MigrateInstallIdToGlobal
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration1_2
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import getProjectDef
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -118,6 +121,8 @@ class DataMigratorTest : BaseTest() {
 		val mockMigrator = mockk<Migration0_1>()
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
+			factory<Migration1_2> { mockk(relaxed = true) }
+			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -151,7 +156,7 @@ class DataMigratorTest : BaseTest() {
 			projectMetadataDatasource = projectMetadataDatasource,
 		)
 
-		migrator.handleDataMigration()
+		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 0) { mockMigrator.migrate(any()) }
 
@@ -165,6 +170,8 @@ class DataMigratorTest : BaseTest() {
 		every { mockMigrator.toVersion } returns 1
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
+			factory<Migration1_2> { mockk(relaxed = true) }
+			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -189,7 +196,7 @@ class DataMigratorTest : BaseTest() {
 		} returns ProjectMetadata(
 			Info(
 				created = Clock.System.now(),
-				dataVersion = PROJECT_DATA_VERSION
+				dataVersion = 1
 			)
 		)
 
@@ -201,13 +208,17 @@ class DataMigratorTest : BaseTest() {
 			)
 		} just Runs
 
-		val migrator = DataMigrator(
+		// Pin latestProjectDataVersion to 1 so this test stays focused on a single 0→1
+		// hop regardless of the global PROJECT_DATA_VERSION value.
+		val migrator = object : DataMigrator(
 			globalSettingsRepository = globalSettingsRepository,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
-		)
+		) {
+			override val latestProjectDataVersion = 1
+		}
 
-		migrator.handleDataMigration()
+		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 1) { mockMigrator.migrate(getProjectDef(PROJECT_1_NAME)) }
 		assertTrue(updateMetaSlot.isCaptured)
@@ -223,6 +234,7 @@ class DataMigratorTest : BaseTest() {
 		val proj1def = getProjectDef(PROJECT_1_NAME)
 
 		val testModule = module {
+			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -292,7 +304,7 @@ class DataMigratorTest : BaseTest() {
 			}
 		}
 
-		migrator.handleDataMigration()
+		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 1) { migrator1.migrate(proj1def) }
 		verify(exactly = 1) { migrator2.migrate(proj1def) }
@@ -310,6 +322,7 @@ class DataMigratorTest : BaseTest() {
 		val proj1def = getProjectDef(PROJECT_1_NAME)
 
 		val testModule = module {
+			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -379,7 +392,7 @@ class DataMigratorTest : BaseTest() {
 			}
 		}
 
-		migrator.handleDataMigration()
+		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 0) { migrator1.migrate(proj1def) }
 		verify(exactly = 0) { migrator2.migrate(proj1def) }

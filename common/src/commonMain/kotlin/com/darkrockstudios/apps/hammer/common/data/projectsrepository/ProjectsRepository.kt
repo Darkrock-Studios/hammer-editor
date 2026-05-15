@@ -104,12 +104,12 @@ class ProjectsRepository(
 		return fileSystem.list(projPath)
 			.filter { fileSystem.metadata(it).isDirectory }
 			.filter { it.name.startsWith('.').not() }
-			.map { path -> ProjectDef(path.name, path.toHPath()) }
+			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
 	}
 
 	fun getProjectDirectory(projectName: String): HPath {
 		val projectsDir = getProjectsDirectory().toOkioPath()
-		val projectDir = projectsDir.div(projectName)
+		val projectDir = projectsDir.div(encodeForFilename(projectName))
 		return projectDir.toHPath()
 	}
 
@@ -123,7 +123,7 @@ class ProjectsRepository(
 		val result = validateFileName(strippedName)
 		return if (isSuccess(result)) {
 			val projectsDir = getProjectsDirectory().toOkioPath()
-			val newProjectDir = projectsDir.div(strippedName)
+			val newProjectDir = projectsDir.div(encodeForFilename(strippedName))
 			if (fileSystem.exists(newProjectDir)) {
 				CResult.failure(ProjectCreationFailedException(Res.string.create_project_error_already_exists))
 			} else {
@@ -198,6 +198,85 @@ class ProjectsRepository(
 	companion object {
 		const val MAX_FILENAME_LENGTH = 128
 
+		/** Delimiter used in scene filenames (e.g. `order~name~id.md`). Reserved — disallowed in user input. */
+		const val FILENAME_DELIMITER = '~'
+
+		// Allowed characters in user-entered project/scene names. Includes:
+		//   - letters (\p{L}), digits, space, _, ', +
+		//   - newly allowed natively-OS-safe: -.,!?:()&"
+		//   - encoded-on-disk via lookalike map: /\*|<>
+		//   - typographic quotes: ’ “ ” (U+2019, U+201C, U+201D)
+		// Disallowed: ~ (reserved delimiter), control chars, leading dot, Windows reserved names.
+		private val fileNameAllowedCharsRegex =
+			Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]""")
+		private val fileNameAllowedRegex =
+			Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]+""")
+		private val whitespaceCollapseRegex = Regex("""\s+""")
+
+		// Windows reserved basenames (case-insensitive, with or without extension).
+		private val windowsReservedNames = setOf(
+			"CON", "PRN", "AUX", "NUL",
+			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+		)
+
+		// Bidirectional map: user-typed OS-forbidden char -> visually similar safe Unicode.
+		// Filenames produced by encodeForFilename are safe on Windows/macOS/Linux/iOS.
+		private val encodeMap: Map<Char, Char> = mapOf(
+			':' to '꞉',  // Modifier Letter Colon
+			'?' to '？',  // Fullwidth Question Mark
+			'/' to '⁄',  // Fraction Slash
+			'\\' to '⧹', // Big Reverse Solidus
+			'*' to '∗',  // Asterisk Operator
+			'"' to '＂',  // Fullwidth Quotation Mark
+			'|' to '｜',  // Fullwidth Vertical Line
+			'<' to '‹',  // Single Left-Pointing Angle Quotation
+			'>' to '›',  // Single Right-Pointing Angle Quotation
+		)
+		private val decodeMap: Map<Char, Char> = encodeMap.entries.associate { (k, v) -> v to k }
+
+		/**
+		 * Encodes a display name into a filesystem-safe form. OS-forbidden ASCII chars are
+		 * replaced with visually similar Unicode lookalikes; trailing `.` and ` ` are trimmed
+		 * (Windows constraint). The result still looks essentially like the original to a human.
+		 */
+		fun encodeForFilename(displayName: String): String {
+			val mapped = buildString(displayName.length) {
+				for (ch in displayName) append(encodeMap[ch] ?: ch)
+			}
+			return mapped.trimEnd('.', ' ')
+		}
+
+		/** Inverse of [encodeForFilename]. Safe to call on names that were never encoded. */
+		fun decodeFromFilename(rawName: String): String {
+			return buildString(rawName.length) {
+				for (ch in rawName) append(decodeMap[ch] ?: ch)
+			}
+		}
+
+		/**
+		 * Replaces any character not allowed by [validateFileName] with a space, collapses runs of
+		 * whitespace, trims, and truncates to [MAX_FILENAME_LENGTH]. Returns an empty string if no
+		 * legal characters remain — callers should fall back to a default name in that case.
+		 */
+		fun sanitizeFileName(name: String): String {
+			val mapped = buildString(name.length) {
+				for (ch in name) {
+					if (fileNameAllowedCharsRegex.matches(ch.toString())) append(ch) else append(' ')
+				}
+			}
+			return mapped
+				.replace(whitespaceCollapseRegex, " ")
+				.trim()
+				.trimEnd('.')
+				.take(MAX_FILENAME_LENGTH)
+		}
+
+		private fun isWindowsReservedName(name: String): Boolean {
+			val basename = name.substringBeforeLast('.', name).uppercase()
+			return basename in windowsReservedNames
+		}
+
 		private val fileNameValidations = listOf(
 			Validator(
 				"Was Blank",
@@ -206,7 +285,13 @@ class ProjectsRepository(
 			Validator(
 				"Invalid Characters",
 				Res.string.create_project_error_invalid_characters
-			) { Regex("""[\d\p{L}+ _']+""").matches(it) },
+			) {
+				fileNameAllowedRegex.matches(it) &&
+					!it.startsWith('.') &&
+					!it.endsWith('.') &&
+					!it.endsWith(' ') &&
+					!isWindowsReservedName(it)
+			},
 			Validator(
 				"Too Long",
 				Res.string.create_project_error_too_long

@@ -15,4 +15,5 @@ data class TimeLineEvent(
 	val date: String? = null,
 	@TomlMultilineString
 	val content: String,
+	val tags: Set<String> = emptySet(),
 )

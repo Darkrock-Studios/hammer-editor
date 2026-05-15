@@ -1,15 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings.backups
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 
 /**
- * Platform-specific backup export menu item.
- * Desktop: "Show in Folder" - Opens parent directory in file explorer
- * Android: "Export" - Shares backup file via share intent
- * iOS: No menu item (stub)
+ * Platform-specific backup export action button.
+ * Desktop: "Show in Folder" — opens parent directory in file explorer.
+ * Android: "Export" — shares backup file via share intent.
+ * iOS: renders nothing.
  */
 @Composable
-expect fun BackupExportMenuItem(
+expect fun BackupExportAction(
 	onExport: () -> Unit,
-	onDismiss: () -> Unit
+	modifier: Modifier = Modifier,
 )

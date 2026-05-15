@@ -65,6 +65,9 @@ class ClientSceneSynchronizer(
 			outline = metadata.outline,
 			notes = metadata.notes,
 			archived = scene.archived,
+			confirmedReferences = metadata.confirmedReferences,
+			dismissedReferences = metadata.dismissedReferences,
+			tags = metadata.tags,
 		)
 	}
 
@@ -106,6 +109,9 @@ class ClientSceneSynchronizer(
 				outline = metadata.outline,
 				notes = metadata.notes,
 				archived = sceneItem.archived,
+				confirmedReferences = metadata.confirmedReferences,
+				dismissedReferences = metadata.dismissedReferences,
+				tags = metadata.tags,
 			)
 		} else {
 			null
@@ -172,7 +178,10 @@ class ClientSceneSynchronizer(
 				// On success, update the scene metadata
 				val updatedMetadata = SceneMetadata(
 					notes = serverEntity.notes,
-					outline = serverEntity.outline
+					outline = serverEntity.outline,
+					confirmedReferences = serverEntity.confirmedReferences,
+					dismissedReferences = serverEntity.dismissedReferences,
+					tags = serverEntity.tags,
 				)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 
@@ -285,7 +294,10 @@ class ClientSceneSynchronizer(
 
 				val updatedMetadata = SceneMetadata(
 					notes = serverEntity.notes,
-					outline = serverEntity.outline
+					outline = serverEntity.outline,
+					confirmedReferences = serverEntity.confirmedReferences,
+					dismissedReferences = serverEntity.dismissedReferences,
+					tags = serverEntity.tags,
 				)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 			}
@@ -295,7 +307,10 @@ class ClientSceneSynchronizer(
 
 			val metadata = SceneMetadata(
 				notes = serverEntity.notes,
-				outline = serverEntity.outline
+				outline = serverEntity.outline,
+				confirmedReferences = serverEntity.confirmedReferences,
+				dismissedReferences = serverEntity.dismissedReferences,
+				tags = serverEntity.tags,
 			)
 
 			sceneEditorRepository.createArchivedScene(

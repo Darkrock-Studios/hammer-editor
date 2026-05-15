@@ -1,71 +1,69 @@
 [versions]
 # App Versions
-app = "2.1.4"
+app = "3.0.0"
 data_version = "1.0"
 
 # Kotlin
 jvm = "21"
 kache = "2.1.1"
-kompressCore = "1.3.1"
-kotlin = "2.3.10"
+kompressCore = "1.4.2"
+kotlin = "2.3.21"
 
 # Android
-android_gradle_plugin = "8.12.3"
+android_gradle_plugin = "8.13.2"
 android_sdk_compile = "36"
 android_sdk_target = "36"
 android_sdk_min = "28"
 
 # Other libraries
-activity-compose = "1.12.3"
+activity-compose = "1.13.0"
 androidx-runner = "1.7.0"
-androidx-datastore = "1.2.0"
+androidx-datastore = "1.2.1"
 androidx-window = "1.5.1"
 appcompat = "1.7.1"
 appdirs = "1.5.0"
 cache4k = "0.14.0"
 core = "1.7.0"
-coreKtx = "1.17.0"
+coreKtx = "1.18.0"
 cryptohash = "1.0.2"
-darklafCore = "3.1.1"
-glance = "1.1.1"
-jSystemThemeDetector = "3.9.1"
+glance = "1.2.0-rc01"
 androix-junit = "1.3.0"
-junit = "6.0.2"
+junit = "6.0.3"
 kotlinx_cli = "0.3.6"
-kotlinx_atomicfu = "0.31.0"
+kotlinx_atomicfu = "0.32.1"
 markdown = "0.7.3"
-material = "1.13.0"
+material = "1.14.0"
 orchestrator = "1.6.1"
-cryptography = "0.5.0"
+cryptography = "0.6.0"
 
-serialization = "1.10.0"
+serialization = "1.11.0"
 
-coroutines = "1.10.2"
-datetime = "0.7.1"
+coroutines = "1.11.0"
+datetime = "0.8.0"
 napier = "2.7.1"
-jetbrains_compose = "1.10.0"
+jetbrains_compose = "1.11.0"
 compose_compiler_report_generator = "1.5.0"
-jetbrains_kover = "0.9.6"
+jetbrains_kover = "0.9.8"
 
 moko_permissions = "0.20.1"
 
-decompose = "3.4.0"
+decompose = "3.5.0"
 essenty = "2.5.0" # This should match what ever decompose is referncing internally
 
-filekit = "0.12.0"
-koalaplot-core = "0.11.0"
-coil = "3.3.0"
+filekit = "0.14.1"
+koalaplot-core = "0.11.2"
+coil = "3.4.0"
 kmpalette = "3.1.0"
 
-koin_bom = "4.1.1"
+koin_bom = "4.2.1"
 
-ktor = "3.4.0"
+ktor = "3.4.3"
 ktor_i18n = "2.0.0"
 
-okio = "3.16.4"
+okio = "3.17.0"
 slf4jSimple = "2.0.17"
 turbine = "1.2.1"
-work-runtime-ktx = "2.11.1"
+work-runtime-ktx = "2.11.2"
 
 multiplatform_window_size = "0.5.0"
 mockk = "1.14.9"
@@ -74,12 +72,10 @@ tomlkt = "0.5.0"
 
 krypto = "4.0.10"
 argon2_jvm = "2.12"
-owasp_html_sanitizer = "20260102.1"
+owasp_html_sanitizer = "20260313.1"
 
-jna = "5.18.1" # This is a transitive dependency, remove it when we can
-
-sqldelight = "2.2.1"
-buildconfig = "6.0.7"
+sqldelight = "2.3.2"
+buildconfig = "6.0.9"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "13.1.0"
@@ -87,12 +83,15 @@ logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 kzip = "1.1.1"
-bouncycastle = "1.83"
+bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "1.6.2"
-platform-spellcheckerkt = "1.0.0"
-flatpak-gradle-generator = "1.6.0"
+compose-texteditor = "2.0.0"
+platform-spellcheckerkt = "1.1.0"
+flatpak-gradle-generator = "1.7.0"
+nucleus = "1.15.4"
+colorpicker-compose = "1.1.4"
+material-kolor = "4.1.1"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
@@ -103,7 +102,6 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 core = { module = "androidx.test:core", version.ref = "core" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
 cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
-darklaf-core = { module = "com.github.weisj:darklaf-core", version.ref = "darklafCore" }
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
@@ -113,6 +111,7 @@ cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-pr
 
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
 
 coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
@@ -120,10 +119,9 @@ coil_svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil"
 
 kmpalette_core = { group = "com.kmpalette", name = "kmpalette-core", version.ref = "kmpalette" }
 kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file", version.ref = "kmpalette" }
+colorpicker_compose = { group = "com.github.skydoves", name = "colorpicker-compose", version.ref = "colorpicker-compose" }
+material_kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "material-kolor" }
 
-jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
-jna-platform = { group = "net.java.dev.jna", name = "jna-platform", version.ref = "jna" }
-jSystemThemeDetector = { group = "com.github.Dansoftowner", name = "jSystemThemeDetector", version.ref = "jSystemThemeDetector" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version = "2.0.2" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androix-junit" }
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androix-junit" }
@@ -269,6 +267,9 @@ compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "compose
 platform-spellcheckerkt = { module = "com.darkrockstudios:platform-spellcheckerkt", version.ref = "platform-spellcheckerkt" }
 
 bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
+
+nucleus_darkmode_detector = { module = "io.github.kdroidfilter:nucleus.darkmode-detector", version.ref = "nucleus" }
+nucleus_decorated_window_jbr = { module = "io.github.kdroidfilter:nucleus.decorated-window-jbr", version.ref = "nucleus" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

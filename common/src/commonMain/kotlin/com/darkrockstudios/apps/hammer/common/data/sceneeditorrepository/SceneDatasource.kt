@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource.Companion.validateSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
@@ -113,7 +111,11 @@ class SceneDatasource(
 			}
 	}
 
-	fun exportStory(path: HPath, allNodes: List<TreeValue<SceneItem>>): HPath {
+	fun exportStory(
+		path: HPath,
+		allNodes: List<TreeValue<SceneItem>>,
+		options: ExportOptions,
+	): HPath {
 		val exportPath = path.toOkioPath() / getExportStoryFileName()
 		val allPaths = getAllScenePaths()
 
@@ -123,9 +125,12 @@ class SceneDatasource(
 			allNodes.forEachIndexed { index, chapterNode ->
 				val scene = chapterNode.value
 
-				val chapterNumber = index + 1
-
-				writeUtf8("\n## $chapterNumber. ${scene.name}\n\n")
+				if (options.treatTopLevelAsChapters) {
+					val chapterNumber = index + 1
+					writeUtf8("\n## $chapterNumber. ${scene.name}\n\n")
+				} else if (index > 0) {
+					writeUtf8("\n\n")
+				}
 
 				val scenePath = resolveScenePathFromFilesystem(chapterNode.value.id, allPaths)
 					?: error("Could not find Scene for ID ${chapterNode.value.id}")
@@ -191,11 +196,12 @@ class SceneDatasource(
 		val fileName = getSceneFilename(path)
 
 		val captures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+			?: LEGACY_SCENE_FILENAME_PATTERN.matchEntire(fileName)
 			?: error("Scene filename was bad: $fileName")
 
 		try {
 			val sceneOrder = captures.groupValues[1].toInt()
-			val sceneName = captures.groupValues[2]
+			val sceneName = ProjectsRepository.decodeFromFilename(captures.groupValues[2])
 			val sceneId = captures.groupValues[3].toInt()
 			val isSceneGroup = !(captures.groupValues.size >= 5
 				&& captures.groupValues[4] == SCENE_FILENAME_EXTENSION)
@@ -403,11 +409,19 @@ class SceneDatasource(
 	}
 
 	companion object {
-		// Active scene format: order-name-id.md
-		val SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\d\p{L}+ _']+)-(\d+)(\.md)?(?:\.temp)?""")
+		// Active scene format: order~name~id.md (delimiter changed from `-` to `~` in data v2).
+		// The name group accepts any char except path separators and the delimiter — encoded
+		// lookalikes pass through naturally.
+		val SCENE_FILENAME_PATTERN = Regex("""(\d+)~([^~/\\]+)~(\d+)(\.md)?(?:\.temp)?""")
 
-		// Archived scene format: name-id.md (no order prefix)
-		val ARCHIVED_SCENE_FILENAME_PATTERN = Regex("""([\d\p{L}+ _']+)-(\d+)(\.md)(?:\.temp)?""")
+		// Archived: name~id.md (no order prefix)
+		val ARCHIVED_SCENE_FILENAME_PATTERN = Regex("""([^~/\\]+)~(\d+)(\.md)(?:\.temp)?""")
+
+		// Pre-v2 patterns. Kept for read compatibility (e.g. fixtures, projects mid-migration).
+		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
+		val LEGACY_SCENE_FILENAME_PATTERN = Regex("""(\d+)-([\d\p{L}+ _']+)-(\d+)(\.md)?(?:\.temp)?""")
+		val LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN = Regex("""([\d\p{L}+ _']+)-(\d+)(\.md)(?:\.temp)?""")
+
 		val SCENE_BUFFER_FILENAME_PATTERN = Regex("""(\d+)\.md""")
 		const val SCENE_FILENAME_EXTENSION = ".md"
 		const val SCENE_DIRECTORY = "scenes"
@@ -416,7 +430,9 @@ class SceneDatasource(
 
 		fun getSceneIdFromFilename(fileName: String): Int {
 			val activeCaptures = SCENE_FILENAME_PATTERN.matchEntire(fileName)
+				?: LEGACY_SCENE_FILENAME_PATTERN.matchEntire(fileName)
 			val archivedCaptures = ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
+				?: LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
 
 			val idString = if (activeCaptures != null) {
 				activeCaptures.groupValues[3]
@@ -435,15 +451,17 @@ class SceneDatasource(
 		}
 
 		fun validateSceneFilename(fileName: String): Boolean {
-			return SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
+			return SCENE_FILENAME_PATTERN.matchEntire(fileName) != null ||
+				LEGACY_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
 		}
 
 		fun validateArchivedSceneFilename(fileName: String): Boolean {
-			return ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
+			return ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null ||
+				LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
 		}
 
 		fun buildArchivedSceneFileName(name: String, id: Int): String {
-			return "$name-$id$SCENE_FILENAME_EXTENSION"
+			return "${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
 		}
 
 		fun getSceneDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
@@ -508,7 +526,7 @@ class SceneDatasource(
 	}
 
 	private fun buildSceneFileName(order: Int, name: String, id: Int): String {
-		return "$order-$name-$id$SCENE_FILENAME_EXTENSION"
+		return "$order~${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
 	}
 
 	fun getAllArchivedScenePaths(): List<HPath> {
@@ -527,9 +545,10 @@ class SceneDatasource(
 	private fun getSceneFromArchivedFilename(path: HPath): SceneItem {
 		val fileName = getSceneFilename(path)
 		val captures = ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
+			?: LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName)
 			?: error("Archived scene filename was invalid: $fileName")
 
-		val sceneName = captures.groupValues[1]
+		val sceneName = ProjectsRepository.decodeFromFilename(captures.groupValues[1])
 		val sceneId = captures.groupValues[2].toInt()
 
 		return SceneItem(

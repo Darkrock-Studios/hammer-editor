@@ -14,6 +14,13 @@
 	<string name="sync_conflict_tab_remote">Remote</string>
 
 	<string name="sync_conflict_icon_description">conflict</string>
+	<string name="sync_conflict_header_title">%1$s Conflict</string>
+	<string name="sync_conflict_entity_label_scene">Scene</string>
+	<string name="sync_conflict_entity_label_note">Note</string>
+	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
+	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia Entry</string>
+	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
+	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
 
 	<string name="sync_conflict">Conflict</string>
 	<string name="sync_conflict_local_entry">Local Entry:</string>
@@ -27,6 +34,44 @@
 	<string name="sync_conflict_remote_use_button">Use Remote</string>
 
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
+
+	<string name="project_info_section_title">Project Info</string>
+	<string name="project_info_author_label">Author</string>
+	<string name="project_info_theme_section_title">Custom theme</string>
+	<string name="project_info_theme_enable_label">Use a custom theme for this project</string>
+	<string name="project_info_theme_primary_label">Primary</string>
+	<string name="project_info_theme_secondary_label">Secondary</string>
+	<string name="project_info_word_goal_section_title">Word-count goal</string>
+	<string name="project_info_word_goal_enable_label">Track a writing goal</string>
+	<string name="project_info_word_goal_count_label">Words</string>
+	<string name="project_info_word_goal_cadence_label">Per</string>
+	<string name="project_info_word_goal_cadence_day">Day</string>
+	<string name="project_info_word_goal_cadence_week">Week</string>
+	<string name="project_info_word_goal_effective_label">Effective</string>
+	<string name="project_info_word_goal_effective_unit">W / day</string>
+	<string name="project_info_color_picker_edit">Edit</string>
+	<string name="project_info_color_picker_cancel">Cancel</string>
+	<string name="project_info_color_picker_confirm">OK</string>
+	<string name="project_settings_breadcrumb_home">Home</string>
+	<string name="project_settings_breadcrumb_root">Project Settings</string>
+	<string name="project_settings_autosaved">Autosaved</string>
+	<string name="project_settings_hero_marker">§ 0 · Project</string>
+	<string name="project_settings_hero_by">by %1$s</string>
+	<string name="project_settings_hero_no_author">by (no author set)</string>
+	<string name="project_settings_spellcheck_section_title">Spell checking</string>
+	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
+	<string name="project_settings_folio_section_count">§§ %1$d</string>
+
+	<string name="sync_conflict_project_data_title">Project Settings Conflict</string>
+	<string name="sync_conflict_project_data_explanation">Pick a side for each field. Local is what you have on this device; Server is what was synced from another device.</string>
+	<string name="sync_conflict_project_data_field_author">Author Name</string>
+	<string name="sync_conflict_project_data_field_theme">Project Theme</string>
+	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
+	<string name="sync_conflict_project_data_value_unset">(not set)</string>
+	<string name="sync_conflict_project_data_word_goal_value">%1$d / %2$s</string>
+	<string name="sync_conflict_project_data_cadence_day">day</string>
+	<string name="sync_conflict_project_data_cadence_week">week</string>
+	<string name="sync_conflict_project_data_resolve_button">Resolve</string>
 	<string name="sync_conflict_encyclopedia_local">Local Event: %1$s</string>
 
 	<string name="sync_conflict_encyclopedia_remote">Remote Event: %1$s</string>
@@ -48,6 +93,11 @@
 	<string name="sync_conflict_title_scene_field_notes">Notes</string>
 	<string name="sync_conflict_scene_tab_content">Content</string>
 	<string name="sync_conflict_scene_tab_metadata">Metadata</string>
+	<string name="sync_conflict_scene_tab_references">References</string>
+	<string name="sync_conflict_references_confirmed_label">Confirmed</string>
+	<string name="sync_conflict_references_dismissed_label">Dismissed</string>
+	<string name="sync_conflict_references_empty">None</string>
+	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
 
 	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
 	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>

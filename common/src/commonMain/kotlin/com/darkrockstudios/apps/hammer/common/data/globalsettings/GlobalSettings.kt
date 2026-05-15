@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
+import androidx.compose.runtime.Immutable
 import io.fluidsonic.locale.Locale
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -11,6 +12,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.peanuuutz.tomlkt.TomlLiteralString
 
+@Immutable
 @Serializable
 data class GlobalSettings(
 	@TomlLiteralString
@@ -23,12 +25,27 @@ data class GlobalSettings(
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
 	val enableDndInFocusMode: Boolean = false,
+	/**
+	 * Whether the scene metadata panel is visible on wide layouts. UI state,
+	 * not really a user "preference" — lives here because we don't have a
+	 * dedicated window/UI-state store. Ignored on narrow layouts where the
+	 * panel renders as a Dialog and uses transient state instead.
+	 */
+	val metadataPanelVisible: Boolean = true,
+	/**
+	 * Whether the desktop project navigation rail is expanded (full labels)
+	 * vs. collapsed (icons + short labels). UI state persisted here for the
+	 * same reason as [metadataPanelVisible].
+	 */
+	val navRailExpanded: Boolean = false,
 	val spellCheckSettings: SpellCheckerSettings = SpellCheckerSettings(
 		locale = Locale.forLanguage(
 			language = "en",
 			region = "US"
 		)
 	),
+	val installId: String? = null,
+	val deviceLabel: String? = null,
 ) {
 	companion object {
 
@@ -38,11 +55,13 @@ data class GlobalSettings(
 	}
 }
 
+@Immutable
 @Serializable
 data class NewUserExperience(
 	val exampleProjectCreated: Boolean = false
 )
 
+@Immutable
 @Serializable
 data class SpellCheckerSettings(
 	val enabled: Boolean = true,

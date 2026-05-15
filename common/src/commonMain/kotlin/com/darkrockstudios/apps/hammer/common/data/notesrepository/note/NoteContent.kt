@@ -9,5 +9,6 @@ data class NoteContent(
 	val id: Int,
 	val created: Instant,
 	@TomlMultilineString
-	val content: String
+	val content: String,
+	val tags: Set<String> = emptySet(),
 )

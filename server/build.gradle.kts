@@ -9,6 +9,7 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.sqldelight)
 	alias(libs.plugins.jetbrains.kover)
+	`java-test-fixtures`
 }
 
 group = "com.darkrockstudios.apps.hammer"
@@ -118,6 +119,23 @@ dependencies {
 	testImplementation(libs.bundles.junit.jupiter)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	testRuntimeOnly(libs.junit.platform.launcher)
+
+	// testFixtures exposes the reusable E2E harness (EndToEndTest, E2eTestData,
+	// SqliteTestDatabase) to both :server's own tests and the :integrationTests module.
+	testFixturesApi(project(":base"))
+	testFixturesApi(libs.bundles.ktor.client)
+	testFixturesApi(libs.ktor.serialization.kotlinx.json)
+	testFixturesApi(libs.ktor.client.java)
+	testFixturesApi(libs.bundles.ktor.server)
+	testFixturesApi(libs.okio)
+	testFixturesApi(libs.okio.fakefilesystem)
+	testFixturesApi(libs.sqldelight.driver)
+	testFixturesApi(libs.bundles.junit.jupiter)
+	testFixturesApi(libs.coroutines.core)
+	testFixturesApi(libs.serialization.json)
+	testFixturesApi(libs.kotlinx.datetime)
+	testFixturesApi(project.dependencies.platform(libs.koin.bom))
+	testFixturesApi(libs.koin.core)
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)

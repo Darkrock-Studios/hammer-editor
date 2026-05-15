@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			  android:layout_width="match_parent"
+			  android:layout_height="match_parent"
+			  android:orientation="vertical"
+			  android:background="#F5F0E9">
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="3dp"
+			android:background="#5A66B5"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:paddingHorizontal="14dp"
+			android:paddingTop="6dp">
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:textColor="#49454F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="§ 02 · STORY"/>
+	</LinearLayout>
+
+	<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="14dp"
+			android:paddingTop="2dp"
+			android:textColor="#1C1B1F"
+			android:textSize="18sp"
+			android:textStyle="bold"
+			android:singleLine="true"
+			android:text="Apophis"/>
+
+	<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="14dp"
+			android:textColor="#49454F"
+			android:textSize="10sp"
+			android:textStyle="italic"
+			android:text="by M. Reyes"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:paddingHorizontal="14dp"
+			android:paddingTop="10dp">
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:textColor="#79747E"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="WORDS"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#49454F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="90% OF 90k TODAY"/>
+	</LinearLayout>
+
+	<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:paddingHorizontal="14dp"
+			android:paddingTop="2dp"
+			android:textColor="#1C1B1F"
+			android:textSize="32sp"
+			android:text="81.4k"/>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="4dp"
+			android:layout_marginTop="8dp"
+			android:layout_marginHorizontal="14dp"
+			android:background="#5A66B5"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:paddingHorizontal="14dp"
+			android:paddingTop="4dp">
+		<TextView
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="wrap_content"
+				android:textColor="#1C1B1F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="+1240 TODAY"/>
+		<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textColor="#49454F"
+				android:textSize="9sp"
+				android:fontFamily="monospace"
+				android:text="21D STREAK"/>
+	</LinearLayout>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="0dp"
+			android:layout_weight="1"
+			android:orientation="vertical"/>
+
+	<View
+			android:layout_width="match_parent"
+			android:layout_height="1dp"
+			android:background="#C9C2B6"/>
+
+	<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="40dp"
+			android:orientation="horizontal"
+			android:gravity="center">
+		<LinearLayout
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="match_parent"
+				android:orientation="vertical"
+				android:gravity="center">
+			<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="#1C1B1F"
+					android:textSize="14sp"
+					android:text="↗"/>
+			<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="#1C1B1F"
+					android:textSize="9sp"
+					android:fontFamily="monospace"
+					android:text="OPEN"/>
+		</LinearLayout>
+		<View
+				android:layout_width="1dp"
+				android:layout_height="match_parent"
+				android:background="#E2DCD0"/>
+		<LinearLayout
+				android:layout_width="0dp"
+				android:layout_weight="1"
+				android:layout_height="match_parent"
+				android:orientation="vertical"
+				android:gravity="center">
+			<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="#1C1B1F"
+					android:textSize="14sp"
+					android:text="＋"/>
+			<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:textColor="#1C1B1F"
+					android:textSize="9sp"
+					android:fontFamily="monospace"
+					android:text="NOTE"/>
+		</LinearLayout>
+	</LinearLayout>
+
+</LinearLayout>

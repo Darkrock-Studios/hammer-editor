@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 
 class CreateEntryComponent(
 	componentContext: ComponentContext,
@@ -21,6 +22,7 @@ class CreateEntryComponent(
 	override val state: Value<CreateEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 
 	// Note: Back handler is disabled to allow predictive back animation.
 	// The UI handles close confirmation via confirmClose()/dismissConfirmClose().
@@ -47,6 +49,9 @@ class CreateEntryComponent(
 		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)
 		if (result.error == EntryError.NONE) {
 			encyclopediaRepository.loadEntries()
+			result.instance?.entry?.let { newEntry ->
+				backfillEntryReferences(newEntry)
+			}
 		}
 
 		return result

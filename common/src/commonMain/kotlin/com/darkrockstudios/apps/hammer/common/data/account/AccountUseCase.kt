@@ -13,14 +13,12 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
-import kotlin.uuid.Uuid
 
 class AccountUseCase(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val accountApi: ServerAccountApi,
 	private val httpClient: HttpClient,
 	private val strRes: StrRes,
-	private val generateUuid: () -> String = { Uuid.random().toString() },
 ) {
 	suspend fun setupServer(
 		ssl: Boolean,
@@ -29,12 +27,12 @@ class AccountUseCase(
 		password: String,
 		create: Boolean
 	): CResult<Unit> {
+		val installId = globalSettingsRepository.ensureInstallId()
 		val newSettings = ServerSettings(
 			userId = -1,
 			ssl = ssl,
 			url = url,
 			email = email,
-			installId = generateUuid(),
 			bearerToken = null,
 			refreshToken = null,
 		)
@@ -45,13 +43,13 @@ class AccountUseCase(
 			accountApi.createAccount(
 				email = email,
 				password = password,
-				installId = newSettings.installId
+				installId = installId,
 			)
 		} else {
 			accountApi.login(
 				email = email,
 				password = password,
-				installId = newSettings.installId
+				installId = installId,
 			)
 		}
 

@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.common.compose.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Colors
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
@@ -35,12 +35,12 @@ val LightColors = lightColorScheme(
 	surfaceVariant = md_theme_light_surfaceVariant,
 	onSurfaceVariant = md_theme_light_onSurfaceVariant,
 	outline = md_theme_light_outline,
+	outlineVariant = md_theme_light_outlineVariant,
 	inverseOnSurface = md_theme_light_inverseOnSurface,
 	inverseSurface = md_theme_light_inverseSurface,
 	inversePrimary = md_theme_light_inversePrimary,
 	surfaceTint = md_theme_light_surfaceTint,
-	//outlineVariant = md_theme_light_outlineVariant,
-	//scrim = md_theme_light_scrim,
+	scrim = md_theme_light_scrim,
 )
 
 
@@ -68,31 +68,13 @@ val DarkColors = darkColorScheme(
 	surfaceVariant = md_theme_dark_surfaceVariant,
 	onSurfaceVariant = md_theme_dark_onSurfaceVariant,
 	outline = md_theme_dark_outline,
+	outlineVariant = md_theme_dark_outlineVariant,
 	inverseOnSurface = md_theme_dark_inverseOnSurface,
 	inverseSurface = md_theme_dark_inverseSurface,
 	inversePrimary = md_theme_dark_inversePrimary,
 	surfaceTint = md_theme_dark_surfaceTint,
-	//outlineVariant = md_theme_dark_outlineVariant,
-	//scrim = md_theme_dark_scrim,
+	scrim = md_theme_dark_scrim,
 )
-
-private fun generateMaterial2Colors(colorScheme: ColorScheme, isLight: Boolean): Colors {
-	return Colors(
-		primary = colorScheme.primary,
-		primaryVariant = colorScheme.primaryContainer,
-		secondary = colorScheme.secondary,
-		secondaryVariant = colorScheme.secondaryContainer,
-		background = colorScheme.background,
-		surface = colorScheme.surface,
-		error = colorScheme.error,
-		onPrimary = colorScheme.onPrimary,
-		onSecondary = colorScheme.onSecondary,
-		onBackground = colorScheme.onBackground,
-		onSurface = colorScheme.onSurface,
-		onError = colorScheme.onError,
-		isLight = isLight
-	)
-}
 
 fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 	return if (!useDarkTheme) {
@@ -101,6 +83,18 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 		DarkColors
 	}
 }
+
+// Manuscript shape system — every M3 component reads square corners by
+// default. Per-component rounding (e.g. chart bars) is opted in
+// explicitly. See designsystem/DESIGN_README.md.
+private val SquareCorners = RoundedCornerShape(0.dp)
+private val HammerShapes = Shapes(
+	extraSmall = SquareCorners,
+	small = SquareCorners,
+	medium = SquareCorners,
+	large = SquareCorners,
+	extraLarge = SquareCorners,
+)
 
 @Composable
 fun AppTheme(
@@ -113,20 +107,17 @@ fun AppTheme(
 		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
 	}
 
-	val shapes = Shapes(
-		extraSmall = RoundedCornerShape(16.dp),
-		small = RoundedCornerShape(16.dp),
-		medium = RoundedCornerShape(8.dp),
-		large = RoundedCornerShape(4.dp),
-		extraLarge = RoundedCornerShape(4.dp),
-	)
+	val extendedColors = if (useDarkTheme) DarkHammerColors else LightHammerColors
 
-	MaterialTheme(
-		colorScheme = colors,
-		//shapes = shapes,
-	) {
-		ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
-			content()
+	CompositionLocalProvider(LocalHammerColors provides extendedColors) {
+		MaterialTheme(
+			colorScheme = colors,
+			shapes = HammerShapes,
+			typography = hammerTypography(),
+		) {
+			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+				content()
+			}
 		}
 	}
 }

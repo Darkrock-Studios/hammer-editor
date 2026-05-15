@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -38,6 +39,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val referenceRemapper: ReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
 		val entries = encyclopediaRepository.entryListFlow.first()
@@ -61,7 +63,8 @@ class ClientEncyclopediaSynchronizer(
 			entryType = entity.entryType,
 			text = entity.text,
 			tags = entity.tags,
-			image = entity.image
+			image = entity.image,
+			aliases = entity.aliases,
 		)
 	}
 
@@ -89,11 +92,13 @@ class ClientEncyclopediaSynchronizer(
 			text = entry.text,
 			tags = entry.tags,
 			image = image,
+			aliases = entry.aliases,
 		)
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {
 		encyclopediaRepository.reIdEntry(oldId, newId)
+		referenceRemapper.remapEntryReferences(oldId, newId)
 	}
 
 	override suspend fun finalizeSync() {
@@ -140,6 +145,7 @@ class ClientEncyclopediaSynchronizer(
 				name = serverEntity.name,
 				text = serverEntity.text,
 				tags = serverEntity.tags,
+				aliases = serverEntity.aliases,
 			)
 		} else {
 			encyclopediaRepository.createEntry(
@@ -148,7 +154,8 @@ class ClientEncyclopediaSynchronizer(
 				tags = serverEntity.tags,
 				type = EntryType.fromString(serverEntity.entryType),
 				imagePath = null, // Always pass null here, we wrote the image our selves
-				forceId = serverEntity.id
+				forceId = serverEntity.id,
+				aliases = serverEntity.aliases,
 			)
 		}
 

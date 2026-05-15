@@ -17,11 +17,12 @@ class AccountReauthUseCase(
 ) {
 	suspend fun reauthenticate(password: String): CResult<Unit> {
 		val server = globalSettingsRepository.serverSettings ?: error("No server info is present")
+		val installId = globalSettingsRepository.ensureInstallId()
 
 		val result = accountApi.login(
 			email = server.email,
 			password = password,
-			installId = server.installId
+			installId = installId,
 		)
 
 		return if (result.isSuccess) {
@@ -35,7 +36,6 @@ class AccountReauthUseCase(
 				ssl = server.ssl,
 				url = server.url,
 				email = server.email,
-				installId = server.installId,
 				bearerToken = token.auth,
 				refreshToken = token.refresh,
 			)

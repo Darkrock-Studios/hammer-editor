@@ -1,10 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.update
+import com.arkivanov.decompose.value.*
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -28,7 +26,8 @@ class ViewTimeLineEventComponent(
 	private val onCloseEvent: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
-	private val updateShouldClose: () -> Unit
+	private val updateShouldClose: () -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewTimeLineEvent {
 
 	private val mainDispatcher by injectMainDispatcher()
@@ -43,8 +42,21 @@ class ViewTimeLineEventComponent(
 	private val _contentText = MutableValue("")
 	override val contentText: Value<String> = _contentText
 
+	private val backButtonHandler = BackCallback(isEnabled = false) {
+		if (isEditingAndDirty()) {
+			confirmDiscard()
+		} else if (state.value.isEditing) {
+			discardEdit()
+		}
+	}
+
 	override fun onCreate() {
 		super.onCreate()
+
+		backHandler.register(backButtonHandler)
+		state.subscribe(lifecycle) {
+			backButtonHandler.isEnabled = it.isEditing
+		}
 
 		loadInitialEvent()
 		watchTimeLine()
@@ -57,7 +69,10 @@ class ViewTimeLineEventComponent(
 					val updatedEvent = timeLine.events.find { it.id == eventId }
 					if (updatedEvent != state.value.event) {
 						_state.getAndUpdate {
-							it.copy(event = updatedEvent)
+							it.copy(
+								event = updatedEvent,
+								tags = if (it.isEditing) it.tags else (updatedEvent?.tags ?: emptySet()),
+							)
 						}
 					}
 				}
@@ -73,7 +88,8 @@ class ViewTimeLineEventComponent(
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
-						event = event
+						event = event,
+						tags = event?.tags ?: emptySet(),
 					)
 				}
 				_contentText.update { event?.content ?: "" }
@@ -96,13 +112,43 @@ class ViewTimeLineEventComponent(
 		updateShouldClose()
 	}
 
+	override fun onTagsChanged(newTags: Set<String>) {
+		_state.getAndUpdate { it.copy(tags = newTags) }
+		updateShouldClose()
+	}
+
+	override suspend fun removeTag(tag: String) {
+		if (state.value.isEditing) return
+		val event = state.value.event ?: return
+		if (tag !in event.tags) return
+
+		val updated = event.copy(tags = event.tags - tag)
+		val success = timeLineRepository.updateEvent(updated)
+		if (success) {
+			val stored = timeLineRepository.getTimelineEvent(event.id)
+			_state.getAndUpdate {
+				it.copy(
+					event = stored ?: updated,
+					tags = stored?.tags ?: updated.tags,
+				)
+			}
+		}
+	}
+
+	override fun showGlobalSearchForTag(tag: String) {
+		onShowGlobalSearchForTag(tag)
+	}
+
 	override suspend fun storeEvent(event: TimeLineEvent): Boolean {
 		val success = timeLineRepository.updateEvent(event)
 
 		if (success) {
+			val stored = timeLineRepository.getTimelineEvent(event.id)
 			_state.getAndUpdate {
 				it.copy(
-					isEditing = false
+					isEditing = false,
+					event = stored ?: it.event,
+					tags = stored?.tags ?: it.tags,
 				)
 			}
 		}
@@ -161,9 +207,11 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
+		val event = state.value.event ?: return false
 		return state.value.isEditing && (
-			state.value.event?.content != contentText.value ||
-				state.value.event?.date != dateText.value
+			event.content != contentText.value ||
+				event.date != dateText.value ||
+				event.tags != state.value.tags
 			)
 	}
 
@@ -197,14 +245,16 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun discardEdit() {
+		val event = _state.value.event
 		_state.getAndUpdate {
 			it.copy(
 				isEditing = false,
 				confirmDiscard = false,
+				tags = event?.tags ?: emptySet(),
 			)
 		}
-		_contentText.update { _state.value.event?.content ?: "" }
-		_dateText.update { _state.value.event?.date ?: "" }
+		_contentText.update { event?.content ?: "" }
+		_dateText.update { event?.date ?: "" }
 		updateShouldClose()
 	}
 

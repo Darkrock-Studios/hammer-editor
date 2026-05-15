@@ -14,7 +14,8 @@ class TimeLineComponent(
 	projectDef: ProjectDef,
 	private val updateShouldClose: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
-	private val removeMenu: (id: String) -> Unit
+	private val removeMenu: (id: String) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLine {
 
 	private val navigation = StackNavigation<TimeLine.Config>()
@@ -71,6 +72,7 @@ class TimeLineComponent(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			updateShouldClose = updateShouldClose,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
 

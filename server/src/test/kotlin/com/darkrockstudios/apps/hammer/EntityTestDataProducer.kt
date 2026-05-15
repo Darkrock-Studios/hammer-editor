@@ -2,8 +2,6 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.utilities.hashEntity
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.time.Instant
@@ -21,7 +19,7 @@ class EntityTestDataProducer {
 		}
 
 		val entity = createScene(7)
-		val hash = EntityHasher.hashEntity(entity)
+		val hash = entity.hash()
 		val jsonStr = json.encodeToString(entity)
 
 		println(hash)

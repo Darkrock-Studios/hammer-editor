@@ -65,6 +65,41 @@
 				android:resource="@xml/add_note_widget_info"/>
 		</receiver>
 
+		<receiver
+			android:name=".widgets.StoriesListWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/stories_list_widget_info"/>
+		</receiver>
+
+		<activity
+			android:name=".widgets.StoryInfoWidgetConfigActivity"
+			android:exported="false"
+			android:label="@string/title_activity_story_info_widget_config">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+			</intent-filter>
+		</activity>
+
+		<receiver
+			android:name=".widgets.StoryInfoWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/story_info_widget_info"/>
+		</receiver>
+
 		<provider
 				android:name="androidx.core.content.FileProvider"
 				android:authorities="${applicationId}.fileprovider"

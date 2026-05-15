@@ -1,6 +1,7 @@
 package repositories.timeline
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
@@ -35,6 +36,7 @@ abstract class TimeLineTestBase : BaseTest() {
 	lateinit var idRepo: IdRepository
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
+	lateinit var backHandler: BackHandler
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
 
@@ -50,6 +52,7 @@ abstract class TimeLineTestBase : BaseTest() {
 		idRepo = mockk()
 		context = mockk()
 		lifecycle = mockk()
+		backHandler = mockk()
 
 		lifecycleCallbacks = mutableListOf()
 
@@ -62,6 +65,8 @@ abstract class TimeLineTestBase : BaseTest() {
 
 		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
+		every { context.backHandler } returns backHandler
+		every { backHandler.register(any()) } just Runs
 		every {
 			lifecycle.subscribe(capture(lifecycleCallbacks))
 		} just Runs
@@ -78,19 +83,22 @@ abstract class TimeLineTestBase : BaseTest() {
 		val eventDate = slot<String>()
 		val eventId = slot<Int>()
 		val eventOrder = slot<Int>()
+		val eventTags = slot<Set<String>>()
 		coEvery {
 			timelineRepo.createEvent(
 				capture(eventContent),
 				capture(eventDate),
 				capture(eventId),
 				capture(eventOrder),
+				capture(eventTags),
 			)
 		} coAnswers {
 			val event = TimeLineEvent(
 				id = 0,
 				order = 0,
 				date = eventDate.captured,
-				content = eventContent.captured
+				content = eventContent.captured,
+				tags = eventTags.captured,
 			)
 			val timeline = TimeLineContainer(
 				events = listOf(event)

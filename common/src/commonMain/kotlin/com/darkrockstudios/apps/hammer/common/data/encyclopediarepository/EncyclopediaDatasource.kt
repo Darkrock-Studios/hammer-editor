@@ -221,6 +221,7 @@ class EncyclopediaDatasource(
 		name: String,
 		text: String,
 		tags: Set<String>,
+		aliases: List<String> = emptyList(),
 	): EntryContainer {
 		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
 		fileSystem.delete(oldPath)
@@ -230,7 +231,8 @@ class EncyclopediaDatasource(
 			name = name.trim(),
 			type = oldEntryDef.type,
 			text = text.trim(),
-			tags = tags
+			tags = tags,
+			aliases = aliases,
 		)
 		val container = EntryContainer(entry)
 		val entryToml = toml.encodeToString(container)

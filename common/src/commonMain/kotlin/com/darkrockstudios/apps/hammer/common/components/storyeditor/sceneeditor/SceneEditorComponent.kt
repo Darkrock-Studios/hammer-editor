@@ -15,9 +15,11 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
@@ -35,6 +37,8 @@ class SceneEditorComponent(
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
+	showEntry: (EntryDef) -> Unit,
+	showGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
@@ -42,13 +46,15 @@ class SceneEditorComponent(
 	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
+	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()
 
 	private val spellCheckRepository: SpellCheckRepository by inject()
 
 	private val _state = MutableValue(
 		SceneEditor.State(
 			sceneItem = originalSceneItem,
-			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled
+			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled,
+			metadataPanelVisible = settingsRepository.globalSettings.metadataPanelVisible,
 		)
 	)
 	override val state: Value<SceneEditor.State> = _state
@@ -58,7 +64,9 @@ class SceneEditorComponent(
 
 	override val sceneMetadataComponent: SceneMetadataPanel = SceneMetadataPanelComponent(
 		componentContext = childContext("scene-${originalSceneItem.id}-metadata"),
-		originalSceneItem = originalSceneItem
+		originalSceneItem = originalSceneItem,
+		showEntry = showEntry,
+		onShowGlobalSearchForTag = showGlobalSearchForTag,
 	)
 
 	private val sceneDef: SceneItem = state.value.sceneItem
@@ -73,8 +81,17 @@ class SceneEditorComponent(
 
 		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
-				_state.update {
-					it.copy(spellCheckingEnabled = settings.spellCheckSettings.enabled)
+				val current = _state.value
+				if (
+					current.spellCheckingEnabled != settings.spellCheckSettings.enabled ||
+					current.metadataPanelVisible != settings.metadataPanelVisible
+				) {
+					_state.update {
+						it.copy(
+							spellCheckingEnabled = settings.spellCheckSettings.enabled,
+							metadataPanelVisible = settings.metadataPanelVisible,
+						)
+					}
 				}
 			}
 		}
@@ -150,8 +167,13 @@ class SceneEditorComponent(
 		}
 	}
 
-	override suspend fun storeSceneContent() =
-		sceneEditor.storeSceneBuffer(sceneDef)
+	override suspend fun storeSceneContent(): Boolean {
+		// Auto-confirm reference matches before flushing the buffer. Running this
+		// first lets the resulting metadata write piggyback on the same dirty-mark
+		// that the buffer save will trigger, instead of fighting it for the hash.
+		autoConfirmReferences(sceneDef)
+		return sceneEditor.storeSceneBuffer(sceneDef)
+	}
 
 	override fun onContentChanged(content: PlatformRichText) {
 		sceneEditor.onContentChanged(
@@ -243,7 +265,7 @@ class SceneEditorComponent(
 			""
 		) {
 			Napier.i("Toggle Metadata")
-			toggleMetadataVisibility()
+			toggleMetadata()
 		}
 
 		val focusModeItem = MenuItemDescriptor(
@@ -406,12 +428,28 @@ class SceneEditorComponent(
 		closeSceneEditor()
 	}
 
-	override fun toggleMetadataVisibility() {
-		_state.getAndUpdate {
-			it.copy(
-				showMetadata = it.showMetadata.not()
-			)
+	override fun toggleMetadataPanelVisible() {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(metadataPanelVisible = it.metadataPanelVisible.not())
+			}
 		}
+	}
+
+	override fun toggleMetadataModal() {
+		_state.getAndUpdate {
+			it.copy(showMetadataModal = it.showMetadataModal.not())
+		}
+	}
+
+	private var isWideLayout = false
+
+	override fun setLayoutMode(isWide: Boolean) {
+		isWideLayout = isWide
+	}
+
+	private fun toggleMetadata() {
+		if (isWideLayout) toggleMetadataPanelVisible() else toggleMetadataModal()
 	}
 
 	override fun resetTextSize() {

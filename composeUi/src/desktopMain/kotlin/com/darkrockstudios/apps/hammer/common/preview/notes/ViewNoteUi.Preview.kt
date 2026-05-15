@@ -3,9 +3,9 @@ package com.darkrockstudios.apps.hammer.common.preview.notes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
@@ -34,6 +34,9 @@ private fun ViewNoteUiPreview() {
 
 		override fun discardEdit() {}
 		override fun onContentChanged(newContent: String) {}
+		override fun onTagsChanged(newTags: Set<String>) {}
+		override suspend fun removeTag(tag: String) {}
+		override fun showGlobalSearchForTag(tag: String) {}
 		override suspend fun deleteNote(id: Int) {}
 		override fun confirmDelete() {}
 		override fun dismissConfirmDelete() {}
@@ -45,6 +48,7 @@ private fun ViewNoteUiPreview() {
 		override fun cancelDiscard() {}
 		override fun confirmClose() {}
 		override fun cancelClose() {}
+		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 
 	val rootSnackbar = rememberRootSnackbarHostState()

@@ -3,6 +3,11 @@
  * Handles settings panel interactions, copy URL functionality, and share dialog
  */
 
+// Top-level functions in this file are wired to HTML elements from mustache
+// templates (onclick=..., hx-* attributes) — ESLint can't see those references.
+/* eslint-disable no-unused-vars */
+/* global htmx */
+
 document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
 	initCopyUrl();
@@ -45,14 +50,14 @@ function initCopyUrl() {
 		try {
 			await navigator.clipboard.writeText(urlInput.value);
 
-			// Visual feedback
+			const iconEl = copyBtn.querySelector('i');
+			const originalIconClass = iconEl ? iconEl.className : 'fas fa-copy';
 			copyBtn.classList.add('copied');
-			const originalIcon = copyBtn.innerHTML;
-			copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+			if (iconEl) iconEl.className = 'fas fa-check';
 
 			setTimeout(function () {
 				copyBtn.classList.remove('copied');
-				copyBtn.innerHTML = originalIcon;
+				if (iconEl) iconEl.className = originalIconClass;
 			}, 2000);
 		} catch (err) {
 			// Fallback for older browsers

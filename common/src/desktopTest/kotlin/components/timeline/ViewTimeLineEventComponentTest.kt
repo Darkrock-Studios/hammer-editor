@@ -34,7 +34,8 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			onCloseEvent = {},
 			addMenu = {},
 			removeMenu = {},
-			updateShouldClose = {}
+			updateShouldClose = {},
+			onShowGlobalSearchForTag = {},
 		)
 		lifecycleCallbacks[1].onCreate()
 		advanceUntilIdle()
@@ -49,6 +50,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 			date = date,
 			content = content
 		)
+		coEvery { timelineRepo.getTimelineEvent(eventId) } returns updatedEvent
 		val success = component.storeEvent(updatedEvent)
 		assertTrue(success, "Update event failed")
 

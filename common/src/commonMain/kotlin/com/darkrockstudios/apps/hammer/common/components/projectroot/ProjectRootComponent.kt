@@ -9,23 +9,39 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	onCloseProject: (() -> Unit),
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val settingsRepository: GlobalSettingsRepository by inject()
+
+	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
+	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
+
+	private val _navRailState = MutableValue(
+		ProjectRoot.NavRailState(expanded = settingsRepository.globalSettings.navRailExpanded)
+	)
+	override val navRailState: Value<ProjectRoot.NavRailState> = _navRailState
 
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
@@ -44,13 +60,21 @@ class ProjectRootComponent(
 		removeMenu,
 		::updateCloseConfirmRequirement,
 		::showProjectSync,
+		::showGlobalSearch,
+		::showGlobalSearchForTag,
+		::showFocusMode,
+		::showEncyclopediaEntry,
+		::showEditorScene,
+		onCloseProject,
 		scope,
 		dispatcherMain
 	)
 
 	private val modalRouter = ProjectRootModalRouter(
 		componentContext,
-		projectDef
+		projectDef,
+		::navigateGlobalSearchResult,
+		::reopenSceneAfterFocusMode,
 	)
 
 	override val routerState: Value<ChildStack<*, ProjectRoot.Destination<*>>>
@@ -67,6 +91,31 @@ class ProjectRootComponent(
 		}
 
 		handleSyncDialogCompletion()
+
+		scope.launch {
+			projectDataRepository.load()
+			projectDataRepository.state.collect { stored ->
+				withContext(dispatcherMain) {
+					_projectTheme.value = ProjectRoot.ProjectThemeState(theme = stored?.data?.theme)
+				}
+			}
+		}
+
+		scope.launch {
+			settingsRepository.globalSettingsUpdates.collect { settings ->
+				if (_navRailState.value.expanded != settings.navRailExpanded) {
+					withContext(dispatcherMain) {
+						_navRailState.update { it.copy(expanded = settings.navRailExpanded) }
+					}
+				}
+			}
+		}
+	}
+
+	override fun toggleNavRailExpanded() {
+		scope.launch {
+			settingsRepository.updateSettings { it.copy(navRailExpanded = !it.navRailExpanded) }
+		}
 	}
 
 	private fun handleSyncDialogCompletion() {
@@ -92,6 +141,18 @@ class ProjectRootComponent(
 
 	override fun showEncyclopedia() {
 		router.showEncyclopedia()
+	}
+
+	private fun showEncyclopediaEntry(entryDef: EntryDef) {
+		showEncyclopedia()
+		(routerState.value.active.instance as? ProjectRoot.Destination.EncyclopediaDestination)
+			?.component?.showViewEntry(entryDef)
+	}
+
+	private fun showEditorScene(sceneItem: SceneItem) {
+		showEditor()
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.showScene(sceneItem)
 	}
 
 	override fun showHome() {
@@ -125,6 +186,53 @@ class ProjectRootComponent(
 	override fun showProjectSync() = modalRouter.showProjectSync()
 
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
+
+	override fun showGlobalSearch() = modalRouter.showGlobalSearch()
+
+	override fun showGlobalSearchForTag(tag: String) =
+		modalRouter.showGlobalSearch(initialQuery = "#$tag")
+
+	override fun dismissGlobalSearch() = modalRouter.dismissGlobalSearch()
+
+	override fun showFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.closeDetails()
+		modalRouter.showFocusMode(sceneItem)
+	}
+
+	override fun dismissFocusMode() = modalRouter.dismissFocusMode()
+
+	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
+		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+			?.component?.showScene(sceneItem)
+	}
+
+	private fun navigateGlobalSearchResult(result: SearchResult) {
+		when (result) {
+			is SearchResult.Scene -> {
+				showEditor()
+				(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
+					?.component?.showScene(result.sceneItem)
+			}
+
+			is SearchResult.Note -> {
+				showNotes()
+				(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
+					?.component?.showViewNote(result.noteId)
+			}
+
+			is SearchResult.EncyclopediaEntry -> {
+				showEncyclopediaEntry(result.entryDef)
+			}
+
+			is SearchResult.TimelineEvent -> {
+				showTimeLine()
+				(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
+					?.component?.showViewEvent(result.eventId)
+			}
+		}
+		dismissGlobalSearch()
+	}
 
 	private fun updateCloseConfirmRequirement() {
 		_backEnabled.value = router.isAtRoot()

@@ -9,11 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -44,12 +41,13 @@ fun ReauthenticationUi(
 	val focusManager = LocalFocusManager.current
 
 	var passwordVisible by rememberSaveable { mutableStateOf(false) }
+	var isOpen by remember { mutableStateOf(state.showReauth) }
+	LaunchedEffect(state.showReauth) { if (state.showReauth) isOpen = true }
 
 	SimpleDialog(
-		onCloseRequest = {
-			component.cancelReauthentication()
-		},
-		visible = state.showReauth,
+		onCloseRequest = { isOpen = false },
+		onDismissed = component::cancelReauthentication,
+		visible = isOpen && state.showReauth,
 		title = Res.string.reauth_title.get(),
 	) {
 		Box(

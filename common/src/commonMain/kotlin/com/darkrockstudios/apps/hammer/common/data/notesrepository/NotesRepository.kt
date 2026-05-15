@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,19 @@ class NotesRepository(
 
 	private var _notes = mutableListOf<NoteContainer>()
 
+	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+		replay = 1
+	)
+	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
+
+	private val _noteContentChangedFlow = MutableSharedFlow<Unit>(
+		extraBufferCapacity = 1,
+		onBufferOverflow = BufferOverflow.DROP_OLDEST,
+	)
+	val noteContentChangedFlow: SharedFlow<Unit> = _noteContentChangedFlow
+
 	init {
 		projectScope.scope.registerCallback(this)
 		loadNotes()
@@ -60,13 +74,6 @@ class NotesRepository(
 		return foundContainer?.note
 	}
 
-	private val _notesListFlow = MutableSharedFlow<List<NoteContainer>>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		replay = 1
-	)
-	val notesListFlow: SharedFlow<List<NoteContainer>> = _notesListFlow
-
 	private suspend fun updateNotes(notes: List<NoteContainer>) {
 		_notes = notes.toMutableList()
 		_notesListFlow.emit(notes)
@@ -82,14 +89,18 @@ class NotesRepository(
 					id = noteContainer.note.id,
 					created = noteContainer.note.created,
 					content = noteContainer.note.content,
+					tags = noteContainer.note.tags,
 				)
 			}
 			syncDataRepository.markEntityAsDirty(id, hash)
 		}
 	}
 
-	suspend fun createNote(noteText: String): CResult<NoteContent> {
-		val result = validateNote(noteText)
+	suspend fun createNote(
+		noteText: String,
+		tags: Set<String> = emptySet(),
+	): CResult<NoteContent> {
+		val result = validateNote(noteText, tags)
 		return if (result != NoteError.NONE) {
 			CResult.failure(InvalidNote(result))
 		} else {
@@ -98,7 +109,8 @@ class NotesRepository(
 				NoteContent(
 					id = newId,
 					created = Clock.System.now(),
-					content = noteText
+					content = noteText,
+					tags = cleanTags(tags),
 				)
 			)
 
@@ -109,6 +121,7 @@ class NotesRepository(
 				originalHash = ""
 			)
 
+			_noteContentChangedFlow.emit(Unit)
 			CResult.success(newNote.note)
 		}
 	}
@@ -116,14 +129,17 @@ class NotesRepository(
 	suspend fun deleteNote(id: Int) {
 		notesDatasource.deleteNote(id)
 		syncDataRepository.recordIdDeletion(id)
+		_noteContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun updateNote(noteContent: NoteContent, markForSync: Boolean = true) {
-		notesDatasource.updateNote(noteContent)
+		val cleaned = noteContent.copy(tags = cleanTags(noteContent.tags))
+		notesDatasource.updateNote(cleaned)
 
 		if (markForSync) {
-			markForSync(id = noteContent.id)
+			markForSync(id = cleaned.id)
 		}
+		_noteContentChangedFlow.emit(Unit)
 	}
 
 	suspend fun reIdNote(oldId: Int, newId: Int) {
@@ -136,14 +152,17 @@ class NotesRepository(
 			updatedNotes[index] = NoteContainer(newNote)
 		}
 		updateNotes(updatedNotes)
+		_noteContentChangedFlow.emit(Unit)
 	}
 
-	fun validateNote(noteText: String): NoteError {
+	fun validateNote(noteText: String, tags: Set<String> = emptySet()): NoteError {
 		val trimmed = noteText.trim()
 		return if (noteText.trim().length > MAX_NOTE_SIZE) {
 			NoteError.TOO_LONG
 		} else if (trimmed.isEmpty()) {
 			NoteError.EMPTY
+		} else if (tags.any { it.length > MAX_TAG_SIZE }) {
+			NoteError.TAG_TOO_LONG
 		} else {
 			NoteError.NONE
 		}
@@ -159,5 +178,6 @@ class NotesRepository(
 
 	companion object {
 		const val MAX_NOTE_SIZE = 10000
+		const val MAX_TAG_SIZE = 32
 	}
 }

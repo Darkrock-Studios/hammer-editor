@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 
 class EncyclopediaComponent(
@@ -16,6 +17,8 @@ class EncyclopediaComponent(
 	private val updateShouldClose: () -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
+	private val showScene: (SceneItem) -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Encyclopedia.Config>()
@@ -44,7 +47,7 @@ class EncyclopediaComponent(
 	}
 
 	override fun showViewEntry(entryDef: EntryDef) {
-		navigation.push(Encyclopedia.Config.ViewEntryConfig(entryDef))
+		navigation.bringToFront(Encyclopedia.Config.ViewEntryConfig(entryDef))
 	}
 
 	override fun showCreateEntry() {
@@ -97,7 +100,9 @@ class EncyclopediaComponent(
 			entryDef = config.entryDef,
 			addMenu = addMenu,
 			removeMenu = removeMenu,
-			closeEntry = ::closeEntry
+			closeEntry = ::closeEntry,
+			showScene = showScene,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 		)
 	}
 

@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -16,8 +17,10 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -45,13 +48,34 @@ class ProjectSynchronizationComponent(
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val sceneDraftRepository: SceneDraftRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
+	private val projectDataConflictBroker: ProjectDataConflictBroker by projectInject()
 
 	private var syncJob: Job? = null
+	private var conflictListenerJob: Job? = null
 
 	private val _state = MutableValue(
 		ProjectSynchronization.State()
 	)
 	override val state: Value<ProjectSynchronization.State> = _state
+
+	init {
+		conflictListenerJob = scope.launch {
+			for (conflict in projectDataConflictBroker.conflicts) {
+				withContext(mainDispatcher) {
+					_state.getAndUpdate {
+						it.copy(
+							projectDataConflict = ProjectSynchronization.ProjectDataConflictState(
+								local = conflict.local,
+								server = conflict.server,
+								serverHash = conflict.serverHash,
+							),
+							conflictTitle = Res.string.sync_conflict_project_data_title,
+						)
+					}
+				}
+			}
+		}
+	}
 
 	private suspend fun updateSyncLog(log: SyncLogMessage?) {
 		if (log != null) {
@@ -130,7 +154,7 @@ class ProjectSynchronizationComponent(
 			}
 
 			is ApiProjectEntity.TimelineEventEntity -> {
-				null
+				validateTimelineEventEntity(resolvedEntity)
 			}
 		}
 
@@ -148,6 +172,16 @@ class ProjectSynchronizationComponent(
 		return error
 	}
 
+	override fun resolveProjectDataConflict(resolved: ProjectData) {
+		projectDataConflictBroker.resolve(resolved)
+		_state.getAndUpdate {
+			it.copy(
+				projectDataConflict = null,
+				conflictTitle = null,
+			)
+		}
+	}
+
 	override fun endSync() {
 		scope.launch {
 			syncJob = null
@@ -155,6 +189,7 @@ class ProjectSynchronizationComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						projectDataConflict = null,
 						conflictTitle = null,
 						isSyncing = false,
 						syncProgress = 0f,
@@ -178,6 +213,7 @@ class ProjectSynchronizationComponent(
 				_state.getAndUpdate {
 					it.copy(
 						entityConflict = null,
+						projectDataConflict = null,
 						conflictTitle = null,
 						isSyncing = false,
 					)
@@ -211,6 +247,8 @@ class ProjectSynchronizationComponent(
 		}
 	}
 
+	override fun resolveEntryRef(id: Int) = encyclopediaRepository.findEntryDef(id)
+
 	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
 		Napier.d("Sync progress: $progress")
 		updateSync(true, progress, log)
@@ -235,7 +273,8 @@ class ProjectSynchronizationComponent(
 		val localEntity = ApiProjectEntity.NoteEntity(
 			id = local.id,
 			created = local.created,
-			content = local.content
+			content = local.content,
+			tags = local.tags,
 		)
 
 		withContext(mainDispatcher) {
@@ -259,7 +298,8 @@ class ProjectSynchronizationComponent(
 			id = local.id,
 			date = local.date,
 			content = local.content,
-			order = local.order
+			order = local.order,
+			tags = local.tags,
 		)
 
 		withContext(mainDispatcher) {
@@ -383,7 +423,7 @@ class ProjectSynchronizationComponent(
 	}
 
 	private fun validateNoteEntity(resolvedEntity: ApiProjectEntity.NoteEntity): ProjectSynchronization.EntityMergeError.NoteMergeError? {
-		val error = notesRepository.validateNote(resolvedEntity.content)
+		val error = notesRepository.validateNote(resolvedEntity.content, resolvedEntity.tags)
 		return when (error) {
 			NoteError.NONE -> null
 			NoteError.EMPTY -> ProjectSynchronization.EntityMergeError.NoteMergeError(
@@ -392,6 +432,21 @@ class ProjectSynchronizationComponent(
 
 			NoteError.TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
 				noteError = Res.string.notes_create_toast_too_long.toMsg()
+			)
+
+			NoteError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.NoteMergeError(
+				noteError = Res.string.notes_create_toast_tag_too_long.toMsg()
+			)
+		}
+	}
+
+	private fun validateTimelineEventEntity(
+		resolvedEntity: ApiProjectEntity.TimelineEventEntity,
+	): ProjectSynchronization.EntityMergeError.TimelineEventMergeError? {
+		return when (timeLineRepository.validateTags(resolvedEntity.tags)) {
+			TimeLineEventError.NONE -> null
+			TimeLineEventError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
+				tagError = Res.string.timeline_create_toast_tag_too_long.toMsg()
 			)
 		}
 	}

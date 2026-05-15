@@ -81,6 +81,8 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
 		)
 	}
 
@@ -408,7 +410,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		repo.initializeSceneEditor()
 
 		val exportPath = ffs.workingDirectory
-		val path = repo.exportStory(exportPath.toHPath())
+		val path = repo.exportStory(exportPath.toHPath(), ExportOptions())
 
 		ffs.read(path.toOkioPath()) {
 			val exported = readUtf8()

@@ -7,7 +7,8 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
-	alias(libs.plugins.compose.report.generator)
+	//alias(libs.plugins.compose.report.generator)
+	id("ee.schimke.composeai.preview") version "0.10.0"
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -62,6 +63,7 @@ kotlin {
 				api(libs.multiplatform.window.size)
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
+				api(libs.jetbrains.compose.ui.backhandler)
 				api(libs.decompose.compose)
 				api(libs.decompose.compose.experimental)
 				api(libs.filekit.dialogs.compose)
@@ -69,6 +71,8 @@ kotlin {
 				api(libs.coil.svg)
 				api(libs.kmpalette.core)
 				api(libs.kmpalette.extensions.file)
+				implementation(libs.colorpicker.compose)
+				implementation(libs.material.kolor)
 				implementation(libs.koalaplot.core)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
@@ -99,17 +103,6 @@ kotlin {
 		val desktopMain by getting {
 			dependencies {
 				implementation(compose.desktop.currentOs)
-
-				//implementation(libs.jSystemThemeDetector)
-				// TODO using the `libs` syntax doesn't work with exclude, remove this once
-				// https://github.com/Dansoftowner/jSystemThemeDetector/pull/39
-				// is merged
-				api("com.github.Dansoftowner:jSystemThemeDetector:3.9.1") {
-					exclude(group = "net.java.dev.jna")
-				}
-
-				implementation(libs.jna)
-				implementation(libs.jna.platform)
 			}
 		}
 

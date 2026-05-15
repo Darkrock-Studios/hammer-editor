@@ -17,6 +17,7 @@ interface AboutApp {
 		val latestVersion: String? = null,
 		val currentVersion: String = getAppVersionString(),
 		val newVersionAvailable: Boolean = false,
+		val logDirectoryPath: String = "",
 	)
 
 }

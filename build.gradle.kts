@@ -1,4 +1,10 @@
-import com.darkrockstudios.build.*
+import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.registerLinuxDistributionTasks
+import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.updateFlatpakFiles
+import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.writeChangelogMarkdown
+import com.darkrockstudios.build.writeSemvar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -20,9 +26,12 @@ val xlibs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 allprojects {
 	repositories {
+		mavenLocal()
 		google()
 		mavenCentral()
 		maven("https://jitpack.io")
+		// Jewel artifacts (transitive via nucleus.decorated-window-jewel) — IDEA-aligned snapshot versions
+		maven("https://www.jetbrains.com/intellij-repository/snapshots")
 	}
 
 	tasks.withType<Test> {
@@ -62,7 +71,7 @@ plugins {
 	alias(libs.plugins.android.application) apply false
 	alias(libs.plugins.android.library) apply false
 	alias(libs.plugins.compose.compiler) apply false
-	alias(libs.plugins.compose.report.generator) apply false
+	//alias(libs.plugins.compose.report.generator) apply false
 	alias(libs.plugins.buildconfig) apply false
 	alias(libs.plugins.aboutlibraries.plugin) apply false
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
@@ -90,13 +99,20 @@ registerLinuxDistributionTasks(libs.versions.app.get())
 
 val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
+		fun runGit(vararg args: String): String {
+			val process = ProcessBuilder(*args)
+				.directory(project.rootDir)
+				.start()
+			val stdout = process.inputStream.bufferedReader().readText().trim()
+			process.waitFor()
+			return stdout
+		}
+
 		println("Fetching origin...")
-		providers.exec { commandLine = listOf("git", "fetch", "origin") }.result.get()
+		ProcessBuilder("git", "fetch", "origin").directory(project.rootDir).inheritIO().start().waitFor()
 
 		// Check for unstaged/uncommitted changes
-		val statusText = providers.exec {
-			commandLine = listOf("git", "status", "--porcelain")
-		}.standardOutput.asText.get().trim()
+		val statusText = runGit("git", "status", "--porcelain")
 		if (statusText.isNotEmpty()) {
 			error(
 				"Working tree has uncommitted changes. Please commit or stash them before preparing a release.\n$statusText"
@@ -104,9 +120,7 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 		}
 
 		// Check if develop is behind origin/develop
-		val developBehind = providers.exec {
-			commandLine = listOf("git", "rev-list", "--count", "develop..origin/develop")
-		}.standardOutput.asText.get().trim().toIntOrNull() ?: 0
+		val developBehind = runGit("git", "rev-list", "--count", "develop..origin/develop").toIntOrNull() ?: 0
 		if (developBehind > 0) {
 			error("Local 'develop' is behind 'origin/develop' by $developBehind commit(s). Please pull before preparing a release.")
 		}
@@ -172,14 +186,14 @@ tasks.register("prepareForRelease") {
 		fun git(vararg args: String) {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
-			val stderr = java.io.ByteArrayOutputStream()
-			val result = project.exec {
-				commandLine = cmd
-				errorOutput = stderr
-				isIgnoreExitValue = true
-			}
-			if (result.exitValue != 0) {
-				error("Git command failed: ${cmd.joinToString(" ")}\n${stderr.toString().trim()}")
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) {
+				error("Git command failed: ${cmd.joinToString(" ")}\n${output.trim()}")
 			}
 		}
 
@@ -198,13 +212,13 @@ tasks.register("prepareForRelease") {
 		// Switch to release and reset to origin/release HEAD
 		git("checkout", "release")
 		git("reset", "--hard", "origin/release")
-		git("merge", "develop")
+		git("merge", "-X", "theirs", "develop")
 
 		// Create the release tag
 		git("tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
 
 		// Push and begin the release process
-		git("push", "origin", "--all")
+		git("push", "origin", "develop", "release")
 		git("push", "origin", "--tags")
 
 		// Leave the repo back on develop
@@ -222,25 +236,26 @@ tasks.register("backoutLastRelease") {
 		fun gitSafe(vararg args: String): Boolean {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
-			val stderr = java.io.ByteArrayOutputStream()
-			val result = project.exec {
-				commandLine = cmd
-				errorOutput = stderr
-				isIgnoreExitValue = true
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) {
+				println("  (failed: ${output.trim()})")
 			}
-			if (result.exitValue != 0) {
-				println("  (failed: ${stderr.toString().trim()})")
-			}
-			return result.exitValue == 0
+			return exitCode == 0
 		}
 
 		// Make sure we're on develop
 		gitSafe("checkout", "develop")
 
 		// Check if HEAD commit is the release commit
-		val headMessage = providers.exec {
-			commandLine = listOf("git", "log", "-1", "--format=%s")
-		}.standardOutput.asText.get().trim()
+		val headProcess = ProcessBuilder("git", "log", "-1", "--format=%s")
+			.directory(project.rootDir).start()
+		val headMessage = headProcess.inputStream.bufferedReader().readText().trim()
+		headProcess.waitFor()
 
 		if (headMessage == "Prepared for release: $tagName") {
 			println("Resetting develop to before release commit...")
@@ -252,10 +267,10 @@ tasks.register("backoutLastRelease") {
 		}
 
 		// Delete tag locally if it exists
-		val tagExists = providers.exec {
-			commandLine = listOf("git", "rev-parse", tagName)
-			isIgnoreExitValue = true
-		}.result.get().exitValue == 0
+		val tagExists = ProcessBuilder("git", "rev-parse", tagName)
+			.directory(project.rootDir)
+			.start()
+			.waitFor() == 0
 
 		if (tagExists) {
 			println("Deleting local tag $tagName...")
@@ -273,5 +288,83 @@ tasks.register("backoutLastRelease") {
 		gitSafe("checkout", "develop")
 
 		println("Backout complete. Remote was NOT modified — if the push already went through, you'll need to force-push manually.")
+	}
+}
+
+tasks.register("revertLastRelease") {
+	doLast {
+		val version = libs.versions.app.get()
+		val tagName = "v$version"
+
+		println("Reverting release $tagName from local and remote...")
+
+		fun git(vararg args: String) {
+			val cmd = listOf("git") + args.toList()
+			println("> ${cmd.joinToString(" ")}")
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) error("Git command failed: ${cmd.joinToString(" ")}\n${output.trim()}")
+		}
+
+		fun gitSafe(vararg args: String): Boolean {
+			val cmd = listOf("git") + args.toList()
+			println("> ${cmd.joinToString(" ")}")
+			val process = ProcessBuilder(cmd)
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (exitCode != 0) println("  (skipped: ${output.trim()})")
+			return exitCode == 0
+		}
+
+		fun gitOutput(vararg args: String): String {
+			val process = ProcessBuilder(listOf("git") + args.toList())
+				.directory(project.rootDir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText().trim()
+			process.waitFor()
+			return output
+		}
+
+		git("fetch", "origin")
+
+		// Validate develop HEAD is the release commit we expect to undo
+		git("checkout", "develop")
+		val developHead = gitOutput("log", "-1", "--format=%s")
+		if (developHead != "Prepared for release: $tagName") {
+			error("develop HEAD is '$developHead', expected 'Prepared for release: $tagName'. Cannot safely revert.")
+		}
+
+		// Validate release HEAD is a merge commit (has 2 parents)
+		git("checkout", "release")
+		val releaseParents = gitOutput("log", "-1", "--format=%P").split("\\s+".toRegex()).filter { it.isNotEmpty() }
+		if (releaseParents.size < 2) {
+			error("release HEAD is not a merge commit. Cannot safely revert.")
+		}
+
+		// Reset release to its pre-merge state (first parent of the merge commit)
+		println("Resetting release to pre-merge state...")
+		git("reset", "--hard", "HEAD^1")
+		git("push", "--force", "origin", "release")
+
+		// Reset develop to before the release commit
+		println("Resetting develop to pre-release state...")
+		git("checkout", "develop")
+		git("reset", "--hard", "HEAD~1")
+		git("push", "--force", "origin", "develop")
+
+		// Delete tag from remote then local
+		println("Deleting tag $tagName...")
+		gitSafe("push", "origin", "--delete", tagName)
+		gitSafe("tag", "-d", tagName)
+
+		println("Done. $tagName has been fully reverted on local and remote.")
 	}
 }

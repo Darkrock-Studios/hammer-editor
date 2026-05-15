@@ -60,6 +60,32 @@
 	<string name="scene_editor_metadata_notes_placeholder">Notes to yourself.</string>
 	<string name="scene_editor_metadata_draft_name_label">Draft Name</string>
 
+	<string name="scene_editor_metadata_references_header">References</string>
+	<string name="scene_editor_metadata_references_confirmed_label">Appears in this scene</string>
+	<string name="scene_editor_metadata_references_dismissed_label">Dismissed</string>
+	<string name="scene_editor_metadata_references_empty">No references yet</string>
+	<string name="scene_editor_metadata_references_dismiss">Dismiss</string>
+	<string name="scene_editor_metadata_references_restore">Restore</string>
+	<string name="scene_editor_metadata_references_add_dismissed_hint">(dismissed)</string>
+	<string name="scene_editor_metadata_references_characters_label">Characters</string>
+	<string name="scene_editor_metadata_references_locations_label">Locations</string>
+	<string name="scene_editor_metadata_references_other_label">Other</string>
+	<string name="scene_editor_metadata_references_add_button">+ Add reference</string>
+	<string name="scene_editor_metadata_references_add_dialog_title">Add reference</string>
+	<string name="scene_editor_metadata_references_add_dialog_done">Done</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_characters">Search characters…</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_locations">Search locations…</string>
+	<string name="scene_editor_metadata_references_add_dialog_search_other">Search entries…</string>
+	<string name="scene_editor_metadata_references_add_dialog_empty">No matching entries.</string>
+	<string name="scene_editor_metadata_references_add_dialog_close">Close dialog</string>
+
+	<string name="scene_editor_metadata_tags_header">Tags</string>
+	<string name="scene_editor_metadata_tags_empty">No tags yet</string>
+	<string name="scene_editor_metadata_tags_add_button">+ Add tag</string>
+	<string name="scene_editor_metadata_tags_add_dialog_title">Add tags</string>
+	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
+	<string name="scene_editor_metadata_tags_add_dialog_done">Done</string>
+
 	<string name="scene_editor_no_scene_selected">Select a Scene to edit</string>
 
 	<string name="default_draft_name">New Draft</string>
