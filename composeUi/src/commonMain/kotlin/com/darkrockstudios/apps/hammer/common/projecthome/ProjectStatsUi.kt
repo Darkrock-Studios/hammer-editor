@@ -34,7 +34,9 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
@@ -81,14 +83,26 @@ fun ProjectStatsUi(
 
 		StatsStrip(state = state, isWide = isWide)
 
-		StructureSection(state = state, isWide = isWide)
+		StructureSection(
+			state = state,
+			isWide = isWide,
+			onShowLongestScene = component::showLongestScene,
+		)
 
 		if (state.dailyWordTotals.isNotEmpty() || state.encyclopediaEntriesByType.isNotEmpty() || state.topAppearances.isNotEmpty()) {
-			InhabitantsSection(state = state, isWide = isWide)
+			InhabitantsSection(
+				state = state,
+				isWide = isWide,
+				onShowEntry = component::showEntry,
+			)
 		}
 
 		if (state.tagBreakdowns.isNotEmpty()) {
-			ThemesSection(state = state, isWide = isWide)
+			ThemesSection(
+				state = state,
+				isWide = isWide,
+				onTagClick = component::showGlobalSearchForTag,
+			)
 		}
 
 		if (state.wordsPerDevice.size >= 2) {
@@ -316,7 +330,11 @@ private data class ChapterStats(
 )
 
 @Composable
-private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
+private fun StructureSection(
+	state: ProjectHome.State,
+	isWide: Boolean,
+	onShowLongestScene: () -> Unit,
+) {
 	val sceneCount = state.numberOfScenes
 	val chapterCount = state.wordsByChapter.size
 	HdHairlineSection(
@@ -347,16 +365,39 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 		}
 		val longestScene: @Composable (Modifier) -> Unit = { mod ->
 			val longestName = state.longestSceneName
-			HdStatBlock(
-				label = stringResource(Res.string.project_home_stat_longest_scene),
-				value = longestName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
-				valueStyle = MaterialTheme.typography.headlineMedium,
-				valueMaxLines = 2,
-				subtitle = if (state.longestSceneWords > 0)
-					stringResource(Res.string.project_home_stat_longest_scene_words, state.longestSceneWords.formatDecimalSeparator())
-				else null,
-				modifier = mod,
-			)
+			val canOpen = state.longestSceneId != null
+			val rowModifier = if (canOpen) {
+				mod.hdInteractiveRow(onClick = onShowLongestScene)
+			} else {
+				mod
+			}
+			Row(
+				modifier = rowModifier,
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(10.dp),
+			) {
+				HdStatBlock(
+					label = stringResource(Res.string.project_home_stat_longest_scene),
+					value = longestName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
+					valueStyle = MaterialTheme.typography.headlineMedium,
+					valueMaxLines = 2,
+					subtitle = if (state.longestSceneWords > 0)
+						stringResource(
+							Res.string.project_home_stat_longest_scene_words,
+							state.longestSceneWords.formatDecimalSeparator()
+						)
+					else null,
+					modifier = Modifier.weight(1f, fill = false),
+				)
+				if (canOpen) {
+					Text(
+						text = "↗",
+						fontFamily = hammerMonoFontFamily(),
+						style = MaterialTheme.typography.headlineMedium,
+						color = MaterialTheme.colorScheme.primary,
+					)
+				}
+			}
 		}
 		val notes: @Composable () -> Unit = {
 			HdStatBlock(
@@ -443,7 +484,11 @@ private fun StructureSection(state: ProjectHome.State, isWide: Boolean) {
 }
 
 @Composable
-private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
+private fun InhabitantsSection(
+	state: ProjectHome.State,
+	isWide: Boolean,
+	onShowEntry: (EntryAppearance) -> Unit,
+) {
 	val typeCounts = state.encyclopediaEntriesByType
 	val totalEntries = remember(typeCounts) { typeCounts.values.sum() }
 	val headerSummary = remember(typeCounts, totalEntries) {
@@ -455,12 +500,13 @@ private fun InhabitantsSection(state: ProjectHome.State, isWide: Boolean) {
 		}.joinToString(" · ").takeIf { it.isNotEmpty() }
 	}
 	val hammerColors = LocalHammerColors.current
-	val attributions = remember(state.topAppearances, hammerColors) {
+	val attributions = remember(state.topAppearances, hammerColors, onShowEntry) {
 		state.topAppearances.map { entry ->
 			HdAttributionItem(
 				label = entry.name,
 				value = entry.sceneCount,
 				color = hammerColors.colorForCharacter(entry.entryId),
+				onClick = { onShowEntry(entry) },
 			)
 		}
 	}
@@ -619,7 +665,11 @@ private fun ThemesStackedBar(
 }
 
 @Composable
-private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
+private fun ThemesSection(
+	state: ProjectHome.State,
+	isWide: Boolean,
+	onTagClick: (String) -> Unit,
+) {
 	val tags = state.tagBreakdowns
 	val totalUses = remember(state.tagUsesByType) { state.tagUsesByType.values.sum() }
 	val connective = remember(tags) {
@@ -647,12 +697,14 @@ private fun ThemesSection(state: ProjectHome.State, isWide: Boolean) {
 				tags = tags,
 				connective = connective,
 				tagUsesByType = state.tagUsesByType,
+				onTagClick = onTagClick,
 			)
 		} else {
 			ThemesSectionNarrow(
 				tags = tags,
 				connective = connective,
 				tagUsesByType = state.tagUsesByType,
+				onTagClick = onTagClick,
 			)
 		}
 	}
@@ -663,6 +715,7 @@ private fun ThemesSectionWide(
 	tags: List<TagBreakdown>,
 	connective: TagBreakdown?,
 	tagUsesByType: Map<TaggedEntityType, Int>,
+	onTagClick: (String) -> Unit,
 ) {
 	val top = remember(tags) { tags.take(THEMES_TOP_WIDE) }
 	val max = top.firstOrNull()?.total ?: 1
@@ -673,7 +726,12 @@ private fun ThemesSectionWide(
 			verticalArrangement = Arrangement.spacedBy(14.dp),
 		) {
 			top.forEachIndexed { index, tag ->
-				ThemesRankedRow(rank = index + 1, tag = tag, max = max)
+				ThemesRankedRow(
+					rank = index + 1,
+					tag = tag,
+					max = max,
+					onClick = { onTagClick(tag.name) },
+				)
 			}
 			HorizontalDivider(
 				thickness = Dp.Hairline,
@@ -706,7 +764,10 @@ private fun ThemesSectionWide(
 				.padding(start = 32.dp),
 			verticalArrangement = Arrangement.spacedBy(8.dp),
 		) {
-			ThemesConnectiveCallout(connective = connective)
+			ThemesConnectiveCallout(
+				connective = connective,
+				onClick = connective?.let { { onTagClick(it.name) } },
+			)
 			HorizontalDivider(
 				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
@@ -732,9 +793,11 @@ private fun ThemesSectionWide(
 }
 
 @Composable
-private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int) {
+private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int, onClick: () -> Unit) {
 	Row(
-		modifier = Modifier.fillMaxWidth(),
+		modifier = Modifier
+			.fillMaxWidth()
+			.hdInteractiveRow(onClick = onClick),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(14.dp),
 	) {
@@ -780,11 +843,13 @@ private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int) {
 }
 
 @Composable
-private fun ThemesConnectiveCallout(connective: TagBreakdown?) {
+private fun ThemesConnectiveCallout(connective: TagBreakdown?, onClick: (() -> Unit)?) {
 	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
 	if (connective == null) return
 	Row(
-		modifier = Modifier.fillMaxWidth(),
+		modifier = Modifier
+			.fillMaxWidth()
+			.then(if (onClick != null) Modifier.hdInteractiveRow(onClick = onClick) else Modifier),
 		verticalAlignment = Alignment.Bottom,
 		horizontalArrangement = Arrangement.spacedBy(6.dp),
 	) {
@@ -799,6 +864,14 @@ private fun ThemesConnectiveCallout(connective: TagBreakdown?) {
 			color = MaterialTheme.colorScheme.onSurface,
 			maxLines = 1,
 		)
+		if (onClick != null) {
+			Text(
+				text = "↗",
+				fontFamily = hammerMonoFontFamily(),
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.primary,
+			)
+		}
 	}
 	HdMonoLabel(text = connectiveBreadthCaption(connective, short = false))
 }
@@ -857,6 +930,7 @@ private fun ThemesSectionNarrow(
 	tags: List<TagBreakdown>,
 	connective: TagBreakdown?,
 	tagUsesByType: Map<TaggedEntityType, Int>,
+	onTagClick: (String) -> Unit,
 ) {
 	val top = remember(tags) { tags.take(THEMES_TOP_NARROW) }
 	val max = top.firstOrNull()?.total ?: 1
@@ -868,6 +942,7 @@ private fun ThemesSectionNarrow(
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
+					.hdInteractiveRow(onClick = { onTagClick(connective.name) })
 					.padding(vertical = 12.dp),
 				verticalAlignment = Alignment.CenterVertically,
 			) {
@@ -884,6 +959,12 @@ private fun ThemesSectionNarrow(
 							style = MaterialTheme.typography.headlineSmall,
 							color = MaterialTheme.colorScheme.onSurface,
 							maxLines = 1,
+						)
+						Text(
+							text = "↗",
+							fontFamily = hammerMonoFontFamily(),
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.primary,
 						)
 					}
 				}
@@ -906,7 +987,9 @@ private fun ThemesSectionNarrow(
 	) {
 		top.forEachIndexed { index, tag ->
 			Row(
-				modifier = Modifier.fillMaxWidth(),
+				modifier = Modifier
+					.fillMaxWidth()
+					.hdInteractiveRow(onClick = { onTagClick(tag.name) }),
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.spacedBy(10.dp),
 			) {

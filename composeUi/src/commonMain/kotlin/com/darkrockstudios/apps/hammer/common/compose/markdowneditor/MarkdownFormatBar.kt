@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.MoreVert
@@ -21,7 +22,10 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_reset_text_size
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
+import com.darkrockstudios.texteditor.state.getRichSpansAtPosition
+import com.darkrockstudios.texteditor.state.getRichSpansInRange
 import com.darkrockstudios.texteditor.state.getSpanStylesInRange
 
 @Composable
@@ -36,22 +40,29 @@ fun MarkdownFormatBar(
 	var isItalicActive by remember { mutableStateOf(false) }
 	var isStrikethroughActive by remember { mutableStateOf(false) }
 	var isBlockquoteActive by remember { mutableStateOf(false) }
+	var isOrderedListActive by remember { mutableStateOf(false) }
 	var currentHeaderLevel by remember { mutableStateOf(0) }
 
 	val state = remember(markdownState) { markdownState.editorState }
 
 	LaunchedEffect(Unit) {
-		state.cursorDataFlow.collect { (_, cursorStyles, selection) ->
+		state.cursorDataFlow.collect { (position, cursorStyles, selection) ->
 			val styles = if (selection != null) {
 				state.getSpanStylesInRange(selection)
 			} else {
 				cursorStyles
+			}
+			val richSpans = if (selection != null) {
+				state.getRichSpansInRange(selection)
+			} else {
+				state.getRichSpansAtPosition(position)
 			}
 
 			isBoldActive = styles.contains(markdownState.markdownStyles.BOLD)
 			isItalicActive = styles.contains(markdownState.markdownStyles.ITALICS)
 			isStrikethroughActive = styles.contains(markdownState.markdownStyles.STRIKETHROUGH)
 			isBlockquoteActive = styles.contains(markdownState.markdownStyles.BLOCKQUOTE)
+			isOrderedListActive = richSpans.any { it.style === OrderedListSpanStyle }
 			currentHeaderLevel = HEADER_CYCLE_LEVELS.firstOrNull { lvl ->
 				styles.contains(markdownState.markdownStyles.header(lvl))
 			} ?: 0
@@ -79,6 +90,7 @@ fun MarkdownFormatBar(
 				isItalicActive = isItalicActive,
 				isStrikethroughActive = isStrikethroughActive,
 				isBlockquoteActive = isBlockquoteActive,
+				isOrderedListActive = isOrderedListActive,
 				currentHeaderLevel = currentHeaderLevel,
 			)
 
@@ -109,6 +121,7 @@ private fun RowScope.FormatButtons(
 	isItalicActive: Boolean,
 	isStrikethroughActive: Boolean,
 	isBlockquoteActive: Boolean,
+	isOrderedListActive: Boolean,
 	currentHeaderLevel: Int,
 ) {
 	EditorAction(
@@ -146,6 +159,12 @@ private fun RowScope.FormatButtons(
 		active = false,
 	) {
 		insertLineBullet(state)
+	}
+	EditorAction(
+		icon = Icons.Default.FormatListNumbered,
+		active = isOrderedListActive,
+	) {
+		toggleOrderedList(state, markdownState)
 	}
 	EditorAction(
 		icon = Icons.Default.HorizontalRule,

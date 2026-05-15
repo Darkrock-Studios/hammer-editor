@@ -141,6 +141,9 @@ internal class ProjectRootRouter(
 			projectDef = config.projectDef,
 			showProjectSync = showProjectSync,
 			onShowGlobalSearch = showGlobalSearch,
+			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
+			onShowScene = showScene,
+			onShowEntry = showEntry,
 			onCloseProject = onCloseProject,
 		)
 	}

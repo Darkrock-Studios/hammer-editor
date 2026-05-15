@@ -1,14 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -90,12 +83,16 @@ fun HdMiniBarChart(
 		verticalArrangement = Arrangement.spacedBy(6.dp),
 	) {
 		items.forEach { item ->
+			val onClick = item.onClick
+			val rowModifier = Modifier
+				.fillMaxWidth()
+				.let { if (onClick != null) it.hdInteractiveRow(onClick = onClick) else it }
 			HdAttributionBar(
 				label = item.label,
 				value = item.value.formatDecimalSeparator(),
 				fraction = item.value.toFloat() / effectiveMax,
 				color = item.color,
-				modifier = Modifier.fillMaxWidth(),
+				modifier = rowModifier,
 			)
 		}
 	}
@@ -105,4 +102,5 @@ data class HdAttributionItem(
 	val label: String,
 	val value: Int,
 	val color: Color,
+	val onClick: (() -> Unit)? = null,
 )

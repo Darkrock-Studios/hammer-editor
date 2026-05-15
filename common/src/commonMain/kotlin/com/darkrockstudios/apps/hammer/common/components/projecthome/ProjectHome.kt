@@ -39,6 +39,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 
 	fun startProjectSync()
 	fun showGlobalSearch()
+	fun showGlobalSearchForTag(tag: String)
+	fun showLongestScene()
+	fun showEntry(entry: EntryAppearance)
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 	fun getExportStoryFileName(): String
@@ -59,6 +62,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val totalWords: Int = 0,
 		val wordsByChapter: Map<String, Int> = emptyMap(),
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
+		val longestSceneId: Int? = null,
 		val longestSceneName: String? = null,
 		val longestSceneWords: Int = 0,
 		val shortestSceneWords: Int = 0,
