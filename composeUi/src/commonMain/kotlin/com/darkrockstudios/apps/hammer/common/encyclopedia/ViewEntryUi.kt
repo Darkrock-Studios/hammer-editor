@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -343,19 +342,13 @@ private fun CrumbRow(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		Row(
-			modifier = Modifier
-				.clickable(
-					onClick = onClose,
-					role = Role.Button,
-					onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
-				)
-				.padding(vertical = 4.dp),
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
-			HdMonoLabel(
-				text = "← " + Res.string.encyclopedia_entry_crumb_root.get(),
-				color = MaterialTheme.colorScheme.onSurface,
+			HdCrumbBackLink(
+				label = Res.string.encyclopedia_entry_crumb_root.get(),
+				onClick = onClose,
+				onClickLabel = Res.string.encyclopedia_entry_close_button.get(),
 			)
 			HdMonoLabel(
 				text = "/",

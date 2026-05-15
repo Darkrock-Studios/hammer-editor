@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +21,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -116,10 +116,9 @@ private fun Breadcrumb(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
-		HdMonoLabel(
-			modifier = Modifier
-				.clickable(onClick = onClose),
-			text = "← " + Res.string.project_settings_breadcrumb_home.get(),
+		HdCrumbBackLink(
+			label = Res.string.project_settings_breadcrumb_home.get(),
+			onClick = onClose,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		HdMonoLabel(
