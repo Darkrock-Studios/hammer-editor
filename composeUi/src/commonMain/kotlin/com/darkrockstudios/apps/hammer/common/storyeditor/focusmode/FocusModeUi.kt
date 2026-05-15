@@ -26,8 +26,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close

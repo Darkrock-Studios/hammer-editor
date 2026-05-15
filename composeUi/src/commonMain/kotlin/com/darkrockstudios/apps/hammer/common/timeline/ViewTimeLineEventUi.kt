@@ -73,6 +73,7 @@ fun ViewTimeLineEventUi(
 	Box(
 		modifier = modifier
 			.fillMaxSize()
+			.saveShortcutModifier { if (isEditing) saveChanges() }
 			.background(MaterialTheme.colorScheme.surfaceDim),
 		contentAlignment = Alignment.TopCenter,
 	) {

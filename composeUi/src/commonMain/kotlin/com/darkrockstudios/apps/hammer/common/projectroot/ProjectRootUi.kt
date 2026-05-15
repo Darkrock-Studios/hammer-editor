@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.syncShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -79,7 +80,14 @@ fun ProjectRootUi(
 	modifier: Modifier = Modifier,
 ) {
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		FeatureContent(modifier.fillMaxSize(), component, rootSnackbar, navWidth)
+		FeatureContent(
+			modifier
+				.fillMaxSize()
+				.syncShortcutModifier { component.showProjectSync() },
+			component,
+			rootSnackbar,
+			navWidth,
+		)
 	}
 
 	ModalContent(component) { message ->
