@@ -6,7 +6,7 @@
     <string name="title_activity_configure_note_widget">Widget konfigurieren</string>
     <string name="overflow_menu_button">Weitere Menüs</string>
     <string name="navdrawer_button">Navigationsmenü</string>
-    <string name="note_widget_dialog_title">Notiz hinzufügen:</string>
+    <string name="note_widget_dialog_title">Notiz hinzufügen zu:</string>
     <string name="note_widget_dialog_save_button">Speichern</string>
     <string name="note_widget_dialog_cancel_button">Abbrechen</string>
     <string name="note_widget_dialog_projects_dropdown">Projekte</string>
@@ -24,4 +24,24 @@
     <string name="note_widget_config_title">Notiz-Widget konfigurieren:</string>
     <string name="note_widget_config_project_checkbox">Notizen zum angegebenen Projekt hinzufügen</string>
     <string name="note_widget_config_project_checkbox_explained">Wenn kein Projekt ausgewählt ist, wirst du jedes Mal aufgefordert ein Projekt auszuwählen.</string>
+    <string name="stories_list_widget_description">Hammer · Library — open a story</string>
+    <string name="story_info_widget_description">Hammer · Story — at-a-glance stats for one project</string>
+    <string name="story_info_widget_config_title">Story Info Widget:</string>
+    <string name="title_activity_story_info_widget_config">Configure Story Info Widget</string>
+    <string name="story_info_widget_unconfigured">Tap to configure</string>
+    <string name="story_info_widget_folio_header">§ %1$s · STORY</string>
+    <string name="story_info_widget_byline">by %1$s</string>
+    <string name="story_info_widget_words_label">WORDS</string>
+    <string name="story_info_widget_goal_summary">%1$d%% OF %2$s %3$s</string>
+    <string name="story_info_widget_cadence_today">TODAY</string>
+    <string name="story_info_widget_cadence_this_week">THIS WEEK</string>
+    <string name="story_info_widget_today_words">+%1$d TODAY</string>
+    <string name="story_info_widget_no_session_today">NO SESSION TODAY</string>
+    <string name="story_info_widget_streak">%1$dD STREAK</string>
+    <string name="story_info_widget_sessions_header">SESSIONS · 7D</string>
+    <string name="story_info_widget_week_total">%1$s W</string>
+    <string name="story_info_widget_action_open">OPEN</string>
+    <string name="story_info_widget_action_note">NOTE</string>
+    <string name="story_info_widget_strip_folio">§ %1$s</string>
+    <string name="story_info_widget_strip_words_unit">W</string>
 </resources>

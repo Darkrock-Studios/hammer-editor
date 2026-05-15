@@ -11,4 +11,9 @@
 	<string name="about_version_new_available_title">Nova Versão Disponível!</string>
 	<string name="about_version_new_available_message">A versão %s está disponível agora</string>
 	<string name="about_version_up_to_date">Atualizado!</string>
+	<string name="about_logs_header">Application Logs</string>
+	<string name="about_logs_directory_label">Log Directory:</string>
+	<string name="about_logs_export_button">Export Logs</string>
+	<string name="about_logs_no_logs">No log files found</string>
+	<string name="about_logs_open_tooltip">Open log directory</string>
 </resources>

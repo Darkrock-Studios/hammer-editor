@@ -2,10 +2,10 @@
 <resources>
 	<string name="app_name">Hammer</string>
 	<string name="unsaved_scenes_dialog_title">Ungespeicherte Szenen</string>
-	<string name="unsaved_scenes_dialog_message">Was sollte mit ungesicherten Szenen geschehen?</string>
-	<string name="unsaved_encyclopedia_dialog_title">Ungespeicherte Enzyklopädie Eintrag</string>
+	<string name="unsaved_scenes_dialog_message">Was sollte mit ungespeicherten Szenen geschehen?</string>
+	<string name="unsaved_encyclopedia_dialog_title">Ungespeicherter Enzyklopädie-Eintrag</string>
 	<string name="unsaved_encyclopedia_dialog_message">Eintrag verwerfen?</string>
-	<string name="unsaved_notes_dialog_title">Ungespeicherte Anmerkungen</string>
+	<string name="unsaved_notes_dialog_title">Ungespeicherte Notiz</string>
 	<string name="unsaved_notes_dialog_message">Notiz verwerfen?</string>
 	<string name="unsaved_dialog_negative_button">Abbrechen</string>
 	<string name="unsaved_dialog_positive_button">Verwerfen und schließen</string>
@@ -21,4 +21,7 @@
 	<string name="image_failed_to_load">Bildfehler</string>
 	<string name="expand">Erweitern</string>
 	<string name="collapse">Einklappen</string>
+	<string name="markdown_format_bar_decrease_text_size">Decrease text size</string>
+	<string name="markdown_format_bar_increase_text_size">Increase text size</string>
+	<string name="markdown_format_bar_reset_text_size">Reset text size</string>
 </resources>

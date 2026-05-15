@@ -52,8 +52,9 @@
 	<string name="settings_enable_dnd_focus_mode_title">Ativar o modo Não Perturbe quando estiver no Modo de Foco</string>
 	<string name="settings_dnd_permission_button">Conceder permissão de Não Perturbe</string>
 	<string name="settings_dnd_permission_explanation">O Hammer precisa de permissão para ativar o modo Não Perturbe quando você está no Modo de Foco</string>
+	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Corretor Ortográfico</string>
-	<string name="settings_spellcheck_notice">O corretor ortográfico é experimental! Se estiver causando problemas, desligue-o.</string>
+	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.</string>
 	<string name="settings_spellcheck_enable">Habilitar corretor ortográfico (experimental)</string>
 	<string name="settings_spellcheck_in_focus_enable">Ativar no Modo de Foco</string>
 	<string name="settings_spellcheck_dictionary">Dicionário</string>
