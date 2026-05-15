@@ -56,6 +56,16 @@ internal fun reconcileHorizontalRules(state: TextEditorState) {
 	}
 }
 
+internal fun toggleOrderedList(state: TextEditorState, markdown: MarkdownExtension) {
+	val selection = state.selector.selection
+	val lines = if (selection != null) {
+		selection.start.line..selection.end.line
+	} else {
+		state.cursorPosition.line..state.cursorPosition.line
+	}
+	markdown.toggleOrderedList(lines)
+}
+
 internal val HEADER_CYCLE_LEVELS = 1..3
 
 internal fun cycleHeader(

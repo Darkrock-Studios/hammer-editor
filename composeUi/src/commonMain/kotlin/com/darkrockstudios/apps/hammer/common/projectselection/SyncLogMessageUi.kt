@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,7 +56,7 @@ fun SyncLogMessageUi(logMsg: SyncLogMessage, showProjectName: Boolean = true) {
 			Row(verticalAlignment = Alignment.CenterVertically) {
 				Text(
 					text = timestamp,
-					style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+					style = MaterialTheme.typography.labelSmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 

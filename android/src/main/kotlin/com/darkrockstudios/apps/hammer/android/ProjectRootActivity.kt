@@ -106,7 +106,8 @@ class ProjectRootActivity : AppCompatActivity() {
 					componentContext = componentContext,
 					projectDef = projectDef,
 					addMenu = { /* Not needed on Android */ },
-					removeMenu = { /* Not needed on Android */ }
+					removeMenu = { /* Not needed on Android */ },
+					onCloseProject = { projectRoot?.requestClose() },
 				)
 			}
 			projectRoot = component

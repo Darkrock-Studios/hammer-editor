@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -81,7 +81,7 @@ internal fun SaveDraftDialog(
 		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
 			Text(
 				text = Res.string.save_draft_dialog_current_draft.get().uppercase(),
-				fontFamily = FontFamily.Monospace,
+				fontFamily = hammerMonoFontFamily(),
 				fontSize = 10.sp,
 				letterSpacing = 1.8.sp,
 				color = if (currentDraftIsValid) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,

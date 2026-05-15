@@ -113,7 +113,7 @@ fun AppTheme(
 		MaterialTheme(
 			colorScheme = colors,
 			shapes = HammerShapes,
-			typography = HammerTypography,
+			typography = hammerTypography(),
 		) {
 			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
 				content()

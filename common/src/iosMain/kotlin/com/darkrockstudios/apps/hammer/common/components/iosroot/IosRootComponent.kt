@@ -37,6 +37,7 @@ class IosRootComponent(
 						projectDef = config.projectDef,
 						addMenu = {},
 						removeMenu = {},
+						onCloseProject = {},
 					)
 				)
 			}

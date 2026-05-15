@@ -15,7 +15,8 @@ import kotlinx.coroutines.withContext
 class OutlineOverviewComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val dismissDialog: () -> Unit
+	private val dismissDialog: () -> Unit,
+	private val showScene: (SceneItem) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), OutlineOverview {
 
 	private val sceneEditor: SceneEditorRepository by projectInject()
@@ -80,6 +81,11 @@ class OutlineOverviewComponent(
 	}
 
 	override fun dismiss() {
+		dismissDialog()
+	}
+
+	override fun selectScene(sceneItem: SceneItem) {
+		showScene(sceneItem)
 		dismissDialog()
 	}
 }

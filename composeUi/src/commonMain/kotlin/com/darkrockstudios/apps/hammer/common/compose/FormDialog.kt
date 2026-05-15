@@ -17,11 +17,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 
 /**
  * Folio-masthead form dialog. Sibling to [ConfirmationDialog] — same square-cornered surface,
@@ -96,7 +96,7 @@ fun FormDialog(
 				) {
 					Text(
 						text = marker,
-						fontFamily = FontFamily.Monospace,
+						fontFamily = hammerMonoFontFamily(),
 						fontSize = 10.sp,
 						fontWeight = FontWeight.Medium,
 						letterSpacing = 1.8.sp,
@@ -106,7 +106,7 @@ fun FormDialog(
 					if (!meta.isNullOrEmpty()) {
 						Text(
 							text = meta,
-							fontFamily = FontFamily.Monospace,
+							fontFamily = hammerMonoFontFamily(),
 							fontSize = 10.sp,
 							letterSpacing = 1.8.sp,
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -151,7 +151,7 @@ fun FormDialog(
 					if (keyboardHint != null) {
 						Text(
 							text = keyboardHint,
-							fontFamily = FontFamily.Monospace,
+							fontFamily = hammerMonoFontFamily(),
 							fontSize = 10.sp,
 							letterSpacing = 0.4.sp,
 							color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -248,7 +248,7 @@ fun FormField(
 	) {
 		Text(
 			text = label,
-			fontFamily = FontFamily.Monospace,
+			fontFamily = hammerMonoFontFamily(),
 			fontSize = 10.sp,
 			letterSpacing = 1.8.sp,
 			color = labelColor,

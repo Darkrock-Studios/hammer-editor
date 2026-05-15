@@ -4,10 +4,36 @@ on:
     types: [ published ]
 
 jobs:
-  publish-google-play:
+  publish-fdroid-tag:
+    needs: publish-google-play
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create F-Droid tag
+        run: |
+          VERSION=${{ github.event.release.tag_name }}
+          VERSION=${VERSION#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
+          FDROID_TAG="fdroid-${VERSION_CODE}"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin release
+          git checkout release
+          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
+          git push origin tag "$FDROID_TAG"
+
+  publish-google-play:
+    runs-on: ubuntu-latest
     env:
       BUILD_NUMBER: ${{ github.run_number }}
       RELEASE_BUILD: true
@@ -57,23 +83,6 @@ jobs:
           base64 -d -i play_config.json.b64 > play_config.json
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
-
-      - name: Create F-Droid tag
-        run: |
-          VERSION=${{ github.event.release.tag_name }}
-          VERSION=${VERSION#v}
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
-          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
-          FDROID_TAG="fdroid-${VERSION_CODE}"
-
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git fetch origin release
-          git checkout release
-          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
-          git push origin tag "$FDROID_TAG"
 
       - name: Distribute app to Production track 🚀
         run: bundle exec fastlane release
@@ -180,7 +189,7 @@ jobs:
           Write-Host "✓ Submission committed successfully!"
 
   notify:
-    needs: [ publish-google-play, publish-snap ]
+    needs: [ publish-fdroid-tag, publish-google-play, publish-snap, publish-microsoft-store ]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification

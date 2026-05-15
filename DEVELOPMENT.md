@@ -193,14 +193,15 @@ The protocol for synchronizing data between client and server is outlined here:
 
 ## Re-generate open source library data
 
-This is a manual step that needs to be run any time a new Open Source library is added.
-This data drives the Opensource Licences UI in the apps.
-
-**Android Target:**
-`./gradlew :android:exportLibraryDefinitions -P"aboutLibraries.exportPath=src\main\res\raw"`
+This data drives the Opensource Licenses UI in the apps.
 
 **Desktop Target:**
+Must be regenerated manually when an open source dependency is added/changed:
 `./gradlew :desktop:exportLibraryDefinitions -P"aboutLibraries.exportPath=src\jvmMain\resources"`
+
+**Android Target:**
+Auto-generated on every build by the `aboutlibraries.plugin.android` plugin into
+`android/build/generated/aboutLibraries/<variant>/res/raw/aboutlibraries.json`. No manual step required.
 
 **iOS Target:**
 ???

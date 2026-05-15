@@ -11,12 +11,15 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
@@ -40,6 +43,9 @@ class ProjectHomeComponent(
 	projectDef: ProjectDef,
 	private val showProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
+	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowScene: (SceneItem) -> Unit,
+	private val onShowEntry: (EntryDef) -> Unit,
 	private val onCloseProject: (() -> Unit)? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectHome,
 	ComponentToaster by ComponentToasterImpl() {
@@ -49,6 +55,7 @@ class ProjectHomeComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
@@ -195,6 +202,19 @@ class ProjectHomeComponent(
 
 	override fun showGlobalSearch() = onShowGlobalSearch()
 
+	override fun showGlobalSearchForTag(tag: String) = onShowGlobalSearchForTag(tag)
+
+	override fun showLongestScene() {
+		val id = _state.value.longestSceneId ?: return
+		val sceneItem = sceneEditorRepository.getSceneItemFromId(id) ?: return
+		onShowScene(sceneItem)
+	}
+
+	override fun showEntry(entry: EntryAppearance) {
+		val def = encyclopediaRepository.findEntryDef(entry.entryId) ?: return
+		onShowEntry(def)
+	}
+
 	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
 
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
@@ -239,6 +259,7 @@ class ProjectHomeComponent(
 							wordsByChapter = stats.wordsByChapter,
 							encyclopediaEntriesByType = stats.encyclopediaEntriesByType
 								.mapKeys { (key, _) -> EntryType.valueOf(key) },
+							longestSceneId = stats.longestSceneId,
 							longestSceneName = stats.longestSceneName,
 							longestSceneWords = stats.longestSceneWords,
 							shortestSceneWords = stats.shortestSceneWords,
@@ -337,7 +358,6 @@ class ProjectHomeComponent(
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
 
-	override fun supportsCloseProject(): Boolean = onCloseProject != null
 	override fun closeProject() {
 		onCloseProject?.invoke()
 	}

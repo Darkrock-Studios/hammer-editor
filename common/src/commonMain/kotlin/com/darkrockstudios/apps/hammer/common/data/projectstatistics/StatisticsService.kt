@@ -13,8 +13,10 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivi
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.yield
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.core.component.inject
@@ -96,6 +98,7 @@ class StatisticsService(
 
 			var numScenes = 0
 			var totalWords = 0
+			var longestSceneId: Int? = null
 			var longestSceneName: String? = null
 			var longestSceneWords = 0
 			val wordsByScene = mutableMapOf<Int, Int>()
@@ -108,6 +111,7 @@ class StatisticsService(
 					numScenes++
 					if (count > longestSceneWords) {
 						longestSceneWords = count
+						longestSceneId = node.value.id
 						longestSceneName = node.value.name
 					}
 				}
@@ -194,6 +198,7 @@ class StatisticsService(
 				totalWords = totalWords,
 				wordsByChapter = wordsByChapter,
 				encyclopediaEntriesByType = entriesByType,
+				longestSceneId = longestSceneId,
 				longestSceneName = longestSceneName,
 				longestSceneWords = longestSceneWords,
 				shortestSceneWords = shortestSceneWords,

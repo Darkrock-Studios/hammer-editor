@@ -24,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.storyeditor.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.texteditor.find.FindBar
@@ -34,6 +33,7 @@ import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -45,6 +45,7 @@ fun SceneEditorUi(
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
+	val scope = rememberCoroutineScope()
 
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = state.spellChecker.toEditorSpellChecker(),
@@ -112,6 +113,7 @@ fun SceneEditorUi(
 				modifier = Modifier
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
+					.saveShortcutModifier { scope.launch { component.storeSceneContent() } }
 			) {
 				EditorTopBar(
 					component = component,

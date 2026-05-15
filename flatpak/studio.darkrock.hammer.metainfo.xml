@@ -32,6 +32,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.0.1" date="2026-05-14">
+            <description>
+                <p>- Complete UI redesign!</p>
+                <p>- Global Search: Ctrl + Shift + F</p>
+                <p>- Tags on everything! Help organize your notes, scenes, and more</p>
+                <p>- Connections: Scenes now understand what Encylopedia entries are related to them</p>
+                <p>- Writing Activity Tracker: Keep motivate to keep writing!</p>
+                <p>- New Android widgets</p>
+                <p>- Rich Text support in Notes, Encylopedia, and Timeline</p>
+                <p>- Rewritten android text input</p>
+                <p>- Made stats interactive</p>
+                <p>- Fixed short cuts</p>
+            </description>
+        </release>
         <release version="3.0.0" date="2026-05-14">
             <description>
                 <p>- Complete UI redesign!</p>

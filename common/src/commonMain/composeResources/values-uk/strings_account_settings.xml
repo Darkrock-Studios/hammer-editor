@@ -52,6 +52,7 @@
 	<string name="settings_enable_dnd_focus_mode_title">Enable Do Not Disturb when in Focus Mode</string>
 	<string name="settings_dnd_permission_button">Grant DND Permission</string>
 	<string name="settings_dnd_permission_explanation">Hammer needs permission to enable Do Not Disturb mode when you are in Focus Mode.</string>
+	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Spell Checking</string>
 	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.</string>
 	<string name="settings_spellcheck_enable">Enable spell checking (experimental)</string>

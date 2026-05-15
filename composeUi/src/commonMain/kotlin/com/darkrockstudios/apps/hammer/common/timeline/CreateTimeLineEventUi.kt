@@ -11,10 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
@@ -33,8 +35,9 @@ fun CreateTimeLineEventUi(
 	rootSnackbar: RootSnackbarHostState,
 ) {
 	val strRes = rememberStrRes()
+	val state by component.state.subscribeAsState()
+	val contentText by component.contentText.subscribeAsState()
 	var dateText by remember { mutableStateOf("") }
-	var contentText by remember { mutableStateOf("") }
 	var resetVersion by remember { mutableStateOf(0) }
 	val tags = remember { mutableStateListOf<String>() }
 
@@ -122,7 +125,7 @@ fun CreateTimeLineEventUi(
 				key(resetVersion) {
 					MarkdownEditField(
 						initialMarkdown = contentText,
-						onMarkdownChanged = { contentText = it },
+						onMarkdownChanged = { component.onContentChanged(it) },
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						modifier = Modifier
 							.fillMaxWidth()
@@ -160,7 +163,7 @@ fun CreateTimeLineEventUi(
 										rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_create_toast_success))
 									}
 									dateText = ""
-									contentText = ""
+									component.clearContent()
 									tags.clear()
 									resetVersion++
 									component.closeCreation()
@@ -181,6 +184,17 @@ fun CreateTimeLineEventUi(
 					},
 				)
 			}
+		}
+	}
+
+	if (state.confirmDiscard) {
+		SimpleConfirm(
+			title = Res.string.timeline_view_discard_title.get(),
+			message = Res.string.timeline_view_discard_message.get(),
+			onDismiss = { component.cancelDiscard() },
+		) {
+			component.clearContent()
+			component.closeCreation()
 		}
 	}
 }

@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -66,6 +65,7 @@ fun ViewNoteUi(
 	Box(
 		modifier = modifier
 			.fillMaxSize()
+			.saveShortcutModifier { if (isEditing) saveChanges() }
 			.background(MaterialTheme.colorScheme.surfaceDim),
 		contentAlignment = Alignment.TopCenter,
 	) {
@@ -183,22 +183,11 @@ private fun CrumbRow(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		Row(
-			modifier = Modifier
-				.clickable(
-					onClick = onClose,
-					role = Role.Button,
-					onClickLabel = Res.string.notes_view_close_button.get(),
-				)
-				.padding(vertical = 4.dp),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			HdMonoLabel(
-				text = "← " + Res.string.notes_view_crumb_root.get(),
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
+		HdCrumbBackLink(
+			label = Res.string.notes_view_crumb_root.get(),
+			onClick = onClose,
+			onClickLabel = Res.string.notes_view_close_button.get(),
+		)
 		Spacer(modifier = Modifier.weight(1f))
 		menuSlot()
 	}

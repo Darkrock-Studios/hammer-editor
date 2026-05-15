@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivide
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.coroutines.launch
 
 private val WideThreshold = 720.dp
@@ -170,6 +171,7 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 								projectName = projectName,
 								listState = listState,
 								wide = true,
+								onSceneClick = component::selectScene,
 								modifier = Modifier
 									.weight(1f)
 									.fillMaxHeight(),
@@ -186,6 +188,7 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 							projectName = projectName,
 							listState = listState,
 							wide = false,
+							onSceneClick = component::selectScene,
 							modifier = Modifier
 								.weight(1f)
 								.fillMaxWidth(),
@@ -496,6 +499,7 @@ private fun ReadingColumn(
 	projectName: String?,
 	listState: LazyListState,
 	wide: Boolean,
+	onSceneClick: (SceneItem) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
 	val horizontalPad = if (wide) Ui.Padding.XXL else Ui.Padding.XL
@@ -518,6 +522,7 @@ private fun ReadingColumn(
 				chapter = ch,
 				showSeparator = index < chapters.size - 1,
 				wide = wide,
+				onSceneClick = onSceneClick,
 			)
 		}
 		item(key = "end") {
@@ -563,6 +568,7 @@ private fun ChapterBlock(
 	chapter: OutlineChapter,
 	showSeparator: Boolean,
 	wide: Boolean,
+	onSceneClick: (SceneItem) -> Unit,
 ) {
 	val sceneTitleStyle = if (wide) {
 		MaterialTheme.typography.titleLarge
@@ -590,6 +596,7 @@ private fun ChapterBlock(
 				scene = scene,
 				titleStyle = sceneTitleStyle,
 				proseStyle = proseStyle,
+				onClick = { onSceneClick(scene.sceneItem) },
 			)
 			if (sceneIdx < chapter.scenes.size - 1) {
 				Spacer(Modifier.height(Ui.Padding.XXL))
@@ -650,13 +657,16 @@ private fun SceneBlock(
 	scene: OutlineOverview.OutlineItem.SceneOutline,
 	titleStyle: androidx.compose.ui.text.TextStyle,
 	proseStyle: androidx.compose.ui.text.TextStyle,
+	onClick: () -> Unit,
 ) {
 	Column(
 		modifier = Modifier.fillMaxWidth(),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
 		Row(
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier
+				.fillMaxWidth()
+				.clickable(onClick = onClick),
 			verticalAlignment = Alignment.Bottom,
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
@@ -665,8 +675,8 @@ private fun SceneBlock(
 				text = scene.sceneItem.name,
 				style = titleStyle,
 				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier.weight(1f),
 			)
+			HdMonoLabel(text = "↗")
 		}
 		val outline = scene.outline
 		if (!outline.isNullOrBlank()) {

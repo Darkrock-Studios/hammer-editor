@@ -84,7 +84,7 @@ Three faces, used for three jobs:
 |---------|-----------------------------|------------------------------------------------------|
 | Display | Roboto Flex (light weights) | Section titles, hero text, big stat numbers          |
 | Body    | Roboto                      | Paragraphs, list rows, descriptions                  |
-| Mono    | Roboto Mono                 | All-caps captions, counters, breadcrumbs, folio meta |
+| Mono    | IBM Plex Mono (bundled)     | All-caps captions, counters, breadcrumbs, folio meta |
 
 The mono is doing the most work. Anything that would be a "label",
 "caption", or "metadata" in Material is a small-caps mono line in

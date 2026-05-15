@@ -85,7 +85,7 @@ class StoryEditorComponent(
 
 			StoryEditor.DialogConfig.OutlineOverview ->
 				StoryEditor.ChildDestination.DialogDestination.OutlineDestination(
-					OutlineOverviewComponent(componentContext, projectDef, ::dismissDialog)
+					OutlineOverviewComponent(componentContext, projectDef, ::dismissDialog, ::showScene)
 				)
 		}
 	}
