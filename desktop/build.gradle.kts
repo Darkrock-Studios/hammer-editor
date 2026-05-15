@@ -208,25 +208,34 @@ tasks.register("packageMsix") {
 }
 
 fun findMakeAppx(): String? {
-	// Common Windows SDK locations
 	val searchPaths = listOf(
 		"C:\\Program Files (x86)\\Windows Kits\\10\\bin",
 		"C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
 	)
 
+	// Prefer x64 over x86/arm/arm64 — walk() ordering is filesystem-dependent
+	// and on some runners the arm64 copy is encountered first.
+	val archPriority = listOf("x64", "x86", "arm", "arm64")
+
+	val candidates = mutableListOf<java.io.File>()
 	for (basePath in searchPaths) {
 		val baseDir = file(basePath)
 		if (baseDir.exists()) {
-			// Search in bin subdirectories (e.g., 10.0.22621.0/x64/)
-			baseDir.walk().forEach { file ->
-				if (file.name == "makeappx.exe") {
-					return file.absolutePath
+			baseDir.walk().forEach { f ->
+				if (f.name == "makeappx.exe") {
+					candidates += f
 				}
 			}
 		}
 	}
 
-	return null
+	return candidates
+		.sortedBy { f ->
+			val arch = f.parentFile?.name?.lowercase() ?: ""
+			archPriority.indexOf(arch).let { if (it == -1) Int.MAX_VALUE else it }
+		}
+		.firstOrNull()
+		?.absolutePath
 }
 
 tasks.named("flatpakGradleGenerator") {
