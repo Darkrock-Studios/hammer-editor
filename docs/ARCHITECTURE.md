@@ -68,8 +68,9 @@ The UI is a dumb and stateless as possible, each platform can have it's own impl
 
 These have a one-to-one relationship with UI elements. They are stateful and contain business logic.
 
-### ~~Use Cases (not used at the moment)~~
-~~Contains business logic, is stateless and can combine Services and Repositories~~
+### Use Cases
+
+Contains re-usable business logic, is stateless and can combine Services and Repositories.
 
 ### Services
 These are stateful and may combine multiple Repositories.
