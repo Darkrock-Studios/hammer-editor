@@ -1173,16 +1173,14 @@ private fun ProjectHomeMenu(
 				)
 			}
 
-			if (component.supportsCloseProject()) {
-				HorizontalDivider()
-				DropdownMenuItem(
-					text = { Text(Res.string.project_window_menu_item_close.get()) },
-					onClick = {
-						component.closeProject()
-						expanded = false
-					},
-				)
-			}
+			HorizontalDivider()
+			DropdownMenuItem(
+				text = { Text(Res.string.project_window_menu_item_close.get()) },
+				onClick = {
+					component.closeProject()
+					expanded = false
+				},
+			)
 		}
 	}
 }

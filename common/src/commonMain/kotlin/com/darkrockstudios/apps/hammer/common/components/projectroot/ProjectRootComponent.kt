@@ -27,7 +27,7 @@ class ProjectRootComponent(
 	projectDef: ProjectDef,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
-	private val onCloseProject: (() -> Unit)? = null,
+	onCloseProject: (() -> Unit),
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val syncDataRepository: SyncDataRepository by projectInject()
