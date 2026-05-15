@@ -25,7 +25,7 @@ jobs:
 
       - name: Upload integration test report on failure
         if: failure() && steps.integration-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-tests-report
           path: |
@@ -46,6 +46,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: 21
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
         uses: actions/cache@v5
@@ -134,6 +135,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: 21
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
         uses: actions/cache@v5
@@ -211,6 +213,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: 21
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
         uses: actions/cache@v5
@@ -412,6 +415,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: 21
+          token: ${{ secrets.GITHUB_TOKEN }}
           cache: gradle
 
       - name: Grant Permission to Execute
@@ -451,6 +455,7 @@ jobs:
         with:
           distribution: 'jetbrains'
           java-version: 21
+          token: ${{ secrets.GITHUB_TOKEN }}
           cache: gradle
 
       - name: Install Flatpak and flatpak-builder
