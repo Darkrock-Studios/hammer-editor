@@ -13,11 +13,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 
 /**
  * Card-style confirmation dialog with a left-side index gutter and a vertical mono caption
@@ -200,7 +200,7 @@ fun IndexStripDialog(
 						if (keyboardHint != null) {
 							Text(
 								text = keyboardHint,
-								fontFamily = FontFamily.Monospace,
+								fontFamily = hammerMonoFontFamily(),
 								fontSize = 10.sp,
 								letterSpacing = 0.4.sp,
 								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -236,7 +236,7 @@ private fun IndexGutter(index: String?, kind: String, accent: Color) {
 		if (!index.isNullOrEmpty()) {
 			Text(
 				text = index,
-				fontFamily = FontFamily.Monospace,
+				fontFamily = hammerMonoFontFamily(),
 				fontSize = 10.sp,
 				letterSpacing = 0.4.sp,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -254,7 +254,7 @@ private fun VerticalCaption(text: String, color: Color) {
 	// The inner Text uses `requiredWidth` to bypass the Box's narrower max-width constraint so
 	// the unrotated layout fits one line; `rotate(-90f)` then flips it visually inside the Box.
 	val style = TextStyle(
-		fontFamily = FontFamily.Monospace,
+		fontFamily = hammerMonoFontFamily(),
 		fontSize = 10.sp,
 		fontWeight = FontWeight.Medium,
 		letterSpacing = 1.8.sp,

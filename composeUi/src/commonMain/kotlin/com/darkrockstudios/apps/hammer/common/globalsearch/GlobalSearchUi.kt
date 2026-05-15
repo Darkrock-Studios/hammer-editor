@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -34,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -133,7 +133,7 @@ private fun Masthead(
 	) {
 		Text(
 			text = marker,
-			fontFamily = FontFamily.Monospace,
+			fontFamily = hammerMonoFontFamily(),
 			fontSize = 10.sp,
 			fontWeight = FontWeight.Medium,
 			letterSpacing = 1.8.sp,
@@ -143,7 +143,7 @@ private fun Masthead(
 		if (resultCount > 0) {
 			Text(
 				text = stringResource(Res.string.global_search_results_count, resultCount).uppercase(),
-				fontFamily = FontFamily.Monospace,
+				fontFamily = hammerMonoFontFamily(),
 				fontSize = 10.sp,
 				letterSpacing = 1.8.sp,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,

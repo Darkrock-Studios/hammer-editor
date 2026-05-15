@@ -1,27 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 /**
- * Crumb-row back link — a leftwards arrow followed by a mono small-caps label.
- * Replaces inline `"← LABEL"` strings, which fall back to a tiny glyph on JVM
- * monospace fonts that lack U+2190. The vector icon also mirrors correctly in
- * RTL layouts.
+ * Crumb-row back link — a leftwards arrow followed by a mono small-caps label,
+ * rendered as a single [HdMonoLabel]. Standardizes the inline `"← LABEL"`
+ * pattern that recurs in detail-screen breadcrumbs. The `←` glyph lands on
+ * the bundled IBM Plex Mono so it renders consistently on every platform.
  */
 @Composable
 fun HdCrumbBackLink(
@@ -31,7 +23,9 @@ fun HdCrumbBackLink(
 	color: Color = MaterialTheme.colorScheme.onSurface,
 	onClickLabel: String? = null,
 ) {
-	Row(
+	HdMonoLabel(
+		text = "← $label",
+		color = color,
 		modifier = modifier
 			.clickable(
 				onClick = onClick,
@@ -39,15 +33,5 @@ fun HdCrumbBackLink(
 				onClickLabel = onClickLabel,
 			)
 			.padding(vertical = 4.dp),
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		Icon(
-			imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-			contentDescription = null,
-			tint = color,
-			modifier = Modifier.size(14.dp),
-		)
-		HdMonoLabel(text = label, color = color)
-	}
+	)
 }

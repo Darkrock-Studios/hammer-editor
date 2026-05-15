@@ -8,6 +8,8 @@ interface OutlineOverview {
 
 	fun dismiss()
 
+	fun selectScene(sceneItem: SceneItem)
+
 	data class State(
 		val overview: List<OutlineItem> = emptyList(),
 	)

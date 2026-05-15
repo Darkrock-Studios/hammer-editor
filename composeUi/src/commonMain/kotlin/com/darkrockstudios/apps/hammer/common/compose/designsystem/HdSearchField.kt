@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +28,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Hairline-bordered, square-cornered single-line search field. Sits in
  * the design-system vocabulary alongside [HdEntryFilterBar] and
- * [HdTypeStamp]: 32dp tall, mono placeholder, leading ⌕ glyph, trailing
+ * [HdTypeStamp]: 32dp tall, mono placeholder, leading search icon, trailing
  * × clear affordance when [value] is non-empty.
  *
  *     ┌─────────────────────────────────────────────┐
@@ -57,10 +60,11 @@ fun HdSearchField(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(8.dp),
 	) {
-		Text(
-			text = "⌕",
-			style = MaterialTheme.typography.labelMedium,
-			color = mutedAccent,
+		Icon(
+			imageVector = Icons.Default.Search,
+			contentDescription = null,
+			tint = mutedAccent,
+			modifier = Modifier.size(16.dp),
 		)
 		Box(modifier = Modifier.weight(1f)) {
 			val textStyle = MaterialTheme.typography.labelMedium.copy(color = onSurface)
