@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 
 interface CreateTimeLineEvent : TagSuggesting {
 	val state: Value<State>
+	val contentText: Value<String>
 
 	suspend fun createEvent(
 		dateText: String?,
@@ -15,8 +16,13 @@ interface CreateTimeLineEvent : TagSuggesting {
 	): TimeLineEventError
 
 	fun closeCreation()
+	fun confirmDiscard()
+	fun cancelDiscard()
+	fun onContentChanged(newText: String)
+	fun clearContent()
 
 	data class State(
-		val projectDef: ProjectDef
+		val projectDef: ProjectDef,
+		val confirmDiscard: Boolean = false,
 	)
 }
