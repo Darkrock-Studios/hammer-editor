@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.0.2] - 2026-5-15
+
+- Complete UI redesign!
+- Global Search: Ctrl + Shift + F
+- Tags on everything! Help organize your notes, scenes, and more
+- Connections: Scenes now understand what Encylopedia entries are related to them
+- Writing Activity Tracker: Keep motivate to keep writing!
+- New Android widgets
+- Rich Text support in Notes, Encylopedia, and Timeline
+- Rewritten android text input
+- Made stats interactive
+- Fixed short cuts
+- Microsoft store fixes
+
+
 ## [3.0.1] - 2026-5-14
 
 - Complete UI redesign!
