@@ -22,11 +22,22 @@ import androidx.compose.ui.unit.dp
  * surface tint on hover and a slightly stronger one on press, then a
  * standard ripple via [clickable]. Used for list rows on the project
  * dashboard where per-row arrows would feel noisy.
+ *
+ * When [onClick] is null, the modifier is a no-op
  */
 @Composable
 fun Modifier.hdInteractiveRow(
-	onClick: () -> Unit,
+	onClick: (() -> Unit)?,
 	cornerRadius: Dp = 4.dp,
+): Modifier {
+	if (onClick == null) return this
+	return hdInteractiveRowImpl(onClick, cornerRadius)
+}
+
+@Composable
+private fun Modifier.hdInteractiveRowImpl(
+	onClick: () -> Unit,
+	cornerRadius: Dp,
 ): Modifier = composed {
 	val interactionSource = remember { MutableInteractionSource() }
 	val isHovered by interactionSource.collectIsHoveredAsState()

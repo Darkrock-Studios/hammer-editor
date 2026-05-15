@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -185,6 +186,16 @@ private fun DashboardHeader(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
+}
+
+@Composable
+private fun OpenArrow(style: TextStyle) {
+	Text(
+		text = "↗",
+		fontFamily = hammerMonoFontFamily(),
+		style = style,
+		color = MaterialTheme.colorScheme.primary,
+	)
 }
 
 @Composable
@@ -366,11 +377,7 @@ private fun StructureSection(
 		val longestScene: @Composable (Modifier) -> Unit = { mod ->
 			val longestName = state.longestSceneName
 			val canOpen = state.longestSceneId != null
-			val rowModifier = if (canOpen) {
-				mod.hdInteractiveRow(onClick = onShowLongestScene)
-			} else {
-				mod
-			}
+			val rowModifier = mod.hdInteractiveRow(onClick = if (canOpen) onShowLongestScene else null)
 			Row(
 				modifier = rowModifier,
 				verticalAlignment = Alignment.CenterVertically,
@@ -390,12 +397,7 @@ private fun StructureSection(
 					modifier = Modifier.weight(1f, fill = false),
 				)
 				if (canOpen) {
-					Text(
-						text = "↗",
-						fontFamily = hammerMonoFontFamily(),
-						style = MaterialTheme.typography.headlineMedium,
-						color = MaterialTheme.colorScheme.primary,
-					)
+					OpenArrow(style = MaterialTheme.typography.headlineMedium)
 				}
 			}
 		}
@@ -500,7 +502,7 @@ private fun InhabitantsSection(
 		}.joinToString(" · ").takeIf { it.isNotEmpty() }
 	}
 	val hammerColors = LocalHammerColors.current
-	val attributions = remember(state.topAppearances, hammerColors, onShowEntry) {
+	val attributions = remember(state.topAppearances, hammerColors) {
 		state.topAppearances.map { entry ->
 			HdAttributionItem(
 				label = entry.name,
@@ -849,7 +851,7 @@ private fun ThemesConnectiveCallout(connective: TagBreakdown?, onClick: (() -> U
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.then(if (onClick != null) Modifier.hdInteractiveRow(onClick = onClick) else Modifier),
+			.hdInteractiveRow(onClick = onClick),
 		verticalAlignment = Alignment.Bottom,
 		horizontalArrangement = Arrangement.spacedBy(6.dp),
 	) {
@@ -865,12 +867,7 @@ private fun ThemesConnectiveCallout(connective: TagBreakdown?, onClick: (() -> U
 			maxLines = 1,
 		)
 		if (onClick != null) {
-			Text(
-				text = "↗",
-				fontFamily = hammerMonoFontFamily(),
-				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.primary,
-			)
+			OpenArrow(style = MaterialTheme.typography.headlineSmall)
 		}
 	}
 	HdMonoLabel(text = connectiveBreadthCaption(connective, short = false))
@@ -960,12 +957,7 @@ private fun ThemesSectionNarrow(
 							color = MaterialTheme.colorScheme.onSurface,
 							maxLines = 1,
 						)
-						Text(
-							text = "↗",
-							fontFamily = hammerMonoFontFamily(),
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.primary,
-						)
+						OpenArrow(style = MaterialTheme.typography.titleMedium)
 					}
 				}
 				Column(horizontalAlignment = Alignment.End) {
