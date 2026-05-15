@@ -37,7 +37,7 @@ jobs:
         run: ./gradlew :integrationTests:jvmTest
       - name: Upload integration test report on failure
         if: failure() && steps.integration-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-tests-report
           path: |
