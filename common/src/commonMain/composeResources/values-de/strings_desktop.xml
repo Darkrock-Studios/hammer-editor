@@ -5,4 +5,5 @@
 	<string name="project_window_menu_file">Datei</string>
 	<string name="project_window_menu_item_close">Projekt beenden</string>
 	<string name="project_window_menu_item_exit">Abmelden</string>
+	<string name="jump_list_recent_projects">Recent Projects</string>
 </resources>
