@@ -86,7 +86,7 @@ kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.0.0"
+compose-texteditor = "2.0.1"
 platform-spellcheckerkt = "1.1.0"
 flatpak-gradle-generator = "1.7.0"
 nucleus = "1.15.4"
