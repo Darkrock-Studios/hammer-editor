@@ -16,9 +16,12 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -26,32 +29,23 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.desktop.shortcuts.DesktopJumpListManager
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
+import io.github.kdroidfilter.nucleus.launcher.windows.WindowsJumpListManager
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.default
 import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
+import kotlin.time.Clock
 
-private fun handleArguments(args: Array<String>) {
-	val parser = ArgParser("hammer")
-
-	val devMode by parser.option(
-		ArgType.Boolean,
-		shortName = "d",
-		fullName = "dev",
-		description = "Development Mode"
-	).default(false)
-
-	parser.parse(args)
-
-	setInDevelopmentMode(devMode)
+private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
+	val launchArgs = parseDesktopLaunchArgs(args)
+	setInDevelopmentMode(launchArgs.devMode)
+	return launchArgs
 }
 
 private fun setupLogging(appScope: CoroutineScope) {
@@ -69,10 +63,15 @@ private fun setupLogging(appScope: CoroutineScope) {
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
-	handleArguments(args)
+	val launchArgs = handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
+
+	if (WindowsJumpListManager.isAvailable) {
+		runCatching { WindowsJumpListManager.setProcessAppId() }
+			.onFailure { Napier.w("WindowsJumpListManager.setProcessAppId failed", it) }
+	}
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
@@ -80,6 +79,26 @@ fun main(args: Array<String>) {
 	}
 
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
+
+	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
+		val match = getKoin().get<ProjectsRepository>().findProject(name)
+		if (match == null) Napier.w("Launch arg --project requested missing project: $name")
+		match
+	}
+
+	if (initialProject != null) {
+		runCatching {
+			getKoin().get<ProjectMetadataDatasource>().updateMetadata(initialProject) { metadata ->
+				metadata.copy(info = metadata.info.copy(lastAccessed = Clock.System.now()))
+			}
+		}.onFailure { Napier.w("Failed to bump lastAccessed for --project launch", it) }
+	}
+
+	val jumpListManager = getKoin().get<DesktopJumpListManager>()
+	if (initialProject == null) {
+		// When opening a project, the subsequent ApplicationState.openProject() will refresh.
+		appScope.launch { jumpListManager.refresh() }
+	}
 
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
@@ -96,7 +115,14 @@ fun main(args: Array<String>) {
 	}
 
 	application {
-		val applicationState = remember { ApplicationState() }
+		val applicationState = remember {
+			ApplicationState(
+				appScope = appScope,
+				jumpListManager = jumpListManager,
+				initialProject = initialProject,
+				pendingDeepLink = if (initialProject != null) launchArgs.deepLink else null,
+			)
+		}
 		val imageLoader: ImageLoader = getKoin().get()
 
 		setSingletonImageLoaderFactory { imageLoader }

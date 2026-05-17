@@ -73,6 +73,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 			addMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 			removeMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 			onCloseProject = { app.showConfirmProjectClose(ApplicationState.CloseType.Project) },
+			initialDeepLink = app.consumePendingDeepLink(),
 		)
 	}
 

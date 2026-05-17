@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -18,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -28,12 +30,16 @@ class ProjectRootComponent(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	onCloseProject: (() -> Unit),
+	initialDeepLink: ProjectDeepLink? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
 	private val syncDataRepository: SyncDataRepository by projectInject()
 	private val sceneEditor: SceneEditorRepository by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val settingsRepository: GlobalSettingsRepository by inject()
+
+	private var pendingDeepLink: ProjectDeepLink? = initialDeepLink
 
 	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
 	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
@@ -110,6 +116,11 @@ class ProjectRootComponent(
 					}
 				}
 			}
+		}
+
+		pendingDeepLink?.let { link ->
+			pendingDeepLink = null
+			navigateToDeepLink(link)
 		}
 	}
 
@@ -216,23 +227,47 @@ class ProjectRootComponent(
 					?.component?.showScene(result.sceneItem)
 			}
 
-			is SearchResult.Note -> {
-				showNotes()
-				(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
-					?.component?.showViewNote(result.noteId)
-			}
+			is SearchResult.Note -> navigateToDeepLink(ProjectDeepLink.Note(result.noteId))
 
-			is SearchResult.EncyclopediaEntry -> {
-				showEncyclopediaEntry(result.entryDef)
-			}
+			is SearchResult.EncyclopediaEntry -> showEncyclopediaEntry(result.entryDef)
 
-			is SearchResult.TimelineEvent -> {
-				showTimeLine()
-				(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
-					?.component?.showViewEvent(result.eventId)
-			}
+			is SearchResult.TimelineEvent -> navigateToDeepLink(ProjectDeepLink.TimelineEvent(result.eventId))
 		}
 		dismissGlobalSearch()
+	}
+
+	override fun navigateToDeepLink(link: ProjectDeepLink) {
+		when (link) {
+			is ProjectDeepLink.Scene -> {
+				val sceneItem = sceneEditor.getSceneItemFromId(link.sceneId)
+				if (sceneItem == null) {
+					Napier.w("Deep link skipped: no scene for id ${link.sceneId}")
+					return
+				}
+				showEditorScene(sceneItem)
+			}
+
+			is ProjectDeepLink.Note -> {
+				showNotes()
+				(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
+					?.component?.showViewNote(link.noteId)
+			}
+
+			is ProjectDeepLink.EncyclopediaEntry -> {
+				val entryDef = encyclopediaRepository.findEntryDef(link.entryId)
+				if (entryDef == null) {
+					Napier.w("Deep link skipped: no encyclopedia entry for id ${link.entryId}")
+					return
+				}
+				showEncyclopediaEntry(entryDef)
+			}
+
+			is ProjectDeepLink.TimelineEvent -> {
+				showTimeLine()
+				(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
+					?.component?.showViewEvent(link.eventId)
+			}
+		}
 	}
 
 	private fun updateCloseConfirmRequirement() {
