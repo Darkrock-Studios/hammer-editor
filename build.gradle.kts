@@ -129,8 +129,9 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	}
 }
 
-// Ensure flatpak generator runs after pre-flight checks
-project(":desktop").tasks.configureEach {
+// Ensure flatpak generator runs after pre-flight checks.
+// :desktop is excluded from F-Droid builds, so guard the lookup.
+findProject(":desktop")?.tasks?.configureEach {
 	if (name == "flatpakGradleGenerator") {
 		mustRunAfter(releasePreFlightChecks)
 	}
