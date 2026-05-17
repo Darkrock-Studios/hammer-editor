@@ -6,7 +6,7 @@ data_version = "1.0"
 # Kotlin
 jvm = "21"
 kache = "2.1.1"
-kompressCore = "1.4.2"
+kompressCore = "1.4.3"
 kotlin = "2.3.21"
 
 # Android
@@ -57,7 +57,7 @@ kmpalette = "3.1.0"
 
 koin_bom = "4.2.1"
 
-ktor = "3.4.3"
+ktor = "3.5.0"
 ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
@@ -78,7 +78,7 @@ sqldelight = "2.3.2"
 buildconfig = "6.0.9"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
-aboutlibraries = "13.1.0"
+aboutlibraries = "14.2.0"
 logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
@@ -86,7 +86,7 @@ kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.0.2"
+compose-texteditor = "2.0.3"
 platform-spellcheckerkt = "1.1.0"
 flatpak-gradle-generator = "1.7.0"
 nucleus = "1.15.4"
