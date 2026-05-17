@@ -130,7 +130,7 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 }
 
 // Ensure flatpak generator runs after pre-flight checks
-project(":desktop").tasks.configureEach {
+findProject(":desktop")?.tasks?.configureEach {
 	if (name == "flatpakGradleGenerator") {
 		mustRunAfter(releasePreFlightChecks)
 	}

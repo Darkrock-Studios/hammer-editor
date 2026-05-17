@@ -178,7 +178,15 @@ internal fun ViewEntryUi(
 						component.startTextEdit()
 					},
 					onSave = saveChanges,
-					onCancel = { discardConfirm = true },
+					onCancel = {
+						val isDirty = content != null &&
+							(entryNameText != content.name || entryText != content.text)
+						if (isDirty) {
+							discardConfirm = true
+						} else {
+							discardChanges()
+						}
+					},
 				)
 
 				HorizontalDivider(thickness = 2.dp, color = ruleStrong)

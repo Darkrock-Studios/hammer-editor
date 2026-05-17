@@ -230,6 +230,31 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		}
 	}
 
+	// Regression for #492: two scene files sharing one id crashed cleanupSceneOrder
+	// on project open. loadSceneTree should keep one node per id.
+	@Test
+	fun `Initialize survives duplicate scene IDs on disk`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		val scenesDir = projectPath.toOkioPath().div(SceneDatasource.SCENE_DIRECTORY)
+		val duplicate = scenesDir.div("2-Other-6.md")
+		ffs.write(duplicate) {
+			writeUtf8("# Other\n")
+		}
+
+		repo.initializeSceneEditor()
+
+		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val idsInTree = tree
+			.filter { !it.value.isRootScene }
+			.map { it.value.id }
+		assertEquals(
+			idsInTree.toSet().size,
+			idsInTree.size,
+			"Tree contained duplicate ids: $idsInTree",
+		)
+	}
+
 	@Test
 	fun `Create Scene, Invalid Scene Name`() = runTest {
 		configure(PROJECT_1_NAME)
