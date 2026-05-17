@@ -49,6 +49,8 @@ kotlin {
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
 				implementation(libs.nucleus.launcher.windows)
+				implementation(libs.nucleus.launcher.linux)
+				implementation(libs.nucleus.launcher.macos)
 			}
 		}
 		val jvmTest by getting {

@@ -55,6 +55,19 @@
 }
 
 ################################################################################
+# NUCLEUS LAUNCHER (JNI bridge classes — JNI invokes static on*(...) callbacks)
+# Windows launcher ships its own keep rules via the Nucleus Gradle plugin.
+################################################################################
+-keep class io.github.kdroidfilter.nucleus.launcher.linux.NativeLinuxLauncherBridge {
+    native <methods>;
+    static ** on*(...);
+}
+-keep class io.github.kdroidfilter.nucleus.launcher.macos.NativeMacOsDockMenuBridge {
+    native <methods>;
+    static ** on*(...);
+}
+
+################################################################################
 # LIBRARIES (Broad Keeps for Stability)
 ################################################################################
 -keep class androidx.compose.** { *; }

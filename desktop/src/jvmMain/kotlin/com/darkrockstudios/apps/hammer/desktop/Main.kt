@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.window.ApplicationScope
@@ -29,11 +30,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
-import com.darkrockstudios.apps.hammer.desktop.shortcuts.DesktopJumpListManager
+import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
-import io.github.kdroidfilter.nucleus.launcher.windows.WindowsJumpListManager
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
@@ -68,11 +68,6 @@ fun main(args: Array<String>) {
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
 
-	if (WindowsJumpListManager.isAvailable) {
-		runCatching { WindowsJumpListManager.setProcessAppId() }
-			.onFailure { Napier.w("WindowsJumpListManager.setProcessAppId failed", it) }
-	}
-
 	GlobalContext.startKoin {
 		logger(NapierLogger())
 		modules(mainModule, imageLoadingModule, aboutLibrariesModule, desktopModule, appModule(appScope))
@@ -94,10 +89,11 @@ fun main(args: Array<String>) {
 		}.onFailure { Napier.w("Failed to bump lastAccessed for --project launch", it) }
 	}
 
-	val jumpListManager = getKoin().get<DesktopJumpListManager>()
+	val quickShortcuts = getKoin().get<QuickShortcuts>()
+	quickShortcuts.init()
 	if (initialProject == null) {
 		// When opening a project, the subsequent ApplicationState.openProject() will refresh.
-		appScope.launch { jumpListManager.refresh() }
+		appScope.launch { quickShortcuts.refresh() }
 	}
 
 	val scope = CoroutineScope(getDefaultDispatcher())
@@ -118,7 +114,7 @@ fun main(args: Array<String>) {
 		val applicationState = remember {
 			ApplicationState(
 				appScope = appScope,
-				jumpListManager = jumpListManager,
+				quickShortcuts = quickShortcuts,
 				initialProject = initialProject,
 				pendingDeepLink = if (initialProject != null) launchArgs.deepLink else null,
 			)
@@ -126,6 +122,10 @@ fun main(args: Array<String>) {
 		val imageLoader: ImageLoader = getKoin().get()
 
 		setSingletonImageLoaderFactory { imageLoader }
+
+		LaunchedEffect(quickShortcuts) {
+			quickShortcuts.projectClicks.collect { def -> applicationState.openProject(def) }
+		}
 
 		val settingsState by globalSettings.subscribeAsState()
 		val systemDark = isSystemInDarkMode()
@@ -153,6 +153,7 @@ fun main(args: Array<String>) {
 
 	settingsUpdateJob.cancel()
 	scope.cancel("Program ending")
+	quickShortcuts.dispose()
 	appScope.cancel("Program ending")
 }
 

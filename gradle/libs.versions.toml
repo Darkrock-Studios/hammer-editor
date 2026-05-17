@@ -271,6 +271,8 @@ bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", ver
 nucleus_darkmode_detector = { module = "io.github.kdroidfilter:nucleus.darkmode-detector", version.ref = "nucleus" }
 nucleus_decorated_window_jbr = { module = "io.github.kdroidfilter:nucleus.decorated-window-jbr", version.ref = "nucleus" }
 nucleus_launcher_windows = { module = "io.github.kdroidfilter:nucleus.launcher-windows", version.ref = "nucleus" }
+nucleus_launcher_linux = { module = "io.github.kdroidfilter:nucleus.launcher-linux", version.ref = "nucleus" }
+nucleus_launcher_macos = { module = "io.github.kdroidfilter:nucleus.launcher-macos", version.ref = "nucleus" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

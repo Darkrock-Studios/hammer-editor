@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.desktop.shortcuts.DesktopJumpListManager
+import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -19,7 +19,7 @@ import org.koin.java.KoinJavaComponent
 
 class ApplicationState(
 	private val appScope: CoroutineScope,
-	private val jumpListManager: DesktopJumpListManager,
+	private val quickShortcuts: QuickShortcuts,
 	initialProject: ProjectDef? = null,
 	pendingDeepLink: ProjectDeepLink? = null,
 ) {
@@ -63,7 +63,7 @@ class ApplicationState(
 		}
 
 		_windows.value = WindowState.ProjectWindow(projectDef)
-		appScope.launch { jumpListManager.refresh() }
+		appScope.launch { quickShortcuts.refresh(excludeCurrent = projectDef) }
 	}
 
 	fun closeProject() {

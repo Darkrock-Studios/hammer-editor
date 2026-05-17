@@ -1,23 +1,34 @@
 package com.darkrockstudios.apps.hammer.desktop.shortcuts
 
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.desktop.PROJECT_FLAG
 import com.darkrockstudios.apps.hammer.jump_list_recent_projects
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.launcher.windows.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import kotlin.coroutines.CoroutineContext
 
-class DesktopJumpListManager(
+class WindowsJumpList(
 	private val projectsRepository: ProjectsRepository,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val ioDispatcher: CoroutineContext,
-) {
+) : QuickShortcuts {
 
-	suspend fun refresh() {
+	// Windows jump-list items relaunch the executable rather than firing in-process events.
+	override val projectClicks: SharedFlow<ProjectDef> = MutableSharedFlow<ProjectDef>().asSharedFlow()
+
+	override fun init() {
+		if (!WindowsJumpListManager.isAvailable) return
+		runCatching { WindowsJumpListManager.setProcessAppId() }
+			.onFailure { Napier.w("WindowsJumpListManager.setProcessAppId failed", it) }
+	}
+
+	override suspend fun refresh(excludeCurrent: ProjectDef?) {
 		if (!WindowsJumpListManager.isAvailable) return
 
 		val categoryName = runCatching { getString(Res.string.jump_list_recent_projects) }
@@ -25,18 +36,7 @@ class DesktopJumpListManager(
 
 		withContext(ioDispatcher) {
 			runCatching {
-				val recent = projectsRepository.getProjects()
-					.map { def ->
-						val lastAccessed = runCatching {
-							projectMetadataDatasource.loadMetadata(def).info.lastAccessed
-						}.getOrNull()
-						def to lastAccessed
-					}
-					.sortedByDescending { it.second }
-					.take(MAX_RECENT_PROJECTS)
-					.map { it.first }
-
-				val items = recent.map { def ->
+				val items = projectsRepository.getRecentProjects(MAX_RECENT_PROJECTS).map { def ->
 					JumpListItem(
 						title = def.name,
 						arguments = "--$PROJECT_FLAG \"${def.name}\"",

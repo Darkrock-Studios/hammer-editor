@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -106,6 +109,20 @@ class ProjectsRepository(
 			.filter { it.name.startsWith('.').not() }
 			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
 	}
+
+	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
+	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
+		getProjects()
+			.filter { excludeCurrent == null || it.name != excludeCurrent.name }
+			.map { def ->
+				val lastAccessed = runCatching {
+					projectsMetadataDatasource.loadMetadata(def).info.lastAccessed
+				}.getOrNull()
+				def to lastAccessed
+			}
+			.sortedByDescending { it.second }
+			.take(limit)
+			.map { it.first }
 
 	fun getProjectDirectory(projectName: String): HPath {
 		val projectsDir = getProjectsDirectory().toOkioPath()

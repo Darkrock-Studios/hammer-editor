@@ -48,16 +48,11 @@ actual val platformMainDispatcher: CoroutineContext = Dispatchers.Main
 /**
  * Gets the user's Documents directory, respecting sandboxing on all platforms
  */
-private fun getDocumentsDirectory(): File {
-	return when (val os = System.getProperty("os.name").lowercase()) {
-		"linux", "freebsd", "openbsd", "netbsd" -> getLinuxDocuments()
-		else -> when {
-			os.startsWith("mac") || os.startsWith("darwin") -> getMacosDocuments()
-			os.startsWith("windows") -> getWindowsDocuments()
-			// Unknown OS: Safe fallback
-			else -> File(System.getProperty("user.home"), "Documents")
-		}
-	}
+private fun getDocumentsDirectory(): File = when (hostOs) {
+	HostOs.Linux -> getLinuxDocuments()
+	HostOs.MacOs -> getMacosDocuments()
+	HostOs.Windows -> getWindowsDocuments()
+	HostOs.Other -> File(System.getProperty("user.home"), "Documents")
 }
 
 private fun getMacosDocuments(): File {
