@@ -6,10 +6,23 @@ pluginManagement {
         mavenCentral()
     }
 }
+
+// F-Droid can't provide JBR or reach foojay, so skip both when -Pfdroid=true.
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    if (startParameter.projectProperties["fdroid"]?.isNotEmpty() != true &&
+        System.getenv("FDROID_BUILD") == null
+    ) {
+        id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    }
 }
 
 rootProject.name = "hammer"
 
-include(":base", ":android", ":desktop", ":composeUi", ":common", ":server", ":integrationTests")
+val isFDroidBuild = startParameter.projectProperties["fdroid"]?.isNotEmpty() == true ||
+    System.getenv("FDROID_BUILD") != null
+
+val modules = mutableListOf(":base", ":android", ":composeUi", ":common", ":server", ":integrationTests")
+if (!isFDroidBuild) {
+    modules += ":desktop"
+}
+include(*modules.toTypedArray())
