@@ -61,7 +61,7 @@ ktor = "3.4.3"
 ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
-slf4jSimple = "2.0.17"
+slf4jSimple = "2.0.18"
 turbine = "1.2.1"
 work-runtime-ktx = "2.11.2"
 
@@ -86,7 +86,7 @@ kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.0.0"
+compose-texteditor = "2.0.2"
 platform-spellcheckerkt = "1.1.0"
 flatpak-gradle-generator = "1.7.0"
 nucleus = "1.15.4"
