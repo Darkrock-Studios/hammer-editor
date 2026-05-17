@@ -48,6 +48,7 @@ kotlin {
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
+				implementation(libs.nucleus.decorated.window.material3)
 				implementation(libs.nucleus.launcher.windows)
 				implementation(libs.nucleus.launcher.linux)
 				implementation(libs.nucleus.launcher.macos)
