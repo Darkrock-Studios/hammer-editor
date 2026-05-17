@@ -378,10 +378,12 @@ class SceneEditorRepository(
 		}
 
 		val order = sceneDef.order.toString().padStart(orderDigits, '0')
-		val bareName = "$order-${sceneDef.name}-${sceneDef.id}"
+		val delim = ProjectsRepository.FILENAME_DELIMITER
+		val encodedName = ProjectsRepository.encodeForFilename(sceneDef.name)
+		val bareName = "$order$delim$encodedName$delim${sceneDef.id}"
 
 		val filename = if (sceneDef.type == SceneItem.Type.Scene) {
-			"$bareName.md"
+			"$bareName${SceneDatasource.SCENE_FILENAME_EXTENSION}"
 		} else {
 			bareName
 		}

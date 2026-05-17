@@ -359,6 +359,58 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		verifyTreeAndFilesystem()
 	}
 
+	// Names containing newly-allowed OS-forbidden chars (e.g. `\` `/` `?` `:`) must be encoded
+	// via ProjectsRepository.encodeForFilename and use the v2 `~` delimiter, otherwise the file
+	// path either splits on `\`/`/` or is rejected by the OS. Regression for crash where
+	// createScene wrote `1-foo\bar-8.md` to a non-existent parent dir on Windows.
+	@Test
+	fun `Create Scene, Name With Path-Separator Char Does Not Crash`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val sceneName = "foo\\bar"
+		val newScene = repo.createScene(null, sceneName)
+		assertNotNull(newScene, "Scene should have been created")
+		assertEquals(sceneName, newScene.name)
+
+		val scenePath = repo.getSceneFilePath(newScene.id).toOkioPath()
+		assertTrue(ffs.exists(scenePath), "Scene file should exist at $scenePath")
+
+		val fileName = scenePath.name
+		assertTrue(
+			SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(fileName) != null,
+			"Filename '$fileName' should match v2 SCENE_FILENAME_PATTERN",
+		)
+		assertFalse('\\' in fileName, "Raw backslash must not appear in filename '$fileName'")
+		assertFalse('/' in fileName, "Raw forward slash must not appear in filename '$fileName'")
+	}
+
+	// Companion regression for groups: same encoding rule applies to the directory name.
+	@Test
+	fun `Create Group, Name With Path-Separator Char Does Not Crash`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val groupName = "foo\\bar"
+		val newGroup = repo.createGroup(null, groupName)
+		assertNotNull(newGroup, "Group should have been created")
+		assertEquals(groupName, newGroup.name)
+
+		val groupPath = repo.getSceneFilePath(newGroup.id).toOkioPath()
+		assertTrue(ffs.exists(groupPath), "Group directory should exist at $groupPath")
+		assertTrue(ffs.metadata(groupPath).isDirectory, "Group path should be a directory")
+
+		val dirName = groupPath.name
+		assertFalse('\\' in dirName, "Raw backslash must not appear in group dir name '$dirName'")
+		assertFalse('/' in dirName, "Raw forward slash must not appear in group dir name '$dirName'")
+	}
+
 	@Test
 	fun `Delete Scene, In Root`() = runTest {
 		configure(PROJECT_2_NAME)
