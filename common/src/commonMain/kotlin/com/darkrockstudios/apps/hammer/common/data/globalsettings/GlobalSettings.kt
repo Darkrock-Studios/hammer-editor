@@ -46,6 +46,7 @@ data class GlobalSettings(
 	),
 	val installId: String? = null,
 	val deviceLabel: String? = null,
+	val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
 ) {
 	companion object {
 
@@ -76,6 +77,11 @@ enum class UiTheme {
 	Light,
 	Dark,
 	FollowSystem
+}
+
+enum class InitialProjectScreen {
+	Home,
+	Editor
 }
 
 object LocaleSerializer : KSerializer<Locale> {

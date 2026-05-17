@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import kotlinx.serialization.Serializable
 
@@ -14,6 +15,7 @@ interface AccountSettings : ComponentToaster {
 	val backupManagerSlot: Value<ChildSlot<BackupManagerConfig, BackupManager>>
 
 	fun setUiTheme(theme: UiTheme)
+	fun setInitialProjectScreen(value: InitialProjectScreen)
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
@@ -64,5 +66,6 @@ interface AccountSettings : ComponentToaster {
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
 		val maxBackups: Int,
+		val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
 	)
 }

@@ -67,7 +67,8 @@ class ProjectRootComponent(
 		::showEditorScene,
 		onCloseProject,
 		scope,
-		dispatcherMain
+		dispatcherMain,
+		settingsRepository.globalSettings.initialProjectScreen,
 	)
 
 	private val modalRouter = ProjectRootModalRouter(

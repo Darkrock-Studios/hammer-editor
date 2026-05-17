@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -22,21 +23,17 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.backups.BackupsSettingsUi
-import androidx.compose.runtime.rememberCoroutineScope
 
 private val MaxColumnWidth = 880.dp
-private const val SECTION_COUNT = 6
+private const val SECTION_COUNT = 7
 
 @Composable
 internal fun AccountSettingsUi(
@@ -98,6 +95,22 @@ internal fun AccountSettingsUi(
 
 					HdHairlineSection(
 						section = 2,
+						title = Res.string.settings_initial_screen_label.get(),
+						headerTrailing = {
+							HdMonoLabel(text = initialScreenLabel(state.initialProjectScreen))
+						},
+						contentSpacing = 12.dp,
+					) {
+						HdHairlineSegmentedPicker(
+							options = InitialProjectScreen.entries,
+							selected = state.initialProjectScreen,
+							onSelect = { component.setInitialProjectScreen(it) },
+							label = { initialScreenLabel(it) },
+						)
+					}
+
+					HdHairlineSection(
+						section = 3,
 						title = Res.string.settings_spellcheck_heading.get(),
 						contentSpacing = 18.dp,
 					) {
@@ -111,7 +124,7 @@ internal fun AccountSettingsUi(
 					)
 
 					HdHairlineSection(
-						section = 4,
+						section = 5,
 						title = Res.string.settings_backups_header.get(),
 						headerTrailing = {
 							HdMonoLabel(
@@ -124,7 +137,7 @@ internal fun AccountSettingsUi(
 					}
 
 					HdHairlineSection(
-						section = 5,
+						section = 6,
 						title = Res.string.settings_platform_settings_title.get(),
 						contentSpacing = 16.dp,
 					) {
@@ -132,7 +145,7 @@ internal fun AccountSettingsUi(
 					}
 
 					HdHairlineSection(
-						section = 6,
+						section = 7,
 						title = Res.string.settings_example_project_header.get(),
 						contentSpacing = 14.dp,
 					) {
@@ -284,4 +297,10 @@ private fun uiThemeLabel(theme: UiTheme): String = when (theme) {
 	UiTheme.Light -> "LIGHT"
 	UiTheme.Dark -> "DARK"
 	UiTheme.FollowSystem -> "SYSTEM"
+}
+
+@Composable
+private fun initialScreenLabel(screen: InitialProjectScreen): String = when (screen) {
+	InitialProjectScreen.Home -> Res.string.settings_initial_screen_home.get()
+	InitialProjectScreen.Editor -> Res.string.settings_initial_screen_editor.get()
 }

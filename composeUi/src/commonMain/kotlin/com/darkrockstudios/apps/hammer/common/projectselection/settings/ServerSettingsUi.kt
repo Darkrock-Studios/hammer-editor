@@ -2,17 +2,15 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -27,7 +25,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCatalogueCa
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -41,28 +38,30 @@ fun ServerSettingsUi(
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 ) {
-	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
 
+	val connectedLabel = Res.string.settings_server_status_connected.get()
+	val notConnectedLabel = Res.string.settings_server_status_not_connected.get()
+	val urlGreebleLabel = Res.string.settings_server_url_greeble.get()
 	val topEnd = if (state.serverIsLoggedIn) {
 		val email = state.currentEmail
 		if (!email.isNullOrBlank()) {
-			"CONNECTED · ${truncate(email, EMAIL_GREEBLE_MAX)}"
+			"$connectedLabel · ${truncate(email, EMAIL_GREEBLE_MAX)}"
 		} else {
-			"CONNECTED"
+			connectedLabel
 		}
 	} else {
-		"NOT CONNECTED"
+		notConnectedLabel
 	}
 	val bottomStart = state.currentUrl
 		?.takeIf { state.serverIsLoggedIn && it.isNotBlank() }
-		?.let { "URL · ${truncate(it, EMAIL_GREEBLE_MAX)}" }
+		?.let { "$urlGreebleLabel · ${truncate(it, EMAIL_GREEBLE_MAX)}" }
 
 	HdCatalogueCard(
 		modifier = modifier,
-		topStart = "§ III · SYNC",
+		topStart = "§ IV · SYNC",
 		topEnd = topEnd,
 		bottomStart = bottomStart,
 	) {
@@ -78,7 +77,7 @@ fun ServerSettingsUi(
 			)
 			Spacer(Modifier.size(12.dp))
 			HdMonoLabel(
-				text = "HELP ↗",
+				text = Res.string.settings_server_help_link.get(),
 				modifier = Modifier.clickable { showHelpDialog = true },
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)

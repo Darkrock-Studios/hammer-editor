@@ -3,6 +3,7 @@ package repositories.globalsettings
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
@@ -84,6 +85,36 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 		val loaded: GlobalSettings = datasource.loadSettings()
 
 		assertEquals(GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory), loaded)
+	}
+
+	@Test
+	fun `Load Global Settings missing initialProjectScreen defaults to Home`() = runTest {
+		val datasource = createDatasource()
+		fileSystem.write(GlobalSettingsFilesystemDatasource.CONFIG_PATH) {
+			writeUtf8(
+				"""
+				projectsDirectory = "test"
+				uiTheme = "FollowSystem"
+				""".trimIndent()
+			)
+		}
+
+		val loaded: GlobalSettings = datasource.loadSettings()
+
+		assertEquals(InitialProjectScreen.Home, loaded.initialProjectScreen)
+	}
+
+	@Test
+	fun `Store and load preserves initialProjectScreen`() = runTest {
+		val datasource = createDatasource()
+		val settings = GlobalSettingsRepository.createDefault(languageUtil, platformSpellCheckerFactory).copy(
+			initialProjectScreen = InitialProjectScreen.Editor,
+		)
+
+		datasource.storeSettings(settings)
+		val loaded: GlobalSettings = datasource.loadSettings()
+
+		assertEquals(InitialProjectScreen.Editor, loaded.initialProjectScreen)
 	}
 
 	@Test

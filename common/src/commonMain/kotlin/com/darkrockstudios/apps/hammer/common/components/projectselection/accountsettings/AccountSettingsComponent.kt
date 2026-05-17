@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -69,6 +70,7 @@ class AccountSettingsComponent(
 			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
 			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
 			maxBackups = globalSettingsRepository.globalSettings.maxBackups,
+			initialProjectScreen = globalSettingsRepository.globalSettings.initialProjectScreen,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -92,6 +94,7 @@ class AccountSettingsComponent(
 							uiTheme = settings.uiTheme,
 							syncAutomaticBackups = settings.automaticBackups,
 							maxBackups = settings.maxBackups,
+							initialProjectScreen = settings.initialProjectScreen,
 						)
 					}
 				}
@@ -120,6 +123,16 @@ class AccountSettingsComponent(
 			globalSettingsRepository.updateSettings {
 				it.copy(
 					uiTheme = theme
+				)
+			}
+		}
+	}
+
+	override fun setInitialProjectScreen(value: InitialProjectScreen) {
+		scope.launch {
+			globalSettingsRepository.updateSettings {
+				it.copy(
+					initialProjectScreen = value
 				)
 			}
 		}
