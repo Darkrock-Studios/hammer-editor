@@ -7,13 +7,7 @@ pluginManagement {
     }
 }
 
-// F-Droid's buildserver cannot reach the foojay disco API to resolve toolchains,
-// and cannot provide a JetBrains Runtime — both of which the :desktop module
-// requires. F-Droid only ships the Android app, so when -Pfdroid=true is set
-// we drop foojay and exclude :desktop entirely.
-//
-// The plugins {} block is compiled in a restricted scope and can't see vars
-// defined outside it, so the condition is inlined.
+// F-Droid can't provide JBR or reach foojay, so skip both when -Pfdroid=true.
 plugins {
     if (startParameter.projectProperties["fdroid"]?.isNotEmpty() != true &&
         System.getenv("FDROID_BUILD") == null
