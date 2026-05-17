@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="settings_heading">⚙ Settings</string>
+	<string name="account_settings_breadcrumb">ACCOUNT</string>
+	<string name="account_settings_subtitle_local_install">LOCAL INSTALL</string>
+	<string name="account_settings_folio_caption">ACCOUNT SETTINGS</string>
 	<string name="settings_backups_header">Backups</string>
 	<string name="settings_backups_description">Manage your project backups</string>
 	<string
@@ -8,6 +11,9 @@
 	</string>
 	<string name="settings_backups_manage_button">Manage Backups</string>
 	<string name="settings_theme_label">UI Theme</string>
+	<string name="settings_theme_light">LIGHT</string>
+	<string name="settings_theme_dark">DARK</string>
+	<string name="settings_theme_followsystem">SYSTEM</string>
 	<string name="settings_initial_screen_label">Initial Project Screen</string>
 	<string name="settings_initial_screen_home">Home</string>
 	<string name="settings_initial_screen_editor">Scene Editor</string>

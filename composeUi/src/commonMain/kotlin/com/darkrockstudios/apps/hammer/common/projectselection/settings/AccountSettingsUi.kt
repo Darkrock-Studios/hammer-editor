@@ -176,7 +176,7 @@ private fun Breadcrumb(
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
 		HdMonoLabel(
-			text = "HAMMER",
+			text = Res.string.app_name.get().uppercase(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		HdMonoLabel(
@@ -184,7 +184,7 @@ private fun Breadcrumb(
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
 		HdMonoLabel(
-			text = "ACCOUNT",
+			text = Res.string.account_settings_breadcrumb.get(),
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 		Spacer(Modifier.weight(1f))
@@ -217,22 +217,23 @@ private fun Hero(
 	email: String?,
 	isCompact: Boolean,
 ) {
+	val connectedLabel = Res.string.settings_server_status_connected.get()
+	val localInstallLabel = Res.string.account_settings_subtitle_local_install.get()
 	val subtitle = buildString {
 		append("v")
 		append(getDataVersion())
 		append(" · ")
 		if (loggedIn && !email.isNullOrBlank()) {
-			append("CONNECTED · ${email.uppercase()}")
+			append("$connectedLabel · ${email.uppercase()}")
 		} else if (loggedIn) {
-			append("CONNECTED")
+			append(connectedLabel)
 		} else {
-			append("LOCAL INSTALL")
+			append(localInstallLabel)
 		}
 	}
 	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-		HdMonoLabel(text = "§ 0 · ACCOUNT")
 		Text(
-			text = "Hammer",
+			text = Res.string.app_name.get(),
 			style = if (isCompact) MaterialTheme.typography.displaySmall
 			else MaterialTheme.typography.displayMedium,
 			color = MaterialTheme.colorScheme.onSurface,
@@ -284,7 +285,7 @@ private fun FolioCaption(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
 	) {
-		HdMonoLabel(text = "ACCOUNT SETTINGS")
+		HdMonoLabel(text = Res.string.account_settings_folio_caption.get())
 		HdMonoLabel(
 			text = "·",
 			color = MaterialTheme.colorScheme.outlineVariant,
@@ -293,10 +294,11 @@ private fun FolioCaption(
 	}
 }
 
+@Composable
 private fun uiThemeLabel(theme: UiTheme): String = when (theme) {
-	UiTheme.Light -> "LIGHT"
-	UiTheme.Dark -> "DARK"
-	UiTheme.FollowSystem -> "SYSTEM"
+	UiTheme.Light -> Res.string.settings_theme_light.get()
+	UiTheme.Dark -> Res.string.settings_theme_dark.get()
+	UiTheme.FollowSystem -> Res.string.settings_theme_followsystem.get()
 }
 
 @Composable
