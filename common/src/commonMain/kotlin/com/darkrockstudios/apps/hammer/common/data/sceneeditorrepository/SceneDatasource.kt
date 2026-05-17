@@ -163,8 +163,8 @@ class SceneDatasource(
 
 		val childNodes = fileSystem.list(sceneDirPath)
 			.filterScenePathsOkio()
-			.map { it.toOkioPath() }
-			.map { path -> loadSceneTreeNode(path.toHPath()) }
+			.validateScenePaths()
+			.map { path -> loadSceneTreeNode(path) }
 
 		for (child in childNodes) {
 			rootNode.addChild(child)
@@ -181,6 +181,7 @@ class SceneDatasource(
 		if (fileSystem.metadata(rootPath).isDirectory) {
 			val childNodes = fileSystem.list(rootPath)
 				.filterScenePathsOkio()
+				.validateScenePaths()
 				.map { path -> loadSceneTreeNode(path) }
 
 			for (child in childNodes) {
@@ -604,3 +605,18 @@ fun Collection<HPath>.filterScenePaths() = filter {
 fun Sequence<HPath>.filterScenePaths() = filter {
 	validateSceneFilename(it.name) && !it.isInArchivedDirectory()
 }.sortedBy { it.name }
+
+// Reject scenes with duplicate IDs (first seen wins, later duplicates refused). #492
+fun Collection<HPath>.validateScenePaths(): List<HPath> {
+	val seen = LinkedHashMap<Int, HPath>()
+	for (path in this) {
+		val id = SceneDatasource.getSceneIdFromFilename(path.toOkioPath().name)
+		val existing = seen[id]
+		if (existing == null) {
+			seen[id] = path
+		} else {
+			Napier.e("Duplicate scene id $id on disk: keeping ${existing.name}, refusing ${path.name}")
+		}
+	}
+	return seen.values.toList()
+}
