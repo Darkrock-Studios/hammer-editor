@@ -89,7 +89,7 @@ kotlinx-io-okio = "0.9.0"
 compose-texteditor = "2.0.3"
 platform-spellcheckerkt = "1.1.0"
 flatpak-gradle-generator = "1.7.0"
-nucleus = "1.15.4"
+nucleus = "1.15.5"
 colorpicker-compose = "1.1.4"
 material-kolor = "4.1.1"
 
