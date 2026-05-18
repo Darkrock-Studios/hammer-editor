@@ -137,16 +137,15 @@ class StatisticsService(
 
 			yield()
 
-			val wordsByChapter = mutableMapOf<String, Int>()
+			val wordsByChapter = mutableMapOf<Int, Int>()
 			tree.children.forEach { node ->
-				val chapterName = node.value.name
 				var wordsInChapter = 0
 				node.forEach { child ->
 					if (child.value.type == SceneItem.Type.Scene) {
 						wordsInChapter += wordsByScene[child.value.id] ?: 0
 					}
 				}
-				wordsByChapter[chapterName] = wordsInChapter
+				wordsByChapter[node.value.id] = wordsInChapter
 			}
 
 			yield()
@@ -273,9 +272,5 @@ class StatisticsService(
  * Extension function to count words in a scene.
  */
 fun SceneEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
-	val markdown = loadSceneMarkdownRaw(sceneItem)
-	val count = wordRegex.findAll(markdown.trim()).count()
-	return count
+	return countWords(loadSceneMarkdownRaw(sceneItem))
 }
-
-private val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

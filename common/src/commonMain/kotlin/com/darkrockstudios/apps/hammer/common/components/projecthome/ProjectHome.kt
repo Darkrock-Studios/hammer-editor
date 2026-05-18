@@ -61,7 +61,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val created: String,
 		val numberOfScenes: Int = 0,
 		val totalWords: Int = 0,
-		val wordsByChapter: Map<String, Int> = emptyMap(),
+		val wordsByChapter: Map<Int, Int> = emptyMap(),
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
 		val longestSceneId: Int? = null,
 		val longestSceneName: String? = null,

@@ -17,7 +17,7 @@ data class EntryAppearance(
 data class ProjectStatistics(
 	val numberOfScenes: Int,
 	val totalWords: Int,
-	val wordsByChapter: Map<String, Int>,
+	val wordsByChapter: Map<Int, Int>,
 	val encyclopediaEntriesByType: Map<String, Int>,
 	val longestSceneId: Int? = null,
 	val longestSceneName: String? = null,
@@ -48,6 +48,6 @@ data class ProjectStatistics(
 	val schemaVersion: Int = 0,
 ) {
 	companion object {
-		const val CURRENT_SCHEMA_VERSION = 5
+		const val CURRENT_SCHEMA_VERSION = 6
 	}
 }
