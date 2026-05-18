@@ -1154,7 +1154,8 @@ class SceneEditorRepository(
 		}
 
 		// Calculate new order (append at end of root)
-		val newOrder = getLastOrderNumber(null) + 1
+		val lastOrder = getLastOrderNumber(null)
+		val newOrder = lastOrder + 1
 
 		sceneDatasource.unarchiveScene(scene, newOrder)
 
@@ -1166,6 +1167,11 @@ class SceneEditorRepository(
 		// Add to tree at root level
 		val newNode = TreeNode(unarchivedScene)
 		sceneTree.root().addChild(newNode)
+
+		// SceneDatasource.unarchiveScene writes the file with an unpadded order. Update if needed.
+		if (lastOrder.numDigits() < newOrder.numDigits()) {
+			updateSceneOrder(SceneItem.ROOT_ID)
+		}
 
 		markForSynchronization(unarchivedScene)
 
